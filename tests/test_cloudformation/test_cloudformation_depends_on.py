@@ -23,7 +23,9 @@ depends_on_template_list = {
         },
         "LaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Properties": {"LaunchConfigurationName": "test-launch-config",},
+            "Properties": {
+                "LaunchConfigurationName": "test-launch-config",
+            },
         },
     },
 }
@@ -45,7 +47,9 @@ depends_on_template_string = {
         },
         "LaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Properties": {"LaunchConfigurationName": "test-launch-config",},
+            "Properties": {
+                "LaunchConfigurationName": "test-launch-config",
+            },
         },
     },
 }

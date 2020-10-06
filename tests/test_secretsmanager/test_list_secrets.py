@@ -123,7 +123,7 @@ def test_with_all_filter():
     secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["foo"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert sorted(secret_names) == ['bar', 'baz', 'foo', 'multi', 'qux']
+    assert sorted(secret_names) == ["bar", "baz", "foo", "multi", "qux"]
 
 
 @mock_secretsmanager

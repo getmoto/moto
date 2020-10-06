@@ -931,7 +931,10 @@ def test_tag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.tag_resource(
-            ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"},],
+            ResourceId="000000000000",
+            Tags=[
+                {"Key": "key", "Value": "value"},
+            ],
         )
     ex = e.value
     ex.operation_name.should.equal("TagResource")

@@ -82,20 +82,21 @@ def test_create_training_job():
         r"^arn:aws:sagemaker:.*:.*:training-job/{}$".format(training_job_name)
     )
     assert resp["ModelArtifacts"]["S3ModelArtifacts"].startswith(
-            params["OutputDataConfig"]["S3OutputPath"]
-        )
+        params["OutputDataConfig"]["S3OutputPath"]
+    )
     assert training_job_name in (resp["ModelArtifacts"]["S3ModelArtifacts"])
-    assert \
-        resp["ModelArtifacts"]["S3ModelArtifacts"].endswith("output/model.tar.gz")
+    assert resp["ModelArtifacts"]["S3ModelArtifacts"].endswith("output/model.tar.gz")
     assert resp["TrainingJobStatus"] == "Completed"
     assert resp["SecondaryStatus"] == "Completed"
     assert resp["HyperParameters"] == params["HyperParameters"]
-    assert \
-        resp["AlgorithmSpecification"]["TrainingImage"] == \
-        params["AlgorithmSpecification"]["TrainingImage"]
-    assert \
-        resp["AlgorithmSpecification"]["TrainingInputMode"] == \
-        params["AlgorithmSpecification"]["TrainingInputMode"]
+    assert (
+        resp["AlgorithmSpecification"]["TrainingImage"]
+        == params["AlgorithmSpecification"]["TrainingImage"]
+    )
+    assert (
+        resp["AlgorithmSpecification"]["TrainingInputMode"]
+        == params["AlgorithmSpecification"]["TrainingInputMode"]
+    )
     assert "MetricDefinitions" in resp["AlgorithmSpecification"]
     assert "Name" in resp["AlgorithmSpecification"]["MetricDefinitions"][0]
     assert "Regex" in resp["AlgorithmSpecification"]["MetricDefinitions"][0]

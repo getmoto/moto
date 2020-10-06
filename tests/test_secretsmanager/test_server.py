@@ -89,9 +89,10 @@ def test_get_secret_that_has_no_value():
     )
 
     json_data = json.loads(get_secret.data.decode("utf-8"))
-    assert \
-        json_data["message"] == \
-        "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT"
+    assert (
+        json_data["message"]
+        == "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT"
+    )
     assert json_data["__type"] == "ResourceNotFoundException"
 
 

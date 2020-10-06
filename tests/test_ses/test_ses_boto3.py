@@ -89,7 +89,9 @@ def test_send_email_when_verify_source():
     conn = boto3.client("ses", region_name="us-east-1")
 
     kwargs = dict(
-        Destination={"ToAddresses": ["test_to@example.com"],},
+        Destination={
+            "ToAddresses": ["test_to@example.com"],
+        },
         Message={
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
@@ -276,7 +278,16 @@ def test_send_email_notification_with_encoded_sender():
     response = conn.send_email(
         Source=sender,
         Destination={"ToAddresses": ["your.friend@hotmail.com"]},
-        Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}}},
+        Message={
+            "Subject": {
+                "Data": "hi",
+            },
+            "Body": {
+                "Text": {
+                    "Data": "there",
+                }
+            },
+        },
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
@@ -291,7 +302,9 @@ def test_create_configuration_set():
         EventDestination={
             "Name": "snsEvent",
             "Enabled": True,
-            "MatchingEventTypes": ["send",],
+            "MatchingEventTypes": [
+                "send",
+            ],
             "SNSDestination": {
                 "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
             },
@@ -304,7 +317,9 @@ def test_create_configuration_set():
             EventDestination={
                 "Name": "snsEvent",
                 "Enabled": True,
-                "MatchingEventTypes": ["send",],
+                "MatchingEventTypes": [
+                    "send",
+                ],
                 "SNSDestination": {
                     "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
                 },
@@ -319,7 +334,9 @@ def test_create_configuration_set():
             EventDestination={
                 "Name": "snsEvent",
                 "Enabled": True,
-                "MatchingEventTypes": ["send",],
+                "MatchingEventTypes": [
+                    "send",
+                ],
                 "SNSDestination": {
                     "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
                 },

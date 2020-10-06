@@ -56,9 +56,10 @@ def test_get_secret_that_does_not_exist():
     with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="i-dont-exist")
 
-    assert \
-        "Secrets Manager can't find the specified secret." == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -71,9 +72,10 @@ def test_get_secret_that_does_not_match():
     with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="i-dont-match")
 
-    assert \
-        "Secrets Manager can't find the specified secret." == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -97,9 +99,10 @@ def test_get_secret_that_has_no_value():
     with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="java-util-test-password")
 
-    assert \
-        "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT" == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT"
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -113,11 +116,10 @@ def test_get_secret_version_that_does_not_exist():
     with pytest.raises(ClientError) as cm:
         conn.get_secret_value(SecretId=secret_arn, VersionId=missing_version_id)
 
-    assert \
-        (
-            "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
-            "Manager can't find the specified secret value for VersionId: 00000000-0000-0000-0000-000000000000"
-        ) == cm.value.response["Error"]["Message"]
+    assert (
+        "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
+        "Manager can't find the specified secret value for VersionId: 00000000-0000-0000-0000-000000000000"
+    ) == cm.value.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -879,9 +881,10 @@ def test_update_secret_which_does_not_exit():
             SecretId="test-secret", SecretString="barsecret"
         )
 
-    assert \
-        "Secrets Manager can't find the specified secret." == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -897,8 +900,7 @@ def test_update_secret_marked_as_deleted():
         )
 
     assert (
-        "because it was marked for deletion."
-        in cm.value.response["Error"]["Message"]
+        "because it was marked for deletion." in cm.value.response["Error"]["Message"]
     )
 
 
@@ -924,11 +926,17 @@ def test_tag_resource():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     conn.create_secret(Name="test-secret", SecretString="foosecret")
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        SecretId="test-secret",
+        Tags=[
+            {"Key": "FirstTag", "Value": "SomeValue"},
+        ],
     )
 
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
+        SecretId="test-secret",
+        Tags=[
+            {"Key": "SecondTag", "Value": "AnotherValue"},
+        ],
     )
 
     secrets = conn.list_secrets()
@@ -940,7 +948,9 @@ def test_tag_resource():
     with assert_raises(ClientError) as cm:
         conn.tag_resource(
             SecretId="dummy-test-secret",
-            Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+            Tags=[
+                {"Key": "FirstTag", "Value": "SomeValue"},
+            ],
         )
 
     assert_equal(

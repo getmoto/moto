@@ -616,9 +616,9 @@ def test_ami_describe_executable_users_and_filter():
 @mock_ec2_deprecated
 def test_ami_attribute_user_and_group_permissions():
     """
-      Boto supports adding/removing both users and groups at the same time.
-      Just spot-check this -- input variations, idempotency, etc are validated
-        via user-specific and group-specific tests above.
+    Boto supports adding/removing both users and groups at the same time.
+    Just spot-check this -- input variations, idempotency, etc are validated
+      via user-specific and group-specific tests above.
     """
     conn = boto.connect_ec2("the_key", "the_secret")
     reservation = conn.run_instances("ami-1234abcd")

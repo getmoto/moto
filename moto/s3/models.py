@@ -523,7 +523,10 @@ class LifecycleAndFilter(BaseModel):
 
         for key, value in self.tags.items():
             data.append(
-                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value},}
+                {
+                    "type": "LifecycleTagPredicate",
+                    "tag": {"key": key, "value": value},
+                }
             )
 
         return data
@@ -1129,7 +1132,11 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1469,7 +1476,8 @@ class S3Backend(BaseBackend):
             raise MissingKey(key_name)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(
-            key.arn, [{"Key": k, "Value": v} for (k, v) in tags.items()],
+            key.arn,
+            [{"Key": k, "Value": v} for (k, v) in tags.items()],
         )
         return key
 
@@ -1481,7 +1489,8 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         self.tagger.delete_all_tags_for_resource(bucket.arn)
         self.tagger.tag_resource(
-            bucket.arn, [{"Key": key, "Value": value} for key, value in tags.items()],
+            bucket.arn,
+            [{"Key": key, "Value": value} for key, value in tags.items()],
         )
 
     def delete_bucket_tagging(self, bucket_name):
