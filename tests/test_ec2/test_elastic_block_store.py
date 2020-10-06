@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+import pytest
 
 from moto.ec2 import ec2_backends
 import boto
@@ -31,7 +30,7 @@ def test_create_and_delete_volume():
 
     volume = current_volume[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         volume.delete(dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -46,7 +45,7 @@ def test_create_and_delete_volume():
     my_volume.should.have.length_of(0)
 
     # Deleting something that was already deleted should throw an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         volume.delete()
     cm.exception.code.should.equal("InvalidVolume.NotFound")
     cm.exception.status.should.equal(400)
@@ -95,7 +94,7 @@ def test_delete_attached_volume():
 @mock_ec2_deprecated
 def test_create_encrypted_volume_dryrun():
     conn = boto.ec2.connect_to_region("us-east-1")
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -109,7 +108,7 @@ def test_create_encrypted_volume():
     conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -134,7 +133,7 @@ def test_filter_volume_by_id():
     vol2 = conn.get_all_volumes(volume_ids=[volume1.id, volume2.id])
     vol2.should.have.length_of(2)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_volumes(volume_ids=["vol-does_not_exist"])
     cm.exception.code.should.equal("InvalidVolume.NotFound")
     cm.exception.status.should.equal(400)
@@ -259,7 +258,7 @@ def test_volume_attach_and_detach():
     volume.update()
     volume.volume_state().should.equal("available")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         volume.attach(instance.id, "/dev/sdh", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -275,7 +274,7 @@ def test_volume_attach_and_detach():
 
     volume.attach_data.instance_id.should.equal(instance.id)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         volume.detach(dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -288,19 +287,19 @@ def test_volume_attach_and_detach():
     volume.update()
     volume.volume_state().should.equal("available")
 
-    with assert_raises(EC2ResponseError) as cm1:
+    with pytest.raises(EC2ResponseError) as cm1:
         volume.attach("i-1234abcd", "/dev/sdh")
     cm1.exception.code.should.equal("InvalidInstanceID.NotFound")
     cm1.exception.status.should.equal(400)
     cm1.exception.request_id.should_not.be.none
 
-    with assert_raises(EC2ResponseError) as cm2:
+    with pytest.raises(EC2ResponseError) as cm2:
         conn.detach_volume(volume.id, instance.id, "/dev/sdh")
     cm2.exception.code.should.equal("InvalidAttachment.NotFound")
     cm2.exception.status.should.equal(400)
     cm2.exception.request_id.should_not.be.none
 
-    with assert_raises(EC2ResponseError) as cm3:
+    with pytest.raises(EC2ResponseError) as cm3:
         conn.detach_volume(volume.id, "i-1234abcd", "/dev/sdh")
     cm3.exception.code.should.equal("InvalidInstanceID.NotFound")
     cm3.exception.status.should.equal(400)
@@ -312,7 +311,7 @@ def test_create_snapshot():
     conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         snapshot = volume.create_snapshot("a dryrun snapshot", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -340,7 +339,7 @@ def test_create_snapshot():
     conn.get_all_snapshots().should.have.length_of(num_snapshots)
 
     # Deleting something that was already deleted should throw an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         snapshot.delete()
     cm.exception.code.should.equal("InvalidSnapshot.NotFound")
     cm.exception.status.should.equal(400)
@@ -382,7 +381,7 @@ def test_filter_snapshot_by_id():
         s.volume_id.should.be.within([volume2.id, volume3.id])
         s.region.name.should.equal(conn.region.name)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_snapshots(snapshot_ids=["snap-does_not_exist"])
     cm.exception.code.should.equal("InvalidSnapshot.NotFound")
     cm.exception.status.should.equal(400)
@@ -484,7 +483,7 @@ def test_snapshot_attribute():
 
     # Add 'all' group and confirm
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -506,7 +505,7 @@ def test_snapshot_attribute():
     )
 
     # Remove 'all' group and confirm
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{"dry_run": True}))
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -527,7 +526,7 @@ def test_snapshot_attribute():
     ).should_not.throw(EC2ResponseError)
 
     # Error: Add with group != 'all'
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_snapshot_attribute(
             snapshot.id,
             attribute="createVolumePermission",
@@ -539,7 +538,7 @@ def test_snapshot_attribute():
     cm.exception.request_id.should_not.be.none
 
     # Error: Add with invalid snapshot ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_snapshot_attribute(
             "snapshot-abcd1234",
             attribute="createVolumePermission",
@@ -551,7 +550,7 @@ def test_snapshot_attribute():
     cm.exception.request_id.should_not.be.none
 
     # Error: Remove with invalid snapshot ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_snapshot_attribute(
             "snapshot-abcd1234",
             attribute="createVolumePermission",
@@ -740,7 +739,7 @@ def test_create_volume_from_snapshot():
     volume = conn.create_volume(80, "us-east-1a")
     snapshot = volume.create_snapshot("a test snapshot")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         snapshot = volume.create_snapshot("a test snapshot", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -786,7 +785,7 @@ def test_modify_attribute_blockDeviceMapping():
 
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute(
             "blockDeviceMapping", {"/dev/sda1": True}, dry_run=True
         )
@@ -809,7 +808,7 @@ def test_volume_tag_escaping():
     vol = conn.create_volume(10, "us-east-1a")
     snapshot = conn.create_snapshot(vol.id, "Desc")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         snapshot.add_tags({"key": "</closed>"}, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -879,25 +878,25 @@ def test_copy_snapshot():
         getattr(source, attrib).should.equal(getattr(dest, attrib))
 
     # Copy from non-existent source ID.
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         create_snapshot_error = ec2_client.create_snapshot(VolumeId="vol-abcd1234")
-    cm.exception.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
-    cm.exception.response["Error"]["Message"].should.equal(
-        "The volume 'vol-abcd1234' does not exist."
-    )
-    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        cm.exception.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
+        cm.exception.response["Error"]["Message"].should.equal(
+            "The volume 'vol-abcd1234' does not exist."
+        )
+        cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
+        cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Copy from non-existent source region.
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         copy_snapshot_response = dest_ec2_client.copy_snapshot(
             SourceSnapshotId=create_snapshot_response["SnapshotId"],
             SourceRegion="eu-west-2",
         )
-    cm.exception.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-    cm.exception.response["Error"]["Message"].should.be.none
-    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        cm.exception.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+        cm.exception.response["Error"]["Message"].should.be.none
+        cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
+        cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_ec2

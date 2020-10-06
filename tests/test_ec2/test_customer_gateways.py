@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 import boto
 import sure  # noqa
-from nose.tools import assert_raises
-from nose.tools import assert_false
+import pytest
 from boto.exception import EC2ResponseError
 
 from moto import mock_ec2_deprecated
@@ -45,5 +44,5 @@ def test_delete_customer_gateways():
 @mock_ec2_deprecated
 def test_delete_customer_gateways_bad_id():
     conn = boto.connect_vpc("the_key", "the_secret")
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_customer_gateway("cgw-0123abcd")

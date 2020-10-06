@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
+import pytest
 from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
 
@@ -31,7 +30,7 @@ def test_vpcs():
     all_vpcs = conn.get_all_vpcs()
     all_vpcs.should.have.length_of(1)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_vpc("vpc-1234abcd")
     cm.exception.code.should.equal("InvalidVpcID.NotFound")
     cm.exception.status.should.equal(400)
@@ -114,7 +113,7 @@ def test_vpc_get_by_id():
     vpc1.id.should.be.within(vpc_ids)
     vpc2.id.should.be.within(vpc_ids)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_vpcs(vpc_ids=["vpc-does_not_exist"])
     cm.exception.code.should.equal("InvalidVpcID.NotFound")
     cm.exception.status.should.equal(400)
@@ -402,7 +401,7 @@ def test_associate_vpc_ipv4_cidr_block():
     )
 
     # Check error on adding 6th association.
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         response = ec2.meta.client.associate_vpc_cidr_block(
             VpcId=vpc.id, CidrBlock="10.10.50.0/22"
         )
@@ -447,7 +446,7 @@ def test_disassociate_vpc_ipv4_cidr_block():
     )
 
     # Error attempting to delete a non-existent CIDR_BLOCK association
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         response = ec2.meta.client.disassociate_vpc_cidr_block(
             AssociationId="vpc-cidr-assoc-BORING123"
         )
@@ -469,7 +468,7 @@ def test_disassociate_vpc_ipv4_cidr_block():
         {},
     )["AssociationId"]
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         response = ec2.meta.client.disassociate_vpc_cidr_block(
             AssociationId=vpc_base_cidr_assoc_id
         )
@@ -549,7 +548,7 @@ def test_vpc_associate_ipv6_cidr_block():
     ipv6_cidr_block_association_set["AssociationId"].should.contain("vpc-cidr-assoc")
 
     # Test Fail on adding 2nd IPV6 association - AWS only allows 1 at this time!
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         response = ec2.meta.client.associate_vpc_cidr_block(
             VpcId=vpc.id, AmazonProvidedIpv6CidrBlock=True
         )
@@ -657,7 +656,7 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     vpc_cidr_block = "1000.1.0.0/20"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.exception).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateVpc "
@@ -672,7 +671,7 @@ def test_create_vpc_with_invalid_cidr_range():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     vpc_cidr_block = "10.1.0.0/29"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.exception).should.equal(
         "An error occurred (InvalidVpc.Range) when calling the CreateVpc "

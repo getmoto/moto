@@ -10,7 +10,7 @@ import sure  # noqa
 import uuid
 
 import botocore
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_route53, mock_route53_deprecated
 
@@ -855,7 +855,7 @@ def test_change_resource_record_invalid():
         ],
     }
 
-    with assert_raises(botocore.exceptions.ClientError):
+    with pytest.raises(botocore.exceptions.ClientError):
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id, ChangeBatch=invalid_a_record_payload
         )
@@ -878,7 +878,7 @@ def test_change_resource_record_invalid():
         ],
     }
 
-    with assert_raises(botocore.exceptions.ClientError):
+    with pytest.raises(botocore.exceptions.ClientError):
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id, ChangeBatch=invalid_cname_record_payload
         )

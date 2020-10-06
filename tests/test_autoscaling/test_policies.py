@@ -7,7 +7,7 @@ import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
 
-from utils import setup_networking_deprecated
+from .utils import setup_networking_deprecated
 
 
 def setup_autoscale_group():

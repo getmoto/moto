@@ -12,9 +12,7 @@ import boto.cloudformation
 from boto.exception import BotoServerError
 import sure  # noqa
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
+import pytest
 from moto.core import ACCOUNT_ID
 
 from moto import (
@@ -319,7 +317,7 @@ def test_delete_stack_by_id():
     conn.describe_stacks().should.have.length_of(1)
     conn.delete_stack(stack_id)
     conn.describe_stacks().should.have.length_of(0)
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.describe_stacks("test_stack")
 
     conn.describe_stacks(stack_id).should.have.length_of(1)
@@ -338,7 +336,7 @@ def test_delete_stack_with_resource_missing_delete_attr():
 @mock_cloudformation_deprecated
 def test_bad_describe_stack():
     conn = boto.connect_cloudformation()
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.describe_stacks("bad_stack")
 
 
@@ -519,7 +517,7 @@ def test_update_stack_when_rolled_back():
         stack_id
     ].status = "ROLLBACK_COMPLETE"
 
-    with assert_raises(BotoServerError) as err:
+    with pytest.raises(BotoServerError) as err:
         conn.update_stack("test_stack", dummy_template_json)
 
     ex = err.exception

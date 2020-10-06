@@ -7,7 +7,7 @@ import json
 import six
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_organizations
 from moto.core import ACCOUNT_ID
@@ -61,7 +61,7 @@ def test_describe_organization():
 @mock_organizations
 def test_describe_organization_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.describe_organization()
     ex = e.exception
     ex.operation_name.should.equal("DescribeOrganization")
@@ -110,7 +110,7 @@ def test_describe_organizational_unit():
 def test_describe_organizational_unit_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.describe_organizational_unit(
             OrganizationalUnitId=utils.make_random_root_id()
         )
@@ -139,7 +139,7 @@ def test_list_organizational_units_for_parent():
 @mock_organizations
 def test_list_organizational_units_for_parent_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_organizational_units_for_parent(
             ParentId=utils.make_random_root_id()
         )
@@ -193,7 +193,7 @@ def test_describe_account():
 @mock_organizations
 def test_describe_account_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.describe_account(AccountId=utils.make_random_account_id())
     ex = e.exception
     ex.operation_name.should.equal("DescribeAccount")
@@ -335,7 +335,7 @@ def test_list_children_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_children(
             ParentId=utils.make_random_root_id(), ChildType="ACCOUNT"
         )
@@ -343,7 +343,7 @@ def test_list_children_exception():
     ex.operation_name.should.equal("ListChildren")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("ParentNotFoundException")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_children(ParentId=root_id, ChildType="BLEE")
     ex = e.exception
     ex.operation_name.should.equal("ListChildren")
@@ -387,7 +387,7 @@ def test_create_policy_errors():
 
     # invalid policy type
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_policy(
             Content=json.dumps(policy_doc01),
             Description="moto",
@@ -427,13 +427,13 @@ def test_describe_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
     policy_id = "p-47fhe9s3"
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.describe_policy(PolicyId=policy_id)
     ex = e.exception
     ex.operation_name.should.equal("DescribePolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.describe_policy(PolicyId="meaninglessstring")
     ex = e.exception
     ex.operation_name.should.equal("DescribePolicy")
@@ -626,7 +626,7 @@ def test_delete_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
     non_existent_policy_id = utils.make_random_policy_id()
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.delete_policy(PolicyId=non_existent_policy_id)
     ex = e.exception
     ex.operation_name.should.equal("DeletePolicy")
@@ -642,7 +642,7 @@ def test_delete_policy_exception():
     )["Policy"]["PolicySummary"]["Id"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=root_id)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.delete_policy(PolicyId=policy_id)
     ex = e.exception
     ex.operation_name.should.equal("DeletePolicy")
@@ -663,7 +663,7 @@ def test_attach_policy_exception():
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     ex = e.exception
     ex.operation_name.should.equal("AttachPolicy")
@@ -671,7 +671,7 @@ def test_attach_policy_exception():
     ex.response["Error"]["Message"].should.contain(
         "OrganizationalUnitNotFoundException"
     )
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
     ex = e.exception
     ex.operation_name.should.equal("AttachPolicy")
@@ -679,7 +679,7 @@ def test_attach_policy_exception():
     ex.response["Error"]["Message"].should.contain(
         "OrganizationalUnitNotFoundException"
     )
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     ex = e.exception
     ex.operation_name.should.equal("AttachPolicy")
@@ -688,7 +688,7 @@ def test_attach_policy_exception():
     ex.response["Error"]["Message"].should.equal(
         "You specified an account that doesn't exist."
     )
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.attach_policy(
             PolicyId=policy_id, TargetId="meaninglessstring"
         )
@@ -729,7 +729,7 @@ def test_update_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
     non_existent_policy_id = utils.make_random_policy_id()
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.update_policy(PolicyId=non_existent_policy_id)
     ex = e.exception
     ex.operation_name.should.equal("UpdatePolicy")
@@ -791,7 +791,7 @@ def test_list_policies_for_target_exception():
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou_id = "ou-gi99-i7r8eh2i2"
     account_id = "126644886543"
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_policies_for_target(
             TargetId=ou_id, Filter="SERVICE_CONTROL_POLICY"
         )
@@ -801,7 +801,7 @@ def test_list_policies_for_target_exception():
     ex.response["Error"]["Message"].should.contain(
         "OrganizationalUnitNotFoundException"
     )
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_policies_for_target(
             TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
         )
@@ -812,7 +812,7 @@ def test_list_policies_for_target_exception():
     ex.response["Error"]["Message"].should.equal(
         "You specified an account that doesn't exist."
     )
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_policies_for_target(
             TargetId="meaninglessstring", Filter="SERVICE_CONTROL_POLICY"
         )
@@ -824,7 +824,7 @@ def test_list_policies_for_target_exception():
 
     # not existing root
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_policies_for_target(
             TargetId="r-0000", Filter="SERVICE_CONTROL_POLICY"
         )
@@ -840,7 +840,7 @@ def test_list_policies_for_target_exception():
 
     # invalid policy type
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_policies_for_target(TargetId=root_id, Filter="MOTO")
 
     # then
@@ -887,13 +887,13 @@ def test_list_targets_for_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
     policy_id = "p-47fhe9s3"
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_targets_for_policy(PolicyId=policy_id)
     ex = e.exception
     ex.operation_name.should.equal("ListTargetsForPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.list_targets_for_policy(PolicyId="meaninglessstring")
     ex = e.exception
     ex.operation_name.should.equal("ListTargetsForPolicy")
@@ -929,7 +929,7 @@ def test_tag_resource_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.tag_resource(
             ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"},],
         )
@@ -961,7 +961,7 @@ def test_list_tags_for_resource_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_tags_for_resource(ResourceId="000000000000")
     ex = e.exception
     ex.operation_name.should.equal("ListTagsForResource")
@@ -998,7 +998,7 @@ def test_untag_resource_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
     ex = e.exception
     ex.operation_name.should.equal("UntagResource")
@@ -1035,7 +1035,7 @@ def test_update_organizational_unit_duplicate_error():
     response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
     validate_organizational_unit(org, response)
     response["OrganizationalUnit"]["Name"].should.equal(ou_name)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.update_organizational_unit(
             OrganizationalUnitId=response["OrganizationalUnit"]["Id"], Name=ou_name
         )
@@ -1081,7 +1081,7 @@ def test_enable_aws_service_access():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.enable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
     ex = e.exception
     ex.operation_name.should.equal("EnableAWSServiceAccess")
@@ -1142,7 +1142,7 @@ def test_disable_aws_service_access_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.disable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
     ex = e.exception
     ex.operation_name.should.equal("DisableAWSServiceAccess")
@@ -1199,7 +1199,7 @@ def test_register_delegated_administrator_errors():
 
     # register master Account
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.register_delegated_administrator(
             AccountId=ACCOUNT_ID, ServicePrincipal="ssm.amazonaws.com"
         )
@@ -1215,7 +1215,7 @@ def test_register_delegated_administrator_errors():
 
     # register not existing Account
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.register_delegated_administrator(
             AccountId="000000000000", ServicePrincipal="ssm.amazonaws.com"
         )
@@ -1231,7 +1231,7 @@ def test_register_delegated_administrator_errors():
 
     # register not supported service
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.register_delegated_administrator(
             AccountId=account_id, ServicePrincipal="moto.amazonaws.com"
         )
@@ -1247,7 +1247,7 @@ def test_register_delegated_administrator_errors():
 
     # register service again
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.register_delegated_administrator(
             AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
         )
@@ -1319,7 +1319,7 @@ def test_list_delegated_administrators_erros():
 
     # list not supported service
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_delegated_administrators(ServicePrincipal="moto.amazonaws.com")
 
     # then
@@ -1365,7 +1365,7 @@ def test_list_delegated_services_for_account_erros():
 
     # list services for not existing Account
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_delegated_services_for_account(AccountId="000000000000")
 
     # then
@@ -1379,7 +1379,7 @@ def test_list_delegated_services_for_account_erros():
 
     # list services for not registered Account
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_delegated_services_for_account(AccountId=ACCOUNT_ID)
 
     # then
@@ -1425,7 +1425,7 @@ def test_deregister_delegated_administrator_erros():
 
     # deregister master Account
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.deregister_delegated_administrator(
             AccountId=ACCOUNT_ID, ServicePrincipal="ssm.amazonaws.com"
         )
@@ -1441,7 +1441,7 @@ def test_deregister_delegated_administrator_erros():
 
     # deregister not existing Account
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.deregister_delegated_administrator(
             AccountId="000000000000", ServicePrincipal="ssm.amazonaws.com"
         )
@@ -1457,7 +1457,7 @@ def test_deregister_delegated_administrator_erros():
 
     # deregister not registered Account
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.deregister_delegated_administrator(
             AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
         )
@@ -1478,7 +1478,7 @@ def test_deregister_delegated_administrator_erros():
 
     # deregister not registered service
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.deregister_delegated_administrator(
             AccountId=account_id, ServicePrincipal="guardduty.amazonaws.com"
         )
@@ -1529,7 +1529,7 @@ def test_enable_policy_type_errors():
 
     # not existing root
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.enable_policy_type(
             RootId="r-0000", PolicyType="AISERVICES_OPT_OUT_POLICY"
         )
@@ -1545,7 +1545,7 @@ def test_enable_policy_type_errors():
 
     # enable policy again ('SERVICE_CONTROL_POLICY' is enabled by default)
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
 
     # then
@@ -1559,7 +1559,7 @@ def test_enable_policy_type_errors():
 
     # invalid policy type
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.enable_policy_type(RootId=root_id, PolicyType="MOTO")
 
     # then
@@ -1604,7 +1604,7 @@ def test_disable_policy_type_errors():
 
     # not existing root
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.disable_policy_type(
             RootId="r-0000", PolicyType="AISERVICES_OPT_OUT_POLICY"
         )
@@ -1620,7 +1620,7 @@ def test_disable_policy_type_errors():
 
     # disable not enabled policy
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.disable_policy_type(
             RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY"
         )
@@ -1636,7 +1636,7 @@ def test_disable_policy_type_errors():
 
     # invalid policy type
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.disable_policy_type(RootId=root_id, PolicyType="MOTO")
 
     # then

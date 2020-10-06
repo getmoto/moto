@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
-import botocore
+
 import boto3
+import botocore
+import pytest
 import sure  # noqa
-from nose.tools import assert_raises
 from moto import mock_applicationautoscaling, mock_ecs
-from moto.applicationautoscaling.exceptions import AWSValidationException
 
 DEFAULT_REGION = "us-east-1"
 DEFAULT_ECS_CLUSTER = "default"
@@ -334,7 +334,7 @@ def test_put_scaling_policy():
         },
     }
 
-    with assert_raises(client.exceptions.ValidationException) as e:
+    with pytest.raises(client.exceptions.ValidationException) as e:
         client.put_scaling_policy(
             PolicyName=policy_name,
             ServiceNamespace=namespace,
@@ -443,7 +443,7 @@ def test_delete_scaling_policies():
         },
     }
 
-    with assert_raises(client.exceptions.ValidationException) as e:
+    with pytest.raises(client.exceptions.ValidationException) as e:
         client.delete_scaling_policy(
             PolicyName=policy_name,
             ServiceNamespace=namespace,
@@ -507,7 +507,7 @@ def test_deregister_scalable_target():
     response = client.describe_scalable_targets(ServiceNamespace=namespace)
     len(response["ScalableTargets"]).should.equal(0)
 
-    with assert_raises(client.exceptions.ValidationException) as e:
+    with pytest.raises(client.exceptions.ValidationException) as e:
         client.deregister_scalable_target(
             ServiceNamespace=namespace,
             ResourceId=resource_id,

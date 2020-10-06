@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 import boto3
 import sure  # noqa
 
@@ -104,7 +104,7 @@ def test_start_query_execution():
 def test_start_query_validate_workgroup():
     client = boto3.client("athena", region_name="us-east-1")
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.start_query_execution(
             QueryString="query1",
             QueryExecutionContext={"Database": "string"},

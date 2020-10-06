@@ -4,7 +4,7 @@ from datetime import datetime
 import boto3
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_ram, mock_organizations
 from moto.core import ACCOUNT_ID
@@ -65,7 +65,7 @@ def test_create_resource_share_errors():
 
     # invalid ARN
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(name="test", resourceArns=["inalid-arn"])
     ex = e.exception
     ex.operation_name.should.equal("CreateResourceShare")
@@ -78,7 +78,7 @@ def test_create_resource_share_errors():
 
     # valid ARN, but not shareable resource type
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test", resourceArns=["arn:aws:iam::{}:role/test".format(ACCOUNT_ID)]
         )
@@ -92,7 +92,7 @@ def test_create_resource_share_errors():
 
     # invalid principal ID
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
             principals=["invalid"],
@@ -162,7 +162,7 @@ def test_create_resource_share_with_organization_errors():
 
     # unknown Organization
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
             principals=[
@@ -184,7 +184,7 @@ def test_create_resource_share_with_organization_errors():
 
     # unknown OU
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
             principals=[
@@ -236,7 +236,7 @@ def test_get_resource_shares_errors():
 
     # invalid resource owner
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_resource_shares(resourceOwner="invalid")
     ex = e.exception
     ex.operation_name.should.equal("GetResourceShares")
@@ -282,7 +282,7 @@ def test_update_resource_share_errors():
 
     # invalid resource owner
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.update_resource_share(
             resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
                 ACCOUNT_ID
@@ -328,7 +328,7 @@ def test_delete_resource_share_errors():
 
     # invalid resource owner
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_resource_share(
             resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
                 ACCOUNT_ID
@@ -368,7 +368,7 @@ def test_enable_sharing_with_aws_organization_errors():
 
     # no Organization defined
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.enable_sharing_with_aws_organization()
     ex = e.exception
     ex.operation_name.should.equal("EnableSharingWithAwsOrganization")

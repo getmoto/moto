@@ -9,7 +9,7 @@ import six
 import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
-from nose.tools import assert_raises
+import pytest
 from parameterized import parameterized
 from moto.core.exceptions import JsonRESTError
 from moto.kms.models import KmsBackend
@@ -192,10 +192,10 @@ def test_generate_data_key():
     response = conn.generate_data_key(key_id=key_id, number_of_bytes=32)
 
     # CiphertextBlob must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(response["CiphertextBlob"], validate=True)
     # Plaintext must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(response["Plaintext"], validate=True)
 
     response["KeyId"].should.equal(key_arn)
@@ -364,7 +364,7 @@ def test__create_alias__raises_if_reserved_alias():
     ]
 
     for alias_name in reserved_aliases:
-        with assert_raises(JSONResponseError) as err:
+        with pytest.raises(JSONResponseError) as err:
             kms.create_alias(alias_name, key_id)
 
         ex = err.exception
@@ -392,7 +392,7 @@ def test__create_alias__raises_if_wrong_prefix():
     create_resp = kms.create_key()
     key_id = create_resp["KeyMetadata"]["KeyId"]
 
-    with assert_raises(JSONResponseError) as err:
+    with pytest.raises(JSONResponseError) as err:
         kms.create_alias("wrongprefix/my-alias", key_id)
 
     ex = err.exception
@@ -415,7 +415,7 @@ def test__create_alias__raises_if_duplicate():
 
     kms.create_alias(alias, key_id)
 
-    with assert_raises(AlreadyExistsException) as err:
+    with pytest.raises(AlreadyExistsException) as err:
         kms.create_alias(alias, key_id)
 
     ex = err.exception
@@ -450,7 +450,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters():
     ]
 
     for alias_name in alias_names_with_restricted_characters:
-        with assert_raises(JSONResponseError) as err:
+        with pytest.raises(JSONResponseError) as err:
             kms.create_alias(alias_name, key_id)
         ex = err.exception
         ex.body["__type"].should.equal("ValidationException")
@@ -480,7 +480,7 @@ def test__create_alias__raises_if_alias_has_colon_character():
     alias_names_with_restricted_characters = ["alias/my:alias"]
 
     for alias_name in alias_names_with_restricted_characters:
-        with assert_raises(JSONResponseError) as err:
+        with pytest.raises(JSONResponseError) as err:
             kms.create_alias(alias_name, key_id)
         ex = err.exception
         ex.body["__type"].should.equal("ValidationException")
@@ -514,7 +514,7 @@ def test__create_alias__raises_if_target_key_id_is_existing_alias():
 
     kms.create_alias(alias, key_id)
 
-    with assert_raises(JSONResponseError) as err:
+    with pytest.raises(JSONResponseError) as err:
         kms.create_alias(alias, alias)
 
     ex = err.exception
@@ -554,7 +554,7 @@ def test__delete_alias():
 def test__delete_alias__raises_if_wrong_prefix():
     kms = boto.connect_kms()
 
-    with assert_raises(JSONResponseError) as err:
+    with pytest.raises(JSONResponseError) as err:
         kms.delete_alias("wrongprefix/my-alias")
 
     ex = err.exception
@@ -572,7 +572,7 @@ def test__delete_alias__raises_if_alias_is_not_found():
     kms = boto.kms.connect_to_region(region)
     alias_name = "alias/unexisting-alias"
 
-    with assert_raises(NotFoundException) as err:
+    with pytest.raises(NotFoundException) as err:
         kms.delete_alias(alias_name)
 
     expected_message_match = r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(

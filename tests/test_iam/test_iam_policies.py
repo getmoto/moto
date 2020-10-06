@@ -2,7 +2,7 @@ import json
 
 import boto3
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_iam
 
@@ -1624,7 +1624,7 @@ def test_create_policy_with_valid_policy_documents():
 @mock_iam
 def check_create_policy_with_invalid_policy_document(test_case):
     conn = boto3.client("iam", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_policy(
             PolicyName="TestCreatePolicy",
             PolicyDocument=json.dumps(test_case["document"]),

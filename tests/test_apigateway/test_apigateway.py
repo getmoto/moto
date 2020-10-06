@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 import responses
 from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import ACCOUNT_ID
-from nose.tools import assert_raises
+import pytest
 
 
 @freeze_time("2015-01-01")
@@ -90,7 +90,7 @@ def test_create_rest_api_with_policy():
 def test_create_rest_api_invalid_apikeysource():
     client = boto3.client("apigateway", region_name="us-west-2")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_rest_api(
             name="my_api",
             description="this is my api",
@@ -126,7 +126,7 @@ def test_create_rest_api_valid_apikeysources():
 def test_create_rest_api_invalid_endpointconfiguration():
     client = boto3.client("apigateway", region_name="us-west-2")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_rest_api(
             name="my_api",
             description="this is my api",
@@ -194,7 +194,7 @@ def test_create_resource__validate_name():
     valid_names = ["users", "{user_id}", "{proxy+}", "user_09", "good-dog"]
     # All invalid names should throw an exception
     for name in invalid_names:
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
         ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
         ex.exception.response["Error"]["Message"].should.equal(
@@ -1194,7 +1194,7 @@ def test_create_deployment_requires_REST_methods():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
     ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
     ex.exception.response["Error"]["Message"].should.equal(
@@ -1217,7 +1217,7 @@ def test_create_deployment_requires_REST_method_integrations():
         restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
     ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
     ex.exception.response["Error"]["Message"].should.equal(
@@ -1273,7 +1273,7 @@ def test_put_integration_response_requires_responseTemplate():
         integrationHttpMethod="POST",
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.put_integration_response(
             restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
         )
@@ -1314,7 +1314,7 @@ def test_put_integration_response_with_response_template():
         integrationHttpMethod="POST",
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.put_integration_response(
             restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
         )
@@ -1372,7 +1372,7 @@ def test_put_integration_validation():
 
     for type in types_requiring_integration_method:
         # Ensure that integrations of these types fail if no integrationHttpMethod is provided
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1428,7 +1428,7 @@ def test_put_integration_validation():
         )
     for type in ["AWS_PROXY"]:
         # Ensure that aws_proxy does not support S3
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1446,7 +1446,7 @@ def test_put_integration_validation():
         )
     for type in aws_types:
         # Ensure that the Role ARN is for the current account
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1462,7 +1462,7 @@ def test_put_integration_validation():
         )
     for type in ["AWS"]:
         # Ensure that the Role ARN is specified for aws integrations
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1477,7 +1477,7 @@ def test_put_integration_validation():
         )
     for type in http_types:
         # Ensure that the URI is valid HTTP
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1492,7 +1492,7 @@ def test_put_integration_validation():
         )
     for type in aws_types:
         # Ensure that the URI is an ARN
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1507,7 +1507,7 @@ def test_put_integration_validation():
         )
     for type in aws_types:
         # Ensure that the URI is a valid ARN
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1632,7 +1632,7 @@ def test_create_domain_names():
     response["domainName"].should.equal(domain_name)
     response["certificateName"].should.equal(test_certificate_name)
     # without domain name it should throw BadRequestException
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_domain_name(domainName="")
 
     ex.exception.response["Error"]["Message"].should.equal("No Domain Name specified")
@@ -1666,7 +1666,7 @@ def test_get_domain_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
     # quering an invalid domain name which is not present
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_domain_name(domainName=domain_name)
 
     ex.exception.response["Error"]["Message"].should.equal(
@@ -1701,7 +1701,7 @@ def test_create_model():
     response["description"].should.equal(description)
 
     # with an invalid rest_api_id it should throw NotFoundException
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_model(
             restApiId=dummy_rest_api_id,
             name=model_name,
@@ -1713,7 +1713,7 @@ def test_create_model():
     )
     ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_model(
             restApiId=rest_api_id,
             name="",
@@ -1770,7 +1770,7 @@ def test_get_model_by_name():
     result["name"] = model_name
     result["description"] = description
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=dummy_rest_api_id, modelName=model_name)
     ex.exception.response["Error"]["Message"].should.equal(
         "Invalid Rest API Id specified"
@@ -1784,7 +1784,7 @@ def test_get_model_with_invalid_name():
     response = client.create_rest_api(name="my_api", description="this is my api")
     rest_api_id = response["id"]
     # test with an invalid model name
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=rest_api_id, modelName="fake")
     ex.exception.response["Error"]["Message"].should.equal(
         "Invalid Model Name specified"
@@ -1868,7 +1868,7 @@ def test_create_api_headers():
     payload = {"value": apikey_value, "name": apikey_name}
 
     client.create_api_key(**payload)
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_api_key(**payload)
     ex.exception.response["Error"]["Code"].should.equal("ConflictException")
     if not settings.TEST_SERVER_MODE:
@@ -1939,7 +1939,7 @@ def test_usage_plans():
     len(response["items"]).should.equal(0)
 
     # # Try to get info about a non existing usage
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan(usagePlanId="not_existing")
     ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
     ex.exception.response["Error"]["Message"].should.equal(
@@ -2030,7 +2030,7 @@ def test_usage_plan_keys():
     len(response["items"]).should.equal(0)
 
     # Try to get info about a non existing api key
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId="not_existing_key")
     ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
     ex.exception.response["Error"]["Message"].should.equal(
@@ -2038,7 +2038,7 @@ def test_usage_plan_keys():
     )
 
     # Try to get info about an existing api key that has not jet added to a valid usage plan
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId=key_id)
     ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
     ex.exception.response["Error"]["Message"].should.equal(
@@ -2046,7 +2046,7 @@ def test_usage_plan_keys():
     )
 
     # Try to get info about an existing api key that has not jet added to a valid usage plan
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId="not_existing_plan_id", keyId=key_id)
     ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
     ex.exception.response["Error"]["Message"].should.equal(

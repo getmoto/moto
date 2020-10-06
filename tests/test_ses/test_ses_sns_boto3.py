@@ -7,7 +7,6 @@ from six.moves.email_mime_multipart import MIMEMultipart
 from six.moves.email_mime_text import MIMEText
 
 import sure  # noqa
-from nose import tools
 from moto import mock_ses, mock_sns, mock_sqs
 from moto.ses.models import SESFeedback
 from moto.core import ACCOUNT_ID

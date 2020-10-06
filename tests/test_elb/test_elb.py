@@ -11,7 +11,7 @@ from boto.ec2.elb.attributes import (
 )
 from botocore.exceptions import ClientError
 from boto.exception import BotoServerError
-from nose.tools import assert_raises
+import pytest
 import sure  # noqa
 
 from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
@@ -123,7 +123,7 @@ def test_create_and_delete_boto3_support():
 def test_create_load_balancer_with_no_listeners_defined():
     client = boto3.client("elb", region_name="us-east-1")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.create_load_balancer(
             LoadBalancerName="my-lb",
             Listeners=[],
@@ -180,7 +180,7 @@ def test_apply_security_groups_to_load_balancer():
     assert balancer["SecurityGroups"] == [security_group.id]
 
     # Using a not-real security group raises an error
-    with assert_raises(ClientError) as error:
+    with pytest.raises(ClientError) as error:
         response = client.apply_security_groups_to_load_balancer(
             LoadBalancerName="my-lb", SecurityGroups=["not-really-a-security-group"]
         )
@@ -255,7 +255,7 @@ def test_create_and_delete_listener_boto3_support():
     balancer["ListenerDescriptions"][1]["Listener"]["InstancePort"].should.equal(8443)
 
     # Creating this listener with an conflicting definition throws error
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.create_load_balancer_listeners(
             LoadBalancerName="my-lb",
             Listeners=[

@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
+import pytest
 
 import boto3
 
@@ -36,7 +35,7 @@ def test_create_flow_logs_s3():
         CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -87,7 +86,7 @@ def test_create_flow_logs_cloud_watch():
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
     logs_client.create_log_group(logGroupName="test-group")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -243,7 +242,7 @@ def test_delete_flow_logs_delete_many():
 def test_delete_flow_logs_non_existing():
     client = boto3.client("ec2", region_name="us-west-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d"])
     ex.exception.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -251,7 +250,7 @@ def test_delete_flow_logs_non_existing():
         "These flow log ids in the input list are not found: [TotalCount: 1] fl-1a2b3c4d"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d", "fl-2b3c4d5e"])
     ex.exception.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -304,7 +303,7 @@ def test_create_flow_logs_invalid_parameters():
         CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -319,7 +318,7 @@ def test_create_flow_logs_invalid_parameters():
         "Invalid Flow Log Max Aggregation Interval"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -332,7 +331,7 @@ def test_create_flow_logs_invalid_parameters():
         "LogDestination can't be empty if LogGroupName is not provided."
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -346,7 +345,7 @@ def test_create_flow_logs_invalid_parameters():
         "LogDestination type must be cloud-watch-logs if LogGroupName is provided."
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -368,7 +367,7 @@ def test_create_flow_logs_invalid_parameters():
     )["FlowLogIds"]
     response.should.have.length_of(1)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -391,7 +390,7 @@ def test_create_flow_logs_invalid_parameters():
     )["FlowLogIds"]
     response.should.have.length_of(1)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],

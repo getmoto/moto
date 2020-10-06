@@ -17,7 +17,7 @@ import boto3
 import sure  # noqa
 from botocore.exceptions import ClientError
 from jose import jws, jwk, jwt
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_cognitoidp, settings
 from moto.cognitoidp.utils import create_id
@@ -603,7 +603,7 @@ def test_update_identity_provider_no_user_pool():
 
     new_value = str(uuid.uuid4())
 
-    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+    with pytest.raises(conn.exceptions.ResourceNotFoundException) as cm:
         conn.update_identity_provider(
             UserPoolId="foo", ProviderName="bar", ProviderDetails={"thing": new_value}
         )
@@ -623,7 +623,7 @@ def test_update_identity_provider_no_identity_provider():
     new_value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
-    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+    with pytest.raises(conn.exceptions.ResourceNotFoundException) as cm:
         conn.update_identity_provider(
             UserPoolId=user_pool_id,
             ProviderName="foo",
@@ -699,7 +699,7 @@ def test_create_group_with_duplicate_name_raises_error():
 
     conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
     cm.exception.operation_name.should.equal("CreateGroup")
     cm.exception.response["Error"]["Code"].should.equal("GroupExistsException")
@@ -747,7 +747,7 @@ def test_delete_group():
     result = conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
     list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
     cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
@@ -1565,7 +1565,7 @@ def test_resource_server():
     res["ResourceServer"]["Name"].should.equal(name)
     res["ResourceServer"]["Scopes"].should.equal(scopes)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_resource_server(
             UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
         )

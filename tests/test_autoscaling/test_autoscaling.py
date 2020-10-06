@@ -8,7 +8,7 @@ from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import (
     mock_autoscaling,
@@ -21,7 +21,7 @@ from moto import (
 )
 from tests.helpers import requires_boto_gte
 
-from utils import (
+from .utils import (
     setup_networking,
     setup_networking_deprecated,
     setup_instance_with_networking,
@@ -781,7 +781,7 @@ def test_create_autoscaling_group_from_invalid_instance_id():
 
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_auto_scaling_group(
             AutoScalingGroupName="test_asg",
             InstanceId=invalid_instance_id,

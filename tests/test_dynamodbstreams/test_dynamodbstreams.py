@@ -1,6 +1,6 @@
 from __future__ import unicode_literals, print_function
 
-from nose.tools import assert_raises
+import pytest
 
 import boto3
 from moto import mock_dynamodb2, mock_dynamodbstreams
@@ -224,7 +224,7 @@ class TestEdges:
         assert "LatestStreamLabel" in resp["TableDescription"]
 
         # now try to enable it again
-        with assert_raises(conn.exceptions.ResourceInUseException):
+        with pytest.raises(conn.exceptions.ResourceInUseException):
             resp = conn.update_table(
                 TableName="test-streams",
                 StreamSpecification={

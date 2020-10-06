@@ -7,7 +7,7 @@ from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-from nose.tools import assert_raises
+import pytest
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
@@ -27,7 +27,7 @@ def test_ami_create_and_delete():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         image_id = conn.create_image(
             instance.id, "test-ami", "this is a test ami", dry_run=True
         )
@@ -76,7 +76,7 @@ def test_ami_create_and_delete():
     root_mapping.should_not.be.none
 
     # Deregister
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         success = conn.deregister_image(image_id, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -87,7 +87,7 @@ def test_ami_create_and_delete():
     success = conn.deregister_image(image_id)
     success.should.be.true
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.deregister_image(image_id)
     cm.exception.code.should.equal("InvalidAMIID.NotFound")
     cm.exception.status.should.equal(400)
@@ -112,7 +112,7 @@ def test_ami_copy():
 
     # Boto returns a 'CopyImage' object with an image_id attribute here. Use
     # the image_id to fetch the full info.
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         copy_image_ref = conn.copy_image(
             source_image.region.name,
             source_image.id,
@@ -152,7 +152,7 @@ def test_ami_copy():
     )
 
     # Copy from non-existent source ID.
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.copy_image(
             source_image.region.name,
             "ami-abcd1234",
@@ -164,7 +164,7 @@ def test_ami_copy():
     cm.exception.request_id.should_not.be.none
 
     # Copy from non-existent source region.
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         invalid_region = (
             "us-east-1" if (source_image.region.name != "us-east-1") else "us-west-1"
         )
@@ -208,7 +208,7 @@ def test_ami_tagging():
     conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_all_images()[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         image.add_tag("a key", "some value", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -233,7 +233,7 @@ def test_ami_create_from_missing_instance():
     conn = boto.connect_ec2("the_key", "the_secret")
     args = ["i-abcdefg", "test-ami", "this is a test ami"]
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_image(*args)
     cm.exception.code.should.equal("InvalidInstanceID.NotFound")
     cm.exception.status.should.equal(400)
@@ -353,7 +353,7 @@ def test_ami_filtering_via_tag():
 def test_getting_missing_ami():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_image("ami-missing")
     cm.exception.code.should.equal("InvalidAMIID.NotFound")
     cm.exception.status.should.equal(400)
@@ -364,7 +364,7 @@ def test_getting_missing_ami():
 def test_getting_malformed_ami():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_image("foo-missing")
     cm.exception.code.should.equal("InvalidAMIID.Malformed")
     cm.exception.status.should.equal(400)
@@ -399,7 +399,7 @@ def test_ami_attribute_group_permissions():
     }
 
     # Add 'all' group and confirm
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.modify_image_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -678,7 +678,7 @@ def test_ami_attribute_error_cases():
     image = conn.get_image(image_id)
 
     # Error: Add with group != 'all'
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(
             image.id, attribute="launchPermission", operation="add", groups="everyone"
         )
@@ -687,7 +687,7 @@ def test_ami_attribute_error_cases():
     cm.exception.request_id.should_not.be.none
 
     # Error: Add with user ID that isn't an integer.
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(
             image.id,
             attribute="launchPermission",
@@ -699,7 +699,7 @@ def test_ami_attribute_error_cases():
     cm.exception.request_id.should_not.be.none
 
     # Error: Add with user ID that is > length 12.
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(
             image.id,
             attribute="launchPermission",
@@ -711,7 +711,7 @@ def test_ami_attribute_error_cases():
     cm.exception.request_id.should_not.be.none
 
     # Error: Add with user ID that is < length 12.
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(
             image.id,
             attribute="launchPermission",
@@ -724,7 +724,7 @@ def test_ami_attribute_error_cases():
 
     # Error: Add with one invalid user ID among other valid IDs, ensure no
     # partial changes.
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(
             image.id,
             attribute="launchPermission",
@@ -739,7 +739,7 @@ def test_ami_attribute_error_cases():
     attributes.attrs.should.have.length_of(0)
 
     # Error: Add with invalid image ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(
             "ami-abcd1234", attribute="launchPermission", operation="add", groups="all"
         )
@@ -748,7 +748,7 @@ def test_ami_attribute_error_cases():
     cm.exception.request_id.should_not.be.none
 
     # Error: Remove with invalid image ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.modify_image_attribute(
             "ami-abcd1234",
             attribute="launchPermission",
@@ -765,11 +765,11 @@ def test_ami_describe_non_existent():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     # Valid pattern but non-existent id
     img = ec2.Image("ami-abcd1234")
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         img.load()
     # Invalid ami pattern
     img = ec2.Image("not_an_ami_id")
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         img.load()
 
 

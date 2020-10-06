@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import boto
 import boto3
 import sure  # noqa
-from nose.tools import assert_raises
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2_deprecated, mock_ec2
@@ -261,7 +261,7 @@ def test_duplicate_network_acl_entry():
         RuleNumber=rule_number,
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         default_network_acl.create_entry(
             CidrBlock="10.0.0.0/0",
             Egress=egress,

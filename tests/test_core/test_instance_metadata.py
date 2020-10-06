@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import sure  # noqa
-from nose.tools import assert_raises
+import pytest
 import requests
 
 from moto import mock_ec2, settings

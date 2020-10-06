@@ -6,7 +6,7 @@ import boto
 import boto3
 from botocore.client import ClientError
 from freezegun import freeze_time
-from nose.tools import assert_raises
+import pytest
 import sure  # noqa
 
 
@@ -357,7 +357,7 @@ def test_federation_token_with_too_long_policy():
     json_policy = json.dumps(policy)
     assert len(json_policy) > MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         cli.get_federation_token(Name="foo", DurationSeconds=3600, Policy=json_policy)
     exc.exception.response["Error"]["Code"].should.equal("ValidationError")
     exc.exception.response["Error"]["Message"].should.contain(
