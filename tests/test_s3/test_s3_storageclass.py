@@ -4,7 +4,7 @@ import boto3
 
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_s3
 
@@ -105,7 +105,7 @@ def test_s3_invalid_copied_storage_class():
     )
 
     # Try to copy an object with an invalid storage class
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.copy_object(
             CopySource={"Bucket": "Bucket", "Key": "First_Object"},
             Bucket="Bucket2",
@@ -128,7 +128,7 @@ def test_s3_invalid_storage_class():
     )
 
     # Try to add an object with an invalid storage class
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_object(
             Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="STANDARDD"
         )
@@ -166,7 +166,7 @@ def test_s3_copy_object_error_for_glacier_storage_class_not_restored():
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="GLACIER"
     )
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.copy_object(
             CopySource={"Bucket": "Bucket", "Key": "First_Object"},
             Bucket="Bucket",
@@ -187,7 +187,7 @@ def test_s3_copy_object_error_for_deep_archive_storage_class_not_restored():
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="DEEP_ARCHIVE"
     )
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.copy_object(
             CopySource={"Bucket": "Bucket", "Key": "First_Object"},
             Bucket="Bucket",

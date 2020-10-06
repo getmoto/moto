@@ -9,7 +9,7 @@ import string
 import pytz
 from datetime import datetime
 import sure  # noqa
-from nose.tools import assert_raises, assert_equal
+import pytest
 from six import b
 
 DEFAULT_SECRET_NAME = "test-secret"
@@ -53,13 +53,12 @@ def test_get_secret_value_binary():
 def test_get_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="i-dont-exist")
 
-    assert_equal(
-        "Secrets Manager can't find the specified secret.",
-        cm.exception.response["Error"]["Message"],
-    )
+    assert \
+        "Secrets Manager can't find the specified secret." == \
+        cm.exception.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -69,13 +68,12 @@ def test_get_secret_that_does_not_match():
         Name="java-util-test-password", SecretString="foosecret"
     )
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="i-dont-match")
 
-    assert_equal(
-        "Secrets Manager can't find the specified secret.",
-        cm.exception.response["Error"]["Message"],
-    )
+    assert \
+        "Secrets Manager can't find the specified secret." == \
+        cm.exception.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -86,7 +84,7 @@ def test_get_secret_value_that_is_marked_deleted():
 
     conn.delete_secret(SecretId="test-secret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.get_secret_value(SecretId="test-secret")
 
 
@@ -96,13 +94,12 @@ def test_get_secret_that_has_no_value():
 
     create_secret = conn.create_secret(Name="java-util-test-password")
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="java-util-test-password")
 
-    assert_equal(
-        "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT",
-        cm.exception.response["Error"]["Message"],
-    )
+    assert \
+        "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT" == \
+        cm.exception.response["Error"]
 
 
 @mock_secretsmanager
@@ -227,7 +224,7 @@ def test_delete_secret_force():
     assert result["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
     assert result["Name"] == "test-secret"
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.get_secret_value(SecretId="test-secret")
 
 
@@ -245,7 +242,7 @@ def test_delete_secret_force_with_arn():
     assert result["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
     assert result["Name"] == "test-secret"
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.get_secret_value(SecretId="test-secret")
 
 
@@ -253,7 +250,7 @@ def test_delete_secret_force_with_arn():
 def test_delete_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.delete_secret(
             SecretId="i-dont-exist", ForceDeleteWithoutRecovery=True
         )
@@ -265,7 +262,7 @@ def test_delete_secret_fails_with_both_force_delete_flag_and_recovery_window_fla
 
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.delete_secret(
             SecretId="test-secret",
             RecoveryWindowInDays=1,
@@ -279,7 +276,7 @@ def test_delete_secret_recovery_window_too_short():
 
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.delete_secret(SecretId="test-secret", RecoveryWindowInDays=6)
 
 
@@ -289,7 +286,7 @@ def test_delete_secret_recovery_window_too_long():
 
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.delete_secret(SecretId="test-secret", RecoveryWindowInDays=31)
 
 
@@ -301,7 +298,7 @@ def test_delete_secret_that_is_marked_deleted():
 
     deleted_secret = conn.delete_secret(SecretId="test-secret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.delete_secret(SecretId="test-secret")
 
 
@@ -339,7 +336,7 @@ def test_get_random_exclude_lowercase():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     random_password = conn.get_random_password(PasswordLength=55, ExcludeLowercase=True)
-    assert any(c.islower() for c in random_password["RandomPassword"]) == False
+    assert not any(c.islower() for c in random_password["RandomPassword"])
 
 
 @mock_secretsmanager
@@ -347,7 +344,7 @@ def test_get_random_exclude_uppercase():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     random_password = conn.get_random_password(PasswordLength=55, ExcludeUppercase=True)
-    assert any(c.isupper() for c in random_password["RandomPassword"]) == False
+    assert not any(c.isupper() for c in random_password["RandomPassword"])
 
 
 @mock_secretsmanager
@@ -357,7 +354,7 @@ def test_get_random_exclude_characters_and_symbols():
     random_password = conn.get_random_password(
         PasswordLength=20, ExcludeCharacters="xyzDje@?!."
     )
-    assert any(c in "xyzDje@?!." for c in random_password["RandomPassword"]) == False
+    assert not any(c in "xyzDje@?!." for c in random_password["RandomPassword"])
     assert len(random_password["RandomPassword"]) == 20
 
 
@@ -366,7 +363,7 @@ def test_get_random_exclude_numbers():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     random_password = conn.get_random_password(PasswordLength=100, ExcludeNumbers=True)
-    assert any(c.isdigit() for c in random_password["RandomPassword"]) == False
+    assert not any(c.isdigit() for c in random_password["RandomPassword"])
 
 
 @mock_secretsmanager
@@ -376,9 +373,7 @@ def test_get_random_exclude_punctuation():
     random_password = conn.get_random_password(
         PasswordLength=100, ExcludePunctuation=True
     )
-    assert (
-        any(c in string.punctuation for c in random_password["RandomPassword"]) == False
-    )
+    assert not any(c in string.punctuation for c in random_password["RandomPassword"])
 
 
 @mock_secretsmanager
@@ -386,7 +381,7 @@ def test_get_random_include_space_false():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     random_password = conn.get_random_password(PasswordLength=300)
-    assert any(c.isspace() for c in random_password["RandomPassword"]) == False
+    assert not any(c.isspace() for c in random_password["RandomPassword"])
 
 
 @mock_secretsmanager
@@ -394,7 +389,7 @@ def test_get_random_include_space_true():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     random_password = conn.get_random_password(PasswordLength=4, IncludeSpace=True)
-    assert any(c.isspace() for c in random_password["RandomPassword"]) == True
+    assert any(c.isspace() for c in random_password["RandomPassword"])
 
 
 @mock_secretsmanager
@@ -404,25 +399,17 @@ def test_get_random_require_each_included_type():
     random_password = conn.get_random_password(
         PasswordLength=4, RequireEachIncludedType=True
     )
-    assert (
-        any(c in string.punctuation for c in random_password["RandomPassword"]) == True
-    )
-    assert (
-        any(c in string.ascii_lowercase for c in random_password["RandomPassword"])
-        == True
-    )
-    assert (
-        any(c in string.ascii_uppercase for c in random_password["RandomPassword"])
-        == True
-    )
-    assert any(c in string.digits for c in random_password["RandomPassword"]) == True
+    assert any(c in string.punctuation for c in random_password["RandomPassword"])
+    assert any(c in string.ascii_lowercase for c in random_password["RandomPassword"])
+    assert any(c in string.ascii_uppercase for c in random_password["RandomPassword"])
+    assert any(c in string.digits for c in random_password["RandomPassword"])
 
 
 @mock_secretsmanager
 def test_get_random_too_short_password():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         random_password = conn.get_random_password(PasswordLength=3)
 
 
@@ -430,7 +417,7 @@ def test_get_random_too_short_password():
 def test_get_random_too_long_password():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         random_password = conn.get_random_password(PasswordLength=5555)
 
 
@@ -468,7 +455,7 @@ def test_describe_secret_with_arn():
 def test_describe_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.get_secret_value(SecretId="i-dont-exist")
 
 
@@ -477,7 +464,7 @@ def test_describe_secret_that_does_not_match():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.get_secret_value(SecretId="i-dont-match")
 
 
@@ -515,7 +502,7 @@ def test_restore_secret_that_is_not_deleted():
 def test_restore_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.restore_secret(SecretId="i-dont-exist")
 
 
@@ -566,7 +553,7 @@ def test_rotate_secret_that_is_marked_deleted():
 
     conn.delete_secret(SecretId="test-secret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.rotate_secret(SecretId="test-secret")
 
 
@@ -574,7 +561,7 @@ def test_rotate_secret_that_is_marked_deleted():
 def test_rotate_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", "us-west-2")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.rotate_secret(SecretId="i-dont-exist")
 
 
@@ -583,7 +570,7 @@ def test_rotate_secret_that_does_not_match():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.rotate_secret(SecretId="i-dont-match")
 
 
@@ -603,7 +590,7 @@ def test_rotate_secret_client_request_token_too_long():
     client_request_token = (
         "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C-" "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C"
     )
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.rotate_secret(
             SecretId=DEFAULT_SECRET_NAME, ClientRequestToken=client_request_token
         )
@@ -615,7 +602,7 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
 
     rotation_lambda_arn = "85B7-446A-B7E4" * 147  # == 2058 characters
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.rotate_secret(
             SecretId=DEFAULT_SECRET_NAME, RotationLambdaARN=rotation_lambda_arn
         )
@@ -635,7 +622,7 @@ def test_rotate_secret_rotation_period_too_long():
     conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
 
     rotation_rules = {"AutomaticallyAfterDays": 1001}
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         result = conn.rotate_secret(
             SecretId=DEFAULT_SECRET_NAME, RotationRules=rotation_rules
         )
@@ -712,7 +699,7 @@ def test_create_and_put_secret_binary_value_puts_new_secret():
 @mock_secretsmanager
 def test_put_secret_binary_requires_either_string_or_binary():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    with assert_raises(ClientError) as ire:
+    with pytest.raises(ClientError) as ire:
         conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME)
 
     ire.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
@@ -889,15 +876,14 @@ def test_update_secret_with_tags_and_description():
 def test_update_secret_which_does_not_exit():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         updated_secret = conn.update_secret(
             SecretId="test-secret", SecretString="barsecret"
         )
 
-    assert_equal(
-        "Secrets Manager can't find the specified secret.",
-        cm.exception.response["Error"]["Message"],
-    )
+    assert \
+        "Secrets Manager can't find the specified secret." == \
+        cm.exception.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -907,7 +893,7 @@ def test_update_secret_marked_as_deleted():
     created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
     deleted_secret = conn.delete_secret(SecretId="test-secret")
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         updated_secret = conn.update_secret(
             SecretId="test-secret", SecretString="barsecret"
         )

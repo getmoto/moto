@@ -6,7 +6,7 @@ import boto3
 
 from moto import mock_iot
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 
 def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
@@ -643,7 +643,7 @@ def test_delete_policy_validation():
     client.create_policy(policyName=policy_name, policyDocument=doc)
     client.attach_principal_policy(policyName=policy_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_policy(policyName=policy_name)
     e.exception.response["Error"]["Message"].should.contain(
         "The policy cannot be deleted as the policy is attached to one or more principals (name=%s)"
@@ -684,7 +684,7 @@ def test_delete_certificate_validation():
     client.create_thing(thingName=thing_name)
     client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
     e.exception.response["Error"]["Message"].should.contain(
         "Certificate must be deactivated (not ACTIVE) before deletion."
@@ -693,7 +693,7 @@ def test_delete_certificate_validation():
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
     e.exception.response["Error"]["Message"].should.contain(
         "Things must be detached before deletion (arn: %s)" % cert_arn
@@ -702,7 +702,7 @@ def test_delete_certificate_validation():
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
     e.exception.response["Error"]["Message"].should.contain(
         "Certificate policies must be detached before deletion (arn: %s)" % cert_arn
@@ -798,7 +798,7 @@ def test_principal_policy():
     res.should.have.key("policies").which.should.have.length_of(0)
     res = client.list_policy_principals(policyName=policy_name)
     res.should.have.key("principals").which.should.have.length_of(0)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.detach_policy(policyName=policy_name, target=cert_arn)
     e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 

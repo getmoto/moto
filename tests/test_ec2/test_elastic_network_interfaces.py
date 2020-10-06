@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+import pytest
 
 import boto3
 from botocore.exceptions import ClientError
@@ -21,7 +20,7 @@ def test_elastic_network_interfaces():
     vpc = conn.create_vpc("10.0.0.0/16")
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         eni = conn.create_network_interface(subnet.id, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -38,7 +37,7 @@ def test_elastic_network_interfaces():
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.startswith("10.").should.be.true
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.delete_network_interface(eni.id, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -51,7 +50,7 @@ def test_elastic_network_interfaces():
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(0)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_network_interface(eni.id)
     cm.exception.error_code.should.equal("InvalidNetworkInterfaceID.NotFound")
     cm.exception.status.should.equal(400)
@@ -62,7 +61,7 @@ def test_elastic_network_interfaces():
 def test_elastic_network_interfaces_subnet_validation():
     conn = boto.connect_vpc("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_network_interface("subnet-abcd1234")
     cm.exception.error_code.should.equal("InvalidSubnetID.NotFound")
     cm.exception.status.should.equal(400)
@@ -133,7 +132,7 @@ def test_elastic_network_interfaces_modify_attribute():
     eni.groups.should.have.length_of(1)
     eni.groups[0].id.should.equal(security_group1.id)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.modify_network_interface_attribute(
             eni.id, "groupset", [security_group2.id], dry_run=True
         )
@@ -228,7 +227,7 @@ def test_elastic_network_interfaces_get_by_tag_name():
         SubnetId=subnet.id, PrivateIpAddress="10.0.10.5"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         eni1.create_tags(Tags=[{"Key": "Name", "Value": "eni1"}], DryRun=True)
     ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)

@@ -9,7 +9,7 @@ import datetime
 import uuid
 
 from botocore.exceptions import ClientError, ParamValidationError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_ec2, mock_ssm
 
@@ -1671,7 +1671,7 @@ def test_list_commands():
         cmd["InstanceIds"].should.contain("i-123456")
 
     # test the error case for an invalid command id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         response = client.list_commands(CommandId=str(uuid.uuid4()))
 
 
@@ -1703,13 +1703,13 @@ def test_get_command_invocation():
     invocation_response["InstanceId"].should.equal(instance_id)
 
     # test the error case for an invalid instance id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId="i-FAKE"
         )
 
     # test the error case for an invalid plugin name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId=instance_id, PluginName="FAKE"
         )

@@ -4,7 +4,7 @@ import sure  # noqa
 from moto import mock_codecommit
 from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 
 @mock_codecommit
@@ -81,7 +81,7 @@ def test_create_repository_repository_name_exists():
 
     client.create_repository(repositoryName="repository_two")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_repository(
             repositoryName="repository_two",
             repositoryDescription="description repo two",
@@ -99,7 +99,7 @@ def test_create_repository_repository_name_exists():
 def test_create_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_repository(repositoryName="in_123_valid_@#$_characters")
     ex = e.exception
     ex.operation_name.should.equal("CreateRepository")
@@ -156,7 +156,7 @@ def test_get_repository():
 
     client = boto3.client("codecommit", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName=repository_name)
     ex = e.exception
     ex.operation_name.should.equal("GetRepository")
@@ -171,7 +171,7 @@ def test_get_repository():
 def test_get_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName="repository_one-@#@")
     ex = e.exception
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -207,7 +207,7 @@ def test_delete_repository():
 def test_delete_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_repository(repositoryName="_rep@ository_one")
     ex = e.exception
     ex.operation_name.should.equal("DeleteRepository")

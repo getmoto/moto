@@ -3,8 +3,7 @@ from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
 from botocore.exceptions import ClientError
 
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+import pytest
 
 import base64
 import ipaddress
@@ -52,7 +51,7 @@ def test_add_servers():
 def test_instance_launch_and_terminate():
     conn = boto.ec2.connect_to_region("us-east-1")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         reservation = conn.run_instances("ami-1234abcd", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -87,7 +86,7 @@ def test_instance_launch_and_terminate():
     volume.attach_data.instance_id.should.equal(instance.id)
     volume.status.should.equal("in-use")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.terminate_instances([instance.id], dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -290,7 +289,7 @@ def test_get_instances_by_id():
     instance_ids.should.equal([instance1.id, instance2.id])
 
     # Call get_all_instances with a bad id should raise an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_instances(instance_ids=[instance1.id, "i-1234abcd"])
     cm.exception.code.should.equal("InvalidInstanceID.NotFound")
     cm.exception.status.should.equal(400)
@@ -743,7 +742,7 @@ def test_instance_start_and_stop():
 
     instance_ids = [instance.id for instance in instances]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         stopped_instances = conn.stop_instances(instance_ids, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -756,7 +755,7 @@ def test_instance_start_and_stop():
     for instance in stopped_instances:
         instance.state.should.equal("stopping")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         started_instances = conn.start_instances([instances[0].id], dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -774,7 +773,7 @@ def test_instance_reboot():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.reboot(dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -792,7 +791,7 @@ def test_instance_attribute_instance_type():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("instanceType", "m1.small", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -820,7 +819,7 @@ def test_modify_instance_attribute_security_groups():
         "test security group 2", "this is a test security group 2"
     ).id
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -843,7 +842,7 @@ def test_instance_attribute_user_data():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("userData", "this is my user data", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -873,7 +872,7 @@ def test_instance_attribute_source_dest_check():
 
     # Set to false (note: Boto converts bool to string, eg 'false')
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("sourceDestCheck", False, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -919,7 +918,7 @@ def test_user_data_with_run_instance():
 def test_run_instance_with_security_group_name():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         group = conn.create_security_group("group1", "some description", dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -1196,7 +1195,7 @@ def test_instance_with_nic_attach_detach():
     set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
 
     # Attach
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.attach_network_interface(eni.id, instance.id, device_index=1, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -1223,7 +1222,7 @@ def test_instance_with_nic_attach_detach():
     )
 
     # Detach
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.detach_network_interface(instance_eni.attachment.id, dry_run=True)
     ex.exception.error_code.should.equal("DryRunOperation")
     ex.exception.status.should.equal(400)
@@ -1242,7 +1241,7 @@ def test_instance_with_nic_attach_detach():
     set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
 
     # Detach with invalid attachment ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.detach_network_interface("eni-attach-1234abcd")
     cm.exception.code.should.equal("InvalidAttachmentID.NotFound")
     cm.exception.status.should.equal(400)
@@ -1410,7 +1409,7 @@ def test_describe_instance_status_with_instance_filter_deprecated():
     all_status[0].id.should.equal(instance.id)
 
     # Call get_all_instance_status with a bad id should raise an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_instance_status(instance_ids=[instance.id, "i-1234abcd"])
     cm.exception.code.should.equal("InvalidInstanceID.NotFound")
     cm.exception.status.should.equal(400)
@@ -1537,7 +1536,7 @@ def test_get_instance_by_security_group():
 
     security_group = conn.create_security_group("test", "test")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.modify_instance_attribute(
             instance.id, "groupSet", [security_group.id], dry_run=True
         )
@@ -1661,7 +1660,7 @@ def test_describe_instance_attribute():
     ]
 
     for invalid_instance_attribute in invalid_instance_attributes:
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.describe_instance_attribute(
                 InstanceId=instance_id, Attribute=invalid_instance_attribute
             )

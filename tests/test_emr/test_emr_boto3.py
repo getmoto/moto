@@ -9,7 +9,7 @@ import pytz
 import six
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_emr
 
@@ -395,7 +395,7 @@ def test_run_job_flow():
 @mock_emr
 def test_run_job_flow_with_invalid_params():
     client = boto3.client("emr", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         # cannot set both AmiVersion and ReleaseLabel
         args = deepcopy(run_job_flow_args)
         args["AmiVersion"] = "2.4"
@@ -592,7 +592,7 @@ def _patch_cluster_id_placeholder_in_autoscaling_policy(
 def test_run_job_flow_with_custom_ami():
     client = boto3.client("emr", region_name="us-east-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         # CustomAmiId available in Amazon EMR 5.7.0 and later
         args = deepcopy(run_job_flow_args)
         args["CustomAmiId"] = "MyEmrCustomId"
@@ -601,7 +601,7 @@ def test_run_job_flow_with_custom_ami():
     ex.exception.response["Error"]["Code"].should.equal("ValidationException")
     ex.exception.response["Error"]["Message"].should.equal("Custom AMI is not allowed")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         args = deepcopy(run_job_flow_args)
         args["CustomAmiId"] = "MyEmrCustomId"
         args["AmiVersion"] = "3.8.1"
@@ -611,7 +611,7 @@ def test_run_job_flow_with_custom_ami():
         "Custom AMI is not supported in this version of EMR"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         # AMI version and release label exception  raises before CustomAmi exception
         args = deepcopy(run_job_flow_args)
         args["CustomAmiId"] = "MyEmrCustomId"

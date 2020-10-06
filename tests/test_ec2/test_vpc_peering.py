@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+import pytest
 from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
 
@@ -49,7 +48,7 @@ def test_vpc_peering_connections_accept():
     vpc_pcx = conn.accept_vpc_peering_connection(vpc_pcx.id)
     vpc_pcx._status.code.should.equal("active")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.reject_vpc_peering_connection(vpc_pcx.id)
     cm.exception.code.should.equal("InvalidStateTransition")
     cm.exception.status.should.equal(400)
@@ -69,7 +68,7 @@ def test_vpc_peering_connections_reject():
     verdict = conn.reject_vpc_peering_connection(vpc_pcx.id)
     verdict.should.equal(True)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.accept_vpc_peering_connection(vpc_pcx.id)
     cm.exception.code.should.equal("InvalidStateTransition")
     cm.exception.status.should.equal(400)
@@ -93,7 +92,7 @@ def test_vpc_peering_connections_delete():
     all_vpc_pcxs.should.have.length_of(1)
     all_vpc_pcxs[0]._status.code.should.equal("deleted")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_vpc_peering_connection("pcx-1234abcd")
     cm.exception.code.should.equal("InvalidVpcPeeringConnectionId.NotFound")
     cm.exception.status.should.equal(400)
@@ -129,7 +128,7 @@ def test_vpc_peering_connections_cross_region_fail():
     ec2_apn1 = boto3.resource("ec2", region_name="ap-northeast-1")
     vpc_apn1 = ec2_apn1.create_vpc(CidrBlock="10.20.0.0/16")
     # create peering wrong region with no vpc
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         ec2_usw1.create_vpc_peering_connection(
             VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-2"
         )
@@ -253,7 +252,7 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region():
     # accept wrong peering from us-west-1 which will raise error
     ec2_apn1 = boto3.client("ec2", region_name="ap-northeast-1")
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         ec2_usw1.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
     cm.exception.response["Error"]["Code"].should.equal("OperationNotPermitted")
     exp_msg = (
@@ -278,7 +277,7 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region():
     # reject wrong peering from us-west-1 which will raise error
     ec2_apn1 = boto3.client("ec2", region_name="ap-northeast-1")
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         ec2_usw1.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
     cm.exception.response["Error"]["Code"].should.equal("OperationNotPermitted")
     exp_msg = (

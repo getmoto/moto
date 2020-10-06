@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+import pytest
 
 import boto
 import boto3
@@ -61,7 +60,7 @@ def test_route_tables_additional():
     local_route.state.should.equal("active")
     local_route.destination_cidr_block.should.equal(vpc.cidr_block)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_vpc(vpc.id)
     cm.exception.code.should.equal("DependencyViolation")
     cm.exception.status.should.equal(400)
@@ -72,7 +71,7 @@ def test_route_tables_additional():
     all_route_tables = conn.get_all_route_tables(filters={"vpc-id": vpc.id})
     all_route_tables.should.have.length_of(1)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_route_table("rtb-1234abcd")
     cm.exception.code.should.equal("InvalidRouteTableID.NotFound")
     cm.exception.status.should.equal(400)
@@ -197,7 +196,7 @@ def test_route_table_associations():
     association_id_idempotent.should.equal(association_id)
 
     # Error: Attempt delete associated route table.
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_route_table(route_table.id)
     cm.exception.code.should.equal("DependencyViolation")
     cm.exception.status.should.equal(400)
@@ -211,21 +210,21 @@ def test_route_table_associations():
     route_table.associations.should.have.length_of(0)
 
     # Error: Disassociate with invalid association ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.disassociate_route_table(association_id)
     cm.exception.code.should.equal("InvalidAssociationID.NotFound")
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
     # Error: Associate with invalid subnet ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_route_table(route_table.id, "subnet-1234abcd")
     cm.exception.code.should.equal("InvalidSubnetID.NotFound")
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
     # Error: Associate with invalid route table ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_route_table("rtb-1234abcd", subnet.id)
     cm.exception.code.should.equal("InvalidRouteTableID.NotFound")
     cm.exception.status.should.equal(400)
@@ -293,7 +292,7 @@ def test_route_table_replace_route_table_association():
     association_id_idempotent.should.equal(association_id2)
 
     # Error: Replace association with invalid association ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.replace_route_table_association_with_assoc(
             "rtbassoc-1234abcd", route_table1.id
         )
@@ -302,7 +301,7 @@ def test_route_table_replace_route_table_association():
     cm.exception.request_id.should_not.be.none
 
     # Error: Replace association with invalid route table ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.replace_route_table_association_with_assoc(association_id2, "rtb-1234abcd")
     cm.exception.code.should.equal("InvalidRouteTableID.NotFound")
     cm.exception.status.should.equal(400)
@@ -389,7 +388,7 @@ def test_routes_additional():
     ]
     new_routes.should.have.length_of(0)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_route(main_route_table.id, ROUTE_CIDR)
     cm.exception.code.should.equal("InvalidRoute.NotFound")
     cm.exception.status.should.equal(400)
@@ -442,7 +441,7 @@ def test_routes_replace():
     target_route.state.should.equal("active")
     target_route.destination_cidr_block.should.equal(ROUTE_CIDR)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.replace_route("rtb-1234abcd", ROUTE_CIDR, gateway_id=igw.id)
     cm.exception.code.should.equal("InvalidRouteTableID.NotFound")
     cm.exception.status.should.equal(400)
@@ -571,7 +570,7 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
     internet_gateway.reload()
 
     destination_cidr_block = "1000.1.0.0/20"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         route = route_table.create_route(
             DestinationCidrBlock=destination_cidr_block, GatewayId=internet_gateway.id
         )
