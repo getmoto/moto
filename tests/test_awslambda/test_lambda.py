@@ -93,6 +93,7 @@ def test_list_functions():
     result["Functions"].should.have.length_of(0)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_requestresponse_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -137,6 +138,7 @@ def test_invoke_requestresponse_function():
     assert "LogResult" not in success_result
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_requestresponse_function_with_arn():
     from moto.awslambda.models import ACCOUNT_ID
@@ -169,6 +171,7 @@ def test_invoke_requestresponse_function_with_arn():
     json.loads(payload).should.equal(in_data)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_event_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -196,6 +199,7 @@ def test_invoke_event_function():
     json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_dryrun_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -260,6 +264,7 @@ if settings.TEST_SERVER_MODE:
         actual_payload.should.equal(expected_payload)
 
 
+@pytest.mark.network
 @mock_logs
 @mock_sns
 @mock_ec2
@@ -731,6 +736,7 @@ def test_list_create_list_get_delete_list():
     conn.list_functions()["Functions"].should.have.length_of(0)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_lambda_error():
     lambda_fx = """
@@ -846,6 +852,7 @@ def test_tags_not_found():
     ).should.throw(botocore.client.ClientError)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_async_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -1117,6 +1124,7 @@ def test_create_event_source_mapping():
     assert response["State"] == "Enabled"
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_sqs
@@ -1158,6 +1166,7 @@ def test_invoke_function_from_sqs():
     )
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_dynamodb2
@@ -1206,6 +1215,7 @@ def test_invoke_function_from_dynamodb_put():
     )
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_dynamodb2
@@ -1289,6 +1299,7 @@ def wait_for_log_msg(expected_msg, log_group):
     return False, received_messages
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_sqs
