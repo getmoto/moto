@@ -113,32 +113,35 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
         # TODO move these to their respective backends
-        filters = [lambda t, v: True]
+        filters = []
         for tag_filter_dict in tag_filters:
             values = tag_filter_dict.get("Values", [])
             if len(values) == 0:
                 # Check key matches
-                filters.append(lambda t, v: t == tag_filter_dict["Key"])
+                filters.append(lambda t, v, key=tag_filter_dict["Key"]: t == key)
             elif len(values) == 1:
                 # Check its exactly the same as key, value
                 filters.append(
-                    lambda t, v: t == tag_filter_dict["Key"] and v == values[0]
+                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key
+                    and v == value
                 )
             else:
                 # Check key matches and value is one of the provided values
-                filters.append(lambda t, v: t == tag_filter_dict["Key"] and v in values)
+                filters.append(
+                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key
+                    and v in vl
+                )
 
         def tag_filter(tag_list):
             result = []
             if tag_filters:
-                for tag in tag_list:
+                for f in filters:
                     temp_result = []
-                    for f in filters:
+                    for tag in tag_list:
                         f_result = f(tag["Key"], tag["Value"])
                         temp_result.append(f_result)
-                    result.append(all(temp_result))
-
-                return any(result)
+                    result.append(any(temp_result))
+                return all(result)
             else:
                 return True
 
