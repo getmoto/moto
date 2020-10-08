@@ -9,7 +9,6 @@ import boto
 import boto3
 from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
-from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
@@ -834,22 +833,26 @@ def test_volume_property_hidden_when_no_tags_exist():
     volume_response.get("Tags").should.equal(None)
 
 
-@freeze_time
 @mock_ec2
 def test_copy_snapshot():
     ec2_client = boto3.client("ec2", region_name="eu-west-1")
     dest_ec2_client = boto3.client("ec2", region_name="eu-west-2")
 
     volume_response = ec2_client.create_volume(AvailabilityZone="eu-west-1a", Size=10)
+    tag_spec = [
+        {"ResourceType": "snapshot", "Tags": [{"Key": "key", "Value": "value"}]}
+    ]
 
     create_snapshot_response = ec2_client.create_snapshot(
-        VolumeId=volume_response["VolumeId"]
+        VolumeId=volume_response["VolumeId"], TagSpecifications=tag_spec
     )
 
     copy_snapshot_response = dest_ec2_client.copy_snapshot(
         SourceSnapshotId=create_snapshot_response["SnapshotId"],
         SourceRegion="eu-west-1",
+        TagSpecifications=tag_spec,
     )
+    copy_snapshot_response["Tags"].should.equal(tag_spec[0]["Tags"])
 
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     dest_ec2 = boto3.resource("ec2", region_name="eu-west-2")
