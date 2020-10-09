@@ -293,3 +293,62 @@ def test_get_resources_s3():
         response_keys.remove(resource["Tags"][0]["Key"])
 
     response_keys.should.have.length_of(0)
+
+
+@mock_ec2
+@mock_resourcegroupstaggingapi
+def test_multiple_tag_filters():
+    client = boto3.client("ec2", region_name="eu-central-1")
+
+    resp = client.run_instances(
+        ImageId="ami-123",
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t2.micro",
+        TagSpecifications=[
+            {
+                "ResourceType": "instance",
+                "Tags": [
+                    {"Key": "MY_TAG1", "Value": "MY_UNIQUE_VALUE"},
+                    {"Key": "MY_TAG2", "Value": "MY_SHARED_VALUE"},
+                ],
+            },
+            {
+                "ResourceType": "instance",
+                "Tags": [{"Key": "MY_TAG3", "Value": "MY_VALUE3"}],
+            },
+        ],
+    )
+    instance_1_id = resp["Instances"][0]["InstanceId"]
+
+    resp = client.run_instances(
+        ImageId="ami-456",
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t2.micro",
+        TagSpecifications=[
+            {
+                "ResourceType": "instance",
+                "Tags": [
+                    {"Key": "MY_TAG1", "Value": "MY_ALT_UNIQUE_VALUE"},
+                    {"Key": "MY_TAG2", "Value": "MY_SHARED_VALUE"},
+                ],
+            },
+            {
+                "ResourceType": "instance",
+                "Tags": [{"Key": "MY_ALT_TAG3", "Value": "MY_VALUE3"}],
+            },
+        ],
+    )
+    instance_2_id = resp["Instances"][0]["InstanceId"]
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
+    results = rtapi.get_resources(
+        TagFilters=[
+            {"Key": "MY_TAG1", "Values": ["MY_UNIQUE_VALUE"]},
+            {"Key": "MY_TAG2", "Values": ["MY_SHARED_VALUE"]},
+        ]
+    ).get("ResourceTagMappingList", [])
+    results.should.have.length_of(1)
+    instance_1_id.should.be.within(results[0]["ResourceARN"])
+    instance_2_id.shouldnt.be.within(results[0]["ResourceARN"])
