@@ -385,7 +385,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             "expires": datetime.datetime.now() + datetime.timedelta(hours=1),
         }
 
-    def import_cert(self, certificate, private_key, chain=None, arn=None):
+    def import_cert(self, certificate, private_key, chain=None, arn=None, tags=None):
         if arn is not None:
             if arn not in self._certificates:
                 raise self._arn_not_found(arn)
@@ -399,6 +399,9 @@ class AWSCertificateManagerBackend(BaseBackend):
             bundle = CertBundle(certificate, private_key, chain=chain, region=region)
 
         self._certificates[bundle.arn] = bundle
+
+        if tags:
+            self.add_tags_to_certificate(bundle.arn, tags)
 
         return bundle.arn
 

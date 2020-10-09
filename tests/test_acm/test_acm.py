@@ -38,12 +38,24 @@ def test_import_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
     resp = client.import_certificate(
-        Certificate=SERVER_CRT, PrivateKey=SERVER_KEY, CertificateChain=CA_CRT
+        Certificate=SERVER_CRT, PrivateKey=SERVER_KEY, CertificateChain=CA_CRT,
+        Tags=[ 
+            { 'Key': 'Environment', 'Value': 'QA' }, 
+            { 'Key': 'KeyOnly' }, 
+        ]
     )
-    resp = client.get_certificate(CertificateArn=resp["CertificateArn"])
+    arn = resp["CertificateArn"]
 
+    resp = client.get_certificate(CertificateArn=arn)
     resp["Certificate"].should.equal(SERVER_CRT.decode())
     resp.should.contain("CertificateChain")
+
+    resp = client.list_tags_for_certificate(CertificateArn=arn)
+    tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
+    tags.should.contain("Environment")
+    tags.should.contain("KeyOnly")
+    tags["Environment"].should.equal("QA")
+    tags["KeyOnly"].should.equal("__NONE__")
 
 
 @mock_acm

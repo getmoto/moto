@@ -117,6 +117,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         private_key = self._get_param("PrivateKey")
         chain = self._get_param("CertificateChain")  # Optional
         current_arn = self._get_param("CertificateArn")  # Optional
+        tags = self._get_param("Tags")  # Optional
 
         # Simple parameter decoding. Rather do it here as its a data transport decision not part of the
         # actual data
@@ -142,7 +143,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         try:
             arn = self.acm_backend.import_cert(
-                certificate, private_key, chain=chain, arn=current_arn
+                certificate, private_key, chain=chain, arn=current_arn, tags=tags
             )
         except AWSError as err:
             return err.response()
