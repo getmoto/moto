@@ -35,6 +35,7 @@ from .exceptions import (
     InvalidParameterValue,
     MissingParameter,
     OverLimit,
+    InvalidAttributeValue,
 )
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
@@ -42,6 +43,9 @@ from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
+
+MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND = 1024
+MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND = MAXIMUM_MESSAGE_LENGTH
 
 TRANSPORT_TYPE_ENCODINGS = {
     "String": b"\x01",
@@ -248,7 +252,7 @@ class Queue(CloudFormationModel):
             "FifoQueue": "false",
             "KmsDataKeyReusePeriodSeconds": 300,  # five minutes
             "KmsMasterKeyId": None,
-            "MaximumMessageSize": int(64 << 12),
+            "MaximumMessageSize": MAXIMUM_MESSAGE_LENGTH,
             "MessageRetentionPeriod": 86400 * 4,  # four days
             "Policy": None,
             "ReceiveMessageWaitTimeSeconds": 0,
@@ -262,6 +266,11 @@ class Queue(CloudFormationModel):
         # Check some conditions
         if self.fifo_queue and not self.name.endswith(".fifo"):
             raise InvalidParameterValue("Queue name must end in .fifo for FIFO queues")
+        if (
+            self.maximum_message_size < MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND
+            or self.maximum_message_size > MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND
+        ):
+            raise InvalidAttributeValue("MaximumMessageSize")
 
     @property
     def pending_messages(self):
@@ -648,6 +657,12 @@ class SQSBackend(BaseBackend):
     ):
 
         queue = self.get_queue(queue_name)
+
+        if len(message_body) > queue.maximum_message_size:
+            msg = "One or more parameters are invalid. Reason: Message must be shorter than {} bytes.".format(
+                queue.maximum_message_size
+            )
+            raise InvalidParameterValue(msg)
 
         if delay_seconds:
             delay_seconds = int(delay_seconds)

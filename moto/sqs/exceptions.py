@@ -103,6 +103,16 @@ class InvalidAttributeName(RESTError):
         )
 
 
+class InvalidAttributeValue(RESTError):
+    code = 400
+
+    def __init__(self, attribute_name):
+        super(InvalidAttributeValue, self).__init__(
+            "InvalidAttributeValue",
+            "Invalid value for the parameter {}.".format(attribute_name),
+        )
+
+
 class InvalidParameterValue(RESTError):
     code = 400
 
