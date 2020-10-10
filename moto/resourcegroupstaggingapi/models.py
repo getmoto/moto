@@ -3,6 +3,7 @@ import uuid
 import six
 from boto3 import Session
 
+from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 
@@ -367,6 +368,23 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Subnet group
 
         # VPC
+        if (
+            not resource_type_filters
+            or "ec2" in resource_type_filters
+            or "ec2:vpc" in resource_type_filters
+        ):
+            for vpc in self.ec2_backend.vpcs.values():
+                tags = get_ec2_tags(vpc.id)
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+                yield {
+                    "ResourceARN": "arn:aws:ec2:{0}:{1}:vpc/{2}".format(
+                        self.region_name, ACCOUNT_ID, vpc.id
+                    ),
+                    "Tags": tags,
+                }
         # VPC Customer Gateway
         # VPC DHCP Option Set
         # VPC Internet Gateway
