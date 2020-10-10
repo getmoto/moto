@@ -63,6 +63,27 @@ def test_get_resources_ec2():
 
 @mock_ec2
 @mock_resourcegroupstaggingapi
+def test_get_resources_ec2_vpc():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2.create_tags(Resources=[vpc.id], Tags=[{"Key": "test", "Value": "test"}])
+
+    def assert_response(resp):
+        results = resp.get("ResourceTagMappingList", [])
+        results.should.have.length_of(1)
+        vpc.id.should.be.within(results[0]["ResourceARN"])
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-1")
+    resp = rtapi.get_resources(ResourceTypeFilters=["ec2"])
+    assert_response(resp)
+    resp = rtapi.get_resources(ResourceTypeFilters=["ec2:vpc"])
+    assert_response(resp)
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test"]}])
+    assert_response(resp)
+
+
+@mock_ec2
+@mock_resourcegroupstaggingapi
 def test_get_tag_keys_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
