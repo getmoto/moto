@@ -140,7 +140,7 @@ def test_describe_certificate():
 
 
 @mock_acm
-def test_describe_certificate():
+def test_describe_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
 
     try:

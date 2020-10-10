@@ -293,9 +293,12 @@ class CertBundle(BaseModel):
             key_algo = "EC_prime256v1"
 
         # Look for SANs
-        san_obj = self._cert.extensions.get_extension_for_oid(
-            cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
-        )
+        try:
+            san_obj = self._cert.extensions.get_extension_for_oid(
+                cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
+            )
+        except cryptography.x509.ExtensionNotFound:
+            san_obj = None
         sans = []
         if san_obj is not None:
             sans = [item.value for item in san_obj.value]
