@@ -2742,3 +2742,104 @@ def test_update_task_set():
     )["taskSets"][0]
     assert updated_task_set["scale"]["value"] == 25.0
     assert updated_task_set["scale"]["unit"] == "PERCENT"
+
+
+@mock_ec2
+@mock_ecs
+def test_list_tasks_with_filters():
+    ecs = boto3.client("ecs", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    _ = ecs.create_cluster(clusterName="test_cluster_1")
+    _ = ecs.create_cluster(clusterName="test_cluster_2")
+
+    test_instance = ec2.create_instances(
+        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    _ = ecs.register_container_instance(
+        cluster="test_cluster_1", instanceIdentityDocument=instance_id_document
+    )
+    _ = ecs.register_container_instance(
+        cluster="test_cluster_2", instanceIdentityDocument=instance_id_document
+    )
+
+    container_instances = ecs.list_container_instances(cluster="test_cluster_1")
+    container_id_1 = container_instances["containerInstanceArns"][0].split("/")[-1]
+    container_instances = ecs.list_container_instances(cluster="test_cluster_2")
+    container_id_2 = container_instances["containerInstanceArns"][0].split("/")[-1]
+
+    test_container_def = {
+        "name": "hello_world",
+        "image": "docker/hello-world:latest",
+        "cpu": 1024,
+        "memory": 400,
+        "essential": True,
+        "environment": [{"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}],
+        "logConfiguration": {"logDriver": "json-file"},
+    }
+
+    _ = ecs.register_task_definition(
+        family="test_task_def_1", containerDefinitions=[test_container_def],
+    )
+
+    _ = ecs.register_task_definition(
+        family="test_task_def_2", containerDefinitions=[test_container_def],
+    )
+
+    _ = ecs.start_task(
+        cluster="test_cluster_1",
+        taskDefinition="test_task_def_1",
+        overrides={},
+        containerInstances=[container_id_1],
+        startedBy="foo",
+    )
+
+    resp = ecs.start_task(
+        cluster="test_cluster_2",
+        taskDefinition="test_task_def_2",
+        overrides={},
+        containerInstances=[container_id_2],
+        startedBy="foo",
+    )
+    task_to_stop = resp["tasks"][0]["taskArn"]
+
+    _ = ecs.start_task(
+        cluster="test_cluster_1",
+        taskDefinition="test_task_def_1",
+        overrides={},
+        containerInstances=[container_id_1],
+        startedBy="bar",
+    )
+
+    len(ecs.list_tasks()["taskArns"]).should.equal(3)
+
+    len(ecs.list_tasks(cluster="test_cluster_1")["taskArns"]).should.equal(2)
+    len(ecs.list_tasks(cluster="test_cluster_2")["taskArns"]).should.equal(1)
+
+    len(ecs.list_tasks(containerInstance="bad-id")["taskArns"]).should.equal(0)
+    len(ecs.list_tasks(containerInstance=container_id_1)["taskArns"]).should.equal(2)
+    len(ecs.list_tasks(containerInstance=container_id_2)["taskArns"]).should.equal(1)
+
+    len(ecs.list_tasks(family="non-existent-family")["taskArns"]).should.equal(0)
+    len(ecs.list_tasks(family="test_task_def_1")["taskArns"]).should.equal(2)
+    len(ecs.list_tasks(family="test_task_def_2")["taskArns"]).should.equal(1)
+
+    len(ecs.list_tasks(startedBy="non-existent-entity")["taskArns"]).should.equal(0)
+    len(ecs.list_tasks(startedBy="foo")["taskArns"]).should.equal(2)
+    len(ecs.list_tasks(startedBy="bar")["taskArns"]).should.equal(1)
+
+    len(ecs.list_tasks(desiredStatus="RUNNING")["taskArns"]).should.equal(3)
+    _ = ecs.stop_task(cluster="test_cluster_2", task=task_to_stop, reason="for testing")
+    len(ecs.list_tasks(desiredStatus="RUNNING")["taskArns"]).should.equal(2)
+    len(ecs.list_tasks(desiredStatus="STOPPED")["taskArns"]).should.equal(1)
+
+    resp = ecs.list_tasks(cluster="test_cluster_1", startedBy="foo")
+    len(resp["taskArns"]).should.equal(1)
+
+    resp = ecs.list_tasks(containerInstance=container_id_1, startedBy="bar")
+    len(resp["taskArns"]).should.equal(1)
