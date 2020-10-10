@@ -211,6 +211,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         )  # is ignored atm
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
+        tags = self._get_param("Tags")  # Optional
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -228,6 +229,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 domain_validation_options,
                 idempotency_token,
                 subject_alt_names,
+                tags,
             )
         except AWSError as err:
             return err.response()

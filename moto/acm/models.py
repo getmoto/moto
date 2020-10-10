@@ -437,6 +437,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         domain_validation_options,
         idempotency_token,
         subject_alt_names,
+        tags=None,
     ):
         if idempotency_token is not None:
             arn = self._get_arn_from_idempotency_token(idempotency_token)
@@ -449,6 +450,9 @@ class AWSCertificateManagerBackend(BaseBackend):
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
         self._certificates[cert.arn] = cert
+
+        if tags:
+            self.add_tags_to_certificate(cert.arn, tags)
 
         return cert.arn
 
