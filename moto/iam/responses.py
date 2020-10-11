@@ -133,7 +133,7 @@ class IamResponse(BaseResponse):
                             entity_users.append(user.name)
 
         elif entity == "Role":
-            roles = iam_backend.list_roles(path_prefix, marker, max_items)
+            roles, _ = iam_backend.list_roles(path_prefix, marker, max_items)
             if roles:
                 for role in roles:
                     for p in role.managed_policies:
@@ -156,7 +156,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_users.append(user.name)
 
-            roles = iam_backend.list_roles(path_prefix, marker, max_items)
+            roles, _ = iam_backend.list_roles(path_prefix, marker, max_items)
             if roles:
                 for role in roles:
                     for p in role.managed_policies:
@@ -356,9 +356,13 @@ class IamResponse(BaseResponse):
         return template.render()
 
     def list_roles(self):
-        roles = iam_backend.get_roles()
+        path_prefix = self._get_param("PathPrefix", "/")
+        marker = self._get_param("Marker", "0")
+        max_items = self._get_param("MaxItems", 100)
+
+        roles, marker = iam_backend.list_roles(path_prefix, marker, max_items)
         template = self.response_template(LIST_ROLES_TEMPLATE)
-        return template.render(roles=roles)
+        return template.render(roles=roles, marker=marker)
 
     def list_instance_profiles(self):
         profiles = iam_backend.get_instance_profiles()
@@ -1379,7 +1383,10 @@ REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE = """<RemoveRoleFromInstanceProfileRe
 
 LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ListRolesResult>
-    <IsTruncated>false</IsTruncated>
+    <IsTruncated>{{ 'true' if marker else 'false' }}</IsTruncated>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
     <Roles>
       {% for role in roles %}
       <member>
