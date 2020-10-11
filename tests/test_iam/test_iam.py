@@ -155,13 +155,13 @@ def test_create_role_and_instance_profile():
     conn = boto.connect_iam()
     conn.create_instance_profile("my-profile", path="my-path")
     conn.create_role(
-        "my-role", assume_role_policy_document="some policy", path="/my-path"
+        "my-role", assume_role_policy_document="some policy", path="/my-path/"
     )
 
     conn.add_role_to_instance_profile("my-profile", "my-role")
 
     role = conn.get_role("my-role")
-    role.path.should.equal("/my-path")
+    role.path.should.equal("/my-path/")
     role.assume_role_policy_document.should.equal("some policy")
 
     profile = conn.get_instance_profile("my-profile")
@@ -3978,10 +3978,10 @@ def test_list_roles_path_prefix_value_adhered():
     iam.create_role(
         RoleName="test_role_with_path",
         AssumeRolePolicyDocument="some policy",
-        Path="/TestPath",
+        Path="/TestPath/",
     )
 
-    response = iam.list_roles(PathPrefix="/TestPath")
+    response = iam.list_roles(PathPrefix="/TestPath/")
     roles = response["Roles"]
 
     assert len(roles) == 1
