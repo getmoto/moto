@@ -11,7 +11,7 @@ from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ServiceNotFoundException,
@@ -174,8 +174,10 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         family = properties.get(
             "Family", "task-definition-{0}".format(int(random() * 10 ** 6))
         )
-        container_definitions = properties["ContainerDefinitions"]
-        volumes = properties.get("Volumes")
+        container_definitions = remap_nested_keys(
+            properties.get("ContainerDefinitions", []), pascal_to_camelcase
+        )
+        volumes = remap_nested_keys(properties.get("Volumes", []), pascal_to_camelcase)
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.register_task_definition(

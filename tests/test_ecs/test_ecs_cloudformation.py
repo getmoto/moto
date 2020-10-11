@@ -2,6 +2,8 @@ import boto3
 import json
 from copy import deepcopy
 from moto import mock_cloudformation, mock_ecs
+from moto.core.utils import pascal_to_camelcase, remap_nested_keys
+import sure  # noqa
 
 
 @mock_ecs
@@ -231,9 +233,16 @@ def test_create_task_definition_through_cloudformation():
                             "Cpu": "200",
                             "Memory": "500",
                             "Essential": "true",
+                            "PortMappings": [
+                                {
+                                    "ContainerPort": 123,
+                                    "HostPort": 123,
+                                    "Protocol": "tcp",
+                                },
+                            ],
                         }
                     ],
-                    "Volumes": [],
+                    "Volumes": [{"Name": "ecs-vol"}],
                 },
             }
         },
@@ -252,3 +261,14 @@ def test_create_task_definition_through_cloudformation():
         StackName=stack_name, LogicalResourceId="testTaskDefinition"
     )["StackResourceDetail"]
     task_definition_details["PhysicalResourceId"].should.equal(task_definition_arn)
+
+    task_definition = ecs_conn.describe_task_definition(
+        taskDefinition=task_definition_arn
+    ).get("taskDefinition")
+    expected_properties = remap_nested_keys(
+        template["Resources"]["testTaskDefinition"]["Properties"], pascal_to_camelcase
+    )
+    task_definition["volumes"].should.equal(expected_properties["volumes"])
+    task_definition["containerDefinitions"].should.equal(
+        expected_properties["containerDefinitions"]
+    )
