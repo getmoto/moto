@@ -57,6 +57,11 @@ def underscores_to_camelcase(argument):
     return result
 
 
+def pascal_to_camelcase(argument):
+    """Converts a PascalCase param to the camelCase equivalent"""
+    return argument[0].lower() + argument[1:]
+
+
 def method_names_from_class(clazz):
     # On Python 2, methods are different from functions, and the `inspect`
     # predicates distinguish between them. On Python 3, methods are just
@@ -367,3 +372,30 @@ def tags_from_cloudformation_tags_list(tags_list):
         tags[key] = value
 
     return tags
+
+
+def remap_nested_keys(root, key_transform):
+    """This remap ("recursive map") function is used to traverse and
+    transform the dictionary keys of arbitrarily nested structures.
+    List comprehensions do not recurse, making it tedious to apply
+    transforms to all keys in a tree-like structure.
+
+    A common issue for `moto` is changing the casing of dict keys:
+
+    >>> remap_nested_keys({'KeyName': 'Value'}, camelcase_to_underscores)
+    {'key_name': 'Value'}
+
+    Args:
+        root: The target data to traverse. Supports iterables like
+            :class:`list`, :class:`tuple`, and :class:`dict`.
+        key_transform (callable): This function is called on every
+            dictionary key found in *root*.
+    """
+    if isinstance(root, (list, tuple)):
+        return [remap_nested_keys(item, key_transform) for item in root]
+    if isinstance(root, dict):
+        return {
+            key_transform(k): remap_nested_keys(v, key_transform)
+            for k, v in six.iteritems(root)
+        }
+    return root
