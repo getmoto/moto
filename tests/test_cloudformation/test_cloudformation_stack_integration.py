@@ -870,7 +870,7 @@ def test_iam_roles():
                             }
                         ]
                     },
-                    "Path": "my-path",
+                    "Path": "/my-path/",
                     "Policies": [
                         {
                             "PolicyDocument": {
@@ -939,7 +939,7 @@ def test_iam_roles():
         # Role name is not specified, so randomly generated - can't check exact name
         if "with-path" in role.role_name:
             role_name_to_id["with-path"] = role.role_id
-            role.path.should.equal("my-path")
+            role.path.should.equal("/my-path/")
         else:
             role_name_to_id["no-path"] = role.role_id
             role.role_name.should.equal("my-role-no-path-name")
