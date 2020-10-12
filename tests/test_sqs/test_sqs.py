@@ -22,6 +22,11 @@ from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
 from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
 from moto.core import ACCOUNT_ID
+from moto.sqs.models import (
+    MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
+    MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
+    MAXIMUM_MESSAGE_LENGTH,
+)
 
 TEST_POLICY = """
 {
@@ -2157,3 +2162,49 @@ def test_invoke_function_from_sqs_exception():
         time.sleep(1)
 
     assert False, "Test Failed"
+
+
+@mock_sqs
+def test_maximum_message_size_attribute_default():
+    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    queue = sqs.create_queue(QueueName="test-queue",)
+    int(queue.attributes["MaximumMessageSize"]).should.equal(MAXIMUM_MESSAGE_LENGTH)
+    with assert_raises(Exception) as e:
+        queue.send_message(MessageBody="a" * (MAXIMUM_MESSAGE_LENGTH + 1))
+    ex = e.exception
+    ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
+
+
+@mock_sqs
+def test_maximum_message_size_attribute_fails_for_invalid_values():
+    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    invalid_values = [
+        MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND - 1,
+        MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND + 1,
+    ]
+    for message_size in invalid_values:
+        with assert_raises(ClientError) as e:
+            sqs.create_queue(
+                QueueName="test-queue",
+                Attributes={"MaximumMessageSize": str(message_size)},
+            )
+        ex = e.exception
+        ex.response["Error"]["Code"].should.equal("InvalidAttributeValue")
+
+
+@mock_sqs
+def test_send_message_fails_when_message_size_greater_than_max_message_size():
+    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    message_size_limit = 12345
+    queue = sqs.create_queue(
+        QueueName="test-queue",
+        Attributes={"MaximumMessageSize": str(message_size_limit)},
+    )
+    int(queue.attributes["MaximumMessageSize"]).should.equal(message_size_limit)
+    with assert_raises(ClientError) as e:
+        queue.send_message(MessageBody="a" * (message_size_limit + 1))
+    ex = e.exception
+    ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.contain(
+        "{} bytes".format(message_size_limit)
+    )

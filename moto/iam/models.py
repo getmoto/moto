@@ -2011,16 +2011,23 @@ class IAMBackend(BaseBackend):
             user.name = new_user_name
             self.users[new_user_name] = self.users.pop(user_name)
 
-    def list_roles(self, path_prefix, marker, max_items):
-        roles = None
-        try:
-            roles = self.roles.values()
-        except KeyError:
-            raise IAMNotFoundException(
-                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items)
-            )
+    def list_roles(self, path_prefix=None, marker=None, max_items=None):
+        path_prefix = path_prefix if path_prefix else "/"
+        max_items = int(max_items) if max_items else 100
+        start_index = int(marker) if marker else 0
 
-        return roles
+        roles = self.roles.values()
+        roles = filter_items_with_path_prefix(path_prefix, roles)
+        sorted_roles = sorted(roles, key=lambda role: role.id)
+
+        roles_to_return = sorted_roles[start_index : start_index + max_items]
+
+        if len(sorted_roles) <= (start_index + max_items):
+            marker = None
+        else:
+            marker = str(start_index + max_items)
+
+        return roles_to_return, marker
 
     def upload_signing_certificate(self, user_name, body):
         user = self.get_user(user_name)

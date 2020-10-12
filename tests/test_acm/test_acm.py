@@ -12,6 +12,7 @@ from moto import mock_acm, settings
 from moto.core import ACCOUNT_ID
 
 from nose import SkipTest
+from nose.tools import assert_raises
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 _GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
@@ -45,6 +46,30 @@ def test_import_certificate():
 
     resp["Certificate"].should.equal(SERVER_CRT.decode())
     resp.should.contain("CertificateChain")
+
+
+@mock_acm
+def test_import_certificate_with_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    resp = client.import_certificate(
+        Certificate=SERVER_CRT,
+        PrivateKey=SERVER_KEY,
+        CertificateChain=CA_CRT,
+        Tags=[{"Key": "Environment", "Value": "QA"}, {"Key": "KeyOnly"},],
+    )
+    arn = resp["CertificateArn"]
+
+    resp = client.get_certificate(CertificateArn=arn)
+    resp["Certificate"].should.equal(SERVER_CRT.decode())
+    resp.should.contain("CertificateChain")
+
+    resp = client.list_tags_for_certificate(CertificateArn=arn)
+    tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
+    tags.should.contain("Environment")
+    tags.should.contain("KeyOnly")
+    tags["Environment"].should.equal("QA")
+    tags["KeyOnly"].should.equal("__NONE__")
 
 
 @mock_acm
@@ -141,7 +166,7 @@ def test_describe_certificate():
 
 
 @mock_acm
-def test_describe_certificate():
+def test_describe_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
 
     try:
@@ -312,6 +337,150 @@ def test_request_certificate():
         SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
     )
     resp["CertificateArn"].should.equal(arn)
+
+
+@mock_acm
+def test_request_certificate_with_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    token = str(uuid.uuid4())
+
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        Tags=[
+            {"Key": "Environment", "Value": "QA"},
+            {"Key": "WithEmptyStr", "Value": ""},
+        ],
+    )
+    resp.should.contain("CertificateArn")
+    arn_1 = resp["CertificateArn"]
+
+    resp = client.list_tags_for_certificate(CertificateArn=arn_1)
+    tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
+    tags.should.have.length_of(2)
+    tags["Environment"].should.equal("QA")
+    tags["WithEmptyStr"].should.equal("")
+
+    # Request certificate for "google.com" with same IdempotencyToken but with different Tags
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        Tags=[{"Key": "Environment", "Value": "Prod"}, {"Key": "KeyOnly"},],
+    )
+    arn_2 = resp["CertificateArn"]
+
+    assert arn_1 != arn_2  # if tags are matched, ACM would have returned same arn
+
+    resp = client.list_tags_for_certificate(CertificateArn=arn_2)
+    tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
+    tags.should.have.length_of(2)
+    tags["Environment"].should.equal("Prod")
+    tags["KeyOnly"].should.equal("__NONE__")
+
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        Tags=[
+            {"Key": "Environment", "Value": "QA"},
+            {"Key": "WithEmptyStr", "Value": ""},
+        ],
+    )
+
+
+@mock_acm
+def test_operations_with_invalid_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    # request certificate with invalid tags
+    with assert_raises(ClientError) as ex:
+        client.request_certificate(
+            DomainName="example.com", Tags=[{"Key": "X" * 200, "Value": "Valid"}],
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.contain(
+        "Member must have length less than or equal to 128"
+    )
+
+    # import certificate with invalid tags
+    with assert_raises(ClientError) as ex:
+        client.import_certificate(
+            Certificate=SERVER_CRT,
+            PrivateKey=SERVER_KEY,
+            CertificateChain=CA_CRT,
+            Tags=[
+                {"Key": "Valid", "Value": "X" * 300},
+                {"Key": "aws:xx", "Value": "Valid"},
+            ],
+        )
+
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.contain(
+        "Member must have length less than or equal to 256"
+    )
+
+    arn = _import_cert(client)
+
+    # add invalid tags to existing certificate
+    with assert_raises(ClientError) as ex:
+        client.add_tags_to_certificate(
+            CertificateArn=arn,
+            Tags=[{"Key": "aws:xxx", "Value": "Valid"}, {"Key": "key2"}],
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.contain(
+        "AWS internal tags cannot be changed with this API"
+    )
+
+    # try removing invalid tags from existing certificate
+    with assert_raises(ClientError) as ex:
+        client.remove_tags_from_certificate(
+            CertificateArn=arn, Tags=[{"Key": "aws:xxx", "Value": "Valid"}]
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.contain(
+        "AWS internal tags cannot be changed with this API"
+    )
+
+
+@mock_acm
+def test_add_too_many_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    # Add 51 tags
+    with assert_raises(ClientError) as ex:
+        client.add_tags_to_certificate(
+            CertificateArn=arn,
+            Tags=[{"Key": "a-%d" % i, "Value": "abcd"} for i in range(1, 52)],
+        )
+    ex.exception.response["Error"]["Code"].should.equal("TooManyTagsException")
+    ex.exception.response["Error"]["Message"].should.contain("contains too many Tags")
+    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.empty
+
+    # Add 49 tags first, then try to add 2 more.
+    client.add_tags_to_certificate(
+        CertificateArn=arn,
+        Tags=[{"Key": "p-%d" % i, "Value": "pqrs"} for i in range(1, 50)],
+    )
+    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
+        49
+    )
+    with assert_raises(ClientError) as ex:
+        client.add_tags_to_certificate(
+            CertificateArn=arn,
+            Tags=[{"Key": "x-1", "Value": "xyz"}, {"Key": "x-2", "Value": "xyz"}],
+        )
+    ex.exception.response["Error"]["Code"].should.equal("TooManyTagsException")
+    ex.exception.response["Error"]["Message"].should.contain("contains too many Tags")
+    ex.exception.response["Error"]["Message"].count("pqrs").should.equal(49)
+    ex.exception.response["Error"]["Message"].count("xyz").should.equal(2)
+    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
+        49
+    )
 
 
 @mock_acm

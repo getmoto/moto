@@ -940,10 +940,30 @@ class EC2ContainerServiceBackend(BaseBackend):
                 )
             )
 
+        if family:
+            task_definition_arns = self.list_task_definitions(family)
+            filtered_tasks = list(
+                filter(
+                    lambda t: t.task_definition_arn in task_definition_arns,
+                    filtered_tasks,
+                )
+            )
+
         if started_by:
             filtered_tasks = list(
                 filter(lambda t: started_by == t.started_by, filtered_tasks)
             )
+
+        if service_name:
+            # TODO: We can't filter on `service_name` until the backend actually
+            # launches tasks as part of the service creation process.
+            pass
+
+        if desiredStatus:
+            filtered_tasks = list(
+                filter(lambda t: t.desired_status == desiredStatus, filtered_tasks)
+            )
+
         return [t.task_arn for t in filtered_tasks]
 
     def stop_task(self, cluster_str, task_str, reason):

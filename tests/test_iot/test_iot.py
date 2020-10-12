@@ -1038,10 +1038,14 @@ def test_delete_thing_group():
     res.should.have.key("thingGroups").which.should.have.length_of(1)
     res["thingGroups"].should_not.have.key(group_name_2a)
 
-    # now that there is no child group, we can delete the previus group safely
+    # now that there is no child group, we can delete the previous group safely
     client.delete_thing_group(thingGroupName=group_name_1a)
     res = client.list_thing_groups()
     res.should.have.key("thingGroups").which.should.have.length_of(0)
+
+    # Deleting an invalid thing group does not raise an error.
+    res = client.delete_thing_group(thingGroupName="non-existent-group-name")
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_iot

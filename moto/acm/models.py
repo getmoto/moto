@@ -70,6 +70,68 @@ class AWSResourceNotFoundException(AWSError):
     TYPE = "ResourceNotFoundException"
 
 
+class AWSTooManyTagsException(AWSError):
+    TYPE = "TooManyTagsException"
+
+
+class TagHolder(dict):
+    MAX_TAG_COUNT = 50
+    MAX_KEY_LENGTH = 128
+    MAX_VALUE_LENGTH = 256
+
+    def _validate_kv(self, key, value, index):
+        if len(key) > self.MAX_KEY_LENGTH:
+            raise AWSValidationException(
+                "Value '%s' at 'tags.%d.member.key' failed to satisfy constraint: Member must have length less than or equal to %s"
+                % (key, index, self.MAX_KEY_LENGTH)
+            )
+        if value and len(value) > self.MAX_VALUE_LENGTH:
+            raise AWSValidationException(
+                "Value '%s' at 'tags.%d.member.value' failed to satisfy constraint: Member must have length less than or equal to %s"
+                % (value, index, self.MAX_VALUE_LENGTH)
+            )
+        if key.startswith("aws:"):
+            raise AWSValidationException(
+                'Invalid Tag Key: "%s". AWS internal tags cannot be changed with this API'
+                % key
+            )
+
+    def add(self, tags):
+        tags_copy = self.copy()
+        for i, tag in enumerate(tags):
+            key = tag["Key"]
+            value = tag.get("Value", None)
+            self._validate_kv(key, value, i + 1)
+
+            tags_copy[key] = value
+        if len(tags_copy) > self.MAX_TAG_COUNT:
+            raise AWSTooManyTagsException(
+                "the TagSet: '{%s}' contains too many Tags"
+                % ", ".join(k + "=" + str(v or "") for k, v in tags_copy.items())
+            )
+
+        self.update(tags_copy)
+
+    def remove(self, tags):
+        for i, tag in enumerate(tags):
+            key = tag["Key"]
+            value = tag.get("Value", None)
+            self._validate_kv(key, value, i + 1)
+            try:
+                # If value isnt provided, just delete key
+                if value is None:
+                    del self[key]
+                # If value is provided, only delete if it matches what already exists
+                elif self[key] == value:
+                    del self[key]
+            except KeyError:
+                pass
+
+    def equals(self, tags):
+        tags = {t["Key"]: t.get("Value", None) for t in tags} if tags else {}
+        return self == tags
+
+
 class CertBundle(BaseModel):
     def __init__(
         self,
@@ -88,7 +150,7 @@ class CertBundle(BaseModel):
         self.key = private_key
         self._key = None
         self.chain = chain
-        self.tags = {}
+        self.tags = TagHolder()
         self._chain = None
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
@@ -293,9 +355,12 @@ class CertBundle(BaseModel):
             key_algo = "EC_prime256v1"
 
         # Look for SANs
-        san_obj = self._cert.extensions.get_extension_for_oid(
-            cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
-        )
+        try:
+            san_obj = self._cert.extensions.get_extension_for_oid(
+                cryptography.x509.OID_SUBJECT_ALTERNATIVE_NAME
+            )
+        except cryptography.x509.ExtensionNotFound:
+            san_obj = None
         sans = []
         if san_obj is not None:
             sans = [item.value for item in san_obj.value]
@@ -385,7 +450,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             "expires": datetime.datetime.now() + datetime.timedelta(hours=1),
         }
 
-    def import_cert(self, certificate, private_key, chain=None, arn=None):
+    def import_cert(self, certificate, private_key, chain=None, arn=None, tags=None):
         if arn is not None:
             if arn not in self._certificates:
                 raise self._arn_not_found(arn)
@@ -399,6 +464,9 @@ class AWSCertificateManagerBackend(BaseBackend):
             bundle = CertBundle(certificate, private_key, chain=chain, region=region)
 
         self._certificates[bundle.arn] = bundle
+
+        if tags:
+            self.add_tags_to_certificate(bundle.arn, tags)
 
         return bundle.arn
 
@@ -434,10 +502,11 @@ class AWSCertificateManagerBackend(BaseBackend):
         domain_validation_options,
         idempotency_token,
         subject_alt_names,
+        tags=None,
     ):
         if idempotency_token is not None:
             arn = self._get_arn_from_idempotency_token(idempotency_token)
-            if arn is not None:
+            if arn and self._certificates[arn].tags.equals(tags):
                 return arn
 
         cert = CertBundle.generate_cert(
@@ -447,34 +516,20 @@ class AWSCertificateManagerBackend(BaseBackend):
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
         self._certificates[cert.arn] = cert
 
+        if tags:
+            cert.tags.add(tags)
+
         return cert.arn
 
     def add_tags_to_certificate(self, arn, tags):
         # get_cert does arn check
         cert_bundle = self.get_certificate(arn)
-
-        for tag in tags:
-            key = tag["Key"]
-            value = tag.get("Value", None)
-            cert_bundle.tags[key] = value
+        cert_bundle.tags.add(tags)
 
     def remove_tags_from_certificate(self, arn, tags):
         # get_cert does arn check
         cert_bundle = self.get_certificate(arn)
-
-        for tag in tags:
-            key = tag["Key"]
-            value = tag.get("Value", None)
-
-            try:
-                # If value isnt provided, just delete key
-                if value is None:
-                    del cert_bundle.tags[key]
-                # If value is provided, only delete if it matches what already exists
-                elif cert_bundle.tags[key] == value:
-                    del cert_bundle.tags[key]
-            except KeyError:
-                pass
+        cert_bundle.tags.remove(tags)
 
 
 acm_backends = {}
