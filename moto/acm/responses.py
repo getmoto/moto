@@ -117,6 +117,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         private_key = self._get_param("PrivateKey")
         chain = self._get_param("CertificateChain")  # Optional
         current_arn = self._get_param("CertificateArn")  # Optional
+        tags = self._get_param("Tags")  # Optional
 
         # Simple parameter decoding. Rather do it here as its a data transport decision not part of the
         # actual data
@@ -142,7 +143,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         try:
             arn = self.acm_backend.import_cert(
-                certificate, private_key, chain=chain, arn=current_arn
+                certificate, private_key, chain=chain, arn=current_arn, tags=tags
             )
         except AWSError as err:
             return err.response()
@@ -210,6 +211,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         )  # is ignored atm
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
+        tags = self._get_param("Tags")  # Optional
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -227,6 +229,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 domain_validation_options,
                 idempotency_token,
                 subject_alt_names,
+                tags,
             )
         except AWSError as err:
             return err.response()
