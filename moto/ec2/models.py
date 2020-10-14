@@ -28,6 +28,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
 )
 from moto.core import ACCOUNT_ID
+from moto.kms import kms_backends
 
 from .exceptions import (
     CidrLimitExceeded,
@@ -97,6 +98,7 @@ from .exceptions import (
     ResourceAlreadyAssociatedError,
     RulesPerSecurityGroupLimitExceededError,
     TagLimitExceeded,
+    InvalidParameterDependency,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -2425,7 +2427,14 @@ class VolumeAttachment(CloudFormationModel):
 
 class Volume(TaggedEC2Resource, CloudFormationModel):
     def __init__(
-        self, ec2_backend, volume_id, size, zone, snapshot_id=None, encrypted=False
+        self,
+        ec2_backend,
+        volume_id,
+        size,
+        zone,
+        snapshot_id=None,
+        encrypted=False,
+        kms_key_id=None,
     ):
         self.id = volume_id
         self.size = size
@@ -2435,6 +2444,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
         self.encrypted = encrypted
+        self.kms_key_id = kms_key_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -2548,7 +2558,13 @@ class EBSBackend(object):
         self.snapshots = {}
         super(EBSBackend, self).__init__()
 
-    def create_volume(self, size, zone_name, snapshot_id=None, encrypted=False):
+    def create_volume(
+        self, size, zone_name, snapshot_id=None, encrypted=False, kms_key_id=None
+    ):
+        if kms_key_id and not encrypted:
+            raise InvalidParameterDependency("KmsKeyId", "Encrypted")
+        if encrypted and not kms_key_id:
+            kms_key_id = self._get_default_encryption_key()
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
         if snapshot_id:
@@ -2557,7 +2573,7 @@ class EBSBackend(object):
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
-        volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted)
+        volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted, kms_key_id)
         self.volumes[volume_id] = volume
         return volume
 
@@ -2704,6 +2720,25 @@ class EBSBackend(object):
             snapshot.create_volume_permission_groups.difference_update(groups)
 
         return True
+
+    def _get_default_encryption_key(self):
+        # https://aws.amazon.com/kms/features/#AWS_Service_Integration
+        # An AWS managed CMK is created automatically when you first create
+        # an encrypted resource using an AWS service integrated with KMS.
+        kms = kms_backends[self.region_name]
+        ebs_alias = "alias/aws/ebs"
+        if not kms.alias_exists(ebs_alias):
+            key = kms.create_key(
+                policy="",
+                key_usage="ENCRYPT_DECRYPT",
+                customer_master_key_spec="SYMMETRIC_DEFAULT",
+                description="Default master key that protects my EBS volumes when no other key is defined",
+                tags=None,
+                region=self.region_name,
+            )
+            kms.add_alias(key.id, ebs_alias)
+        ebs_key = kms.describe_key(ebs_alias)
+        return ebs_key.arn
 
 
 class VPC(TaggedEC2Resource, CloudFormationModel):
