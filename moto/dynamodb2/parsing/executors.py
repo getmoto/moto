@@ -161,6 +161,13 @@ class DeleteExecutor(NodeExecutor):
                 # DynamoDB does not mind if value is not present
                 pass
 
+        # DynamoDB does not support empty sets.  If we've deleted
+        # the last item in the set, we have to remove the attribute.
+        if not string_set_list:
+            element = self.get_element_to_action()
+            container = self.get_item_before_end_of_path(item)
+            container.pop(element.get_attribute_name())
+
 
 class RemoveExecutor(NodeExecutor):
     def execute(self, item):
