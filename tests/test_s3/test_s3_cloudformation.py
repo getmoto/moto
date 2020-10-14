@@ -143,3 +143,37 @@ def test_s3_bucket_cloudformation_update_replacement():
     cf.update_stack(StackName="test_stack", TemplateBody=template_json)
     stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
     s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
+
+
+@mock_s3
+@mock_cloudformation
+def test_s3_bucket_cloudformation_outputs():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    cf = boto3.resource("cloudformation", region_name="us-east-1")
+    stack_name = "test-stack"
+    bucket_name = "test-bucket"
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "TestBucket": {
+                "Type": "AWS::S3::Bucket",
+                "Properties": {"BucketName": bucket_name},
+            }
+        },
+        "Outputs": {
+            "BucketARN": {
+                "Value": {"Fn::GetAtt": ["TestBucket", "Arn"]},
+                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketARN"}},
+            },
+            "BucketName": {
+                "Value": {"Ref": "TestBucket"},
+                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketName"}},
+            },
+        },
+    }
+    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+    outputs_list = cf.Stack(stack_name).outputs
+    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
+    s3.head_bucket(Bucket=output["BucketName"])
+    output["BucketARN"].should.match("arn:aws:s3.+{bucket}".format(bucket=bucket_name))
+    output["BucketName"].should.equal(bucket_name)
