@@ -418,6 +418,24 @@ def test_create_subnet_with_invalid_cidr_range():
 
 
 @mock_ec2
+def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2.meta.client.associate_vpc_cidr_block(CidrBlock="10.1.0.0/16", VpcId=vpc.id)
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet_cidr_block = "10.2.0.0/20"
+    with assert_raises(ClientError) as ex:
+        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
+        "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
+    )
+
+
+@mock_ec2
 def test_create_subnet_with_invalid_cidr_block_parameter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -443,7 +461,6 @@ def test_create_subnets_with_multiple_vpc_cidr_blocks():
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     ec2.meta.client.associate_vpc_cidr_block(CidrBlock="10.1.0.0/16", VpcId=vpc.id)
-
     vpc.reload()
     vpc.is_default.shouldnt.be.ok
 
