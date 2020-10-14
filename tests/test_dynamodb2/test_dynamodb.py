@@ -5445,3 +5445,37 @@ def test_lsi_projection_type_keys_only():
     items[0].should.equal(
         {"partitionKey": "pk-1", "sortKey": "sk-1", "lsiK1SortKey": "lsi-sk"}
     )
+
+
+@mock_dynamodb2
+def test_set_attribute_is_dropped_if_empty_after_update_expression():
+    table_name, item_key, set_item = "test-table", "test-id", "test-data"
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "customer", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "customer", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    client.update_item(
+        TableName=table_name,
+        Key={"customer": {"S": item_key}},
+        UpdateExpression="ADD orders :order",
+        ExpressionAttributeValues={":order": {"SS": [set_item]}},
+    )
+    resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
+    item = resp["Items"][0]
+    item.should.have.key("customer")
+    item.should.have.key("orders")
+
+    client.update_item(
+        TableName=table_name,
+        Key={"customer": {"S": item_key}},
+        UpdateExpression="DELETE orders :order",
+        ExpressionAttributeValues={":order": {"SS": [set_item]}},
+    )
+    resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
+    item = resp["Items"][0]
+    item.should.have.key("customer")
+    item.should_not.have.key("orders")
