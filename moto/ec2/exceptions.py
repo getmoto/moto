@@ -573,3 +573,13 @@ class InvalidLaunchTemplateNameError(EC2ClientError):
             "InvalidLaunchTemplateName.AlreadyExistsException",
             "Launch template name already in use.",
         )
+
+
+class InvalidParameterDependency(EC2ClientError):
+    def __init__(self, param, param_needed):
+        super(InvalidParameterDependency, self).__init__(
+            "InvalidParameterDependency",
+            "The parameter [{0}] requires the parameter {1} to be set.".format(
+                param, param_needed
+            ),
+        )
