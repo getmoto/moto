@@ -158,28 +158,28 @@ class SNSResponse(BaseResponse):
         topic = self.backend.get_topic(topic_arn)
 
         if self.request_json:
-            return json.dumps(
-                {
-                    "GetTopicAttributesResponse": {
-                        "GetTopicAttributesResult": {
-                            "Attributes": {
-                                "Owner": topic.account_id,
-                                "Policy": topic.policy,
-                                "TopicArn": topic.arn,
-                                "DisplayName": topic.display_name,
-                                "SubscriptionsPending": topic.subscriptions_pending,
-                                "SubscriptionsConfirmed": topic.subscriptions_confimed,
-                                "SubscriptionsDeleted": topic.subscriptions_deleted,
-                                "DeliveryPolicy": topic.delivery_policy,
-                                "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
-                            }
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "057f074c-33a7-11df-9540-99d0768312d3"
-                        },
-                    }
+            attributes = {
+                "Owner": topic.account_id,
+                "Policy": topic.policy,
+                "TopicArn": topic.arn,
+                "DisplayName": topic.display_name,
+                "SubscriptionsPending": topic.subscriptions_pending,
+                "SubscriptionsConfirmed": topic.subscriptions_confimed,
+                "SubscriptionsDeleted": topic.subscriptions_deleted,
+                "DeliveryPolicy": topic.delivery_policy,
+                "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
+            }
+            if topic.kms_master_key_id:
+                attributes["KmsMasterKeyId"] = topic.kms_master_key_id
+            response = {
+                "GetTopicAttributesResponse": {
+                    "GetTopicAttributesResult": {"Attributes": attributes},
+                    "ResponseMetadata": {
+                        "RequestId": "057f074c-33a7-11df-9540-99d0768312d3"
+                    },
                 }
-            )
+            }
+            return json.dumps(response)
 
         template = self.response_template(GET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render(topic=topic)
@@ -827,6 +827,12 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
         <key>EffectiveDeliveryPolicy</key>
         <value>{{ topic.effective_delivery_policy }}</value>
       </entry>
+      {% if topic.kms_master_key_id %}
+      <entry>
+        <key>KmsMasterKeyId</key>
+        <value>{{ topic.kms_master_key_id }}</value>
+      </entry>
+      {% endif %}
     </Attributes>
   </GetTopicAttributesResult>
   <ResponseMetadata>

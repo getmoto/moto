@@ -45,6 +45,7 @@ class Topic(CloudFormationModel):
         self.account_id = DEFAULT_ACCOUNT_ID
         self.display_name = ""
         self.delivery_policy = ""
+        self.kms_master_key_id = ""
         self.effective_delivery_policy = json.dumps(DEFAULT_EFFECTIVE_DELIVERY_POLICY)
         self.arn = make_arn_for_topic(self.account_id, name, sns_backend.region_name)
 

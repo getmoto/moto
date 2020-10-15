@@ -168,3 +168,25 @@ def test_topic_paging():
 
     topics_list.should.have.length_of(int(DEFAULT_PAGE_SIZE / 2))
     next_token.should.equal(None)
+
+
+@mock_sns_deprecated
+def test_topic_kms_master_key_id_attribute():
+    conn = boto.connect_sns()
+
+    conn.create_topic("test-sns-no-key-attr")
+    topics_json = conn.get_all_topics()
+    topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0][
+        "TopicArn"
+    ]
+    attributes = conn.get_topic_attributes(topic_arn)["GetTopicAttributesResponse"][
+        "GetTopicAttributesResult"
+    ]["Attributes"]
+    attributes.should_not.have.key("KmsMasterKeyId")
+
+    conn.set_topic_attributes(topic_arn, "KmsMasterKeyId", "test-key")
+    attributes = conn.get_topic_attributes(topic_arn)["GetTopicAttributesResponse"][
+        "GetTopicAttributesResult"
+    ]["Attributes"]
+    attributes.should.have.key("KmsMasterKeyId")
+    attributes["KmsMasterKeyId"].should.equal("test-key")
