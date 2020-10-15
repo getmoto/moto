@@ -565,6 +565,19 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret.arn, secret.name
 
+    def update_secret_tags(self, secret_id, tags):
+
+        if secret_id not in self.secrets.keys():
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+        old_tags = secret["tags"]
+
+        for tag in tags:
+            old_tags.append(tag)
+
+        return secret_id
+
     @staticmethod
     def get_resource_policy(secret_id):
         resource_policy = {
