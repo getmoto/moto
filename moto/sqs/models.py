@@ -537,8 +537,9 @@ class Queue(CloudFormationModel):
 
 def _filter_message_attributes(message, input_message_attributes):
     filtered_message_attributes = {}
+    return_all = "All" in input_message_attributes
     for key, value in message.message_attributes.items():
-        if key in input_message_attributes:
+        if return_all or key in input_message_attributes:
             filtered_message_attributes[key] = value
     message.message_attributes = filtered_message_attributes
 
