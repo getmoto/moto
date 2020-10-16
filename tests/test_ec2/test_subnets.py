@@ -418,6 +418,24 @@ def test_create_subnet_with_invalid_cidr_range():
 
 
 @mock_ec2
+def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2.meta.client.associate_vpc_cidr_block(CidrBlock="10.1.0.0/16", VpcId=vpc.id)
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet_cidr_block = "10.2.0.0/20"
+    with assert_raises(ClientError) as ex:
+        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
+        "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
+    )
+
+
+@mock_ec2
 def test_create_subnet_with_invalid_cidr_block_parameter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -434,6 +452,46 @@ def test_create_subnet_with_invalid_cidr_block_parameter():
             subnet_cidr_block
         )
     )
+
+
+@mock_ec2
+def test_create_subnets_with_multiple_vpc_cidr_blocks():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2.meta.client.associate_vpc_cidr_block(CidrBlock="10.1.0.0/16", VpcId=vpc.id)
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet_cidr_block_primary = "10.0.0.0/24"
+    subnet_primary = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock=subnet_cidr_block_primary
+    )
+
+    subnet_cidr_block_secondary = "10.1.0.0/24"
+    subnet_secondary = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock=subnet_cidr_block_secondary
+    )
+
+    subnets = client.describe_subnets(
+        SubnetIds=[subnet_primary.id, subnet_secondary.id]
+    )["Subnets"]
+    subnets.should.have.length_of(2)
+
+    for subnet in subnets:
+        subnet.should.have.key("AvailabilityZone")
+        subnet.should.have.key("AvailabilityZoneId")
+        subnet.should.have.key("AvailableIpAddressCount")
+        subnet.should.have.key("CidrBlock")
+        subnet.should.have.key("State")
+        subnet.should.have.key("SubnetId")
+        subnet.should.have.key("VpcId")
+        subnet.shouldnt.have.key("Tags")
+        subnet.should.have.key("DefaultForAz").which.should.equal(False)
+        subnet.should.have.key("MapPublicIpOnLaunch").which.should.equal(False)
+        subnet.should.have.key("OwnerId")
+        subnet.should.have.key("AssignIpv6AddressOnCreation").which.should.equal(False)
 
 
 @mock_ec2

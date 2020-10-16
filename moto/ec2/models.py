@@ -3465,19 +3465,30 @@ class SubnetBackend(object):
         vpc = self.get_vpc(
             vpc_id
         )  # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
-        vpc_cidr_block = ipaddress.IPv4Network(
-            six.text_type(vpc.cidr_block), strict=False
-        )
+        vpc_cidr_blocks = [
+            ipaddress.IPv4Network(
+                six.text_type(cidr_block_association["cidr_block"]), strict=False
+            )
+            for cidr_block_association in vpc.get_cidr_block_association_set()
+        ]
         try:
             subnet_cidr_block = ipaddress.IPv4Network(
                 six.text_type(cidr_block), strict=False
             )
         except ValueError:
             raise InvalidCIDRBlockParameterError(cidr_block)
-        if not (
-            vpc_cidr_block.network_address <= subnet_cidr_block.network_address
-            and vpc_cidr_block.broadcast_address >= subnet_cidr_block.broadcast_address
-        ):
+
+        subnet_in_vpc_cidr_range = False
+        for vpc_cidr_block in vpc_cidr_blocks:
+            if (
+                vpc_cidr_block.network_address <= subnet_cidr_block.network_address
+                and vpc_cidr_block.broadcast_address
+                >= subnet_cidr_block.broadcast_address
+            ):
+                subnet_in_vpc_cidr_range = True
+                break
+
+        if not subnet_in_vpc_cidr_range:
             raise InvalidSubnetRangeError(cidr_block)
 
         for subnet in self.get_all_subnets(filters={"vpc-id": vpc_id}):
