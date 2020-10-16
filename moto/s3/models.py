@@ -1065,6 +1065,8 @@ class FakeBucket(CloudFormationModel):
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DomainName" ]"')
         elif attribute_name == "WebsiteURL":
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
+        elif attribute_name == "Arn":
+            return self.arn
         raise UnformattedGetAttTemplateException()
 
     def set_acl(self, acl):
