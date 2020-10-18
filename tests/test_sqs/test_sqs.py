@@ -1320,6 +1320,28 @@ def test_message_attributes_in_receive_message():
 
     messages[0].get("MessageAttributes").should.equal(None)
 
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            "timestamp": {
+                "StringValue": "1493147359900",
+                "DataType": "Number.java.lang.Long",
+            }
+        },
+    )
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
+    )["Messages"]
+
+    messages[0]["MessageAttributes"].should.equal(
+        {
+            "timestamp": {
+                "StringValue": "1493147359900",
+                "DataType": "Number.java.lang.Long",
+            }
+        }
+    )
+
 
 @mock_sqs
 def test_send_message_batch_errors():
