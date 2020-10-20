@@ -66,7 +66,7 @@ OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
 def get_moto_s3_account_id():
     """This makes it easy for mocking AWS Account IDs when using AWS Config
-       -- Simply mock.patch the ACCOUNT_ID here, and Config gets it for free.
+    -- Simply mock.patch the ACCOUNT_ID here, and Config gets it for free.
     """
     return ACCOUNT_ID
 
@@ -523,7 +523,10 @@ class LifecycleAndFilter(BaseModel):
 
         for key, value in self.tags.items():
             data.append(
-                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value},}
+                {
+                    "type": "LifecycleTagPredicate",
+                    "tag": {"key": key, "value": value},
+                }
             )
 
         return data
@@ -1094,7 +1097,9 @@ class FakeBucket(CloudFormationModel):
 
     @property
     def website_url(self):
-        return "http://{}.s3-website.{}.amazonaws.com".format(self.name, self.region_name)
+        return "http://{}.s3-website.{}.amazonaws.com".format(
+            self.name, self.region_name
+        )
 
     @property
     def physical_resource_id(self):
@@ -1127,7 +1132,11 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1467,7 +1476,8 @@ class S3Backend(BaseBackend):
             raise MissingKey(key_name)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(
-            key.arn, [{"Key": k, "Value": v} for (k, v) in tags.items()],
+            key.arn,
+            [{"Key": k, "Value": v} for (k, v) in tags.items()],
         )
         return key
 
@@ -1479,7 +1489,8 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         self.tagger.delete_all_tags_for_resource(bucket.arn)
         self.tagger.tag_resource(
-            bucket.arn, [{"Key": key, "Value": value} for key, value in tags.items()],
+            bucket.arn,
+            [{"Key": key, "Value": value} for key, value in tags.items()],
         )
 
     def delete_bucket_tagging(self, bucket_name):

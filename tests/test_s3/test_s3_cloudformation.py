@@ -14,7 +14,12 @@ def test_s3_bucket_cloudformation_basic():
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket", "Properties": {},}},
+        "Resources": {
+            "testInstance": {
+                "Type": "AWS::S3::Bucket",
+                "Properties": {},
+            }
+        },
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
@@ -172,11 +177,15 @@ def test_s3_bucket_cloudformation_outputs():
             },
             "BucketDualStackDomainName": {
                 "Value": {"Fn::GetAtt": ["TestBucket", "DualStackDomainName"]},
-                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketDualStackDomainName"}},
+                "Export": {
+                    "Name": {"Fn::Sub": "${AWS::StackName}:BucketDualStackDomainName"}
+                },
             },
             "BucketRegionalDomainName": {
                 "Value": {"Fn::GetAtt": ["TestBucket", "RegionalDomainName"]},
-                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketRegionalDomainName"}},
+                "Export": {
+                    "Name": {"Fn::Sub": "${AWS::StackName}:BucketRegionalDomainName"}
+                },
             },
             "BucketWebsiteURL": {
                 "Value": {"Fn::GetAtt": ["TestBucket", "WebsiteURL"]},
@@ -193,14 +202,22 @@ def test_s3_bucket_cloudformation_outputs():
     output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
     s3.head_bucket(Bucket=output["BucketName"])
     output["BucketARN"].should.match("arn:aws:s3.+{bucket}".format(bucket=bucket_name))
-    output["BucketDomainName"].should.equal("{bucket}.s3.amazonaws.com".format(bucket=bucket_name))
+    output["BucketDomainName"].should.equal(
+        "{bucket}.s3.amazonaws.com".format(bucket=bucket_name)
+    )
     output["BucketDualStackDomainName"].should.equal(
-        "{bucket}.s3.dualstack.{region}.amazonaws.com".format(bucket=bucket_name, region=region_name)
+        "{bucket}.s3.dualstack.{region}.amazonaws.com".format(
+            bucket=bucket_name, region=region_name
+        )
     )
     output["BucketRegionalDomainName"].should.equal(
-        "{bucket}.s3.{region}.amazonaws.com".format(bucket=bucket_name, region=region_name)
+        "{bucket}.s3.{region}.amazonaws.com".format(
+            bucket=bucket_name, region=region_name
+        )
     )
     output["BucketWebsiteURL"].should.equal(
-        "http://{bucket}.s3-website.{region}.amazonaws.com".format(bucket=bucket_name, region=region_name)
+        "http://{bucket}.s3-website.{region}.amazonaws.com".format(
+            bucket=bucket_name, region=region_name
+        )
     )
     output["BucketName"].should.equal(bucket_name)
