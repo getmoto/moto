@@ -1061,12 +1061,16 @@ class FakeBucket(CloudFormationModel):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
-        if attribute_name == "DomainName":
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DomainName" ]"')
-        elif attribute_name == "WebsiteURL":
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
-        elif attribute_name == "Arn":
+        if attribute_name == "Arn":
             return self.arn
+        elif attribute_name == "DomainName":
+            return self.domain_name
+        elif attribute_name == "DualStackDomainName":
+            return self.dual_stack_domain_name
+        elif attribute_name == "RegionalDomainName":
+            return self.regional_domain_name
+        elif attribute_name == "WebsiteURL":
+            return self.website_url
         raise UnformattedGetAttTemplateException()
 
     def set_acl(self, acl):
@@ -1075,6 +1079,22 @@ class FakeBucket(CloudFormationModel):
     @property
     def arn(self):
         return "arn:aws:s3:::{}".format(self.name)
+
+    @property
+    def domain_name(self):
+        return "{}.s3.amazonaws.com".format(self.name)
+
+    @property
+    def dual_stack_domain_name(self):
+        return "{}.s3.dualstack.{}.amazonaws.com".format(self.name, self.region_name)
+
+    @property
+    def regional_domain_name(self):
+        return "{}.s3.{}.amazonaws.com".format(self.name, self.region_name)
+
+    @property
+    def website_url(self):
+        return "http://{}.s3-website.{}.amazonaws.com".format(self.name, self.region_name)
 
     @property
     def physical_resource_id(self):

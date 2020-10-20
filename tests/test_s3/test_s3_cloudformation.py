@@ -148,8 +148,9 @@ def test_s3_bucket_cloudformation_update_replacement():
 @mock_s3
 @mock_cloudformation
 def test_s3_bucket_cloudformation_outputs():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.resource("cloudformation", region_name="us-east-1")
+    region_name = "us-east-1"
+    s3 = boto3.client("s3", region_name=region_name)
+    cf = boto3.resource("cloudformation", region_name=region_name)
     stack_name = "test-stack"
     bucket_name = "test-bucket"
     template = {
@@ -165,6 +166,22 @@ def test_s3_bucket_cloudformation_outputs():
                 "Value": {"Fn::GetAtt": ["TestBucket", "Arn"]},
                 "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketARN"}},
             },
+            "BucketDomainName": {
+                "Value": {"Fn::GetAtt": ["TestBucket", "DomainName"]},
+                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketDomainName"}},
+            },
+            "BucketDualStackDomainName": {
+                "Value": {"Fn::GetAtt": ["TestBucket", "DualStackDomainName"]},
+                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketDualStackDomainName"}},
+            },
+            "BucketRegionalDomainName": {
+                "Value": {"Fn::GetAtt": ["TestBucket", "RegionalDomainName"]},
+                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketRegionalDomainName"}},
+            },
+            "BucketWebsiteURL": {
+                "Value": {"Fn::GetAtt": ["TestBucket", "WebsiteURL"]},
+                "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketWebsiteURL"}},
+            },
             "BucketName": {
                 "Value": {"Ref": "TestBucket"},
                 "Export": {"Name": {"Fn::Sub": "${AWS::StackName}:BucketName"}},
@@ -176,4 +193,14 @@ def test_s3_bucket_cloudformation_outputs():
     output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
     s3.head_bucket(Bucket=output["BucketName"])
     output["BucketARN"].should.match("arn:aws:s3.+{bucket}".format(bucket=bucket_name))
+    output["BucketDomainName"].should.equal("{bucket}.s3.amazonaws.com".format(bucket=bucket_name))
+    output["BucketDualStackDomainName"].should.equal(
+        "{bucket}.s3.dualstack.{region}.amazonaws.com".format(bucket=bucket_name, region=region_name)
+    )
+    output["BucketRegionalDomainName"].should.equal(
+        "{bucket}.s3.{region}.amazonaws.com".format(bucket=bucket_name, region=region_name)
+    )
+    output["BucketWebsiteURL"].should.equal(
+        "http://{bucket}.s3-website.{region}.amazonaws.com".format(bucket=bucket_name, region=region_name)
+    )
     output["BucketName"].should.equal(bucket_name)
