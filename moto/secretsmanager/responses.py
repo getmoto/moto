@@ -161,4 +161,4 @@ class SecretsManagerResponse(BaseResponse):
     def tag_resource(self):
         secret_id = self._get_param("SecretId")
         tags = self._get_param("Tags", if_none=[])
-        return secretsmanager_backends[self.region].update_secret_tags(secret_id, tags)
+        return secretsmanager_backends[self.region].tag_resource(secret_id, tags)
