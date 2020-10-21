@@ -458,3 +458,39 @@ def test_describe_subscription_filters_errors():
     ex.response["Error"]["Message"].should.equal(
         "The specified log group does not exist"
     )
+
+
+@mock_logs
+def test_describe_log_groups_paging():
+    client = boto3.client("logs", "us-east-1")
+
+    group_names = [
+        "/aws/lambda/lowercase-dev",
+        "/aws/lambda/FileMonitoring",
+        "/aws/events/GetMetricData",
+        "/aws/lambda/fileAvailable",
+    ]
+
+    for name in group_names:
+        client.create_log_group(logGroupName=name)
+
+    resp = client.describe_log_groups()
+    resp["logGroups"].should.have.length_of(4)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_groups(limit=2)
+    resp["logGroups"].should.have.length_of(2)
+    resp["nextToken"].should.equal("/aws/lambda/FileMonitoring")
+
+    resp = client.describe_log_groups(nextToken=resp["nextToken"], limit=1)
+    resp["logGroups"].should.have.length_of(1)
+    resp["nextToken"].should.equal("/aws/lambda/fileAvailable")
+
+    resp = client.describe_log_groups(nextToken=resp["nextToken"])
+    resp["logGroups"].should.have.length_of(1)
+    resp["logGroups"][0]["logGroupName"].should.equal("/aws/lambda/lowercase-dev")
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_groups(nextToken="invalid-token")
+    resp["logGroups"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
