@@ -157,3 +157,8 @@ class SecretsManagerResponse(BaseResponse):
         return secretsmanager_backends[self.region].get_resource_policy(
             secret_id=secret_id
         )
+
+    def tag_resource(self):
+        secret_id = self._get_param("SecretId")
+        tags = self._get_param("Tags", if_none=[])
+        return secretsmanager_backends[self.region].tag_resource(secret_id, tags)

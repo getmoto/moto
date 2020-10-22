@@ -912,3 +912,33 @@ def test_update_secret_marked_as_deleted_after_restoring():
     assert updated_secret["ARN"]
     assert updated_secret["Name"] == "test-secret"
     assert updated_secret["VersionId"] != ""
+
+
+@mock_secretsmanager
+def test_tag_resource():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    conn.tag_resource(
+        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+    )
+
+    conn.tag_resource(
+        SecretId="test-secret", Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
+    )
+
+    secrets = conn.list_secrets()
+    assert secrets["SecretList"][0].get("Tags") == [
+        {"Key": "FirstTag", "Value": "SomeValue"},
+        {"Key": "SecondTag", "Value": "AnotherValue"},
+    ]
+
+    with assert_raises(ClientError) as cm:
+        conn.tag_resource(
+            SecretId="dummy-test-secret",
+            Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        )
+
+    assert_equal(
+        "Secrets Manager can't find the specified secret.",
+        cm.exception.response["Error"]["Message"],
+    )
