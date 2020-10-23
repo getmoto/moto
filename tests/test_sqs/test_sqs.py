@@ -305,7 +305,7 @@ def test_message_with_string_attributes():
     messages.should.have.length_of(1)\
 
 @mock_sqs
-def test_message_with_string_xxx_attributes():
+def test_message_with_binary_attribute():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
     msg = queue.send_message(
