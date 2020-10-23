@@ -124,11 +124,9 @@ def test_unsubscribe_from_deleted_topic():
     topics = topics_json["Topics"]
     topics.should.have.length_of(0)
 
-    # And the subscription should still be left
+    # as per the documentation deleting a topic deletes all the subscriptions
     subscriptions = client.list_subscriptions()["Subscriptions"]
-    subscriptions.should.have.length_of(1)
-    subscription = subscriptions[0]
-    subscription["SubscriptionArn"].should.equal(subscription_arn)
+    subscriptions.should.have.length_of(0)
 
     # Now delete hanging subscription
     client.unsubscribe(SubscriptionArn=subscription_arn)
