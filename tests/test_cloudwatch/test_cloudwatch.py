@@ -3,6 +3,8 @@ from boto.ec2.cloudwatch.alarm import MetricAlarm
 from boto.s3.key import Key
 from datetime import datetime
 import sure  # noqa
+from moto.cloudwatch.utils import make_arn_for_alarm
+from moto.core import ACCOUNT_ID
 
 from moto import mock_cloudwatch_deprecated, mock_s3_deprecated
 
@@ -51,6 +53,7 @@ def test_create_alarm():
     list(alarm.ok_actions).should.equal(["arn:ok"])
     list(alarm.insufficient_data_actions).should.equal(["arn:insufficient"])
     alarm.unit.should.equal("Seconds")
+    alarm.alarm_arn.should.equal(make_arn_for_alarm("us-east-1", ACCOUNT_ID, "tester"))
 
 
 @mock_cloudwatch_deprecated
