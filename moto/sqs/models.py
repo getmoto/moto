@@ -54,6 +54,15 @@ TRANSPORT_TYPE_ENCODINGS = {
     "String.custom": b"\x01",
 }
 
+STRING_TYPE_FIELD_INDEX = 1
+BINARY_TYPE_FIELD_INDEX = 2
+STRING_LIST_TYPE_FIELD_INDEX = 3
+BINARY_LIST_TYPE_FIELD_INDEX = 4
+
+# Valid attribute name rules can found at
+# https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html
+ATTRIBUTE_NAME_PATTERN = re.compile("^([a-z]|[A-Z]|[0-9]|[_.\\-])+$")
+
 
 class Message(BaseModel):
     def __init__(self, message_id, body):
@@ -78,69 +87,60 @@ class Message(BaseModel):
 
     @property
     def attribute_md5(self):
-        """
-        The MD5 of all attributes is calculated by first generating a
-        utf-8 string from each attribute and MD5-ing the concatenation
-        of them all. Each attribute is encoded with some bytes that
-        describe the length of each part and the type of attribute.
-
-        Not yet implemented:
-            List types (https://github.com/aws/aws-sdk-java/blob/7844c64cf248aed889811bf2e871ad6b276a89ca/aws-java-sdk-sqs/src/main/java/com/amazonaws/services/sqs/MessageMD5ChecksumHandler.java#L58k)
-        """
-
-        def utf8(str):
-            if isinstance(str, six.string_types):
-                return str.encode("utf-8")
-            return str
 
         md5 = hashlib.md5()
-        struct_format = "!I".encode("ascii")  # ensure it's a bytestring
-        for name in sorted(self.message_attributes.keys()):
-            attr = self.message_attributes[name]
-            whole_data_type = attr.get("data_type")
-            if TRANSPORT_TYPE_ENCODINGS.get(whole_data_type):
-                data_type = whole_data_type
-            else:
-                data_type_parts = attr["data_type"].split(".")
-                data_type = data_type_parts[0]
 
-            if data_type not in ["String", "Binary", "Number", "String.custom"]:
-                raise MessageAttributesInvalid(
-                    "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(
-                        name[0]
-                    )
-                )
+        for attrName in sorted(self.message_attributes.keys()):
+            self.validate_attribute_name(attrName)
+            attrValue = self.message_attributes[attrName]
+            # Encode name
+            self.update_binary_length_and_value(md5, self.utf8(attrName))
+            # Encode type
+            self.update_binary_length_and_value(md5, self.utf8(attrValue["data_type"]))
 
-            encoded = utf8("")
-            # Each part of each attribute is encoded right after it's
-            # own length is packed into a 4-byte integer
-            # 'timestamp' -> b'\x00\x00\x00\t'
-            encoded += struct.pack(struct_format, len(utf8(name))) + utf8(name)
-            # The datatype is additionally given a final byte
-            # representing which type it is
-            encoded += struct.pack(struct_format, len(data_type)) + utf8(data_type)
-            encoded += TRANSPORT_TYPE_ENCODINGS[data_type]
+            if attrValue.get("string_value"):
+                md5.update(bytearray([STRING_TYPE_FIELD_INDEX]))
+                self.update_binary_length_and_value(md5, self.utf8(attrValue.get("string_value")))
+            elif attrValue.get("binary_value"):
+                md5.update(bytearray([BINARY_TYPE_FIELD_INDEX]))
+                decoded_binary_value = base64.b64decode(attrValue.get("binary_value"))
+                self.update_binary_length_and_value(md5, decoded_binary_value)
+            # string_list_value type is not implemented, reserved for the future use.
+            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
+            elif len(attrValue["string_list_value"]) > 0:
+                md5.update(bytearray([STRING_LIST_TYPE_FIELD_INDEX]))
+                for strListMember in attrValue["string_list_value"]:
+                    self.update_binary_length_and_value(md5, self.utf8(strListMember))
+            # binary_list_value type is not implemented, reserved for the future use.
+            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
+            elif len(attrValue["binary_list_value"]) > 0:
+                md5.update(bytearray([BINARY_LIST_TYPE_FIELD_INDEX]))
+                for strListMember in attrValue["binary_list_value"]:
+                    decoded_binary_value = base64.b64decode(strListMember)
+                    self.update_binary_length_and_value(md5, decoded_binary_value)
 
-            if data_type in ["String", "Number", "String.custom"]:
-                value = attr["string_value"]
-            elif data_type == "Binary":
-                value = base64.b64decode(attr["binary_value"])
-            else:
-                print(
-                    "Moto hasn't implemented MD5 hashing for {} attributes".format(
-                        data_type
-                    )
-                )
-                # The following should be enough of a clue to users that
-                # they are not, in fact, looking at a correct MD5 while
-                # also following the character and length constraints of
-                # MD5 so as not to break client softwre
-                return "deadbeefdeadbeefdeadbeefdeadbeef"
-
-            encoded += struct.pack(struct_format, len(utf8(value))) + utf8(value)
-
-            md5.update(encoded)
         return md5.hexdigest()
+
+    @staticmethod
+    def update_binary_length_and_value(md5, value):
+        length_bytes = struct.pack("!I".encode("ascii"), len(value))
+        md5.update(length_bytes)
+        md5.update(value)
+
+    @staticmethod
+    def validate_attribute_name(name):
+        if not ATTRIBUTE_NAME_PATTERN.match(name):
+            raise MessageAttributesInvalid(
+                "The message attribute name '{0}' is invalid. "
+                "Attribute name can contain A-Z, a-z, 0-9, "
+                "underscore (_), hyphen (-), and period (.) characters.".format(name)
+            )
+
+    @staticmethod
+    def utf8(string):
+        if isinstance(string, six.string_types):
+            return string.encode("utf-8")
+        return string
 
     @property
     def body(self):
