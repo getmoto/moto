@@ -426,8 +426,15 @@ class SNSBackend(BaseBackend):
     def list_topics(self, next_token=None):
         return self._get_values_nexttoken(self.topics, next_token)
 
+    def delete_topic_subscriptions(self, topic):
+        for key, value in self.subscriptions.items():
+            if value.topic == topic:
+                self.subscriptions.pop(key)
+
     def delete_topic(self, arn):
         try:
+            topic = self.get_topic(arn)
+            self.delete_topic_subscriptions(topic)
             self.topics.pop(arn)
         except KeyError:
             raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
