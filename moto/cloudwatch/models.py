@@ -31,6 +31,33 @@ class Dimension(object):
         return self != item
 
 
+class Metric(object):
+    def __init__(self, metric_name, namespace, dimensions):
+        self.metric_name = metric_name
+        self.namespace = namespace
+        self.dimensions = dimensions
+
+
+class MetricStat(object):
+    def __init__(self, metric, period, stat, unit):
+        self.metric = metric
+        self.period = period
+        self.stat = stat
+        self.unit = unit
+
+
+class MetricDataQuery(object):
+    def __init__(
+        self, id, label, period, return_data, expression=None, metric_stat=None
+    ):
+        self.id = id
+        self.label = label
+        self.period = period
+        self.return_data = return_data
+        self.expression = expression
+        self.metric_stat = metric_stat
+
+
 def daterange(start, stop, step=timedelta(days=1), inclusive=False):
     """
     This method will iterate from `start` to `stop` datetimes with a timedelta step of `step`
@@ -65,6 +92,7 @@ class FakeAlarm(BaseModel):
         name,
         namespace,
         metric_name,
+        metric_data_queries,
         comparison_operator,
         evaluation_periods,
         period,
@@ -81,6 +109,7 @@ class FakeAlarm(BaseModel):
         self.name = name
         self.namespace = namespace
         self.metric_name = metric_name
+        self.metric_data_queries = metric_data_queries
         self.comparison_operator = comparison_operator
         self.evaluation_periods = evaluation_periods
         self.period = period
@@ -235,6 +264,7 @@ class CloudWatchBackend(BaseBackend):
         name,
         namespace,
         metric_name,
+        metric_data_queries,
         comparison_operator,
         evaluation_periods,
         period,
@@ -252,6 +282,7 @@ class CloudWatchBackend(BaseBackend):
             name,
             namespace,
             metric_name,
+            metric_data_queries,
             comparison_operator,
             evaluation_periods,
             period,

@@ -142,6 +142,69 @@ def test_describe_alarms_for_metric():
 
 
 @mock_cloudwatch
+def test_describe_alarms():
+    conn = boto3.client("cloudwatch", region_name="eu-central-1")
+    conn.put_metric_alarm(
+        AlarmName="testalarm1",
+        MetricName="cpu",
+        Namespace="blah",
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic="Average",
+        Threshold=2,
+        ComparisonOperator="GreaterThanThreshold",
+        ActionsEnabled=True,
+    )
+    metric_data_queries = [
+        {
+            "Id": "metricA",
+            "Expression": "metricB + metricC",
+            "Label": "metricA",
+            "ReturnData": True,
+        },
+        {
+            "Id": "metricB",
+            "MetricStat": {
+                "Metric": {
+                    "Namespace": "ns",
+                    "MetricName": "metricB",
+                    "Dimensions": [{"Name": "Name", "Value": "B"}],
+                },
+                "Period": 60,
+                "Stat": "Sum",
+            },
+            "ReturnData": False,
+        },
+        {
+            "Id": "metricC",
+            "MetricStat": {
+                "Metric": {
+                    "Namespace": "AWS/Lambda",
+                    "MetricName": "metricC",
+                    "Dimensions": [{"Name": "Name", "Value": "C"}],
+                },
+                "Period": 60,
+                "Stat": "Sum",
+                "Unit": "Seconds",
+            },
+            "ReturnData": False,
+        },
+    ]
+    conn.put_metric_alarm(
+        AlarmName="testalarm2",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Metrics=metric_data_queries,
+        ComparisonOperator="GreaterThanThreshold",
+        Threshold=1.0,
+    )
+    alarms = conn.describe_alarms()
+    alarms.get("MetricAlarms").should.have.length_of(2)
+    alarms.get("MetricAlarms")[0]["MetricName"].should.equal("cpu")
+    alarms.get("MetricAlarms")[1]["Metrics"].should.equal(metric_data_queries)
+
+
+@mock_cloudwatch
 def test_alarm_state():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
 
