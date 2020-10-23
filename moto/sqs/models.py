@@ -100,7 +100,9 @@ class Message(BaseModel):
 
             if attrValue.get("string_value"):
                 md5.update(bytearray([STRING_TYPE_FIELD_INDEX]))
-                self.update_binary_length_and_value(md5, self.utf8(attrValue.get("string_value")))
+                self.update_binary_length_and_value(
+                    md5, self.utf8(attrValue.get("string_value"))
+                )
             elif attrValue.get("binary_value"):
                 md5.update(bytearray([BINARY_TYPE_FIELD_INDEX]))
                 decoded_binary_value = base64.b64decode(attrValue.get("binary_value"))

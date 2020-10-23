@@ -256,7 +256,10 @@ def test_message_send_with_attributes():
     msg = queue.send_message(
         MessageBody="derp",
         MessageAttributes={
-            "SOME_Valid.attribute-Name": {"StringValue": "1493147359900", "DataType": "Number"}
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
         },
     )
     msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
@@ -285,6 +288,7 @@ def test_message_with_invalid_attributes():
         "Attribute name can contain A-Z, a-z, 0-9, underscore (_), hyphen (-), and period (.) characters."
     )
 
+
 @mock_sqs
 def test_message_with_string_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -292,9 +296,15 @@ def test_message_with_string_attributes():
     msg = queue.send_message(
         MessageBody="derp",
         MessageAttributes={
-            "id": {"StringValue": "2018fc74-4f77-1a5a-1be0-c2d037d5052b", "DataType": "String"},
+            "id": {
+                "StringValue": "2018fc74-4f77-1a5a-1be0-c2d037d5052b",
+                "DataType": "String",
+            },
             "contentType": {"StringValue": "application/json", "DataType": "String"},
-            "timestamp": {"StringValue": "1602845432024", "DataType": "Number.java.lang.Long"}
+            "timestamp": {
+                "StringValue": "1602845432024",
+                "DataType": "Number.java.lang.Long",
+            },
         },
     )
     msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
@@ -302,7 +312,8 @@ def test_message_with_string_attributes():
     msg.get("MessageId").should_not.contain(" \n")
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)\
+    messages.should.have.length_of(1)
+
 
 @mock_sqs
 def test_message_with_binary_attribute():
@@ -311,10 +322,16 @@ def test_message_with_binary_attribute():
     msg = queue.send_message(
         MessageBody="derp",
         MessageAttributes={
-            "id": {"StringValue": "453ae55e-f03b-21a6-a4b1-70c2e2e8fe71", "DataType": "String"},
+            "id": {
+                "StringValue": "453ae55e-f03b-21a6-a4b1-70c2e2e8fe71",
+                "DataType": "String",
+            },
             "mybin": {"BinaryValue": "kekchebukek", "DataType": "Binary"},
-            "timestamp": {"StringValue": "1603134247654", "DataType": "Number.java.lang.Long"},
-            "contentType": {"StringValue": "application/json", "DataType": "String"}
+            "timestamp": {
+                "StringValue": "1603134247654",
+                "DataType": "Number.java.lang.Long",
+            },
+            "contentType": {"StringValue": "application/json", "DataType": "String"},
         },
     )
     msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
