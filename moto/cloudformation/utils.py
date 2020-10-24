@@ -71,7 +71,12 @@ def validate_template_cfn_lint(template):
     abs_filename = os.path.abspath(filename)
 
     # decode handles both yaml and json
-    template, matches = decode.decode(abs_filename, False)
+    try:
+        template, matches = decode.decode(abs_filename, False)
+    except TypeError:
+        # As of cfn-lint 0.39.0, the second argument (ignore_bad_template) was dropped
+        # https://github.com/aws-cloudformation/cfn-python-lint/pull/1580
+        template, matches = decode.decode(abs_filename)
 
     # Set cfn-lint to info
     core.configure_logging(None)
