@@ -199,9 +199,12 @@ def test_describe_alarms():
         Threshold=1.0,
     )
     alarms = conn.describe_alarms()
-    alarms.get("MetricAlarms").should.have.length_of(2)
-    alarms.get("MetricAlarms")[0]["MetricName"].should.equal("cpu")
-    alarms.get("MetricAlarms")[1]["Metrics"].should.equal(metric_data_queries)
+    metric_alarms = alarms.get("MetricAlarms")
+    metric_alarms.should.have.length_of(2)
+    single_metric_alarm = [_ for _ in metric_alarms if "MetricName" in _][0]
+    multiple_metric_alarm = [_ for _ in metric_alarms if "MetricName" not in _][0]
+    single_metric_alarm["MetricName"].should.equal("cpu")
+    multiple_metric_alarm["Metrics"].should.equal(metric_data_queries)
 
 
 @mock_cloudwatch
