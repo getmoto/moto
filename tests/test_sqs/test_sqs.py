@@ -256,11 +256,14 @@ def test_message_send_with_attributes():
     msg = queue.send_message(
         MessageBody="derp",
         MessageAttributes={
-            "timestamp": {"StringValue": "1493147359900", "DataType": "Number"}
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
         },
     )
     msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.get("MD5OfMessageAttributes").should.equal("235c5c510d26fb653d073faed50ae77c")
+    msg.get("MD5OfMessageAttributes").should.equal("36655e7e9d7c0e8479fa3f3f42247ae7")
     msg.get("MessageId").should_not.contain(" \n")
 
     messages = queue.receive_messages()
@@ -268,20 +271,71 @@ def test_message_send_with_attributes():
 
 
 @mock_sqs
-def test_message_with_complex_attributes():
+def test_message_with_invalid_attributes():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+    with assert_raises(ClientError) as e:
+        queue.send_message(
+            MessageBody="derp",
+            MessageAttributes={
+                "öther_encodings": {"DataType": "String", "StringValue": "str"},
+            },
+        )
+    ex = e.exception
+    ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
+    ex.response["Error"]["Message"].should.equal(
+        "The message attribute name 'öther_encodings' is invalid. "
+        "Attribute name can contain A-Z, a-z, 0-9, underscore (_), hyphen (-), and period (.) characters."
+    )
+
+
+@mock_sqs
+def test_message_with_string_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
     msg = queue.send_message(
         MessageBody="derp",
         MessageAttributes={
-            "ccc": {"StringValue": "testjunk", "DataType": "String"},
-            "aaa": {"BinaryValue": b"\x02\x03\x04", "DataType": "Binary"},
-            "zzz": {"DataType": "Number", "StringValue": "0230.01"},
-            "öther_encodings": {"DataType": "String", "StringValue": "T\xFCst"},
+            "id": {
+                "StringValue": "2018fc74-4f77-1a5a-1be0-c2d037d5052b",
+                "DataType": "String",
+            },
+            "contentType": {"StringValue": "application/json", "DataType": "String"},
+            "timestamp": {
+                "StringValue": "1602845432024",
+                "DataType": "Number.java.lang.Long",
+            },
         },
     )
     msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.get("MD5OfMessageAttributes").should.equal("8ae21a7957029ef04146b42aeaa18a22")
+    msg.get("MD5OfMessageAttributes").should.equal("b12289320bb6e494b18b645ef562b4a9")
+    msg.get("MessageId").should_not.contain(" \n")
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_message_with_binary_attribute():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "id": {
+                "StringValue": "453ae55e-f03b-21a6-a4b1-70c2e2e8fe71",
+                "DataType": "String",
+            },
+            "mybin": {"BinaryValue": "kekchebukek", "DataType": "Binary"},
+            "timestamp": {
+                "StringValue": "1603134247654",
+                "DataType": "Number.java.lang.Long",
+            },
+            "contentType": {"StringValue": "application/json", "DataType": "String"},
+        },
+    )
+    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
+    msg.get("MD5OfMessageAttributes").should.equal("049075255ebc53fb95f7f9f3cedf3c50")
     msg.get("MessageId").should_not.contain(" \n")
 
     messages = queue.receive_messages()
@@ -302,7 +356,7 @@ def test_message_with_attributes_have_labels():
         },
     )
     msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.get("MD5OfMessageAttributes").should.equal("235c5c510d26fb653d073faed50ae77c")
+    msg.get("MD5OfMessageAttributes").should.equal("2e2e4876d8e0bd6b8c2c8f556831c349")
     msg.get("MessageId").should_not.contain(" \n")
 
     messages = queue.receive_messages()
@@ -657,10 +711,10 @@ def test_send_receive_message_with_attributes_with_labels():
     message2.get("Body").should.equal(body_two)
 
     message1.get("MD5OfMessageAttributes").should.equal(
-        "235c5c510d26fb653d073faed50ae77c"
+        "2e2e4876d8e0bd6b8c2c8f556831c349"
     )
     message2.get("MD5OfMessageAttributes").should.equal(
-        "994258b45346a2cc3f9cbb611aa7af30"
+        "cfa7c73063c6e2dbf9be34232a1978cf"
     )
 
     response = queue.send_message(
