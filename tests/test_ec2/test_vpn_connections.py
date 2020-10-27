@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 from nose.tools import assert_raises
 import sure  # noqa
 from boto.exception import EC2ResponseError
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 
 
 @mock_ec2_deprecated
@@ -51,3 +52,24 @@ def test_describe_vpn_connections():
     list_of_vpn_connections.should.have.length_of(2)
     list_of_vpn_connections = conn.get_all_vpn_connections(vpn.id)
     list_of_vpn_connections.should.have.length_of(1)
+
+
+@mock_ec2
+def test_create_vpn_connection_with_vpn_gateway():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    vpn_gateway = client.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})
+    customer_gateway = client.create_customer_gateway(
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534,
+    ).get("CustomerGateway", {})
+    vpn_connection = client.create_vpn_connection(
+        Type="ipsec.1",
+        VpnGatewayId=vpn_gateway["VpnGatewayId"],
+        CustomerGatewayId=customer_gateway["CustomerGatewayId"],
+    ).get("VpnConnection", {})
+
+    vpn_connection["Type"].should.equal("ipsec.1")
+    vpn_connection["VpnGatewayId"].should.equal(vpn_gateway["VpnGatewayId"])
+    vpn_connection["CustomerGatewayId"].should.equal(
+        customer_gateway["CustomerGatewayId"]
+    )
