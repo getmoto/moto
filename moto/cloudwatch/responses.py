@@ -329,7 +329,7 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                                 {% for dim in metric.metric_stat.metric.dimensions %}
                                     <member>
                                         <Name>{{ dim.name }}</Name>
-                                        <Value>{{ dim.value }}</Value> 
+                                        <Value>{{ dim.value }}</Value>
                                     </member>
                                 {% endfor %}
                                 </Dimensions>
