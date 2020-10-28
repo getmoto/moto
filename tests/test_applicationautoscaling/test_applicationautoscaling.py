@@ -260,3 +260,47 @@ def test_register_scalable_target_resource_id_variations():
         t.should.have.key("ResourceId").which.should.equal(resource_id)
         t.should.have.key("ScalableDimension").which.should.equal(scalable_dimension)
         t.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
+
+
+@mock_ecs
+@mock_applicationautoscaling
+def test_register_scalable_target_updates_existing_target():
+    ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
+    _create_ecs_defaults(ecs)
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    register_scalable_target(client)
+
+    updated_min_capacity = 3
+    updated_max_capacity = 10
+    updated_suspended_state = {
+        "DynamicScalingInSuspended": False,
+        "DynamicScalingOutSuspended": False,
+        "ScheduledScalingSuspended": False,
+    }
+
+    client.register_scalable_target(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE,
+        ResourceId=DEFAULT_RESOURCE_ID,
+        ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
+        MinCapacity=updated_min_capacity,
+        MaxCapacity=updated_max_capacity,
+        SuspendedState=updated_suspended_state,
+    )
+    response = client.describe_scalable_targets(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
+    )
+
+    len(response["ScalableTargets"]).should.equal(1)
+    t = response["ScalableTargets"][0]
+    t.should.have.key("MinCapacity").which.should.equal(updated_min_capacity)
+    t.should.have.key("MaxCapacity").which.should.equal(updated_max_capacity)
+    t.should.have.key("SuspendedState")
+    t["SuspendedState"]["DynamicScalingInSuspended"].should.equal(
+        updated_suspended_state["DynamicScalingInSuspended"]
+    )
+    t["SuspendedState"]["DynamicScalingOutSuspended"].should.equal(
+        updated_suspended_state["DynamicScalingOutSuspended"]
+    )
+    t["SuspendedState"]["ScheduledScalingSuspended"].should.equal(
+        updated_suspended_state["ScheduledScalingSuspended"]
+    )
