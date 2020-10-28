@@ -516,6 +516,46 @@ class FakeSagemakerNotebookInstance:
         self.status = "Stopped"
 
 
+class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject):
+    def __init__(
+        self, region_name, notebook_instance_lifecycle_config_name, on_create, on_start
+    ):
+        self.region_name = region_name
+        self.notebook_instance_lifecycle_config_name = (
+            notebook_instance_lifecycle_config_name
+        )
+        self.on_create = on_create
+        self.on_start = on_start
+        self.creation_time = self.last_modified_time = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+        self.notebook_instance_lifecycle_config_arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+            self.notebook_instance_lifecycle_config_name, self.region_name
+        )
+
+    @staticmethod
+    def arn_formatter(notebook_instance_lifecycle_config_name, region_name):
+        return (
+            "arn:aws:sagemaker:"
+            + region_name
+            + ":"
+            + str(ACCOUNT_ID)
+            + ":notebook-instance-lifecycle-configuration/"
+            + notebook_instance_lifecycle_config_name
+        )
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
+
+    @property
+    def response_create(self):
+        return {"TrainingJobArn": self.training_job_arn}
+
+
 class SageMakerModelBackend(BaseBackend):
     def __init__(self, region_name=None):
         self._models = {}
@@ -523,6 +563,7 @@ class SageMakerModelBackend(BaseBackend):
         self.endpoint_configs = {}
         self.endpoints = {}
         self.training_jobs = {}
+        self.notebook_instance_lifecycle_configurations = {}
         self.region_name = region_name
 
     def reset(self):
@@ -676,6 +717,58 @@ class SageMakerModelBackend(BaseBackend):
             return notebook_instance.tags or []
         except RESTError:
             return []
+
+    def create_notebook_instance_lifecycle_config(
+        self, notebook_instance_lifecycle_config_name, on_create, on_start
+    ):
+        lifecycle_config = FakeSageMakerNotebookInstanceLifecycleConfig(
+            region_name=self.region_name,
+            notebook_instance_lifecycle_config_name=notebook_instance_lifecycle_config_name,
+            on_create=on_create,
+            on_start=on_start,
+        )
+        self.notebook_instance_lifecycle_configurations[
+            notebook_instance_lifecycle_config_name
+        ] = lifecycle_config
+        return lifecycle_config
+
+    def describe_notebook_instance_lifecycle_config(
+        self, notebook_instance_lifecycle_config_name
+    ):
+        try:
+            return self.notebook_instance_lifecycle_configurations[
+                notebook_instance_lifecycle_config_name
+            ].response_object
+        except KeyError:
+            message = "Unable to describe Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.)".format(
+                FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                    notebook_instance_lifecycle_config_name, self.region_name
+                )
+            )
+            raise RESTError(
+                error_type="ValidationException",
+                message=message,
+                template="error_json",
+            )
+
+    def delete_notebook_instance_lifecycle_config(
+        self, notebook_instance_lifecycle_config_name
+    ):
+        try:
+            del self.notebook_instance_lifecycle_configurations[
+                notebook_instance_lifecycle_config_name
+            ]
+        except KeyError:
+            message = "Unable to delete Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.".format(
+                FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                    notebook_instance_lifecycle_config_name, self.region_name
+                )
+            )
+            raise RESTError(
+                error_type="ValidationException",
+                message=message,
+                template="error_json",
+            )
 
     def create_endpoint_config(
         self,

@@ -225,3 +225,46 @@ def test_describe_nonexistent_model():
     assert_true(
         e.exception.response["Error"]["Message"].startswith("Could not find model")
     )
+
+
+@mock_sagemaker
+def test_notebook_instance_lifecycle_config():
+    sagemaker = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+
+    name = "MyLifeCycleConfig"
+    on_create = [{"Content": "Create Script Line 1"}]
+    on_start = [{"Content": "Start Script Line 1"}]
+    resp = sagemaker.create_notebook_instance_lifecycle_config(
+        NotebookInstanceLifecycleConfigName=name, OnCreate=on_create, OnStart=on_start
+    )
+    assert_true(
+        resp["NotebookInstanceLifecycleConfigArn"].startswith("arn:aws:sagemaker")
+    )
+    assert_true(resp["NotebookInstanceLifecycleConfigArn"].endswith(name))
+
+    resp = sagemaker.describe_notebook_instance_lifecycle_config(
+        NotebookInstanceLifecycleConfigName=name,
+    )
+    assert_equal(resp["NotebookInstanceLifecycleConfigName"], name)
+    assert_true(
+        resp["NotebookInstanceLifecycleConfigArn"].startswith("arn:aws:sagemaker")
+    )
+    assert_true(resp["NotebookInstanceLifecycleConfigArn"].endswith(name))
+    assert_equal(resp["OnStart"], on_start)
+    assert_equal(resp["OnCreate"], on_create)
+    assert_true(isinstance(resp["LastModifiedTime"], datetime.datetime))
+    assert_true(isinstance(resp["CreationTime"], datetime.datetime))
+
+    sagemaker.delete_notebook_instance_lifecycle_config(
+        NotebookInstanceLifecycleConfigName=name,
+    )
+
+    with assert_raises(ClientError) as e:
+        resp = sagemaker.describe_notebook_instance_lifecycle_config(
+            NotebookInstanceLifecycleConfigName=name,
+        )
+    assert_true(
+        e.exception.response["Error"]["Message"].endswith(
+            "Notebook Instance Lifecycle Config does not exist.)"
+        )
+    )
