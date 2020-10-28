@@ -4889,3 +4889,37 @@ def test_presigned_put_url_with_custom_headers():
 
     s3.delete_object(Bucket=bucket, Key=key)
     s3.delete_bucket(Bucket=bucket)
+
+
+@mock_s3
+def test_request_partial_content_should_contain_content_length():
+    bucket = "bucket"
+    object_key = "key"
+    s3 = boto3.resource("s3")
+    s3.create_bucket(Bucket=bucket)
+    s3.Object(bucket, object_key).put(Body="some text")
+
+    file = s3.Object(bucket, object_key)
+    response = file.get(Range="bytes=0-1024")
+    response["ContentLength"].should.equal(9)
+
+
+@mock_s3
+def test_request_partial_content_should_contain_actual_content_length():
+    bucket = "bucket"
+    object_key = "key"
+    s3 = boto3.resource("s3")
+    s3.create_bucket(Bucket=bucket)
+    s3.Object(bucket, object_key).put(Body="some text")
+
+    file = s3.Object(bucket, object_key)
+    requested_range = "bytes=1024-"
+    try:
+        file.get(Range=requested_range)
+    except botocore.client.ClientError as e:
+        e.response["Error"]["Code"].should.equal("InvalidRange")
+        e.response["Error"]["Message"].should.equal(
+            "The requested range is not satisfiable"
+        )
+        e.response["Error"]["ActualObjectSize"].should.equal("9")
+        e.response["Error"]["RangeRequested"].should.equal(requested_range)

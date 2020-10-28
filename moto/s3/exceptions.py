@@ -14,6 +14,11 @@ ERROR_WITH_CONDITION_NAME = """{% extends 'single_error' %}
 {% block extra %}<Condition>{{ condition }}</Condition>{% endblock %}
 """
 
+ERROR_WITH_RANGE = """{% extends 'single_error' %}
+{% block extra %}<ActualObjectSize>{{ actual_size }}</ActualObjectSize>
+<RangeRequested>{{ range_requested }}</RangeRequested>{% endblock %}
+"""
+
 
 class S3ClientError(RESTError):
     def __init__(self, *args, **kwargs):
@@ -402,5 +407,20 @@ class PreconditionFailed(S3ClientError):
             "PreconditionFailed",
             "At least one of the pre-conditions you specified did not hold",
             condition=failed_condition,
+            **kwargs
+        )
+
+
+class InvalidRange(S3ClientError):
+    code = 416
+
+    def __init__(self, range_requested, actual_size, **kwargs):
+        kwargs.setdefault("template", "range_error")
+        self.templates["range_error"] = ERROR_WITH_RANGE
+        super(InvalidRange, self).__init__(
+            "InvalidRange",
+            "The requested range is not satisfiable",
+            range_requested=range_requested,
+            actual_size=actual_size,
             **kwargs
         )
