@@ -98,7 +98,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             _ = self._ecs_service_exists_for_target(r_id)
         if self._scalable_target_exists(r_id, dimension):
             target = self.targets[dimension][r_id]
-            target.update(kwargs)
+            target.update(**kwargs)
         else:
             target = FakeScalableTarget(self, namespace, r_id, dimension, **kwargs)
             self._add_scalable_target(target)
@@ -197,6 +197,8 @@ class FakeScalableTarget(BaseModel):
             self.min_capacity = kwargs["min_capacity"]
         if kwargs["max_capacity"] is not None:
             self.max_capacity = kwargs["max_capacity"]
+        if kwargs["suspended_state"] is not None:
+            self.suspended_state = kwargs["suspended_state"]
 
 
 applicationautoscaling_backends = {}
