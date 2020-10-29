@@ -242,6 +242,18 @@ def test_notebook_instance_lifecycle_config():
     )
     assert_true(resp["NotebookInstanceLifecycleConfigArn"].endswith(name))
 
+    with assert_raises(ClientError) as e:
+        resp = sagemaker.create_notebook_instance_lifecycle_config(
+            NotebookInstanceLifecycleConfigName=name,
+            OnCreate=on_create,
+            OnStart=on_start,
+        )
+    assert_true(
+        e.exception.response["Error"]["Message"].endswith(
+            "Notebook Instance Lifecycle Config already exists.)"
+        )
+    )
+
     resp = sagemaker.describe_notebook_instance_lifecycle_config(
         NotebookInstanceLifecycleConfigName=name,
     )
@@ -260,7 +272,17 @@ def test_notebook_instance_lifecycle_config():
     )
 
     with assert_raises(ClientError) as e:
-        resp = sagemaker.describe_notebook_instance_lifecycle_config(
+        sagemaker.describe_notebook_instance_lifecycle_config(
+            NotebookInstanceLifecycleConfigName=name,
+        )
+    assert_true(
+        e.exception.response["Error"]["Message"].endswith(
+            "Notebook Instance Lifecycle Config does not exist.)"
+        )
+    )
+
+    with assert_raises(ClientError) as e:
+        sagemaker.delete_notebook_instance_lifecycle_config(
             NotebookInstanceLifecycleConfigName=name,
         )
     assert_true(

@@ -8,7 +8,7 @@ from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
-from .exceptions import MissingModel
+from .exceptions import MissingModel, ValidationError
 
 
 class BaseObject(BaseModel):
@@ -285,11 +285,7 @@ class FakeEndpointConfig(BaseObject):
             message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
                 instance_type, VALID_INSTANCE_TYPES
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     @property
     def response_object(self):
@@ -431,11 +427,7 @@ class FakeSagemakerNotebookInstance:
     def validate_volume_size_in_gb(self, volume_size_in_gb):
         if not validators.is_integer_between(volume_size_in_gb, mn=5, optional=True):
             message = "Invalid range for parameter VolumeSizeInGB, value: {}, valid range: 5-inf"
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def validate_instance_type(self, instance_type):
         VALID_INSTANCE_TYPES = [
@@ -482,11 +474,7 @@ class FakeSagemakerNotebookInstance:
             message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
                 instance_type, VALID_INSTANCE_TYPES
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     @property
     def arn(self):
@@ -592,9 +580,7 @@ class SageMakerModelBackend(BaseBackend):
         message = "Could not find model '{}'.".format(
             Model.arn_for_model_name(model_name, self.region_name)
         )
-        raise RESTError(
-            error_type="ValidationException", message=message, template="error_json",
-        )
+        raise ValidationError(message=message)
 
     def list_models(self):
         models = []
@@ -658,22 +644,13 @@ class SageMakerModelBackend(BaseBackend):
             message = "Cannot create a duplicate Notebook Instance ({})".format(
                 duplicate_arn
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def get_notebook_instance(self, notebook_instance_name):
         try:
             return self.notebook_instances[notebook_instance_name]
         except KeyError:
-            message = "RecordNotFound"
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message="RecordNotFound")
 
     def get_notebook_instance_by_arn(self, arn):
         instances = [
@@ -682,12 +659,7 @@ class SageMakerModelBackend(BaseBackend):
             if notebook_instance.arn == arn
         ]
         if len(instances) == 0:
-            message = "RecordNotFound"
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message="RecordNotFound")
         return instances[0]
 
     def start_notebook_instance(self, notebook_instance_name):
@@ -704,11 +676,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Status ({}) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({})".format(
                 notebook_instance.status, notebook_instance.arn
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
         del self.notebook_instances[notebook_instance_name]
 
     def get_notebook_instance_tags(self, arn):
@@ -721,6 +689,16 @@ class SageMakerModelBackend(BaseBackend):
     def create_notebook_instance_lifecycle_config(
         self, notebook_instance_lifecycle_config_name, on_create, on_start
     ):
+        if (
+            notebook_instance_lifecycle_config_name
+            in self.notebook_instance_lifecycle_configurations
+        ):
+            message = "Unable to create Notebook Instance Lifecycle Config {}. (Details: Notebook Instance Lifecycle Config already exists.)".format(
+                FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                    notebook_instance_lifecycle_config_name, self.region_name
+                )
+            )
+            raise ValidationError(message=message)
         lifecycle_config = FakeSageMakerNotebookInstanceLifecycleConfig(
             region_name=self.region_name,
             notebook_instance_lifecycle_config_name=notebook_instance_lifecycle_config_name,
@@ -745,11 +723,7 @@ class SageMakerModelBackend(BaseBackend):
                     notebook_instance_lifecycle_config_name, self.region_name
                 )
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def delete_notebook_instance_lifecycle_config(
         self, notebook_instance_lifecycle_config_name
@@ -759,16 +733,12 @@ class SageMakerModelBackend(BaseBackend):
                 notebook_instance_lifecycle_config_name
             ]
         except KeyError:
-            message = "Unable to delete Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.".format(
+            message = "Unable to delete Notebook Instance Lifecycle Config '{}'. (Details: Notebook Instance Lifecycle Config does not exist.)".format(
                 FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
                     notebook_instance_lifecycle_config_name, self.region_name
                 )
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def create_endpoint_config(
         self,
@@ -799,11 +769,7 @@ class SageMakerModelBackend(BaseBackend):
                         production_variant["ModelName"], self.region_name
                     )
                 )
-                raise RESTError(
-                    error_type="ValidationException",
-                    message=message,
-                    template="error_json",
-                )
+                raise ValidationError(message=message)
 
     def describe_endpoint_config(self, endpoint_config_name):
         try:
@@ -812,11 +778,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Could not find endpoint configuration '{}'.".format(
                 FakeEndpointConfig.arn_formatter(endpoint_config_name, self.region_name)
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def delete_endpoint_config(self, endpoint_config_name):
         try:
@@ -825,11 +787,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Could not find endpoint configuration '{}'.".format(
                 FakeEndpointConfig.arn_formatter(endpoint_config_name, self.region_name)
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def create_endpoint(
         self, endpoint_name, endpoint_config_name, tags,
@@ -840,11 +798,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Could not find endpoint_config '{}'.".format(
                 FakeEndpointConfig.arn_formatter(endpoint_config_name, self.region_name)
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
         endpoint = FakeEndpoint(
             region_name=self.region_name,
@@ -865,11 +819,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Could not find endpoint configuration '{}'.".format(
                 FakeEndpoint.arn_formatter(endpoint_name, self.region_name)
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def delete_endpoint(self, endpoint_name):
         try:
@@ -878,11 +828,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Could not find endpoint configuration '{}'.".format(
                 FakeEndpoint.arn_formatter(endpoint_name, self.region_name)
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def get_endpoint_by_arn(self, arn):
         endpoints = [
@@ -892,11 +838,7 @@ class SageMakerModelBackend(BaseBackend):
         ]
         if len(endpoints) == 0:
             message = "RecordNotFound"
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
         return endpoints[0]
 
     def get_endpoint_tags(self, arn):
@@ -958,11 +900,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Could not find training job '{}'.".format(
                 FakeTrainingJob.arn_formatter(training_job_name, self.region_name)
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def delete_training_job(self, training_job_name):
         try:
@@ -971,11 +909,7 @@ class SageMakerModelBackend(BaseBackend):
             message = "Could not find endpoint configuration '{}'.".format(
                 FakeTrainingJob.arn_formatter(training_job_name, self.region_name)
             )
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message=message)
 
     def get_training_job_by_arn(self, arn):
         training_jobs = [
@@ -984,12 +918,7 @@ class SageMakerModelBackend(BaseBackend):
             if training_job.training_job_arn == arn
         ]
         if len(training_jobs) == 0:
-            message = "RecordNotFound"
-            raise RESTError(
-                error_type="ValidationException",
-                message=message,
-                template="error_json",
-            )
+            raise ValidationError(message="RecordNotFound")
         return training_jobs[0]
 
     def get_training_job_tags(self, arn):

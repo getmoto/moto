@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import json
-from moto.core.exceptions import RESTError
-
+from moto.core.exceptions import RESTError, JsonRESTError
 
 ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
 {% block extra %}<ModelName>{{ model }}</ModelName>{% endblock %}
@@ -45,3 +44,8 @@ class AWSError(Exception):
             json.dumps({"__type": self.type, "message": self.message}),
             dict(status=self.status),
         )
+
+
+class ValidationError(JsonRESTError):
+    def __init__(self, message, **kwargs):
+        super(ValidationError, self).__init__("ValidationException", message, **kwargs)
