@@ -37,6 +37,7 @@ from .exceptions import (
     ObjectNotInActiveTierError,
     NoSystemTags,
     PreconditionFailed,
+    InvalidRange,
 )
 from .models import (
     s3_backend,
@@ -936,11 +937,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             return 400, response_headers, ""
         if begin < 0 or end > last or begin > min(end, last):
-            return 416, response_headers, ""
+            raise InvalidRange(
+                actual_size=str(length), range_requested=request.headers.get("range")
+            )
         response_headers["content-range"] = "bytes {0}-{1}/{2}".format(
             begin, end, length
         )
-        return 206, response_headers, response_content[begin : end + 1]
+        content = response_content[begin : end + 1]
+        response_headers["content-length"] = len(content)
+        return 206, response_headers, content
 
     def key_or_control_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
@@ -967,9 +972,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             status_code, response_headers, response_content = response
 
         if status_code == 200 and "range" in request.headers:
-            return self._handle_range_header(
-                request, response_headers, response_content
-            )
+            try:
+                return self._handle_range_header(
+                    request, response_headers, response_content
+                )
+            except S3ClientError as s3error:
+                return s3error.code, {}, s3error.description
         return status_code, response_headers, response_content
 
     def _control_response(self, request, full_url, headers):
