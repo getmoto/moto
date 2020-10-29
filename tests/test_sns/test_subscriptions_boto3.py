@@ -7,7 +7,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_sns
+from moto import mock_sns, mock_sqs
 from moto.sns.models import (
     DEFAULT_PAGE_SIZE,
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
@@ -124,11 +124,9 @@ def test_unsubscribe_from_deleted_topic():
     topics = topics_json["Topics"]
     topics.should.have.length_of(0)
 
-    # And the subscription should still be left
+    # as per the documentation deleting a topic deletes all the subscriptions
     subscriptions = client.list_subscriptions()["Subscriptions"]
-    subscriptions.should.have.length_of(1)
-    subscription = subscriptions[0]
-    subscription["SubscriptionArn"].should.equal(subscription_arn)
+    subscriptions.should.have.length_of(0)
 
     # Now delete hanging subscription
     client.unsubscribe(SubscriptionArn=subscription_arn)
@@ -302,6 +300,28 @@ def test_creating_subscription_with_attributes():
             Endpoint="http://example.com/",
             Attributes={"InvalidName": "true"},
         )
+
+
+@mock_sns
+@mock_sqs
+def test_delete_subscriptions_on_delete_topic():
+    sqs = boto3.client("sqs", region_name="us-east-1")
+    conn = boto3.client("sns", region_name="us-east-1")
+
+    queue = sqs.create_queue(QueueName="test-queue")
+    topic = conn.create_topic(Name="some-topic")
+
+    conn.subscribe(
+        TopicArn=topic.get("TopicArn"), Protocol="sqs", Endpoint=queue.get("QueueUrl")
+    )
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+
+    subscriptions.should.have.length_of(1)
+
+    conn.delete_topic(TopicArn=topic.get("TopicArn"))
+
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(0)
 
 
 @mock_sns
