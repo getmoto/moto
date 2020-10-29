@@ -4285,7 +4285,8 @@ def test_valid_transact_get_items():
         ]
     )
     res["Responses"][0]["Item"].should.equal({"id": {"S": "1"}, "sort_key": {"S": "1"}})
-    len(res["Responses"]).should.equal(1)
+    len(res["Responses"]).should.equal(2)
+    res["Responses"][1].should.equal({})
 
     res = client.transact_get_items(
         TransactItems=[
@@ -5479,3 +5480,28 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression():
     item = resp["Items"][0]
     item.should.have.key("customer")
     item.should_not.have.key("orders")
+
+
+@mock_dynamodb2
+def test_transact_get_items_should_return_empty_map_for_non_existent_item():
+    client = boto3.client("dynamodb", region_name="us-west-2")
+    table_name = "test-table"
+    key_schema = [{"AttributeName": "id", "KeyType": "HASH"}]
+    attribute_definitions = [{"AttributeName": "id", "AttributeType": "S"}]
+    client.create_table(
+        TableName=table_name,
+        KeySchema=key_schema,
+        AttributeDefinitions=attribute_definitions,
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    item = {"id": {"S": "1"}}
+    client.put_item(TableName=table_name, Item=item)
+    items = client.transact_get_items(
+        TransactItems=[
+            {"Get": {"Key": {"id": {"S": "1"}}, "TableName": table_name}},
+            {"Get": {"Key": {"id": {"S": "2"}}, "TableName": table_name}},
+        ]
+    ).get("Responses", [])
+    items.should.have.length_of(2)
+    items[0].should.equal({"Item": item})
+    items[1].should.equal({})
