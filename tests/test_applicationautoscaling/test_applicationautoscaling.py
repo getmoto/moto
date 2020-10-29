@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
+import botocore
 import boto3
-from moto import mock_applicationautoscaling, mock_ecs
 import sure  # noqa
-from nose.tools import with_setup
+from nose.tools import assert_raises
+from moto import mock_applicationautoscaling, mock_ecs
+from moto.applicationautoscaling.exceptions import AWSValidationException
 
 DEFAULT_REGION = "us-east-1"
 DEFAULT_ECS_CLUSTER = "default"
@@ -332,6 +334,19 @@ def test_put_scaling_policy():
         },
     }
 
+    with assert_raises(client.exceptions.ValidationException) as e:
+        client.put_scaling_policy(
+            PolicyName=policy_name,
+            ServiceNamespace=namespace,
+            ResourceId=resource_id,
+            ScalableDimension=scalable_dimension,
+            PolicyType="ABCDEFG",
+            TargetTrackingScalingPolicyConfiguration=policy_body,
+        )
+    e.exception.response["Error"]["Message"].should.match(
+        r"Unknown policy type .* specified."
+    )
+
     response = client.put_scaling_policy(
         PolicyName=policy_name,
         ServiceNamespace=namespace,
@@ -402,7 +417,6 @@ def test_describe_scaling_policies():
         )
     )
     policy.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
-    pass
 
 
 @mock_applicationautoscaling
@@ -428,6 +442,15 @@ def test_delete_scaling_policies():
             "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
         },
     }
+
+    with assert_raises(client.exceptions.ValidationException) as e:
+        client.delete_scaling_policy(
+            PolicyName=policy_name,
+            ServiceNamespace=namespace,
+            ResourceId=resource_id,
+            ScalableDimension=scalable_dimension,
+        )
+    e.exception.response["Error"]["Message"].should.match(r"No scaling policy found .*")
 
     response = client.put_scaling_policy(
         PolicyName=policy_name,
@@ -456,8 +479,6 @@ def test_delete_scaling_policies():
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     len(response["ScalingPolicies"]).should.equal(0)
 
-    pass
-
 
 @mock_applicationautoscaling
 def test_deregister_scalable_target():
@@ -485,3 +506,13 @@ def test_deregister_scalable_target():
 
     response = client.describe_scalable_targets(ServiceNamespace=namespace)
     len(response["ScalableTargets"]).should.equal(0)
+
+    with assert_raises(client.exceptions.ValidationException) as e:
+        client.deregister_scalable_target(
+            ServiceNamespace=namespace,
+            ResourceId=resource_id,
+            ScalableDimension=scalable_dimension,
+        )
+    e.exception.response["Error"]["Message"].should.match(
+        r"No scalable target found .*"
+    )
