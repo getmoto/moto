@@ -95,6 +95,7 @@ class FakeAlarm(BaseModel):
         metric_data_queries,
         comparison_operator,
         evaluation_periods,
+        datapoints_to_alarm,
         period,
         threshold,
         statistic,
@@ -112,6 +113,7 @@ class FakeAlarm(BaseModel):
         self.metric_data_queries = metric_data_queries
         self.comparison_operator = comparison_operator
         self.evaluation_periods = evaluation_periods
+        self.datapoints_to_alarm = datapoints_to_alarm
         self.period = period
         self.threshold = threshold
         self.statistic = statistic
@@ -267,6 +269,7 @@ class CloudWatchBackend(BaseBackend):
         metric_data_queries,
         comparison_operator,
         evaluation_periods,
+        datapoints_to_alarm,
         period,
         threshold,
         statistic,
@@ -285,6 +288,7 @@ class CloudWatchBackend(BaseBackend):
             metric_data_queries,
             comparison_operator,
             evaluation_periods,
+            datapoints_to_alarm,
             period,
             threshold,
             statistic,

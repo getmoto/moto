@@ -49,6 +49,7 @@ class CloudWatchResponse(BaseResponse):
             ]
         comparison_operator = self._get_param("ComparisonOperator")
         evaluation_periods = self._get_param("EvaluationPeriods")
+        datapoints_to_alarm = self._get_param("DatapointsToAlarm")
         period = self._get_param("Period")
         threshold = self._get_param("Threshold")
         statistic = self._get_param("Statistic")
@@ -68,6 +69,7 @@ class CloudWatchResponse(BaseResponse):
             metric_data_queries,
             comparison_operator,
             evaluation_periods,
+            datapoints_to_alarm,
             period,
             threshold,
             statistic,
@@ -301,6 +303,9 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                     </Dimensions>
                 {% endif %}
                 <EvaluationPeriods>{{ alarm.evaluation_periods }}</EvaluationPeriods>
+                {% if alarm.datapoints_to_alarm is not none %}
+                <DatapointsToAlarm>{{ alarm.datapoints_to_alarm }}</DatapointsToAlarm>
+                {% endif %}
                 <InsufficientDataActions>
                     {% for action in alarm.insufficient_data_actions %}
                     <member>{{ action }}</member>

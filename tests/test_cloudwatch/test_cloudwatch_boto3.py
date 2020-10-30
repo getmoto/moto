@@ -201,10 +201,28 @@ def test_describe_alarms():
     alarms = conn.describe_alarms()
     metric_alarms = alarms.get("MetricAlarms")
     metric_alarms.should.have.length_of(2)
-    single_metric_alarm = [_ for _ in metric_alarms if "MetricName" in _][0]
-    multiple_metric_alarm = [_ for _ in metric_alarms if "MetricName" not in _][0]
+    single_metric_alarm = [
+        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm1"
+    ][0]
+    multiple_metric_alarm = [
+        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm2"
+    ][0]
+
     single_metric_alarm["MetricName"].should.equal("cpu")
+    single_metric_alarm.shouldnt.have.property("Metrics")
+    single_metric_alarm["Namespace"].should.equal("blah")
+    single_metric_alarm["Period"].should.equal(10)
+    single_metric_alarm["EvaluationPeriods"].should.equal(5)
+    single_metric_alarm["Statistic"].should.equal("Average")
+    single_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
+    single_metric_alarm["Threshold"].should.equal(2)
+
+    multiple_metric_alarm.shouldnt.have.property("MetricName")
+    multiple_metric_alarm["EvaluationPeriods"].should.equal(1)
+    multiple_metric_alarm["DatapointsToAlarm"].should.equal(1)
     multiple_metric_alarm["Metrics"].should.equal(metric_data_queries)
+    multiple_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
+    multiple_metric_alarm["Threshold"].should.equal(1.0)
 
 
 @mock_cloudwatch
