@@ -5,7 +5,7 @@ from datetime import datetime
 from boto3 import Session
 
 from moto.core import ACCOUNT_ID, BaseBackend
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from uuid import uuid4
 from .exceptions import (
     ExecutionAlreadyExists,
@@ -15,11 +15,12 @@ from .exceptions import (
     InvalidName,
     StateMachineDoesNotExist,
 )
+from .utils import paginate
 
 
 class StateMachine:
     def __init__(self, arn, name, definition, roleArn, tags=None):
-        self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.creation_date = iso_8601_datetime_with_milliseconds(datetime.now())
         self.arn = arn
         self.name = name
         self.definition = definition
@@ -43,7 +44,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.start_date = iso_8601_datetime_with_milliseconds(datetime.now())
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = "RUNNING"
@@ -51,7 +52,7 @@ class Execution:
 
     def stop(self):
         self.status = "ABORTED"
-        self.stop_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.stop_date = iso_8601_datetime_with_milliseconds(datetime.now())
 
 
 class StepFunctionBackend(BaseBackend):
@@ -189,8 +190,10 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.append(state_machine)
             return state_machine
 
+    @paginate
     def list_state_machines(self):
-        return self.state_machines
+        state_machines = sorted(self.state_machines, key=lambda x: x.creation_date)
+        return state_machines
 
     def describe_state_machine(self, arn):
         self._validate_machine_arn(arn)
@@ -233,6 +236,7 @@ class StepFunctionBackend(BaseBackend):
         execution.stop()
         return execution
 
+    @paginate
     def list_executions(self, state_machine_arn, status_filter=None):
         executions = [
             execution
@@ -243,6 +247,7 @@ class StepFunctionBackend(BaseBackend):
         if status_filter:
             executions = list(filter(lambda e: e.status == status_filter, executions))
 
+        executions = sorted(executions, key=lambda x: x.start_date, reverse=True)
         return executions
 
     def describe_execution(self, arn):
