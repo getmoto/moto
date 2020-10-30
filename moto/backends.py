@@ -71,6 +71,7 @@ BACKENDS = {
     "transcribe": ("transcribe", "transcribe_backends"),
     "xray": ("xray", "xray_backends"),
     "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
+    "medialive": ("medialive", "medialive_backends"),
     "kinesis-video-archived-media": (
         "kinesisvideoarchivedmedia",
         "kinesisvideoarchivedmedia_backends",

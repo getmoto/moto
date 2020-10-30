@@ -118,6 +118,7 @@ mock_kinesisvideo = lazy_load(".kinesisvideo", "mock_kinesisvideo")
 mock_kinesisvideoarchivedmedia = lazy_load(
     ".kinesisvideoarchivedmedia", "mock_kinesisvideoarchivedmedia"
 )
+mock_medialive = lazy_load(".medialive", "mock_medialive")
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
