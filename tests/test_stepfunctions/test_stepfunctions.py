@@ -490,6 +490,27 @@ def test_state_machine_list_executions():
 
 
 @mock_stepfunctions
+def test_state_machine_list_executions_with_filter():
+    client = boto3.client("stepfunctions", region_name=region)
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    for i in range(20):
+        execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
+        if not i % 4:
+            client.stop_execution(executionArn=execution["executionArn"])
+
+    resp = client.list_executions(stateMachineArn=sm["stateMachineArn"])
+    resp["executions"].should.have.length_of(20)
+
+    resp = client.list_executions(
+        stateMachineArn=sm["stateMachineArn"], statusFilter="ABORTED"
+    )
+    resp["executions"].should.have.length_of(5)
+    all([e["status"] == "ABORTED" for e in resp["executions"]]).should.be.true
+
+
+@mock_stepfunctions
 @mock_sts
 def test_state_machine_list_executions_when_none_exist():
     client = boto3.client("stepfunctions", region_name=region)

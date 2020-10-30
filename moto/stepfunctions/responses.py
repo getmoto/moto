@@ -111,8 +111,11 @@ class StepFunctionResponse(BaseResponse):
     @amzn_request_id
     def list_executions(self):
         arn = self._get_param("stateMachineArn")
+        status_filter = self._get_param("statusFilter")
         state_machine = self.stepfunction_backend.describe_state_machine(arn)
-        executions = self.stepfunction_backend.list_executions(arn)
+        executions = self.stepfunction_backend.list_executions(
+            arn, status_filter=status_filter
+        )
         executions = [
             {
                 "executionArn": execution.execution_arn,

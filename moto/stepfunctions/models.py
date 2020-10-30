@@ -233,12 +233,17 @@ class StepFunctionBackend(BaseBackend):
         execution.stop()
         return execution
 
-    def list_executions(self, state_machine_arn):
-        return [
+    def list_executions(self, state_machine_arn, status_filter=None):
+        executions = [
             execution
             for execution in self.executions
             if execution.state_machine_arn == state_machine_arn
         ]
+
+        if status_filter:
+            executions = list(filter(lambda e: e.status == status_filter, executions))
+
+        return executions
 
     def describe_execution(self, arn):
         self._validate_execution_arn(arn)
