@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import json
+from moto.core.exceptions import JsonRESTError
 
 
 class AWSError(Exception):
@@ -18,5 +19,8 @@ class AWSError(Exception):
         return json.dumps(resp), dict(status=self.STATUS)
 
 
-class AWSValidationException(AWSError):
-    TYPE = "ValidationException"
+class AWSValidationException(JsonRESTError):
+    def __init__(self, message, **kwargs):
+        super(AWSValidationException, self).__init__(
+            "ValidationException", message, **kwargs
+        )
