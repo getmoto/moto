@@ -8,7 +8,7 @@ from datetime import datetime
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_sts, mock_stepfunctions
+from moto import mock_cloudformation, mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
 
 region = "us-east-1"
@@ -622,6 +622,58 @@ def test_state_machine_describe_execution_after_stoppage():
     description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     description["status"].should.equal("ABORTED")
     description["stopDate"].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_cloudformation
+def test_state_machine_cloudformation():
+    sf = boto3.client("stepfunctions", region_name="us-east-1")
+    cf = boto3.resource("cloudformation", region_name="us-east-1")
+    definition = '{"StartAt": "HelloWorld", "States": {"HelloWorld": {"Type": "Task", "Resource": "arn:aws:lambda:us-east-1:111122223333;:function:HelloFunction", "End": true}}}'
+    role_arn = (
+        "arn:aws:iam::111122223333:role/service-role/StatesExecutionRole-us-east-1;"
+    )
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "An example template for a Step Functions state machine.",
+        "Resources": {
+            "MyStateMachine": {
+                "Type": "AWS::StepFunctions::StateMachine",
+                "Properties": {
+                    "StateMachineName": "HelloWorld-StateMachine",
+                    "StateMachineType": "STANDARD",
+                    "DefinitionString": definition,
+                    "RoleArn": role_arn,
+                    "Tags": [
+                        {"Key": "key1", "Value": "value1"},
+                        {"Key": "key2", "Value": "value2"},
+                    ],
+                },
+            }
+        },
+        "Outputs": {
+            "StateMachineArn": {"Value": {"Ref": "MyStateMachine"}},
+            "StateMachineName": {"Value": {"Fn::GetAtt": ["MyStateMachine", "Name"]}},
+        },
+    }
+    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    outputs_list = cf.Stack("test_stack").outputs
+    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
+    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
+    state_machine["stateMachineArn"].should.equal(output["StateMachineArn"])
+    state_machine["name"].should.equal(output["StateMachineName"])
+    state_machine["roleArn"].should.equal(role_arn)
+    state_machine["definition"].should.equal(definition)
+    tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
+    for i, tag in enumerate(tags, 1):
+        tag["key"].should.equal("key{}".format(i))
+        tag["value"].should.equal("value{}".format(i))
+
+    cf.Stack("test_stack").delete()
+    with assert_raises(ClientError) as ex:
+        sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
+    ex.exception.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
+    ex.exception.response["Error"]["Message"].should.contain("Does Not Exist")
 
 
 def _get_account_id():
