@@ -63,12 +63,12 @@ CREATE_INTERNET_GATEWAY_RESPONSE = """<CreateInternetGatewayResponse xmlns="http
     <internetGatewayId>{{ internet_gateway.id }}</internetGatewayId>
     <attachmentSet/>
     <tagSet>
-      {% for tag in internet_gateway.tags %}
+      {% for tag in internet_gateway.get_tags() %}
         <item>
           <resourceId>{{ tag.resource_id }}</resourceId>
           <resourceType>{{ tag.resource_type }}</resourceType>
-          <key>{{ tag.get('Key') }}</key>
-          <value>{{ tag.get('Value') }}</value>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
         </item>
       {% endfor %}
     </tagSet>

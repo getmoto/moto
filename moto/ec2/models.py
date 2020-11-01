@@ -4264,11 +4264,10 @@ class RouteBackend(object):
 
 
 class InternetGateway(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, ec2_backend, tags=[]):
+    def __init__(self, ec2_backend):
         self.ec2_backend = ec2_backend
         self.id = random_internet_gateway_id()
         self.vpc = None
-        self.tags = tags
 
     @staticmethod
     def cloudformation_name_type():
@@ -4304,7 +4303,9 @@ class InternetGatewayBackend(object):
         super(InternetGatewayBackend, self).__init__()
 
     def create_internet_gateway(self, tags=[]):
-        igw = InternetGateway(self, tags)
+        igw = InternetGateway(self)
+        for tag in tags:
+            igw.add_tag(tag.get('Key'), tag.get('Value'))
         self.internet_gateways[igw.id] = igw
         return igw
 
