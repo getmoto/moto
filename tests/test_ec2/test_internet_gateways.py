@@ -7,11 +7,13 @@ from nose.tools import assert_raises
 import re
 
 import boto
+import boto3
+
 from boto.exception import EC2ResponseError
 
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 
 
 VPC_CIDR = "10.0.0.0/16"
@@ -269,3 +271,19 @@ def test_igw_filter_by_attachment_state():
     result = conn.get_all_internet_gateways(filters={"attachment.state": "available"})
     result.should.have.length_of(1)
     result[0].id.should.equal(igw1.id)
+
+
+@mock_ec2
+def test_create_internet_gateway_with_tags():
+    ec2 = boto3.resource("ec2", region_name="eu-central-1")
+
+    igw = ec2.create_internet_gateway(
+        TagSpecifications=[
+            {
+                "ResourceType": "internet-gateway",
+                "Tags": [{"Key": "test", "Value": "TestRouteTable"}],
+            }
+        ],
+    )
+    igw.tags.should.have.length_of(1)
+    igw.tags.should.equal([{"Key": "test", "Value": "TestRouteTable"}])

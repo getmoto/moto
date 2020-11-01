@@ -715,3 +715,22 @@ def test_create_vpc_end_point():
     )
     vpc_end_point["VpcEndpoint"]["VpcId"].should.equal(vpc["Vpc"]["VpcId"])
     len(vpc_end_point["VpcEndpoint"]["DnsEntries"]).should.be.greater_than(0)
+
+
+@mock_ec2
+def test_create_route_tables_with_tags():
+    ec2 = boto3.resource("ec2", region_name="eu-central-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    route_table = ec2.create_route_table(
+        VpcId=vpc.id,
+        TagSpecifications=[
+            {
+                "ResourceType": "route-table",
+                "Tags": [{"Key": "test", "Value": "TestRouteTable"}],
+            }
+        ],
+    )
+
+    route_table.tags.should.have.length_of(1)

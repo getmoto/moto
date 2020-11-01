@@ -14,7 +14,10 @@ class InternetGateways(BaseResponse):
 
     def create_internet_gateway(self):
         if self.is_not_dryrun("CreateInternetGateway"):
-            igw = self.ec2_backend.create_internet_gateway()
+            tags = self._get_multi_param("TagSpecification")
+            if tags:
+                tags = tags[0].get("Tag")
+            igw = self.ec2_backend.create_internet_gateway(tags=tags)
             template = self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE)
             return template.render(internet_gateway=igw)
 
@@ -60,12 +63,12 @@ CREATE_INTERNET_GATEWAY_RESPONSE = """<CreateInternetGatewayResponse xmlns="http
     <internetGatewayId>{{ internet_gateway.id }}</internetGatewayId>
     <attachmentSet/>
     <tagSet>
-      {% for tag in internet_gateway.get_tags() %}
+      {% for tag in internet_gateway.tags %}
         <item>
           <resourceId>{{ tag.resource_id }}</resourceId>
           <resourceType>{{ tag.resource_type }}</resourceType>
-          <key>{{ tag.key }}</key>
-          <value>{{ tag.value }}</value>
+          <key>{{ tag.get('Key') }}</key>
+          <value>{{ tag.get('Value') }}</value>
         </item>
       {% endfor %}
     </tagSet>
