@@ -46,3 +46,11 @@ class InvalidExecutionInput(AWSError):
 class StateMachineDoesNotExist(AWSError):
     TYPE = "StateMachineDoesNotExist"
     STATUS = 400
+
+
+class InvalidToken(AWSError):
+    TYPE = "InvalidToken"
+    STATUS = 400
+
+    def __init__(self, message="Invalid token"):
+        super(InvalidToken, self).__init__("Invalid Token: {}".format(message))
