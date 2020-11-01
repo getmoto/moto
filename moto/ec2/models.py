@@ -4305,7 +4305,7 @@ class InternetGatewayBackend(object):
     def create_internet_gateway(self, tags=[]):
         igw = InternetGateway(self)
         for tag in tags:
-            igw.add_tag(tag.get('Key'), tag.get('Value'))
+            igw.add_tag(tag.get("Key"), tag.get("Value"))
         self.internet_gateways[igw.id] = igw
         return igw
 
