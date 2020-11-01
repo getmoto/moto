@@ -33,19 +33,22 @@ class StepFunctionResponse(BaseResponse):
 
     @amzn_request_id
     def list_state_machines(self):
-        list_all = self.stepfunction_backend.list_state_machines()
-        list_all = sorted(
-            [
-                {
-                    "creationDate": sm.creation_date,
-                    "name": sm.name,
-                    "stateMachineArn": sm.arn,
-                }
-                for sm in list_all
-            ],
-            key=lambda x: x["name"],
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        results, next_token = self.stepfunction_backend.list_state_machines(
+            max_results=max_results, next_token=next_token
         )
-        response = {"stateMachines": list_all}
+        state_machines = [
+            {
+                "creationDate": sm.creation_date,
+                "name": sm.name,
+                "stateMachineArn": sm.arn,
+            }
+            for sm in results
+        ]
+        response = {"stateMachines": state_machines}
+        if next_token:
+            response["nextToken"] = next_token
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
@@ -110,9 +113,20 @@ class StepFunctionResponse(BaseResponse):
 
     @amzn_request_id
     def list_executions(self):
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         arn = self._get_param("stateMachineArn")
-        state_machine = self.stepfunction_backend.describe_state_machine(arn)
-        executions = self.stepfunction_backend.list_executions(arn)
+        status_filter = self._get_param("statusFilter")
+        try:
+            state_machine = self.stepfunction_backend.describe_state_machine(arn)
+            results, next_token = self.stepfunction_backend.list_executions(
+                arn,
+                status_filter=status_filter,
+                max_results=max_results,
+                next_token=next_token,
+            )
+        except AWSError as err:
+            return err.response()
         executions = [
             {
                 "executionArn": execution.execution_arn,
@@ -121,9 +135,12 @@ class StepFunctionResponse(BaseResponse):
                 "stateMachineArn": state_machine.arn,
                 "status": execution.status,
             }
-            for execution in executions
+            for execution in results
         ]
-        return 200, {}, json.dumps({"executions": executions})
+        response = {"executions": executions}
+        if next_token:
+            response["nextToken"] = next_token
+        return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def describe_execution(self):

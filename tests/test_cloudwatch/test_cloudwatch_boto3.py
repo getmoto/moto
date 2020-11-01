@@ -142,6 +142,90 @@ def test_describe_alarms_for_metric():
 
 
 @mock_cloudwatch
+def test_describe_alarms():
+    conn = boto3.client("cloudwatch", region_name="eu-central-1")
+    conn.put_metric_alarm(
+        AlarmName="testalarm1",
+        MetricName="cpu",
+        Namespace="blah",
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic="Average",
+        Threshold=2,
+        ComparisonOperator="GreaterThanThreshold",
+        ActionsEnabled=True,
+    )
+    metric_data_queries = [
+        {
+            "Id": "metricA",
+            "Expression": "metricB + metricC",
+            "Label": "metricA",
+            "ReturnData": True,
+        },
+        {
+            "Id": "metricB",
+            "MetricStat": {
+                "Metric": {
+                    "Namespace": "ns",
+                    "MetricName": "metricB",
+                    "Dimensions": [{"Name": "Name", "Value": "B"}],
+                },
+                "Period": 60,
+                "Stat": "Sum",
+            },
+            "ReturnData": False,
+        },
+        {
+            "Id": "metricC",
+            "MetricStat": {
+                "Metric": {
+                    "Namespace": "AWS/Lambda",
+                    "MetricName": "metricC",
+                    "Dimensions": [{"Name": "Name", "Value": "C"}],
+                },
+                "Period": 60,
+                "Stat": "Sum",
+                "Unit": "Seconds",
+            },
+            "ReturnData": False,
+        },
+    ]
+    conn.put_metric_alarm(
+        AlarmName="testalarm2",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Metrics=metric_data_queries,
+        ComparisonOperator="GreaterThanThreshold",
+        Threshold=1.0,
+    )
+    alarms = conn.describe_alarms()
+    metric_alarms = alarms.get("MetricAlarms")
+    metric_alarms.should.have.length_of(2)
+    single_metric_alarm = [
+        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm1"
+    ][0]
+    multiple_metric_alarm = [
+        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm2"
+    ][0]
+
+    single_metric_alarm["MetricName"].should.equal("cpu")
+    single_metric_alarm.shouldnt.have.property("Metrics")
+    single_metric_alarm["Namespace"].should.equal("blah")
+    single_metric_alarm["Period"].should.equal(10)
+    single_metric_alarm["EvaluationPeriods"].should.equal(5)
+    single_metric_alarm["Statistic"].should.equal("Average")
+    single_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
+    single_metric_alarm["Threshold"].should.equal(2)
+
+    multiple_metric_alarm.shouldnt.have.property("MetricName")
+    multiple_metric_alarm["EvaluationPeriods"].should.equal(1)
+    multiple_metric_alarm["DatapointsToAlarm"].should.equal(1)
+    multiple_metric_alarm["Metrics"].should.equal(metric_data_queries)
+    multiple_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
+    multiple_metric_alarm["Threshold"].should.equal(1.0)
+
+
+@mock_cloudwatch
 def test_alarm_state():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
 

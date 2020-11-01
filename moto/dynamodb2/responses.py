@@ -906,6 +906,7 @@ class DynamoHandler(BaseResponse):
                 return self.error(er, "Requested resource not found")
 
             if not item:
+                responses.append({})
                 continue
 
             item_describe = item.describe_attrs(False)
