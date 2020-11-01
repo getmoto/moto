@@ -141,9 +141,8 @@ def test_describe_alarms_for_metric():
     )
     alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
     alarms.get("MetricAlarms").should.have.length_of(1)
-    alarms.get("MetricAlarms")[0].get("AlarmArn").should.equal(
-        make_arn_for_alarm("eu-central-1", ACCOUNT_ID, "testalarm1")
-    )
+
+    assert "testalarm1" in alarms.get("MetricAlarms")[0].get("AlarmArn")
 
 
 @mock_cloudwatch

@@ -53,7 +53,7 @@ def test_create_alarm():
     list(alarm.ok_actions).should.equal(["arn:ok"])
     list(alarm.insufficient_data_actions).should.equal(["arn:insufficient"])
     alarm.unit.should.equal("Seconds")
-    alarm.alarm_arn.should.equal(make_arn_for_alarm("us-east-1", ACCOUNT_ID, "tester"))
+    assert "tester" in alarm.alarm_arn
 
 
 @mock_cloudwatch_deprecated
