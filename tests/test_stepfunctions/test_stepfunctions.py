@@ -168,14 +168,14 @@ def test_state_machine_list_returns_empty_list_by_default():
 def test_state_machine_list_returns_created_state_machines():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    machine2 = client.create_state_machine(
-        name="name2", definition=str(simple_definition), roleArn=_get_default_role()
-    )
     machine1 = client.create_state_machine(
         name="name1",
         definition=str(simple_definition),
         roleArn=_get_default_role(),
         tags=[{"key": "tag_key", "value": "tag_value"}],
+    )
+    machine2 = client.create_state_machine(
+        name="name2", definition=str(simple_definition), roleArn=_get_default_role()
     )
     list = client.list_state_machines()
     #
@@ -193,6 +193,28 @@ def test_state_machine_list_returns_created_state_machines():
     list["stateMachines"][1]["stateMachineArn"].should.equal(
         machine2["stateMachineArn"]
     )
+
+
+@mock_stepfunctions
+def test_state_machine_list_pagination():
+    client = boto3.client("stepfunctions", region_name=region)
+    for i in range(25):
+        machine_name = "StateMachine-{}".format(i)
+        client.create_state_machine(
+            name=machine_name,
+            definition=str(simple_definition),
+            roleArn=_get_default_role(),
+        )
+
+    resp = client.list_state_machines()
+    resp.should_not.have.key("nextToken")
+    resp["stateMachines"].should.have.length_of(25)
+
+    paginator = client.get_paginator("list_state_machines")
+    page_iterator = paginator.paginate(maxResults=5)
+    for page in page_iterator:
+        page["stateMachines"].should.have.length_of(5)
+    page["stateMachines"][-1]["name"].should.contain("24")
 
 
 @mock_stepfunctions
@@ -487,6 +509,69 @@ def test_state_machine_list_executions():
     executions["executions"][0]["stateMachineArn"].should.equal(sm["stateMachineArn"])
     executions["executions"][0]["status"].should.equal("RUNNING")
     executions["executions"][0].shouldnt.have("stopDate")
+
+
+@mock_stepfunctions
+def test_state_machine_list_executions_with_filter():
+    client = boto3.client("stepfunctions", region_name=region)
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    for i in range(20):
+        execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
+        if not i % 4:
+            client.stop_execution(executionArn=execution["executionArn"])
+
+    resp = client.list_executions(stateMachineArn=sm["stateMachineArn"])
+    resp["executions"].should.have.length_of(20)
+
+    resp = client.list_executions(
+        stateMachineArn=sm["stateMachineArn"], statusFilter="ABORTED"
+    )
+    resp["executions"].should.have.length_of(5)
+    all([e["status"] == "ABORTED" for e in resp["executions"]]).should.be.true
+
+
+@mock_stepfunctions
+def test_state_machine_list_executions_with_pagination():
+    client = boto3.client("stepfunctions", region_name=region)
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    for _ in range(100):
+        client.start_execution(stateMachineArn=sm["stateMachineArn"])
+
+    resp = client.list_executions(stateMachineArn=sm["stateMachineArn"])
+    resp.should_not.have.key("nextToken")
+    resp["executions"].should.have.length_of(100)
+
+    paginator = client.get_paginator("list_executions")
+    page_iterator = paginator.paginate(
+        stateMachineArn=sm["stateMachineArn"], maxResults=25
+    )
+    for page in page_iterator:
+        page["executions"].should.have.length_of(25)
+
+    with assert_raises(ClientError) as ex:
+        resp = client.list_executions(
+            stateMachineArn=sm["stateMachineArn"], maxResults=10
+        )
+        client.list_executions(
+            stateMachineArn=sm["stateMachineArn"],
+            maxResults=10,
+            statusFilter="ABORTED",
+            nextToken=resp["nextToken"],
+        )
+    ex.exception.response["Error"]["Code"].should.equal("InvalidToken")
+    ex.exception.response["Error"]["Message"].should.contain(
+        "Input inconsistent with page token"
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.list_executions(
+            stateMachineArn=sm["stateMachineArn"], nextToken="invalid"
+        )
+    ex.exception.response["Error"]["Code"].should.equal("InvalidToken")
 
 
 @mock_stepfunctions
