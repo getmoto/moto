@@ -408,7 +408,11 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
 def test_put_secret_value_puts_new_secret():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
-
+    test_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
     test_client.post(
         "/",
         data={
@@ -457,6 +461,12 @@ def test_put_secret_value_can_get_first_version_if_put_twice():
 
     first_secret_string = "first_secret"
     second_secret_string = "second_secret"
+
+    test_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
 
     put_first_secret_value_json = test_client.post(
         "/",
@@ -507,6 +517,11 @@ def test_put_secret_value_versions_differ_if_same_secret_put_twice():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
+    test_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
     put_first_secret_value_json = test_client.post(
         "/",
         data={
@@ -543,6 +558,11 @@ def test_can_list_secret_version_ids():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
+    test_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
     put_first_secret_value_json = test_client.post(
         "/",
         data={
