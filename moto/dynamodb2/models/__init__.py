@@ -245,7 +245,7 @@ class StreamShard(BaseModel):
         if old is None:
             event_name = "INSERT"
         elif new is None:
-            event_name = "DELETE"
+            event_name = "REMOVE"
         else:
             event_name = "MODIFY"
         seq = len(self.items) + self.starting_sequence_number
