@@ -80,6 +80,7 @@ class CloudWatchResponse(BaseResponse):
             insufficient_data_actions,
             unit,
             actions_enabled,
+            self.region,
         )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
@@ -287,7 +288,7 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                     <member>{{ action }}</member>
                     {% endfor %}
                 </AlarmActions>
-                <AlarmArn>{{ alarm.arn }}</AlarmArn>
+                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
                 <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
                 <AlarmDescription>{{ alarm.description }}</AlarmDescription>
                 <AlarmName>{{ alarm.name }}</AlarmName>
@@ -395,7 +396,7 @@ DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="htt
                     <member>{{ action }}</member>
                     {% endfor %}
                 </AlarmActions>
-                <AlarmArn>{{ alarm.arn }}</AlarmArn>
+                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
                 <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
                 <AlarmDescription>{{ alarm.description }}</AlarmDescription>
                 <AlarmName>{{ alarm.name }}</AlarmName>

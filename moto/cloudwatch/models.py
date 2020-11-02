@@ -9,7 +9,7 @@ from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
-from .utils import make_arn_for_dashboard
+from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
@@ -106,8 +106,10 @@ class FakeAlarm(BaseModel):
         insufficient_data_actions,
         unit,
         actions_enabled,
+        region="us-east-1",
     ):
         self.name = name
+        self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
         self.namespace = namespace
         self.metric_name = metric_name
         self.metric_data_queries = metric_data_queries
@@ -280,6 +282,7 @@ class CloudWatchBackend(BaseBackend):
         insufficient_data_actions,
         unit,
         actions_enabled,
+        region="us-east-1",
     ):
         alarm = FakeAlarm(
             name,
@@ -299,7 +302,9 @@ class CloudWatchBackend(BaseBackend):
             insufficient_data_actions,
             unit,
             actions_enabled,
+            region,
         )
+
         self.alarms[name] = alarm
         return alarm
 

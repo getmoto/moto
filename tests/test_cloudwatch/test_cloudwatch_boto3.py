@@ -10,6 +10,8 @@ import pytz
 import sure  # noqa
 
 from moto import mock_cloudwatch
+from moto.cloudwatch.utils import make_arn_for_alarm
+from moto.core import ACCOUNT_ID
 
 
 @mock_cloudwatch
@@ -139,6 +141,8 @@ def test_describe_alarms_for_metric():
     )
     alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
     alarms.get("MetricAlarms").should.have.length_of(1)
+
+    assert "testalarm1" in alarms.get("MetricAlarms")[0].get("AlarmArn")
 
 
 @mock_cloudwatch
