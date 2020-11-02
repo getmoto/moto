@@ -52,6 +52,34 @@ class MediaLiveBackend(BaseBackend):
         self._channels[channel_id] = channel
         return channel
 
+    def list_channels(self, max_results, next_token):
+        channels = list(self._channels.values())
+        if max_results is not None:
+            channels = channels[:max_results]
+        response_channels = []
+        for channel in channels:
+            response_channels.append(
+                {
+                    "arn": channel["arn"],
+                    "cdiInputSpecification": channel["cdiInputSpecification"],
+                    "channelClass": channel["channelClass"],
+                    "destinations": channel["destinations"],
+                    "egressEndpoints": channel["egressEndpoints"],
+                    "id": channel["id"],
+                    "inputAttachments": channel["inputAttachments"],
+                    "inputSpecification": channel["inputSpecification"],
+                    "logLevel": channel["logLevel"],
+                    "name": channel["name"],
+                    "pipelinesRunningCount": 1
+                    if channel["channelClass"] == "SINGLE_PIPELINE"
+                    else 2,
+                    "roleArn": channel["roleArn"],
+                    "state": channel["state"],
+                    "tags": channel["tags"],
+                }
+            )
+        return response_channels, next_token
+
 
 medialive_backends = {}
 for region in Session().get_available_regions("medialive"):

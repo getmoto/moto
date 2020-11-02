@@ -40,10 +40,14 @@ class MediaLiveResponse(BaseResponse):
             role_arn=role_arn,
             tags=tags,
         )
-        # TODO: adjust response
+
         return json.dumps(dict(channel=channel))
 
-    # add methods from here
+    def list_channels(self):
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        channels, next_token = self.medialive_backend.list_channels(
+            max_results=max_results, next_token=next_token,
+        )
 
-
-# add templates from here
+        return json.dumps(dict(channels=channels, nextToken=next_token))
