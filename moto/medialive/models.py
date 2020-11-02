@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
+from uuid import uuid4
 from boto3 import Session
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend
 
 
 class MediaLiveBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaLiveBackend, self).__init__()
         self.region_name = region_name
+        self._channels = {}
 
     def reset(self):
         region_name = self.region_name
@@ -28,14 +30,27 @@ class MediaLiveBackend(BaseBackend):
         role_arn,
         tags,
     ):
-        # implement here
+        channel_id = uuid4().hex
+        arn = "arn:aws:medialive:channel:{}".format(channel_id)
         channel = {
-            "Name": name,
-            "Tags": tags,
+            "arn": arn,
+            "cdiInputSpecification": cdi_input_specification,
+            "channelClass": channel_class or "STANDARD",
+            "destinations": destinations,
+            "egressEndpoints": [],
+            "encoderSettings": encoder_settings,
+            "id": channel_id,
+            "inputAttachments": input_attachments,
+            "inputSpecification": input_specification,
+            "logLevel": log_level,
+            "name": name,
+            "pipelineDetails": [],
+            "roleArn": role_arn,
+            "state": "CREATING",
+            "tags": tags,
         }
+        self._channels[channel_id] = channel
         return channel
-
-    # add methods from here
 
 
 medialive_backends = {}

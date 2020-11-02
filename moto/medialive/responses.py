@@ -12,18 +12,20 @@ class MediaLiveResponse(BaseResponse):
         return medialive_backends[self.region]
 
     def create_channel(self):
-        cdi_input_specification = self._get_param("CdiInputSpecification")
-        channel_class = self._get_param("ChannelClass")
-        destinations = self._get_list_prefix("Destinations.member")
-        encoder_settings = self._get_param("EncoderSettings")
-        input_attachments = self._get_list_prefix("InputAttachments.member")
-        input_specification = self._get_param("InputSpecification")
-        log_level = self._get_param("LogLevel")
-        name = self._get_param("Name")
-        request_id = self._get_param("RequestId")
-        reserved = self._get_param("Reserved")
-        role_arn = self._get_param("RoleArn")
-        tags = self._get_param("Tags")
+        cdi_input_specification = self._get_param("cdiInputSpecification")
+        channel_class = self._get_param("channelClass")
+        # destinations = self._get_list_prefix("destinations.member")
+        destinations = self._get_param("destinations")
+        encoder_settings = self._get_param("encoderSettings")
+        # input_attachments = self._get_list_prefix("inputAttachments.member")
+        input_attachments = self._get_param("inputAttachments")
+        input_specification = self._get_param("inputSpecification")
+        log_level = self._get_param("logLevel")
+        name = self._get_param("name")
+        request_id = self._get_param("requestId")
+        reserved = self._get_param("reserved")
+        role_arn = self._get_param("roleArn")
+        tags = self._get_param("tags")
         channel = self.medialive_backend.create_channel(
             cdi_input_specification=cdi_input_specification,
             channel_class=channel_class,

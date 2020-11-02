@@ -30,7 +30,7 @@ def test_create_channel_succeeds():
             },
         }
     ]
-    destinations = []
+    destinations = [{"Id": "destination.1"}, {"Id": "destination.2"}]
     encoder_settings = {
         "VideoDescriptions": [],
         "AudioDescriptions": [],
@@ -54,6 +54,12 @@ def test_create_channel_succeeds():
     )
 
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["Channel"].should.equal({})  # This always succeeds - why?
-    response["Channel"]["Name"].should.equal(name)  # This always fails (KeyError)- why?
+    response["Channel"]["Arn"].should.equal(
+        "arn:aws:medialive:channel:{}".format(response["Channel"]["Id"])
+    )
+    response["Channel"]["Destinations"].should.equal(destinations)
+    response["Channel"]["EncoderSettings"].should.equal(encoder_settings)
+    response["Channel"]["InputAttachments"].should.equal(input_settings)
+    response["Channel"]["Name"].should.equal(name)
+    response["Channel"]["State"].should.equal("CREATING")
     response["Channel"]["Tags"]["Customer"].should.equal("moto")
