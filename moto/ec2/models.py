@@ -3969,10 +3969,12 @@ class RouteTableBackend(object):
         self.route_tables = {}
         super(RouteTableBackend, self).__init__()
 
-    def create_route_table(self, vpc_id, main=False):
+    def create_route_table(self, vpc_id, tags=[], main=False):
         route_table_id = random_route_table_id()
         vpc = self.get_vpc(vpc_id)  # Validate VPC exists
         route_table = RouteTable(self, route_table_id, vpc_id, main=main)
+        for tag in tags:
+            route_table.add_tag(tag.get("Key"), tag.get("Value"))
         self.route_tables[route_table_id] = route_table
 
         # AWS creates a default local route.
@@ -4300,8 +4302,10 @@ class InternetGatewayBackend(object):
         self.internet_gateways = {}
         super(InternetGatewayBackend, self).__init__()
 
-    def create_internet_gateway(self):
+    def create_internet_gateway(self, tags=[]):
         igw = InternetGateway(self)
+        for tag in tags:
+            igw.add_tag(tag.get("Key"), tag.get("Value"))
         self.internet_gateways[igw.id] = igw
         return igw
 
@@ -5299,10 +5303,12 @@ class NetworkAclBackend(object):
             raise InvalidNetworkAclIdError(network_acl_id)
         return network_acl
 
-    def create_network_acl(self, vpc_id, default=False):
+    def create_network_acl(self, vpc_id, tags=[], default=False):
         network_acl_id = random_network_acl_id()
         self.get_vpc(vpc_id)
         network_acl = NetworkAcl(self, network_acl_id, vpc_id, default)
+        for tag in tags:
+            network_acl.add_tag(tag.get("Key"), tag.get("Value"))
         self.network_acls[network_acl_id] = network_acl
         if default:
             self.add_default_entries(network_acl_id)

@@ -304,3 +304,26 @@ def test_describe_network_acls():
         "An error occurred (InvalidRouteTableID.NotFound) when calling the "
         "DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
     )
+
+
+@mock_ec2
+def test_create_network_acl_with_tags():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+
+    network_acl = conn.create_network_acl(
+        VpcId=vpc_id,
+        TagSpecifications=[
+            {
+                "ResourceType": "network-acl",
+                "Tags": [{"Key": "test", "Value": "TestTags"}],
+            }
+        ],
+    )
+
+    (len(network_acl.get("NetworkAcl").get("Tags"))).should.equal(1)
+    network_acl.get("NetworkAcl").get("Tags").should.equal(
+        [{"Key": "test", "Value": "TestTags"}]
+    )
