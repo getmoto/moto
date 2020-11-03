@@ -3521,31 +3521,31 @@
 <summary>0% implemented</summary>
 
 - [ ] create_dataset
-- [ ] create_dataset_group
+- [X] create_dataset_group
 - [ ] create_dataset_import_job
 - [ ] create_forecast
 - [ ] create_forecast_export_job
 - [ ] create_predictor
 - [ ] delete_dataset
-- [ ] delete_dataset_group
+- [X] delete_dataset_group
 - [ ] delete_dataset_import_job
 - [ ] delete_forecast
 - [ ] delete_forecast_export_job
 - [ ] delete_predictor
 - [ ] describe_dataset
-- [ ] describe_dataset_group
+- [X] describe_dataset_group
 - [ ] describe_dataset_import_job
 - [ ] describe_forecast
 - [ ] describe_forecast_export_job
 - [ ] describe_predictor
 - [ ] get_accuracy_metrics
-- [ ] list_dataset_groups
+- [X] list_dataset_groups
 - [ ] list_dataset_import_jobs
 - [ ] list_datasets
 - [ ] list_forecast_export_jobs
 - [ ] list_forecasts
 - [ ] list_predictors
-- [ ] update_dataset_group
+- [X] update_dataset_group
 </details>
 
 ## forecastquery
