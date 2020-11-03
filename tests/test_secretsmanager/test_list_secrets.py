@@ -43,9 +43,11 @@ def test_list_secrets():
 
     assert secrets["SecretList"][0]["ARN"] is not None
     assert secrets["SecretList"][0]["Name"] == "test-secret"
+    assert secrets["SecretList"][0]["SecretVersionsToStages"] is not None
     assert secrets["SecretList"][1]["ARN"] is not None
     assert secrets["SecretList"][1]["Name"] == "test-secret-2"
     assert secrets["SecretList"][1]["Tags"] == [{"Key": "a", "Value": "1"}]
+    assert secrets["SecretList"][1]["SecretVersionsToStages"] is not None
 
 
 @mock_secretsmanager

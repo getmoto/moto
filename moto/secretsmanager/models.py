@@ -136,6 +136,7 @@ class FakeSecret:
             "DeletedDate": self.deleted_date,
             "Tags": self.tags,
             "VersionIdsToStages": version_id_to_stages,
+            "SecretVersionsToStages": version_id_to_stages,
         }
 
     def _form_version_ids_to_stages(self):

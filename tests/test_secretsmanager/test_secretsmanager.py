@@ -963,3 +963,32 @@ def test_tag_resource():
         "Secrets Manager can't find the specified secret.",
         cm.exception.response["Error"]["Message"],
     )
+
+
+@mock_secretsmanager
+def test_secret_versions_to_stages_attribute_discrepancy():
+    client = boto3.client("secretsmanager", region_name="us-west-2")
+
+    resp = client.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
+    previous_version_id = resp["VersionId"]
+
+    resp = client.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="dupe_secret",
+        VersionStages=["AWSCURRENT"],
+    )
+    current_version_id = resp["VersionId"]
+
+    secret = client.describe_secret(SecretId=DEFAULT_SECRET_NAME)
+    describe_vtos = secret["VersionIdsToStages"]
+    assert describe_vtos[current_version_id] == ["AWSCURRENT"]
+    assert describe_vtos[previous_version_id] == ["AWSPREVIOUS"]
+
+    secret = client.list_secrets(
+        Filters=[{"Key": "name", "Values": [DEFAULT_SECRET_NAME]}]
+    ).get("SecretList")[0]
+    list_vtos = secret["SecretVersionsToStages"]
+    assert list_vtos[current_version_id] == ["AWSCURRENT"]
+    assert list_vtos[previous_version_id] == ["AWSPREVIOUS"]
+
+    assert describe_vtos == list_vtos
