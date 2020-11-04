@@ -327,6 +327,85 @@ def test_state_machine_can_deleted_nonexisting_machine():
 
 
 @mock_stepfunctions
+def test_state_machine_tagging_non_existent_resource_fails():
+    client = boto3.client("stepfunctions", region_name=region)
+    non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
+        region=region, account=ACCOUNT_ID
+    )
+    with assert_raises(ClientError) as ex:
+        client.tag_resource(resourceArn=non_existent_arn, tags=[])
+    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.exception.response["Error"]["Message"].should.contain(non_existent_arn)
+
+
+@mock_stepfunctions
+def test_state_machine_untagging_non_existent_resource_fails():
+    client = boto3.client("stepfunctions", region_name=region)
+    non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
+        region=region, account=ACCOUNT_ID
+    )
+    with assert_raises(ClientError) as ex:
+        client.untag_resource(resourceArn=non_existent_arn, tagKeys=[])
+    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.exception.response["Error"]["Message"].should.contain(non_existent_arn)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_tagging():
+    client = boto3.client("stepfunctions", region_name=region)
+    tags = [
+        {"key": "tag_key1", "value": "tag_value1"},
+        {"key": "tag_key2", "value": "tag_value2"},
+    ]
+    machine = client.create_state_machine(
+        name="test", definition=str(simple_definition), roleArn=_get_default_role(),
+    )
+    client.tag_resource(resourceArn=machine["stateMachineArn"], tags=tags)
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    resp["tags"].should.equal(tags)
+
+    tags_update = [
+        {"key": "tag_key1", "value": "tag_value1_new"},
+        {"key": "tag_key3", "value": "tag_value3"},
+    ]
+    client.tag_resource(resourceArn=machine["stateMachineArn"], tags=tags_update)
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    tags_expected = [
+        tags_update[0],
+        tags[1],
+        tags_update[1],
+    ]
+    resp["tags"].should.equal(tags_expected)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_untagging():
+    client = boto3.client("stepfunctions", region_name=region)
+    tags = [
+        {"key": "tag_key1", "value": "tag_value1"},
+        {"key": "tag_key2", "value": "tag_value2"},
+        {"key": "tag_key3", "value": "tag_value3"},
+    ]
+    machine = client.create_state_machine(
+        name="test",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        tags=tags,
+    )
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    resp["tags"].should.equal(tags)
+    tags_to_delete = ["tag_key1", "tag_key2"]
+    client.untag_resource(
+        resourceArn=machine["stateMachineArn"], tagKeys=tags_to_delete
+    )
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    expected_tags = [tag for tag in tags if tag["key"] not in tags_to_delete]
+    resp["tags"].should.equal(expected_tags)
+
+
+@mock_stepfunctions
 @mock_sts
 def test_state_machine_list_tags_for_created_machine():
     client = boto3.client("stepfunctions", region_name=region)

@@ -13,6 +13,7 @@ from .exceptions import (
     InvalidArn,
     InvalidExecutionInput,
     InvalidName,
+    ResourceNotFound,
     StateMachineDoesNotExist,
 )
 from .utils import paginate
@@ -25,7 +26,30 @@ class StateMachine(CloudFormationModel):
         self.name = name
         self.definition = definition
         self.roleArn = roleArn
-        self.tags = tags
+        self.tags = []
+        if tags:
+            self.add_tags(tags)
+
+    def add_tags(self, tags):
+        merged_tags = []
+        for tag in self.tags:
+            replacement_index = next(
+                (index for (index, d) in enumerate(tags) if d["key"] == tag["key"]),
+                None,
+            )
+            if replacement_index is not None:
+                replacement = tags.pop(replacement_index)
+                merged_tags.append(replacement)
+            else:
+                merged_tags.append(tag)
+        for tag in tags:
+            merged_tags.append(tag)
+        self.tags = merged_tags
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set["key"] not in tag_keys]
+        return self.tags
 
     @property
     def physical_resource_id(self):
@@ -295,6 +319,20 @@ class StepFunctionBackend(BaseBackend):
         if not exctn:
             raise ExecutionDoesNotExist("Execution Does Not Exist: '" + arn + "'")
         return exctn
+
+    def tag_resource(self, resource_arn, tags):
+        try:
+            state_machine = self.describe_state_machine(resource_arn)
+            state_machine.add_tags(tags)
+        except StateMachineDoesNotExist:
+            raise ResourceNotFound(resource_arn)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        try:
+            state_machine = self.describe_state_machine(resource_arn)
+            state_machine.remove_tags(tag_keys)
+        except StateMachineDoesNotExist:
+            raise ResourceNotFound(resource_arn)
 
     def reset(self):
         region_name = self.region_name
