@@ -147,3 +147,27 @@ def test_delete_channel_moves_channel_in_deleted_state():
 
     delete_response["Name"].should.equal(channel_name)
     delete_response["State"].should.equal("DELETED")
+
+
+@mock_medialive
+def test_describe_channel_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    channel_name = "test channel X"
+    channel_config = _create_channel_config(channel_name)
+
+    create_response = client.create_channel(**channel_config)
+    describe_response = client.describe_channel(
+        ChannelId=create_response["Channel"]["Id"]
+    )
+
+    describe_response["Arn"].should.equal(
+        "arn:aws:medialive:channel:{}".format(describe_response["Id"])
+    )
+    describe_response["Destinations"].should.equal(channel_config["Destinations"])
+    describe_response["EncoderSettings"].should.equal(channel_config["EncoderSettings"])
+    describe_response["InputAttachments"].should.equal(
+        channel_config["InputAttachments"]
+    )
+    describe_response["Name"].should.equal(channel_name)
+    describe_response["State"].should.equal("CREATING")
+    describe_response["Tags"]["Customer"].should.equal("moto")
