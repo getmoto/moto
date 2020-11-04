@@ -84,6 +84,22 @@ class StepFunctionResponse(BaseResponse):
             return err.response()
 
     @amzn_request_id
+    def update_state_machine(self):
+        arn = self._get_param("stateMachineArn")
+        definition = self._get_param("definition")
+        role_arn = self._get_param("roleArn")
+        try:
+            state_machine = self.stepfunction_backend.update_state_machine(
+                arn=arn, definition=definition, role_arn=role_arn
+            )
+            response = {
+                "updateDate": state_machine.update_date,
+            }
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
     def list_tags_for_resource(self):
         arn = self._get_param("resourceArn")
         try:

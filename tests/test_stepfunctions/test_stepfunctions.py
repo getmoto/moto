@@ -156,6 +156,33 @@ def test_state_machine_creation_requires_valid_role_arn():
 
 
 @mock_stepfunctions
+@mock_sts
+def test_update_state_machine():
+    client = boto3.client("stepfunctions", region_name=region)
+
+    resp = client.create_state_machine(
+        name="test", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    state_machine_arn = resp["stateMachineArn"]
+
+    updated_role = _get_default_role() + "-updated"
+    updated_definition = str(simple_definition).replace(
+        "DefaultState", "DefaultStateUpdated"
+    )
+    resp = client.update_state_machine(
+        stateMachineArn=state_machine_arn,
+        definition=updated_definition,
+        roleArn=updated_role,
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    resp["updateDate"].should.be.a(datetime)
+
+    desc = client.describe_state_machine(stateMachineArn=state_machine_arn)
+    desc["definition"].should.equal(updated_definition)
+    desc["roleArn"].should.equal(updated_role)
+
+
+@mock_stepfunctions
 def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #

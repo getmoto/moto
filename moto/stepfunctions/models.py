@@ -22,6 +22,7 @@ from .utils import paginate
 class StateMachine(CloudFormationModel):
     def __init__(self, arn, name, definition, roleArn, tags=None):
         self.creation_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.update_date = self.creation_date
         self.arn = arn
         self.name = name
         self.definition = definition
@@ -29,6 +30,12 @@ class StateMachine(CloudFormationModel):
         self.tags = []
         if tags:
             self.add_tags(tags)
+
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            if value is not None:
+                setattr(self, key, value)
+        self.update_date = iso_8601_datetime_with_milliseconds(datetime.now())
 
     def add_tags(self, tags):
         merged_tags = []
@@ -272,6 +279,15 @@ class StepFunctionBackend(BaseBackend):
         sm = next((x for x in self.state_machines if x.arn == arn), None)
         if sm:
             self.state_machines.remove(sm)
+
+    def update_state_machine(self, arn, definition=None, role_arn=None):
+        sm = self.describe_state_machine(arn)
+        updates = {
+            "definition": definition,
+            "roleArn": role_arn,
+        }
+        sm.update(**updates)
+        return sm
 
     def start_execution(self, state_machine_arn, name=None, execution_input=None):
         state_machine_name = self.describe_state_machine(state_machine_arn).name

@@ -8127,7 +8127,7 @@
 - [X] stop_execution
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_state_machine
+- [X] update_state_machine
 </details>
 
 ## storagegateway
