@@ -44,8 +44,8 @@ class MediaLiveResponse(BaseResponse):
         return json.dumps(dict(channel=channel))
 
     def list_channels(self):
-        max_results = self._get_int_param("MaxResults")
-        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
         channels, next_token = self.medialive_backend.list_channels(
             max_results=max_results, next_token=next_token,
         )
@@ -53,7 +53,7 @@ class MediaLiveResponse(BaseResponse):
         return json.dumps(dict(channels=channels, nextToken=next_token))
 
     def describe_channel(self):
-        channel_id = self._get_param("ChannelId")
+        channel_id = self._get_param("channelId")
         (
             arn,
             cdi_input_specification,
@@ -72,7 +72,6 @@ class MediaLiveResponse(BaseResponse):
             state,
             tags,
         ) = self.medialive_backend.describe_channel(channel_id=channel_id,)
-        # TODO: adjust response
         return json.dumps(
             dict(
                 arn=arn,
@@ -95,7 +94,7 @@ class MediaLiveResponse(BaseResponse):
         )
 
     def delete_channel(self):
-        channel_id = self._get_param("ChannelId")
+        channel_id = self._get_param("channelId")
         (
             arn,
             cdi_input_specification,
@@ -114,7 +113,6 @@ class MediaLiveResponse(BaseResponse):
             state,
             tags,
         ) = self.medialive_backend.delete_channel(channel_id=channel_id,)
-        # TODO: adjust response
         return json.dumps(
             dict(
                 arn=arn,

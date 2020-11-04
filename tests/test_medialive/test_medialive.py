@@ -7,41 +7,47 @@ from moto import mock_medialive
 region = "eu-west-1"
 
 
-@mock_medialive
-def test_create_channel_succeeds():
-    client = boto3.client("medialive", region_name=region)
-    name = "test channel 1"
-    role_arn = "arn:aws:iam::123456789012:role/TestMediaLiveChannelCreateRole"
-    input_settings = [
-        {
-            "InputId": "an-attachment-id",
-            "InputSettings": {
-                "DenoiseFilter": "DISABLED",
-                "AudioSelectors": [
-                    {"Name": "EnglishLanguage", "SelectorSettings": {},}
-                ],
-                "InputFilter": "AUTO",
-                "DeblockFilter": "DISABLED",
-                "NetworkInputSettings": {
-                    "ServerValidation": "CHECK_CRYPTOGRAPHY_AND_VALIDATE_NAME",
+def _create_channel_config(name, **kwargs):
+    role_arn = kwargs.get(
+        "role_arn", "arn:aws:iam::123456789012:role/TestMediaLiveChannelCreateRole"
+    )
+    input_settings = kwargs.get(
+        "input_settings",
+        [
+            {
+                "InputId": "an-attachment-id",
+                "InputSettings": {
+                    "DenoiseFilter": "DISABLED",
+                    "AudioSelectors": [
+                        {"Name": "EnglishLanguage", "SelectorSettings": {},}
+                    ],
+                    "InputFilter": "AUTO",
+                    "DeblockFilter": "DISABLED",
+                    "NetworkInputSettings": {
+                        "ServerValidation": "CHECK_CRYPTOGRAPHY_AND_VALIDATE_NAME",
+                    },
+                    "SourceEndBehavior": "CONTINUE",
+                    "FilterStrength": 1,
                 },
-                "SourceEndBehavior": "CONTINUE",
-                "FilterStrength": 1,
-            },
-        }
-    ]
-    destinations = [{"Id": "destination.1"}, {"Id": "destination.2"}]
-    encoder_settings = {
-        "VideoDescriptions": [],
-        "AudioDescriptions": [],
-        "OutputGroups": [],
-        "TimecodeConfig": {"Source": "a-source",},
-    }
-    input_specification = {}
-    log_level = "INFO"
-    tags = {"ChannelID": "test-channel-1", "Customer": "moto"}
-
-    response = client.create_channel(
+            }
+        ],
+    )
+    destinations = kwargs.get(
+        "destinations", [{"Id": "destination.1"}, {"Id": "destination.2"}]
+    )
+    encoder_settings = kwargs.get(
+        "encoder_settings",
+        {
+            "VideoDescriptions": [],
+            "AudioDescriptions": [],
+            "OutputGroups": [],
+            "TimecodeConfig": {"Source": "a-source",},
+        },
+    )
+    input_specification = kwargs.get("input_specification", {})
+    log_level = kwargs.get("log_level", "INFO")
+    tags = kwargs.get("tags", {"Customer": "moto"})
+    channel_config = dict(
         Name=name,
         RoleArn=role_arn,
         InputAttachments=input_settings,
@@ -52,15 +58,28 @@ def test_create_channel_succeeds():
         LogLevel=log_level,
         Tags=tags,
     )
+    return channel_config
+
+
+@mock_medialive
+def test_create_channel_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    channel_config = _create_channel_config("test channel 1")
+
+    response = client.create_channel(**channel_config)
 
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["Channel"]["Arn"].should.equal(
         "arn:aws:medialive:channel:{}".format(response["Channel"]["Id"])
     )
-    response["Channel"]["Destinations"].should.equal(destinations)
-    response["Channel"]["EncoderSettings"].should.equal(encoder_settings)
-    response["Channel"]["InputAttachments"].should.equal(input_settings)
-    response["Channel"]["Name"].should.equal(name)
+    response["Channel"]["Destinations"].should.equal(channel_config["Destinations"])
+    response["Channel"]["EncoderSettings"].should.equal(
+        channel_config["EncoderSettings"]
+    )
+    response["Channel"]["InputAttachments"].should.equal(
+        channel_config["InputAttachments"]
+    )
+    response["Channel"]["Name"].should.equal("test channel 1")
     response["Channel"]["State"].should.equal("CREATING")
     response["Channel"]["Tags"]["Customer"].should.equal("moto")
 
@@ -68,60 +87,12 @@ def test_create_channel_succeeds():
 @mock_medialive
 def test_list_channels_succeeds():
     client = boto3.client("medialive", region_name=region)
-    role_arn = "arn:aws:iam::123456789012:role/TestMediaLiveChannelCreateRole"
-    input_settings = [
-        {
-            "InputId": "an-attachment-id",
-            "InputSettings": {
-                "DenoiseFilter": "DISABLED",
-                "AudioSelectors": [
-                    {"Name": "EnglishLanguage", "SelectorSettings": {},}
-                ],
-                "InputFilter": "AUTO",
-                "DeblockFilter": "DISABLED",
-                "NetworkInputSettings": {
-                    "ServerValidation": "CHECK_CRYPTOGRAPHY_AND_VALIDATE_NAME",
-                },
-                "SourceEndBehavior": "CONTINUE",
-                "FilterStrength": 1,
-            },
-        }
-    ]
-    destinations = [{"Id": "destination.1"}, {"Id": "destination.2"}]
-    encoder_settings = {
-        "VideoDescriptions": [],
-        "AudioDescriptions": [],
-        "OutputGroups": [],
-        "TimecodeConfig": {"Source": "a-source",},
-    }
-    input_specification = {}
-    log_level = "INFO"
-    tags = {"ChannelID": "test-channel-1", "Customer": "moto"}
+    channel1_config = _create_channel_config("test channel 1", request_id="request-1")
+    channel2_config = _create_channel_config("test channel 2", request_id="request-2")
+    channel2_config["ChannelClass"] = "SINGLE_PIPELINE"
 
-    client.create_channel(
-        Name="test channel 1",
-        RoleArn=role_arn,
-        InputAttachments=input_settings,
-        Destinations=destinations,
-        EncoderSettings=encoder_settings,
-        InputSpecification=input_specification,
-        RequestId="request-1",
-        LogLevel=log_level,
-        Tags=tags,
-    )
-
-    client.create_channel(
-        Name="test channel 2",
-        ChannelClass="SINGLE_PIPELINE",
-        RoleArn=role_arn,
-        InputAttachments=input_settings,
-        Destinations=destinations,
-        EncoderSettings=encoder_settings,
-        InputSpecification=input_specification,
-        RequestId="request-2",
-        LogLevel=log_level,
-        Tags=tags,
-    )
+    client.create_channel(**channel1_config)
+    client.create_channel(**channel2_config)
 
     response = client.list_channels()
     len(response["Channels"]).should.equal(2)
@@ -163,3 +134,16 @@ def test_list_channels_succeeds():
     #        'State': 'CREATING',
     #        'Tags': {'ChannelID': 'test-channel-1', 'Customer': 'moto'}
     #    }
+
+
+@mock_medialive
+def test_delete_channel_moves_channel_in_deleted_state():
+    client = boto3.client("medialive", region_name=region)
+    channel_name = "test channel X"
+    channel_config = _create_channel_config(channel_name)
+
+    create_response = client.create_channel(**channel_config)
+    delete_response = client.delete_channel(ChannelId=create_response["Channel"]["Id"])
+
+    delete_response["Name"].should.equal(channel_name)
+    delete_response["State"].should.equal("DELETED")

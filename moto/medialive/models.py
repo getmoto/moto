@@ -82,46 +82,45 @@ class MediaLiveBackend(BaseBackend):
 
     def describe_channel(self, channel_id):
         channel = self._channels[channel_id]
-        # TODO
         return (
-            arn,
-            cdi_input_specification,
-            channel_class,
-            destinations,
-            egress_endpoints,
-            encoder_settings,
-            id,
-            input_attachments,
-            input_specification,
-            log_level,
-            name,
-            pipeline_details,
-            pipelines_running_count,
-            role_arn,
-            state,
-            tags,
+            channel["arn"],
+            channel["cdiInputSpecification"],
+            channel["channelClass"],
+            channel["destinations"],
+            channel["egressEndpoints"],
+            channel["encoderSettings"],
+            channel["id"],
+            channel["inputAttachments"],
+            channel["inputSpecification"],
+            channel["logLevel"],
+            channel["name"],
+            channel["pipelineDetails"],
+            1 if channel["channelClass"] == "SINGLE_PIPELINE" else 2,
+            channel["roleArn"],
+            channel["state"],
+            channel["tags"],
         )
 
     def delete_channel(self, channel_id):
         channel = self._channels[channel_id]
-        # TODO
+        channel["state"] = "DELETED"
         return (
-            arn,
-            cdi_input_specification,
-            channel_class,
-            destinations,
-            egress_endpoints,
-            encoder_settings,
-            id,
-            input_attachments,
-            input_specification,
-            log_level,
-            name,
-            pipeline_details,
-            pipelines_running_count,
-            role_arn,
-            state,
-            tags,
+            channel["arn"],
+            channel["cdiInputSpecification"],
+            channel["channelClass"],
+            channel["destinations"],
+            channel["egressEndpoints"],
+            channel["encoderSettings"],
+            channel["id"],
+            channel["inputAttachments"],
+            channel["inputSpecification"],
+            channel["logLevel"],
+            channel["name"],
+            channel["pipelineDetails"],
+            1 if channel["channelClass"] == "SINGLE_PIPELINE" else 2,
+            channel["roleArn"],
+            channel["state"],
+            channel["tags"],
         )
 
 
