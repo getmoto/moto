@@ -51,3 +51,87 @@ class MediaLiveResponse(BaseResponse):
         )
 
         return json.dumps(dict(channels=channels, nextToken=next_token))
+
+    def describe_channel(self):
+        channel_id = self._get_param("ChannelId")
+        (
+            arn,
+            cdi_input_specification,
+            channel_class,
+            destinations,
+            egress_endpoints,
+            encoder_settings,
+            id,
+            input_attachments,
+            input_specification,
+            log_level,
+            name,
+            pipeline_details,
+            pipelines_running_count,
+            role_arn,
+            state,
+            tags,
+        ) = self.medialive_backend.describe_channel(channel_id=channel_id,)
+        # TODO: adjust response
+        return json.dumps(
+            dict(
+                arn=arn,
+                cdiInputSpecification=cdi_input_specification,
+                channelClass=channel_class,
+                destinations=destinations,
+                egressEndpoints=egress_endpoints,
+                encoderSettings=encoder_settings,
+                id=id,
+                inputAttachments=input_attachments,
+                inputSpecification=input_specification,
+                logLevel=log_level,
+                name=name,
+                pipelineDetails=pipeline_details,
+                pipelinesRunningCount=pipelines_running_count,
+                roleArn=role_arn,
+                state=state,
+                tags=tags,
+            )
+        )
+
+    def delete_channel(self):
+        channel_id = self._get_param("ChannelId")
+        (
+            arn,
+            cdi_input_specification,
+            channel_class,
+            destinations,
+            egress_endpoints,
+            encoder_settings,
+            id,
+            input_attachments,
+            input_specification,
+            log_level,
+            name,
+            pipeline_details,
+            pipelines_running_count,
+            role_arn,
+            state,
+            tags,
+        ) = self.medialive_backend.delete_channel(channel_id=channel_id,)
+        # TODO: adjust response
+        return json.dumps(
+            dict(
+                arn=arn,
+                cdiInputSpecification=cdi_input_specification,
+                channelClass=channel_class,
+                destinations=destinations,
+                egressEndpoints=egress_endpoints,
+                encoderSettings=encoder_settings,
+                id=id,
+                inputAttachments=input_attachments,
+                inputSpecification=input_specification,
+                logLevel=log_level,
+                name=name,
+                pipelineDetails=pipeline_details,
+                pipelinesRunningCount=pipelines_running_count,
+                roleArn=role_arn,
+                state=state,
+                tags=tags,
+            )
+        )

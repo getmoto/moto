@@ -80,6 +80,50 @@ class MediaLiveBackend(BaseBackend):
             )
         return response_channels, next_token
 
+    def describe_channel(self, channel_id):
+        channel = self._channels[channel_id]
+        # TODO
+        return (
+            arn,
+            cdi_input_specification,
+            channel_class,
+            destinations,
+            egress_endpoints,
+            encoder_settings,
+            id,
+            input_attachments,
+            input_specification,
+            log_level,
+            name,
+            pipeline_details,
+            pipelines_running_count,
+            role_arn,
+            state,
+            tags,
+        )
+
+    def delete_channel(self, channel_id):
+        channel = self._channels[channel_id]
+        # TODO
+        return (
+            arn,
+            cdi_input_specification,
+            channel_class,
+            destinations,
+            egress_endpoints,
+            encoder_settings,
+            id,
+            input_attachments,
+            input_specification,
+            log_level,
+            name,
+            pipeline_details,
+            pipelines_running_count,
+            role_arn,
+            state,
+            tags,
+        )
+
 
 medialive_backends = {}
 for region in Session().get_available_regions("medialive"):
