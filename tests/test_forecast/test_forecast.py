@@ -9,7 +9,6 @@ from nose.tools import assert_raises
 
 from moto import mock_sts, mock_forecast
 from moto.core import ACCOUNT_ID
-from moto.forecast.models import DatasetGroup
 
 region = "us-east-1"
 account_id = None
@@ -26,7 +25,6 @@ valid_domains = [
 
 @parameterized(valid_domains)
 @mock_forecast
-@mock_sts
 def test_forecast_dataset_group_create(domain):
     name = "example_dataset_group"
     client = boto3.client("forecast", region_name=region)
@@ -38,28 +36,37 @@ def test_forecast_dataset_group_create(domain):
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_dataset_group_create_invalid_domain():
     name = "example_dataset_group"
     client = boto3.client("forecast", region_name=region)
+    invalid_domain = "INVALID"
 
-    with assert_raises(ClientError):
-        client.create_dataset_group(DatasetGroupName=name, Domain="INVALID")
+    with assert_raises(ClientError) as exc:
+        client.create_dataset_group(DatasetGroupName=name, Domain=invalid_domain)
+    exc.exception.response["Error"]["Code"].should.equal("ValidationException")
+    exc.exception.response["Error"]["Message"].should.equal(
+        "1 validation error detected: Value '"
+        + invalid_domain
+        + "' at 'domain' failed to satisfy constraint: Member must satisfy enum value set ['INVENTORY_PLANNING', 'METRICS', 'RETAIL', 'EC2_CAPACITY', 'CUSTOM', 'WEB_TRAFFIC', 'WORK_FORCE']"
+    )
 
 
-@parameterized(["", "a" * 64])
+@parameterized([" ", "a" * 64])
 @mock_forecast
-@mock_sts
 def test_forecast_dataset_group_create_invalid_name(name):
-    name = "example_dataset_group"
     client = boto3.client("forecast", region_name=region)
 
-    with assert_raises(ClientError):
-        client.create_dataset_group(DatasetGroupName=name, Domain="INVALID")
+    with assert_raises(ClientError) as exc:
+        client.create_dataset_group(DatasetGroupName=name, Domain="CUSTOM")
+    exc.exception.response["Error"]["Code"].should.equal("ValidationException")
+    exc.exception.response["Error"]["Message"].should.contain(
+        "1 validation error detected: Value '"
+        + name
+        + "' at 'datasetGroupName' failed to satisfy constraint: Member must"
+    )
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_dataset_group_create_duplicate_fails():
     client = boto3.client("forecast", region_name=region)
     client.create_dataset_group(DatasetGroupName="name", Domain="RETAIL")
@@ -73,7 +80,6 @@ def test_forecast_dataset_group_create_duplicate_fails():
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_dataset_group_list_default_empty():
     client = boto3.client("forecast", region_name=region)
 
@@ -82,7 +88,6 @@ def test_forecast_dataset_group_list_default_empty():
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_dataset_group_list_some():
     client = boto3.client("forecast", region_name=region)
 
@@ -96,7 +101,6 @@ def test_forecast_dataset_group_list_some():
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_delete_dataset_group():
     dataset_group_name = "name"
     dataset_group_arn = (
@@ -113,7 +117,6 @@ def test_forecast_delete_dataset_group():
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_delete_dataset_group_missing():
     client = boto3.client("forecast", region_name=region)
     missing_dsg_arn = (
@@ -122,10 +125,13 @@ def test_forecast_delete_dataset_group_missing():
 
     with assert_raises(ClientError) as exc:
         client.delete_dataset_group(DatasetGroupArn=missing_dsg_arn)
+    exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    exc.exception.response["Error"]["Message"].should.equal(
+        "No resource found " + missing_dsg_arn
+    )
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_update_dataset_arns_empty():
     dataset_group_name = "name"
     dataset_group_arn = (
@@ -142,7 +148,6 @@ def test_forecast_update_dataset_arns_empty():
 
 
 @mock_forecast
-@mock_sts
 def test_forecast_update_dataset_group_not_found():
     client = boto3.client("forecast", region_name=region)
     dataset_group_arn = (
@@ -150,10 +155,13 @@ def test_forecast_update_dataset_group_not_found():
     )
     with assert_raises(ClientError) as exc:
         client.update_dataset_group(DatasetGroupArn=dataset_group_arn, DatasetArns=[])
+    exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    exc.exception.response["Error"]["Message"].should.equal(
+        "No resource found " + dataset_group_arn
+    )
 
 
 @mock_forecast
-@mock_sts
 def test_describe_dataset_group():
     name = "test"
     client = boto3.client("forecast", region_name=region)
@@ -168,21 +176,20 @@ def test_describe_dataset_group():
 
 
 @mock_forecast
-@mock_sts
 def test_describe_dataset_group_missing():
     client = boto3.client("forecast", region_name=region)
+    dataset_group_arn = (
+        "arn:aws:forecast:" + region + ":" + ACCOUNT_ID + ":dataset-group/name"
+    )
     with assert_raises(ClientError) as exc:
-        client.describe_dataset_group(
-            DatasetGroupArn="arn:aws:forecast:"
-            + region
-            + ":"
-            + ACCOUNT_ID
-            + ":dataset-group/name"
-        )
+        client.describe_dataset_group(DatasetGroupArn=dataset_group_arn)
+    exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    exc.exception.response["Error"]["Message"].should.equal(
+        "No resource found " + dataset_group_arn
+    )
 
 
 @mock_forecast
-@mock_sts
 def test_create_dataset_group_missing_datasets():
     client = boto3.client("forecast", region_name=region)
     dataset_arn = "arn:aws:forecast:" + region + ":" + ACCOUNT_ID + ":dataset/name"
@@ -190,10 +197,13 @@ def test_create_dataset_group_missing_datasets():
         client.create_dataset_group(
             DatasetGroupName="name", Domain="CUSTOM", DatasetArns=[dataset_arn]
         )
+    exc.exception.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.exception.response["Error"]["Message"].should.equal(
+        "Dataset arns: [" + dataset_arn + "] are not found"
+    )
 
 
 @mock_forecast
-@mock_sts
 def test_update_dataset_group_missing_datasets():
     name = "test"
     client = boto3.client("forecast", region_name=region)
@@ -207,3 +217,7 @@ def test_update_dataset_group_missing_datasets():
         client.update_dataset_group(
             DatasetGroupArn=dataset_group_arn, DatasetArns=[dataset_arn]
         )
+    exc.exception.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.exception.response["Error"]["Message"].should.equal(
+        "Dataset arns: [" + dataset_arn + "] are not found"
+    )

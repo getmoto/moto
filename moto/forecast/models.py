@@ -16,16 +16,6 @@ from .exceptions import (
 )
 
 
-class Domain(Enum):
-    RETAIL = 1
-    CUSTOM = 2
-    INVENTORY_PLANNING = 3
-    EC2_CAPACITY = 4
-    WORK_FORCE = 5
-    WEB_TRAFFIC = 6
-    METRICS = 7
-
-
 class DatasetGroup:
     accepted_dataset_group_name_format = re.compile(r"^[a-zA-Z][a-z-A-Z0-9_]*")
     accepted_dataset_group_arn_format = re.compile(r"^[a-zA-Z0-9\-\_\.\/\:]+$")
@@ -66,49 +56,51 @@ class DatasetGroup:
     def _validate(self):
         errors = []
 
-        self._update_validation_errors(errors, self._validate_dataset_group_name())
-        self._update_validation_errors(errors, self._validate_dataset_group_name_len())
-        self._update_validation_errors(errors, self._validate_dataset_group_domain())
+        errors.extend(self._validate_dataset_group_name())
+        errors.extend(self._validate_dataset_group_name_len())
+        errors.extend(self._validate_dataset_group_domain())
+
         if errors:
             err_count = len(errors)
-            message = (
-                str(err_count) + " validation error" + "s"
-                if err_count > 1
-                else "" + ": " + "; ".join(errors)
-            )
+            message = str(err_count) + " validation error"
+            message += "s" if err_count > 1 else ""
+            message += " detected: "
+            message += "; ".join(errors)
             raise ValidationException(message)
 
-    def _update_validation_errors(self, errors, result):
-        if result:
-            errors.append(result)
-
     def _validate_dataset_group_name(self):
-        if re.match(self.accepted_dataset_group_name_format, self.dataset_group_name):
-            return None
-        return (
-            "Value "
-            + self.dataset_group_name
-            + " at 'datasetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern "
-            + self.accepted_dataset_group_name_format.pattern
-        )
+        errors = []
+        if not re.match(
+            self.accepted_dataset_group_name_format, self.dataset_group_name
+        ):
+            errors.append(
+                "Value '"
+                + self.dataset_group_name
+                + "' at 'datasetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern "
+                + self.accepted_dataset_group_name_format.pattern
+            )
+        return errors
 
     def _validate_dataset_group_name_len(self):
-        if len(self.dataset_group_name) < 64:
-            return None
-        return (
-            "Value '"
-            + self.dataset_group_name
-            + "' at 'datasetGroupName' failed to satisfy constraint: Member must have length less than or equal to 63"
-        )
+        errors = []
+        if len(self.dataset_group_name) >= 64:
+            errors.append(
+                "Value '"
+                + self.dataset_group_name
+                + "' at 'datasetGroupName' failed to satisfy constraint: Member must have length less than or equal to 63"
+            )
+        return errors
 
     def _validate_dataset_group_domain(self):
+        errors = []
         if self.domain not in self.accepted_dataset_types:
-            return (
+            errors.append(
                 "Value '"
                 + self.domain
-                + " at 'domain' failed to satisfy constraint: Member must satisfy enum value set "
+                + "' at 'domain' failed to satisfy constraint: Member must satisfy enum value set "
                 + str(self.accepted_dataset_types)
             )
+        return errors
 
 
 class ForecastBackend(BaseBackend):
