@@ -8125,9 +8125,9 @@
 - [ ] send_task_success
 - [X] start_execution
 - [X] stop_execution
-- [ ] tag_resource
-- [ ] untag_resource
-- [ ] update_state_machine
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_state_machine
 </details>
 
 ## storagegateway
