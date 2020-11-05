@@ -136,3 +136,13 @@ class Paginator(object):
             page_ending_result = results[index_end]
             next_token = self._build_next_token(page_ending_result)
         return results_page, next_token
+
+
+def cfn_to_api_tags(cfn_tags_entry):
+    api_tags = [{k.lower(): v for k, v in d.items()} for d in cfn_tags_entry]
+    return api_tags
+
+
+def api_to_cfn_tags(api_tags):
+    cfn_tags_entry = [{k.capitalize(): v for k, v in d.items()} for d in api_tags]
+    return cfn_tags_entry
