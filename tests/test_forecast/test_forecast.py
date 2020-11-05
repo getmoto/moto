@@ -2,12 +2,11 @@ from __future__ import unicode_literals
 
 import boto3
 import sure  # noqa
-
-from parameterized import parameterized
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
+from parameterized import parameterized
 
-from moto import mock_sts, mock_forecast
+from moto import mock_forecast
 from moto.core import ACCOUNT_ID
 
 region = "us-east-1"
