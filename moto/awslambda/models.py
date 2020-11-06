@@ -26,7 +26,7 @@ import requests.exceptions
 from boto3 import Session
 
 from moto.awslambda.policy import Policy
-from moto.core import BaseBackend, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException

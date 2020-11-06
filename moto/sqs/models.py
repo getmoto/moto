@@ -478,6 +478,7 @@ class Queue(CloudFormationModel):
 
     @property
     def messages(self):
+        # TODO: This can become very inefficient if a large number of messages are in-flight
         return [
             message
             for message in self._messages

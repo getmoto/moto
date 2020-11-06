@@ -598,6 +598,7 @@ class CloudFormationModel(BaseModel):
         # See for example https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
         return "AWS::SERVICE::RESOURCE"
 
+    @classmethod
     @abstractmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -608,6 +609,7 @@ class CloudFormationModel(BaseModel):
         # and return an instance of the resource class
         pass
 
+    @classmethod
     @abstractmethod
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
@@ -619,6 +621,7 @@ class CloudFormationModel(BaseModel):
         # the change in parameters and no-op when nothing has changed.
         pass
 
+    @classmethod
     @abstractmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name

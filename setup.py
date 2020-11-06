@@ -134,10 +134,9 @@ if int(setuptools.__version__.split(".", 1)[0]) < 18:
 else:
     extras_require[":python_version<'3.3'"] = ["backports.tempfile"]
 
-
 setup(
     name='moto-ext',
-    version='1.3.15.18',
+    version='1.3.15.38',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     long_description=read('README.md'),

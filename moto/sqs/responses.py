@@ -236,7 +236,7 @@ class SQSResponse(BaseResponse):
 
         if not message_group_id:
             queue = self.sqs_backend.get_queue(queue_name)
-            if queue.attributes.get("FifoQueue", False):
+            if queue.fifo_queue:
                 return self._error(
                     "MissingParameter",
                     "The request must contain the parameter MessageGroupId.",

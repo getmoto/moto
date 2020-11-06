@@ -3054,10 +3054,12 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         ).get("cidr_block"):
             raise OperationNotPermitted(association_id)
 
-        response = self.cidr_block_association_set.pop(association_id, {})
-        if response:
+        entry = response = self.cidr_block_association_set.get(association_id, {})
+        if entry:
+            response = json.loads(json.dumps(entry))
             response["vpc_id"] = self.id
             response["cidr_block_state"]["state"] = "disassociating"
+            entry["cidr_block_state"]["state"] = "disassociated"
         return response
 
     def get_cidr_block_association_set(self, ipv6=False):

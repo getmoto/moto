@@ -597,7 +597,7 @@ class CloudFormationBackend(BaseBackend):
         role_arn=None,
         create_change_set=False,
     ):
-        stack_id = generate_stack_id(name)
+        stack_id = generate_stack_id(name, region=region_name)
         new_stack = FakeStack(
             stack_id=stack_id,
             name=name,

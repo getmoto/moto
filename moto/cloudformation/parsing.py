@@ -171,6 +171,7 @@ def clean_json(resource_json, resources_map):
                             {"Ref": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[0]},
                             resources_map,
                         )
+                    cleaned_ref = '' if cleaned_ref is None else cleaned_ref
                     fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
                 for literal in literals:
                     fn_sub_value = fn_sub_value.replace(
@@ -200,7 +201,7 @@ def clean_json(resource_json, resources_map):
             return result
 
         cleaned_json = {}
-        for key, value in resource_json.items():
+        for key, value in dict(resource_json).items():
             cleaned_val = clean_json(value, resources_map)
             if cleaned_val is None:
                 # If we didn't find anything, don't add this attribute
@@ -707,6 +708,9 @@ class ResourceMap(collections_abc.Mapping):
         while remaining_resources and tries < 5:
             for resource in remaining_resources.copy():
                 parsed_resource = self._parsed_resources.get(resource)
+                if parsed_resource is None:
+                    remaining_resources.remove(resource)
+                    continue
                 try:
                     if parsed_resource and hasattr(parsed_resource, "delete"):
                         parsed_resource.delete(self._region_name)
