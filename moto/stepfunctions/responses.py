@@ -84,6 +84,22 @@ class StepFunctionResponse(BaseResponse):
             return err.response()
 
     @amzn_request_id
+    def update_state_machine(self):
+        arn = self._get_param("stateMachineArn")
+        definition = self._get_param("definition")
+        role_arn = self._get_param("roleArn")
+        try:
+            state_machine = self.stepfunction_backend.update_state_machine(
+                arn=arn, definition=definition, role_arn=role_arn
+            )
+            response = {
+                "updateDate": state_machine.update_date,
+            }
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
     def list_tags_for_resource(self):
         arn = self._get_param("resourceArn")
         try:
@@ -93,6 +109,26 @@ class StepFunctionResponse(BaseResponse):
             tags = []
         response = {"tags": tags}
         return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def tag_resource(self):
+        arn = self._get_param("resourceArn")
+        tags = self._get_param("tags", [])
+        try:
+            self.stepfunction_backend.tag_resource(arn, tags)
+        except AWSError as err:
+            return err.response()
+        return 200, {}, json.dumps({})
+
+    @amzn_request_id
+    def untag_resource(self):
+        arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys", [])
+        try:
+            self.stepfunction_backend.untag_resource(arn, tag_keys)
+        except AWSError as err:
+            return err.response()
+        return 200, {}, json.dumps({})
 
     @amzn_request_id
     def start_execution(self):
