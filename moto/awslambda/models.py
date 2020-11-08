@@ -17,13 +17,12 @@ import json
 import re
 import zipfile
 import uuid
-import functools
 import tarfile
 import calendar
 import threading
 import traceback
 import weakref
-import requests.adapters
+import requests.exceptions
 
 from boto3 import Session
 
@@ -47,6 +46,7 @@ from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
+from moto.utilities.docker import DockerModel
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,6 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-_orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
 
@@ -151,8 +150,9 @@ class _DockerDataVolumeContext:
                     raise  # multiple processes trying to use same volume?
 
 
-class LambdaFunction(CloudFormationModel):
+class LambdaFunction(CloudFormationModel, DockerModel):
     def __init__(self, spec, region, validate_s3=True, version=1):
+        DockerModel.__init__(self)
         # required
         self.region = region
         self.code = spec["Code"]
@@ -162,7 +162,6 @@ class LambdaFunction(CloudFormationModel):
         self.run_time = spec["Runtime"]
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.docker_client = None
         self.policy = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
@@ -227,26 +226,6 @@ class LambdaFunction(CloudFormationModel):
         )
 
         self.tags = dict()
-
-    def initiate_docker_client(self):
-        # We should only initiate the Docker Client at runtime.
-        # The docker.from_env() call will fall if Docker is not running
-        if self.docker_client is None:
-            self.docker_client = docker.from_env()
-
-            # Unfortunately mocking replaces this method w/o fallback enabled, so we
-            # need to replace it if we detect it's been mocked
-            if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
-                _orig_get_adapter = self.docker_client.api.get_adapter
-
-                def replace_adapter_send(*args, **kwargs):
-                    adapter = _orig_get_adapter(*args, **kwargs)
-
-                    if isinstance(adapter, requests.adapters.HTTPAdapter):
-                        adapter.send = functools.partial(_orig_adapter_send, adapter)
-                    return adapter
-
-                self.docker_client.api.get_adapter = replace_adapter_send
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(
@@ -417,8 +396,6 @@ class LambdaFunction(CloudFormationModel):
             }
 
             env_vars.update(self.environment_vars)
-
-            self.initiate_docker_client()
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)

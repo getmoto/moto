@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import re
-import requests.adapters
 from itertools import cycle
 import six
 import datetime
@@ -8,7 +7,6 @@ import time
 import uuid
 import logging
 import docker
-import functools
 import threading
 import dateutil.parser
 from boto3 import Session
@@ -30,8 +28,8 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.utilities.docker import DockerModel
 
-_orig_adapter_send = requests.adapters.HTTPAdapter.send
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
     r"^[A-Za-z0-9][A-Za-z0-9_-]{1,126}[A-Za-z0-9]$"
@@ -311,7 +309,7 @@ class JobDefinition(CloudFormationModel):
         return backend.get_job_definition_by_arn(arn)
 
 
-class Job(threading.Thread, BaseModel):
+class Job(threading.Thread, BaseModel, DockerModel):
     def __init__(self, name, job_def, job_queue, log_backend, container_overrides):
         """
         Docker Job
@@ -324,6 +322,7 @@ class Job(threading.Thread, BaseModel):
         :type log_backend: moto.logs.models.LogsBackend
         """
         threading.Thread.__init__(self)
+        DockerModel.__init__(self)
 
         self.job_name = name
         self.job_id = str(uuid.uuid4())
@@ -342,23 +341,8 @@ class Job(threading.Thread, BaseModel):
         self.daemon = True
         self.name = "MOTO-BATCH-" + self.job_id
 
-        self.docker_client = docker.from_env()
         self._log_backend = log_backend
         self.log_stream_name = None
-
-        # Unfortunately mocking replaces this method w/o fallback enabled, so we
-        # need to replace it if we detect it's been mocked
-        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
-            _orig_get_adapter = self.docker_client.api.get_adapter
-
-            def replace_adapter_send(*args, **kwargs):
-                adapter = _orig_get_adapter(*args, **kwargs)
-
-                if isinstance(adapter, requests.adapters.HTTPAdapter):
-                    adapter.send = functools.partial(_orig_adapter_send, adapter)
-                return adapter
-
-            self.docker_client.api.get_adapter = replace_adapter_send
 
     def describe(self):
         result = {
