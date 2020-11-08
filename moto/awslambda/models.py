@@ -162,24 +162,10 @@ class LambdaFunction(CloudFormationModel):
         self.run_time = spec["Runtime"]
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.docker_client = docker.from_env()
+        self.docker_client = None
         self.policy = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
-
-        # Unfortunately mocking replaces this method w/o fallback enabled, so we
-        # need to replace it if we detect it's been mocked
-        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
-            _orig_get_adapter = self.docker_client.api.get_adapter
-
-            def replace_adapter_send(*args, **kwargs):
-                adapter = _orig_get_adapter(*args, **kwargs)
-
-                if isinstance(adapter, requests.adapters.HTTPAdapter):
-                    adapter.send = functools.partial(_orig_adapter_send, adapter)
-                return adapter
-
-            self.docker_client.api.get_adapter = replace_adapter_send
 
         # optional
         self.description = spec.get("Description", "")
@@ -241,6 +227,26 @@ class LambdaFunction(CloudFormationModel):
         )
 
         self.tags = dict()
+
+    def initiate_docker_client(self):
+        # We should only initiate the Docker Client at runtime.
+        # The docker.from_env() call will fall if Docker is not running
+        if self.docker_client is None:
+            self.docker_client = docker.from_env()
+
+            # Unfortunately mocking replaces this method w/o fallback enabled, so we
+            # need to replace it if we detect it's been mocked
+            if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
+                _orig_get_adapter = self.docker_client.api.get_adapter
+
+                def replace_adapter_send(*args, **kwargs):
+                    adapter = _orig_get_adapter(*args, **kwargs)
+
+                    if isinstance(adapter, requests.adapters.HTTPAdapter):
+                        adapter.send = functools.partial(_orig_adapter_send, adapter)
+                    return adapter
+
+                self.docker_client.api.get_adapter = replace_adapter_send
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(
@@ -411,6 +417,8 @@ class LambdaFunction(CloudFormationModel):
             }
 
             env_vars.update(self.environment_vars)
+
+            self.initiate_docker_client()
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
