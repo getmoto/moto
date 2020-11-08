@@ -16,7 +16,7 @@ from .exceptions import (
     ResourceNotFound,
     StateMachineDoesNotExist,
 )
-from .utils import paginate
+from .utils import paginate, api_to_cfn_tags, cfn_to_api_tags
 
 
 class StateMachine(CloudFormationModel):
@@ -62,11 +62,39 @@ class StateMachine(CloudFormationModel):
     def physical_resource_id(self):
         return self.arn
 
+    def get_cfn_properties(self, prop_overrides):
+        property_names = [
+            "DefinitionString",
+            "RoleArn",
+            "StateMachineName",
+        ]
+        properties = {}
+        for prop in property_names:
+            properties[prop] = prop_overrides.get(prop, self.get_cfn_attribute(prop))
+        # Special handling for Tags
+        overridden_keys = [tag["Key"] for tag in prop_overrides.get("Tags", [])]
+        original_tags_to_include = [
+            tag
+            for tag in self.get_cfn_attribute("Tags")
+            if tag["Key"] not in overridden_keys
+        ]
+        properties["Tags"] = original_tags_to_include + prop_overrides.get("Tags", [])
+        return properties
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Name":
             return self.name
+        elif attribute_name == "DefinitionString":
+            return self.definition
+        elif attribute_name == "RoleArn":
+            return self.roleArn
+        elif attribute_name == "StateMachineName":
+            return self.name
+        elif attribute_name == "Tags":
+            return api_to_cfn_tags(self.tags)
+
         raise UnformattedGetAttTemplateException()
 
     @staticmethod
@@ -85,17 +113,45 @@ class StateMachine(CloudFormationModel):
         name = properties.get("StateMachineName", resource_name)
         definition = properties.get("DefinitionString", "")
         role_arn = properties.get("RoleArn", "")
-        tags = properties.get("Tags", [])
-        tags_xform = [{k.lower(): v for k, v in d.items()} for d in tags]
+        tags = cfn_to_api_tags(properties.get("Tags", []))
         sf_backend = stepfunction_backends[region_name]
-        return sf_backend.create_state_machine(
-            name, definition, role_arn, tags=tags_xform
-        )
+        return sf_backend.create_state_machine(name, definition, role_arn, tags=tags)
 
     @classmethod
     def delete_from_cloudformation_json(cls, resource_name, _, region_name):
         sf_backend = stepfunction_backends[region_name]
         sf_backend.delete_state_machine(resource_name)
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json.get("Properties", {})
+        name = properties.get("StateMachineName", original_resource.name)
+
+        if name != original_resource.name:
+            # Replacement
+            new_properties = original_resource.get_cfn_properties(properties)
+            cloudformation_json["Properties"] = new_properties
+            new_resource = cls.create_from_cloudformation_json(
+                name, cloudformation_json, region_name
+            )
+            cls.delete_from_cloudformation_json(
+                original_resource.arn, cloudformation_json, region_name
+            )
+            return new_resource
+
+        else:
+            # No Interruption
+            definition = properties.get("DefinitionString")
+            role_arn = properties.get("RoleArn")
+            tags = cfn_to_api_tags(properties.get("Tags", []))
+            sf_backend = stepfunction_backends[region_name]
+            state_machine = sf_backend.update_state_machine(
+                original_resource.arn, definition=definition, role_arn=role_arn,
+            )
+            state_machine.add_tags(tags)
+            return state_machine
 
 
 class Execution:
