@@ -11,7 +11,7 @@ import uuid
 from botocore.exceptions import ClientError, ParamValidationError
 from nose.tools import assert_raises
 
-from moto import mock_ssm
+from moto import mock_ec2, mock_ssm
 
 
 @mock_ssm
@@ -1713,3 +1713,36 @@ def test_get_command_invocation():
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId=instance_id, PluginName="FAKE"
         )
+
+
+@mock_ec2
+@mock_ssm
+def test_get_command_invocations_by_instance_tag():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ssm = boto3.client("ssm", region_name="us-east-1")
+    tag_specifications = [
+        {"ResourceType": "instance", "Tags": [{"Key": "Name", "Value": "test-tag"}]}
+    ]
+    num_instances = 3
+    resp = ec2.run_instances(
+        ImageId="ami-1234abcd",
+        MaxCount=num_instances,
+        MinCount=num_instances,
+        TagSpecifications=tag_specifications,
+    )
+    instance_ids = []
+    for instance in resp["Instances"]:
+        instance_ids.append(instance["InstanceId"])
+    instance_ids.should.have.length_of(num_instances)
+
+    command_id = ssm.send_command(
+        DocumentName="AWS-RunShellScript",
+        Targets=[{"Key": "tag:Name", "Values": ["test-tag"]}],
+    )["Command"]["CommandId"]
+
+    resp = ssm.list_commands(CommandId=command_id)
+    resp["Commands"][0]["TargetCount"].should.equal(num_instances)
+
+    for instance_id in instance_ids:
+        resp = ssm.get_command_invocation(CommandId=command_id, InstanceId=instance_id)
+        resp["Status"].should.equal("Success")
