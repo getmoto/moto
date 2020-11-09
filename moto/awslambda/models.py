@@ -46,7 +46,7 @@ from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
-from moto.utilities.docker import DockerModel
+from moto.utilities.docker_utilities import DockerModel
 
 logger = logging.getLogger(__name__)
 
