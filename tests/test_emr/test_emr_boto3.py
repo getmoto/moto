@@ -107,7 +107,15 @@ def test_describe_cluster():
     args["Instances"]["EmrManagedSlaveSecurityGroup"] = "slave-security-group"
     args["Instances"]["KeepJobFlowAliveWhenNoSteps"] = False
     args["Instances"]["ServiceAccessSecurityGroup"] = "service-access-security-group"
+    args["KerberosAttributes"] = {
+        "Realm": "MY-REALM.COM",
+        "KdcAdminPassword": "SuperSecretPassword2",
+        "CrossRealmTrustPrincipalPassword": "SuperSecretPassword3",
+        "ADDomainJoinUser": "Bob",
+        "ADDomainJoinPassword": "SuperSecretPassword4",
+    }
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
+    args["SecurityConfiguration"] = "my-security-configuration"
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
@@ -145,6 +153,7 @@ def test_describe_cluster():
         args["Instances"]["ServiceAccessSecurityGroup"]
     )
     cl["Id"].should.equal(cluster_id)
+    cl["KerberosAttributes"].should.equal(args["KerberosAttributes"])
     cl["LogUri"].should.equal(args["LogUri"])
     cl["MasterPublicDnsName"].should.be.a(six.string_types)
     cl["Name"].should.equal(args["Name"])
@@ -152,7 +161,8 @@ def test_describe_cluster():
     # cl['ReleaseLabel'].should.equal('emr-5.0.0')
     cl.shouldnt.have.key("RequestedAmiVersion")
     cl["RunningAmiVersion"].should.equal("1.0.0")
-    # cl['SecurityConfiguration'].should.be.a(six.string_types)
+    cl["SecurityConfiguration"].should.be.a(six.string_types)
+    cl["SecurityConfiguration"].should.equal(args["SecurityConfiguration"])
     cl["ServiceRole"].should.equal(args["ServiceRole"])
 
     status = cl["Status"]
@@ -985,3 +995,53 @@ def test_tags():
     client.remove_tags(ResourceId=cluster_id, TagKeys=[t["Key"] for t in input_tags])
     resp = client.describe_cluster(ClusterId=cluster_id)["Cluster"]
     resp["Tags"].should.equal([])
+
+
+@mock_emr
+def test_security_configurations():
+
+    client = boto3.client("emr", region_name="us-east-1")
+
+    security_configuration_name = "MySecurityConfiguration"
+
+    security_configuration = """
+{
+  "EncryptionConfiguration": {
+    "AtRestEncryptionConfiguration": {
+      "S3EncryptionConfiguration": {
+        "EncryptionMode": "SSE-S3"
+      }
+    },
+    "EnableInTransitEncryption": false,
+    "EnableAtRestEncryption": true
+  }
+}
+    """.strip()
+
+    resp = client.create_security_configuration(
+        Name=security_configuration_name, SecurityConfiguration=security_configuration
+    )
+
+    resp["Name"].should.equal(security_configuration_name)
+    resp["CreationDateTime"].should.be.a("datetime.datetime")
+
+    resp = client.describe_security_configuration(Name=security_configuration_name)
+    resp["Name"].should.equal(security_configuration_name)
+    resp["SecurityConfiguration"].should.equal(security_configuration)
+    resp["CreationDateTime"].should.be.a("datetime.datetime")
+
+    client.delete_security_configuration(Name=security_configuration_name)
+
+    with assert_raises(ClientError) as ex:
+        client.describe_security_configuration(Name=security_configuration_name)
+    ex.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ex.exception.response["Error"]["Message"].should.match(
+        r"Security configuration with name .* does not exist."
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.delete_security_configuration(Name=security_configuration_name)
+    ex.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ex.exception.response["Error"]["Message"].should.match(
+        r"Security configuration with name .* does not exist."
+    )
