@@ -1,16 +1,14 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
-import pytest
-
-from moto.ec2 import ec2_backends
 import boto
 import boto3
-from botocore.exceptions import ClientError
-from boto.exception import EC2ResponseError
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
 import sure  # noqa
-
-from moto import mock_ec2_deprecated, mock_ec2
+from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError
+from moto import mock_ec2, mock_ec2_deprecated
+from moto.ec2 import ec2_backends
 from moto.ec2.models import OWNER_ID
 from moto.kms import mock_kms
 
@@ -920,12 +918,12 @@ def test_search_for_many_snapshots():
 @mock_ec2
 def test_create_unencrypted_volume_with_kms_key_fails():
     resource = boto3.resource("ec2", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         resource.create_volume(
             AvailabilityZone="us-east-1a", Encrypted=False, KmsKeyId="key", Size=10
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameterDependency")
-    ex.exception.response["Error"]["Message"].should.contain("KmsKeyId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterDependency")
+    ex.value.response["Error"]["Message"].should.contain("KmsKeyId")
 
 
 @mock_kms
@@ -933,9 +931,9 @@ def test_create_unencrypted_volume_with_kms_key_fails():
 def test_create_encrypted_volume_without_kms_key_should_use_default_key():
     kms = boto3.client("kms", region_name="us-east-1")
     # Default master key for EBS does not exist until needed.
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         kms.describe_key(KeyId="alias/aws/ebs")
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     # Creating an encrypted volume should create (and use) the default key.
     resource = boto3.resource("ec2", region_name="us-east-1")
     volume = resource.create_volume(

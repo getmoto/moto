@@ -1,13 +1,12 @@
 from __future__ import unicode_literals
 
 import boto3
+import pytest
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
-from parameterized import parameterized
-
 from moto import mock_forecast
 from moto.core import ACCOUNT_ID
+from parameterized import parameterized
 
 region = "us-east-1"
 account_id = None
@@ -40,7 +39,7 @@ def test_forecast_dataset_group_create_invalid_domain():
     client = boto3.client("forecast", region_name=region)
     invalid_domain = "INVALID"
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_dataset_group(DatasetGroupName=name, Domain=invalid_domain)
     exc.exception.response["Error"]["Code"].should.equal("ValidationException")
     exc.exception.response["Error"]["Message"].should.equal(
@@ -55,7 +54,7 @@ def test_forecast_dataset_group_create_invalid_domain():
 def test_forecast_dataset_group_create_invalid_name(name):
     client = boto3.client("forecast", region_name=region)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_dataset_group(DatasetGroupName=name, Domain="CUSTOM")
     exc.exception.response["Error"]["Code"].should.equal("ValidationException")
     exc.exception.response["Error"]["Message"].should.contain(
@@ -70,7 +69,7 @@ def test_forecast_dataset_group_create_duplicate_fails():
     client = boto3.client("forecast", region_name=region)
     client.create_dataset_group(DatasetGroupName="name", Domain="RETAIL")
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_dataset_group(DatasetGroupName="name", Domain="RETAIL")
 
     exc.exception.response["Error"]["Code"].should.equal(
@@ -122,7 +121,7 @@ def test_forecast_delete_dataset_group_missing():
         "arn:aws:forecast:" + region + ":" + ACCOUNT_ID + ":dataset-group/missing"
     )
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.delete_dataset_group(DatasetGroupArn=missing_dsg_arn)
     exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     exc.exception.response["Error"]["Message"].should.equal(
@@ -152,7 +151,7 @@ def test_forecast_update_dataset_group_not_found():
     dataset_group_arn = (
         "arn:aws:forecast:" + region + ":" + ACCOUNT_ID + ":dataset-group/" + "test"
     )
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.update_dataset_group(DatasetGroupArn=dataset_group_arn, DatasetArns=[])
     exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     exc.exception.response["Error"]["Message"].should.equal(
@@ -180,7 +179,7 @@ def test_describe_dataset_group_missing():
     dataset_group_arn = (
         "arn:aws:forecast:" + region + ":" + ACCOUNT_ID + ":dataset-group/name"
     )
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_dataset_group(DatasetGroupArn=dataset_group_arn)
     exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     exc.exception.response["Error"]["Message"].should.equal(
@@ -192,7 +191,7 @@ def test_describe_dataset_group_missing():
 def test_create_dataset_group_missing_datasets():
     client = boto3.client("forecast", region_name=region)
     dataset_arn = "arn:aws:forecast:" + region + ":" + ACCOUNT_ID + ":dataset/name"
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_dataset_group(
             DatasetGroupName="name", Domain="CUSTOM", DatasetArns=[dataset_arn]
         )
@@ -212,7 +211,7 @@ def test_update_dataset_group_missing_datasets():
     client.create_dataset_group(DatasetGroupName=name, Domain="CUSTOM")
     dataset_arn = "arn:aws:forecast:" + region + ":" + ACCOUNT_ID + ":dataset/name"
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.update_dataset_group(
             DatasetGroupArn=dataset_group_arn, DatasetArns=[dataset_arn]
         )

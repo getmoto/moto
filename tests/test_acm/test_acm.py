@@ -1,18 +1,16 @@
 from __future__ import unicode_literals
 
 import os
-import boto3
-from freezegun import freeze_time
-import sure  # noqa
 import uuid
 
+import boto3
+import pytest
+import sure  # noqa
 from botocore.exceptions import ClientError
-
+from freezegun import freeze_time
 from moto import mock_acm, settings
 from moto.core import ACCOUNT_ID
-
-from nose import SkipTest
-from nose.tools import assert_raises
+from unittest import SkipTest
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 _GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
@@ -404,7 +402,7 @@ def test_operations_with_invalid_tags():
     client = boto3.client("acm", region_name="eu-central-1")
 
     # request certificate with invalid tags
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.request_certificate(
             DomainName="example.com",
             Tags=[{"Key": "X" * 200, "Value": "Valid"}],
@@ -415,7 +413,7 @@ def test_operations_with_invalid_tags():
     )
 
     # import certificate with invalid tags
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.import_certificate(
             Certificate=SERVER_CRT,
             PrivateKey=SERVER_KEY,
@@ -434,7 +432,7 @@ def test_operations_with_invalid_tags():
     arn = _import_cert(client)
 
     # add invalid tags to existing certificate
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.add_tags_to_certificate(
             CertificateArn=arn,
             Tags=[{"Key": "aws:xxx", "Value": "Valid"}, {"Key": "key2"}],
@@ -445,7 +443,7 @@ def test_operations_with_invalid_tags():
     )
 
     # try removing invalid tags from existing certificate
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.remove_tags_from_certificate(
             CertificateArn=arn, Tags=[{"Key": "aws:xxx", "Value": "Valid"}]
         )
@@ -461,7 +459,7 @@ def test_add_too_many_tags():
     arn = _import_cert(client)
 
     # Add 51 tags
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.add_tags_to_certificate(
             CertificateArn=arn,
             Tags=[{"Key": "a-%d" % i, "Value": "abcd"} for i in range(1, 52)],
@@ -478,7 +476,7 @@ def test_add_too_many_tags():
     client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
         49
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.add_tags_to_certificate(
             CertificateArn=arn,
             Tags=[{"Key": "x-1", "Value": "xyz"}, {"Key": "x-2", "Value": "xyz"}],

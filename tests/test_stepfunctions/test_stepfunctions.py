@@ -361,10 +361,10 @@ def test_state_machine_tagging_non_existent_resource_fails():
             region=region, account=ACCOUNT_ID
         )
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.tag_resource(resourceArn=non_existent_arn, tags=[])
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
-    ex.exception.response["Error"]["Message"].should.contain(non_existent_arn)
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
 
 
 @mock_stepfunctions
@@ -375,10 +375,10 @@ def test_state_machine_untagging_non_existent_resource_fails():
             region=region, account=ACCOUNT_ID
         )
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.untag_resource(resourceArn=non_existent_arn, tagKeys=[])
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
-    ex.exception.response["Error"]["Message"].should.contain(non_existent_arn)
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
 
 
 @mock_stepfunctions
@@ -664,7 +664,7 @@ def test_state_machine_list_executions_with_pagination():
     for page in page_iterator:
         page["executions"].should.have.length_of(25)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         resp = client.list_executions(
             stateMachineArn=sm["stateMachineArn"], maxResults=10
         )
@@ -674,16 +674,16 @@ def test_state_machine_list_executions_with_pagination():
             statusFilter="ABORTED",
             nextToken=resp["nextToken"],
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidToken")
-    ex.exception.response["Error"]["Message"].should.contain(
+    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
+    ex.value.response["Error"]["Message"].should.contain(
         "Input inconsistent with page token"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.list_executions(
             stateMachineArn=sm["stateMachineArn"], nextToken="invalid"
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidToken")
+    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
 
 
 @mock_stepfunctions
@@ -867,10 +867,10 @@ def test_state_machine_cloudformation():
         tag["value"].should.equal("value{}".format(i))
 
     cf.Stack("test_stack").delete()
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
-    ex.exception.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
-    ex.exception.response["Error"]["Message"].should.contain("Does Not Exist")
+    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain("Does Not Exist")
 
 
 @mock_stepfunctions
@@ -941,10 +941,10 @@ def test_state_machine_cloudformation_update_with_replacement():
         if tag["key"] == "key1":
             tag["value"].should.equal("updated_value")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         sf.describe_state_machine(stateMachineArn=original_machine_arn)
-    ex.exception.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
-    ex.exception.response["Error"]["Message"].should.contain(
+    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain(
         "State Machine Does Not Exist"
     )
 

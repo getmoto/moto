@@ -343,7 +343,7 @@ def test_put_scaling_policy():
             PolicyType="ABCDEFG",
             TargetTrackingScalingPolicyConfiguration=policy_body,
         )
-    e.exception.response["Error"]["Message"].should.match(
+    e.value.response["Error"]["Message"].should.match(
         r"Unknown policy type .* specified."
     )
 
@@ -450,7 +450,7 @@ def test_delete_scaling_policies():
             ResourceId=resource_id,
             ScalableDimension=scalable_dimension,
         )
-    e.exception.response["Error"]["Message"].should.match(r"No scaling policy found .*")
+    e.value.response["Error"]["Message"].should.match(r"No scaling policy found .*")
 
     response = client.put_scaling_policy(
         PolicyName=policy_name,
@@ -513,6 +513,6 @@ def test_deregister_scalable_target():
             ResourceId=resource_id,
             ScalableDimension=scalable_dimension,
         )
-    e.exception.response["Error"]["Message"].should.match(
+    e.value.response["Error"]["Message"].should.match(
         r"No scalable target found .*"
     )
