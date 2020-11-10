@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
+import json
 
 
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -106,6 +107,22 @@ class AuthFailureError(RESTError):
         super(AuthFailureError, self).__init__(
             "AuthFailure",
             "AWS was not able to validate the provided access credentials",
+        )
+
+
+class AWSError(Exception):
+    TYPE = None
+    STATUS = 400
+
+    def __init__(self, message, type=None, status=None):
+        self.message = message
+        self.type = type if type is not None else self.TYPE
+        self.status = status if status is not None else self.STATUS
+
+    def response(self):
+        return (
+            json.dumps({"__type": self.type, "message": self.message}),
+            dict(status=self.status),
         )
 
 

@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 
 import re
-import json
 import datetime
 from moto.core import BaseBackend, BaseModel
+from moto.core.exceptions import AWSError
 from moto.ec2 import ec2_backends
 
 from .utils import make_arn_for_certificate
@@ -48,18 +48,6 @@ MqO5tzHpCvX2HzLc
 def datetime_to_epoch(date):
     # As only Py3 has datetime.timestamp()
     return int((date - datetime.datetime(1970, 1, 1)).total_seconds())
-
-
-class AWSError(Exception):
-    TYPE = None
-    STATUS = 400
-
-    def __init__(self, message):
-        self.message = message
-
-    def response(self):
-        resp = {"__type": self.TYPE, "message": self.message}
-        return json.dumps(resp), dict(status=self.STATUS)
 
 
 class AWSValidationException(AWSError):
