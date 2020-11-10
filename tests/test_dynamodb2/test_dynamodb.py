@@ -2251,6 +2251,30 @@ def test_update_item_with_list():
     resp["Item"].should.equal({"key": "the-key", "list": [1, 2]})
 
 
+# https://github.com/spulec/moto/issues/2328
+@mock_dynamodb2
+def test_update_item_with_no_action_passed_with_list():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="Table",
+        KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamodb.Table("Table")
+    table.update_item(
+        Key={"key": "the-key"},
+        # Do not pass 'Action' key, in order to check that the
+        # parameter's default value will be used.
+        AttributeUpdates={"list": {"Value": [1, 2]}},
+    )
+
+    resp = table.get_item(Key={"key": "the-key"})
+    resp["Item"].should.equal({"key": "the-key", "list": [1, 2]})
+
+
 # https://github.com/spulec/moto/issues/1342
 @mock_dynamodb2
 def test_update_item_on_map():
