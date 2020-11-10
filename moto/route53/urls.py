@@ -21,4 +21,5 @@ url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/tags/healthcheck/(?P<zone_id>[^/]+)$": tag_response1,
     r"{0}/(?P<api_version>[\d_-]+)/tags/hostedzone/(?P<zone_id>[^/]+)$": tag_response2,
     r"{0}/(?P<api_version>[\d_-]+)/trafficpolicyinstances/*": Route53().not_implemented_response,
+    r"{0}/(?P<api_version>[\d_-]+)/change/(?P<change_id>[^/]+)$": Route53().get_change,
 }
