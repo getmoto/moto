@@ -608,7 +608,7 @@ def test_create_certificate_validation():
         client.register_certificate(
             certificatePem=cert["certificatePem"], setAsActive=False
         )
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "The certificate is already provisioned or registered"
     )
 
@@ -616,7 +616,7 @@ def test_create_certificate_validation():
         client.register_certificate_without_ca(
             certificatePem=cert["certificatePem"], status="ACTIVE"
         )
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "The certificate is already provisioned or registered"
     )
 

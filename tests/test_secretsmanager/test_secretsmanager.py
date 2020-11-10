@@ -631,17 +631,16 @@ def test_rotate_secret_rotation_period_too_long():
 @mock_secretsmanager
 def test_put_secret_value_on_non_existing_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.put_secret_value(
             SecretId=DEFAULT_SECRET_NAME,
             SecretString="foosecret",
             VersionStages=["AWSCURRENT"],
         )
 
-    assert_equal(
-        "Secrets Manager can't find the specified secret.",
-        cm.exception.response["Error"]["Message"],
-    )
+    assert \
+        "Secrets Manager can't find the specified secret." == \
+        cm.exception.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -945,7 +944,7 @@ def test_tag_resource():
         {"Key": "SecondTag", "Value": "AnotherValue"},
     ]
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.tag_resource(
             SecretId="dummy-test-secret",
             Tags=[
@@ -953,10 +952,9 @@ def test_tag_resource():
             ],
         )
 
-    assert_equal(
-        "Secrets Manager can't find the specified secret.",
-        cm.exception.response["Error"]["Message"],
-    )
+    assert \
+        "Secrets Manager can't find the specified secret." == \
+        cm.exception.response["Error"]["Message"]
 
 
 @mock_secretsmanager

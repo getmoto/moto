@@ -1,16 +1,16 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
-import pytest
-
-import boto3
-import boto
-import boto.vpc
-from boto.exception import EC2ResponseError
-from botocore.exceptions import ParamValidationError, ClientError
-import sure  # noqa
 import random
 
+import boto
+import boto3
+import boto.vpc
+
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
+import sure  # noqa
+from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_ec2, mock_ec2_deprecated
 
 
@@ -426,7 +426,7 @@ def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
     vpc.is_default.shouldnt.be.ok
 
     subnet_cidr_block = "10.2.0.0/20"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.exception).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "

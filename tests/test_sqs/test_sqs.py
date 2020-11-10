@@ -273,7 +273,7 @@ def test_message_send_with_attributes():
 def test_message_with_invalid_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         queue.send_message(
             MessageBody="derp",
             MessageAttributes={
@@ -2249,7 +2249,7 @@ def test_maximum_message_size_attribute_default():
         QueueName="test-queue",
     )
     int(queue.attributes["MaximumMessageSize"]).should.equal(MAXIMUM_MESSAGE_LENGTH)
-    with assert_raises(Exception) as e:
+    with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="a" * (MAXIMUM_MESSAGE_LENGTH + 1))
     ex = e.exception
     ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
@@ -2263,7 +2263,7 @@ def test_maximum_message_size_attribute_fails_for_invalid_values():
         MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND + 1,
     ]
     for message_size in invalid_values:
-        with assert_raises(ClientError) as e:
+        with pytest.raises(ClientError) as e:
             sqs.create_queue(
                 QueueName="test-queue",
                 Attributes={"MaximumMessageSize": str(message_size)},
@@ -2281,7 +2281,7 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
         Attributes={"MaximumMessageSize": str(message_size_limit)},
     )
     int(queue.attributes["MaximumMessageSize"]).should.equal(message_size_limit)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         queue.send_message(MessageBody="a" * (message_size_limit + 1))
     ex = e.exception
     ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
