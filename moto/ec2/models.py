@@ -3307,6 +3307,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         ]  # Reserved by AWS
         self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
         self._subnet_ips = {}  # has IP: instance
+        self.state = "available"
 
     @staticmethod
     def cloudformation_name_type():
@@ -3387,6 +3388,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             return self.availability_zone
         elif filter_name in ("defaultForAz", "default-for-az"):
             return self.default_for_az
+        elif filter_name == "state":
+            return self.state
         else:
             return super(Subnet, self).get_filter_value(filter_name, "DescribeSubnets")
 
