@@ -41,11 +41,8 @@ def test_validation_of_update_expression_with_keyword():
         assert e.keyword == "path"
 
 
-@pytest.mark.parametrize("update_expression",
-    [
-        "SET a = #b + :val2",
-        "SET a = :val2 + #b",
-    ]
+@pytest.mark.parametrize(
+    "update_expression", ["SET a = #b + :val2", "SET a = :val2 + #b",]
 )
 def test_validation_of_a_set_statement_with_incorrect_passed_value(update_expression):
     """
@@ -101,12 +98,7 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
         assert True
 
 
-@pytest.mark.parametrize("update_expression",
-    [
-        "SET a = #c",
-        "SET a = #c + #d",
-    ]
-)
+@pytest.mark.parametrize("update_expression", ["SET a = #c", "SET a = #c + #d",])
 def test_validation_of_update_expression_with_attribute_name_that_is_not_defined(
     update_expression,
 ):

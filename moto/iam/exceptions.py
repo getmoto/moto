@@ -88,10 +88,8 @@ class InvalidTagCharacters(RESTError):
     code = 400
 
     def __init__(self, tag, param="tags.X.member.key"):
-        message = (
-            "1 validation error detected: Value '{}' at '{}' failed to satisfy ".format(
-                tag, param
-            )
+        message = "1 validation error detected: Value '{}' at '{}' failed to satisfy ".format(
+            tag, param
         )
         message += "constraint: Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
 

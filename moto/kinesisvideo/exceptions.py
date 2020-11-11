@@ -20,6 +20,5 @@ class ResourceInUseException(KinesisvideoClientError):
     def __init__(self, message):
         self.code = 400
         super(ResourceInUseException, self).__init__(
-            "ResourceInUseException",
-            message,
+            "ResourceInUseException", message,
         )

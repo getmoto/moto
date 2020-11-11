@@ -14,9 +14,11 @@ import pytest
 
 from moto import mock_kms
 
-PLAINTEXT_VECTORS = [b"some encodeable plaintext",
-                     b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",
-                     "some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥"]
+PLAINTEXT_VECTORS = [
+    b"some encodeable plaintext",
+    b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",
+    "some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",
+]
 
 
 def _get_encoded_value(plaintext):
@@ -52,20 +54,14 @@ def test_create_key():
     key["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(
-        KeyUsage="ENCRYPT_DECRYPT",
-        CustomerMasterKeySpec="RSA_2048",
-    )
+    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048",)
 
     sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(
         ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
     )
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(
-        KeyUsage="SIGN_VERIFY",
-        CustomerMasterKeySpec="RSA_2048",
-    )
+    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048",)
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal(
@@ -80,24 +76,21 @@ def test_create_key():
     )
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY",
-        CustomerMasterKeySpec="ECC_SECG_P256K1",
+        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_SECG_P256K1",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_256"])
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY",
-        CustomerMasterKeySpec="ECC_NIST_P384",
+        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P384",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_384"])
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY",
-        CustomerMasterKeySpec="ECC_NIST_P521",
+        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P521",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
@@ -107,10 +100,7 @@ def test_create_key():
 @mock_kms
 def test_describe_key():
     client = boto3.client("kms", region_name="us-east-1")
-    response = client.create_key(
-        Description="my key",
-        KeyUsage="ENCRYPT_DECRYPT",
-    )
+    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT",)
     key_id = response["KeyMetadata"]["KeyId"]
 
     response = client.describe_key(KeyId=key_id)
@@ -129,7 +119,14 @@ def test_describe_key():
     response["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
 
-@pytest.mark.parametrize("key_id", ["alias/does-not-exist", "arn:aws:kms:us-east-1:012345678912:alias/does-not-exist", "invalid"])
+@pytest.mark.parametrize(
+    "key_id",
+    [
+        "alias/does-not-exist",
+        "arn:aws:kms:us-east-1:012345678912:alias/does-not-exist",
+        "invalid",
+    ],
+)
 @mock_kms
 def test_describe_key_via_alias_invalid_alias(key_id):
     client = boto3.client("kms", region_name="us-east-1")
@@ -204,8 +201,15 @@ def test_decrypt(plaintext):
     decrypt_response["KeyId"].should.equal(key_arn)
 
 
-@pytest.mark.parametrize("key_id",
-    ["not-a-uuid", "alias/DoesNotExist", "arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist", "d25652e4-d2d2-49f7-929a-671ccda580c6", "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6"]
+@pytest.mark.parametrize(
+    "key_id",
+    [
+        "not-a-uuid",
+        "alias/DoesNotExist",
+        "arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist",
+        "d25652e4-d2d2-49f7-929a-671ccda580c6",
+        "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",
+    ],
 )
 @mock_kms
 def test_invalid_key_ids(key_id):
@@ -352,14 +356,15 @@ def test_list_resource_tags():
     assert response["Tags"][0]["TagValue"] == "string"
 
 
-@pytest.mark.parametrize("kwargs,expected_key_length",
+@pytest.mark.parametrize(
+    "kwargs,expected_key_length",
     (
         (dict(KeySpec="AES_256"), 32),
         (dict(KeySpec="AES_128"), 16),
         (dict(NumberOfBytes=64), 64),
         (dict(NumberOfBytes=1), 1),
         (dict(NumberOfBytes=1024), 1024),
-    )
+    ),
 )
 @mock_kms
 def test_generate_data_key_sizes(kwargs, expected_key_length):
@@ -384,8 +389,15 @@ def test_generate_data_key_decrypt():
     assert resp1["Plaintext"] == resp2["Plaintext"]
 
 
-@pytest.mark.parametrize("kwargs",
-    [dict(KeySpec="AES_257"), dict(KeySpec="AES_128", NumberOfBytes=16), dict(NumberOfBytes=2048), dict(NumberOfBytes=0), dict()]
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        dict(KeySpec="AES_257"),
+        dict(KeySpec="AES_128", NumberOfBytes=16),
+        dict(NumberOfBytes=2048),
+        dict(NumberOfBytes=0),
+        dict(),
+    ],
 )
 @mock_kms
 def test_generate_data_key_invalid_size_params(kwargs):
@@ -398,8 +410,14 @@ def test_generate_data_key_invalid_size_params(kwargs):
         client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
 
 
-@pytest.mark.parametrize("key_id",
-    ["alias/DoesNotExist", "arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist", "d25652e4-d2d2-49f7-929a-671ccda580c6", "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6"]
+@pytest.mark.parametrize(
+    "key_id",
+    [
+        "alias/DoesNotExist",
+        "arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist",
+        "d25652e4-d2d2-49f7-929a-671ccda580c6",
+        "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",
+    ],
 )
 @mock_kms
 def test_generate_data_key_invalid_key(key_id):
@@ -409,8 +427,14 @@ def test_generate_data_key_invalid_key(key_id):
         client.generate_data_key(KeyId=key_id, KeySpec="AES_256")
 
 
-@pytest.mark.parametrize("prefix,append_key_id",
-    [("alias/DoesExist", False), ("arn:aws:kms:us-east-1:012345678912:alias/DoesExist", False), ("", True), ("arn:aws:kms:us-east-1:012345678912:key/", True)]
+@pytest.mark.parametrize(
+    "prefix,append_key_id",
+    [
+        ("alias/DoesExist", False),
+        ("arn:aws:kms:us-east-1:012345678912:alias/DoesExist", False),
+        ("", True),
+        ("arn:aws:kms:us-east-1:012345678912:key/", True),
+    ],
 )
 @mock_kms
 def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
@@ -512,8 +536,15 @@ def test_generate_random(number_of_bytes):
     len(response["Plaintext"]).should.equal(number_of_bytes)
 
 
-@pytest.mark.parametrize("number_of_bytes,error_type",
-    [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError), (0, botocore.exceptions.ParamValidationError), (-1, botocore.exceptions.ParamValidationError), (-1024, botocore.exceptions.ParamValidationError)]
+@pytest.mark.parametrize(
+    "number_of_bytes,error_type",
+    [
+        (2048, botocore.exceptions.ClientError),
+        (1025, botocore.exceptions.ClientError),
+        (0, botocore.exceptions.ParamValidationError),
+        (-1, botocore.exceptions.ParamValidationError),
+        (-1024, botocore.exceptions.ParamValidationError),
+    ],
 )
 @mock_kms
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):

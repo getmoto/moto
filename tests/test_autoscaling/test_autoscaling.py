@@ -961,8 +961,7 @@ def test_describe_autoscaling_groups_boto3_launch_config():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
-        LaunchConfigurationName="test_launch_configuration",
-        InstanceType="t2.micro",
+        LaunchConfigurationName="test_launch_configuration", InstanceType="t2.micro",
     )
     client.create_auto_scaling_group(
         AutoScalingGroupName="test_asg",
@@ -1041,8 +1040,7 @@ def test_describe_autoscaling_instances_boto3_launch_config():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
-        LaunchConfigurationName="test_launch_configuration",
-        InstanceType="t2.micro",
+        LaunchConfigurationName="test_launch_configuration", InstanceType="t2.micro",
     )
     client.create_auto_scaling_group(
         AutoScalingGroupName="test_asg",
@@ -2156,8 +2154,7 @@ def test_standby_exit_standby():
     response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
 
     response = client.exit_standby(
-        AutoScalingGroupName="test_asg",
-        InstanceIds=[instance_to_standby_exit_standby],
+        AutoScalingGroupName="test_asg", InstanceIds=[instance_to_standby_exit_standby],
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
