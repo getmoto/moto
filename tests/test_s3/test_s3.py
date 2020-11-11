@@ -24,7 +24,6 @@ from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
-from parameterized import parameterized
 import six
 import requests
 from moto.s3.responses import DEFAULT_REGION_NAME
@@ -426,7 +425,7 @@ def test_copy_key():
     bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
 
 
-@parameterized([("the-unicode-💩-key",), ("key-with?question-mark",)])
+@pytest.mark.parametrize("key_name", ["the-unicode-💩-key", "key-with?question-mark"])
 @mock_s3_deprecated
 def test_copy_key_with_special_chars(key_name):
     conn = boto.connect_s3("the_key", "the_secret")
@@ -4016,7 +4015,7 @@ def test_root_dir_with_empty_name_works():
     store_and_read_back_a_key("/")
 
 
-@parameterized(["mybucket", "my.bucket"])
+@pytest.mark.parametrize("bucket_name", ["mybucket", "my.bucket"])
 @mock_s3
 def test_leading_slashes_not_removed(bucket_name):
     """Make sure that leading slashes are not removed internally."""
@@ -4038,8 +4037,8 @@ def test_leading_slashes_not_removed(bucket_name):
     e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
 
-@parameterized(
-    [("foo/bar/baz",), ("foo",), ("foo/run_dt%3D2019-01-01%252012%253A30%253A00",)]
+@pytest.mark.parametrize("key",
+    ["foo/bar/baz", "foo", "foo/run_dt%3D2019-01-01%252012%253A30%253A00"]
 )
 @mock_s3
 def test_delete_objects_with_url_encoded_key(key):

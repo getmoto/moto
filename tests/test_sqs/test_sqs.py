@@ -280,7 +280,7 @@ def test_message_with_invalid_attributes():
                 "öther_encodings": {"DataType": "String", "StringValue": "str"},
             },
         )
-    ex = e.exception
+    ex = e.value
     ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
     ex.response["Error"]["Message"].should.equal(
         "The message attribute name 'öther_encodings' is invalid. "
@@ -2251,7 +2251,7 @@ def test_maximum_message_size_attribute_default():
     int(queue.attributes["MaximumMessageSize"]).should.equal(MAXIMUM_MESSAGE_LENGTH)
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="a" * (MAXIMUM_MESSAGE_LENGTH + 1))
-    ex = e.exception
+    ex = e.value
     ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
 
 
@@ -2268,7 +2268,7 @@ def test_maximum_message_size_attribute_fails_for_invalid_values():
                 QueueName="test-queue",
                 Attributes={"MaximumMessageSize": str(message_size)},
             )
-        ex = e.exception
+        ex = e.value
         ex.response["Error"]["Code"].should.equal("InvalidAttributeValue")
 
 
@@ -2283,7 +2283,7 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
     int(queue.attributes["MaximumMessageSize"]).should.equal(message_size_limit)
     with pytest.raises(ClientError) as e:
         queue.send_message(MessageBody="a" * (message_size_limit + 1))
-    ex = e.exception
+    ex = e.value
     ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
     ex.response["Error"]["Message"].should.contain(
         "{} bytes".format(message_size_limit)

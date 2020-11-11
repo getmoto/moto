@@ -428,7 +428,7 @@ def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
     subnet_cidr_block = "10.2.0.0/20"
     with pytest.raises(ClientError) as ex:
         subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
         "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
     )

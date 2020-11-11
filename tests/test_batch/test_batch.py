@@ -738,7 +738,8 @@ def test_submit_job():
     else:
         raise RuntimeError("Batch job timed out")
 
-    resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
+    resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job",
+                                            logStreamNamePrefix="sayhellotomylittlefriend")
     len(resp["logStreams"]).should.equal(1)
     ls_name = resp["logStreams"][0]["logStreamName"]
 

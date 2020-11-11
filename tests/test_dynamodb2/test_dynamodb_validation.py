@@ -1,3 +1,5 @@
+import pytest
+
 from moto.dynamodb2.exceptions import (
     AttributeIsReservedKeyword,
     ExpressionAttributeValueNotDefined,
@@ -10,12 +12,10 @@ from moto.dynamodb2.models import Item, DynamoType
 from moto.dynamodb2.parsing.ast_nodes import (
     NodeDepthLeftTypeFetcher,
     UpdateExpressionSetAction,
-    UpdateExpressionValue,
     DDBTypedValue,
 )
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
-from parameterized import parameterized
 
 
 def test_validation_of_update_expression_with_keyword():
@@ -41,7 +41,7 @@ def test_validation_of_update_expression_with_keyword():
         assert e.keyword == "path"
 
 
-@parameterized(
+@pytest.mark.parametrize("update_expression",
     [
         "SET a = #b + :val2",
         "SET a = :val2 + #b",
@@ -101,7 +101,7 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
         assert True
 
 
-@parameterized(
+@pytest.mark.parametrize("update_expression",
     [
         "SET a = #c",
         "SET a = #c + #d",
