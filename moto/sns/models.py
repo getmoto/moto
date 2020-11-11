@@ -340,14 +340,12 @@ class PlatformEndpoint(BaseModel):
 
     @property
     def arn(self):
-        return (
-            "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
-                region=self.region,
-                AccountId=DEFAULT_ACCOUNT_ID,
-                platform=self.application.platform,
-                name=self.application.name,
-                id=self.id,
-            )
+        return "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
+            region=self.region,
+            AccountId=DEFAULT_ACCOUNT_ID,
+            platform=self.application.platform,
+            name=self.application.name,
+            id=self.id,
         )
 
     def publish(self, message):

@@ -350,15 +350,11 @@ def tags_from_query_string(
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
             tag_key = querystring_dict.get(
                 "{prefix}.{index}.{key_suffix}".format(
-                    prefix=prefix,
-                    index=tag_index,
-                    key_suffix=key_suffix,
+                    prefix=prefix, index=tag_index, key_suffix=key_suffix,
                 )
             )[0]
             tag_value_key = "{prefix}.{index}.{value_suffix}".format(
-                prefix=prefix,
-                index=tag_index,
-                value_suffix=value_suffix,
+                prefix=prefix, index=tag_index, value_suffix=value_suffix,
             )
             if tag_value_key in querystring_dict:
                 response_values[tag_key] = querystring_dict.get(tag_value_key)[0]

@@ -17,9 +17,7 @@ def test_run_medical_transcription_job_minimal_params():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
         "OutputBucketName": "my-output-bucket",
         "Specialty": "PRIMARYCARE",
         "Type": "CONVERSATION",
@@ -100,9 +98,7 @@ def test_run_medical_transcription_job_all_params():
         "LanguageCode": "en-US",
         "MediaSampleRateHertz": 48000,
         "MediaFormat": "flac",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.dat",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
         "OutputBucketName": "my-output-bucket",
         "OutputEncryptionKMSKeyId": "arn:aws:kms:us-east-1:012345678901:key/37111b5e-8eff-4706-ae3a-d4f9d1d559fc",
         "Settings": {
@@ -203,9 +199,7 @@ def test_run_medical_transcription_job_with_existing_job_name():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
         "OutputBucketName": "my-output-bucket",
         "Specialty": "PRIMARYCARE",
         "Type": "CONVERSATION",
@@ -228,9 +222,7 @@ def test_run_medical_transcription_job_nonexistent_vocabulary():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.dat",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
         "OutputBucketName": "my-output-bucket",
         "Settings": {"VocabularyName": "NonexistentVocabulary"},
         "Specialty": "PRIMARYCARE",
@@ -252,9 +244,7 @@ def test_list_medical_transcription_jobs():
         args = {
             "MedicalTranscriptionJobName": job_name,
             "LanguageCode": "en-US",
-            "Media": {
-                "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-            },
+            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
             "OutputBucketName": "my-output-bucket",
             "Specialty": "PRIMARYCARE",
             "Type": "CONVERSATION",

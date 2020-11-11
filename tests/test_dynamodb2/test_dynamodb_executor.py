@@ -212,11 +212,7 @@ def test_execution_of_remove_in_map():
                     "itemlist": {
                         "L": [
                             {"M": {"foo00": {"S": "bar1"}, "foo01": {"S": "bar2"}}},
-                            {
-                                "M": {
-                                    "foo10": {"S": "bar1"},
-                                }
-                            },
+                            {"M": {"foo10": {"S": "bar1"},}},
                         ]
                     }
                 }
@@ -265,9 +261,7 @@ def test_execution_of_remove_in_list():
             "itemmap": {
                 "M": {
                     "itemlist": {
-                        "L": [
-                            {"M": {"foo00": {"S": "bar1"}, "foo01": {"S": "bar2"}}},
-                        ]
+                        "L": [{"M": {"foo00": {"S": "bar1"}, "foo01": {"S": "bar2"}}},]
                     }
                 }
             },
@@ -284,10 +278,7 @@ def test_execution_of_delete_element_from_set():
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={
-            "id": {"S": "foo2"},
-            "s": {"SS": ["value1", "value2", "value3"]},
-        },
+        attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]},},
     )
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,
@@ -301,10 +292,7 @@ def test_execution_of_delete_element_from_set():
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={
-            "id": {"S": "foo2"},
-            "s": {"SS": ["value1", "value3"]},
-        },
+        attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value3"]},},
     )
     assert expected_item == item
 
@@ -317,10 +305,7 @@ def test_execution_of_add_number():
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={
-            "id": {"S": "foo2"},
-            "s": {"N": "5"},
-        },
+        attrs={"id": {"S": "foo2"}, "s": {"N": "5"},},
     )
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,
@@ -347,10 +332,7 @@ def test_execution_of_add_set_to_a_number():
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={
-            "id": {"S": "foo2"},
-            "s": {"N": "5"},
-        },
+        attrs={"id": {"S": "foo2"}, "s": {"N": "5"},},
     )
     try:
         validated_ast = UpdateExpressionValidator(
@@ -381,10 +363,7 @@ def test_execution_of_add_to_a_set():
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={
-            "id": {"S": "foo2"},
-            "s": {"SS": ["value1", "value2", "value3"]},
-        },
+        attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]},},
     )
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,
@@ -406,37 +385,17 @@ def test_execution_of_add_to_a_set():
     assert expected_item == item
 
 
-@pytest.mark.parametrize("expression_attribute_values,unexpected_data_type",
+@pytest.mark.parametrize(
+    "expression_attribute_values,unexpected_data_type",
     [
-        (
-            {":value": {"S": "10"}},
-            "STRING",
-        ),
-        (
-            {":value": {"N": "10"}},
-            "NUMBER",
-        ),
-        (
-            {":value": {"B": "10"}},
-            "BINARY",
-        ),
-        (
-            {":value": {"BOOL": True}},
-            "BOOLEAN",
-        ),
-        (
-            {":value": {"NULL": True}},
-            "NULL",
-        ),
-        (
-            {":value": {"M": {"el0": {"S": "10"}}}},
-            "MAP",
-        ),
-        (
-            {":value": {"L": []}},
-            "LIST",
-        ),
-    ]
+        ({":value": {"S": "10"}}, "STRING",),
+        ({":value": {"N": "10"}}, "NUMBER",),
+        ({":value": {"B": "10"}}, "BINARY",),
+        ({":value": {"BOOL": True}}, "BOOLEAN",),
+        ({":value": {"NULL": True}}, "NULL",),
+        ({":value": {"M": {"el0": {"S": "10"}}}}, "MAP",),
+        ({":value": {"L": []}}, "LIST",),
+    ],
 )
 def test_execution_of__delete_element_from_set_invalid_value(
     expression_attribute_values, unexpected_data_type
@@ -449,10 +408,7 @@ def test_execution_of__delete_element_from_set_invalid_value(
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={
-            "id": {"S": "foo2"},
-            "s": {"SS": ["value1", "value2", "value3"]},
-        },
+        attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]},},
     )
     try:
         validated_ast = UpdateExpressionValidator(
@@ -477,10 +433,7 @@ def test_execution_of_delete_element_from_a_string_attribute():
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={
-            "id": {"S": "foo2"},
-            "s": {"S": "5"},
-        },
+        attrs={"id": {"S": "foo2"}, "s": {"S": "5"},},
     )
     try:
         validated_ast = UpdateExpressionValidator(

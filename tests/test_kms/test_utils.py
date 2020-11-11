@@ -98,7 +98,9 @@ def test_deserialize_ciphertext_blob(raw, serialized):
     test.should.equal(raw)
 
 
-@pytest.mark.parametrize("encryption_context", [ec[0] for ec in ENCRYPTION_CONTEXT_VECTORS])
+@pytest.mark.parametrize(
+    "encryption_context", [ec[0] for ec in ENCRYPTION_CONTEXT_VECTORS]
+)
 def test_encrypt_decrypt_cycle(encryption_context):
     plaintext = b"some secret plaintext"
     master_key = Key("nop", "nop", "nop", "nop", "nop")

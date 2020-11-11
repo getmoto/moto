@@ -1369,12 +1369,10 @@ def test_non_json_redrive_policy():
 def test_boto3_create_duplicate_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(
-        StackName="test_stack",
-        TemplateBody=dummy_template_json,
+        StackName="test_stack", TemplateBody=dummy_template_json,
     )
 
     with pytest.raises(ClientError):
         cf_conn.create_stack(
-            StackName="test_stack",
-            TemplateBody=dummy_template_json,
+            StackName="test_stack", TemplateBody=dummy_template_json,
         )

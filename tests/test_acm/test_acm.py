@@ -20,10 +20,8 @@ SERVER_CRT = _GET_RESOURCE("star_moto_com.pem")
 SERVER_COMMON_NAME = "*.moto.com"
 SERVER_CRT_BAD = _GET_RESOURCE("star_moto_com-bad.pem")
 SERVER_KEY = _GET_RESOURCE("star_moto_com.key")
-BAD_ARN = (
-    "arn:aws:acm:us-east-2:{}:certificate/_0000000-0000-0000-0000-000000000000".format(
-        ACCOUNT_ID
-    )
+BAD_ARN = "arn:aws:acm:us-east-2:{}:certificate/_0000000-0000-0000-0000-000000000000".format(
+    ACCOUNT_ID
 )
 
 
@@ -56,10 +54,7 @@ def test_import_certificate_with_tags():
         Certificate=SERVER_CRT,
         PrivateKey=SERVER_KEY,
         CertificateChain=CA_CRT,
-        Tags=[
-            {"Key": "Environment", "Value": "QA"},
-            {"Key": "KeyOnly"},
-        ],
+        Tags=[{"Key": "Environment", "Value": "QA"}, {"Key": "KeyOnly"},],
     )
     arn = resp["CertificateArn"]
 
@@ -371,10 +366,7 @@ def test_request_certificate_with_tags():
         DomainName="google.com",
         IdempotencyToken=token,
         SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
-        Tags=[
-            {"Key": "Environment", "Value": "Prod"},
-            {"Key": "KeyOnly"},
-        ],
+        Tags=[{"Key": "Environment", "Value": "Prod"}, {"Key": "KeyOnly"},],
     )
     arn_2 = resp["CertificateArn"]
 
@@ -404,8 +396,7 @@ def test_operations_with_invalid_tags():
     # request certificate with invalid tags
     with pytest.raises(ClientError) as ex:
         client.request_certificate(
-            DomainName="example.com",
-            Tags=[{"Key": "X" * 200, "Value": "Valid"}],
+            DomainName="example.com", Tags=[{"Key": "X" * 200, "Value": "Valid"}],
         )
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["Error"]["Message"].should.contain(
@@ -567,7 +558,11 @@ def test_request_certificate_with_mutiple_times():
             resp = client.request_certificate(
                 IdempotencyToken="test_token",
                 DomainName="google.com",
-                SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+                SubjectAlternativeNames=[
+                    "google.com",
+                    "www.google.com",
+                    "mail.google.com",
+                ],
             )
         arn = resp["CertificateArn"]
         arn.should.equal(original_arn)

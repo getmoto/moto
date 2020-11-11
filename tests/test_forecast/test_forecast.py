@@ -71,9 +71,7 @@ def test_forecast_dataset_group_create_duplicate_fails():
     with pytest.raises(ClientError) as exc:
         client.create_dataset_group(DatasetGroupName="name", Domain="RETAIL")
 
-    exc.value.response["Error"]["Code"].should.equal(
-        "ResourceAlreadyExistsException"
-    )
+    exc.value.response["Error"]["Code"].should.equal("ResourceAlreadyExistsException")
 
 
 @mock_forecast

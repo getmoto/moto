@@ -2397,9 +2397,7 @@ def test_boto3_get_object_if_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfMatch='"hello"',
+            Bucket=bucket_name, Key=key, IfMatch='"hello"',
         )
     e = err.value
     e.response["Error"]["Code"].should.equal("PreconditionFailed")
@@ -2418,9 +2416,7 @@ def test_boto3_get_object_if_none_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfNoneMatch=etag,
+            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
@@ -2478,9 +2474,7 @@ def test_boto3_head_object_if_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfMatch='"hello"',
+            Bucket=bucket_name, Key=key, IfMatch='"hello"',
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
@@ -2498,9 +2492,7 @@ def test_boto3_head_object_if_none_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfNoneMatch=etag,
+            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
@@ -4037,8 +4029,8 @@ def test_leading_slashes_not_removed(bucket_name):
     e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
 
-@pytest.mark.parametrize("key",
-    ["foo/bar/baz", "foo", "foo/run_dt%3D2019-01-01%252012%253A30%253A00"]
+@pytest.mark.parametrize(
+    "key", ["foo/bar/baz", "foo", "foo/run_dt%3D2019-01-01%252012%253A30%253A00"]
 )
 @mock_s3
 def test_delete_objects_with_url_encoded_key(key):

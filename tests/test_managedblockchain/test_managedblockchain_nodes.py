@@ -58,9 +58,7 @@ def test_create_node():
 
     # Delete node
     conn.delete_node(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeId=node_id,
+        NetworkId=network_id, MemberId=member_id, NodeId=node_id,
     )
 
     # Find node in full list
@@ -79,9 +77,7 @@ def test_create_node():
 
     # But cannot get
     response = conn.get_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeId=node_id,
+        NetworkId=network_id, MemberId=member_id, NodeId=node_id,
     ).should.throw(Exception, "Node {0} not found".format(node_id))
 
 
@@ -107,9 +103,7 @@ def test_create_node_standard_edition():
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "bc.t3.large"
     response = conn.create_node(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeConfiguration=logconfigbad,
+        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
     )
     node_id = response["NodeId"]
 
@@ -152,8 +146,7 @@ def test_create_node_standard_edition():
 
     # Should now be an exception
     response = conn.list_nodes.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
+        NetworkId=network_id, MemberId=member_id,
     ).should.throw(Exception, "Member {0} not found".format(member_id))
 
 
@@ -199,8 +192,7 @@ def test_create_too_many_nodes():
         MemberId=member_id,
         NodeConfiguration=helpers.default_nodeconfiguration,
     ).should.throw(
-        Exception,
-        "Maximum number of nodes exceeded in member {0}".format(member_id),
+        Exception, "Maximum number of nodes exceeded in member {0}".format(member_id),
     )
 
 
@@ -257,18 +249,14 @@ def test_create_node_badnodeconfig():
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "foo"
     response = conn.create_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeConfiguration=logconfigbad,
+        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
     ).should.throw(Exception, "Requested instance foo isn't supported.")
 
     # Incorrect instance type for edition
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "bc.t3.large"
     response = conn.create_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeConfiguration=logconfigbad,
+        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
     ).should.throw(
         Exception,
         "Instance type bc.t3.large is not supported with STARTER Edition networks",
@@ -278,9 +266,7 @@ def test_create_node_badnodeconfig():
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["AvailabilityZone"] = "us-east-11"
     response = conn.create_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeConfiguration=logconfigbad,
+        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
     ).should.throw(Exception, "Availability Zone is not valid")
 
 
@@ -310,8 +296,7 @@ def test_list_nodes_badmember():
     network_id = response["NetworkId"]
 
     response = conn.list_nodes.when.called_with(
-        NetworkId=network_id,
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789",
     ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 

@@ -88,10 +88,8 @@ class ResourceShare(BaseModel):
                 )
 
                 if root_id:
-                    ous = (
-                        self.organizations_backend.list_organizational_units_for_parent(
-                            ParentId=root_id
-                        )
+                    ous = self.organizations_backend.list_organizational_units_for_parent(
+                        ParentId=root_id
                     )
                     if any(principal == ou["Arn"] for ou in ous["OrganizationalUnits"]):
                         continue

@@ -513,6 +513,4 @@ def test_deregister_scalable_target():
             ResourceId=resource_id,
             ScalableDimension=scalable_dimension,
         )
-    e.value.response["Error"]["Message"].should.match(
-        r"No scalable target found .*"
-    )
+    e.value.response["Error"]["Message"].should.match(r"No scalable target found .*")

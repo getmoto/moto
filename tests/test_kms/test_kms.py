@@ -15,7 +15,11 @@ from moto.kms.models import KmsBackend
 from moto.kms.exceptions import NotFoundException as MotoNotFoundException
 from moto import mock_kms_deprecated, mock_kms
 
-PLAINTEXT_VECTORS = [b"some encodeable plaintext", b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16", "some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥"]
+PLAINTEXT_VECTORS = [
+    b"some encodeable plaintext",
+    b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",
+    "some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",
+]
 
 
 def _get_encoded_value(plaintext):
@@ -570,10 +574,8 @@ def test__delete_alias__raises_if_alias_is_not_found():
     with pytest.raises(NotFoundException) as err:
         kms.delete_alias(alias_name)
 
-    expected_message_match = (
-        r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(
-            region=region, alias_name=alias_name
-        )
+    expected_message_match = r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(
+        region=region, alias_name=alias_name
     )
     ex = err.value
     ex.body["__type"].should.equal("NotFoundException")

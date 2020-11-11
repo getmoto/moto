@@ -48,8 +48,7 @@ def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return
 
     with pytest.raises(ClientError) as err:
         response = client.describe_scalable_targets(
-            ServiceNamespace=DEFAULT_SERVICE_NAMESPACE,
-            ScalableDimension="foo",
+            ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, ScalableDimension="foo",
         )
         err.response["Error"]["Code"].should.equal("ValidationException")
         err.response["Error"]["Message"].split(":")[0].should.look_like(
@@ -64,8 +63,7 @@ def test_describe_scalable_targets_with_invalid_service_namespace_should_return_
 
     with pytest.raises(ClientError) as err:
         response = client.describe_scalable_targets(
-            ServiceNamespace="foo",
-            ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
+            ServiceNamespace="foo", ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
         )
         err.response["Error"]["Code"].should.equal("ValidationException")
         err.response["Error"]["Message"].split(":")[0].should.look_like(
@@ -80,8 +78,7 @@ def test_describe_scalable_targets_with_multiple_invalid_parameters_should_retur
 
     with pytest.raises(ClientError) as err:
         response = client.describe_scalable_targets(
-            ServiceNamespace="foo",
-            ScalableDimension="bar",
+            ServiceNamespace="foo", ScalableDimension="bar",
         )
         err.response["Error"]["Code"].should.equal("ValidationException")
         err.response["Error"]["Message"].split(":")[0].should.look_like(
@@ -105,12 +102,13 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_va
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
-@pytest.mark.parametrize("namespace,r_id,dimension,expected",
+@pytest.mark.parametrize(
+    "namespace,r_id,dimension,expected",
     [
         ("ecs", "service/default/test-svc", "ecs:service:DesiredCount", True),
         ("ecs", "banana/default/test-svc", "ecs:service:DesiredCount", False),
         ("rds", "service/default/test-svc", "ecs:service:DesiredCount", False),
-    ]
+    ],
 )
 def test_target_params_are_valid_success(namespace, r_id, dimension, expected):
     if expected is True:

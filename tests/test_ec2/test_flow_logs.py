@@ -144,9 +144,7 @@ def test_create_flow_log_create():
 
     bucket = s3.create_bucket(
         Bucket="test-flow-logs",
-        CreateBucketConfiguration={
-            "LocationConstraint": "us-west-1",
-        },
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
     )
 
     response = client.create_flow_logs(

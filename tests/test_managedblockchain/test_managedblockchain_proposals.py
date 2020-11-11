@@ -131,9 +131,7 @@ def test_create_proposal_badinvitationacctid():
     member_id = response["MemberId"]
 
     response = conn.create_proposal.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=actions,
+        NetworkId=network_id, MemberId=member_id, Actions=actions,
     ).should.throw(Exception, "Account ID format specified in proposal is not valid")
 
 
@@ -157,9 +155,7 @@ def test_create_proposal_badremovalmemid():
     member_id = response["MemberId"]
 
     response = conn.create_proposal.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=actions,
+        NetworkId=network_id, MemberId=member_id, Actions=actions,
     ).should.throw(Exception, "Member ID format specified in proposal is not valid")
 
 
@@ -198,6 +194,5 @@ def test_get_proposal_badproposal():
     network_id = response["NetworkId"]
 
     response = conn.get_proposal.when.called_with(
-        NetworkId=network_id,
-        ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
+        NetworkId=network_id, ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
     ).should.throw(Exception, "Proposal p-ABCDEFGHIJKLMNOP0123456789 not found")

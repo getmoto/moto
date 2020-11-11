@@ -178,9 +178,7 @@ def test_create_named_query():
 
     # craete named query
     res = client.create_named_query(
-        Name="query-name",
-        Database="target_db",
-        QueryString="SELECT * FROM table1",
+        Name="query-name", Database="target_db", QueryString="SELECT * FROM table1",
     )
 
     assert "NamedQueryId" in res
@@ -217,8 +215,6 @@ def create_basic_workgroup(client, name):
         Name=name,
         Description="Test work group",
         Configuration={
-            "ResultConfiguration": {
-                "OutputLocation": "s3://bucket-name/prefix/",
-            }
+            "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/",}
         },
     )
