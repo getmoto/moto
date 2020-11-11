@@ -2,4 +2,3 @@ pytest
 pytest-cov
 sure==1.4.11
 freezegun
-parameterized>=0.7.0

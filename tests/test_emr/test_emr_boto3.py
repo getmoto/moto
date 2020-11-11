@@ -5,6 +5,7 @@ from copy import deepcopy
 from datetime import datetime
 
 import boto3
+import json
 import pytz
 import six
 import sure  # noqa
@@ -803,11 +804,8 @@ def test_instance_groups():
             x["AutoScalingPolicy"]["Status"]["State"].should.equal("ATTACHED")
             returned_policy = dict(x["AutoScalingPolicy"])
             del returned_policy["Status"]
-            for dimension in y["AutoScalingPolicy"]["Rules"]["Trigger"][
-                "CloudWatchAlarmDefinition"
-            ]["Dimensions"]:
-                dimension["Value"] = cluster_id
-            returned_policy.should.equal(y["AutoScalingPolicy"])
+            policy = json.loads(json.dumps(y["AutoScalingPolicy"]).replace("${emr.clusterId}", cluster_id))
+            returned_policy.should.equal(policy)
         if "EbsConfiguration" in y:
             _do_assertion_ebs_configuration(x, y)
         # Configurations

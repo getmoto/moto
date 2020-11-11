@@ -638,9 +638,7 @@ def test_put_secret_value_on_non_existing_secret():
             VersionStages=["AWSCURRENT"],
         )
 
-    assert \
-        "Secrets Manager can't find the specified secret." == \
-        cm.exception.response["Error"]["Message"]
+    cm.value.response["Error"]["Message"].should.equal("Secrets Manager can't find the specified secret.")
 
 
 @mock_secretsmanager
@@ -954,7 +952,7 @@ def test_tag_resource():
 
     assert \
         "Secrets Manager can't find the specified secret." == \
-        cm.exception.response["Error"]["Message"]
+        cm.value.response["Error"]["Message"]
 
 
 @mock_secretsmanager

@@ -10,17 +10,12 @@ import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 import pytest
-from parameterized import parameterized
 from moto.core.exceptions import JsonRESTError
 from moto.kms.models import KmsBackend
 from moto.kms.exceptions import NotFoundException as MotoNotFoundException
 from moto import mock_kms_deprecated, mock_kms
 
-PLAINTEXT_VECTORS = (
-    (b"some encodeable plaintext",),
-    (b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",),
-    ("some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",),
-)
+PLAINTEXT_VECTORS = [b"some encodeable plaintext", b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16", "some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥"]
 
 
 def _get_encoded_value(plaintext):
@@ -495,7 +490,7 @@ def test__create_alias__raises_if_alias_has_colon_character():
         ex.status.should.equal(400)
 
 
-@parameterized((("alias/my-alias_/",), ("alias/my_alias-/",)))
+@pytest.mark.parametrize("alias_name", ["alias/my-alias_/", "alias/my_alias-/"])
 @mock_kms_deprecated
 def test__create_alias__accepted_characters(alias_name):
     kms = boto.connect_kms()

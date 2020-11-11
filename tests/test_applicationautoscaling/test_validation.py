@@ -7,7 +7,6 @@ from botocore.exceptions import ParamValidationError
 import pytest
 import sure  # noqa
 from botocore.exceptions import ClientError
-from parameterized import parameterized
 from .test_applicationautoscaling import register_scalable_target
 
 DEFAULT_REGION = "us-east-1"
@@ -106,7 +105,7 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_va
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
-@parameterized(
+@pytest.mark.parametrize("namespace,r_id,dimension,expected",
     [
         ("ecs", "service/default/test-svc", "ecs:service:DesiredCount", True),
         ("ecs", "banana/default/test-svc", "ecs:service:DesiredCount", False),

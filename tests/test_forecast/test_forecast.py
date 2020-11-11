@@ -6,7 +6,6 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 from moto import mock_forecast
 from moto.core import ACCOUNT_ID
-from parameterized import parameterized
 
 region = "us-east-1"
 account_id = None
@@ -21,7 +20,7 @@ valid_domains = [
 ]
 
 
-@parameterized(valid_domains)
+@pytest.mark.parametrize("domain", valid_domains)
 @mock_forecast
 def test_forecast_dataset_group_create(domain):
     name = "example_dataset_group"
@@ -41,23 +40,23 @@ def test_forecast_dataset_group_create_invalid_domain():
 
     with pytest.raises(ClientError) as exc:
         client.create_dataset_group(DatasetGroupName=name, Domain=invalid_domain)
-    exc.exception.response["Error"]["Code"].should.equal("ValidationException")
-    exc.exception.response["Error"]["Message"].should.equal(
+    exc.value.response["Error"]["Code"].should.equal("ValidationException")
+    exc.value.response["Error"]["Message"].should.equal(
         "1 validation error detected: Value '"
         + invalid_domain
         + "' at 'domain' failed to satisfy constraint: Member must satisfy enum value set ['INVENTORY_PLANNING', 'METRICS', 'RETAIL', 'EC2_CAPACITY', 'CUSTOM', 'WEB_TRAFFIC', 'WORK_FORCE']"
     )
 
 
-@parameterized([" ", "a" * 64])
+@pytest.mark.parametrize("name", [" ", "a" * 64])
 @mock_forecast
 def test_forecast_dataset_group_create_invalid_name(name):
     client = boto3.client("forecast", region_name=region)
 
     with pytest.raises(ClientError) as exc:
         client.create_dataset_group(DatasetGroupName=name, Domain="CUSTOM")
-    exc.exception.response["Error"]["Code"].should.equal("ValidationException")
-    exc.exception.response["Error"]["Message"].should.contain(
+    exc.value.response["Error"]["Code"].should.equal("ValidationException")
+    exc.value.response["Error"]["Message"].should.contain(
         "1 validation error detected: Value '"
         + name
         + "' at 'datasetGroupName' failed to satisfy constraint: Member must"
@@ -72,7 +71,7 @@ def test_forecast_dataset_group_create_duplicate_fails():
     with pytest.raises(ClientError) as exc:
         client.create_dataset_group(DatasetGroupName="name", Domain="RETAIL")
 
-    exc.exception.response["Error"]["Code"].should.equal(
+    exc.value.response["Error"]["Code"].should.equal(
         "ResourceAlreadyExistsException"
     )
 
@@ -123,8 +122,8 @@ def test_forecast_delete_dataset_group_missing():
 
     with pytest.raises(ClientError) as exc:
         client.delete_dataset_group(DatasetGroupArn=missing_dsg_arn)
-    exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    exc.exception.response["Error"]["Message"].should.equal(
+    exc.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    exc.value.response["Error"]["Message"].should.equal(
         "No resource found " + missing_dsg_arn
     )
 
@@ -153,8 +152,8 @@ def test_forecast_update_dataset_group_not_found():
     )
     with pytest.raises(ClientError) as exc:
         client.update_dataset_group(DatasetGroupArn=dataset_group_arn, DatasetArns=[])
-    exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    exc.exception.response["Error"]["Message"].should.equal(
+    exc.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    exc.value.response["Error"]["Message"].should.equal(
         "No resource found " + dataset_group_arn
     )
 
@@ -181,8 +180,8 @@ def test_describe_dataset_group_missing():
     )
     with pytest.raises(ClientError) as exc:
         client.describe_dataset_group(DatasetGroupArn=dataset_group_arn)
-    exc.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    exc.exception.response["Error"]["Message"].should.equal(
+    exc.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    exc.value.response["Error"]["Message"].should.equal(
         "No resource found " + dataset_group_arn
     )
 
@@ -195,8 +194,8 @@ def test_create_dataset_group_missing_datasets():
         client.create_dataset_group(
             DatasetGroupName="name", Domain="CUSTOM", DatasetArns=[dataset_arn]
         )
-    exc.exception.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.exception.response["Error"]["Message"].should.equal(
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.equal(
         "Dataset arns: [" + dataset_arn + "] are not found"
     )
 
@@ -215,7 +214,7 @@ def test_update_dataset_group_missing_datasets():
         client.update_dataset_group(
             DatasetGroupArn=dataset_group_arn, DatasetArns=[dataset_arn]
         )
-    exc.exception.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.exception.response["Error"]["Message"].should.equal(
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.equal(
         "Dataset arns: [" + dataset_arn + "] are not found"
     )
