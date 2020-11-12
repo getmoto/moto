@@ -813,7 +813,6 @@ class DynamoHandler(BaseResponse):
             item_dict["Attributes"] = self._build_updated_new_attributes(
                 existing_attributes, item_dict["Attributes"]
             )
-
         return dynamo_json_dump(item_dict)
 
     def _build_updated_new_attributes(self, original, changed):
@@ -841,7 +840,7 @@ class DynamoHandler(BaseResponse):
             elif changed != original:
                 return changed
             else:
-                return None
+                return changed #cahnged for issue3448 #was returning None
 
     def describe_limits(self):
         return json.dumps(
