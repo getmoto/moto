@@ -356,19 +356,36 @@ def test_duplicate_put_metric_data():
 
     conn.put_metric_data(
         Namespace="tester",
-        MetricData=[dict(MetricName="metric", Dimensions=[{"Name": "Name", "Value": "B"}], Value=1.5, Timestamp=utc_now)],
-
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[{"Name": "Name", "Value": "B"}],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
     )
 
-    result = conn.list_metrics(Namespace="tester" ,Dimensions=[{"Name": "Name", "Value": "B"}])["Metrics"]
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
     len(result).should.equal(1)
 
     conn.put_metric_data(
         Namespace="tester",
-        MetricData=[dict(MetricName="metric", Dimensions=[{"Name": "Name", "Value": "B"}], Value=1.5, Timestamp=utc_now)],
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[{"Name": "Name", "Value": "B"}],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
     )
 
-    result = conn.list_metrics(Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}])["Metrics"]
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
     len(result).should.equal(1)
 
 

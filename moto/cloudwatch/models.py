@@ -159,7 +159,9 @@ def are_dimensions_same(metric_dimensions, dimensions):
     for dimension in metric_dimensions:
         is_dimension_found = False
         for new_dimension in dimensions:
-            if dimension.name == new_dimension.get('Name') and  dimension.value==new_dimension.get('Value'):
+            if dimension.name == new_dimension.get(
+                "Name"
+            ) and dimension.value == new_dimension.get("Value"):
                 is_dimension_found = True
         if not is_dimension_found:
             return False
@@ -542,8 +544,12 @@ class CloudWatchBackend(BaseBackend):
         metrics = self.get_all_metrics()
         new_metrics = []
         for md in metrics:
-            if md.filter(namespace=namespace, name=metric_name,
-                         dimensions=dimensions, already_present_metrics=new_metrics):
+            if md.filter(
+                namespace=namespace,
+                name=metric_name,
+                dimensions=dimensions,
+                already_present_metrics=new_metrics,
+            ):
                 new_metrics.append(md)
         return new_metrics
 
