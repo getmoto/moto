@@ -611,12 +611,15 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.services = {}
         self.container_instances = {}
         self.task_sets = {}
+        self.at_callback = None
         self.region_name = region_name
 
     def reset(self):
         region_name = self.region_name
+        callback = self.at_callback
         self.__dict__ = {}
         self.__init__(region_name)
+        self.at_callback = callback
 
     def describe_task_definition(self, task_definition_str):
         task_definition_name = task_definition_str.split("/")[-1]
@@ -774,6 +777,12 @@ class EC2ContainerServiceBackend(BaseBackend):
                         container_instance, resource_requirements
                     )
                     tasks.append(task)
+                    if self.at_callback:
+                        self.at_callback(cluster_str=cluster_str,
+                                         task_definition_str=task_definition_str,
+                                         count=count,
+                                         overrides=overrides,
+                                         started_by=started_by)
                     self.tasks[cluster_name][task.task_arn] = task
                     placed_count += 1
                     if placed_count == count:
