@@ -1164,7 +1164,7 @@ class RDS2Backend(BaseBackend):
                 "InvalidParameterValue",
                 "The parameter DBParameterGroupName must be provided and must not be blank.",
             )
-
+        db_parameter_group_kwargs["region"] = self.region
         db_parameter_group = DBParameterGroup(**db_parameter_group_kwargs)
         self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
         return db_parameter_group
@@ -1463,13 +1463,18 @@ class OptionGroupOptionSetting(object):
         return template.render(option_group_option_setting=self)
 
 
+def make_rds_arn(region, name):
+    return "arn:aws:rds:{0}:REDACTED:pg:{1}".format(region, name)
+
+
 class DBParameterGroup(CloudFormationModel):
-    def __init__(self, name, description, family, tags):
+    def __init__(self, name, description, family, tags, region):
         self.name = name
         self.description = description
         self.family = family
         self.tags = tags
         self.parameters = defaultdict(dict)
+        self.arn = make_rds_arn(region, name)
 
     def to_xml(self):
         template = Template(
@@ -1477,6 +1482,7 @@ class DBParameterGroup(CloudFormationModel):
           <DBParameterGroupName>{{ param_group.name }}</DBParameterGroupName>
           <DBParameterGroupFamily>{{ param_group.family }}</DBParameterGroupFamily>
           <Description>{{ param_group.description }}</Description>
+          <DBParameterGroupArn>{{ param_group.arn }}</DBParameterGroupArn>
         </DBParameterGroup>"""
         )
         return template.render(param_group=self)
