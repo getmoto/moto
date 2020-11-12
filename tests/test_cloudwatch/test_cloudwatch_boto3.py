@@ -350,6 +350,29 @@ def test_get_metric_statistics():
 
 
 @mock_cloudwatch
+def test_duplicate_put_metric_data():
+    conn = boto3.client("cloudwatch", region_name="us-east-1")
+    utc_now = datetime.now(tz=pytz.utc)
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[dict(MetricName="metric", Dimensions=[{"Name": "Name", "Value": "B"}], Value=1.5, Timestamp=utc_now)],
+
+    )
+
+    result = conn.list_metrics(Namespace="tester" ,Dimensions=[{"Name": "Name", "Value": "B"}])["Metrics"]
+    len(result).should.equal(1)
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[dict(MetricName="metric", Dimensions=[{"Name": "Name", "Value": "B"}], Value=1.5, Timestamp=utc_now)],
+    )
+
+    result = conn.list_metrics(Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}])["Metrics"]
+    len(result).should.equal(1)
+
+
+@mock_cloudwatch
 @freeze_time("2020-02-10 18:44:05")
 def test_custom_timestamp():
     utc_now = datetime.now(tz=pytz.utc)
