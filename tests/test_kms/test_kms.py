@@ -9,18 +9,17 @@ import six
 import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
-from nose.tools import assert_raises
-from parameterized import parameterized
+import pytest
 from moto.core.exceptions import JsonRESTError
 from moto.kms.models import KmsBackend
 from moto.kms.exceptions import NotFoundException as MotoNotFoundException
 from moto import mock_kms_deprecated, mock_kms
 
-PLAINTEXT_VECTORS = (
-    (b"some encodeable plaintext",),
-    (b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",),
-    ("some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",),
-)
+PLAINTEXT_VECTORS = [
+    b"some encodeable plaintext",
+    b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",
+    "some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",
+]
 
 
 def _get_encoded_value(plaintext):
@@ -192,10 +191,10 @@ def test_generate_data_key():
     response = conn.generate_data_key(key_id=key_id, number_of_bytes=32)
 
     # CiphertextBlob must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(response["CiphertextBlob"], validate=True)
     # Plaintext must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(response["Plaintext"], validate=True)
 
     response["KeyId"].should.equal(key_arn)
@@ -364,10 +363,10 @@ def test__create_alias__raises_if_reserved_alias():
     ]
 
     for alias_name in reserved_aliases:
-        with assert_raises(JSONResponseError) as err:
+        with pytest.raises(JSONResponseError) as err:
             kms.create_alias(alias_name, key_id)
 
-        ex = err.exception
+        ex = err.value
         ex.error_message.should.be.none
         ex.error_code.should.equal("NotAuthorizedException")
         ex.body.should.equal({"__type": "NotAuthorizedException"})
@@ -392,10 +391,10 @@ def test__create_alias__raises_if_wrong_prefix():
     create_resp = kms.create_key()
     key_id = create_resp["KeyMetadata"]["KeyId"]
 
-    with assert_raises(JSONResponseError) as err:
+    with pytest.raises(JSONResponseError) as err:
         kms.create_alias("wrongprefix/my-alias", key_id)
 
-    ex = err.exception
+    ex = err.value
     ex.error_message.should.equal("Invalid identifier")
     ex.error_code.should.equal("ValidationException")
     ex.body.should.equal(
@@ -415,10 +414,10 @@ def test__create_alias__raises_if_duplicate():
 
     kms.create_alias(alias, key_id)
 
-    with assert_raises(AlreadyExistsException) as err:
+    with pytest.raises(AlreadyExistsException) as err:
         kms.create_alias(alias, key_id)
 
-    ex = err.exception
+    ex = err.value
     ex.error_message.should.match(
         r"An alias with the name arn:aws:kms:{region}:\d{{12}}:{alias} already exists".format(
             **locals()
@@ -450,9 +449,9 @@ def test__create_alias__raises_if_alias_has_restricted_characters():
     ]
 
     for alias_name in alias_names_with_restricted_characters:
-        with assert_raises(JSONResponseError) as err:
+        with pytest.raises(JSONResponseError) as err:
             kms.create_alias(alias_name, key_id)
-        ex = err.exception
+        ex = err.value
         ex.body["__type"].should.equal("ValidationException")
         ex.body["message"].should.equal(
             "1 validation error detected: Value '{alias_name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$".format(
@@ -480,9 +479,9 @@ def test__create_alias__raises_if_alias_has_colon_character():
     alias_names_with_restricted_characters = ["alias/my:alias"]
 
     for alias_name in alias_names_with_restricted_characters:
-        with assert_raises(JSONResponseError) as err:
+        with pytest.raises(JSONResponseError) as err:
             kms.create_alias(alias_name, key_id)
-        ex = err.exception
+        ex = err.value
         ex.body["__type"].should.equal("ValidationException")
         ex.body["message"].should.equal(
             "{alias_name} contains invalid characters for an alias".format(**locals())
@@ -495,7 +494,7 @@ def test__create_alias__raises_if_alias_has_colon_character():
         ex.status.should.equal(400)
 
 
-@parameterized((("alias/my-alias_/",), ("alias/my_alias-/",)))
+@pytest.mark.parametrize("alias_name", ["alias/my-alias_/", "alias/my_alias-/"])
 @mock_kms_deprecated
 def test__create_alias__accepted_characters(alias_name):
     kms = boto.connect_kms()
@@ -514,10 +513,10 @@ def test__create_alias__raises_if_target_key_id_is_existing_alias():
 
     kms.create_alias(alias, key_id)
 
-    with assert_raises(JSONResponseError) as err:
+    with pytest.raises(JSONResponseError) as err:
         kms.create_alias(alias, alias)
 
-    ex = err.exception
+    ex = err.value
     ex.body["__type"].should.equal("ValidationException")
     ex.body["message"].should.equal("Aliases must refer to keys. Not aliases")
     ex.error_code.should.equal("ValidationException")
@@ -554,10 +553,10 @@ def test__delete_alias():
 def test__delete_alias__raises_if_wrong_prefix():
     kms = boto.connect_kms()
 
-    with assert_raises(JSONResponseError) as err:
+    with pytest.raises(JSONResponseError) as err:
         kms.delete_alias("wrongprefix/my-alias")
 
-    ex = err.exception
+    ex = err.value
     ex.body["__type"].should.equal("ValidationException")
     ex.body["message"].should.equal("Invalid identifier")
     ex.error_code.should.equal("ValidationException")
@@ -572,13 +571,13 @@ def test__delete_alias__raises_if_alias_is_not_found():
     kms = boto.kms.connect_to_region(region)
     alias_name = "alias/unexisting-alias"
 
-    with assert_raises(NotFoundException) as err:
+    with pytest.raises(NotFoundException) as err:
         kms.delete_alias(alias_name)
 
     expected_message_match = r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(
         region=region, alias_name=alias_name
     )
-    ex = err.exception
+    ex = err.value
     ex.body["__type"].should.equal("NotFoundException")
     ex.body["message"].should.match(expected_message_match)
     ex.box_usage.should.be.none

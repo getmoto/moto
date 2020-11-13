@@ -6,10 +6,7 @@ import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
-
-import functools
-import nose
-
+import pytest
 
 DEFAULT_REGION = "eu-central-1"
 
@@ -689,6 +686,7 @@ def test_submit_job_by_name():
 @mock_ecs
 @mock_iam
 @mock_batch
+@pytest.mark.network
 def test_submit_job():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
@@ -740,7 +738,9 @@ def test_submit_job():
     else:
         raise RuntimeError("Batch job timed out")
 
-    resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
+    resp = logs_client.describe_log_streams(
+        logGroupName="/aws/batch/job", logStreamNamePrefix="sayhellotomylittlefriend"
+    )
     len(resp["logStreams"]).should.equal(1)
     ls_name = resp["logStreams"][0]["logStreamName"]
 
@@ -755,6 +755,7 @@ def test_submit_job():
 @mock_ecs
 @mock_iam
 @mock_batch
+@pytest.mark.network
 def test_list_jobs():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)

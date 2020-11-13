@@ -114,8 +114,7 @@ class FakeShadow(BaseModel):
         }
 
     def to_dict(self, include_delta=True):
-        """returning nothing except for just top-level keys for now.
-        """
+        """returning nothing except for just top-level keys for now."""
         if self.deleted:
             return {"timestamp": self.timestamp, "version": self.version}
         delta = self.parse_payload(self.desired, self.reported)

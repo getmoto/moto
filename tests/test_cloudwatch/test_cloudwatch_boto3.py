@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 from freezegun import freeze_time
-from nose.tools import assert_raises
+import pytest
 from uuid import uuid4
 import pytz
 import sure  # noqa
@@ -111,18 +111,18 @@ def test_delete_invalid_alarm():
     )
 
     # trying to delete an alarm which is not created along with valid alarm.
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName", "testalarm1"])
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
 
     resp = cloudwatch.describe_alarms(AlarmNames=["testalarm1"])
     # making sure other alarms are not deleted in case of an error.
     len(resp["MetricAlarms"]).should.equal(1)
 
     # test to check if the error raises if only one invalid alarm is tried to delete.
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName"])
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
 
 
 @mock_cloudwatch
@@ -423,9 +423,9 @@ def test_list_metrics_paginated():
     # Verify that only a single page of metrics is returned
     cloudwatch.list_metrics()["Metrics"].should.be.empty
     # Verify we can't pass a random NextToken
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=str(uuid4()))
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Message"].should.equal(
         "Request parameter NextToken is invalid"
     )
     # Add a boatload of metrics
@@ -452,9 +452,9 @@ def test_list_metrics_paginated():
     len(third_page["Metrics"]).should.equal(100)
     third_page.shouldnt.contain("NextToken")
     # Verify that we can't reuse an existing token
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=first_page["NextToken"])
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Message"].should.equal(
         "Request parameter NextToken is invalid"
     )
 

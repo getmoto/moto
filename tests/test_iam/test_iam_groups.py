@@ -6,7 +6,7 @@ import boto
 import boto3
 import sure  # noqa
 
-from nose.tools import assert_raises
+import pytest
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
@@ -29,7 +29,7 @@ MOCK_POLICY = """
 def test_create_group():
     conn = boto.connect_iam()
     conn.create_group("my-group")
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.create_group("my-group")
 
 
@@ -38,7 +38,7 @@ def test_get_group():
     conn = boto.connect_iam()
     conn.create_group("my-group")
     conn.get_group("my-group")
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.get_group("not-group")
 
 
@@ -77,10 +77,10 @@ def test_get_all_groups():
 @mock_iam_deprecated()
 def test_add_user_to_group():
     conn = boto.connect_iam()
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.add_user_to_group("my-group", "my-user")
     conn.create_group("my-group")
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.add_user_to_group("my-group", "my-user")
     conn.create_user("my-user")
     conn.add_user_to_group("my-group", "my-user")
@@ -89,11 +89,11 @@ def test_add_user_to_group():
 @mock_iam_deprecated()
 def test_remove_user_from_group():
     conn = boto.connect_iam()
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.remove_user_from_group("my-group", "my-user")
     conn.create_group("my-group")
     conn.create_user("my-user")
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.remove_user_from_group("my-group", "my-user")
     conn.add_user_to_group("my-group", "my-user")
     conn.remove_user_from_group("my-group", "my-user")
@@ -150,7 +150,7 @@ def test_attach_group_policies():
 def test_get_group_policy():
     conn = boto.connect_iam()
     conn.create_group("my-group")
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.get_group_policy("my-group", "my-policy")
 
     conn.put_group_policy("my-group", "my-policy", MOCK_POLICY)
@@ -199,9 +199,9 @@ def test_delete_group():
 @mock_iam
 def test_delete_unknown_group():
     conn = boto3.client("iam", region_name="us-east-1")
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         conn.delete_group(GroupName="unknown-group")
-    err.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    err.value.response["Error"]["Message"].should.equal(
         "The group with name unknown-group cannot be found."
     )

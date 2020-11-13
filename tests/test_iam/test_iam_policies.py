@@ -2,7 +2,7 @@ import json
 
 import boto3
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_iam
 
@@ -1624,14 +1624,14 @@ def test_create_policy_with_valid_policy_documents():
 @mock_iam
 def check_create_policy_with_invalid_policy_document(test_case):
     conn = boto3.client("iam", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_policy(
             PolicyName="TestCreatePolicy",
             PolicyDocument=json.dumps(test_case["document"]),
         )
-    ex.exception.response["Error"]["Code"].should.equal("MalformedPolicyDocument")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(test_case["error_message"])
+    ex.value.response["Error"]["Code"].should.equal("MalformedPolicyDocument")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(test_case["error_message"])
 
 
 @mock_iam

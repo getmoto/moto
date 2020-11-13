@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
 
 import re
 
@@ -28,11 +27,11 @@ def test_igw_create():
 
     conn.get_all_internet_gateways().should.have.length_of(0)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         igw = conn.create_internet_gateway(dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -51,11 +50,11 @@ def test_igw_attach():
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.attach_internet_gateway(igw.id, vpc.id, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AttachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -71,11 +70,11 @@ def test_igw_attach_bad_vpc():
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.attach_internet_gateway(igw.id, BAD_VPC)
-    cm.exception.code.should.equal("InvalidVpcID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVpcID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -87,11 +86,11 @@ def test_igw_attach_twice():
     vpc2 = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw.id, vpc1.id)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.attach_internet_gateway(igw.id, vpc2.id)
-    cm.exception.code.should.equal("Resource.AlreadyAssociated")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("Resource.AlreadyAssociated")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -102,11 +101,11 @@ def test_igw_detach():
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw.id, vpc.id)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.detach_internet_gateway(igw.id, vpc.id, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DetachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -124,11 +123,11 @@ def test_igw_detach_wrong_vpc():
     vpc2 = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw.id, vpc1.id)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.detach_internet_gateway(igw.id, vpc2.id)
-    cm.exception.code.should.equal("Gateway.NotAttached")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("Gateway.NotAttached")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -139,11 +138,11 @@ def test_igw_detach_invalid_vpc():
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw.id, vpc.id)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.detach_internet_gateway(igw.id, BAD_VPC)
-    cm.exception.code.should.equal("Gateway.NotAttached")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("Gateway.NotAttached")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -153,11 +152,11 @@ def test_igw_detach_unattached():
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.detach_internet_gateway(igw.id, vpc.id)
-    cm.exception.code.should.equal("Gateway.NotAttached")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("Gateway.NotAttached")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -169,11 +168,11 @@ def test_igw_delete():
     igw = conn.create_internet_gateway()
     conn.get_all_internet_gateways().should.have.length_of(1)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.delete_internet_gateway(igw.id, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -189,11 +188,11 @@ def test_igw_delete_attached():
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw.id, vpc.id)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_internet_gateway(igw.id)
-    cm.exception.code.should.equal("DependencyViolation")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("DependencyViolation")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -209,11 +208,11 @@ def test_igw_desribe():
 def test_igw_describe_bad_id():
     """ internet gateway fail to fetch by bad id """
     conn = boto.connect_vpc("the_key", "the_secret")
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_internet_gateways([BAD_IGW])
-    cm.exception.code.should.equal("InvalidInternetGatewayID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidInternetGatewayID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated

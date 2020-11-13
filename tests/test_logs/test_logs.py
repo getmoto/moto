@@ -5,8 +5,8 @@ import six
 from botocore.exceptions import ClientError
 
 from moto import mock_logs, settings
-from nose.tools import assert_raises
-from nose import SkipTest
+import pytest
+from unittest import SkipTest
 
 _logs_region = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -28,13 +28,13 @@ def test_exceptions():
     log_group_name = "dummy"
     log_stream_name = "dummp-stream"
     conn.create_log_group(logGroupName=log_group_name)
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_log_group(logGroupName=log_group_name)
 
     # descrine_log_groups is not implemented yet
 
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_log_stream(
             logGroupName=log_group_name, logStreamName=log_stream_name
         )
@@ -45,7 +45,7 @@ def test_exceptions():
         logEvents=[{"timestamp": 0, "message": "line"}],
     )
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.put_log_events(
             logGroupName=log_group_name,
             logStreamName="invalid-stream",
@@ -117,7 +117,7 @@ def test_filter_logs_raises_if_filter_pattern():
     conn.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
     )
-    with assert_raises(NotImplementedError):
+    with pytest.raises(NotImplementedError):
         conn.filter_log_events(
             logGroupName=log_group_name,
             logStreamNames=[log_stream_name],
@@ -332,13 +332,13 @@ def test_get_log_events_errors():
     client.create_log_group(logGroupName=log_group_name)
     client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_log_events(
             logGroupName=log_group_name,
             logStreamName=log_stream_name,
             nextToken="n/00000000000000000000000000000000000000000000000000000000",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetLogEvents")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -346,13 +346,13 @@ def test_get_log_events_errors():
         "The specified nextToken is invalid."
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_log_events(
             logGroupName=log_group_name,
             logStreamName=log_stream_name,
             nextToken="not-existing-token",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetLogEvents")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -447,11 +447,11 @@ def test_describe_subscription_filters_errors():
     client = boto3.client("logs", "us-east-1")
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.describe_subscription_filters(logGroupName="not-existing-log-group",)
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeSubscriptionFilters")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
