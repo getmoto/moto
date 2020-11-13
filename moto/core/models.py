@@ -252,11 +252,15 @@ responses_mock.add_passthru("http")
 
 
 def _find_first_match(self, request):
+    match_failed_reasons = []
     for i, match in enumerate(self._matches):
-        if match.matches(request):
-            return match
+        match_result, reason = match.matches(request)
+        if match_result:
+            return match, match_failed_reasons
+        else:
+            match_failed_reasons.append(reason)
 
-    return None
+    return None, match_failed_reasons
 
 
 # Modify behaviour of the matcher to only/always return the first match
