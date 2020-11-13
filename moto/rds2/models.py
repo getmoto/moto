@@ -9,7 +9,8 @@ from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -157,6 +158,7 @@ class Database(CloudFormationModel):
                     family=db_family,
                     description=description,
                     tags={},
+                    region=self.region,
                 )
             ]
         else:
@@ -1464,7 +1466,7 @@ class OptionGroupOptionSetting(object):
 
 
 def make_rds_arn(region, name):
-    return "arn:aws:rds:{0}:REDACTED:pg:{1}".format(region, name)
+    return "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, name)
 
 
 class DBParameterGroup(CloudFormationModel):
