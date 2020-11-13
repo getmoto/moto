@@ -1,4 +1,3 @@
-import pytest
 from moto.dynamodb2.exceptions import (
     AttributeIsReservedKeyword,
     ExpressionAttributeValueNotDefined,
@@ -8,11 +7,10 @@ from moto.dynamodb2.exceptions import (
     InvalidUpdateExpressionInvalidDocumentPath,
     EmptyKeyAttributeException,
 )
-from moto.dynamodb2.models import Item, DynamoType
+from moto.dynamodb2.models import Item, DynamoType, Table
 from moto.dynamodb2.parsing.ast_nodes import (
     NodeDepthLeftTypeFetcher,
     UpdateExpressionSetAction,
-    UpdateExpressionValue,
     DDBTypedValue,
 )
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
@@ -20,8 +18,17 @@ from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
 from parameterized import parameterized
 
 
-def test_validation_of_empty_string_key_val(table):
-    with pytest.raises(EmptyKeyAttributeException):
+TABLE = Table(
+    "Forums",
+    schema=[
+        {"KeyType": "HASH", "AttributeName": "forum_name"},
+        {"KeyType": "RANGE", "AttributeName": "subject"},
+    ],
+)
+
+
+def test_validation_of_empty_string_key_val():
+    try:
         update_expression = "set forum_name=:NewName"
         update_expression_values = {":NewName": {"S": ""}}
         update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -37,11 +44,14 @@ def test_validation_of_empty_string_key_val(table):
             expression_attribute_names=None,
             expression_attribute_values=update_expression_values,
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
+        assert False, "No exception raised"
+    except EmptyKeyAttributeException:
+        pass
 
 
-def test_validation_of_update_expression_with_keyword(table):
+def test_validation_of_update_expression_with_keyword():
     try:
         update_expression = "SET myNum = path + :val"
         update_expression_values = {":val": {"N": "3"}}
@@ -58,7 +68,7 @@ def test_validation_of_update_expression_with_keyword(table):
             expression_attribute_names=None,
             expression_attribute_values=update_expression_values,
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
         assert False, "No exception raised"
     except AttributeIsReservedKeyword as e:
@@ -69,7 +79,7 @@ def test_validation_of_update_expression_with_keyword(table):
     ["SET a = #b + :val2", "SET a = :val2 + #b",]
 )
 def test_validation_of_a_set_statement_with_incorrect_passed_value(
-    update_expression, table
+    update_expression
 ):
     """
     By running permutations it shows that values are replaced prior to resolving attributes.
@@ -91,15 +101,13 @@ def test_validation_of_a_set_statement_with_incorrect_passed_value(
             expression_attribute_names={"#b": "ok"},
             expression_attribute_values={":val": {"N": "3"}},
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
     except ExpressionAttributeValueNotDefined as e:
         assert e.attribute_value == ":val2"
 
 
-def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_item(
-    table,
-):
+def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_item():
     """
     When an update expression tries to get an attribute that does not exist it must throw the appropriate exception.
 
@@ -121,7 +129,7 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
             expression_attribute_names=None,
             expression_attribute_values=None,
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
         assert False, "No exception raised"
     except AttributeDoesNotExist:
@@ -132,7 +140,7 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
     ["SET a = #c", "SET a = #c + #d",]
 )
 def test_validation_of_update_expression_with_attribute_name_that_is_not_defined(
-    update_expression, table,
+    update_expression,
 ):
     """
     When an update expression tries to get an attribute name that is not provided it must throw an exception.
@@ -154,14 +162,14 @@ def test_validation_of_update_expression_with_attribute_name_that_is_not_defined
             expression_attribute_names={"#b": "ok"},
             expression_attribute_values=None,
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
         assert False, "No exception raised"
     except ExpressionAttributeNameNotDefined as e:
         assert e.not_defined_attribute_name == "#c"
 
 
-def test_validation_of_if_not_exists_not_existing_invalid_replace_value(table):
+def test_validation_of_if_not_exists_not_existing_invalid_replace_value():
     try:
         update_expression = "SET a = if_not_exists(b, a.c)"
         update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -177,7 +185,7 @@ def test_validation_of_if_not_exists_not_existing_invalid_replace_value(table):
             expression_attribute_names=None,
             expression_attribute_values=None,
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
         assert False, "No exception raised"
     except AttributeDoesNotExist:
@@ -206,7 +214,7 @@ def get_set_action_value(ast):
     return dynamo_value
 
 
-def test_validation_of_if_not_exists_not_existing_value(table):
+def test_validation_of_if_not_exists_not_existing_value():
     update_expression = "SET a = if_not_exists(b, a)"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -221,15 +229,13 @@ def test_validation_of_if_not_exists_not_existing_value(table):
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"S": "A"})
 
 
-def test_validation_of_if_not_exists_with_existing_attribute_should_return_attribute(
-    table,
-):
+def test_validation_of_if_not_exists_with_existing_attribute_should_return_attribute():
     update_expression = "SET a = if_not_exists(b, a)"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -244,13 +250,13 @@ def test_validation_of_if_not_exists_with_existing_attribute_should_return_attri
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"S": "B"})
 
 
-def test_validation_of_if_not_exists_with_existing_attribute_should_return_value(table):
+def test_validation_of_if_not_exists_with_existing_attribute_should_return_value():
     update_expression = "SET a = if_not_exists(b, :val)"
     update_expression_values = {":val": {"N": "4"}}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -266,15 +272,13 @@ def test_validation_of_if_not_exists_with_existing_attribute_should_return_value
         expression_attribute_names=None,
         expression_attribute_values=update_expression_values,
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"N": "3"})
 
 
-def test_validation_of_if_not_exists_with_non_existing_attribute_should_return_value(
-    table,
-):
+def test_validation_of_if_not_exists_with_non_existing_attribute_should_return_value():
     update_expression = "SET a = if_not_exists(b, :val)"
     update_expression_values = {":val": {"N": "4"}}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -290,13 +294,13 @@ def test_validation_of_if_not_exists_with_non_existing_attribute_should_return_v
         expression_attribute_names=None,
         expression_attribute_values=update_expression_values,
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"N": "4"})
 
 
-def test_validation_of_sum_operation(table):
+def test_validation_of_sum_operation():
     update_expression = "SET a = a + b"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -311,13 +315,13 @@ def test_validation_of_sum_operation(table):
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"N": "7"})
 
 
-def test_validation_homogeneous_list_append_function(table):
+def test_validation_homogeneous_list_append_function():
     update_expression = "SET ri = list_append(ri, :vals)"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -332,7 +336,7 @@ def test_validation_homogeneous_list_append_function(table):
         expression_attribute_names=None,
         expression_attribute_values={":vals": {"L": [{"S": "i3"}, {"S": "i4"}]}},
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType(
@@ -340,7 +344,7 @@ def test_validation_homogeneous_list_append_function(table):
     )
 
 
-def test_validation_hetereogenous_list_append_function(table):
+def test_validation_hetereogenous_list_append_function():
     update_expression = "SET ri = list_append(ri, :vals)"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -355,13 +359,13 @@ def test_validation_hetereogenous_list_append_function(table):
         expression_attribute_names=None,
         expression_attribute_values={":vals": {"L": [{"N": "3"}]}},
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"L": [{"S": "i1"}, {"S": "i2"}, {"N": "3"}]})
 
 
-def test_validation_list_append_function_with_non_list_arg(table):
+def test_validation_list_append_function_with_non_list_arg():
     """
     Must error out:
     Invalid UpdateExpression: Incorrect operand type for operator or function;
@@ -384,14 +388,14 @@ def test_validation_list_append_function_with_non_list_arg(table):
             expression_attribute_names=None,
             expression_attribute_values={":vals": {"S": "N"}},
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
     except IncorrectOperandType as e:
         assert e.operand_type == "S"
         assert e.operator_or_function == "list_append"
 
 
-def test_sum_with_incompatible_types(table):
+def test_sum_with_incompatible_types():
     """
     Must error out:
     Invalid UpdateExpression: Incorrect operand type for operator or function; operator or function: +, operand type: S'
@@ -413,14 +417,14 @@ def test_sum_with_incompatible_types(table):
             expression_attribute_names=None,
             expression_attribute_values={":val": {"S": "N"}, ":val2": {"N": "3"}},
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
     except IncorrectOperandType as e:
         assert e.operand_type == "S"
         assert e.operator_or_function == "+"
 
 
-def test_validation_of_subraction_operation(table):
+def test_validation_of_subraction_operation():
     update_expression = "SET ri = :val - :val2"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -435,13 +439,13 @@ def test_validation_of_subraction_operation(table):
         expression_attribute_names=None,
         expression_attribute_values={":val": {"N": "1"}, ":val2": {"N": "3"}},
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"N": "-2"})
 
 
-def test_cannot_index_into_a_string(table):
+def test_cannot_index_into_a_string():
     """
     Must error out:
     The document path provided in the update expression is invalid for update'
@@ -461,16 +465,14 @@ def test_cannot_index_into_a_string(table):
             expression_attribute_names=None,
             expression_attribute_values={":Item": {"S": "string_update"}},
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
         assert False, "Must raise exception"
     except InvalidUpdateExpressionInvalidDocumentPath:
         assert True
 
 
-def test_validation_set_path_does_not_need_to_be_resolvable_when_setting_a_new_attribute(
-    table,
-):
+def test_validation_set_path_does_not_need_to_be_resolvable_when_setting_a_new_attribute():
     """If this step just passes we are happy enough"""
     update_expression = "set d=a"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -486,15 +488,13 @@ def test_validation_set_path_does_not_need_to_be_resolvable_when_setting_a_new_a
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
-        table=table,
+        table=TABLE,
     ).validate()
     dynamo_value = get_set_action_value(validated_ast)
     assert dynamo_value == DynamoType({"N": "3"})
 
 
-def test_validation_set_path_does_not_need_to_be_resolvable_but_must_be_creatable_when_setting_a_new_attribute(
-    table,
-):
+def test_validation_set_path_does_not_need_to_be_resolvable_but_must_be_creatable_when_setting_a_new_attribute():
     try:
         update_expression = "set d.e=a"
         update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -510,7 +510,7 @@ def test_validation_set_path_does_not_need_to_be_resolvable_but_must_be_creatabl
             expression_attribute_names=None,
             expression_attribute_values=None,
             item=item,
-            table=table,
+            table=TABLE,
         ).validate()
         assert False, "Must raise exception"
     except InvalidUpdateExpressionInvalidDocumentPath:
