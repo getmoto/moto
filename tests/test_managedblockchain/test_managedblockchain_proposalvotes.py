@@ -5,7 +5,7 @@ import os
 import boto3
 import sure  # noqa
 from freezegun import freeze_time
-from nose import SkipTest
+from unittest import SkipTest
 
 from moto import mock_managedblockchain, settings
 from . import helpers

@@ -1,9 +1,10 @@
+import pytest
+
 from moto.dynamodb2.exceptions import IncorrectOperandType, IncorrectDataType
 from moto.dynamodb2.models import Item, DynamoType, Table
 from moto.dynamodb2.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
-from parameterized import parameterized
 
 
 TABLE = Table(
@@ -405,7 +406,8 @@ def test_execution_of_add_to_a_set():
     assert expected_item == item
 
 
-@parameterized(
+@pytest.mark.parametrize(
+    "expression_attribute_values,unexpected_data_type",
     [
         ({":value": {"S": "10"}}, "STRING",),
         ({":value": {"N": "10"}}, "NUMBER",),
@@ -414,7 +416,7 @@ def test_execution_of_add_to_a_set():
         ({":value": {"NULL": True}}, "NULL",),
         ({":value": {"M": {"el0": {"S": "10"}}}}, "MAP",),
         ({":value": {"L": []}}, "LIST",),
-    ]
+    ],
 )
 def test_execution_of__delete_element_from_set_invalid_value(
     expression_attribute_values, unexpected_data_type

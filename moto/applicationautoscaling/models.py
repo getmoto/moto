@@ -110,8 +110,8 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return r_id in self.targets.get(dimension, [])
 
     def _ecs_service_exists_for_target(self, r_id):
-        """ Raises a ValidationException if an ECS service does not exist
-            for the specified resource ID.
+        """Raises a ValidationException if an ECS service does not exist
+        for the specified resource ID.
         """
         resource_type, cluster, service = r_id.split("/")
         result = self.ecs_backend.describe_services(cluster, [service])

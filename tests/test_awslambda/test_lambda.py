@@ -24,7 +24,7 @@ from moto import (
     mock_sqs,
 )
 from moto.sts.models import ACCOUNT_ID
-from nose.tools import assert_raises
+import pytest
 from botocore.exceptions import ClientError
 
 _lambda_region = "us-west-2"
@@ -93,6 +93,7 @@ def test_list_functions():
     result["Functions"].should.have.length_of(0)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_requestresponse_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -137,6 +138,7 @@ def test_invoke_requestresponse_function():
     assert "LogResult" not in success_result
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_requestresponse_function_with_arn():
     from moto.awslambda.models import ACCOUNT_ID
@@ -169,6 +171,7 @@ def test_invoke_requestresponse_function_with_arn():
     json.loads(payload).should.equal(in_data)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_event_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -196,6 +199,7 @@ def test_invoke_event_function():
     json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_dryrun_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -258,6 +262,7 @@ if settings.TEST_SERVER_MODE:
         actual_payload.should.equal(expected_payload)
 
 
+@pytest.mark.network
 @mock_logs
 @mock_sns
 @mock_ec2
@@ -497,7 +502,7 @@ def test_get_function():
     )
 
     # Test get function when can't find function name
-    with assert_raises(conn.exceptions.ResourceNotFoundException):
+    with pytest.raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
 
 
@@ -729,6 +734,7 @@ def test_list_create_list_get_delete_list():
     conn.list_functions()["Functions"].should.have.length_of(0)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_lambda_error():
     lambda_fx = """
@@ -844,6 +850,7 @@ def test_tags_not_found():
     ).should.throw(botocore.client.ClientError)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_async_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -1115,6 +1122,7 @@ def test_create_event_source_mapping():
     assert response["State"] == "Enabled"
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_sqs
@@ -1156,6 +1164,7 @@ def test_invoke_function_from_sqs():
     )
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_dynamodb2
@@ -1204,6 +1213,7 @@ def test_invoke_function_from_dynamodb_put():
     )
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_dynamodb2
@@ -1286,6 +1296,7 @@ def wait_for_log_msg(expected_msg, log_group):
     return False, received_messages
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_sqs
@@ -1662,7 +1673,7 @@ def test_update_function_s3():
 @mock_lambda
 def test_create_function_with_invalid_arn():
     err = create_invalid_lambda("test-iam-role")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         r"1 validation error detected: Value 'test-iam-role' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
     )
 
@@ -1670,7 +1681,7 @@ def test_create_function_with_invalid_arn():
 @mock_lambda
 def test_create_function_with_arn_from_different_account():
     err = create_invalid_lambda("arn:aws:iam::000000000000:role/example_role")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         "Cross-account pass role is not allowed."
     )
 
@@ -1680,7 +1691,7 @@ def test_create_function_with_unknown_arn():
     err = create_invalid_lambda(
         "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/service-role/unknown_role"
     )
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         "The role defined for the function cannot be assumed by Lambda."
     )
 
@@ -1800,7 +1811,7 @@ def test_get_function_concurrency():
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         conn.create_function(
             FunctionName="testFunction",
             Runtime="python2.7",

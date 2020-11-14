@@ -7,7 +7,7 @@ import zlib
 from botocore.exceptions import ClientError
 from io import BytesIO
 from moto import mock_logs, mock_lambda, mock_iam
-from nose.tools import assert_raises
+import pytest
 from zipfile import ZipFile, ZIP_DEFLATED
 
 
@@ -78,7 +78,7 @@ def test_put_subscription_filter_update():
 
     # when
     # only one subscription filter can be associated with a log group
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.put_subscription_filter(
             logGroupName=log_group_name,
             filterName="test-2",
@@ -87,7 +87,7 @@ def test_put_subscription_filter_update():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("LimitExceededException")
@@ -96,6 +96,7 @@ def test_put_subscription_filter_update():
 
 @mock_lambda
 @mock_logs
+@pytest.mark.network
 def test_put_subscription_filter_with_lambda():
     # given
     region_name = "us-east-1"
@@ -240,13 +241,13 @@ def test_delete_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
             logGroupName="not-existing-log-group", filterName="test",
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeleteSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -255,13 +256,13 @@ def test_delete_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
             logGroupName="/test", filterName="wrong-filter-name",
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeleteSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -278,7 +279,7 @@ def test_put_subscription_filter_errors():
     client.create_log_group(logGroupName=log_group_name)
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="not-existing-log-group",
             filterName="test",
@@ -287,7 +288,7 @@ def test_put_subscription_filter_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -296,7 +297,7 @@ def test_put_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="/test",
             filterName="test",
@@ -305,7 +306,7 @@ def test_put_subscription_filter_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterException")
@@ -315,7 +316,7 @@ def test_put_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="/test",
             filterName="test",
@@ -324,7 +325,7 @@ def test_put_subscription_filter_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterException")

@@ -17,7 +17,7 @@ from tests.helpers import requires_boto_gte
 import moto.dynamodb2.comparisons
 import moto.dynamodb2.models
 
-from nose.tools import assert_raises
+import pytest
 
 try:
     import boto.dynamodb2
@@ -72,7 +72,7 @@ def test_describe_missing_table():
     conn = boto.dynamodb2.connect_to_region(
         "us-west-2", aws_access_key_id="ak", aws_secret_access_key="sk"
     )
-    with assert_raises(JSONResponseError):
+    with pytest.raises(JSONResponseError):
         conn.describe_table("messages")
 
 
@@ -201,7 +201,7 @@ def test_item_add_empty_string_in_key_exception():
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.put_item(
             TableName=name,
             Item={
@@ -213,9 +213,9 @@ def test_item_add_empty_string_in_key_exception():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     )
 
@@ -277,7 +277,7 @@ def test_update_item_with_empty_string_in_key_exception():
         },
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.update_item(
             TableName=name,
             Key={"forum_name": {"S": "LOLCat Forum"}},
@@ -285,9 +285,9 @@ def test_update_item_with_empty_string_in_key_exception():
             ExpressionAttributeValues={":NewName": {"S": ""}},
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     )
 
@@ -1419,12 +1419,12 @@ def test_put_empty_item():
     )
     table = dynamodb.Table("test")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         table.put_item(Item={})
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Missing the key structure_id in the item"
     )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_dynamodb2
@@ -1438,12 +1438,12 @@ def test_put_item_nonexisting_hash_key():
     )
     table = dynamodb.Table("test")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         table.put_item(Item={"a_terribly_misguided_id_attribute": "abcdef"})
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Missing the key structure_id in the item"
     )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_dynamodb2
@@ -1463,12 +1463,12 @@ def test_put_item_nonexisting_range_key():
     )
     table = dynamodb.Table("test")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         table.put_item(Item={"structure_id": "abcdef"})
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Missing the key added_at in the item"
     )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 def test_filter_expression():
@@ -2045,7 +2045,7 @@ def test_delete_item():
     assert response["Count"] == 2
 
     # Test ReturnValues validation
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         table.delete_item(
             Key={"client": "client1", "app": "app1"}, ReturnValues="ALL_NEW"
         )
@@ -2150,11 +2150,11 @@ def test_describe_continuous_backups_errors():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     # when
-    with assert_raises(Exception) as e:
+    with pytest.raises(Exception) as e:
         client.describe_continuous_backups(TableName="not-existing-table")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeContinuousBackups")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TableNotFoundException")
@@ -2236,14 +2236,14 @@ def test_update_continuous_backups_errors():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     # when
-    with assert_raises(Exception) as e:
+    with pytest.raises(Exception) as e:
         client.update_continuous_backups(
             TableName="not-existing-table",
             PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UpdateContinuousBackups")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TableNotFoundException")
@@ -2356,7 +2356,7 @@ def test_update_item_on_map():
         ExpressionAttributeValues={":tb": "new_value"},
     )
     # Running this against AWS DDB gives an exception so make sure it also fails.:
-    with assert_raises(client.exceptions.ClientError):
+    with pytest.raises(client.exceptions.ClientError):
         # botocore.exceptions.ClientError: An error occurred (ValidationException) when calling the UpdateItem
         # operation: The document path provided in the update expression is invalid for update
         table.update_item(
@@ -2386,7 +2386,7 @@ def test_update_item_on_map():
     )
 
     # Test nested value for a nonexistent attribute throws a ClientError.
-    with assert_raises(client.exceptions.ClientError):
+    with pytest.raises(client.exceptions.ClientError):
         table.update_item(
             Key={"forum_name": "the-key", "subject": "123"},
             UpdateExpression="SET nonexistent.#nested = :tb",
@@ -2474,7 +2474,7 @@ def test_update_return_attributes():
     r = update("col1", "val5", "NONE")
     assert r["Attributes"] == {}
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         r = update("col1", "val6", "WRONG")
 
 
@@ -2503,15 +2503,15 @@ def test_put_return_attributes():
     )
     assert r["Attributes"] == {"id": {"S": "foo"}, "col1": {"S": "val1"}}
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.put_item(
             TableName="moto-test",
             Item={"id": {"S": "foo"}, "col1": {"S": "val3"}},
             ReturnValues="ALL_NEW",
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Return values set to invalid value"
     )
 
@@ -2740,7 +2740,7 @@ def test_condition_expressions():
         },
     )
 
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
             TableName="test1",
             Item={
@@ -2756,7 +2756,7 @@ def test_condition_expressions():
             },
         )
 
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
             TableName="test1",
             Item={
@@ -2772,7 +2772,7 @@ def test_condition_expressions():
             },
         )
 
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
             TableName="test1",
             Item={
@@ -2800,7 +2800,7 @@ def test_condition_expressions():
         ExpressionAttributeValues={":match": {"S": "match"}},
     )
 
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.update_item(
             TableName="test1",
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
@@ -2810,7 +2810,7 @@ def test_condition_expressions():
             ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
         )
 
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.delete_item(
             TableName="test1",
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
@@ -2895,7 +2895,7 @@ def test_condition_expression__attr_doesnt_exist():
     update_if_attr_doesnt_exist()
 
     # Second time should fail
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         update_if_attr_doesnt_exist()
 
 
@@ -2935,7 +2935,7 @@ def test_condition_expression__and_order():
 
     # ensure that the RHS of the AND expression is not evaluated if the LHS
     # returns true (as it would result an error)
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.update_item(
             TableName="test",
             Key={"forum_name": {"S": "the-key"}},
@@ -3031,12 +3031,12 @@ def test_scan_by_non_exists_index():
         ],
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.scan(TableName="test", IndexName="non_exists_index")
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "The table does not have the specified index: non_exists_index"
     )
 
@@ -3066,15 +3066,15 @@ def test_query_by_non_exists_index():
         ],
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.query(
             TableName="test",
             IndexName="non_exists_index",
             KeyConditionExpression="CarModel=M",
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
     )
 
@@ -3106,7 +3106,7 @@ def test_batch_items_returns_all():
 @mock_dynamodb2
 def test_batch_items_throws_exception_when_requesting_100_items_for_single_table():
     dynamodb = _create_user_table()
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.batch_get_item(
             RequestItems={
                 "users": {
@@ -3117,8 +3117,8 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
                 }
             }
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    msg = ex.exception.response["Error"]["Message"]
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    msg = ex.value.response["Error"]["Message"]
     msg.should.contain("1 validation error detected: Value")
     msg.should.contain(
         "at 'requestItems.users.member.keys' failed to satisfy constraint: Member must have length less than or equal to 100"
@@ -3128,7 +3128,7 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
 @mock_dynamodb2
 def test_batch_items_throws_exception_when_requesting_100_items_across_all_tables():
     dynamodb = _create_user_table()
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.batch_get_item(
             RequestItems={
                 "users": {
@@ -3145,8 +3145,8 @@ def test_batch_items_throws_exception_when_requesting_100_items_across_all_table
                 },
             }
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Too many items requested for the BatchGetItem call"
     )
 
@@ -3225,7 +3225,7 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
 @mock_dynamodb2
 def test_batch_items_should_throw_exception_for_duplicate_request():
     client = _create_user_table()
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.batch_get_item(
             RequestItems={
                 "users": {
@@ -3237,8 +3237,8 @@ def test_batch_items_should_throw_exception_for_duplicate_request():
                 }
             }
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Provided list of item keys contains duplicates"
     )
 
@@ -3251,7 +3251,7 @@ def test_index_with_unknown_attributes_should_fail():
         "Some index key attributes are not defined in AttributeDefinitions."
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.create_table(
             AttributeDefinitions=[
                 {"AttributeName": "customer_nr", "AttributeType": "S"},
@@ -3275,8 +3275,8 @@ def test_index_with_unknown_attributes_should_fail():
             BillingMode="PAY_PER_REQUEST",
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.contain(expected_exception)
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(expected_exception)
 
 
 @mock_dynamodb2
@@ -3431,7 +3431,7 @@ def test_update_list_index__set_index_of_a_string():
     client.put_item(
         TableName=table_name, Item={"id": {"S": "foo2"}, "itemstr": {"S": "somestring"}}
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.update_item(
             TableName=table_name,
             Key={"id": {"S": "foo2"}},
@@ -3442,8 +3442,8 @@ def test_update_list_index__set_index_of_a_string():
             "Item"
         ]
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "The document path provided in the update expression is invalid for update"
     )
 
@@ -3680,19 +3680,19 @@ def test_item_size_is_under_400KB():
 
 
 def assert_failure_due_to_item_size(func, **kwargs):
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Item size has exceeded the maximum allowed size"
     )
 
 
 def assert_failure_due_to_item_size_to_update(func, **kwargs):
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Item size to update has exceeded the maximum allowed size"
     )
 
@@ -3719,10 +3719,10 @@ def test_hash_key_cannot_use_begins_with_operations():
             batch.put_item(Item=item)
 
     table = dynamodb.Table("test-table")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         table.query(KeyConditionExpression=Key("key").begins_with("prefix-"))
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Query key condition not supported"
     )
 
@@ -4112,7 +4112,7 @@ def test_update_catches_invalid_list_append_operation():
     )
 
     # Update item using invalid list_append expression
-    with assert_raises(ParamValidationError) as ex:
+    with pytest.raises(ParamValidationError) as ex:
         client.update_item(
             TableName="TestTable",
             Key={"SHA256": {"S": "sha-of-file"}},
@@ -4121,10 +4121,8 @@ def test_update_catches_invalid_list_append_operation():
         )
 
     # Verify correct error is returned
-    str(ex.exception).should.match("Parameter validation failed:")
-    str(ex.exception).should.match(
-        "Invalid type for parameter ExpressionAttributeValues."
-    )
+    str(ex.value).should.match("Parameter validation failed:")
+    str(ex.value).should.match("Invalid type for parameter ExpressionAttributeValues.")
 
 
 def _create_user_table():
@@ -4231,12 +4229,12 @@ def test_query_catches_when_no_filters():
     )
     table = dynamo.Table("origin-rbu-dev")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         table.query(TableName="original-rbu-dev")
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Either KeyConditions or QueryFilter should be present"
     )
 
@@ -4262,7 +4260,7 @@ def test_invalid_transact_get_items():
 
     client = boto3.client("dynamodb", region_name="us-east-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.transact_get_items(
             TransactItems=[
                 {"Get": {"Key": {"id": {"S": "1"}}, "TableName": "test1"}}
@@ -4270,25 +4268,23 @@ def test_invalid_transact_get_items():
             ]
         )
 
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.match(
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.match(
         r"failed to satisfy constraint: Member must have length less than or equal to 25",
         re.I,
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.transact_get_items(
             TransactItems=[
-                {"Get": {"Key": {"id": {"S": "1"},}, "TableName": "test1"}},
-                {"Get": {"Key": {"id": {"S": "1"},}, "TableName": "non_exists_table"}},
+                {"Get": {"Key": {"id": {"S": "1"},}, "TableName": "test1",}},
+                {"Get": {"Key": {"id": {"S": "1"},}, "TableName": "non_exists_table",}},
             ]
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "Requested resource not found"
-    )
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
 @mock_dynamodb2
@@ -4556,7 +4552,7 @@ def test_transact_write_items_put_conditional_expressions():
         TableName="test-table", Item={"id": {"S": "foo2"},},
     )
     # Put multiple items
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.transact_write_items(
             TransactItems=[
                 {
@@ -4579,8 +4575,8 @@ def test_transact_write_items_put_conditional_expressions():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4646,7 +4642,7 @@ def test_transact_write_items_conditioncheck_fails():
     )
     # Try to put an email address, but verify whether it exists
     # ConditionCheck should fail
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.transact_write_items(
             TransactItems=[
                 {
@@ -4669,8 +4665,8 @@ def test_transact_write_items_conditioncheck_fails():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Assert the original email address is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
@@ -4752,7 +4748,7 @@ def test_transact_write_items_delete_with_failed_condition_expression():
     )
     # Try to delete an item that does not have an email address
     # ConditionCheck should fail
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.transact_write_items(
             TransactItems=[
                 {
@@ -4766,8 +4762,8 @@ def test_transact_write_items_delete_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4823,7 +4819,7 @@ def test_transact_write_items_update_with_failed_condition_expression():
     )
     # Try to update an item that does not have an email address
     # ConditionCheck should fail
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.transact_write_items(
             TransactItems=[
                 {
@@ -4839,8 +4835,8 @@ def test_transact_write_items_update_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -5383,7 +5379,7 @@ def test_transact_write_items_fails_with_transaction_canceled_exception():
     # Insert one item
     dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
     # Update two items, the one that exists and another that doesn't
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         dynamodb.transact_write_items(
             TransactItems=[
                 {
@@ -5408,9 +5404,9 @@ def test_transact_write_items_fails_with_transaction_canceled_exception():
                 },
             ]
         )
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]"
     )
 

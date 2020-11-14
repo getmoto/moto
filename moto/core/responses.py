@@ -62,9 +62,9 @@ def _decode_dict(d):
 
 class DynamicDictLoader(DictLoader):
     """
-      Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
-        Including the fixed (current) method version here to ensure performance benefit
-        even for those using older jinja versions.
+    Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
+      Including the fixed (current) method version here to ensure performance benefit
+      even for those using older jinja versions.
     """
 
     def get_source(self, environment, template):
