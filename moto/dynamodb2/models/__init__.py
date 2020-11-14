@@ -109,7 +109,10 @@ class Item(BaseModel):
 
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
-            action = update_action["Action"]
+            # Use default Action value, if no explicit Action is passed.
+            # Default value is 'Put', according to
+            # Boto3 DynamoDB.Client.update_item documentation.
+            action = update_action.get("Action", "PUT")
             if action == "DELETE" and "Value" not in update_action:
                 if attribute_name in self.attrs:
                     del self.attrs[attribute_name]
