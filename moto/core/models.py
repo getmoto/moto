@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import functools
 import inspect
 import os
+import pkg_resources
 import re
 import six
 import types
@@ -14,6 +15,7 @@ from collections import defaultdict
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
+from distutils.version import LooseVersion
 from six.moves.urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
@@ -28,6 +30,7 @@ from .utils import (
 )
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
+RESPONSES_VERSION = pkg_resources.get_distribution('responses').version
 
 
 class BaseMockAWS(object):
@@ -254,14 +257,20 @@ responses_mock.add_passthru("http")
 def _find_first_match(self, request):
     match_failed_reasons = []
     for i, match in enumerate(self._matches):
-        match_result, reason = match.matches(request)
-        if match_result:
-            return match, match_failed_reasons
+        if LooseVersion(RESPONSES_VERSION) < LooseVersion('0.12.1'):
+            if match.matches(request):
+                return match
         else:
-            match_failed_reasons.append(reason)
+            match_result, reason = match.matches(request)
+            if match_result:
+                return match, match_failed_reasons
+            else:
+                match_failed_reasons.append(reason)
 
-    return None, match_failed_reasons
-
+    if LooseVersion(RESPONSES_VERSION) < LooseVersion('0.12.1'):
+        return None
+    else:
+        return None, match_failed_reasons
 
 # Modify behaviour of the matcher to only/always return the first match
 # Default behaviour is to return subsequent matches for subsequent requests, which leads to https://github.com/spulec/moto/issues/2567
