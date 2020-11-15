@@ -2443,37 +2443,36 @@ def test_update_return_updated_new_attributes_when_same():
     dynamo_client = boto3.resource("dynamodb", region_name="us-east-1")
     dynamo_client.create_table(
         TableName="moto-test",
-        KeySchema=[{'AttributeName': 'HashKey1', 'KeyType': 'HASH'}],
-        AttributeDefinitions=[{'AttributeName': 'HashKey1', 'AttributeType': 'S'}],
-        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        KeySchema=[{"AttributeName": "HashKey1", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "HashKey1", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
-    
 
     dynamodb_table = dynamo_client.Table("moto-test")
-    dynamodb_table.put_item(Item={
-        "HashKey1": "HashKeyValue1",
-        "listValuedAttribute1": ['a','b']})
+    dynamodb_table.put_item(
+        Item={"HashKey1": "HashKeyValue1", "listValuedAttribute1": ["a", "b"]}
+    )
 
     def update(col, to, rv):
         return dynamodb_table.update_item(
             TableName="moto-test",
             Key={"HashKey1": "HashKeyValue1"},
             UpdateExpression=f"SET listValuedAttribute1=:{col}",
-            ExpressionAttributeValues={':'+col: to},
+            ExpressionAttributeValues={":" + col: to},
             ReturnValues=rv,
         )
 
-    r = update('a', ['a', 'c'], "UPDATED_NEW")
-    assert r["Attributes"] == {'listValuedAttribute1': ['a', 'c']}
+    r = update("a", ["a", "c"], "UPDATED_NEW")
+    assert r["Attributes"] == {"listValuedAttribute1": ["a", "c"]}
 
-    r = update('a', {'a', 'c'}, "UPDATED_NEW")
-    assert r["Attributes"] == {'listValuedAttribute1': {'a', 'c'}}
+    r = update("a", {"a", "c"}, "UPDATED_NEW")
+    assert r["Attributes"] == {"listValuedAttribute1": {"a", "c"}}
 
-    r = update('a', {1,2}, "UPDATED_NEW")
-    assert r["Attributes"] == {'listValuedAttribute1': {1, 2}}
+    r = update("a", {1, 2}, "UPDATED_NEW")
+    assert r["Attributes"] == {"listValuedAttribute1": {1, 2}}
 
     with pytest.raises(ClientError) as ex:
-        r = update('a', ['a', 'c'], "WRONG")
+        r = update("a", ["a", "c"], "WRONG")
 
 
 @mock_dynamodb2
