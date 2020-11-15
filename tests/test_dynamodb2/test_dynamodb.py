@@ -2436,6 +2436,7 @@ def test_update_return_attributes():
     with pytest.raises(ClientError) as ex:
         r = update("col1", "val6", "WRONG")
 
+
 # https://github.com/spulec/moto/issues/3448
 @mock_dynamodb2
 def test_update_return_updated_new_attributes_when_same():
@@ -2471,7 +2472,7 @@ def test_update_return_updated_new_attributes_when_same():
     r = update('a', {1,2}, "UPDATED_NEW")
     assert r["Attributes"] == {'listValuedAttribute1': {1, 2}}
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         r = update('a', ['a', 'c'], "WRONG")
 
 

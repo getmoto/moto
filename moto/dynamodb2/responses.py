@@ -837,10 +837,8 @@ class DynamoHandler(BaseResponse):
                         )
                         for index in range(len(changed))
                     ]
-            elif changed != original:
-                return changed
             else:
-                return changed #cahnged for issue3448 #was returning None
+                return changed
 
     def describe_limits(self):
         return json.dumps(
