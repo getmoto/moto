@@ -2457,7 +2457,7 @@ def test_update_return_updated_new_attributes_when_same():
         return dynamodb_table.update_item(
             TableName="moto-test",
             Key={"HashKey1": "HashKeyValue1"},
-            UpdateExpression=f"SET listValuedAttribute1=:{col}",
+            UpdateExpression="SET listValuedAttribute1=:" + col,
             ExpressionAttributeValues={":" + col: to},
             ReturnValues=rv,
         )
