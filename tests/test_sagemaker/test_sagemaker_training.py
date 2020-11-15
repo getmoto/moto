@@ -7,7 +7,6 @@ import sure  # noqa
 
 from moto import mock_sagemaker
 from moto.sts.models import ACCOUNT_ID
-from nose.tools import assert_true, assert_equal, assert_raises, assert_regexp_matches
 
 FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
 TEST_REGION_NAME = "us-east-1"
@@ -82,46 +81,42 @@ def test_create_training_job():
     resp["TrainingJobArn"].should.match(
         r"^arn:aws:sagemaker:.*:.*:training-job/{}$".format(training_job_name)
     )
-    assert_true(
-        resp["ModelArtifacts"]["S3ModelArtifacts"].startswith(
-            params["OutputDataConfig"]["S3OutputPath"]
-        )
+    assert resp["ModelArtifacts"]["S3ModelArtifacts"].startswith(
+        params["OutputDataConfig"]["S3OutputPath"]
     )
-    assert_true(training_job_name in (resp["ModelArtifacts"]["S3ModelArtifacts"]))
-    assert_true(
-        resp["ModelArtifacts"]["S3ModelArtifacts"].endswith("output/model.tar.gz")
+    assert training_job_name in (resp["ModelArtifacts"]["S3ModelArtifacts"])
+    assert resp["ModelArtifacts"]["S3ModelArtifacts"].endswith("output/model.tar.gz")
+    assert resp["TrainingJobStatus"] == "Completed"
+    assert resp["SecondaryStatus"] == "Completed"
+    assert resp["HyperParameters"] == params["HyperParameters"]
+    assert (
+        resp["AlgorithmSpecification"]["TrainingImage"]
+        == params["AlgorithmSpecification"]["TrainingImage"]
     )
-    assert_equal(resp["TrainingJobStatus"], "Completed")
-    assert_equal(resp["SecondaryStatus"], "Completed")
-    assert_equal(resp["HyperParameters"], params["HyperParameters"])
-    assert_equal(
-        resp["AlgorithmSpecification"]["TrainingImage"],
-        params["AlgorithmSpecification"]["TrainingImage"],
+    assert (
+        resp["AlgorithmSpecification"]["TrainingInputMode"]
+        == params["AlgorithmSpecification"]["TrainingInputMode"]
     )
-    assert_equal(
-        resp["AlgorithmSpecification"]["TrainingInputMode"],
-        params["AlgorithmSpecification"]["TrainingInputMode"],
-    )
-    assert_true("MetricDefinitions" in resp["AlgorithmSpecification"])
-    assert_true("Name" in resp["AlgorithmSpecification"]["MetricDefinitions"][0])
-    assert_true("Regex" in resp["AlgorithmSpecification"]["MetricDefinitions"][0])
-    assert_equal(resp["RoleArn"], FAKE_ROLE_ARN)
-    assert_equal(resp["InputDataConfig"], params["InputDataConfig"])
-    assert_equal(resp["OutputDataConfig"], params["OutputDataConfig"])
-    assert_equal(resp["ResourceConfig"], params["ResourceConfig"])
-    assert_equal(resp["StoppingCondition"], params["StoppingCondition"])
-    assert_true(isinstance(resp["CreationTime"], datetime.datetime))
-    assert_true(isinstance(resp["TrainingStartTime"], datetime.datetime))
-    assert_true(isinstance(resp["TrainingEndTime"], datetime.datetime))
-    assert_true(isinstance(resp["LastModifiedTime"], datetime.datetime))
-    assert_true("SecondaryStatusTransitions" in resp)
-    assert_true("Status" in resp["SecondaryStatusTransitions"][0])
-    assert_true("StartTime" in resp["SecondaryStatusTransitions"][0])
-    assert_true("EndTime" in resp["SecondaryStatusTransitions"][0])
-    assert_true("StatusMessage" in resp["SecondaryStatusTransitions"][0])
-    assert_true("FinalMetricDataList" in resp)
-    assert_true("MetricName" in resp["FinalMetricDataList"][0])
-    assert_true("Value" in resp["FinalMetricDataList"][0])
-    assert_true("Timestamp" in resp["FinalMetricDataList"][0])
+    assert "MetricDefinitions" in resp["AlgorithmSpecification"]
+    assert "Name" in resp["AlgorithmSpecification"]["MetricDefinitions"][0]
+    assert "Regex" in resp["AlgorithmSpecification"]["MetricDefinitions"][0]
+    assert resp["RoleArn"] == FAKE_ROLE_ARN
+    assert resp["InputDataConfig"] == params["InputDataConfig"]
+    assert resp["OutputDataConfig"] == params["OutputDataConfig"]
+    assert resp["ResourceConfig"] == params["ResourceConfig"]
+    assert resp["StoppingCondition"] == params["StoppingCondition"]
+    assert isinstance(resp["CreationTime"], datetime.datetime)
+    assert isinstance(resp["TrainingStartTime"], datetime.datetime)
+    assert isinstance(resp["TrainingEndTime"], datetime.datetime)
+    assert isinstance(resp["LastModifiedTime"], datetime.datetime)
+    assert "SecondaryStatusTransitions" in resp
+    assert "Status" in resp["SecondaryStatusTransitions"][0]
+    assert "StartTime" in resp["SecondaryStatusTransitions"][0]
+    assert "EndTime" in resp["SecondaryStatusTransitions"][0]
+    assert "StatusMessage" in resp["SecondaryStatusTransitions"][0]
+    assert "FinalMetricDataList" in resp
+    assert "MetricName" in resp["FinalMetricDataList"][0]
+    assert "Value" in resp["FinalMetricDataList"][0]
+    assert "Timestamp" in resp["FinalMetricDataList"][0]
 
     pass

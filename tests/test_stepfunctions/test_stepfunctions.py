@@ -6,7 +6,7 @@ import sure  # noqa
 
 from datetime import datetime
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_cloudformation, mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
@@ -134,7 +134,7 @@ def test_state_machine_creation_fails_with_invalid_names():
     #
 
     for invalid_name in invalid_names:
-        with assert_raises(ClientError):
+        with pytest.raises(ClientError):
             client.create_state_machine(
                 name=invalid_name,
                 definition=str(simple_definition),
@@ -147,7 +147,7 @@ def test_state_machine_creation_requires_valid_role_arn():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.create_state_machine(
             name=name,
             definition=str(simple_definition),
@@ -291,7 +291,7 @@ def test_state_machine_creation_can_be_described():
 def test_state_machine_throws_error_when_describing_unknown_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:"
             + region
@@ -307,7 +307,7 @@ def test_state_machine_throws_error_when_describing_unknown_machine():
 def test_state_machine_throws_error_when_describing_bad_arn():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.describe_state_machine(stateMachineArn="bad")
 
 
@@ -316,7 +316,7 @@ def test_state_machine_throws_error_when_describing_bad_arn():
 def test_state_machine_throws_error_when_describing_machine_in_different_account():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:" + region + ":000000000000:stateMachine:unknown"
         )
@@ -359,10 +359,10 @@ def test_state_machine_tagging_non_existent_resource_fails():
     non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
         region=region, account=ACCOUNT_ID
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.tag_resource(resourceArn=non_existent_arn, tags=[])
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
-    ex.exception.response["Error"]["Message"].should.contain(non_existent_arn)
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
 
 
 @mock_stepfunctions
@@ -371,10 +371,10 @@ def test_state_machine_untagging_non_existent_resource_fails():
     non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
         region=region, account=ACCOUNT_ID
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.untag_resource(resourceArn=non_existent_arn, tagKeys=[])
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
-    ex.exception.response["Error"]["Message"].should.contain(non_existent_arn)
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
 
 
 @mock_stepfunctions
@@ -504,7 +504,7 @@ def test_state_machine_start_execution():
 def test_state_machine_start_execution_bad_arn_raises_exception():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.start_execution(stateMachineArn="bad")
 
 
@@ -544,11 +544,11 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
         stateMachineArn=sm["stateMachineArn"], name="execution_name"
     )
     #
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as ex:
         _ = client.start_execution(
             stateMachineArn=sm["stateMachineArn"], name="execution_name"
         )
-    exc.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "Execution Already Exists: '" + execution_one["executionArn"] + "'"
     )
 
@@ -588,9 +588,9 @@ def test_state_machine_start_execution_with_invalid_input():
     sm = client.create_state_machine(
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="")
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="{")
 
 
@@ -658,7 +658,7 @@ def test_state_machine_list_executions_with_pagination():
     for page in page_iterator:
         page["executions"].should.have.length_of(25)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         resp = client.list_executions(
             stateMachineArn=sm["stateMachineArn"], maxResults=10
         )
@@ -668,16 +668,16 @@ def test_state_machine_list_executions_with_pagination():
             statusFilter="ABORTED",
             nextToken=resp["nextToken"],
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidToken")
-    ex.exception.response["Error"]["Message"].should.contain(
+    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
+    ex.value.response["Error"]["Message"].should.contain(
         "Input inconsistent with page token"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.list_executions(
             stateMachineArn=sm["stateMachineArn"], nextToken="invalid"
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidToken")
+    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
 
 
 @mock_stepfunctions
@@ -744,7 +744,7 @@ def test_state_machine_describe_execution_with_custom_input():
 def test_execution_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )
@@ -775,7 +775,7 @@ def test_state_machine_can_be_described_by_execution():
 def test_state_machine_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )
@@ -861,10 +861,10 @@ def test_state_machine_cloudformation():
         tag["value"].should.equal("value{}".format(i))
 
     cf.Stack("test_stack").delete()
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
-    ex.exception.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
-    ex.exception.response["Error"]["Message"].should.contain("Does Not Exist")
+    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain("Does Not Exist")
 
 
 @mock_stepfunctions
@@ -935,12 +935,10 @@ def test_state_machine_cloudformation_update_with_replacement():
         if tag["key"] == "key1":
             tag["value"].should.equal("updated_value")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         sf.describe_state_machine(stateMachineArn=original_machine_arn)
-    ex.exception.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
-    ex.exception.response["Error"]["Message"].should.contain(
-        "State Machine Does Not Exist"
-    )
+    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain("State Machine Does Not Exist")
 
 
 @mock_stepfunctions

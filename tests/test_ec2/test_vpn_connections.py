@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
+
 import boto
 import boto3
-from nose.tools import assert_raises
+import pytest
 import sure  # noqa
 from boto.exception import EC2ResponseError
-
-from moto import mock_ec2_deprecated, mock_ec2
+from moto import mock_ec2, mock_ec2_deprecated
 
 
 @mock_ec2_deprecated
@@ -35,7 +35,7 @@ def test_delete_vpn_connections():
 @mock_ec2_deprecated
 def test_delete_vpn_connections_bad_id():
     conn = boto.connect_vpc("the_key", "the_secret")
-    with assert_raises(EC2ResponseError):
+    with pytest.raises(EC2ResponseError):
         conn.delete_vpn_connection("vpn-0123abcd")
 
 

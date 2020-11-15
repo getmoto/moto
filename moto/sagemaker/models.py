@@ -580,7 +580,9 @@ class SageMakerModelBackend(BaseBackend):
         message = "Could not find model '{}'.".format(
             Model.arn_for_model_name(model_name, self.region_name)
         )
-        raise ValidationError(message=message)
+        raise RESTError(
+            error_type="ValidationException", message=message, template="error_json",
+        )
 
     def list_models(self):
         models = []
