@@ -30,7 +30,7 @@ from .utils import (
 )
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
-RESPONSES_VERSION = pkg_resources.get_distribution('responses').version
+RESPONSES_VERSION = pkg_resources.get_distribution("responses").version
 
 
 class BaseMockAWS(object):
@@ -254,30 +254,37 @@ responses_mock = responses._default_mock
 responses_mock.add_passthru("http")
 
 
+def _find_first_match_legacy(self, request):
+    for i, match in enumerate(self._matches):
+        if match.matches(request):
+            return match
+
+    return None
+
+
 def _find_first_match(self, request):
     match_failed_reasons = []
     for i, match in enumerate(self._matches):
-        if LooseVersion(RESPONSES_VERSION) < LooseVersion('0.12.1'):
-            if match.matches(request):
-                return match
+        match_result, reason = match.matches(request)
+        if match_result:
+            return match, match_failed_reasons
         else:
-            match_result, reason = match.matches(request)
-            if match_result:
-                return match, match_failed_reasons
-            else:
-                match_failed_reasons.append(reason)
+            match_failed_reasons.append(reason)
 
-    if LooseVersion(RESPONSES_VERSION) < LooseVersion('0.12.1'):
-        return None
-    else:
-        return None, match_failed_reasons
+    return None, match_failed_reasons
+
 
 # Modify behaviour of the matcher to only/always return the first match
 # Default behaviour is to return subsequent matches for subsequent requests, which leads to https://github.com/spulec/moto/issues/2567
 #  - First request matches on the appropriate S3 URL
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match
-responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
+if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
+    responses_mock._find_match = types.MethodType(
+        _find_first_match_legacy, responses_mock
+    )
+else:
+    responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
 
 
 BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
