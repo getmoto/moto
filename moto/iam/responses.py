@@ -1684,6 +1684,16 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <UserId>{{ user.id }}</UserId>
          <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
          <Arn>{{ user.arn }}</Arn>
+         {% if user.tags %}
+         <Tags>
+            {% for tag in user.tags %}
+            <member>
+                <Key>{{ tag['Key'] }}</Key>
+                <Value>{{ tag['Value'] }}</Value>
+            </member>
+            {% endfor %}
+         </Tags>
+         {% endif %}
      </User>
    </{{ action }}UserResult>
    <ResponseMetadata>

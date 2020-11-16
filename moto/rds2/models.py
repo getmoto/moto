@@ -280,6 +280,14 @@ class Database(CloudFormationModel):
                 <Port>{{ database.port }}</Port>
               </Endpoint>
               <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
+              <TagList>
+              {%- for tag in database.tags -%}
+                <Tag>
+                  <Key>{{ tag['Key'] }}</Key>
+                  <Value>{{ tag['Value'] }}</Value>
+                </Tag>
+              {%- endfor -%}
+              </TagList>
             </DBInstance>"""
         )
         return template.render(database=self)

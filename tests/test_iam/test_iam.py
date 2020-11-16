@@ -4002,3 +4002,20 @@ def test_list_roles_none_found_returns_empty_list():
     response = iam.list_roles(MaxItems=10)
     roles = response["Roles"]
     assert len(roles) == 0
+
+
+@mock_iam()
+def test_create_user_with_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    user_name = "test-user"
+    tags = [
+        {"Key": "somekey", "Value": "somevalue"},
+        {"Key": "someotherkey", "Value": "someothervalue"},
+    ]
+    resp = conn.create_user(UserName=user_name, Tags=tags)
+    assert resp["User"]["Tags"] == tags
+    resp = conn.list_user_tags(UserName=user_name)
+    assert resp["Tags"] == tags
+
+    resp = conn.create_user(UserName="test-create-user-no-tags")
+    assert "Tags" not in resp["User"]
