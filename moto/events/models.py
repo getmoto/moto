@@ -25,6 +25,7 @@ class Rule(CloudFormationModel):
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
         self.role_arn = kwargs.get("RoleArn")
+        self.event_bus_name = kwargs.get("EventBusName", "default")
         self.targets = []
 
     @property
