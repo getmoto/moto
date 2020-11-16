@@ -1032,16 +1032,16 @@ def test_security_configurations():
 
     client.delete_security_configuration(Name=security_configuration_name)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.describe_security_configuration(Name=security_configuration_name)
-    ex.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
-    ex.exception.response["Error"]["Message"].should.match(
+    ex.value.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ex.value.response["Error"]["Message"].should.match(
         r"Security configuration with name .* does not exist."
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_security_configuration(Name=security_configuration_name)
-    ex.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
-    ex.exception.response["Error"]["Message"].should.match(
+    ex.value.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ex.value.response["Error"]["Message"].should.match(
         r"Security configuration with name .* does not exist."
     )
