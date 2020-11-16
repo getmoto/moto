@@ -194,7 +194,7 @@ class RecordSet(CloudFormationModel):
                 <ResourceRecords>
                     {% for record in record_set.records %}
                     <ResourceRecord>
-                        <Value>{{ record }}</Value>
+                        <Value>{{ record|e }}</Value>
                     </ResourceRecord>
                     {% endfor %}
                 </ResourceRecords>
