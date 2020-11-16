@@ -1521,7 +1521,7 @@ def test_create_db_parameter_group():
         "test parameter group"
     )
     db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"].should.equal(
-        "arn:aws:rds:{0}:REDACTED:pg:{1}".format(region, pg_name)
+        "arn:aws:rds:{0}:123456789012:pg:{1}".format(region, pg_name)
     )
 
 
@@ -1647,7 +1647,7 @@ def test_describe_db_parameter_group():
         "test"
     )
     db_parameter_groups["DBParameterGroups"][0]["DBParameterGroupArn"].should.equal(
-        "arn:aws:rds:{0}:REDACTED:pg:{1}".format(region, pg_name)
+        "arn:aws:rds:{0}:123456789012:pg:{1}".format(region, pg_name)
     )
 
 
