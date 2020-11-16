@@ -1749,3 +1749,21 @@ def test_create_db_snapshot_with_iam_authentication():
     ).get("DBSnapshot")
 
     snapshot.get("IAMDatabaseAuthenticationEnabled").should.equal(True)
+
+
+@mock_rds2
+def test_create_db_instance_with_tags():
+    client = boto3.client("rds", region_name="us-west-2")
+    tags = [{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}]
+    db_instance_identifier = "test-db-instance"
+    resp = client.create_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        Tags=tags,
+    )
+    resp["DBInstance"]["TagList"].should.equal(tags)
+
+    resp = client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
+    resp["DBInstances"][0]["TagList"].should.equal(tags)
