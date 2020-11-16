@@ -677,3 +677,59 @@ def test_run_instances_should_attach_to_default_subnet():
         subnets[0]["AvailableIpAddressCount"] == 4090
         or subnets[1]["AvailableIpAddressCount"] == 4090
     )
+
+
+@mock_ec2
+def test_describe_subnets_by_vpc_id():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc1.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
+    )
+    vpc2 = ec2.create_vpc(CidrBlock="172.31.0.0/16")
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc2.id, CidrBlock="172.31.48.0/20", AvailabilityZone="us-west-1b"
+    )
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": [vpc1.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(1)
+    subnets[0]["SubnetId"].should.equal(subnet1.id)
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": [vpc2.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(1)
+    subnets[0]["SubnetId"].should.equal(subnet2.id)
+
+    # Specify multiple VPCs in Filter.
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": [vpc1.id, vpc2.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(2)
+
+    # Specify mismatched SubnetIds/Filters.
+    subnets = client.describe_subnets(
+        SubnetIds=[subnet1.id], Filters=[{"Name": "vpc-id", "Values": [vpc2.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(0)
+
+
+@mock_ec2
+def test_describe_subnets_by_state():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
+    )
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "state", "Values": ["available"]}]
+    ).get("Subnets", [])
+    for subnet in subnets:
+        subnet["State"].should.equal("available")
