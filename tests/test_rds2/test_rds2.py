@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
+from moto.core import ACCOUNT_ID
 
 
 @mock_rds2
@@ -1521,7 +1522,7 @@ def test_create_db_parameter_group():
         "test parameter group"
     )
     db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"].should.equal(
-        "arn:aws:rds:{0}:123456789012:pg:{1}".format(region, pg_name)
+        "arn:aws:rds:{0}:{1}:pg:{2}".format(region,ACCOUNT_ID, pg_name)
     )
 
 
@@ -1647,7 +1648,7 @@ def test_describe_db_parameter_group():
         "test"
     )
     db_parameter_groups["DBParameterGroups"][0]["DBParameterGroupArn"].should.equal(
-        "arn:aws:rds:{0}:123456789012:pg:{1}".format(region, pg_name)
+        "arn:aws:rds:{0}:{1}:pg:{2}".format(region,ACCOUNT_ID, pg_name)
     )
 
 
