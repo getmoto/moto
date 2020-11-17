@@ -102,11 +102,29 @@ class ElasticMapReduceResponse(BaseResponse):
     def cancel_steps(self):
         raise NotImplementedError
 
+    @generate_boto3_response("CreateSecurityConfiguration")
     def create_security_configuration(self):
-        raise NotImplementedError
+        name = self._get_param("Name")
+        security_configuration = self._get_param("SecurityConfiguration")
+        resp = self.backend.create_security_configuration(
+            name=name, security_configuration=security_configuration
+        )
+        template = self.response_template(CREATE_SECURITY_CONFIGURATION_TEMPLATE)
+        return template.render(name=name, creation_date_time=resp.creation_date_time)
 
+    @generate_boto3_response("DescribeSecurityConfiguration")
+    def describe_security_configuration(self):
+        name = self._get_param("Name")
+        security_configuration = self.backend.get_security_configuration(name=name)
+        template = self.response_template(DESCRIBE_SECURITY_CONFIGURATION_TEMPLATE)
+        return template.render(security_configuration=security_configuration)
+
+    @generate_boto3_response("DeleteSecurityConfiguration")
     def delete_security_configuration(self):
-        raise NotImplementedError
+        name = self._get_param("Name")
+        self.backend.delete_security_configuration(name=name)
+        template = self.response_template(DELETE_SECURITY_CONFIGURATION_TEMPLATE)
+        return template.render()
 
     @generate_boto3_response("DescribeCluster")
     def describe_cluster(self):
@@ -189,9 +207,6 @@ class ElasticMapReduceResponse(BaseResponse):
         cluster = self.backend.modify_cluster(cluster_id, step_concurrency_level)
         template = self.response_template(MODIFY_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
-
-    def describe_security_configuration(self):
-        raise NotImplementedError
 
     @generate_boto3_response("ModifyInstanceGroups")
     def modify_instance_groups(self):
@@ -326,6 +341,39 @@ class ElasticMapReduceResponse(BaseResponse):
         step_concurrency_level = self._get_param("StepConcurrencyLevel")
         if step_concurrency_level:
             kwargs["step_concurrency_level"] = step_concurrency_level
+
+        security_configuration = self._get_param("SecurityConfiguration")
+        if security_configuration:
+            kwargs["security_configuration"] = security_configuration
+
+        kerberos_attributes = {}
+        kwargs["kerberos_attributes"] = kerberos_attributes
+
+        realm = self._get_param("KerberosAttributes.Realm")
+        if realm:
+            kerberos_attributes["Realm"] = realm
+
+        kdc_admin_password = self._get_param("KerberosAttributes.KdcAdminPassword")
+        if kdc_admin_password:
+            kerberos_attributes["KdcAdminPassword"] = kdc_admin_password
+
+        cross_realm_principal_password = self._get_param(
+            "KerberosAttributes.CrossRealmTrustPrincipalPassword"
+        )
+        if cross_realm_principal_password:
+            kerberos_attributes[
+                "CrossRealmTrustPrincipalPassword"
+            ] = cross_realm_principal_password
+
+        ad_domain_join_user = self._get_param("KerberosAttributes.ADDomainJoinUser")
+        if ad_domain_join_user:
+            kerberos_attributes["ADDomainJoinUser"] = ad_domain_join_user
+
+        ad_domain_join_password = self._get_param(
+            "KerberosAttributes.ADDomainJoinPassword"
+        )
+        if ad_domain_join_password:
+            kerberos_attributes["ADDomainJoinPassword"] = ad_domain_join_password
 
         cluster = self.backend.run_job_flow(**kwargs)
 
@@ -560,6 +608,23 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
         <ServiceAccessSecurityGroup>{{ cluster.service_access_security_group }}</ServiceAccessSecurityGroup>
       </Ec2InstanceAttributes>
       <Id>{{ cluster.id }}</Id>
+      <KerberosAttributes>
+        {% if 'Realm' in cluster.kerberos_attributes%}
+        <Realm>{{ cluster.kerberos_attributes['Realm'] }}</Realm>
+        {% endif %}
+        {% if 'KdcAdminPassword' in cluster.kerberos_attributes%}
+        <KdcAdminPassword>{{ cluster.kerberos_attributes['KdcAdminPassword'] }}</KdcAdminPassword>
+        {% endif %}
+        {% if 'CrossRealmTrustPrincipalPassword' in cluster.kerberos_attributes%}
+        <CrossRealmTrustPrincipalPassword>{{ cluster.kerberos_attributes['CrossRealmTrustPrincipalPassword'] }}</CrossRealmTrustPrincipalPassword>
+        {% endif %}
+        {% if 'ADDomainJoinUser' in cluster.kerberos_attributes%}
+        <ADDomainJoinUser>{{ cluster.kerberos_attributes['ADDomainJoinUser'] }}</ADDomainJoinUser>
+        {% endif %}
+        {% if 'ADDomainJoinPassword' in cluster.kerberos_attributes%}
+        <ADDomainJoinPassword>{{ cluster.kerberos_attributes['ADDomainJoinPassword'] }}</ADDomainJoinPassword>
+        {% endif %}
+      </KerberosAttributes>
       <LogUri>{{ cluster.log_uri }}</LogUri>
       <MasterPublicDnsName>ec2-184-0-0-1.us-west-1.compute.amazonaws.com</MasterPublicDnsName>
       <Name>{{ cluster.name }}</Name>
@@ -573,7 +638,9 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       {% if cluster.running_ami_version is not none %}
       <RunningAmiVersion>{{ cluster.running_ami_version }}</RunningAmiVersion>
       {% endif %}
-      <SecurityConfiguration/>
+      {% if cluster.security_configuration is not none %}
+      <SecurityConfiguration>{{ cluster.security_configuration }}</SecurityConfiguration>
+      {% endif %}
       <ServiceRole>{{ cluster.service_role }}</ServiceRole>
       <Status>
         <State>{{ cluster.state }}</State>
@@ -1253,3 +1320,30 @@ REMOVE_AUTO_SCALING_POLICY = """<RemoveAutoScalingPolicyResponse xmlns="http://e
     <RequestId>c04a1042-5340-4c0a-a7b5-7779725ce4f7</RequestId>
   </ResponseMetadata>
 </RemoveAutoScalingPolicyResponse>"""
+
+CREATE_SECURITY_CONFIGURATION_TEMPLATE = """<CreateSecurityConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <CreateSecurityConfigurationResult>
+    <Name>{{name}}</Name>
+    <CreationDateTime>{{creation_date_time}}</CreationDateTime>
+  </CreateSecurityConfigurationResult>
+  <ResponseMetadata>
+    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+  </ResponseMetadata>
+</CreateSecurityConfigurationResponse>"""
+
+DESCRIBE_SECURITY_CONFIGURATION_TEMPLATE = """<DescribeSecurityConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <DescribeSecurityConfigurationResult>
+    <Name>{{security_configuration['name']}}</Name>
+    <SecurityConfiguration>{{security_configuration['security_configuration']}}</SecurityConfiguration>
+    <CreationDateTime>{{security_configuration['creation_date_time']}}</CreationDateTime>
+  </DescribeSecurityConfigurationResult>
+  <ResponseMetadata>
+    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+  </ResponseMetadata>
+</DescribeSecurityConfigurationResponse>"""
+
+DELETE_SECURITY_CONFIGURATION_TEMPLATE = """<DeleteSecurityConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ResponseMetadata>
+    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+  </ResponseMetadata>
+</DeleteSecurityConfigurationResponse>"""
