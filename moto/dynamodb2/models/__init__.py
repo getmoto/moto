@@ -20,6 +20,7 @@ from moto.dynamodb2.exceptions import (
     ItemSizeToUpdateTooLarge,
     ConditionalCheckFailed,
     TransactionCanceledException,
+    EmptyKeyAttributeException,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -106,6 +107,13 @@ class Item(BaseModel):
         else:
             included = self.attrs
         return {"Item": included}
+
+    def validate_no_empty_key_values(self, attribute_updates, key_attributes):
+        for attribute_name, update_action in attribute_updates.items():
+            action = update_action.get("Action") or "PUT"  # PUT is default
+            new_value = next(iter(update_action["Value"].values()))
+            if action == "PUT" and new_value == "" and attribute_name in key_attributes:
+                raise EmptyKeyAttributeException
 
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
@@ -433,6 +441,18 @@ class Table(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @property
+    def key_attributes(self):
+        # A set of all the hash or range attributes for all indexes
+        def keys_from_index(idx):
+            schema = idx.schema
+            return [attr["AttributeName"] for attr in schema]
+
+        fieldnames = copy.copy(self.table_key_attrs)
+        for idx in self.indexes + self.global_indexes:
+            fieldnames += keys_from_index(idx)
+        return fieldnames
 
     @staticmethod
     def cloudformation_name_type():
@@ -1273,12 +1293,16 @@ class DynamoDBBackend(BaseBackend):
             table.put_item(data)
             item = table.get_item(hash_value, range_value)
 
+        if attribute_updates:
+            item.validate_no_empty_key_values(attribute_updates, table.key_attributes)
+
         if update_expression:
             validated_ast = UpdateExpressionValidator(
                 update_expression_ast,
                 expression_attribute_names=expression_attribute_names,
                 expression_attribute_values=expression_attribute_values,
                 item=item,
+                table=table,
             ).validate()
             try:
                 UpdateExpressionExecutor(

@@ -186,7 +186,7 @@ def test_list_not_found_table_tags():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
-def test_item_add_empty_string_exception():
+def test_item_add_empty_string_in_key_exception():
     name = "TestTable"
     conn = boto3.client(
         "dynamodb",
@@ -205,10 +205,10 @@ def test_item_add_empty_string_exception():
         conn.put_item(
             TableName=name,
             Item={
-                "forum_name": {"S": "LOLCat Forum"},
+                "forum_name": {"S": ""},
                 "subject": {"S": "Check this out!"},
                 "Body": {"S": "http://url_to_lolcat.gif"},
-                "SentBy": {"S": ""},
+                "SentBy": {"S": "someone@somewhere.edu"},
                 "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
             },
         )
@@ -222,7 +222,36 @@ def test_item_add_empty_string_exception():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
-def test_update_item_with_empty_string_exception():
+def test_item_add_empty_string_no_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": ""},
+            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+        },
+    )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_update_item_with_empty_string_in_key_exception():
     name = "TestTable"
     conn = boto3.client(
         "dynamodb",
@@ -252,14 +281,50 @@ def test_update_item_with_empty_string_exception():
         conn.update_item(
             TableName=name,
             Key={"forum_name": {"S": "LOLCat Forum"}},
-            UpdateExpression="set Body=:Body",
-            ExpressionAttributeValues={":Body": {"S": ""}},
+            UpdateExpression="set forum_name=:NewName",
+            ExpressionAttributeValues={":NewName": {"S": ""}},
         )
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+    )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_update_item_with_empty_string_no_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+        },
+    )
+
+    conn.update_item(
+        TableName=name,
+        Key={"forum_name": {"S": "LOLCat Forum"}},
+        UpdateExpression="set Body=:Body",
+        ExpressionAttributeValues={":Body": {"S": ""}},
     )
 
 
