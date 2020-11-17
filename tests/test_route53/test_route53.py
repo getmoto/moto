@@ -701,7 +701,8 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
         ],
     }
     conn.change_resource_record_sets(
-        HostedZoneId=hosted_zone_id, ChangeBatch=txt_record_with_special_char_endpoint_payload
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch=txt_record_with_special_char_endpoint_payload,
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
@@ -710,7 +711,9 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
     cname_record_detail["Name"].should.equal("prod.redis.db.")
     cname_record_detail["Type"].should.equal("TXT")
     cname_record_detail["TTL"].should.equal(60)
-    cname_record_detail["ResourceRecords"].should.equal([{"Value": "SomeInitialValue&NewValue"}])
+    cname_record_detail["ResourceRecords"].should.equal(
+        [{"Value": "SomeInitialValue&NewValue"}]
+    )
 
     # Delete record.
     delete_payload = {
