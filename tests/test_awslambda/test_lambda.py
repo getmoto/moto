@@ -1536,6 +1536,7 @@ def test_update_configuration():
         Handler="lambda_function.new_lambda_handler",
         Runtime="python3.6",
         Timeout=7,
+        VpcConfig={"SecurityGroupIds": ["sg-123abc"], "SubnetIds": ["subnet-123abc"]},
         Environment={"Variables": {"test_environment": "test_value"}},
     )
 
@@ -1547,6 +1548,11 @@ def test_update_configuration():
     assert updated_config["Timeout"] == 7
     assert updated_config["Environment"]["Variables"] == {
         "test_environment": "test_value"
+    }
+    assert updated_config["VpcConfig"] == {
+        "SecurityGroupIds": ["sg-123abc"],
+        "SubnetIds": ["subnet-123abc"],
+        "VpcId": "vpc-123abc",
     }
 
 
