@@ -86,6 +86,7 @@ def test_put_rule():
         "Name": "my-event",
         "ScheduleExpression": "rate(5 minutes)",
         "EventPattern": '{"source": ["test-source"]}',
+        "EventBusName": "test-bus",
     }
 
     client.put_rule(**rule_data)
@@ -96,6 +97,7 @@ def test_put_rule():
     rules[0]["Name"].should.equal(rule_data["Name"])
     rules[0]["ScheduleExpression"].should.equal(rule_data["ScheduleExpression"])
     rules[0]["EventPattern"].should.equal(rule_data["EventPattern"])
+    rules[0]["EventBusName"].should.equal(rule_data["EventBusName"])
     rules[0]["State"].should.equal("ENABLED")
 
 
