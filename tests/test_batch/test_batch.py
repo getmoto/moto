@@ -830,13 +830,13 @@ def test_terminate_job():
     queue_arn = resp["jobQueueArn"]
 
     resp = batch_client.register_job_definition(
-        jobDefinitionName="sleep10",
+        jobDefinitionName="echo-sleep-echo",
         type="container",
         containerProperties={
             "image": "busybox:latest",
             "vcpus": 1,
             "memory": 128,
-            "command": ["sleep", "10"],
+            "command": ["sh", "-c", "echo start && sleep 30 && echo stop"],
         },
     )
     job_def_arn = resp["jobDefinitionArn"]
@@ -856,6 +856,20 @@ def test_terminate_job():
     resp["jobs"][0]["jobName"].should.equal("test1")
     resp["jobs"][0]["status"].should.equal("FAILED")
     resp["jobs"][0]["statusReason"].should.equal("test_terminate")
+
+    resp = logs_client.describe_log_streams(
+        logGroupName="/aws/batch/job", logStreamNamePrefix="echo-sleep-echo"
+    )
+    len(resp["logStreams"]).should.equal(1)
+    ls_name = resp["logStreams"][0]["logStreamName"]
+
+    resp = logs_client.get_log_events(
+        logGroupName="/aws/batch/job", logStreamName=ls_name
+    )
+    # Events should only contain 'start' because we interrupted
+    # the job before 'stop' was written to the logs.
+    resp["events"].should.have.length_of(1)
+    resp["events"][0]["message"].should.equal("start")
 
 
 def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
