@@ -645,6 +645,94 @@ def test_change_resource_record_sets_crud_valid():
 
 
 @mock_route53
+def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create TXT Record.
+    txt_record_endpoint_payload = {
+        "Comment": "Create TXT record prod.redis.db",
+        "Changes": [
+            {
+                "Action": "CREATE",
+                "ResourceRecordSet": {
+                    "Name": "prod.redis.db.",
+                    "Type": "TXT",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": "SomeInitialValue"}],
+                },
+            }
+        ],
+    }
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id, ChangeBatch=txt_record_endpoint_payload
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(1)
+    a_record_detail = response["ResourceRecordSets"][0]
+    a_record_detail["Name"].should.equal("prod.redis.db.")
+    a_record_detail["Type"].should.equal("TXT")
+    a_record_detail["TTL"].should.equal(10)
+    a_record_detail["ResourceRecords"].should.equal([{"Value": "SomeInitialValue"}])
+
+    # Update TXT Record with XML Special Character &.
+    txt_record_with_special_char_endpoint_payload = {
+        "Comment": "Update TXT record prod.redis.db",
+        "Changes": [
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "prod.redis.db.",
+                    "Type": "TXT",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "SomeInitialValue&NewValue"}],
+                },
+            }
+        ],
+    }
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch=txt_record_with_special_char_endpoint_payload,
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(1)
+    cname_record_detail = response["ResourceRecordSets"][0]
+    cname_record_detail["Name"].should.equal("prod.redis.db.")
+    cname_record_detail["Type"].should.equal("TXT")
+    cname_record_detail["TTL"].should.equal(60)
+    cname_record_detail["ResourceRecords"].should.equal(
+        [{"Value": "SomeInitialValue&NewValue"}]
+    )
+
+    # Delete record.
+    delete_payload = {
+        "Comment": "delete prod.redis.db",
+        "Changes": [
+            {
+                "Action": "DELETE",
+                "ResourceRecordSet": {"Name": "prod.redis.db", "Type": "TXT"},
+            }
+        ],
+    }
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload
+    )
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(0)
+
+
+@mock_route53
 def test_change_weighted_resource_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
     conn.create_hosted_zone(
