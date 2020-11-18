@@ -305,7 +305,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             elif key == "Timeout":
                 self.timeout = value
             elif key == "VpcConfig":
-                self.vpc_config = value
+                self._vpc_config = value
             elif key == "Environment":
                 self.environment_vars = value["Variables"]
 
