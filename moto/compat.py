@@ -8,3 +8,9 @@ try:
     import collections.abc as collections_abc  # noqa
 except ImportError:
     import collections as collections_abc  # noqa
+
+try:
+    from unittest.mock import mock
+except ImportError:
+    # for python 2.7
+    from mock import mock

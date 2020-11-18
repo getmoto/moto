@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 import json
 import yaml
 
-from mock import patch
 import sure  # noqa
+from tests.compat import patch
 
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack

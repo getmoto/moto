@@ -19,10 +19,10 @@ from distutils.version import LooseVersion
 from six.moves.urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
-import mock
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
+from moto.compat import mock
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
@@ -456,7 +456,6 @@ class ServerModeMockAWS(BaseMockAWS):
             self.reset()
 
         from boto3 import client as real_boto3_client, resource as real_boto3_resource
-        import mock
 
         def fake_boto3_client(*args, **kwargs):
             region = self._get_region(*args, **kwargs)
