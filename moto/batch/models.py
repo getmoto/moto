@@ -392,7 +392,6 @@ class Job(threading.Thread, BaseModel, DockerModel):
         """
         try:
             self.job_state = "PENDING"
-            time.sleep(1)
 
             image = self.job_definition.container_properties.get(
                 "image", "alpine:latest"
@@ -425,8 +424,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
             self.job_state = "RUNNABLE"
             # TODO setup ecs container instance
-            time.sleep(1)
 
+            self.job_started_at = datetime.datetime.now()
             self.job_state = "STARTING"
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             container = self.docker_client.containers.run(
@@ -440,58 +439,24 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 privileged=privileged,
             )
             self.job_state = "RUNNING"
-            self.job_started_at = datetime.datetime.now()
             try:
-                # Log collection
-                logs_stdout = []
-                logs_stderr = []
                 container.reload()
-
-                # Dodgy hack, we can only check docker logs once a second, but we want to loop more
-                # so we can stop if asked to in a quick manner, should all go away if we go async
-                # There also be some dodgyness when sending an integer to docker logs and some
-                # events seem to be duplicated.
-                now = datetime.datetime.now()
-                i = 1
                 while container.status == "running" and not self.stop:
-                    time.sleep(0.2)
-                    if i % 5 == 0:
-                        logs_stderr.extend(
-                            container.logs(
-                                stdout=False,
-                                stderr=True,
-                                timestamps=True,
-                                since=datetime2int(now),
-                            )
-                            .decode()
-                            .split("\n")
-                        )
-                        logs_stdout.extend(
-                            container.logs(
-                                stdout=True,
-                                stderr=False,
-                                timestamps=True,
-                                since=datetime2int(now),
-                            )
-                            .decode()
-                            .split("\n")
-                        )
-                        now = datetime.datetime.now()
-                        container.reload()
-                    i += 1
+                    container.reload()
 
                 # Container should be stopped by this point... unless asked to stop
                 if container.status == "running":
                     container.kill()
 
-                self.job_stopped_at = datetime.datetime.now()
-                # Get final logs
+                # Log collection
+                logs_stdout = []
+                logs_stderr = []
                 logs_stderr.extend(
                     container.logs(
                         stdout=False,
                         stderr=True,
                         timestamps=True,
-                        since=datetime2int(now),
+                        since=datetime2int(self.job_started_at),
                     )
                     .decode()
                     .split("\n")
@@ -501,13 +466,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
                         stdout=True,
                         stderr=False,
                         timestamps=True,
-                        since=datetime2int(now),
+                        since=datetime2int(self.job_started_at),
                     )
                     .decode()
                     .split("\n")
                 )
-
-                self.job_state = "SUCCEEDED" if not self.stop else "FAILED"
 
                 # Process logs
                 logs_stdout = [x for x in logs_stdout if len(x) > 0]
@@ -531,6 +494,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.ensure_log_group(log_group, None)
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
+
+                self.job_state = "SUCCEEDED" if not self.stop else "FAILED"
 
             except Exception as err:
                 logger.error(
