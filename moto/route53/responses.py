@@ -397,6 +397,6 @@ GET_CHANGE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
    <ChangeInfo>
       <Status>INSYNC</Status>
       <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
-      <Id>/change/{{ change_id }}</Id>
+      <Id>{{ change_id }}</Id>
    </ChangeInfo>
 </GetChangeResponse>"""
