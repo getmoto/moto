@@ -9,8 +9,6 @@ import re
 import six
 import warnings
 
-from typing import List, Tuple, Dict, Optional
-
 from boto3 import Session
 from pkg_resources import resource_filename
 
@@ -5910,10 +5908,10 @@ class IamInstanceProfileAssociationBackend(object):
 
     def associate_iam_instance_profile(
         self,
-        instance_id: str,
-        iam_instance_profile_name: str = None,
-        iam_instance_profile_arn: str = None,
-    ) -> IamInstanceProfileAssociation:
+        instance_id,
+        iam_instance_profile_name=None,
+        iam_instance_profile_arn=None,
+    ):
         iam_association_id = random_iam_instance_profile_association_id()
 
         instance_profile = filter_iam_instance_profiles(
@@ -5936,12 +5934,8 @@ class IamInstanceProfileAssociationBackend(object):
         return iam_instance_profile_associations
 
     def describe_iam_instance_profile_associations(
-        self,
-        association_ids: List,
-        filters: Optional[Dict] = None,
-        max_results: int = 100,
-        next_token: str = None,
-    ) -> Tuple[List[IamInstanceProfileAssociation], str]:
+        self, association_ids, filters=None, max_results=100, next_token=None
+    ):
         associations_list = []
         if association_ids:
             for association in self.iam_instance_profile_associations.values():
@@ -5964,9 +5958,7 @@ class IamInstanceProfileAssociationBackend(object):
 
         return associations_page, new_next_token
 
-    def disassociate_iam_instance_profile(
-        self, association_id: str
-    ) -> IamInstanceProfileAssociation:
+    def disassociate_iam_instance_profile(self, association_id):
         iam_instance_profile_associations = None
         for association_key in self.iam_instance_profile_associations.keys():
             if (
@@ -5987,10 +5979,10 @@ class IamInstanceProfileAssociationBackend(object):
 
     def replace_iam_instance_profile_association(
         self,
-        association_id: str,
-        iam_instance_profile_name: str = None,
-        iam_instance_profile_arn: str = None,
-    ) -> IamInstanceProfileAssociation:
+        association_id,
+        iam_instance_profile_name=None,
+        iam_instance_profile_arn=None,
+    ):
         instance_profile = filter_iam_instance_profiles(
             iam_instance_profile_arn, iam_instance_profile_name
         )

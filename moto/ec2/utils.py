@@ -610,11 +610,17 @@ def filter_iam_instance_profile_associations(iam_instance_associations, filter_d
         return iam_instance_associations
     result = []
     for iam_instance_association in iam_instance_associations:
-        if (
-            iam_instance_association.instance.id
-            in filter_dict.get("instance-id").values()
-            and iam_instance_association.state in filter_dict.get("state").values()
-        ):
+        filter_passed = True
+        if filter_dict.get("instance-id"):
+            if (
+                iam_instance_association.instance.id
+                not in filter_dict.get("instance-id").values()
+            ):
+                filter_passed = False
+        if filter_dict.get("state"):
+            if iam_instance_association.state not in filter_dict.get("state").values():
+                filter_passed = False
+        if filter_passed:
             result.append(iam_instance_association)
     return result
 
