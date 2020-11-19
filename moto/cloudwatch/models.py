@@ -157,14 +157,13 @@ class FakeAlarm(BaseModel):
 
 def are_dimensions_same(metric_dimensions, dimensions):
     for dimension in metric_dimensions:
-        is_dimension_found = False
         for new_dimension in dimensions:
-            if dimension.name == new_dimension.get(
-                "Name"
-            ) and dimension.value == new_dimension.get("Value"):
-                is_dimension_found = True
-        if not is_dimension_found:
-            return False
+            if (
+                dimension.name != new_dimension.name
+                or dimension.value != new_dimension.value
+            ):
+                return False
+
     return True
 
 
@@ -184,14 +183,15 @@ class MetricDatum(BaseModel):
         if name and name != self.name:
             return False
         for metric in already_present_metrics:
-            if dimensions and are_dimensions_same(metric.dimensions, dimensions):
+            if self.dimensions and are_dimensions_same(
+                metric.dimensions, self.dimensions
+            ):
                 return False
 
         if dimensions and any(
             Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
         ):
             return False
-
         return True
 
 
@@ -371,16 +371,6 @@ class CloudWatchBackend(BaseBackend):
                 )
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
-
-    # def add_metric(self, namespace, metric_data, new_metric_info):
-    #     for value in self.metric_data:
-    #         if value.namespace == namespace and value.name == metric_data.get("MetricName") and value.value == float(metric_data.get("Value", 0)):
-    #             self.metric_data.remove(value)
-    #             self.metric_data.append(new_metric_info)
-    #             print(new_metric_info.value)
-    #             return
-    #
-    #     self.metric_data.append(new_metric_info)
 
     def put_metric_data(self, namespace, metric_data):
         for metric_member in metric_data:

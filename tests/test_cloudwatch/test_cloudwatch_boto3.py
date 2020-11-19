@@ -388,6 +388,83 @@ def test_duplicate_put_metric_data():
     )["Metrics"]
     len(result).should.equal(1)
 
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[{"Name": "Name", "Value": "B"}],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
+    result.should.equal(
+        [
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+            }
+        ]
+    )
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[
+                    {"Name": "Name", "Value": "B"},
+                    {"Name": "Name", "Value": "C"},
+                ],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
+    result.should.equal(
+        [
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+            },
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [
+                    {"Name": "Name", "Value": "B"},
+                    {"Name": "Name", "Value": "C"},
+                ],
+            },
+        ]
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "C"}]
+    )["Metrics"]
+    result.should.equal(
+        [
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [
+                    {"Name": "Name", "Value": "B"},
+                    {"Name": "Name", "Value": "C"},
+                ],
+            }
+        ]
+    )
+
 
 @mock_cloudwatch
 @freeze_time("2020-02-10 18:44:05")
