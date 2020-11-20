@@ -12,6 +12,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto.core import ACCOUNT_ID
+from moto.iam import iam_backends
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
@@ -43,6 +44,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpc-peering-connection": "pcx",
     "vpn-connection": "vpn",
     "vpn-gateway": "vgw",
+    "iam-instance-profile-association": "iip-assoc",
 }
 
 
@@ -169,6 +171,10 @@ def random_nat_gateway_id():
 
 def random_launch_template_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
+
+
+def random_iam_instance_profile_association_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"])
 
 
 def random_public_ip():
@@ -597,3 +603,47 @@ def rsa_public_key_fingerprint(rsa_public_key):
     fingerprint_hex = hashlib.md5(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
+
+
+def filter_iam_instance_profile_associations(iam_instance_associations, filter_dict):
+    if not filter_dict:
+        return iam_instance_associations
+    result = []
+    for iam_instance_association in iam_instance_associations:
+        filter_passed = True
+        if filter_dict.get("instance-id"):
+            if (
+                iam_instance_association.instance.id
+                not in filter_dict.get("instance-id").values()
+            ):
+                filter_passed = False
+        if filter_dict.get("state"):
+            if iam_instance_association.state not in filter_dict.get("state").values():
+                filter_passed = False
+        if filter_passed:
+            result.append(iam_instance_association)
+    return result
+
+
+def filter_iam_instance_profiles(iam_instance_profile_arn, iam_instance_profile_name):
+    instance_profile = None
+    instance_profile_by_name = None
+    instance_profile_by_arn = None
+    if iam_instance_profile_name:
+        instance_profile_by_name = iam_backends["global"].get_instance_profile(
+            iam_instance_profile_name
+        )
+        instance_profile = instance_profile_by_name
+    if iam_instance_profile_arn:
+        instance_profile_by_arn = iam_backends["global"].get_instance_profile_by_arn(
+            iam_instance_profile_arn
+        )
+        instance_profile = instance_profile_by_arn
+    # We would prefer instance profile that we found by arn
+    if iam_instance_profile_arn and iam_instance_profile_name:
+        if instance_profile_by_name == instance_profile_by_arn:
+            instance_profile = instance_profile_by_arn
+        else:
+            instance_profile = None
+
+    return instance_profile

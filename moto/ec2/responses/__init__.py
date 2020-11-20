@@ -34,6 +34,7 @@ from .vpc_peering_connections import VPCPeeringConnections
 from .vpn_connections import VPNConnections
 from .windows import Windows
 from .nat_gateways import NatGateways
+from .iam_instance_profiles import IamInstanceProfiles
 
 
 class EC2Response(
@@ -71,6 +72,7 @@ class EC2Response(
     VPNConnections,
     Windows,
     NatGateways,
+    IamInstanceProfiles,
 ):
     @property
     def ec2_backend(self):

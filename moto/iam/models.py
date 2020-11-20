@@ -1852,6 +1852,13 @@ class IAMBackend(BaseBackend):
             "Instance profile {0} not found".format(profile_name)
         )
 
+    def get_instance_profile_by_arn(self, profile_arn):
+        for profile in self.get_instance_profiles():
+            if profile.arn == profile_arn:
+                return profile
+
+        raise IAMNotFoundException("Instance profile {0} not found".format(profile_arn))
+
     def get_instance_profiles(self):
         return self.instance_profiles.values()
 

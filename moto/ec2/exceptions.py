@@ -583,3 +583,19 @@ class InvalidParameterDependency(EC2ClientError):
                 param, param_needed
             ),
         )
+
+
+class IncorrectStateIamProfileAssociationError(EC2ClientError):
+    def __init__(self, instance_id):
+        super(IncorrectStateIamProfileAssociationError, self).__init__(
+            "IncorrectState",
+            "There is an existing association for instance {0}".format(instance_id),
+        )
+
+
+class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
+    def __init__(self, association_id):
+        super(InvalidAssociationIDIamProfileAssociationError, self).__init__(
+            "InvalidAssociationID.NotFound",
+            "An invalid association-id of '{0}' was given".format(association_id),
+        )
