@@ -776,7 +776,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         # Disassociate iam instance profile if associated, otherwise iam_instance_profile_associations will
         # be pointing to None.
-        if self.ec2_backend.iam_instance_profile_associations[self.id]:
+        if self.ec2_backend.iam_instance_profile_associations.get(self.id):
             self.ec2_backend.disassociate_iam_instance_profile(
                 association_id=self.ec2_backend.iam_instance_profile_associations[
                     self.id
