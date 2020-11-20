@@ -155,6 +155,18 @@ class FakeAlarm(BaseModel):
         self.state_updated_timestamp = datetime.utcnow()
 
 
+def are_dimensions_same(metric_dimensions, dimensions):
+    for dimension in metric_dimensions:
+        for new_dimension in dimensions:
+            if (
+                dimension.name != new_dimension.name
+                or dimension.value != new_dimension.value
+            ):
+                return False
+
+    return True
+
+
 class MetricDatum(BaseModel):
     def __init__(self, namespace, name, value, dimensions, timestamp):
         self.namespace = namespace
@@ -165,11 +177,17 @@ class MetricDatum(BaseModel):
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
 
-    def filter(self, namespace, name, dimensions):
+    def filter(self, namespace, name, dimensions, already_present_metrics):
         if namespace and namespace != self.namespace:
             return False
         if name and name != self.name:
             return False
+        for metric in already_present_metrics:
+            if self.dimensions and are_dimensions_same(
+                metric.dimensions, self.dimensions
+            ):
+                return False
+
         if dimensions and any(
             Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
         ):
@@ -514,12 +532,16 @@ class CloudWatchBackend(BaseBackend):
 
     def get_filtered_metrics(self, metric_name, namespace, dimensions):
         metrics = self.get_all_metrics()
-        metrics = [
-            md
-            for md in metrics
-            if md.filter(namespace=namespace, name=metric_name, dimensions=dimensions)
-        ]
-        return metrics
+        new_metrics = []
+        for md in metrics:
+            if md.filter(
+                namespace=namespace,
+                name=metric_name,
+                dimensions=dimensions,
+                already_present_metrics=new_metrics,
+            ):
+                new_metrics.append(md)
+        return new_metrics
 
     def _get_paginated(self, metrics):
         if len(metrics) > 500:
