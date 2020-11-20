@@ -1031,3 +1031,14 @@ def test_list_resource_record_sets_name_type_filters():
     len(returned_records).should.equal(len(all_records) - start_with)
     for desired_record in all_records[start_with:]:
         returned_records.should.contain(desired_record)
+
+
+@mock_route53
+def test_get_change():
+    conn = boto3.client("route53", region_name="us-east-2")
+
+    change_id = "123456"
+    response = conn.get_change(Id=change_id)
+
+    response["ChangeInfo"]["Id"].should.equal(change_id)
+    response["ChangeInfo"]["Status"].should.equal("INSYNC")
