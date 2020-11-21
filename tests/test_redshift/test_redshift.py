@@ -12,6 +12,7 @@ from boto.redshift.exceptions import (
     InvalidSubnet,
 )
 from botocore.exceptions import ClientError
+import pytest
 import sure  # noqa
 
 from moto import mock_ec2
@@ -1259,6 +1260,14 @@ def test_enable_snapshot_copy():
         MasterUsername="user",
         MasterUserPassword="password",
         NodeType="ds2.xlarge",
+    )
+    with pytest.raises(ClientError) as ex:
+        client.enable_snapshot_copy(
+            ClusterIdentifier="test", DestinationRegion="us-west-2", RetentionPeriod=3,
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["Error"]["Message"].should.contain(
+        "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
     )
     client.enable_snapshot_copy(
         ClusterIdentifier="test",

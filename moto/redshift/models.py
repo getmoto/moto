@@ -573,10 +573,8 @@ class RedshiftBackend(BaseBackend):
                 cluster.encrypted == "true"
                 and kwargs["snapshot_copy_grant_name"] is None
             ):
-                raise ClientError(
-                    "InvalidParameterValue",
-                    "SnapshotCopyGrantName is required for Snapshot Copy "
-                    "on KMS encrypted clusters.",
+                raise InvalidParameterValueError(
+                    "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
                 )
             status = {
                 "DestinationRegion": kwargs["destination_region"],
