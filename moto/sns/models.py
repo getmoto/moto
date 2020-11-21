@@ -442,7 +442,7 @@ class SNSBackend(BaseBackend):
         return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic_subscriptions(self, topic):
-        for key, value in self.subscriptions.items():
+        for key, value in dict(self.subscriptions).items():
             if value.topic == topic:
                 self.subscriptions.pop(key)
 

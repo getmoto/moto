@@ -7,6 +7,7 @@ import uuid
 import datetime
 
 from boto3 import Session
+from typing import List, Tuple
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
@@ -566,15 +567,44 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
-    def list_secrets(self, filters, max_results, next_token):
-        # TODO implement pagination and limits
+    def list_secrets(self, filters: List, max_results: int = 100, next_token: str = None) -> Tuple[List, str]:
+        """
+        Returns secrets from secretsmanager.
+        The result is paginated and page items depends on the token value, because token contains start element
+        number of secret list.
+        Response example:
+        {
+            SecretList: [
+                {
+                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test1-gEcah',
+                    Name: 'test1',
+                    ...
+                },
+                {
+                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test2-KZwml',
+                    Name: 'test2',
+                    ...
+                }
+            ],
+            NextToken: '2'
+        }
 
+        :param filters: (List) Filter parameters.
+        :param max_results: (int) Max number of results per page.
+        :param next_token: (str) Page token.
+        :return: (Tuple[List,str]) Returns result list and next token.
+        """
         secret_list = []
         for secret in self.secrets.values():
             if _matches(secret, filters):
                 secret_list.append(secret.to_dict())
 
-        return secret_list, None
+        starting_point = int(next_token or 0)
+        ending_point = starting_point + int(max_results or 100)
+        secret_page = secret_list[starting_point:ending_point]
+        new_next_token = str(ending_point) if ending_point < len(secret_list) else None
+
+        return secret_page, new_next_token
 
     def delete_secret(
         self, secret_id, recovery_window_in_days, force_delete_without_recovery

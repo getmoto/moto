@@ -424,7 +424,7 @@ class ResourceMap(collections_abc.Mapping):
         cross_stack_resources,
     ):
         self._template = template
-        self._resource_json_map = template["Resources"] if template != {} else {}
+        self.set_resource_json(template.get('Resources'))
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
@@ -444,6 +444,9 @@ class ResourceMap(collections_abc.Mapping):
 
     def __getitem__(self, key):
         resource_logical_id = key
+
+        if key != 'AWS::NoValue' and key in self._parsed_resources and self._parsed_resources[key] is None:
+            self._parsed_resources.pop(key)
 
         if resource_logical_id in self._parsed_resources:
             return self._parsed_resources[resource_logical_id]
@@ -599,7 +602,7 @@ class ResourceMap(collections_abc.Mapping):
         # iterate through self.
         # Assumes that self.load() has been called before
         self._template = template
-        self._resource_json_map = template["Resources"]
+        self.set_resource_json(template.get('Resources'))
         self.tags.update(
             {
                 "aws:cloudformation:stack-name": self.get("AWS::StackName"),
@@ -620,7 +623,7 @@ class ResourceMap(collections_abc.Mapping):
         self.load_parameters()
         self.load_conditions()
 
-        old_template = self._resource_json_map
+        old_template = self._resource_json_map_orig
         new_template = template["Resources"]
 
         resource_names_by_action = {
@@ -659,14 +662,15 @@ class ResourceMap(collections_abc.Mapping):
 
         old_template = self._resource_json_map
         new_template = template["Resources"]
-        self._resource_json_map = new_template
+        self.set_resource_json(new_template)
 
         for resource_name, resource in resources_by_action["Add"].items():
             resource_json = new_template[resource_name]
             new_resource = parse_and_create_resource(
                 resource_name, resource_json, self, self._region_name
             )
-            self._parsed_resources[resource_name] = new_resource
+            if new_resource is not None:
+                self._parsed_resources[resource_name] = new_resource
 
         for logical_name, _ in resources_by_action["Remove"].items():
             resource_json = old_template[logical_name]
@@ -696,7 +700,8 @@ class ResourceMap(collections_abc.Mapping):
                     # second pass
                     last_exception = e
                 else:
-                    self._parsed_resources[logical_name] = changed_resource
+                    if changed_resource is not None:
+                        self._parsed_resources[logical_name] = changed_resource
                     del resources_by_action["Modify"][logical_name]
             tries += 1
         if tries == 5:
@@ -738,6 +743,10 @@ class ResourceMap(collections_abc.Mapping):
             tries += 1
         if tries == 5:
             raise last_exception
+
+    def set_resource_json(self, resources):
+        self._resource_json_map = resources or {}
+        self._resource_json_map_orig = json.loads(json.dumps(self._resource_json_map))
 
 
 class OutputMap(collections_abc.Mapping):

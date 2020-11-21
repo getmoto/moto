@@ -402,7 +402,6 @@ class Stage(BaseModel, dict):
         self["cacheClusterEnabled"] = cacheClusterEnabled
         if self["cacheClusterEnabled"]:
             self["cacheClusterSize"] = str(0.5)
-
         if cacheClusterSize is not None:
             self["cacheClusterSize"] = str(cacheClusterSize)
 
