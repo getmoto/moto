@@ -76,7 +76,7 @@ def test_create_snapshot_copy_grant():
 
     client.describe_snapshot_copy_grants.when.called_with(
         SnapshotCopyGrantName="test-us-east-1"
-    ).should.throw(Exception)
+    ).should.throw(ClientError)
 
 
 @mock_redshift
@@ -866,8 +866,8 @@ def test_delete_cluster_snapshot():
 
     # Delete invalid id
     client.delete_cluster_snapshot.when.called_with(
-        SnapshotIdentifier="not-a-snapshot"
-    ).should.throw(ClientError)
+        SnapshotIdentifier="non-existent"
+    ).should.throw(ClientError, "Snapshot non-existent not found.")
 
 
 @mock_redshift
@@ -891,7 +891,7 @@ def test_cluster_snapshot_already_exists():
 
     client.create_cluster_snapshot.when.called_with(
         SnapshotIdentifier=snapshot_identifier, ClusterIdentifier=cluster_identifier
-    ).should.throw(ClientError)
+    ).should.throw(ClientError, "{} already exists".format(snapshot_identifier))
 
 
 @mock_redshift
