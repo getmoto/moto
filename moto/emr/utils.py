@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import random
+import re
 import string
 from moto.core.utils import camelcase_to_underscores
 
@@ -144,3 +145,76 @@ class CamelToUnderscoresWalker:
     @staticmethod
     def parse_scalar(x):
         return x
+
+
+class ReleaseLabel(object):
+
+    version_re = re.compile(r"^emr-(\d+)\.(\d+)\.(\d+)$")
+
+    def __init__(self, release_label):
+        major, minor, patch = self.parse(release_label)
+
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+
+    @classmethod
+    def parse(cls, release_label):
+        if not release_label:
+            raise ValueError("Invalid empty ReleaseLabel: %r" % release_label)
+
+        match = cls.version_re.match(release_label)
+        if not match:
+            raise ValueError("Invalid ReleaseLabel: %r" % release_label)
+
+        major, minor, patch = match.groups()
+
+        major = int(major)
+        minor = int(minor)
+        patch = int(patch)
+
+        return major, minor, patch
+
+    def __str__(self):
+        version = "emr-%d.%d.%d" % (self.major, self.minor, self.patch)
+        return version
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, str(self))
+
+    def __iter__(self):
+        return iter((self.major, self.minor, self.patch))
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return (
+            self.major == other.major
+            and self.minor == other.minor
+            and self.patch == other.patch
+        )
+
+    def __ne__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return tuple(self) != tuple(other)
+
+    def __lt__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return tuple(self) < tuple(other)
+
+    def __le__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return tuple(self) <= tuple(other)
+
+    def __gt__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return tuple(self) > tuple(other)
+
+    def __ge__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return tuple(self) >= tuple(other)

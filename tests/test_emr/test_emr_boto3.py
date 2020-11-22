@@ -636,7 +636,7 @@ def test_run_job_flow_with_custom_ami():
 
     args = deepcopy(run_job_flow_args)
     args["CustomAmiId"] = "MyEmrCustomAmi"
-    args["ReleaseLabel"] = "emr-5.7.0"
+    args["ReleaseLabel"] = "emr-5.31.0"
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
     resp = client.describe_cluster(ClusterId=cluster_id)
     resp["Cluster"]["CustomAmiId"].should.equal("MyEmrCustomAmi")
