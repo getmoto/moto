@@ -143,3 +143,10 @@ class ClusterAlreadyExistsFaultError(RedshiftClientError):
         super(ClusterAlreadyExistsFaultError, self).__init__(
             "ClusterAlreadyExists", "Cluster already exists"
         )
+
+
+class InvalidParameterCombinationError(RedshiftClientError):
+    def __init__(self, message):
+        super(InvalidParameterCombinationError, self).__init__(
+            "InvalidParameterCombination", message
+        )

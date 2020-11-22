@@ -4,7 +4,7 @@ import copy
 import datetime
 
 from boto3 import Session
-from botocore.exceptions import ClientError
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -17,6 +17,7 @@ from .exceptions import (
     ClusterSnapshotAlreadyExistsError,
     ClusterSnapshotNotFoundError,
     ClusterSubnetGroupNotFoundError,
+    InvalidParameterCombinationError,
     InvalidParameterValueError,
     InvalidSubnetError,
     ResourceNotFoundFaultError,
@@ -655,10 +656,8 @@ class RedshiftBackend(BaseBackend):
                 cluster_skip_final_snapshot is False
                 and cluster_snapshot_identifer is None
             ):
-                raise ClientError(
-                    "InvalidParameterValue",
-                    "FinalSnapshotIdentifier is required for Snapshot copy "
-                    "when SkipFinalSnapshot is False",
+                raise InvalidParameterCombinationError(
+                    "FinalClusterSnapshotIdentifier is required unless SkipFinalClusterSnapshot is specified."
                 )
             elif (
                 cluster_skip_final_snapshot is False

@@ -424,7 +424,7 @@ def test_delete_cluster():
     )
 
     conn.delete_cluster.when.called_with(cluster_identifier, False).should.throw(
-        AttributeError
+        boto.exception.JSONResponseError
     )
 
     clusters = conn.describe_clusters()["DescribeClustersResponse"][
@@ -1363,3 +1363,74 @@ def test_create_duplicate_cluster_fails():
     client.create_cluster.when.called_with(**kwargs).should.throw(
         ClientError, "ClusterAlreadyExists"
     )
+
+
+@mock_redshift
+def test_delete_cluster_with_final_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_cluster(ClusterIdentifier="non-existent")
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
+
+    cluster_identifier = "my_cluster"
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        DBName="test",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        NodeType="ds2.xlarge",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_cluster(
+            ClusterIdentifier=cluster_identifier, SkipFinalClusterSnapshot=False
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
+    ex.value.response["Error"]["Message"].should.contain(
+        "FinalClusterSnapshotIdentifier is required unless SkipFinalClusterSnapshot is specified."
+    )
+
+    snapshot_identifier = "my_snapshot"
+    client.delete_cluster(
+        ClusterIdentifier=cluster_identifier,
+        SkipFinalClusterSnapshot=False,
+        FinalClusterSnapshotIdentifier=snapshot_identifier,
+    )
+
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(1)
+    resp["Snapshots"][0]["SnapshotIdentifier"].should.equal(snapshot_identifier)
+    resp["Snapshots"][0]["SnapshotType"].should.equal("manual")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
+
+
+@mock_redshift
+def test_delete_cluster_without_final_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        DBName="test",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        NodeType="ds2.xlarge",
+    )
+    client.delete_cluster(
+        ClusterIdentifier=cluster_identifier, SkipFinalClusterSnapshot=True
+    )
+
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(0)
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
