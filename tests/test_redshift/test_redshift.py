@@ -43,7 +43,7 @@ def test_create_cluster_boto3():
 
 
 @mock_redshift
-def test_create_cluster_boto3():
+def test_create_cluster_with_enhanced_vpc_routing_enabled():
     client = boto3.client("redshift", region_name="us-east-1")
     response = client.create_cluster(
         DBName="test",
