@@ -13,7 +13,7 @@ from moto.core.responses import xml_to_json_response
 from moto.core.utils import tags_from_query_string
 from .exceptions import EmrError
 from .models import emr_backends
-from .utils import steps_from_query_string, Unflattener
+from .utils import steps_from_query_string, Unflattener, ReleaseLabel
 
 
 def generate_boto3_response(operation):
@@ -323,7 +323,9 @@ class ElasticMapReduceResponse(BaseResponse):
         custom_ami_id = self._get_param("CustomAmiId")
         if custom_ami_id:
             kwargs["custom_ami_id"] = custom_ami_id
-            if release_label and release_label < "emr-5.7.0":
+            if release_label and (
+                ReleaseLabel(release_label) < ReleaseLabel("emr-5.7.0")
+            ):
                 message = "Custom AMI is not allowed"
                 raise EmrError(
                     error_type="ValidationException",
