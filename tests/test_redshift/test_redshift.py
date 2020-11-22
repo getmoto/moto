@@ -826,12 +826,11 @@ def test_describe_cluster_snapshots():
 @mock_redshift
 def test_describe_cluster_snapshots_not_found_error():
     client = boto3.client("redshift", region_name="us-east-1")
-    cluster_identifier = "my_cluster"
-    snapshot_identifier = "my_snapshot"
+    cluster_identifier = "non-existent-cluster-id"
+    snapshot_identifier = "non-existent-snapshot-id"
 
-    client.describe_cluster_snapshots.when.called_with(
-        ClusterIdentifier=cluster_identifier
-    ).should.throw(ClientError, "Cluster {} not found.".format(cluster_identifier))
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(0)
 
     client.describe_cluster_snapshots.when.called_with(
         SnapshotIdentifier=snapshot_identifier
