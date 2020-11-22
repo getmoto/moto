@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import json
 import sure  # noqa
 
 import moto.server as server
@@ -20,3 +19,14 @@ def test_describe_clusters():
 
     result = res.data.decode("utf-8")
     result.should.contain("<Clusters></Clusters>")
+
+
+@mock_redshift
+def test_describe_clusters_with_json_content_type():
+    backend = server.create_backend_app("redshift")
+    test_client = backend.test_client()
+
+    res = test_client.get("/?Action=DescribeClusters&ContentType=JSON")
+
+    result = res.data.decode("utf-8")
+    result.should.contain('{"Clusters": []}')
