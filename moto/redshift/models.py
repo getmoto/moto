@@ -26,6 +26,7 @@ from .exceptions import (
     SnapshotCopyDisabledFaultError,
     SnapshotCopyGrantAlreadyExistsFaultError,
     SnapshotCopyGrantNotFoundFaultError,
+    UnknownSnapshotCopyRegionFaultError,
 )
 
 
@@ -576,6 +577,10 @@ class RedshiftBackend(BaseBackend):
             ):
                 raise InvalidParameterValueError(
                     "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
+                )
+            if kwargs["destination_region"] == self.region:
+                raise UnknownSnapshotCopyRegionFaultError(
+                    "Invalid region {}".format(self.region)
                 )
             status = {
                 "DestinationRegion": kwargs["destination_region"],
