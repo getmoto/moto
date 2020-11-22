@@ -144,9 +144,8 @@ class InstanceResponse(BaseResponse):
         return template.render(instances=instances)
 
     def describe_instance_types(self):
-        instance_types = [
-            InstanceType(name="t1.micro", cores=1, memory=644874240, disk=0)
-        ]
+        instance_type_filters = self._get_multi_param("InstanceType")
+        instance_types = self.ec2_backend.describe_instance_types(instance_type_filters)
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
 
@@ -826,17 +825,17 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     <instanceTypeSet>
     {% for instance_type in instance_types %}
         <item>
-            <instanceType>{{ instance_type.name }}</instanceType>
+            <instanceType>{{ instance_type.apiname }}</instanceType>
             <vCpuInfo>
-                <defaultVCpus>{{ instance_type.cores }}</defaultVCpus>
-                <defaultCores>{{ instance_type.cores }}</defaultCores>
+                <defaultVCpus>{{ instance_type.vcpus|int }}</defaultVCpus>
+                <defaultCores>{{ instance_type.vcpus|int }}</defaultCores>
                 <defaultThreadsPerCore>1</defaultThreadsPerCore>
             </vCpuInfo>
             <memoryInfo>
-                <sizeInMiB>{{ instance_type.memory }}</sizeInMiB>
+                <sizeInMiB>{{ instance_type.memory|int }}</sizeInMiB>
             </memoryInfo>
             <instanceStorageInfo>
-                <totalSizeInGB>{{ instance_type.disk }}</totalSizeInGB>
+                <totalSizeInGB>{{ instance_type.storage|int }}</totalSizeInGB>
             </instanceStorageInfo>
             <processorInfo>
                 <supportedArchitectures>

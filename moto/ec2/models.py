@@ -56,6 +56,7 @@ from .exceptions import (
     InvalidDomainError,
     InvalidID,
     InvalidInstanceIdError,
+    InvalidInstanceTypeError,
     InvalidInternetGatewayIdError,
     InvalidKeyPairDuplicateError,
     InvalidKeyPairFormatError,
@@ -1131,8 +1132,6 @@ class InstanceBackend(object):
         return reservations
 
 
-<<<<<<< HEAD
-=======
 class InstanceTypeBackend(object):
     def __init__(self):
         super(InstanceTypeBackend, self).__init__()
