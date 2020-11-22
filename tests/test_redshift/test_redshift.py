@@ -1268,6 +1268,15 @@ def test_enable_snapshot_copy():
     ex.value.response["Error"]["Message"].should.contain(
         "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
     )
+    with pytest.raises(ClientError) as ex:
+        client.enable_snapshot_copy(
+            ClusterIdentifier="test",
+            DestinationRegion="us-east-1",
+            RetentionPeriod=3,
+            SnapshotCopyGrantName="invalid-us-east-1-to-us-east-1",
+        )
+    ex.value.response["Error"]["Code"].should.equal("UnknownSnapshotCopyRegionFault")
+    ex.value.response["Error"]["Message"].should.contain("Invalid region us-east-1")
     client.enable_snapshot_copy(
         ClusterIdentifier="test",
         DestinationRegion="us-west-2",
