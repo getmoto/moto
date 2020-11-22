@@ -777,7 +777,6 @@ class RedshiftBackend(BaseBackend):
                     cluster_snapshots.append(snapshot)
             if cluster_snapshots:
                 return cluster_snapshots
-            raise ClusterNotFoundError(cluster_identifier)
 
         if snapshot_identifier:
             if snapshot_identifier in self.snapshots:
