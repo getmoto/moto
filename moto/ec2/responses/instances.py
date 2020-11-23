@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from moto.packages.boto.ec2.instancetype import InstanceType
 
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
@@ -41,8 +40,8 @@ class InstanceResponse(BaseResponse):
         template = self.response_template(EC2_DESCRIBE_INSTANCES)
         return (
             template.render(reservations=reservations_resp, next_token=next_token)
-            .replace("True", "true")
-            .replace("False", "false")
+                .replace("True", "true")
+                .replace("False", "false")
         )
 
     def run_instances(self):
@@ -150,10 +149,11 @@ class InstanceResponse(BaseResponse):
         return template.render(instance_types=instance_types)
 
     def describe_instance_type_offerings(self):
-        location_type_filters = self._get_multi_param("LocationType")
+        location_type_filters = self._get_param("LocationType")
         filter_dict = filters_from_querystring(self.querystring)
         offerings = self.ec2_backend.describe_instance_type_offerings(
-            location_type_filters, filter_dict)
+            location_type_filters, filter_dict
+        )
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS)
         return template.render(instance_type_offerings=offerings)
 
@@ -311,8 +311,8 @@ class InstanceResponse(BaseResponse):
         if not any(mapping for mapping in device_mapping if mapping.startswith("ebs.")):
             raise MissingParameterError("ebs")
         if (
-            "ebs._volume_size" not in device_mapping
-            and "ebs._snapshot_id" not in device_mapping
+                "ebs._volume_size" not in device_mapping
+                and "ebs._snapshot_id" not in device_mapping
         ):
             raise MissingParameterError("size or snapshotId")
 
@@ -341,12 +341,12 @@ BLOCK_DEVICE_MAPPING_TEMPLATE = {
 }
 
 EC2_RUN_INSTANCES = (
-    """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <reservationId>{{ reservation.id }}</reservationId>
-  <ownerId>"""
-    + ACCOUNT_ID
-    + """</ownerId>
+        """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+      <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+      <reservationId>{{ reservation.id }}</reservationId>
+      <ownerId>"""
+        + ACCOUNT_ID
+        + """</ownerId>
   <groupSet>
     <item>
       <groupId>sg-245f6a01</groupId>
@@ -429,8 +429,8 @@ EC2_RUN_INSTANCES = (
                 {% endif %}
                 <description>Primary network interface</description>
                 <ownerId>"""
-    + ACCOUNT_ID
-    + """</ownerId>
+        + ACCOUNT_ID
+        + """</ownerId>
                 <status>in-use</status>
                 <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                 <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
@@ -454,8 +454,8 @@ EC2_RUN_INSTANCES = (
                   <association>
                     <publicIp>{{ nic.public_ip }}</publicIp>
                     <ipOwnerId>"""
-    + ACCOUNT_ID
-    + """</ipOwnerId>
+        + ACCOUNT_ID
+        + """</ipOwnerId>
                   </association>
                 {% endif %}
                 <privateIpAddressesSet>
@@ -466,8 +466,8 @@ EC2_RUN_INSTANCES = (
                       <association>
                         <publicIp>{{ nic.public_ip }}</publicIp>
                         <ipOwnerId>"""
-    + ACCOUNT_ID
-    + """</ipOwnerId>
+        + ACCOUNT_ID
+        + """</ipOwnerId>
                       </association>
                     {% endif %}
                   </item>
@@ -482,15 +482,15 @@ EC2_RUN_INSTANCES = (
 )
 
 EC2_DESCRIBE_INSTANCES = (
-    """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>fdcdcab1-ae5c-489e-9c33-4637c5dda355</requestId>
-      <reservationSet>
-        {% for reservation in reservations %}
-          <item>
-            <reservationId>{{ reservation.id }}</reservationId>
-            <ownerId>"""
-    + ACCOUNT_ID
-    + """</ownerId>
+        """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+      <requestId>fdcdcab1-ae5c-489e-9c33-4637c5dda355</requestId>
+          <reservationSet>
+            {% for reservation in reservations %}
+              <item>
+                <reservationId>{{ reservation.id }}</reservationId>
+                <ownerId>"""
+        + ACCOUNT_ID
+        + """</ownerId>
             <groupSet>
               {% for group in reservation.dynamic_group_list %}
               <item>
@@ -584,8 +584,8 @@ EC2_DESCRIBE_INSTANCES = (
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE"""
-    + ACCOUNT_ID
-    + """3</clientToken>
+        + ACCOUNT_ID
+        + """3</clientToken>
                     {% if instance.get_tags() %}
                     <tagSet>
                       {% for tag in instance.get_tags() %}
@@ -609,8 +609,8 @@ EC2_DESCRIBE_INSTANCES = (
                           {% endif %}
                           <description>Primary network interface</description>
                           <ownerId>"""
-    + ACCOUNT_ID
-    + """</ownerId>
+        + ACCOUNT_ID
+        + """</ownerId>
                           <status>in-use</status>
                           <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                           <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
@@ -638,8 +638,8 @@ EC2_DESCRIBE_INSTANCES = (
                             <association>
                               <publicIp>{{ nic.public_ip }}</publicIp>
                               <ipOwnerId>"""
-    + ACCOUNT_ID
-    + """</ipOwnerId>
+        + ACCOUNT_ID
+        + """</ipOwnerId>
                             </association>
                           {% endif %}
                           <privateIpAddressesSet>
@@ -650,8 +650,8 @@ EC2_DESCRIBE_INSTANCES = (
                                 <association>
                                   <publicIp>{{ nic.public_ip }}</publicIp>
                                   <ipOwnerId>"""
-    + ACCOUNT_ID
-    + """</ipOwnerId>
+        + ACCOUNT_ID
+        + """</ipOwnerId>
                                 </association>
                               {% endif %}
                             </item>
@@ -856,9 +856,9 @@ EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
     <instanceTypeOfferingSet>
     {% for offering in instance_type_offerings %}
         <item>
-            <instanceType>{{ offering.instance_type }}</instanceType>
-            <location>{{ offering.location }}</location>
-            <locationType>{{ offering.location_type }}</locationType>
+            <instanceType>{{ offering.InstanceType }}</instanceType>
+            <location>{{ offering.Location }}</location>
+            <locationType>{{ offering.LocationType }}</locationType>
         </item>
     {% endfor %}
     </instanceTypeOfferingSet>
