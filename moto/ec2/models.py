@@ -174,6 +174,10 @@ INSTANCE_TYPES = _load_resource(
     resource_filename(__name__, "resources/instance_types.json")
 )
 
+INSTANCE_TYPE_OFFERINGS = _load_resource(
+    resource_filename(__name__, "resources/instance_type_offerings.json")
+)
+
 AMIS = _load_resource(
     os.environ.get("MOTO_AMIS_PATH")
     or resource_filename(__name__, "resources/amis.json"),
@@ -1125,6 +1129,50 @@ class InstanceBackend(object):
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
+
+
+<<<<<<< HEAD
+=======
+class InstanceTypeBackend(object):
+    def __init__(self):
+        super(InstanceTypeBackend, self).__init__()
+
+    def describe_instance_types(self, instance_types=None):
+        matches = INSTANCE_TYPES.values()
+        if instance_types:
+            matches = [t for t in matches if t.get('apiname') in instance_types]
+            if len(instance_types) > len(matches):
+                unknown_ids = set(instance_types) - set(matches)
+                raise InvalidInstanceTypeError(unknown_ids)
+        return matches
+
+
+class InstanceTypeOfferingBackend(object):
+    def __init__(self):
+        super(InstanceTypeOfferingBackend, self).__init__()
+
+    def describe_instance_type_offerings(self, location_type=None, filters=None):
+        matches = INSTANCE_TYPE_OFFERINGS
+        location_type = location_type or "region"
+
+        def matches_filters(offering, filters):
+            for key, values in filters.items():
+                if key == "location":
+                    if location_type in ("availability-zone", "availability-zone-id"):
+                        return offering.get('location') in values
+                    elif location_type == "region":
+                        return any(v for v in values
+                                   if offering.get('location').startswith(v))
+                    else:
+                        return False
+                elif key == "instance-type":
+                    return offering.get('instance_type') in values
+                else:
+                    return False
+            return True
+
+        matches = [o for o in matches if matches_filters(o, filters)]
+        return matches
 
 
 class KeyPair(object):
@@ -6015,6 +6063,8 @@ class IamInstanceProfileAssociationBackend(object):
 class EC2Backend(
     BaseBackend,
     InstanceBackend,
+    InstanceTypeBackend,
+    InstanceTypeOfferingBackend,
     TagBackend,
     EBSBackend,
     RegionsAndZonesBackend,

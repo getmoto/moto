@@ -150,6 +150,14 @@ class InstanceResponse(BaseResponse):
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
 
+    def describe_instance_type_offerings(self):
+        location_type_filters = self._get_multi_param("LocationType")
+        filter_dict = filters_from_querystring(self.querystring)
+        offerings = self.ec2_backend.describe_instance_type_offerings(
+            location_type_filters, filter_dict)
+        template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS)
+        return template.render(instance_type_offerings=offerings)
+
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
@@ -841,3 +849,18 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     {% endfor %}
     </instanceTypeSet>
 </DescribeInstanceTypesResponse>"""
+
+
+EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
+<DescribeInstanceTypeOfferingsResponse xmlns="http://api.outscale.com/wsdl/fcuext/2014-04-15/">
+    <requestId>f8b86168-d034-4e65-b48d-3b84c78e64af</requestId>
+    <instanceTypeOfferingSet>
+    {% for offering in instance_type_offerings %}
+        <item>
+            <instanceType>{{ offering.instance_type }}</instanceType>
+            <location>{{ offering.location }}</location>
+            <locationType>{{ offering.location_type }}</locationType>
+        </item>
+    {% endfor %}
+    </instanceTypeOfferingSet>
+</DescribeInstanceTypeOfferingsResponse>"""
