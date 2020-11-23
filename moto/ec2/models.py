@@ -1134,7 +1134,7 @@ class InstanceTypeBackend(object):
     def describe_instance_types(self, instance_types=None):
         matches = INSTANCE_TYPES.values()
         if instance_types:
-            matches = [t for t in matches if t.get('apiname') in instance_types]
+            matches = [t for t in matches if t.get("apiname") in instance_types]
             if len(instance_types) > len(matches):
                 unknown_ids = set(instance_types) - set(matches)
                 raise InvalidInstanceTypeError(unknown_ids)
@@ -1153,14 +1153,15 @@ class InstanceTypeOfferingBackend(object):
             for key, values in filters.items():
                 if key == "location":
                     if location_type in ("availability-zone", "availability-zone-id"):
-                        return offering.get('location') in values
+                        return offering.get("location") in values
                     elif location_type == "region":
-                        return any(v for v in values
-                                   if offering.get('location').startswith(v))
+                        return any(
+                            v for v in values if offering.get("location").startswith(v)
+                        )
                     else:
                         return False
                 elif key == "instance-type":
-                    return offering.get('instance_type') in values
+                    return offering.get("instance_type") in values
                 else:
                     return False
             return True

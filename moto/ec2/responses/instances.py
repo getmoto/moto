@@ -152,7 +152,8 @@ class InstanceResponse(BaseResponse):
         location_type_filters = self._get_multi_param("LocationType")
         filter_dict = filters_from_querystring(self.querystring)
         offerings = self.ec2_backend.describe_instance_type_offerings(
-            location_type_filters, filter_dict)
+            location_type_filters, filter_dict
+        )
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS)
         return template.render(instance_type_offerings=offerings)
 
