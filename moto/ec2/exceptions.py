@@ -205,6 +205,7 @@ class InvalidInstanceTypeError(EC2ClientError):
             "The instance type '{0}' does not exist".format(instance_type),
         )
 
+
 class InvalidAMIIdError(EC2ClientError):
     def __init__(self, ami_id):
         super(InvalidAMIIdError, self).__init__(
