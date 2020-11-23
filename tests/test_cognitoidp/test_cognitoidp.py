@@ -1199,6 +1199,9 @@ def test_admin_delete_user():
 
 
 def authentication_flow(conn):
+    authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+
+def authentication_flow(conn, auth_flow):
     username = str(uuid.uuid4())
     temporary_password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1220,7 +1223,7 @@ def authentication_flow(conn):
     result = conn.admin_initiate_auth(
         UserPoolId=user_pool_id,
         ClientId=client_id,
-        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthFlow=auth_flow,
         AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
     )
 
@@ -1255,7 +1258,8 @@ def authentication_flow(conn):
 def test_authentication_flow():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    authentication_flow(conn)
+    authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    authentication_flow(conn, "ADMIN_USER_PASSWORD_AUTH")
 
 
 def user_authentication_flow(conn):
