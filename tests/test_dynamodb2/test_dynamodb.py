@@ -5577,6 +5577,7 @@ def test_gsi_projection_type_include():
         }
     )
 
+
 @mock_dynamodb2
 def test_lsi_projection_type_keys_only():
     table_schema = {

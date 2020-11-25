@@ -293,12 +293,16 @@ class SecondaryIndex(BaseModel):
         """
         if self.projection:
             projection_type = self.projection.get("ProjectionType", None)
-            key_attributes = self.table_key_attrs + [key["AttributeName"] for key in self.schema]
+            key_attributes = self.table_key_attrs + [
+                key["AttributeName"] for key in self.schema
+            ]
 
             if projection_type == "KEYS_ONLY":
                 item.filter(",".join(key_attributes))
             elif projection_type == "INCLUDE":
-                allowed_attributes = key_attributes + self.projection.get("NonKeyAttributes", [])
+                allowed_attributes = key_attributes + self.projection.get(
+                    "NonKeyAttributes", []
+                )
                 item.filter(",".join(allowed_attributes))
             # ALL is handled implicitly by not filtering
         return item
