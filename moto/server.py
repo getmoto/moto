@@ -93,6 +93,11 @@ class DomainDispatcherApplication(object):
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
+        if service == "EventBridge":
+            # Go SDK uses 'EventBridge' in the SigV4 request instead of 'events'
+            # see https://github.com/spulec/moto/issues/3494
+            service = "events"
+
         if service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
