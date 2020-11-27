@@ -27,9 +27,39 @@ class StateMachine(CloudFormationModel):
         self.name = name
         self.definition = definition
         self.roleArn = roleArn
+        self.executions = []
         self.tags = []
         if tags:
             self.add_tags(tags)
+
+    def start_execution(self, region_name, account_id, execution_name, execution_input):
+        self._ensure_execution_name_doesnt_exist(execution_name)
+        self._validate_execution_input(execution_input)
+        execution = Execution(
+            region_name=region_name,
+            account_id=account_id,
+            state_machine_name=self.name,
+            execution_name=execution_name,
+            state_machine_arn=self.arn,
+            execution_input=execution_input,
+        )
+        self.executions.append(execution)
+        return execution
+
+    def _ensure_execution_name_doesnt_exist(self, name):
+        for execution in self.executions:
+            if execution.name == name:
+                raise ExecutionAlreadyExists(
+                    "Execution Already Exists: '" + execution.execution_arn + "'"
+                )
+
+    def _validate_execution_input(self, execution_input):
+        try:
+            json.loads(execution_input)
+        except Exception as ex:
+            raise InvalidExecutionInput(
+                "Invalid State Machine Execution Input: '" + str(ex) + "'"
+            )
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
@@ -346,23 +376,26 @@ class StepFunctionBackend(BaseBackend):
         return sm
 
     def start_execution(self, state_machine_arn, name=None, execution_input=None):
-        state_machine_name = self.describe_state_machine(state_machine_arn).name
-        self._ensure_execution_name_doesnt_exist(name)
-        self._validate_execution_input(execution_input)
-        execution = Execution(
+        state_machine = self.describe_state_machine(state_machine_arn)
+        execution = state_machine.start_execution(
             region_name=self.region_name,
             account_id=self._get_account_id(),
-            state_machine_name=state_machine_name,
             execution_name=name or str(uuid4()),
-            state_machine_arn=state_machine_arn,
             execution_input=execution_input,
         )
-        self.executions.append(execution)
         return execution
 
     def stop_execution(self, execution_arn):
+        self._validate_execution_arn(execution_arn)
+        state_machine_name = execution_arn.split(":")[6]
+        state_machine_arn = next(
+            (x.arn for x in self.state_machines if x.name == state_machine_name)
+        )
+        state_machine = self.describe_state_machine(state_machine_arn)
+        executions = state_machine.executions
+
         execution = next(
-            (x for x in self.executions if x.execution_arn == execution_arn), None
+            (x for x in executions if x.execution_arn == execution_arn), None
         )
         if not execution:
             raise ExecutionDoesNotExist(
@@ -373,11 +406,7 @@ class StepFunctionBackend(BaseBackend):
 
     @paginate
     def list_executions(self, state_machine_arn, status_filter=None):
-        executions = [
-            execution
-            for execution in self.executions
-            if execution.state_machine_arn == state_machine_arn
-        ]
+        executions = self.describe_state_machine(state_machine_arn).executions
 
         if status_filter:
             executions = list(filter(lambda e: e.status == status_filter, executions))
@@ -385,11 +414,25 @@ class StepFunctionBackend(BaseBackend):
         executions = sorted(executions, key=lambda x: x.start_date, reverse=True)
         return executions
 
-    def describe_execution(self, arn):
-        self._validate_execution_arn(arn)
-        exctn = next((x for x in self.executions if x.execution_arn == arn), None)
+    def describe_execution(self, execution_arn):
+        self._validate_execution_arn(execution_arn)
+        state_machine_name = execution_arn.split(":")[6]
+        state_machine_arn = next(
+            (x.arn for x in self.state_machines if x.name == state_machine_name), None
+        )
+        if not state_machine_arn:
+            raise ExecutionDoesNotExist(
+                "Execution Does Not Exist: '" + execution_arn + "'"
+            )
+        state_machine = self.describe_state_machine(state_machine_arn)
+        exctn = next(
+            (x for x in state_machine.executions if x.execution_arn == execution_arn),
+            None,
+        )
         if not exctn:
-            raise ExecutionDoesNotExist("Execution Does Not Exist: '" + arn + "'")
+            raise ExecutionDoesNotExist(
+                "Execution Does Not Exist: '" + execution_arn + "'"
+            )
         return exctn
 
     def tag_resource(self, resource_arn, tags):
@@ -443,21 +486,6 @@ class StepFunctionBackend(BaseBackend):
         match = regex.match(arn)
         if not arn or not match:
             raise InvalidArn(invalid_msg)
-
-    def _ensure_execution_name_doesnt_exist(self, name):
-        for execution in self.executions:
-            if execution.name == name:
-                raise ExecutionAlreadyExists(
-                    "Execution Already Exists: '" + execution.execution_arn + "'"
-                )
-
-    def _validate_execution_input(self, execution_input):
-        try:
-            json.loads(execution_input)
-        except Exception as ex:
-            raise InvalidExecutionInput(
-                "Invalid State Machine Execution Input: '" + str(ex) + "'"
-            )
 
     def _get_account_id(self):
         return ACCOUNT_ID
