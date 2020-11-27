@@ -50,7 +50,7 @@ from .exceptions import (
     UnformattedGetAttTemplateException,
     ValidationError,
 )
-from boto.cloudformation.stack import Output
+from moto.packages.boto.cloudformation.stack import Output
 
 # List of supported CloudFormation models
 MODEL_LIST = CloudFormationModel.__subclasses__()
