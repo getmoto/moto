@@ -387,11 +387,7 @@ class StepFunctionBackend(BaseBackend):
 
     def stop_execution(self, execution_arn):
         self._validate_execution_arn(execution_arn)
-        state_machine_name = execution_arn.split(":")[6]
-        state_machine_arn = next(
-            (x.arn for x in self.state_machines if x.name == state_machine_name)
-        )
-        state_machine = self.describe_state_machine(state_machine_arn)
+        state_machine = self._get_state_machine_for_execution(execution_arn)
         executions = state_machine.executions
 
         execution = next(
@@ -416,15 +412,7 @@ class StepFunctionBackend(BaseBackend):
 
     def describe_execution(self, execution_arn):
         self._validate_execution_arn(execution_arn)
-        state_machine_name = execution_arn.split(":")[6]
-        state_machine_arn = next(
-            (x.arn for x in self.state_machines if x.name == state_machine_name), None
-        )
-        if not state_machine_arn:
-            raise ExecutionDoesNotExist(
-                "Execution Does Not Exist: '" + execution_arn + "'"
-            )
-        state_machine = self.describe_state_machine(state_machine_arn)
+        state_machine = self._get_state_machine_for_execution(execution_arn)
         exctn = next(
             (x for x in state_machine.executions if x.execution_arn == execution_arn),
             None,
@@ -434,6 +422,19 @@ class StepFunctionBackend(BaseBackend):
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
         return exctn
+
+    def get_execution_history(self, execution_arn):
+        self._validate_execution_arn(execution_arn)
+        state_machine = self._get_state_machine_for_execution(execution_arn)
+        execution = next(
+            (x for x in state_machine.executions if x.execution_arn == execution_arn),
+            None,
+        )
+        if not execution:
+            raise ExecutionDoesNotExist(
+                "Execution Does Not Exist: '" + execution_arn + "'"
+            )
+        return execution.events
 
     def tag_resource(self, resource_arn, tags):
         try:
@@ -486,6 +487,19 @@ class StepFunctionBackend(BaseBackend):
         match = regex.match(arn)
         if not arn or not match:
             raise InvalidArn(invalid_msg)
+
+    def _get_state_machine_for_execution(self, execution_arn):
+        state_machine_name = execution_arn.split(":")[6]
+        state_machine_arn = next(
+            (x.arn for x in self.state_machines if x.name == state_machine_name), None
+        )
+        if not state_machine_arn:
+            # Assume that if the state machine arn is not present, then neither will the
+            # execution
+            raise ExecutionDoesNotExist(
+                "Execution Does Not Exist: '" + execution_arn + "'"
+            )
+        return self.describe_state_machine(state_machine_arn)
 
     def _get_account_id(self):
         return ACCOUNT_ID

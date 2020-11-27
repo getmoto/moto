@@ -7,6 +7,7 @@ import sure  # noqa
 from datetime import datetime
 from botocore.exceptions import ClientError
 import pytest
+from freezegun import freeze_time
 
 from moto import mock_cloudformation, mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
@@ -799,10 +800,24 @@ def test_state_machine_stop_execution():
 
 @mock_stepfunctions
 @mock_sts
-def test_state_machine_describe_execution_after_stoppage():
-    account_id
+def test_state_machine_stop_raises_error_when_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
-    #
+    client.create_state_machine(
+        name="test-state-machine", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    with pytest.raises(ClientError) as ex:
+        unknown_execution = (
+            "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:test-state-machine:unknown"
+        )
+        client.stop_execution(executionArn=unknown_execution)
+    ex.value.response["Error"]["Code"].should.equal("ExecutionDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain("Execution Does Not Exist:")
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_describe_execution_after_stoppage():
+    client = boto3.client("stepfunctions", region_name=region)
     sm = client.create_state_machine(
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
@@ -813,6 +828,35 @@ def test_state_machine_describe_execution_after_stoppage():
     description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     description["status"].should.equal("ABORTED")
     description["stopDate"].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_get_execution_history_throws_error_with_unknown_execution():
+    client = boto3.client("stepfunctions", region_name=region)
+    client.create_state_machine(
+        name="test-state-machine", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    with pytest.raises(ClientError) as ex:
+        unknown_execution = (
+            "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:test-state-machine:unknown"
+        )
+        client.get_execution_history(executionArn=unknown_execution)
+    ex.value.response["Error"]["Code"].should.equal("ExecutionDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain("Execution Does Not Exist:")
+
+
+@mock_stepfunctions
+@mock_sts
+@freeze_time("2020-01-01 00:00:00")
+def test_state_machine_get_execution_history_contains_expected_events_when_started():
+    client = boto3.client("stepfunctions", region_name=region)
+    sm = client.create_state_machine(
+        name="test-state-machine", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
+    execution_history = client.get_execution_history(executionArn=execution["executionArn"])
+    
 
 
 @mock_stepfunctions
