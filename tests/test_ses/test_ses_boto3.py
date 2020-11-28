@@ -473,7 +473,8 @@ def test_create_ses_template():
     result = conn.get_template(TemplateName="MyTemplate")
     result["Template"]["TemplateName"].should.equal("MyTemplate")
     result["Template"]["SubjectPart"].should.equal("Greetings, {{name}}!")
-
+    result["Template"]["HtmlPart"].should.equal("<h1>Hello {{name}},"
+                                                "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>")
     # get a template which is not present
     with pytest.raises(ClientError) as ex:
         conn.get_template(TemplateName="MyFakeTemplate")
