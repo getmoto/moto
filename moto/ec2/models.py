@@ -15,10 +15,15 @@ from pkg_resources import resource_filename
 from collections import defaultdict
 import weakref
 from datetime import datetime
-from boto.ec2.instance import Instance as BotoInstance, Reservation
-from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
-from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
-from boto.ec2.launchspecification import LaunchSpecification
+from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
+from moto.packages.boto.ec2.blockdevicemapping import (
+    BlockDeviceMapping,
+    BlockDeviceType,
+)
+from moto.packages.boto.ec2.spotinstancerequest import (
+    SpotInstanceRequest as BotoSpotRequest,
+)
+from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend

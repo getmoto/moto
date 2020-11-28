@@ -15,7 +15,7 @@ from moto.cloudformation.parsing import (
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
-from boto.cloudformation.stack import Output
+from moto.packages.boto.cloudformation.stack import Output
 
 
 dummy_template = {
