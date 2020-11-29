@@ -8,7 +8,7 @@ import boto3
 from boto.exception import EC2ResponseError
 import six
 
-import sure  # noqa
+# import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
 
@@ -581,3 +581,18 @@ def test_eip_tags():
     )
     # Expected total is 2, one with and one without tags
     len(addresses).should.equal(2)
+
+
+@mock_ec2
+def test_describe_addresses_tags():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    alloc_tags = client.allocate_address(Domain="vpc")
+    client.create_tags(
+        Resources=[alloc_tags["AllocationId"]],
+        Tags=[{"Key": "ManagedBy", "Value": "MyCode"}],
+    )
+    addresses_with_tags = client.describe_addresses()
+    assert addresses_with_tags.get("Addresses")[0].get("Tags") == [
+        {"Key": "ManagedBy", "Value": "MyCode"}
+    ]
