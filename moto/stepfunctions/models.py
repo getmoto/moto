@@ -1,6 +1,8 @@
 import json
+import os
 import re
 from datetime import datetime
+from dateutil.tz import tzlocal
 
 from boto3 import Session
 
@@ -205,6 +207,104 @@ class Execution:
         self.execution_input = execution_input
         self.status = "RUNNING"
         self.stop_date = None
+
+    def get_execution_history(self, roleArn):
+        execution_history_type = os.environ.get("EXECUTION_HISTORY_TYPE", "SUCCESS")
+        if execution_history_type == "SUCCESS":
+            return [
+                {
+                    "timestamp": iso_8601_datetime_with_milliseconds(
+                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal())
+                    ),
+                    "type": "ExecutionStarted",
+                    "id": 1,
+                    "previousEventId": 0,
+                    "executionStartedEventDetails": {
+                        "input": "{}",
+                        "inputDetails": {"truncated": False},
+                        "roleArn": roleArn,
+                    },
+                },
+                {
+                    "timestamp": iso_8601_datetime_with_milliseconds(
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                    ),
+                    "type": "PassStateEntered",
+                    "id": 2,
+                    "previousEventId": 0,
+                    "stateEnteredEventDetails": {
+                        "name": "A State",
+                        "input": "{}",
+                        "inputDetails": {"truncated": False},
+                    },
+                },
+                {
+                    "timestamp": iso_8601_datetime_with_milliseconds(
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                    ),
+                    "type": "PassStateExited",
+                    "id": 3,
+                    "previousEventId": 2,
+                    "stateExitedEventDetails": {
+                        "name": "A State",
+                        "output": "An output",
+                        "outputDetails": {"truncated": False},
+                    },
+                },
+                {
+                    "timestamp": iso_8601_datetime_with_milliseconds(
+                        datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal())
+                    ),
+                    "type": "ExecutionSucceeded",
+                    "id": 4,
+                    "previousEventId": 3,
+                    "executionSucceededEventDetails": {
+                        "output": "An output",
+                        "outputDetails": {"truncated": False},
+                    },
+                },
+            ]
+        else:
+            return [
+                {
+                    "timestamp": iso_8601_datetime_with_milliseconds(
+                        datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal())
+                    ),
+                    "type": "ExecutionStarted",
+                    "id": 1,
+                    "previousEventId": 0,
+                    "executionStartedEventDetails": {
+                        "input": "{}",
+                        "inputDetails": {"truncated": False},
+                        "roleArn": roleArn,
+                    },
+                },
+                {
+                    "timestamp": iso_8601_datetime_with_milliseconds(
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                    ),
+                    "type": "FailStateEntered",
+                    "id": 2,
+                    "previousEventId": 0,
+                    "stateEnteredEventDetails": {
+                        "name": "A State",
+                        "input": "{}",
+                        "inputDetails": {"truncated": False},
+                    },
+                },
+                {
+                    "timestamp": iso_8601_datetime_with_milliseconds(
+                        datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal())
+                    ),
+                    "type": "ExecutionFailed",
+                    "id": 3,
+                    "previousEventId": 2,
+                    "executionFailedEventDetails": {
+                        "error": "AnError",
+                        "cause": "An error occurred!",
+                    },
+                },
+            ]
 
     def stop(self):
         self.status = "ABORTED"
@@ -434,7 +534,7 @@ class StepFunctionBackend(BaseBackend):
             raise ExecutionDoesNotExist(
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
-        return execution.events
+        return execution.get_execution_history(state_machine.roleArn)
 
     def tag_resource(self, resource_arn, tags):
         try:

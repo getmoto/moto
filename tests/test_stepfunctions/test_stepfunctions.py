@@ -2,12 +2,14 @@ from __future__ import unicode_literals
 
 import boto3
 import json
+import os
 import sure  # noqa
+from unittest import mock
 
 from datetime import datetime
+from dateutil.tz import tzlocal
 from botocore.exceptions import ClientError
 import pytest
-from freezegun import freeze_time
 
 from moto import mock_cloudformation, mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
@@ -803,11 +805,17 @@ def test_state_machine_stop_execution():
 def test_state_machine_stop_raises_error_when_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     client.create_state_machine(
-        name="test-state-machine", definition=str(simple_definition), roleArn=_get_default_role()
+        name="test-state-machine",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
     )
     with pytest.raises(ClientError) as ex:
         unknown_execution = (
-            "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:test-state-machine:unknown"
+            "arn:aws:states:"
+            + region
+            + ":"
+            + _get_account_id()
+            + ":execution:test-state-machine:unknown"
         )
         client.stop_execution(executionArn=unknown_execution)
     ex.value.response["Error"]["Code"].should.equal("ExecutionDoesNotExist")
@@ -835,11 +843,17 @@ def test_state_machine_describe_execution_after_stoppage():
 def test_state_machine_get_execution_history_throws_error_with_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     client.create_state_machine(
-        name="test-state-machine", definition=str(simple_definition), roleArn=_get_default_role()
+        name="test-state-machine",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
     )
     with pytest.raises(ClientError) as ex:
         unknown_execution = (
-            "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:test-state-machine:unknown"
+            "arn:aws:states:"
+            + region
+            + ":"
+            + _get_account_id()
+            + ":execution:test-state-machine:unknown"
         )
         client.get_execution_history(executionArn=unknown_execution)
     ex.value.response["Error"]["Code"].should.equal("ExecutionDoesNotExist")
@@ -848,15 +862,118 @@ def test_state_machine_get_execution_history_throws_error_with_unknown_execution
 
 @mock_stepfunctions
 @mock_sts
-@freeze_time("2020-01-01 00:00:00")
-def test_state_machine_get_execution_history_contains_expected_events_when_started():
+def test_state_machine_get_execution_history_contains_expected_success_events_when_started():
+    expected_events = [
+        {
+            "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal()),
+            "type": "ExecutionStarted",
+            "id": 1,
+            "previousEventId": 0,
+            "executionStartedEventDetails": {
+                "input": "{}",
+                "inputDetails": {"truncated": False},
+                "roleArn": _get_default_role(),
+            },
+        },
+        {
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "type": "PassStateEntered",
+            "id": 2,
+            "previousEventId": 0,
+            "stateEnteredEventDetails": {
+                "name": "A State",
+                "input": "{}",
+                "inputDetails": {"truncated": False},
+            },
+        },
+        {
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "type": "PassStateExited",
+            "id": 3,
+            "previousEventId": 2,
+            "stateExitedEventDetails": {
+                "name": "A State",
+                "output": "An output",
+                "outputDetails": {"truncated": False},
+            },
+        },
+        {
+            "timestamp": datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal()),
+            "type": "ExecutionSucceeded",
+            "id": 4,
+            "previousEventId": 3,
+            "executionSucceededEventDetails": {
+                "output": "An output",
+                "outputDetails": {"truncated": False},
+            },
+        },
+    ]
+
     client = boto3.client("stepfunctions", region_name=region)
     sm = client.create_state_machine(
-        name="test-state-machine", definition=str(simple_definition), roleArn=_get_default_role()
+        name="test-state-machine",
+        definition=simple_definition,
+        roleArn=_get_default_role(),
     )
     execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
-    execution_history = client.get_execution_history(executionArn=execution["executionArn"])
-    
+    execution_history = client.get_execution_history(
+        executionArn=execution["executionArn"]
+    )
+    execution_history["events"].should.have.length_of(4)
+    execution_history["events"].should.equal(expected_events)
+
+
+@mock_stepfunctions
+@mock_sts
+@mock.patch.dict(os.environ, {"EXECUTION_HISTORY_TYPE": "blah"})
+def test_state_machine_get_execution_history_contains_expected_failure_events_when_started():
+    expected_events = [
+        {
+            "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal()),
+            "type": "ExecutionStarted",
+            "id": 1,
+            "previousEventId": 0,
+            "executionStartedEventDetails": {
+                "input": "{}",
+                "inputDetails": {"truncated": False},
+                "roleArn": _get_default_role(),
+            },
+        },
+        {
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "type": "FailStateEntered",
+            "id": 2,
+            "previousEventId": 0,
+            "stateEnteredEventDetails": {
+                "name": "A State",
+                "input": "{}",
+                "inputDetails": {"truncated": False},
+            },
+        },
+        {
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "type": "ExecutionFailed",
+            "id": 3,
+            "previousEventId": 2,
+            "executionFailedEventDetails": {
+                "error": "AnError",
+                "cause": "An error occurred!",
+            },
+        },
+    ]
+
+    client = boto3.client("stepfunctions", region_name=region)
+    sm = client.create_state_machine(
+        name="test-state-machine",
+        definition=simple_definition,
+        roleArn=_get_default_role(),
+    )
+    execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
+    execution_history = client.get_execution_history(
+        executionArn=execution["executionArn"]
+    )
+    execution_history["events"].should.have.length_of(3)
+    execution_history["events"].should.equal(expected_events)
 
 
 @mock_stepfunctions
