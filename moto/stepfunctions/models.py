@@ -264,7 +264,7 @@ class Execution:
                     },
                 },
             ]
-        else:
+        elif execution_history_type == "FAILURE":
             return [
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(

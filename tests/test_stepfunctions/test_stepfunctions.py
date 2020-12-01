@@ -925,7 +925,7 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
 
 @mock_stepfunctions
 @mock_sts
-@mock.patch.dict(os.environ, {"EXECUTION_HISTORY_TYPE": "blah"})
+@mock.patch.dict(os.environ, {"EXECUTION_HISTORY_TYPE": "FAILURE"})
 def test_state_machine_get_execution_history_contains_expected_failure_events_when_started():
     expected_events = [
         {
