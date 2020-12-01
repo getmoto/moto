@@ -4,7 +4,7 @@ import boto3
 import json
 import os
 import sure  # noqa
-from unittest import mock
+from unittest import SkipTest, mock
 
 from datetime import datetime
 from dateutil.tz import tzlocal
@@ -927,6 +927,8 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
 @mock_sts
 @mock.patch.dict(os.environ, {"EXECUTION_HISTORY_TYPE": "FAILURE"})
 def test_state_machine_get_execution_history_contains_expected_failure_events_when_started():
+    if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
+        raise SkipTest("Cant pass environment variable in server mode")
     expected_events = [
         {
             "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal()),
