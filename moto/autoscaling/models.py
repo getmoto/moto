@@ -2,7 +2,10 @@ from __future__ import unicode_literals
 
 import random
 
-from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
+from moto.packages.boto.ec2.blockdevicemapping import (
+    BlockDeviceType,
+    BlockDeviceMapping,
+)
 from moto.ec2.exceptions import InvalidInstanceIdError
 
 from moto.compat import OrderedDict

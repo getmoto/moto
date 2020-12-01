@@ -41,7 +41,7 @@ upload_pypi_artifact:
 	twine upload dist/*
 
 push_dockerhub_image:
-	docker build -t motoserver/moto .
+	docker build -t motoserver/moto . --tag moto:`python setup.py --version`
 	docker push motoserver/moto
 
 tag_github_release:

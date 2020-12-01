@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from boto.ec2.instancetype import InstanceType
+from moto.packages.boto.ec2.instancetype import InstanceType
 
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
