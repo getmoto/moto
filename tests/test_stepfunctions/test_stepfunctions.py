@@ -4,8 +4,7 @@ import boto3
 import json
 import os
 import sure  # noqa
-from unittest import SkipTest, mock
-
+import sys
 from datetime import datetime
 from dateutil.tz import tzlocal
 from botocore.exceptions import ClientError
@@ -13,6 +12,12 @@ import pytest
 
 from moto import mock_cloudformation, mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
+
+if sys.version_info[0] < 3:
+    import mock
+    from unittest import SkipTest
+else:
+    from unittest import SkipTest, mock
 
 region = "us-east-1"
 simple_definition = (
