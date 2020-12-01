@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
+from moto.core import ACCOUNT_ID
 
 
 @mock_rds2
@@ -1504,7 +1505,9 @@ def test_create_database_with_encrypted_storage():
 
 @mock_rds2
 def test_create_db_parameter_group():
-    conn = boto3.client("rds", region_name="us-west-2")
+    region = "us-west-2"
+    pg_name = "test"
+    conn = boto3.client("rds", region_name=region)
     db_parameter_group = conn.create_db_parameter_group(
         DBParameterGroupName="test",
         DBParameterGroupFamily="mysql5.6",
@@ -1517,6 +1520,9 @@ def test_create_db_parameter_group():
     )
     db_parameter_group["DBParameterGroup"]["Description"].should.equal(
         "test parameter group"
+    )
+    db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"].should.equal(
+        "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, pg_name)
     )
 
 
@@ -1629,15 +1635,20 @@ def test_create_db_parameter_group_duplicate():
 
 @mock_rds2
 def test_describe_db_parameter_group():
-    conn = boto3.client("rds", region_name="us-west-2")
+    region = "us-west-2"
+    pg_name = "test"
+    conn = boto3.client("rds", region_name=region)
     conn.create_db_parameter_group(
-        DBParameterGroupName="test",
+        DBParameterGroupName=pg_name,
         DBParameterGroupFamily="mysql5.6",
         Description="test parameter group",
     )
     db_parameter_groups = conn.describe_db_parameter_groups(DBParameterGroupName="test")
     db_parameter_groups["DBParameterGroups"][0]["DBParameterGroupName"].should.equal(
         "test"
+    )
+    db_parameter_groups["DBParameterGroups"][0]["DBParameterGroupArn"].should.equal(
+        "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, pg_name)
     )
 
 

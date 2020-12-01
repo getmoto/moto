@@ -9,7 +9,8 @@ from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -157,6 +158,7 @@ class Database(CloudFormationModel):
                     family=db_family,
                     description=description,
                     tags={},
+                    region=self.region,
                 )
             ]
         else:
@@ -1172,7 +1174,7 @@ class RDS2Backend(BaseBackend):
                 "InvalidParameterValue",
                 "The parameter DBParameterGroupName must be provided and must not be blank.",
             )
-
+        db_parameter_group_kwargs["region"] = self.region
         db_parameter_group = DBParameterGroup(**db_parameter_group_kwargs)
         self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
         return db_parameter_group
@@ -1471,13 +1473,18 @@ class OptionGroupOptionSetting(object):
         return template.render(option_group_option_setting=self)
 
 
+def make_rds_arn(region, name):
+    return "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, name)
+
+
 class DBParameterGroup(CloudFormationModel):
-    def __init__(self, name, description, family, tags):
+    def __init__(self, name, description, family, tags, region):
         self.name = name
         self.description = description
         self.family = family
         self.tags = tags
         self.parameters = defaultdict(dict)
+        self.arn = make_rds_arn(region, name)
 
     def to_xml(self):
         template = Template(
@@ -1485,6 +1492,7 @@ class DBParameterGroup(CloudFormationModel):
           <DBParameterGroupName>{{ param_group.name }}</DBParameterGroupName>
           <DBParameterGroupFamily>{{ param_group.family }}</DBParameterGroupFamily>
           <Description>{{ param_group.description }}</Description>
+          <DBParameterGroupArn>{{ param_group.arn }}</DBParameterGroupArn>
         </DBParameterGroup>"""
         )
         return template.render(param_group=self)
