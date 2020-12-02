@@ -149,7 +149,7 @@ class InstanceResponse(BaseResponse):
         return template.render(instance_types=instance_types)
 
     def describe_instance_type_offerings(self):
-        location_type_filters = self._get_multi_param("LocationType")
+        location_type_filters = self._get_param("LocationType")
         filter_dict = filters_from_querystring(self.querystring)
         offerings = self.ec2_backend.describe_instance_type_offerings(
             location_type_filters, filter_dict
@@ -856,9 +856,9 @@ EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
     <instanceTypeOfferingSet>
     {% for offering in instance_type_offerings %}
         <item>
-            <instanceType>{{ offering.instance_type }}</instanceType>
-            <location>{{ offering.location }}</location>
-            <locationType>{{ offering.location_type }}</locationType>
+            <instanceType>{{ offering.InstanceType }}</instanceType>
+            <location>{{ offering.Location }}</location>
+            <locationType>{{ offering.LocationType }}</locationType>
         </item>
     {% endfor %}
     </instanceTypeOfferingSet>
