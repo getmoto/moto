@@ -34,6 +34,7 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
+from os import listdir
 
 from .exceptions import (
     CidrLimitExceeded,
@@ -175,9 +176,20 @@ INSTANCE_TYPES = _load_resource(
     resource_filename(__name__, "resources/instance_types.json")
 )
 
-INSTANCE_TYPE_OFFERINGS = _load_resource(
-    resource_filename(__name__, "resources/instance_type_offerings.json")
-)
+offerings_path = "resources/instance_type_offerings"
+INSTANCE_TYPE_OFFERINGS = {}
+for location_type in listdir(resource_filename(__name__, offerings_path)):
+    INSTANCE_TYPE_OFFERINGS[location_type] = {}
+    for region in listdir(
+        resource_filename(__name__, offerings_path + "/" + location_type)
+    ):
+        full_path = resource_filename(
+            __name__, offerings_path + "/" + location_type + "/" + region
+        )
+        INSTANCE_TYPE_OFFERINGS[location_type][
+            region.replace(".json", "")
+        ] = _load_resource(full_path)
+
 
 AMIS = _load_resource(
     os.environ.get("MOTO_AMIS_PATH")
@@ -1151,25 +1163,27 @@ class InstanceTypeOfferingBackend(object):
         super(InstanceTypeOfferingBackend, self).__init__()
 
     def describe_instance_type_offerings(self, location_type=None, filters=None):
-        matches = INSTANCE_TYPE_OFFERINGS
         location_type = location_type or "region"
+        matches = INSTANCE_TYPE_OFFERINGS[location_type]
+        matches = matches[self.region_name]
 
         def matches_filters(offering, filters):
-            for key, values in filters.items():
+            def matches_filter(key, values):
                 if key == "location":
                     if location_type in ("availability-zone", "availability-zone-id"):
-                        return offering.get("location") in values
+                        return offering.get("Location") in values
                     elif location_type == "region":
                         return any(
-                            v for v in values if offering.get("location").startswith(v)
+                            v for v in values if offering.get("Location").startswith(v)
                         )
                     else:
                         return False
                 elif key == "instance-type":
-                    return offering.get("instance_type") in values
+                    return offering.get("InstanceType") in values
                 else:
                     return False
-            return True
+
+            return all([matches_filter(key, values) for key, values in filters.items()])
 
         matches = [o for o in matches if matches_filters(o, filters)]
         return matches
