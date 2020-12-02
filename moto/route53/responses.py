@@ -274,11 +274,23 @@ CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="htt
 </ChangeTagsForResourceResponse>
 """
 
-LIST_RRSET_RESPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
-   {% for record_set in record_sets %}
-      {{ record_set.to_xml() }}
-   {% endfor %}
+       {% for rset in record_sets %}
+       <ResourceRecordSet>
+           <Name>{{ rset.name }}</Name>
+           <Type>{{ rset.type_ }}</Type>
+           <TTL>{{ rset.ttl }}</TTL>
+           <ResourceRecords>
+                {% for resource_record in rset.records %}
+                    <ResourceRecord>
+                        <Value><![CDATA[{{ resource_record }}]]></Value>
+                    </ResourceRecord>
+                {% endfor %}
+           </ResourceRecords>
+        </ResourceRecordSet>
+       {% endfor %}
    </ResourceRecordSets>
    <IsTruncated>false</IsTruncated>
 </ListResourceRecordSetsResponse>"""
