@@ -5524,6 +5524,61 @@ def test_gsi_projection_type_keys_only():
 
 
 @mock_dynamodb2
+def test_gsi_projection_type_include():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        "GlobalSecondaryIndexes": [
+            {
+                "IndexName": "GSI-INC",
+                "KeySchema": [
+                    {"AttributeName": "gsiK1PartitionKey", "KeyType": "HASH"},
+                    {"AttributeName": "gsiK1SortKey", "KeyType": "RANGE"},
+                ],
+                "Projection": {
+                    "ProjectionType": "INCLUDE",
+                    "NonKeyAttributes": ["projectedAttribute"],
+                },
+            }
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "partitionKey", "AttributeType": "S"},
+            {"AttributeName": "gsiK1PartitionKey", "AttributeType": "S"},
+            {"AttributeName": "gsiK1SortKey", "AttributeType": "S"},
+        ],
+    }
+
+    item = {
+        "partitionKey": "pk-1",
+        "gsiK1PartitionKey": "gsi-pk",
+        "gsiK1SortKey": "gsi-sk",
+        "projectedAttribute": "lore ipsum",
+        "nonProjectedAttribute": "dolor sit amet",
+    }
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    table = dynamodb.Table("test-table")
+    table.put_item(Item=item)
+
+    items = table.query(
+        KeyConditionExpression=Key("gsiK1PartitionKey").eq("gsi-pk"),
+        IndexName="GSI-INC",
+    )["Items"]
+    items.should.have.length_of(1)
+    # Item should only include keys and additionally projected attributes only
+    items[0].should.equal(
+        {
+            "gsiK1PartitionKey": "gsi-pk",
+            "gsiK1SortKey": "gsi-sk",
+            "partitionKey": "pk-1",
+            "projectedAttribute": "lore ipsum",
+        }
+    )
+
+
+@mock_dynamodb2
 def test_lsi_projection_type_keys_only():
     table_schema = {
         "KeySchema": [

@@ -1066,5 +1066,7 @@ def find_region_by_value(key, value):
 
             if key == "access_token" and value in user_pool.access_tokens:
                 return region
-
-    return cognitoidp_backends.keys()[0]
+    # If we can't find the `client_id` or `access_token`, we just pass
+    # back a default backend region, which will raise the appropriate
+    # error message (e.g. NotAuthorized or NotFound).
+    return list(cognitoidp_backends)[0]

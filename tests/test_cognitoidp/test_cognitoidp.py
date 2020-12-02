@@ -1840,6 +1840,31 @@ def test_admin_set_user_password():
     result["UserStatus"].should.equal("CONFIRMED")
 
 
+@mock_cognitoidp
+def test_change_password_with_invalid_token_raises_error():
+    client = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        client.change_password(
+            AccessToken=str(uuid.uuid4()),
+            PreviousPassword="previous_password",
+            ProposedPassword="newer_password",
+        )
+    ex.value.response["Error"]["Code"].should.equal("NotAuthorizedException")
+
+
+@mock_cognitoidp
+def test_confirm_forgot_password_with_non_existent_client_id_raises_error():
+    client = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        client.confirm_forgot_password(
+            ClientId="non-existent-client-id",
+            Username="not-existent-username",
+            ConfirmationCode=str(uuid.uuid4()),
+            Password=str(uuid.uuid4()),
+        )
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+
+
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
 # which isnt mocked in ServerMode
 if not settings.TEST_SERVER_MODE:

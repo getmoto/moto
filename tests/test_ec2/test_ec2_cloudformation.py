@@ -2,6 +2,9 @@ from moto import mock_cloudformation_deprecated, mock_ec2_deprecated
 from moto import mock_cloudformation, mock_ec2
 from tests.test_cloudformation.fixtures import vpc_eni
 import boto
+import boto.ec2
+import boto.cloudformation
+import boto.vpc
 import boto3
 import json
 import sure  # noqa
