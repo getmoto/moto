@@ -48,6 +48,17 @@ class StateMachine(CloudFormationModel):
         self.executions.append(execution)
         return execution
 
+    def stop_execution(self, execution_arn):
+        execution = next(
+            (x for x in self.executions if x.execution_arn == execution_arn), None
+        )
+        if not execution:
+            raise ExecutionDoesNotExist(
+                "Execution Does Not Exist: '" + execution_arn + "'"
+            )
+        execution.stop()
+        return execution
+
     def _ensure_execution_name_doesnt_exist(self, name):
         for execution in self.executions:
             if execution.name == name:
@@ -488,17 +499,7 @@ class StepFunctionBackend(BaseBackend):
     def stop_execution(self, execution_arn):
         self._validate_execution_arn(execution_arn)
         state_machine = self._get_state_machine_for_execution(execution_arn)
-        executions = state_machine.executions
-
-        execution = next(
-            (x for x in executions if x.execution_arn == execution_arn), None
-        )
-        if not execution:
-            raise ExecutionDoesNotExist(
-                "Execution Does Not Exist: '" + execution_arn + "'"
-            )
-        execution.stop()
-        return execution
+        return state_machine.stop_execution(execution_arn)
 
     @paginate
     def list_executions(self, state_machine_arn, status_filter=None):
