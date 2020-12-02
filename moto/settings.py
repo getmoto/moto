@@ -6,7 +6,7 @@ INITIAL_NO_AUTH_ACTION_COUNT = float(
 )
 
 
-def get_sf_execution_history_type() -> str:
+def get_sf_execution_history_type():
     """
     Determines which execution history events `get_execution_history` returns
     :returns: str representing the type of Step Function Execution Type events should be
