@@ -19,6 +19,7 @@ from .exceptions import (
     StateMachineDoesNotExist,
 )
 from .utils import paginate, api_to_cfn_tags, cfn_to_api_tags
+from moto import settings
 
 
 class StateMachine(CloudFormationModel):
@@ -220,8 +221,8 @@ class Execution:
         self.stop_date = None
 
     def get_execution_history(self, roleArn):
-        execution_history_type = os.environ.get("EXECUTION_HISTORY_TYPE", "SUCCESS")
-        if execution_history_type == "SUCCESS":
+        sf_execution_history_type = settings.get_sf_execution_history_type()
+        if sf_execution_history_type == "SUCCESS":
             return [
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
@@ -275,7 +276,7 @@ class Execution:
                     },
                 },
             ]
-        elif execution_history_type == "FAILURE":
+        elif sf_execution_history_type == "FAILURE":
             return [
                 {
                     "timestamp": iso_8601_datetime_with_milliseconds(
