@@ -20,11 +20,13 @@ lint:
 	flake8 moto
 	black --check moto/ tests/
 
+format:
+	black moto/ tests/
+
 test-only:
 	rm -f .coverage
 	rm -rf cover
 	@pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
-
 
 test: lint test-only
 

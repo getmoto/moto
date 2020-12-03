@@ -8115,7 +8115,7 @@
 - [X] describe_state_machine
 - [ ] describe_state_machine_for_execution
 - [ ] get_activity_task
-- [ ] get_execution_history
+- [X] get_execution_history
 - [ ] list_activities
 - [X] list_executions
 - [X] list_state_machines
