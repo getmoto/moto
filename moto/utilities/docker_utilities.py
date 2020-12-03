@@ -31,3 +31,17 @@ class DockerModel:
 
                 self.docker_client.api.get_adapter = replace_adapter_send
         return self.__docker_client
+
+
+def parse_image_name(image_name):
+    # podman does not support short container image name out of box - try to make a full name
+    if ":" in image_name:
+        image_repository, image_tag = image_name.split(":", maxsplit=1)
+    else:
+        image_repository = image_name
+        image_tag = "latest"
+    if "/" not in image_repository:
+        image_repository = "library/" + image_repository
+    if len(image_repository.split("/")) < 3:
+        image_repository = "docker.io/" + image_repository
+    return image_repository, image_tag

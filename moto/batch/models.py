@@ -28,7 +28,7 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.docker_utilities import DockerModel, parse_image_name
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -428,6 +428,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
             self.job_started_at = datetime.datetime.now()
             self.job_state = "STARTING"
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
+            image_repository, image_tag = parse_image_name(image)
+            self.docker_client.images.pull(image_repository, image_tag)
             container = self.docker_client.containers.run(
                 image,
                 cmd,
