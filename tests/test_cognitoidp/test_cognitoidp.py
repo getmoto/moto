@@ -1294,7 +1294,7 @@ def user_authentication_flow(conn):
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": username,
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": secret_hash,
         },
     )
@@ -1341,7 +1341,7 @@ def user_authentication_flow(conn):
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": username,
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": secret_hash,
         },
     )
@@ -1638,7 +1638,7 @@ def test_initiate_auth_USER_SRP_AUTH():
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": username,
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": secret_hash,
         },
     )
@@ -1688,7 +1688,7 @@ def test_initiate_auth_for_unconfirmed_user():
             AuthFlow="USER_SRP_AUTH",
             AuthParameters={
                 "USERNAME": username,
-                "SRP_A": str(uuid.uuid4()),
+                "SRP_A": uuid.uuid4().hex,
                 "SECRET_HASH": secret_hash,
             },
         )
@@ -1724,7 +1724,7 @@ def test_initiate_auth_with_invalid_secret_hash():
             AuthFlow="USER_SRP_AUTH",
             AuthParameters={
                 "USERNAME": username,
-                "SRP_A": str(uuid.uuid4()),
+                "SRP_A": uuid.uuid4().hex,
                 "SECRET_HASH": invalid_secret_hash,
             },
         )
@@ -1782,7 +1782,7 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": result["username"],
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": valid_secret_hash,
         },
     )

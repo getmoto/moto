@@ -944,8 +944,8 @@ class CognitoIdpBackend(BaseBackend):
                 "ChallengeName": "PASSWORD_VERIFIER",
                 "Session": session,
                 "ChallengeParameters": {
-                    "SALT": str(uuid.uuid4()),
-                    "SRP_B": str(uuid.uuid4()),
+                    "SALT": uuid.uuid4().hex,
+                    "SRP_B": uuid.uuid4().hex,
                     "USERNAME": user.id,
                     "USER_ID_FOR_SRP": user.id,
                     "SECRET_BLOCK": session,
