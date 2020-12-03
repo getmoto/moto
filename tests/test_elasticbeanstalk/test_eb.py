@@ -11,6 +11,7 @@ def test_create_application():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     app = conn.create_application(ApplicationName="myapp",)
     app["Application"]["ApplicationName"].should.equal("myapp")
+    app["Application"]["ApplicationArn"].should.contain("myapp")
 
 
 @mock_elasticbeanstalk
@@ -31,6 +32,7 @@ def test_describe_applications():
     apps = conn.describe_applications()
     len(apps["Applications"]).should.equal(1)
     apps["Applications"][0]["ApplicationName"].should.equal("myapp")
+    apps["Applications"][0]["ApplicationArn"].should.contain("myapp")
 
 
 @mock_elasticbeanstalk
