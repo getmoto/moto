@@ -374,7 +374,7 @@ GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-
         <Template>
             <TemplateName>{{ template_data["template_name"] }}</TemplateName>
             <SubjectPart>{{ template_data["subject_part"] }}</SubjectPart>
-            <HtmlPart>{{ template_data["html_part"] }}</HtmlPart>
+            <HtmlPart><![CDATA[{{ template_data["html_part"] }}]]></HtmlPart>
             <TextPart>{{ template_data["text_part"] }}</TextPart>
         </Template>
     </GetTemplateResult>
