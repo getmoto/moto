@@ -141,12 +141,25 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def function_concurrency(self, request, full_url, headers):
+        http_method = request.method
+        self.setup_class(request, full_url, headers)
+
+        if http_method == "GET":
+            return self._get_function_concurrency(request)
+        elif http_method == "DELETE":
+            return self._delete_function_concurrency(request)
+        elif http_method == "PUT":
+            return self._put_function_concurrency(request)
+        else:
+            raise ValueError("Cannot handle request")
+
     def _add_policy(self, request, full_url, headers):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
             statement = self.body
-            self.lambda_backend.add_policy_statement(function_name, statement)
+            self.lambda_backend.add_permission(function_name, statement)
             return 200, {}, json.dumps({"Statement": statement})
         else:
             return 404, {}, "{}"
@@ -166,9 +179,7 @@ class LambdaResponse(BaseResponse):
         statement_id = path.split("/")[-1].split("?")[0]
         revision = querystring.get("RevisionId", "")
         if self.lambda_backend.get_function(function_name):
-            self.lambda_backend.del_policy_statement(
-                function_name, statement_id, revision
-            )
+            self.lambda_backend.remove_permission(function_name, statement_id, revision)
             return 204, {}, "{}"
         else:
             return 404, {}, "{}"
@@ -180,11 +191,19 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("qualifier")
 
-        response_header, payload = self.lambda_backend.invoke(
+        payload = self.lambda_backend.invoke(
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
-            return 202, response_headers, payload
+            if request.headers.get("X-Amz-Invocation-Type") == "Event":
+                status_code = 202
+            elif request.headers.get("X-Amz-Invocation-Type") == "DryRun":
+                status_code = 204
+            else:
+                if request.headers.get("X-Amz-Log-Type") != "Tail":
+                    del response_headers["x-amz-log-result"]
+                status_code = 200
+            return status_code, response_headers, payload
         else:
             return 404, response_headers, "{}"
 
@@ -295,7 +314,7 @@ class LambdaResponse(BaseResponse):
                 code["Configuration"]["FunctionArn"] += ":$LATEST"
             return 200, {}, json.dumps(code)
         else:
-            return 404, {}, "{}"
+            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
 
     def _get_aws_region(self, full_url):
         region = self.region_regex.search(full_url)
@@ -353,3 +372,38 @@ class LambdaResponse(BaseResponse):
             return 200, {}, json.dumps(resp)
         else:
             return 404, {}, "{}"
+
+    def _get_function_concurrency(self, request):
+        path_function_name = self.path.rsplit("/", 2)[-2]
+        function_name = self.lambda_backend.get_function(path_function_name)
+
+        if function_name is None:
+            return 404, {}, "{}"
+
+        resp = self.lambda_backend.get_function_concurrency(path_function_name)
+        return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
+
+    def _delete_function_concurrency(self, request):
+        path_function_name = self.path.rsplit("/", 2)[-2]
+        function_name = self.lambda_backend.get_function(path_function_name)
+
+        if function_name is None:
+            return 404, {}, "{}"
+
+        self.lambda_backend.delete_function_concurrency(path_function_name)
+
+        return 204, {}, "{}"
+
+    def _put_function_concurrency(self, request):
+        path_function_name = self.path.rsplit("/", 2)[-2]
+        function = self.lambda_backend.get_function(path_function_name)
+
+        if function is None:
+            return 404, {}, "{}"
+
+        concurrency = self._get_param("ReservedConcurrentExecutions", None)
+        resp = self.lambda_backend.put_function_concurrency(
+            path_function_name, concurrency
+        )
+
+        return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})

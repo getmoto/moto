@@ -6,6 +6,7 @@ from .exceptions import (
     ResourceNotFoundException,
     ResourceAlreadyExistsException,
     InvalidParameterException,
+    LimitExceededException,
 )
 
 
@@ -57,6 +58,8 @@ class LogStream:
             0  # I'm  guessing this is token needed for sequenceToken by put_events
         )
         self.events = []
+        self.destination_arn = None
+        self.filter_name = None
 
         self.__class__._log_ids += 1
 
@@ -97,10 +100,31 @@ class LogStream:
         self.lastIngestionTime = int(unix_time_millis())
         # TODO: make this match AWS if possible
         self.storedBytes += sum([len(log_event["message"]) for log_event in log_events])
-        self.events += [
+        events = [
             LogEvent(self.lastIngestionTime, log_event) for log_event in log_events
         ]
+        self.events += events
         self.uploadSequenceToken += 1
+
+        if self.destination_arn and self.destination_arn.split(":")[2] == "lambda":
+            from moto.awslambda import lambda_backends  # due to circular dependency
+
+            lambda_log_events = [
+                {
+                    "id": event.eventId,
+                    "timestamp": event.timestamp,
+                    "message": event.message,
+                }
+                for event in events
+            ]
+
+            lambda_backends[self.region].send_log_event(
+                self.destination_arn,
+                self.filter_name,
+                log_group_name,
+                log_stream_name,
+                lambda_log_events,
+            )
 
         return "{:056d}".format(self.uploadSequenceToken)
 
@@ -134,7 +158,7 @@ class LogStream:
             return None, 0
 
         events = sorted(
-            filter(filter_func, self.events), key=lambda event: event.timestamp,
+            filter(filter_func, self.events), key=lambda event: event.timestamp
         )
 
         direction, index = get_index_and_direction_from_token(next_token)
@@ -169,11 +193,7 @@ class LogStream:
         if end_index > final_index:
             end_index = final_index
         elif end_index < 0:
-            return (
-                [],
-                "b/{:056d}".format(0),
-                "f/{:056d}".format(0),
-            )
+            return ([], "b/{:056d}".format(0), "f/{:056d}".format(0))
 
         events_page = [
             event.to_response_dict() for event in events[start_index : end_index + 1]
@@ -219,7 +239,7 @@ class LogStream:
 
 
 class LogGroup:
-    def __init__(self, region, name, tags):
+    def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
         self.arn = "arn:aws:logs:{region}:1:log-group:{log_group}".format(
@@ -228,9 +248,10 @@ class LogGroup:
         self.creationTime = int(unix_time_millis())
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
-        self.retentionInDays = (
-            None  # AWS defaults to Never Expire for log group retention
-        )
+        self.retention_in_days = kwargs.get(
+            "RetentionInDays"
+        )  # AWS defaults to Never Expire for log group retention
+        self.subscription_filters = []
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -368,12 +389,12 @@ class LogGroup:
             "storedBytes": sum(s.storedBytes for s in self.streams.values()),
         }
         # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
-        if self.retentionInDays:
-            log_group["retentionInDays"] = self.retentionInDays
+        if self.retention_in_days:
+            log_group["retentionInDays"] = self.retention_in_days
         return log_group
 
     def set_retention_policy(self, retention_in_days):
-        self.retentionInDays = retention_in_days
+        self.retention_in_days = retention_in_days
 
     def list_tags(self):
         return self.tags if self.tags else {}
@@ -390,6 +411,48 @@ class LogGroup:
                 k: v for (k, v) in self.tags.items() if k not in tags_to_remove
             }
 
+    def describe_subscription_filters(self):
+        return self.subscription_filters
+
+    def put_subscription_filter(
+        self, filter_name, filter_pattern, destination_arn, role_arn
+    ):
+        creation_time = int(unix_time_millis())
+
+        # only one subscription filter can be associated with a log group
+        if self.subscription_filters:
+            if self.subscription_filters[0]["filterName"] == filter_name:
+                creation_time = self.subscription_filters[0]["creationTime"]
+            else:
+                raise LimitExceededException
+
+        for stream in self.streams.values():
+            stream.destination_arn = destination_arn
+            stream.filter_name = filter_name
+
+        self.subscription_filters = [
+            {
+                "filterName": filter_name,
+                "logGroupName": self.name,
+                "filterPattern": filter_pattern,
+                "destinationArn": destination_arn,
+                "roleArn": role_arn,
+                "distribution": "ByLogStream",
+                "creationTime": creation_time,
+            }
+        ]
+
+    def delete_subscription_filter(self, filter_name):
+        if (
+            not self.subscription_filters
+            or self.subscription_filters[0]["filterName"] != filter_name
+        ):
+            raise ResourceNotFoundException(
+                "The specified subscription filter does not exist."
+            )
+
+        self.subscription_filters = []
+
 
 class LogsBackend(BaseBackend):
     def __init__(self, region_name):
@@ -401,10 +464,13 @@ class LogsBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_log_group(self, log_group_name, tags):
+    def create_log_group(self, log_group_name, tags, **kwargs):
         if log_group_name in self.groups:
             raise ResourceAlreadyExistsException()
-        self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
+        self.groups[log_group_name] = LogGroup(
+            self.region_name, log_group_name, tags, **kwargs
+        )
+        return self.groups[log_group_name]
 
     def ensure_log_group(self, log_group_name, tags):
         if log_group_name in self.groups:
@@ -419,20 +485,39 @@ class LogsBackend(BaseBackend):
     def describe_log_groups(self, limit, log_group_name_prefix, next_token):
         if log_group_name_prefix is None:
             log_group_name_prefix = ""
-        if next_token is None:
-            next_token = 0
 
         groups = [
             group.to_describe_dict()
             for name, group in self.groups.items()
             if name.startswith(log_group_name_prefix)
         ]
-        groups = sorted(groups, key=lambda x: x["creationTime"], reverse=True)
-        groups_page = groups[next_token : next_token + limit]
+        groups = sorted(groups, key=lambda x: x["logGroupName"])
 
-        next_token += limit
-        if next_token >= len(groups):
-            next_token = None
+        index_start = 0
+        if next_token:
+            try:
+                index_start = (
+                    next(
+                        index
+                        for (index, d) in enumerate(groups)
+                        if d["logGroupName"] == next_token
+                    )
+                    + 1
+                )
+            except StopIteration:
+                index_start = 0
+                # AWS returns an empty list if it receives an invalid token.
+                groups = []
+
+        index_end = index_start + limit
+        if index_end > len(groups):
+            index_end = len(groups)
+
+        groups_page = groups[index_start:index_end]
+
+        next_token = None
+        if groups_page and index_end < len(groups):
+            next_token = groups_page[-1]["logGroupName"]
 
         return groups_page, next_token
 
@@ -557,6 +642,46 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         log_group.untag(tags)
+
+    def describe_subscription_filters(self, log_group_name):
+        log_group = self.groups.get(log_group_name)
+
+        if not log_group:
+            raise ResourceNotFoundException()
+
+        return log_group.describe_subscription_filters()
+
+    def put_subscription_filter(
+        self, log_group_name, filter_name, filter_pattern, destination_arn, role_arn
+    ):
+        # TODO: support other destinations like Kinesis stream
+        from moto.awslambda import lambda_backends  # due to circular dependency
+
+        log_group = self.groups.get(log_group_name)
+
+        if not log_group:
+            raise ResourceNotFoundException()
+
+        lambda_func = lambda_backends[self.region_name].get_function(destination_arn)
+
+        # no specific permission check implemented
+        if not lambda_func:
+            raise InvalidParameterException(
+                "Could not execute the lambda function. "
+                "Make sure you have given CloudWatch Logs permission to execute your function."
+            )
+
+        log_group.put_subscription_filter(
+            filter_name, filter_pattern, destination_arn, role_arn
+        )
+
+    def delete_subscription_filter(self, log_group_name, filter_name):
+        log_group = self.groups.get(log_group_name)
+
+        if not log_group:
+            raise ResourceNotFoundException()
+
+        log_group.delete_subscription_filter(filter_name)
 
 
 logs_backends = {}

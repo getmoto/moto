@@ -42,7 +42,10 @@ class LogsResponse(BaseResponse):
         groups, next_token = self.logs_backend.describe_log_groups(
             limit, log_group_name_prefix, next_token
         )
-        return json.dumps({"logGroups": groups, "nextToken": next_token})
+        result = {"logGroups": groups}
+        if next_token:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def create_log_stream(self):
         log_group_name = self._get_param("logGroupName")
@@ -177,4 +180,34 @@ class LogsResponse(BaseResponse):
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
         self.logs_backend.untag_log_group(log_group_name, tags)
+        return ""
+
+    def describe_subscription_filters(self):
+        log_group_name = self._get_param("logGroupName")
+
+        subscription_filters = self.logs_backend.describe_subscription_filters(
+            log_group_name
+        )
+
+        return json.dumps({"subscriptionFilters": subscription_filters})
+
+    def put_subscription_filter(self):
+        log_group_name = self._get_param("logGroupName")
+        filter_name = self._get_param("filterName")
+        filter_pattern = self._get_param("filterPattern")
+        destination_arn = self._get_param("destinationArn")
+        role_arn = self._get_param("roleArn")
+
+        self.logs_backend.put_subscription_filter(
+            log_group_name, filter_name, filter_pattern, destination_arn, role_arn
+        )
+
+        return ""
+
+    def delete_subscription_filter(self):
+        log_group_name = self._get_param("logGroupName")
+        filter_name = self._get_param("filterName")
+
+        self.logs_backend.delete_subscription_filter(log_group_name, filter_name)
+
         return ""

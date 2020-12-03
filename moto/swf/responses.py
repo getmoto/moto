@@ -92,6 +92,17 @@ class SWFResponse(BaseResponse):
         self.swf_backend.deprecate_type(kind, domain, name, version)
         return ""
 
+    def _undeprecate_type(self, kind):
+        domain = self._params["domain"]
+        _type_args = self._params["{0}Type".format(kind)]
+        name = _type_args["name"]
+        version = _type_args["version"]
+        self._check_string(domain)
+        self._check_string(name)
+        self._check_string(version)
+        self.swf_backend.undeprecate_type(kind, domain, name, version)
+        return ""
+
     # TODO: implement pagination
     def list_domains(self):
         status = self._params["registrationStatus"]
@@ -219,6 +230,12 @@ class SWFResponse(BaseResponse):
         self.swf_backend.deprecate_domain(name)
         return ""
 
+    def undeprecate_domain(self):
+        name = self._params["name"]
+        self._check_string(name)
+        self.swf_backend.undeprecate_domain(name)
+        return ""
+
     def describe_domain(self):
         name = self._params["name"]
         self._check_string(name)
@@ -278,6 +295,9 @@ class SWFResponse(BaseResponse):
     def deprecate_activity_type(self):
         return self._deprecate_type("activity")
 
+    def undeprecate_activity_type(self):
+        return self._undeprecate_type("activity")
+
     def describe_activity_type(self):
         return self._describe_type("activity")
 
@@ -300,6 +320,8 @@ class SWFResponse(BaseResponse):
         default_execution_start_to_close_timeout = self._params.get(
             "defaultExecutionStartToCloseTimeout"
         )
+        default_task_priority = self._params.get("defaultTaskPriority")
+        default_lambda_role = self._params.get("defaultLambdaRole")
         description = self._params.get("description")
 
         self._check_string(domain)
@@ -309,10 +331,10 @@ class SWFResponse(BaseResponse):
         self._check_none_or_string(default_child_policy)
         self._check_none_or_string(default_task_start_to_close_timeout)
         self._check_none_or_string(default_execution_start_to_close_timeout)
+        self._check_none_or_string(default_task_priority)
+        self._check_none_or_string(default_lambda_role)
         self._check_none_or_string(description)
 
-        # TODO: add defaultTaskPriority when boto gets to support it
-        # TODO: add defaultLambdaRole when boto gets to support it
         self.swf_backend.register_type(
             "workflow",
             domain,
@@ -322,12 +344,17 @@ class SWFResponse(BaseResponse):
             default_child_policy=default_child_policy,
             default_task_start_to_close_timeout=default_task_start_to_close_timeout,
             default_execution_start_to_close_timeout=default_execution_start_to_close_timeout,
+            default_task_priority=default_task_priority,
+            default_lambda_role=default_lambda_role,
             description=description,
         )
         return ""
 
     def deprecate_workflow_type(self):
         return self._deprecate_type("workflow")
+
+    def undeprecate_workflow_type(self):
+        return self._undeprecate_type("workflow")
 
     def describe_workflow_type(self):
         return self._describe_type("workflow")
@@ -419,7 +446,9 @@ class SWFResponse(BaseResponse):
         if decision:
             return json.dumps(decision.to_full_dict(reverse_order=reverse_order))
         else:
-            return json.dumps({"previousStartedEventId": 0, "startedEventId": 0})
+            return json.dumps(
+                {"previousStartedEventId": 0, "startedEventId": 0, "taskToken": ""}
+            )
 
     def count_pending_decision_tasks(self):
         domain_name = self._params["domain"]
@@ -453,7 +482,7 @@ class SWFResponse(BaseResponse):
         if activity_task:
             return json.dumps(activity_task.to_full_dict())
         else:
-            return json.dumps({"startedEventId": 0})
+            return json.dumps({"startedEventId": 0, "taskToken": ""})
 
     def count_pending_activity_tasks(self):
         domain_name = self._params["domain"]

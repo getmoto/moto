@@ -10,13 +10,14 @@ import six
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-import sshpubkeys.exceptions
-from sshpubkeys.keys import SSHKey
 
+from moto.core import ACCOUNT_ID
+from moto.iam import iam_backends
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
     "dhcp-options": "dopt",
+    "flow-logs": "fl",
     "image": "ami",
     "instance": "i",
     "internet-gateway": "igw",
@@ -43,6 +44,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpc-peering-connection": "pcx",
     "vpn-connection": "vpn",
     "vpn-gateway": "vgw",
+    "iam-instance-profile-association": "iip-assoc",
 }
 
 
@@ -73,6 +75,10 @@ def random_reservation_id():
 
 def random_security_group_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"])
+
+
+def random_flow_log_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["flow-logs"])
 
 
 def random_snapshot_id():
@@ -167,6 +173,10 @@ def random_launch_template_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
 
 
+def random_iam_instance_profile_association_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"])
+
+
 def random_public_ip():
     return "54.214.{0}.{1}".format(random.choice(range(255)), random.choice(range(255)))
 
@@ -183,33 +193,36 @@ def random_ip():
     )
 
 
+def randor_ipv4_cidr():
+    return "10.0.{}.{}/16".format(random.randint(0, 255), random.randint(0, 255))
+
+
 def random_ipv6_cidr():
     return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
 
 
-def generate_route_id(route_table_id, cidr_block):
+def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
+    if ipv6_cidr_block and not cidr_block:
+        cidr_block = ipv6_cidr_block
     return "%s~%s" % (route_table_id, cidr_block)
+
+
+def generate_vpc_end_point_id(vpc_id):
+    return "%s-%s" % ("vpce", vpc_id[4:])
+
+
+def create_dns_entries(service_name, vpc_endpoint_id):
+    dns_entries = {}
+    dns_entries["dns_name"] = "{}-{}.{}".format(
+        vpc_endpoint_id, random_resource_id(8), service_name
+    )
+    dns_entries["hosted_zone_id"] = random_resource_id(13).upper()
+    return dns_entries
 
 
 def split_route_id(route_id):
     values = route_id.split("~")
     return values[0], values[1]
-
-
-def tags_from_query_string(querystring_dict):
-    prefix = "Tag"
-    suffix = "Key"
-    response_values = {}
-    for key, value in querystring_dict.items():
-        if key.startswith(prefix) and key.endswith(suffix):
-            tag_index = key.replace(prefix + ".", "").replace("." + suffix, "")
-            tag_key = querystring_dict.get("Tag.{0}.Key".format(tag_index))[0]
-            tag_value_key = "Tag.{0}.Value".format(tag_index)
-            if tag_value_key in querystring_dict:
-                response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
-            else:
-                response_values[tag_key] = None
-    return response_values
 
 
 def dhcp_configuration_from_querystring(querystring, option="DhcpConfiguration"):
@@ -252,7 +265,8 @@ def dhcp_configuration_from_querystring(querystring, option="DhcpConfiguration")
 
 def filters_from_querystring(querystring_dict):
     response_values = {}
-    for key, value in querystring_dict.items():
+    last_tag_key = None
+    for key, value in sorted(querystring_dict.items()):
         match = re.search(r"Filter.(\d).Name", key)
         if match:
             filter_index = match.groups()[0]
@@ -262,6 +276,10 @@ def filters_from_querystring(querystring_dict):
                 for filter_key, filter_value in querystring_dict.items()
                 if filter_key.startswith(value_prefix)
             ]
+            if value[0] == "tag-key":
+                last_tag_key = "tag:" + filter_values[0]
+            elif last_tag_key and value[0] == "tag-value":
+                response_values[last_tag_key] = filter_values
             response_values[value[0]] = filter_values
     return response_values
 
@@ -285,7 +303,9 @@ def get_object_value(obj, attr):
     keys = attr.split(".")
     val = obj
     for key in keys:
-        if hasattr(val, key):
+        if key == "owner_id":
+            return ACCOUNT_ID
+        elif hasattr(val, key):
             val = getattr(val, key)
         elif isinstance(val, dict):
             val = val[key]
@@ -329,6 +349,8 @@ def tag_filter_matches(obj, filter_name, filter_values):
         tag_values = get_obj_tag_names(obj)
     elif filter_name == "tag-value":
         tag_values = get_obj_tag_values(obj)
+    elif filter_name.startswith("tag:"):
+        tag_values = get_obj_tag_values(obj)
     else:
         tag_values = [get_obj_tag(obj, filter_name) or ""]
 
@@ -356,6 +378,7 @@ filter_dict_attribute_mapping = {
     "image-id": "image_id",
     "network-interface.private-dns-name": "private_dns",
     "private-dns-name": "private_dns",
+    "owner-id": "owner_id",
 }
 
 
@@ -553,6 +576,10 @@ def generate_instance_identity_document(instance):
 
 
 def rsa_public_key_parse(key_material):
+    # These imports take ~.5s; let's keep them local
+    import sshpubkeys.exceptions
+    from sshpubkeys.keys import SSHKey
+
     try:
         if not isinstance(key_material, six.binary_type):
             key_material = key_material.encode("ascii")
@@ -576,3 +603,47 @@ def rsa_public_key_fingerprint(rsa_public_key):
     fingerprint_hex = hashlib.md5(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
+
+
+def filter_iam_instance_profile_associations(iam_instance_associations, filter_dict):
+    if not filter_dict:
+        return iam_instance_associations
+    result = []
+    for iam_instance_association in iam_instance_associations:
+        filter_passed = True
+        if filter_dict.get("instance-id"):
+            if (
+                iam_instance_association.instance.id
+                not in filter_dict.get("instance-id").values()
+            ):
+                filter_passed = False
+        if filter_dict.get("state"):
+            if iam_instance_association.state not in filter_dict.get("state").values():
+                filter_passed = False
+        if filter_passed:
+            result.append(iam_instance_association)
+    return result
+
+
+def filter_iam_instance_profiles(iam_instance_profile_arn, iam_instance_profile_name):
+    instance_profile = None
+    instance_profile_by_name = None
+    instance_profile_by_arn = None
+    if iam_instance_profile_name:
+        instance_profile_by_name = iam_backends["global"].get_instance_profile(
+            iam_instance_profile_name
+        )
+        instance_profile = instance_profile_by_name
+    if iam_instance_profile_arn:
+        instance_profile_by_arn = iam_backends["global"].get_instance_profile_by_arn(
+            iam_instance_profile_arn
+        )
+        instance_profile = instance_profile_by_arn
+    # We would prefer instance profile that we found by arn
+    if iam_instance_profile_arn and iam_instance_profile_name:
+        if instance_profile_by_name == instance_profile_by_arn:
+            instance_profile = instance_profile_by_arn
+        else:
+            instance_profile = None
+
+    return instance_profile

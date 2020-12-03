@@ -6,7 +6,206 @@ import boto3
 
 from moto import mock_iot
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
+
+
+def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
+    """
+    Generates a thing group tree given the input tree structure.
+    :param iot_client: the iot client for boto3
+    :param tree_dict: dictionary with the key being the group_name, and the value being a sub tree.
+        tree_dict = {
+            "group_name_1a":{
+                "group_name_2a":{
+                    "group_name_3a":{} or None
+                },
+            },
+            "group_name_1b":{}
+        }
+    :return: a dictionary of created groups, keyed by group name
+    """
+    if tree_dict is None:
+        tree_dict = {}
+    created_dict = {}
+    for group_name in tree_dict.keys():
+        params = {"thingGroupName": group_name}
+        if _parent:
+            params["parentGroupName"] = _parent
+        created_group = iot_client.create_thing_group(**params)
+        created_dict[group_name] = created_group
+        subtree_dict = generate_thing_group_tree(
+            iot_client=iot_client, tree_dict=tree_dict[group_name], _parent=group_name
+        )
+        created_dict.update(created_dict)
+        created_dict.update(subtree_dict)
+    return created_dict
+
+
+@mock_iot
+def test_attach_policy():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    policy_name = "my-policy"
+    doc = "{}"
+
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert["certificateArn"]
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal("my-policy")
+
+
+@mock_iot
+def test_detach_policy():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    policy_name = "my-policy"
+    doc = "{}"
+
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert["certificateArn"]
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal("my-policy")
+
+    client.detach_policy(policyName=policy_name, target=cert_arn)
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key("policies").which.should.be.empty
+
+
+@mock_iot
+def test_list_attached_policies():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    policies = client.list_attached_policies(target=cert["certificateArn"])
+    policies["policies"].should.be.empty
+
+
+@mock_iot
+def test_policy_versions():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    policy_name = "my-policy"
+    doc = "{}"
+
+    policy = client.create_policy(policyName=policy_name, policyDocument=doc)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(json.dumps({}))
+    policy.should.have.key("policyVersionId").which.should.equal("1")
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(json.dumps({}))
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy["defaultVersionId"]
+    )
+
+    policy1 = client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_1"}),
+        setAsDefault=True,
+    )
+    policy1.should.have.key("policyArn").which.should_not.be.none
+    policy1.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_1"})
+    )
+    policy1.should.have.key("policyVersionId").which.should.equal("2")
+    policy1.should.have.key("isDefaultVersion").which.should.equal(True)
+
+    policy2 = client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_2"}),
+        setAsDefault=False,
+    )
+    policy2.should.have.key("policyArn").which.should_not.be.none
+    policy2.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_2"})
+    )
+    policy2.should.have.key("policyVersionId").which.should.equal("3")
+    policy2.should.have.key("isDefaultVersion").which.should.equal(False)
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_1"})
+    )
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy1["policyVersionId"]
+    )
+
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    list(
+        map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    ).count(True).should.equal(1)
+    default_policy = list(
+        filter(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    )
+    default_policy[0].should.have.key("versionId").should.equal(
+        policy1["policyVersionId"]
+    )
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_1"})
+    )
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy1["policyVersionId"]
+    )
+
+    client.set_default_policy_version(
+        policyName=policy_name, policyVersionId=policy2["policyVersionId"]
+    )
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    list(
+        map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    ).count(True).should.equal(1)
+    default_policy = list(
+        filter(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    )
+    default_policy[0].should.have.key("versionId").should.equal(
+        policy2["policyVersionId"]
+    )
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_2"})
+    )
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy2["policyVersionId"]
+    )
+
+    client.delete_policy_version(policyName=policy_name, policyVersionId="1")
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(2)
+
+    client.delete_policy_version(
+        policyName=policy_name, policyVersionId=policy1["policyVersionId"]
+    )
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(1)
+
+    # should fail as it"s the default policy. Should use delete_policy instead
+    try:
+        client.delete_policy_version(
+            policyName=policy_name, policyVersionId=policy2["policyVersionId"]
+        )
+        assert False, "Should have failed in previous call"
+    except Exception as exception:
+        exception.response["Error"]["Message"].should.equal(
+            "Cannot delete the default version of a policy"
+        )
 
 
 @mock_iot
@@ -265,6 +464,60 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
 
 
 @mock_iot
+def test_endpoints():
+    region_name = "ap-northeast-1"
+    client = boto3.client("iot", region_name=region_name)
+
+    # iot:Data
+    endpoint = client.describe_endpoint(endpointType="iot:Data")
+    endpoint.should.have.key("endpointAddress").which.should_not.contain("ats")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:Data-ATS")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "ats.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:CredentialProvider")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "credentials.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:Jobs")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "jobs.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # raise InvalidRequestException
+    try:
+        client.describe_endpoint(endpointType="iot:Abc")
+    except client.exceptions.InvalidRequestException as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("InvalidRequestException")
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
+def test_certificate_id_generation_deterministic():
+    # Creating the same certificate twice should result in the same certificate ID
+    client = boto3.client("iot", region_name="us-east-1")
+    cert1 = client.create_keys_and_certificate(setAsActive=False)
+    client.delete_certificate(certificateId=cert1["certificateId"])
+
+    cert2 = client.register_certificate(
+        certificatePem=cert1["certificatePem"], setAsActive=False
+    )
+    cert2.should.have.key("certificateId").which.should.equal(cert1["certificateId"])
+    client.delete_certificate(certificateId=cert2["certificateId"])
+
+
+@mock_iot
 def test_certs():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -324,6 +577,49 @@ def test_certs():
     res = client.list_certificates()
     res.should.have.key("certificates")
 
+    # Test register_certificate without CA flow
+    cert = client.register_certificate_without_ca(
+        certificatePem=cert_pem, status="INACTIVE"
+    )
+    cert.should.have.key("certificateId").which.should_not.be.none
+    cert.should.have.key("certificateArn").which.should_not.be.none
+    cert_id = cert["certificateId"]
+
+    res = client.list_certificates()
+    res.should.have.key("certificates").which.should.have.length_of(1)
+    for cert in res["certificates"]:
+        cert.should.have.key("certificateArn").which.should_not.be.none
+        cert.should.have.key("certificateId").which.should_not.be.none
+        cert.should.have.key("status").which.should_not.be.none
+        cert.should.have.key("creationDate").which.should_not.be.none
+
+    client.delete_certificate(certificateId=cert_id)
+    res = client.list_certificates()
+    res.should.have.key("certificates")
+
+
+@mock_iot
+def test_create_certificate_validation():
+    # Test we can't create a cert that already exists
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=False)
+
+    with pytest.raises(ClientError) as e:
+        client.register_certificate(
+            certificatePem=cert["certificatePem"], setAsActive=False
+        )
+    e.value.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
+
+    with pytest.raises(ClientError) as e:
+        client.register_certificate_without_ca(
+            certificatePem=cert["certificatePem"], status="ACTIVE"
+        )
+    e.value.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
+
 
 @mock_iot
 def test_delete_policy_validation():
@@ -347,9 +643,9 @@ def test_delete_policy_validation():
     client.create_policy(policyName=policy_name, policyDocument=doc)
     client.attach_principal_policy(policyName=policy_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_policy(policyName=policy_name)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "The policy cannot be deleted as the policy is attached to one or more principals (name=%s)"
         % policy_name
     )
@@ -388,27 +684,27 @@ def test_delete_certificate_validation():
     client.create_thing(thingName=thing_name)
     client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Certificate must be deactivated (not ACTIVE) before deletion."
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Things must be detached before deletion (arn: %s)" % cert_arn
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Certificate policies must be detached before deletion (arn: %s)" % cert_arn
     )
     res = client.list_certificates()
@@ -502,9 +798,9 @@ def test_principal_policy():
     res.should.have.key("policies").which.should.have.length_of(0)
     res = client.list_policy_principals(policyName=policy_name)
     res.should.have.key("principals").which.should.have.length_of(0)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.detach_policy(policyName=policy_name, target=cert_arn)
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_iot
@@ -561,6 +857,14 @@ def test_principal_thing():
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key("principals").which.should.have.length_of(0)
 
+    with pytest.raises(ClientError) as e:
+        client.list_thing_principals(thingName="xxx")
+
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Message"].should.equal(
+        "Failed to list principals for thing xxx because the thing does not exist in your account"
+    )
+
 
 @mock_iot
 def test_delete_principal_thing():
@@ -581,6 +885,167 @@ def test_delete_principal_thing():
     client.delete_certificate(certificateId=cert_id)
 
 
+class TestListThingGroup:
+    group_name_1a = "my-group-name-1a"
+    group_name_1b = "my-group-name-1b"
+    group_name_2a = "my-group-name-2a"
+    group_name_2b = "my-group-name-2b"
+    group_name_3a = "my-group-name-3a"
+    group_name_3b = "my-group-name-3b"
+    group_name_3c = "my-group-name-3c"
+    group_name_3d = "my-group-name-3d"
+    tree_dict = {
+        group_name_1a: {
+            group_name_2a: {group_name_3a: {}, group_name_3b: {}},
+            group_name_2b: {group_name_3c: {}, group_name_3d: {}},
+        },
+        group_name_1b: {},
+    }
+
+    @mock_iot
+    def test_should_list_all_groups(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups()
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(8)
+
+    @mock_iot
+    def test_should_list_all_groups_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_parent(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(parentGroup=self.group_name_1a)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(6)
+        resp = client.list_thing_groups(parentGroup=self.group_name_2a)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(parentGroup=self.group_name_1b)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+        with pytest.raises(ClientError) as e:
+            client.list_thing_groups(parentGroup="inexistant-group-name")
+            e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(parentGroup=self.group_name_1a, recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(parentGroup=self.group_name_2a, recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-3")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(4)
+        resp = client.list_thing_groups(namePrefixFilter="prefix-which-doesn-not-match")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-1", recursive=False
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-3", recursive=False
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-2", parentGroup=self.group_name_1a
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-3", parentGroup=self.group_name_1a
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(4)
+        resp = client.list_thing_groups(
+            namePrefixFilter="prefix-which-doesn-not-match",
+            parentGroup=self.group_name_1a,
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+
+@mock_iot
+def test_delete_thing_group():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    group_name_1a = "my-group-name-1a"
+    group_name_2a = "my-group-name-2a"
+    tree_dict = {
+        group_name_1a: {group_name_2a: {},},
+    }
+    group_catalog = generate_thing_group_tree(client, tree_dict)
+
+    # delete group with child
+    try:
+        client.delete_thing_group(thingGroupName=group_name_1a)
+    except client.exceptions.InvalidRequestException as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("InvalidRequestException")
+    else:
+        raise Exception("Should have raised error")
+
+    # delete child group
+    client.delete_thing_group(thingGroupName=group_name_2a)
+    res = client.list_thing_groups()
+    res.should.have.key("thingGroups").which.should.have.length_of(1)
+    res["thingGroups"].should_not.have.key(group_name_2a)
+
+    # now that there is no child group, we can delete the previous group safely
+    client.delete_thing_group(thingGroupName=group_name_1a)
+    res = client.list_thing_groups()
+    res.should.have.key("thingGroups").which.should.have.length_of(0)
+
+    # Deleting an invalid thing group does not raise an error.
+    res = client.delete_thing_group(thingGroupName="non-existent-group-name")
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
 @mock_iot
 def test_describe_thing_group_metadata_hierarchy():
     client = boto3.client("iot", region_name="ap-northeast-1")
@@ -593,56 +1058,14 @@ def test_describe_thing_group_metadata_hierarchy():
     group_name_3c = "my-group-name-3c"
     group_name_3d = "my-group-name-3d"
 
-    # --1a
-    #    |--2a
-    #    |   |--3a
-    #    |   |--3b
-    #    |
-    #    |--2b
-    #        |--3c
-    #        |--3d
-    # --1b
-
-    # create thing groups tree
-    # 1
-    thing_group1a = client.create_thing_group(thingGroupName=group_name_1a)
-    thing_group1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
-    thing_group1a.should.have.key("thingGroupArn")
-    thing_group1b = client.create_thing_group(thingGroupName=group_name_1b)
-    thing_group1b.should.have.key("thingGroupName").which.should.equal(group_name_1b)
-    thing_group1b.should.have.key("thingGroupArn")
-    # 2
-    thing_group2a = client.create_thing_group(
-        thingGroupName=group_name_2a, parentGroupName=group_name_1a
-    )
-    thing_group2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
-    thing_group2a.should.have.key("thingGroupArn")
-    thing_group2b = client.create_thing_group(
-        thingGroupName=group_name_2b, parentGroupName=group_name_1a
-    )
-    thing_group2b.should.have.key("thingGroupName").which.should.equal(group_name_2b)
-    thing_group2b.should.have.key("thingGroupArn")
-    # 3
-    thing_group3a = client.create_thing_group(
-        thingGroupName=group_name_3a, parentGroupName=group_name_2a
-    )
-    thing_group3a.should.have.key("thingGroupName").which.should.equal(group_name_3a)
-    thing_group3a.should.have.key("thingGroupArn")
-    thing_group3b = client.create_thing_group(
-        thingGroupName=group_name_3b, parentGroupName=group_name_2a
-    )
-    thing_group3b.should.have.key("thingGroupName").which.should.equal(group_name_3b)
-    thing_group3b.should.have.key("thingGroupArn")
-    thing_group3c = client.create_thing_group(
-        thingGroupName=group_name_3c, parentGroupName=group_name_2b
-    )
-    thing_group3c.should.have.key("thingGroupName").which.should.equal(group_name_3c)
-    thing_group3c.should.have.key("thingGroupArn")
-    thing_group3d = client.create_thing_group(
-        thingGroupName=group_name_3d, parentGroupName=group_name_2b
-    )
-    thing_group3d.should.have.key("thingGroupName").which.should.equal(group_name_3d)
-    thing_group3d.should.have.key("thingGroupArn")
+    tree_dict = {
+        group_name_1a: {
+            group_name_2a: {group_name_3a: {}, group_name_3b: {}},
+            group_name_2b: {group_name_3c: {}, group_name_3d: {}},
+        },
+        group_name_1b: {},
+    }
+    group_catalog = generate_thing_group_tree(client, tree_dict)
 
     # describe groups
     # groups level 1
@@ -694,7 +1117,7 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description2a["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description2a.should.have.key("version")
     # 2b
     thing_group_description2b = client.describe_thing_group(
@@ -720,7 +1143,7 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description2b["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description2b.should.have.key("version")
     # groups level 3
     # 3a
@@ -747,13 +1170,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2a)
     thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2a]["thingGroupArn"])
     thing_group_description3a.should.have.key("version")
     # 3b
     thing_group_description3b = client.describe_thing_group(
@@ -779,13 +1202,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2a)
     thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2a]["thingGroupArn"])
     thing_group_description3b.should.have.key("version")
     # 3c
     thing_group_description3c = client.describe_thing_group(
@@ -811,13 +1234,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2b)
     thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2b["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2b]["thingGroupArn"])
     thing_group_description3c.should.have.key("version")
     # 3d
     thing_group_description3d = client.describe_thing_group(
@@ -843,13 +1266,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2b)
     thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2b["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2b]["thingGroupArn"])
     thing_group_description3d.should.have.key("version")
 
 
@@ -994,7 +1417,10 @@ def test_create_job():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
     job_id = "TestJob"
-    # thing
+    # thing# job document
+    #     job_document = {
+    #         "field": "value"
+    #     }
     thing = client.create_thing(thingName=name)
     thing.should.have.key("thingName").which.should.equal(name)
     thing.should.have.key("thingArn")
@@ -1018,6 +1444,63 @@ def test_create_job():
     job.should.have.key("jobId").which.should.equal(job_id)
     job.should.have.key("jobArn")
     job.should.have.key("description")
+
+
+@mock_iot
+def test_list_jobs():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing# job document
+    #     job_document = {
+    #         "field": "value"
+    #     }
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job1 = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job1.should.have.key("jobId").which.should.equal(job_id)
+    job1.should.have.key("jobArn")
+    job1.should.have.key("description")
+
+    job2 = client.create_job(
+        jobId=job_id + "1",
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job2.should.have.key("jobId").which.should.equal(job_id + "1")
+    job2.should.have.key("jobArn")
+    job2.should.have.key("description")
+
+    jobs = client.list_jobs()
+    jobs.should.have.key("jobs")
+    jobs.should_not.have.key("nextToken")
+    jobs["jobs"][0].should.have.key("jobId").which.should.equal(job_id)
+    jobs["jobs"][1].should.have.key("jobId").which.should.equal(job_id + "1")
 
 
 @mock_iot
@@ -1124,3 +1607,387 @@ def test_describe_job_1():
     job.should.have.key("job").which.should.have.key(
         "jobExecutionsRolloutConfig"
     ).which.should.have.key("maximumPerMinute").which.should.equal(10)
+
+
+@mock_iot
+def test_delete_job():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key("job")
+    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+
+    client.delete_job(jobId=job_id)
+
+    client.list_jobs()["jobs"].should.have.length_of(0)
+
+
+@mock_iot
+def test_cancel_job():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key("job")
+    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+
+    job = client.cancel_job(jobId=job_id, reasonCode="Because", comment="You are")
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key("job")
+    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("job").which.should.have.key("status").which.should.equal(
+        "CANCELED"
+    )
+    job.should.have.key("job").which.should.have.key(
+        "forceCanceled"
+    ).which.should.equal(False)
+    job.should.have.key("job").which.should.have.key("reasonCode").which.should.equal(
+        "Because"
+    )
+    job.should.have.key("job").which.should.have.key("comment").which.should.equal(
+        "You are"
+    )
+
+
+@mock_iot
+def test_get_job_document_with_document_source():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job_document = client.get_job_document(jobId=job_id)
+    job_document.should.have.key("document").which.should.equal("")
+
+
+@mock_iot
+def test_get_job_document_with_document():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job_document = client.get_job_document(jobId=job_id)
+    job_document.should.have.key("document").which.should.equal('{"field": "value"}')
+
+
+@mock_iot
+def test_describe_job_execution():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
+    job_execution.should.have.key("execution")
+    job_execution["execution"].should.have.key("jobId").which.should.equal(job_id)
+    job_execution["execution"].should.have.key("status").which.should.equal("QUEUED")
+    job_execution["execution"].should.have.key("forceCanceled").which.should.equal(
+        False
+    )
+    job_execution["execution"].should.have.key("statusDetails").which.should.equal(
+        {"detailsMap": {}}
+    )
+    job_execution["execution"].should.have.key("thingArn").which.should.equal(
+        thing["thingArn"]
+    )
+    job_execution["execution"].should.have.key("queuedAt")
+    job_execution["execution"].should.have.key("startedAt")
+    job_execution["execution"].should.have.key("lastUpdatedAt")
+    job_execution["execution"].should.have.key("executionNumber").which.should.equal(
+        123
+    )
+    job_execution["execution"].should.have.key("versionNumber").which.should.equal(123)
+    job_execution["execution"].should.have.key(
+        "approximateSecondsBeforeTimedOut"
+    ).which.should.equal(123)
+
+    job_execution = client.describe_job_execution(
+        jobId=job_id, thingName=name, executionNumber=123
+    )
+    job_execution.should.have.key("execution")
+    job_execution["execution"].should.have.key("jobId").which.should.equal(job_id)
+    job_execution["execution"].should.have.key("status").which.should.equal("QUEUED")
+    job_execution["execution"].should.have.key("forceCanceled").which.should.equal(
+        False
+    )
+    job_execution["execution"].should.have.key("statusDetails").which.should.equal(
+        {"detailsMap": {}}
+    )
+    job_execution["execution"].should.have.key("thingArn").which.should.equal(
+        thing["thingArn"]
+    )
+    job_execution["execution"].should.have.key("queuedAt")
+    job_execution["execution"].should.have.key("startedAt")
+    job_execution["execution"].should.have.key("lastUpdatedAt")
+    job_execution["execution"].should.have.key("executionNumber").which.should.equal(
+        123
+    )
+    job_execution["execution"].should.have.key("versionNumber").which.should.equal(123)
+    job_execution["execution"].should.have.key(
+        "approximateSecondsBeforeTimedOut"
+    ).which.should.equal(123)
+
+    try:
+        client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=456)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
+def test_cancel_job_execution():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    client.cancel_job_execution(jobId=job_id, thingName=name)
+    job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
+    job_execution.should.have.key("execution")
+    job_execution["execution"].should.have.key("status").which.should.equal("CANCELED")
+
+
+@mock_iot
+def test_delete_job_execution():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    client.delete_job_execution(jobId=job_id, thingName=name, executionNumber=123)
+    try:
+        client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=123)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
+def test_list_job_executions_for_job():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    job_execution = client.list_job_executions_for_job(jobId=job_id)
+    job_execution.should.have.key("executionSummaries")
+    job_execution["executionSummaries"][0].should.have.key(
+        "thingArn"
+    ).which.should.equal(thing["thingArn"])
+
+
+@mock_iot
+def test_list_job_executions_for_thing():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    job_execution = client.list_job_executions_for_thing(thingName=name)
+    job_execution.should.have.key("executionSummaries")
+    job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
+        job_id
+    )

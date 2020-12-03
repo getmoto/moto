@@ -144,17 +144,27 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(key_id)
 
-        self.kms_backend.tag_resource(key_id, tags)
-        return json.dumps({})
+        result = self.kms_backend.tag_resource(key_id, tags)
+        return json.dumps(result)
+
+    def untag_resource(self):
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_UntagResource.html"""
+        key_id = self.parameters.get("KeyId")
+        tag_names = self.parameters.get("TagKeys")
+
+        self._validate_cmk_id(key_id)
+
+        result = self.kms_backend.untag_resource(key_id, tag_names)
+        return json.dumps(result)
 
     def list_resource_tags(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListResourceTags.html"""
         key_id = self.parameters.get("KeyId")
-
         self._validate_cmk_id(key_id)
 
         tags = self.kms_backend.list_resource_tags(key_id)
-        return json.dumps({"Tags": tags, "NextMarker": None, "Truncated": False})
+        tags.update({"NextMarker": None, "Truncated": False})
+        return json.dumps(tags)
 
     def describe_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html"""

@@ -1,16 +1,17 @@
 from __future__ import unicode_literals
 
+import string
+
 import boto3
 import botocore.exceptions
 import sure  # noqa
 import datetime
 import uuid
-import json
 
 from botocore.exceptions import ClientError, ParamValidationError
-from nose.tools import assert_raises
+import pytest
 
-from moto import mock_ssm, mock_cloudformation
+from moto import mock_ec2, mock_ssm
 
 
 @mock_ssm
@@ -28,6 +29,18 @@ def test_delete_parameter():
 
     response = client.get_parameters(Names=["test"])
     len(response["Parameters"]).should.equal(0)
+
+
+@mock_ssm
+def test_delete_nonexistent_parameter():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_parameter(Name="test_noexist")
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Parameter test_noexist not found."
+    )
 
 
 @mock_ssm
@@ -184,6 +197,33 @@ def test_get_parameters_by_path():
     len(response["Parameters"]).should.equal(1)
     response.should_not.have.key("NextToken")
 
+    filters = [{"Key": "Name", "Values": ["error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Name. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
+    filters = [{"Key": "Path", "Values": ["/error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Path. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
+    filters = [{"Key": "Tier", "Values": ["Standard"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Tier. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
 
 @mock_ssm
 def test_put_parameter():
@@ -259,6 +299,73 @@ def test_put_parameter():
 
 
 @mock_ssm
+def test_put_parameter_invalid_names():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    invalid_prefix_err = (
+        'Parameter name: can\'t be prefixed with "aws" or "ssm" (case-insensitive).'
+    )
+
+    client.put_parameter.when.called_with(
+        Name="ssm_test", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="SSM_TEST", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="aws_test", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="AWS_TEST", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    ssm_path = "/ssm_test/path/to/var"
+    client.put_parameter.when.called_with(
+        Name=ssm_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError,
+        'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). If formed as a path, it can consist of '
+        "sub-paths divided by slash symbol; each sub-path can be formed as a mix of letters, numbers and the following "
+        "3 symbols .-_",
+    )
+
+    ssm_path = "/SSM/PATH/TO/VAR"
+    client.put_parameter.when.called_with(
+        Name=ssm_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError,
+        'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). If formed as a path, it can consist of '
+        "sub-paths divided by slash symbol; each sub-path can be formed as a mix of letters, numbers and the following "
+        "3 symbols .-_",
+    )
+
+    aws_path = "/aws_test/path/to/var"
+    client.put_parameter.when.called_with(
+        Name=aws_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+    )
+
+    aws_path = "/AWS/PATH/TO/VAR"
+    client.put_parameter.when.called_with(
+        Name=aws_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+    )
+
+
+@mock_ssm
 def test_put_parameter_china():
     client = boto3.client("ssm", region_name="cn-north-1")
 
@@ -285,6 +392,86 @@ def test_get_parameter():
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
+
+
+@mock_ssm
+def test_get_parameter_with_version_and_labels():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.put_parameter(
+        Name="test-1", Description="A test parameter", Value="value", Type="String"
+    )
+    client.put_parameter(
+        Name="test-2", Description="A test parameter", Value="value", Type="String"
+    )
+
+    client.label_parameter_version(
+        Name="test-2", ParameterVersion=1, Labels=["test-label"]
+    )
+
+    response = client.get_parameter(Name="test-1:1", WithDecryption=False)
+
+    response["Parameter"]["Name"].should.equal("test-1")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-1"
+    )
+
+    response = client.get_parameter(Name="test-2:1", WithDecryption=False)
+    response["Parameter"]["Name"].should.equal("test-2")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+    )
+
+    response = client.get_parameter(Name="test-2:test-label", WithDecryption=False)
+    response["Parameter"]["Name"].should.equal("test-2")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter(Name="test-2:2:3", WithDecryption=False)
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Parameter test-2:2:3 not found."
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter(Name="test-2:2", WithDecryption=False)
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal("Parameter test-2:2 not found.")
+
+
+@mock_ssm
+def test_get_parameters_errors():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    ssm_parameters = {name: "value" for name in string.ascii_lowercase[:11]}
+
+    for name, value in ssm_parameters.items():
+        client.put_parameter(Name=name, Value=value, Type="String")
+
+    with pytest.raises(ClientError) as e:
+        client.get_parameters(Names=list(ssm_parameters.keys()))
+    ex = e.value
+    ex.operation_name.should.equal("GetParameters")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value '[{}]' at 'names' failed to satisfy constraint: "
+        "Member must have length less than or equal to 10.".format(
+            ", ".join(ssm_parameters.keys())
+        )
     )
 
 
@@ -466,6 +653,9 @@ def test_describe_parameters_with_parameter_filters_name():
     client = boto3.client("ssm", region_name="us-east-1")
     client.put_parameter(Name="param", Value="value", Type="String")
     client.put_parameter(Name="/param-2", Value="value-2", Type="String")
+    client.put_parameter(Name="/tangent-3", Value="value-3", Type="String")
+    client.put_parameter(Name="tangram-4", Value="value-4", Type="String")
+    client.put_parameter(Name="standby-5", Value="value-5", Type="String")
 
     response = client.describe_parameters(
         ParameterFilters=[{"Key": "Name", "Values": ["param"]}]
@@ -499,6 +689,22 @@ def test_describe_parameters_with_parameter_filters_name():
 
     response = client.describe_parameters(
         ParameterFilters=[{"Key": "Name", "Option": "BeginsWith", "Values": ["param"]}]
+    )
+
+    parameters = response["Parameters"]
+    parameters.should.have.length_of(2)
+    response.should_not.have.key("NextToken")
+
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Contains", "Values": ["ram"]}]
+    )
+
+    parameters = response["Parameters"]
+    parameters.should.have.length_of(3)
+    response.should_not.have.key("NextToken")
+
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Contains", "Values": ["/tan"]}]
     )
 
     parameters = response["Parameters"]
@@ -885,6 +1091,7 @@ def test_get_parameter_history():
         param["Value"].should.equal("value-%d" % index)
         param["Version"].should.equal(index + 1)
         param["Description"].should.equal("A test parameter version %d" % index)
+        param["Labels"].should.equal([])
 
     len(parameters_response).should.equal(3)
 
@@ -924,6 +1131,424 @@ def test_get_parameter_history_with_secure_string():
             param["Description"].should.equal("A test parameter version %d" % index)
 
         len(parameters_response).should.equal(3)
+
+
+@mock_ssm
+def test_label_parameter_version():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name, Labels=["test-label"]
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(1)
+
+
+@mock_ssm
+def test_label_parameter_version_with_specific_version():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["test-label"]
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(1)
+
+
+@mock_ssm
+def test_label_parameter_version_twice():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    test_labels = ["test-label"]
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(1)
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(1)
+
+    response = client.get_parameter_history(Name=test_parameter_name)
+    len(response["Parameters"]).should.equal(1)
+    response["Parameters"][0]["Labels"].should.equal(test_labels)
+
+
+@mock_ssm
+def test_label_parameter_moving_versions():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    test_labels = ["test-label"]
+
+    for i in range(3):
+        client.put_parameter(
+            Name=test_parameter_name,
+            Description="A test parameter version %d" % i,
+            Value="value-%d" % i,
+            Type="String",
+            Overwrite=True,
+        )
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(1)
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=2, Labels=test_labels
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(2)
+
+    response = client.get_parameter_history(Name=test_parameter_name)
+    parameters_response = response["Parameters"]
+
+    for index, param in enumerate(parameters_response):
+        param["Name"].should.equal(test_parameter_name)
+        param["Type"].should.equal("String")
+        param["Value"].should.equal("value-%d" % index)
+        param["Version"].should.equal(index + 1)
+        param["Description"].should.equal("A test parameter version %d" % index)
+        labels = test_labels if param["Version"] == 2 else []
+        param["Labels"].should.equal(labels)
+
+    len(parameters_response).should.equal(3)
+
+
+@mock_ssm
+def test_label_parameter_moving_versions_complex():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+
+    for i in range(3):
+        client.put_parameter(
+            Name=test_parameter_name,
+            Description="A test parameter version %d" % i,
+            Value="value-%d" % i,
+            Type="String",
+            Overwrite=True,
+        )
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name,
+        ParameterVersion=1,
+        Labels=["test-label1", "test-label2", "test-label3"],
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(1)
+    response = client.label_parameter_version(
+        Name=test_parameter_name,
+        ParameterVersion=2,
+        Labels=["test-label2", "test-label3"],
+    )
+    response["InvalidLabels"].should.equal([])
+    response["ParameterVersion"].should.equal(2)
+
+    response = client.get_parameter_history(Name=test_parameter_name)
+    parameters_response = response["Parameters"]
+
+    for index, param in enumerate(parameters_response):
+        param["Name"].should.equal(test_parameter_name)
+        param["Type"].should.equal("String")
+        param["Value"].should.equal("value-%d" % index)
+        param["Version"].should.equal(index + 1)
+        param["Description"].should.equal("A test parameter version %d" % index)
+        labels = (
+            ["test-label2", "test-label3"]
+            if param["Version"] == 2
+            else (["test-label1"] if param["Version"] == 1 else [])
+        )
+        param["Labels"].should.equal(labels)
+
+    len(parameters_response).should.equal(3)
+
+
+@mock_ssm
+def test_label_parameter_version_exception_ten_labels_at_once():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    test_labels = [
+        "test-label1",
+        "test-label2",
+        "test-label3",
+        "test-label4",
+        "test-label5",
+        "test-label6",
+        "test-label7",
+        "test-label8",
+        "test-label9",
+        "test-label10",
+        "test-label11",
+    ]
+
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+    client.label_parameter_version.when.called_with(
+        Name="test", ParameterVersion=1, Labels=test_labels
+    ).should.throw(
+        ClientError,
+        "An error occurred (ParameterVersionLabelLimitExceeded) when calling the LabelParameterVersion operation: "
+        "A parameter version can have maximum 10 labels."
+        "Move one or more labels to another version and try again.",
+    )
+
+
+@mock_ssm
+def test_label_parameter_version_exception_ten_labels_over_multiple_calls():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+    client.label_parameter_version(
+        Name=test_parameter_name,
+        ParameterVersion=1,
+        Labels=[
+            "test-label1",
+            "test-label2",
+            "test-label3",
+            "test-label4",
+            "test-label5",
+        ],
+    )
+    client.label_parameter_version.when.called_with(
+        Name="test",
+        ParameterVersion=1,
+        Labels=[
+            "test-label6",
+            "test-label7",
+            "test-label8",
+            "test-label9",
+            "test-label10",
+            "test-label11",
+        ],
+    ).should.throw(
+        ClientError,
+        "An error occurred (ParameterVersionLabelLimitExceeded) when calling the LabelParameterVersion operation: "
+        "A parameter version can have maximum 10 labels."
+        "Move one or more labels to another version and try again.",
+    )
+
+
+@mock_ssm
+def test_label_parameter_version_invalid_name():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+
+    response = client.label_parameter_version.when.called_with(
+        Name=test_parameter_name, Labels=["test-label"]
+    ).should.throw(
+        ClientError,
+        "An error occurred (ParameterNotFound) when calling the LabelParameterVersion operation: "
+        "Parameter test not found.",
+    )
+
+
+@mock_ssm
+def test_label_parameter_version_invalid_parameter_version():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+
+    response = client.label_parameter_version.when.called_with(
+        Name=test_parameter_name, Labels=["test-label"], ParameterVersion=5
+    ).should.throw(
+        ClientError,
+        "An error occurred (ParameterVersionNotFound) when calling the LabelParameterVersion operation: "
+        "Systems Manager could not find version 5 of test. "
+        "Verify the version and try again.",
+    )
+
+
+@mock_ssm
+def test_label_parameter_version_invalid_label():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["awsabc"]
+    )
+    response["InvalidLabels"].should.equal(["awsabc"])
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["ssmabc"]
+    )
+    response["InvalidLabels"].should.equal(["ssmabc"])
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["9abc"]
+    )
+    response["InvalidLabels"].should.equal(["9abc"])
+
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["abc/123"]
+    )
+    response["InvalidLabels"].should.equal(["abc/123"])
+
+    client.label_parameter_version.when.called_with(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["a" * 101]
+    ).should.throw(
+        ClientError,
+        "1 validation error detected: "
+        "Value '[%s]' at 'labels' failed to satisfy constraint: "
+        "Member must satisfy constraint: "
+        "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]"
+        % ("a" * 101),
+    )
+
+
+@mock_ssm
+def test_get_parameter_history_with_label():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    test_labels = ["test-label"]
+
+    for i in range(3):
+        client.put_parameter(
+            Name=test_parameter_name,
+            Description="A test parameter version %d" % i,
+            Value="value-%d" % i,
+            Type="String",
+            Overwrite=True,
+        )
+
+    client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
+
+    response = client.get_parameter_history(Name=test_parameter_name)
+    parameters_response = response["Parameters"]
+
+    for index, param in enumerate(parameters_response):
+        param["Name"].should.equal(test_parameter_name)
+        param["Type"].should.equal("String")
+        param["Value"].should.equal("value-%d" % index)
+        param["Version"].should.equal(index + 1)
+        param["Description"].should.equal("A test parameter version %d" % index)
+        labels = test_labels if param["Version"] == 1 else []
+        param["Labels"].should.equal(labels)
+
+    len(parameters_response).should.equal(3)
+
+
+@mock_ssm
+def test_get_parameter_history_with_label_non_latest():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    test_labels = ["test-label"]
+
+    for i in range(3):
+        client.put_parameter(
+            Name=test_parameter_name,
+            Description="A test parameter version %d" % i,
+            Value="value-%d" % i,
+            Type="String",
+            Overwrite=True,
+        )
+
+    client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=2, Labels=test_labels
+    )
+
+    response = client.get_parameter_history(Name=test_parameter_name)
+    parameters_response = response["Parameters"]
+
+    for index, param in enumerate(parameters_response):
+        param["Name"].should.equal(test_parameter_name)
+        param["Type"].should.equal("String")
+        param["Value"].should.equal("value-%d" % index)
+        param["Version"].should.equal(index + 1)
+        param["Description"].should.equal("A test parameter version %d" % index)
+        labels = test_labels if param["Version"] == 2 else []
+        param["Labels"].should.equal(labels)
+
+    len(parameters_response).should.equal(3)
+
+
+@mock_ssm
+def test_get_parameter_history_with_label_latest_assumed():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    test_parameter_name = "test"
+    test_labels = ["test-label"]
+
+    for i in range(3):
+        client.put_parameter(
+            Name=test_parameter_name,
+            Description="A test parameter version %d" % i,
+            Value="value-%d" % i,
+            Type="String",
+            Overwrite=True,
+        )
+
+    client.label_parameter_version(Name=test_parameter_name, Labels=test_labels)
+
+    response = client.get_parameter_history(Name=test_parameter_name)
+    parameters_response = response["Parameters"]
+
+    for index, param in enumerate(parameters_response):
+        param["Name"].should.equal(test_parameter_name)
+        param["Type"].should.equal("String")
+        param["Value"].should.equal("value-%d" % index)
+        param["Version"].should.equal(index + 1)
+        param["Description"].should.equal("A test parameter version %d" % index)
+        labels = test_labels if param["Version"] == 3 else []
+        param["Labels"].should.equal(labels)
+
+    len(parameters_response).should.equal(3)
 
 
 @mock_ssm
@@ -1044,7 +1669,7 @@ def test_list_commands():
         cmd["InstanceIds"].should.contain("i-123456")
 
     # test the error case for an invalid command id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         response = client.list_commands(CommandId=str(uuid.uuid4()))
 
 
@@ -1076,78 +1701,46 @@ def test_get_command_invocation():
     invocation_response["InstanceId"].should.equal(instance_id)
 
     # test the error case for an invalid instance id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId="i-FAKE"
         )
 
     # test the error case for an invalid plugin name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId=instance_id, PluginName="FAKE"
         )
 
 
+@mock_ec2
 @mock_ssm
-@mock_cloudformation
-def test_get_command_invocations_from_stack():
-    stack_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "Test Stack",
-        "Resources": {
-            "EC2Instance1": {
-                "Type": "AWS::EC2::Instance",
-                "Properties": {
-                    "ImageId": "ami-test-image-id",
-                    "KeyName": "test",
-                    "InstanceType": "t2.micro",
-                    "Tags": [
-                        {"Key": "Test Description", "Value": "Test tag"},
-                        {"Key": "Test Name", "Value": "Name tag for tests"},
-                    ],
-                },
-            }
-        },
-        "Outputs": {
-            "test": {
-                "Description": "Test Output",
-                "Value": "Test output value",
-                "Export": {"Name": "Test value to export"},
-            },
-            "PublicIP": {"Value": "Test public ip"},
-        },
-    }
-
-    cloudformation_client = boto3.client("cloudformation", region_name="us-east-1")
-
-    stack_template_str = json.dumps(stack_template)
-
-    response = cloudformation_client.create_stack(
-        StackName="test_stack",
-        TemplateBody=stack_template_str,
-        Capabilities=("CAPABILITY_IAM",),
+def test_get_command_invocations_by_instance_tag():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ssm = boto3.client("ssm", region_name="us-east-1")
+    tag_specifications = [
+        {"ResourceType": "instance", "Tags": [{"Key": "Name", "Value": "test-tag"}]}
+    ]
+    num_instances = 3
+    resp = ec2.run_instances(
+        ImageId="ami-1234abcd",
+        MaxCount=num_instances,
+        MinCount=num_instances,
+        TagSpecifications=tag_specifications,
     )
+    instance_ids = []
+    for instance in resp["Instances"]:
+        instance_ids.append(instance["InstanceId"])
+    instance_ids.should.have.length_of(num_instances)
 
-    client = boto3.client("ssm", region_name="us-east-1")
+    command_id = ssm.send_command(
+        DocumentName="AWS-RunShellScript",
+        Targets=[{"Key": "tag:Name", "Values": ["test-tag"]}],
+    )["Command"]["CommandId"]
 
-    ssm_document = "AWS-RunShellScript"
-    params = {"commands": ["#!/bin/bash\necho 'hello world'"]}
+    resp = ssm.list_commands(CommandId=command_id)
+    resp["Commands"][0]["TargetCount"].should.equal(num_instances)
 
-    response = client.send_command(
-        Targets=[
-            {"Key": "tag:aws:cloudformation:stack-name", "Values": ("test_stack",)}
-        ],
-        DocumentName=ssm_document,
-        Parameters=params,
-        OutputS3Region="us-east-2",
-        OutputS3BucketName="the-bucket",
-        OutputS3KeyPrefix="pref",
-    )
-
-    cmd = response["Command"]
-    cmd_id = cmd["CommandId"]
-    instance_ids = cmd["InstanceIds"]
-
-    invocation_response = client.get_command_invocation(
-        CommandId=cmd_id, InstanceId=instance_ids[0], PluginName="aws:runShellScript"
-    )
+    for instance_id in instance_ids:
+        resp = ssm.get_command_invocation(CommandId=command_id, InstanceId=instance_id)
+        resp["Status"].should.equal("Success")

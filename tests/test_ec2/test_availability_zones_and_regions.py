@@ -40,6 +40,15 @@ def test_boto3_describe_regions():
     resp = ec2.describe_regions(RegionNames=[test_region])
     resp["Regions"].should.have.length_of(1)
     resp["Regions"][0].should.have.key("RegionName").which.should.equal(test_region)
+    resp["Regions"][0].should.have.key("OptInStatus").which.should.equal(
+        "opt-in-not-required"
+    )
+
+    test_region = "ap-east-1"
+    resp = ec2.describe_regions(RegionNames=[test_region])
+    resp["Regions"].should.have.length_of(1)
+    resp["Regions"][0].should.have.key("RegionName").which.should.equal(test_region)
+    resp["Regions"][0].should.have.key("OptInStatus").which.should.equal("not-opted-in")
 
 
 @mock_ec2
@@ -52,3 +61,15 @@ def test_boto3_availability_zones():
         resp = conn.describe_availability_zones()
         for rec in resp["AvailabilityZones"]:
             rec["ZoneName"].should.contain(region)
+
+
+@mock_ec2
+def test_boto3_zoneId_in_availability_zones():
+    conn = boto3.client("ec2", "us-east-1")
+    resp = conn.describe_availability_zones()
+    for rec in resp["AvailabilityZones"]:
+        rec.get("ZoneId").should.contain("use1")
+    conn = boto3.client("ec2", "us-west-1")
+    resp = conn.describe_availability_zones()
+    for rec in resp["AvailabilityZones"]:
+        rec.get("ZoneId").should.contain("usw1")

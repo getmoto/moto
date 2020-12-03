@@ -1,8 +1,11 @@
 import boto
 from boto.swf.exceptions import SWFResponseError
+import boto3
+from botocore.exceptions import ClientError
 import sure  # noqa
 
 from moto import mock_swf_deprecated
+from moto import mock_swf
 
 
 # RegisterActivityType endpoint
@@ -108,6 +111,77 @@ def test_deprecate_non_existent_activity_type():
     conn.deprecate_activity_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
     ).should.throw(SWFResponseError)
+
+
+# DeprecateActivityType endpoint
+@mock_swf
+def test_undeprecate_activity_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.register_activity_type(
+        domain="test-domain", name="test-activity", version="v1.0"
+    )
+    client.deprecate_activity_type(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    )
+    client.undeprecate_activity_type(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    )
+
+    resp = client.describe_activity_type(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    )
+    resp["typeInfo"]["status"].should.equal("REGISTERED")
+
+
+@mock_swf
+def test_undeprecate_already_undeprecated_activity_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.register_activity_type(
+        domain="test-domain", name="test-activity", version="v1.0"
+    )
+    client.deprecate_activity_type(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    )
+    client.undeprecate_activity_type(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    )
+
+    client.undeprecate_activity_type.when.called_with(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    ).should.throw(ClientError)
+
+
+@mock_swf
+def test_undeprecate_never_deprecated_activity_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.register_activity_type(
+        domain="test-domain", name="test-activity", version="v1.0"
+    )
+
+    client.undeprecate_activity_type.when.called_with(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    ).should.throw(ClientError)
+
+
+@mock_swf
+def test_undeprecate_non_existent_activity_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+
+    client.undeprecate_activity_type.when.called_with(
+        domain="test-domain", activityType={"name": "test-activity", "version": "v1.0"}
+    ).should.throw(ClientError)
 
 
 # DescribeActivityType endpoint

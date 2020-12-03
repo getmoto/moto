@@ -1,7 +1,12 @@
 from __future__ import unicode_literals
+import datetime
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amz_crc32, amzn_request_id
+from moto.core.utils import (
+    amz_crc32,
+    amzn_request_id,
+    iso_8601_datetime_with_milliseconds,
+)
 from .models import autoscaling_backends
 
 
@@ -76,6 +81,7 @@ class AutoScalingResponse(BaseResponse):
             min_size=self._get_int_param("MinSize"),
             instance_id=self._get_param("InstanceId"),
             launch_config_name=self._get_param("LaunchConfigurationName"),
+            launch_template=self._get_dict_param("LaunchTemplate."),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
             default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
@@ -192,6 +198,7 @@ class AutoScalingResponse(BaseResponse):
             max_size=self._get_int_param("MaxSize"),
             min_size=self._get_int_param("MinSize"),
             launch_config_name=self._get_param("LaunchConfigurationName"),
+            launch_template=self._get_dict_param("LaunchTemplate."),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
             default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
@@ -226,7 +233,9 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_auto_scaling_instances(self):
-        instance_states = self.autoscaling_backend.describe_auto_scaling_instances()
+        instance_states = self.autoscaling_backend.describe_auto_scaling_instances(
+            instance_ids=self._get_multi_param("InstanceIds.member")
+        )
         template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instance_states=instance_states)
 
@@ -289,6 +298,50 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
+    @amz_crc32
+    @amzn_request_id
+    def enter_standby(self):
+        group_name = self._get_param("AutoScalingGroupName")
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")
+        if should_decrement_string == "true":
+            should_decrement = True
+        else:
+            should_decrement = False
+        (
+            standby_instances,
+            original_size,
+            desired_capacity,
+        ) = self.autoscaling_backend.enter_standby_instances(
+            group_name, instance_ids, should_decrement
+        )
+        template = self.response_template(ENTER_STANDBY_TEMPLATE)
+        return template.render(
+            standby_instances=standby_instances,
+            should_decrement=should_decrement,
+            original_size=original_size,
+            desired_capacity=desired_capacity,
+            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+        )
+
+    @amz_crc32
+    @amzn_request_id
+    def exit_standby(self):
+        group_name = self._get_param("AutoScalingGroupName")
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        (
+            standby_instances,
+            original_size,
+            desired_capacity,
+        ) = self.autoscaling_backend.exit_standby_instances(group_name, instance_ids)
+        template = self.response_template(EXIT_STANDBY_TEMPLATE)
+        return template.render(
+            standby_instances=standby_instances,
+            original_size=original_size,
+            desired_capacity=desired_capacity,
+            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+        )
+
     def suspend_processes(self):
         autoscaling_group_name = self._get_param("AutoScalingGroupName")
         scaling_processes = self._get_multi_param("ScalingProcesses.member")
@@ -307,6 +360,29 @@ class AutoScalingResponse(BaseResponse):
         )
         template = self.response_template(SET_INSTANCE_PROTECTION_TEMPLATE)
         return template.render()
+
+    @amz_crc32
+    @amzn_request_id
+    def terminate_instance_in_auto_scaling_group(self):
+        instance_id = self._get_param("InstanceId")
+        should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")
+        if should_decrement_string == "true":
+            should_decrement = True
+        else:
+            should_decrement = False
+        (
+            instance,
+            original_size,
+            desired_capacity,
+        ) = self.autoscaling_backend.terminate_instance(instance_id, should_decrement)
+        template = self.response_template(TERMINATE_INSTANCES_TEMPLATE)
+        return template.render(
+            instance=instance,
+            should_decrement=should_decrement,
+            original_size=original_size,
+            desired_capacity=desired_capacity,
+            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+        )
 
 
 CREATE_LAUNCH_CONFIGURATION_TEMPLATE = """<CreateLaunchConfigurationResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
@@ -499,14 +575,31 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
         <EnabledMetrics/>
+        {% if group.launch_config_name %}
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
+        {% elif group.launch_template %}
+        <LaunchTemplate>
+          <LaunchTemplateId>{{ group.launch_template.id }}</LaunchTemplateId>
+          <Version>{{ group.launch_template_version }}</Version>
+          <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
+        </LaunchTemplate>
+        {% endif %}
         <Instances>
           {% for instance_state in group.instance_states %}
           <member>
             <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
             <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
             <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+            <InstanceType>{{ instance_state.instance.instance_type }}</InstanceType>
+            {% if group.launch_config_name %}
             <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
+            {% elif group.launch_template %}
+            <LaunchTemplate>
+              <LaunchTemplateId>{{ group.launch_template.id }}</LaunchTemplateId>
+              <Version>{{ group.launch_template_version }}</Version>
+              <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
+            </LaunchTemplate>
+            {% endif %}
             <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
             <ProtectedFromScaleIn>{{ instance_state.protected_from_scale_in|string|lower }}</ProtectedFromScaleIn>
           </member>
@@ -592,7 +685,16 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
         <AutoScalingGroupName>{{ instance_state.instance.autoscaling_group.name }}</AutoScalingGroupName>
         <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
         <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+        <InstanceType>{{ instance_state.instance.instance_type }}</InstanceType>
+        {% if instance_state.instance.autoscaling_group.launch_config_name %}
         <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
+        {% elif instance_state.instance.autoscaling_group.launch_template %}
+        <LaunchTemplate>
+          <LaunchTemplateId>{{ instance_state.instance.autoscaling_group.launch_template.id }}</LaunchTemplateId>
+          <Version>{{ instance_state.instance.autoscaling_group.launch_template_version }}</Version>
+          <LaunchTemplateName>{{ instance_state.instance.autoscaling_group.launch_template.name }}</LaunchTemplateName>
+        </LaunchTemplate>
+        {% endif %}
         <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
         <ProtectedFromScaleIn>{{ instance_state.protected_from_scale_in|string|lower }}</ProtectedFromScaleIn>
       </member>
@@ -705,3 +807,73 @@ SET_INSTANCE_PROTECTION_TEMPLATE = """<SetInstanceProtectionResponse xmlns="http
 <RequestId></RequestId>
 </ResponseMetadata>
 </SetInstanceProtectionResponse>"""
+
+ENTER_STANDBY_TEMPLATE = """<EnterStandbyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <EnterStandbyResult>
+    <Activities>
+      {% for instance in standby_instances %}
+      <member>
+        <ActivityId>12345678-1234-1234-1234-123456789012</ActivityId>
+        <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
+        {% if should_decrement %}
+        <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was moved to standby in response to a user request, shrinking the capacity from {{ original_size }} to {{ desired_capacity }}.</Cause>
+        {% else %}
+        <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was moved to standby in response to a user request.</Cause>
+        {% endif %}
+        <Description>Moving EC2 instance to Standby: {{ instance.instance.id }}</Description>
+        <Progress>50</Progress>
+        <StartTime>{{ timestamp }}</StartTime>
+        <Details>{&quot;Subnet ID&quot;:&quot;??&quot;,&quot;Availability Zone&quot;:&quot;{{ instance.instance.placement }}&quot;}</Details>
+        <StatusCode>InProgress</StatusCode>
+      </member>
+      {% endfor %}
+    </Activities>
+  </EnterStandbyResult>
+  <ResponseMetadata>
+    <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
+  </ResponseMetadata>
+</EnterStandbyResponse>"""
+
+EXIT_STANDBY_TEMPLATE = """<ExitStandbyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <ExitStandbyResult>
+    <Activities>
+      {% for instance in standby_instances %}
+      <member>
+        <ActivityId>12345678-1234-1234-1234-123456789012</ActivityId>
+        <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
+        <Description>Moving EC2 instance out of Standby: {{ instance.instance.id }}</Description>
+        <Progress>30</Progress>
+        <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was moved out of standby in response to a user request, increasing the capacity from {{ original_size }} to {{ desired_capacity }}.</Cause>
+        <StartTime>{{ timestamp }}</StartTime>
+        <Details>{&quot;Subnet ID&quot;:&quot;??&quot;,&quot;Availability Zone&quot;:&quot;{{ instance.instance.placement }}&quot;}</Details>
+        <StatusCode>PreInService</StatusCode>
+      </member>
+      {% endfor %}
+    </Activities>
+  </ExitStandbyResult>
+  <ResponseMetadata>
+    <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ExitStandbyResponse>"""
+
+TERMINATE_INSTANCES_TEMPLATE = """<TerminateInstanceInAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <TerminateInstanceInAutoScalingGroupResult>
+    <Activity>
+      <ActivityId>35b5c464-0b63-2fc7-1611-467d4a7f2497EXAMPLE</ActivityId>
+      <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
+      {% if should_decrement %}
+      <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was taken out of service in response to a user request, shrinking the capacity from {{ original_size }} to {{ desired_capacity }}.</Cause>
+      {% else %}
+      <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was taken out of service in response to a user request.</Cause>
+      {% endif %}
+      <Description>Terminating EC2 instance: {{ instance.instance.id }}</Description>
+      <Progress>0</Progress>
+      <StartTime>{{ timestamp }}</StartTime>
+      <Details>{&quot;Subnet ID&quot;:&quot;??&quot;,&quot;Availability Zone&quot;:&quot;{{ instance.instance.placement }}&quot;}</Details>
+      <StatusCode>InProgress</StatusCode>
+    </Activity>
+  </TerminateInstanceInAutoScalingGroupResult>
+  <ResponseMetadata>
+    <RequestId>a1ba8fb9-31d6-4d9a-ace1-a7f76749df11EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TerminateInstanceInAutoScalingGroupResponse>"""

@@ -16,7 +16,7 @@ REQUEST_ID_LONG = string.digits + string.ascii_uppercase
 
 
 def camelcase_to_underscores(argument):
-    """ Converts a camelcase param like theNewAttribute to the equivalent
+    """Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute"""
     result = ""
     prev_char_title = True
@@ -42,9 +42,9 @@ def camelcase_to_underscores(argument):
 
 
 def underscores_to_camelcase(argument):
-    """ Converts a camelcase param like the_new_attribute to the equivalent
+    """Converts a camelcase param like the_new_attribute to the equivalent
     camelcase version like theNewAttribute. Note that the first letter is
-    NOT capitalized by this function """
+    NOT capitalized by this function"""
     result = ""
     previous_was_underscore = False
     for char in argument:
@@ -55,6 +55,11 @@ def underscores_to_camelcase(argument):
                 result += char
         previous_was_underscore = char == "_"
     return result
+
+
+def pascal_to_camelcase(argument):
+    """Converts a PascalCase param to the camelCase equivalent"""
+    return argument[0].lower() + argument[1:]
 
 
 def method_names_from_class(clazz):
@@ -95,7 +100,7 @@ def convert_regex_to_flask_path(url_path):
         match_name, match_pattern = reg.groups()
         return '<regex("{0}"):{1}>'.format(match_pattern, match_name)
 
-    url_path = re.sub("\(\?P<(.*?)>(.*?)\)", caller, url_path)
+    url_path = re.sub(r"\(\?P<(.*?)>(.*?)\)", caller, url_path)
 
     if url_path.endswith("/?"):
         # Flask does own handling of trailing slashes
@@ -187,7 +192,13 @@ def iso_8601_datetime_with_milliseconds(datetime):
 
 
 def iso_8601_datetime_without_milliseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+
+
+def iso_8601_datetime_without_milliseconds_s3(datetime):
+    return (
+        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000") + "Z"
+    )
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
@@ -328,3 +339,63 @@ def py2_strip_unicode_keys(blob):
         blob = new_set
 
     return blob
+
+
+def tags_from_query_string(
+    querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
+):
+    response_values = {}
+    for key, value in querystring_dict.items():
+        if key.startswith(prefix) and key.endswith(key_suffix):
+            tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
+            tag_key = querystring_dict.get(
+                "{prefix}.{index}.{key_suffix}".format(
+                    prefix=prefix, index=tag_index, key_suffix=key_suffix,
+                )
+            )[0]
+            tag_value_key = "{prefix}.{index}.{value_suffix}".format(
+                prefix=prefix, index=tag_index, value_suffix=value_suffix,
+            )
+            if tag_value_key in querystring_dict:
+                response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
+            else:
+                response_values[tag_key] = None
+    return response_values
+
+
+def tags_from_cloudformation_tags_list(tags_list):
+    """Return tags in dict form from cloudformation resource tags form (list of dicts)"""
+    tags = {}
+    for entry in tags_list:
+        key = entry["Key"]
+        value = entry["Value"]
+        tags[key] = value
+
+    return tags
+
+
+def remap_nested_keys(root, key_transform):
+    """This remap ("recursive map") function is used to traverse and
+    transform the dictionary keys of arbitrarily nested structures.
+    List comprehensions do not recurse, making it tedious to apply
+    transforms to all keys in a tree-like structure.
+
+    A common issue for `moto` is changing the casing of dict keys:
+
+    >>> remap_nested_keys({'KeyName': 'Value'}, camelcase_to_underscores)
+    {'key_name': 'Value'}
+
+    Args:
+        root: The target data to traverse. Supports iterables like
+            :class:`list`, :class:`tuple`, and :class:`dict`.
+        key_transform (callable): This function is called on every
+            dictionary key found in *root*.
+    """
+    if isinstance(root, (list, tuple)):
+        return [remap_nested_keys(item, key_transform) for item in root]
+    if isinstance(root, dict):
+        return {
+            key_transform(k): remap_nested_keys(v, key_transform)
+            for k, v in six.iteritems(root)
+        }
+    return root

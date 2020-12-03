@@ -6,17 +6,19 @@ import json
 import re
 import six
 import struct
+from copy import deepcopy
 from xml.sax.saxutils import escape
 
 from boto3 import Session
 
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     get_random_message_id,
     unix_time,
     unix_time_millis,
+    tags_from_cloudformation_tags_list,
 )
 from .utils import generate_receipt_handle
 from .exceptions import (
@@ -33,6 +35,7 @@ from .exceptions import (
     InvalidParameterValue,
     MissingParameter,
     OverLimit,
+    InvalidAttributeValue,
 )
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
@@ -41,7 +44,24 @@ DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
-TRANSPORT_TYPE_ENCODINGS = {"String": b"\x01", "Binary": b"\x02", "Number": b"\x01"}
+MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND = 1024
+MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND = MAXIMUM_MESSAGE_LENGTH
+
+TRANSPORT_TYPE_ENCODINGS = {
+    "String": b"\x01",
+    "Binary": b"\x02",
+    "Number": b"\x01",
+    "String.custom": b"\x01",
+}
+
+STRING_TYPE_FIELD_INDEX = 1
+BINARY_TYPE_FIELD_INDEX = 2
+STRING_LIST_TYPE_FIELD_INDEX = 3
+BINARY_LIST_TYPE_FIELD_INDEX = 4
+
+# Valid attribute name rules can found at
+# https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html
+ATTRIBUTE_NAME_PATTERN = re.compile("^([a-z]|[A-Z]|[0-9]|[_.\\-])+$")
 
 
 class Message(BaseModel):
@@ -67,58 +87,62 @@ class Message(BaseModel):
 
     @property
     def attribute_md5(self):
-        """
-        The MD5 of all attributes is calculated by first generating a
-        utf-8 string from each attribute and MD5-ing the concatenation
-        of them all. Each attribute is encoded with some bytes that
-        describe the length of each part and the type of attribute.
-
-        Not yet implemented:
-            List types (https://github.com/aws/aws-sdk-java/blob/7844c64cf248aed889811bf2e871ad6b276a89ca/aws-java-sdk-sqs/src/main/java/com/amazonaws/services/sqs/MessageMD5ChecksumHandler.java#L58k)
-        """
-
-        def utf8(str):
-            if isinstance(str, six.string_types):
-                return str.encode("utf-8")
-            return str
 
         md5 = hashlib.md5()
-        struct_format = "!I".encode("ascii")  # ensure it's a bytestring
-        for name in sorted(self.message_attributes.keys()):
-            attr = self.message_attributes[name]
-            data_type = attr["data_type"]
 
-            encoded = utf8("")
-            # Each part of each attribute is encoded right after it's
-            # own length is packed into a 4-byte integer
-            # 'timestamp' -> b'\x00\x00\x00\t'
-            encoded += struct.pack(struct_format, len(utf8(name))) + utf8(name)
-            # The datatype is additionally given a final byte
-            # representing which type it is
-            encoded += struct.pack(struct_format, len(data_type)) + utf8(data_type)
-            encoded += TRANSPORT_TYPE_ENCODINGS[data_type]
+        for attrName in sorted(self.message_attributes.keys()):
+            self.validate_attribute_name(attrName)
+            attrValue = self.message_attributes[attrName]
+            # Encode name
+            self.update_binary_length_and_value(md5, self.utf8(attrName))
+            # Encode type
+            self.update_binary_length_and_value(md5, self.utf8(attrValue["data_type"]))
 
-            if data_type == "String" or data_type == "Number":
-                value = attr["string_value"]
-            elif data_type == "Binary":
-                print(data_type, attr["binary_value"], type(attr["binary_value"]))
-                value = base64.b64decode(attr["binary_value"])
-            else:
-                print(
-                    "Moto hasn't implemented MD5 hashing for {} attributes".format(
-                        data_type
-                    )
+            if attrValue.get("string_value"):
+                md5.update(bytearray([STRING_TYPE_FIELD_INDEX]))
+                self.update_binary_length_and_value(
+                    md5, self.utf8(attrValue.get("string_value"))
                 )
-                # The following should be enough of a clue to users that
-                # they are not, in fact, looking at a correct MD5 while
-                # also following the character and length constraints of
-                # MD5 so as not to break client softwre
-                return "deadbeefdeadbeefdeadbeefdeadbeef"
+            elif attrValue.get("binary_value"):
+                md5.update(bytearray([BINARY_TYPE_FIELD_INDEX]))
+                decoded_binary_value = base64.b64decode(attrValue.get("binary_value"))
+                self.update_binary_length_and_value(md5, decoded_binary_value)
+            # string_list_value type is not implemented, reserved for the future use.
+            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
+            elif len(attrValue["string_list_value"]) > 0:
+                md5.update(bytearray([STRING_LIST_TYPE_FIELD_INDEX]))
+                for strListMember in attrValue["string_list_value"]:
+                    self.update_binary_length_and_value(md5, self.utf8(strListMember))
+            # binary_list_value type is not implemented, reserved for the future use.
+            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
+            elif len(attrValue["binary_list_value"]) > 0:
+                md5.update(bytearray([BINARY_LIST_TYPE_FIELD_INDEX]))
+                for strListMember in attrValue["binary_list_value"]:
+                    decoded_binary_value = base64.b64decode(strListMember)
+                    self.update_binary_length_and_value(md5, decoded_binary_value)
 
-            encoded += struct.pack(struct_format, len(utf8(value))) + utf8(value)
-
-            md5.update(encoded)
         return md5.hexdigest()
+
+    @staticmethod
+    def update_binary_length_and_value(md5, value):
+        length_bytes = struct.pack("!I".encode("ascii"), len(value))
+        md5.update(length_bytes)
+        md5.update(value)
+
+    @staticmethod
+    def validate_attribute_name(name):
+        if not ATTRIBUTE_NAME_PATTERN.match(name):
+            raise MessageAttributesInvalid(
+                "The message attribute name '{0}' is invalid. "
+                "Attribute name can contain A-Z, a-z, 0-9, "
+                "underscore (_), hyphen (-), and period (.) characters.".format(name)
+            )
+
+    @staticmethod
+    def utf8(string):
+        if isinstance(string, six.string_types):
+            return string.encode("utf-8")
+        return string
 
     @property
     def body(self):
@@ -175,7 +199,7 @@ class Message(BaseModel):
         return False
 
 
-class Queue(BaseModel):
+class Queue(CloudFormationModel):
     BASE_ATTRIBUTES = [
         "ApproximateNumberOfMessages",
         "ApproximateNumberOfMessagesDelayed",
@@ -230,7 +254,7 @@ class Queue(BaseModel):
             "FifoQueue": "false",
             "KmsDataKeyReusePeriodSeconds": 300,  # five minutes
             "KmsMasterKeyId": None,
-            "MaximumMessageSize": int(64 << 10),
+            "MaximumMessageSize": MAXIMUM_MESSAGE_LENGTH,
             "MessageRetentionPeriod": 86400 * 4,  # four days
             "Policy": None,
             "ReceiveMessageWaitTimeSeconds": 0,
@@ -243,9 +267,12 @@ class Queue(BaseModel):
 
         # Check some conditions
         if self.fifo_queue and not self.name.endswith(".fifo"):
-            raise MessageAttributesInvalid(
-                "Queue name must end in .fifo for FIFO queues"
-            )
+            raise InvalidParameterValue("Queue name must end in .fifo for FIFO queues")
+        if (
+            self.maximum_message_size < MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND
+            or self.maximum_message_size > MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND
+        ):
+            raise InvalidAttributeValue("MaximumMessageSize")
 
     @property
     def pending_messages(self):
@@ -343,15 +370,27 @@ class Queue(BaseModel):
                 ),
             )
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "QueueName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sqs-queue.html
+        return "AWS::SQS::Queue"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
+        properties = deepcopy(cloudformation_json["Properties"])
+        # remove Tags from properties and convert tags list to dict
+        tags = properties.pop("Tags", [])
+        tags_dict = tags_from_cloudformation_tags_list(tags)
 
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
-            name=properties["QueueName"], region=region_name, **properties
+            name=resource_name, tags=tags_dict, region=region_name, **properties
         )
 
     @classmethod
@@ -359,7 +398,7 @@ class Queue(BaseModel):
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        queue_name = properties["QueueName"]
+        queue_name = original_resource.name
 
         sqs_backend = sqs_backends[region_name]
         queue = sqs_backend.get_queue(queue_name)
@@ -376,10 +415,8 @@ class Queue(BaseModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-        queue_name = properties["QueueName"]
         sqs_backend = sqs_backends[region_name]
-        sqs_backend.delete_queue(queue_name)
+        sqs_backend.delete_queue(resource_name)
 
     @property
     def approximate_number_of_messages_delayed(self):
@@ -500,6 +537,15 @@ class Queue(BaseModel):
             }
 
 
+def _filter_message_attributes(message, input_message_attributes):
+    filtered_message_attributes = {}
+    return_all = "All" in input_message_attributes
+    for key, value in message.message_attributes.items():
+        if return_all or key in input_message_attributes:
+            filtered_message_attributes[key] = value
+    message.message_attributes = filtered_message_attributes
+
+
 class SQSBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
@@ -524,22 +570,10 @@ class SQSBackend(BaseBackend):
 
             queue_attributes = queue.attributes
             new_queue_attributes = new_queue.attributes
-            static_attributes = (
-                "DelaySeconds",
-                "MaximumMessageSize",
-                "MessageRetentionPeriod",
-                "Policy",
-                "QueueArn",
-                "ReceiveMessageWaitTimeSeconds",
-                "RedrivePolicy",
-                "VisibilityTimeout",
-                "KmsMasterKeyId",
-                "KmsDataKeyReusePeriodSeconds",
-                "FifoQueue",
-                "ContentBasedDeduplication",
-            )
 
-            for key in static_attributes:
+            # only the attributes which are being sent for the queue
+            # creation have to be compared if the queue is existing.
+            for key in kwargs:
                 if queue_attributes.get(key) != new_queue_attributes.get(key):
                     raise QueueAlreadyExists("The specified queue already exists.")
         else:
@@ -605,7 +639,8 @@ class SQSBackend(BaseBackend):
             attributes = queue.attributes
         else:
             for name in (name for name in attribute_names if name in queue.attributes):
-                attributes[name] = queue.attributes.get(name)
+                if queue.attributes.get(name) is not None:
+                    attributes[name] = queue.attributes.get(name)
 
         return attributes
 
@@ -625,6 +660,12 @@ class SQSBackend(BaseBackend):
     ):
 
         queue = self.get_queue(queue_name)
+
+        if len(message_body) > queue.maximum_message_size:
+            msg = "One or more parameters are invalid. Reason: Message must be shorter than {} bytes.".format(
+                queue.maximum_message_size
+            )
+            raise InvalidParameterValue(msg)
 
         if delay_seconds:
             delay_seconds = int(delay_seconds)
@@ -685,6 +726,8 @@ class SQSBackend(BaseBackend):
                 entry["MessageBody"],
                 message_attributes=entry["MessageAttributes"],
                 delay_seconds=entry["DelaySeconds"],
+                group_id=entry.get("MessageGroupId"),
+                deduplication_id=entry.get("MessageDeduplicationId"),
             )
             message.user_id = entry["Id"]
 
@@ -701,7 +744,12 @@ class SQSBackend(BaseBackend):
         return None
 
     def receive_messages(
-        self, queue_name, count, wait_seconds_timeout, visibility_timeout
+        self,
+        queue_name,
+        count,
+        wait_seconds_timeout,
+        visibility_timeout,
+        message_attribute_names=None,
     ):
         """
         Attempt to retrieve visible messages from a queue.
@@ -717,11 +765,14 @@ class SQSBackend(BaseBackend):
         :param int wait_seconds_timeout:  The duration (in seconds) for which the call waits for a message to arrive in
          the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds
         """
+        if message_attribute_names is None:
+            message_attribute_names = []
         queue = self.get_queue(queue_name)
         result = []
         previous_result_count = len(result)
 
         polling_end = unix_time() + wait_seconds_timeout
+        currently_pending_groups = deepcopy(queue.pending_message_groups)
 
         # queue.messages only contains visible messages
         while True:
@@ -739,11 +790,11 @@ class SQSBackend(BaseBackend):
                     # The message is pending but is visible again, so the
                     # consumer must have timed out.
                     queue.pending_messages.remove(message)
+                    currently_pending_groups = deepcopy(queue.pending_message_groups)
 
                 if message.group_id and queue.fifo_queue:
-                    if message.group_id in queue.pending_message_groups:
-                        # There is already one active message with the same
-                        # group, so we cannot deliver this one.
+                    if message.group_id in currently_pending_groups:
+                        # A previous call is still processing messages in this group, so we cannot deliver this one.
                         continue
 
                 queue.pending_messages.add(message)
@@ -757,6 +808,7 @@ class SQSBackend(BaseBackend):
                     continue
 
                 message.mark_received(visibility_timeout=visibility_timeout)
+                _filter_message_attributes(message, message_attribute_names)
                 result.append(message)
                 if len(result) >= count:
                     break
@@ -815,6 +867,7 @@ class SQSBackend(BaseBackend):
     def purge_queue(self, queue_name):
         queue = self.get_queue(queue_name)
         queue._messages = []
+        queue._pending_messages = set()
 
     def list_dead_letter_source_queues(self, queue_name):
         dlq = self.get_queue(queue_name)

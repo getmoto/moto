@@ -136,3 +136,24 @@ class SnapshotCopyAlreadyEnabledFaultError(RedshiftClientError):
                 cluster_identifier
             ),
         )
+
+
+class ClusterAlreadyExistsFaultError(RedshiftClientError):
+    def __init__(self):
+        super(ClusterAlreadyExistsFaultError, self).__init__(
+            "ClusterAlreadyExists", "Cluster already exists"
+        )
+
+
+class InvalidParameterCombinationError(RedshiftClientError):
+    def __init__(self, message):
+        super(InvalidParameterCombinationError, self).__init__(
+            "InvalidParameterCombination", message
+        )
+
+
+class UnknownSnapshotCopyRegionFaultError(RedshiftClientError):
+    def __init__(self, message):
+        super(UnknownSnapshotCopyRegionFaultError, self).__init__(
+            "UnknownSnapshotCopyRegionFault", message
+        )

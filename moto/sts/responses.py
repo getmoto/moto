@@ -71,6 +71,19 @@ class TokenResponse(BaseResponse):
         template = self.response_template(ASSUME_ROLE_WITH_WEB_IDENTITY_RESPONSE)
         return template.render(role=role)
 
+    def assume_role_with_saml(self):
+        role_arn = self.querystring.get("RoleArn")[0]
+        principal_arn = self.querystring.get("PrincipalArn")[0]
+        saml_assertion = self.querystring.get("SAMLAssertion")[0]
+
+        role = sts_backend.assume_role_with_saml(
+            role_arn=role_arn,
+            principal_arn=principal_arn,
+            saml_assertion=saml_assertion,
+        )
+        template = self.response_template(ASSUME_ROLE_WITH_SAML_RESPONSE)
+        return template.render(role=role)
+
     def get_caller_identity(self):
         template = self.response_template(GET_CALLER_IDENTITY_RESPONSE)
 
@@ -166,6 +179,30 @@ ASSUME_ROLE_WITH_WEB_IDENTITY_RESPONSE = """<AssumeRoleWithWebIdentityResponse x
     <RequestId>c6104cbe-af31-11e0-8154-cbc7ccf896c7</RequestId>
   </ResponseMetadata>
 </AssumeRoleWithWebIdentityResponse>"""
+
+
+ASSUME_ROLE_WITH_SAML_RESPONSE = """<AssumeRoleWithSAMLResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleWithSAMLResult>
+    <Audience>https://signin.aws.amazon.com/saml</Audience>
+    <AssumedRoleUser>
+      <AssumedRoleId>{{ role.user_id }}</AssumedRoleId>
+      <Arn>{{ role.arn }}</Arn>
+    </AssumedRoleUser>
+    <Credentials>
+      <AccessKeyId>{{ role.access_key_id }}</AccessKeyId>
+      <SecretAccessKey>{{ role.secret_access_key }}</SecretAccessKey>
+      <SessionToken>{{ role.session_token }}</SessionToken>
+      <Expiration>{{ role.expiration_ISO8601 }}</Expiration>
+    </Credentials>
+    <Subject>{{ role.user_id }}</Subject>
+    <NameQualifier>B64EncodedStringOfHashOfIssuerAccountIdAndUserId=</NameQualifier>
+    <SubjectType>persistent</SubjectType>
+    <Issuer>http://localhost:3000/</Issuer>
+  </AssumeRoleWithSAMLResult>
+  <ResponseMetadata>
+    <RequestId>c6104cbe-af31-11e0-8154-cbc7ccf896c7</RequestId>
+  </ResponseMetadata>
+</AssumeRoleWithSAMLResponse>"""
 
 
 GET_CALLER_IDENTITY_RESPONSE = """<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">

@@ -243,6 +243,15 @@ class Route53(BaseResponse):
 
             return 200, headers, template.render()
 
+    def get_change(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "GET":
+            parsed_url = urlparse(full_url)
+            change_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+            template = Template(GET_CHANGE_RESPONSE)
+            return 200, headers, template.render(change_id=change_id)
+
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
 <ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
@@ -382,3 +391,12 @@ LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 DELETE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <DeleteHealthCheckResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
 </DeleteHealthCheckResponse>"""
+
+GET_CHANGE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetChangeResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>{{ change_id }}</Id>
+   </ChangeInfo>
+</GetChangeResponse>"""

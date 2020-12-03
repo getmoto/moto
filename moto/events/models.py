@@ -4,11 +4,13 @@ import json
 from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, BaseModel
-from moto.sts.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
+from moto.utilities.tagging_service import TaggingService
+
+from uuid import uuid4
 
 
-class Rule(BaseModel):
+class Rule(CloudFormationModel):
     def _generate_arn(self, name):
         return "arn:aws:events:{region_name}:111111111111:rule/{name}".format(
             region_name=self.region_name, name=name
@@ -23,13 +25,12 @@ class Rule(BaseModel):
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
         self.role_arn = kwargs.get("RoleArn")
+        self.event_bus_name = kwargs.get("EventBusName", "default")
         self.targets = []
 
-    def enable(self):
-        self.state = "ENABLED"
-
-    def disable(self):
-        self.state = "DISABLED"
+    @property
+    def physical_resource_id(self):
+        return self.name
 
     # This song and dance for targets is because we need order for Limits and NextTokens, but can't use OrderedDicts
     # with Python 2.6, so tracking it with an array it is.
@@ -38,6 +39,16 @@ class Rule(BaseModel):
             if target_id == self.targets[i]["Id"]:
                 return i
         return None
+
+    def enable(self):
+        self.state = "ENABLED"
+
+    def disable(self):
+        self.state = "DISABLED"
+
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
+        event_backend.delete_rule(name=self.name)
 
     def put_targets(self, targets):
         # Not testing for valid ARNs.
@@ -54,8 +65,51 @@ class Rule(BaseModel):
             if index is not None:
                 self.targets.pop(index)
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
-class EventBus(BaseModel):
+        if attribute_name == "Arn":
+            return self.arn
+
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-events-rule.html
+        return "AWS::Events::Rule"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_backend = events_backends[region_name]
+        event_name = resource_name
+        return event_backend.put_rule(name=event_name, **properties)
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        original_resource.delete(region_name)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        event_backend = events_backends[region_name]
+        event_name = resource_name
+        event_backend.delete_rule(name=event_name)
+
+
+class EventBus(CloudFormationModel):
     def __init__(self, region_name, name):
         self.region = region_name
         self.name = name
@@ -90,6 +144,60 @@ class EventBus(BaseModel):
 
         return json.dumps(policy)
 
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
+        event_backend.delete_event_bus(name=self.name)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Name":
+            return self.name
+        elif attribute_name == "Policy":
+            return self.policy
+
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-events-eventbus.html
+        return "AWS::Events::EventBus"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_backend = events_backends[region_name]
+        event_name = resource_name
+        event_source_name = properties.get("EventSourceName")
+        return event_backend.create_event_bus(
+            name=event_name, event_source_name=event_source_name
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        original_resource.delete(region_name)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        event_backend = events_backends[region_name]
+        event_bus_name = resource_name
+        event_backend.delete_event_bus(event_bus_name)
+
 
 class EventsBackend(BaseBackend):
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
@@ -104,6 +212,7 @@ class EventsBackend(BaseBackend):
         self.region_name = region_name
         self.event_buses = {}
         self.event_sources = {}
+        self.tagger = TaggingService()
 
         self._add_default_event_bus()
 
@@ -141,6 +250,9 @@ class EventsBackend(BaseBackend):
 
     def delete_rule(self, name):
         self.rules_order.pop(self.rules_order.index(name))
+        arn = self.rules.get(name).arn
+        if self.tagger.has_tags(arn):
+            self.tagger.delete_all_tags_for_resource(arn)
         return self.rules.pop(name) is not None
 
     def describe_rule(self, name):
@@ -227,10 +339,10 @@ class EventsBackend(BaseBackend):
         return return_obj
 
     def put_rule(self, name, **kwargs):
-        rule = Rule(name, self.region_name, **kwargs)
-        self.rules[rule.name] = rule
-        self.rules_order.append(rule.name)
-        return rule.arn
+        new_rule = Rule(name, self.region_name, **kwargs)
+        self.rules[new_rule.name] = new_rule
+        self.rules_order.append(new_rule.name)
+        return new_rule
 
     def put_targets(self, name, targets):
         rule = self.rules.get(name)
@@ -250,16 +362,19 @@ class EventsBackend(BaseBackend):
             raise JsonRESTError("ValidationError", "Can only submit 10 events at once")
 
         # We dont really need to store the events yet
-        return []
+        return [{"EventId": str(uuid4())} for _ in events]
 
     def remove_targets(self, name, ids):
         rule = self.rules.get(name)
 
         if rule:
             rule.remove_targets(ids)
-            return True
-
-        return False
+            return {"FailedEntries": [], "FailedEntryCount": 0}
+        else:
+            raise JsonRESTError(
+                "ResourceNotFoundException",
+                "An entity that you specified does not exist",
+            )
 
     def test_event_pattern(self):
         raise NotImplementedError()
@@ -278,12 +393,12 @@ class EventsBackend(BaseBackend):
 
         if principal is None or self.ACCOUNT_ID.match(principal) is None:
             raise JsonRESTError(
-                "InvalidParameterValue", "Principal must match ^(\d{1,12}|\*)$"
+                "InvalidParameterValue", r"Principal must match ^(\d{1,12}|\*)$"
             )
 
         if statement_id is None or self.STATEMENT_ID.match(statement_id) is None:
             raise JsonRESTError(
-                "InvalidParameterValue", "StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
+                "InvalidParameterValue", r"StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
             )
 
         event_bus._permissions[statement_id] = {
@@ -321,7 +436,7 @@ class EventsBackend(BaseBackend):
 
         return event_bus
 
-    def create_event_bus(self, name, event_source_name):
+    def create_event_bus(self, name, event_source_name=None):
         if name in self.event_buses:
             raise JsonRESTError(
                 "ResourceAlreadyExistsException",
@@ -358,8 +473,33 @@ class EventsBackend(BaseBackend):
             raise JsonRESTError(
                 "ValidationException", "Cannot delete event bus default."
             )
-
         self.event_buses.pop(name, None)
+
+    def list_tags_for_resource(self, arn):
+        name = arn.split("/")[-1]
+        if name in self.rules:
+            return self.tagger.list_tags_for_resource(self.rules[name].arn)
+        raise JsonRESTError(
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
+
+    def tag_resource(self, arn, tags):
+        name = arn.split("/")[-1]
+        if name in self.rules:
+            self.tagger.tag_resource(self.rules[name].arn, tags)
+            return {}
+        raise JsonRESTError(
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
+
+    def untag_resource(self, arn, tag_names):
+        name = arn.split("/")[-1]
+        if name in self.rules:
+            self.tagger.untag_resource_using_names(self.rules[name].arn, tag_names)
+            return {}
+        raise JsonRESTError(
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
 
 
 events_backends = {}

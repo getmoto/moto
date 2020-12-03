@@ -1,26 +1,29 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
+# Ensure 'pytest.raises' context manager support for Python 2.6
 from botocore.exceptions import ClientError
 
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+import pytest
 
 import base64
-import datetime
 import ipaddress
 
 import six
 import boto
 import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
-from boto.exception import EC2ResponseError, EC2ResponseError
+from boto.exception import EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
+
+if six.PY2:
+    decode_method = base64.decodestring
+else:
+    decode_method = base64.decodebytes
 
 ################ Test Readme ###############
 def add_servers(ami_id, count):
@@ -48,11 +51,11 @@ def test_add_servers():
 def test_instance_launch_and_terminate():
     conn = boto.ec2.connect_to_region("us-east-1")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         reservation = conn.run_instances("ami-1234abcd", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -71,7 +74,7 @@ def test_instance_launch_and_terminate():
     instance.id.should.equal(instance.id)
     instance.state.should.equal("running")
     instance.launch_time.should.equal("2014-01-01T05:00:00.000Z")
-    instance.vpc_id.should.equal(None)
+    instance.vpc_id.shouldnt.equal(None)
     instance.placement.should.equal("us-east-1a")
 
     root_device_name = instance.root_device_name
@@ -83,11 +86,11 @@ def test_instance_launch_and_terminate():
     volume.attach_data.instance_id.should.equal(instance.id)
     volume.status.should.equal("in-use")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.terminate_instances([instance.id], dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -96,6 +99,132 @@ def test_instance_launch_and_terminate():
     reservations = conn.get_all_instances()
     instance = reservations[0].instances[0]
     instance.state.should.equal("terminated")
+
+
+@mock_ec2
+def test_instance_terminate_discard_volumes():
+
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {
+                "DeviceName": "/dev/sda1",
+                "Ebs": {"VolumeSize": 50, "DeleteOnTermination": True},
+            }
+        ],
+    )
+    instance = result[0]
+
+    instance_volume_ids = []
+    for volume in instance.volumes.all():
+        instance_volume_ids.append(volume.volume_id)
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert not list(ec2_resource.volumes.all())
+
+
+@mock_ec2
+def test_instance_terminate_keep_volumes_explicit():
+
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {
+                "DeviceName": "/dev/sda1",
+                "Ebs": {"VolumeSize": 50, "DeleteOnTermination": False},
+            }
+        ],
+    )
+    instance = result[0]
+
+    instance_volume_ids = []
+    for volume in instance.volumes.all():
+        instance_volume_ids.append(volume.volume_id)
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert len(list(ec2_resource.volumes.all())) == 1
+
+
+@mock_ec2
+def test_instance_terminate_keep_volumes_implicit():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}}],
+    )
+    instance = result[0]
+
+    instance_volume_ids = []
+    for volume in instance.volumes.all():
+        instance_volume_ids.append(volume.volume_id)
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert len(instance_volume_ids) == 1
+    volume = ec2_resource.Volume(instance_volume_ids[0])
+    volume.state.should.equal("available")
+
+
+@mock_ec2
+def test_instance_terminate_detach_volumes():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},
+            {"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": 50}},
+        ],
+    )
+    instance = result[0]
+    for volume in instance.volumes.all():
+        response = instance.detach_volume(VolumeId=volume.volume_id)
+        response["State"].should.equal("detaching")
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert len(list(ec2_resource.volumes.all())) == 2
+
+
+@mock_ec2
+def test_instance_detach_volume_wrong_path():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},],
+    )
+    instance = result[0]
+    for volume in instance.volumes.all():
+        with pytest.raises(ClientError) as ex:
+            instance.detach_volume(VolumeId=volume.volume_id, Device="/dev/sdf")
+
+        ex.value.response["Error"]["Code"].should.equal("InvalidAttachment.NotFound")
+        ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.value.response["Error"]["Message"].should.equal(
+            "The volume {0} is not attached to instance {1} as device {2}".format(
+                volume.volume_id, instance.instance_id, "/dev/sdf"
+            )
+        )
 
 
 @mock_ec2_deprecated
@@ -158,11 +287,11 @@ def test_get_instances_by_id():
     instance_ids.should.equal([instance1.id, instance2.id])
 
     # Call get_all_instances with a bad id should raise an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_instances(instance_ids=[instance1.id, "i-1234abcd"])
-    cm.exception.code.should.equal("InvalidInstanceID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidInstanceID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -408,6 +537,20 @@ def test_get_instances_filtering_by_image_id():
 
 
 @mock_ec2
+def test_get_instances_filtering_by_account_id():
+    image_id = "ami-1234abcd"
+    client = boto3.client("ec2", region_name="us-east-1")
+    conn = boto3.resource("ec2", "us-east-1")
+    conn.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "owner-id", "Values": ["123456789012"]}]
+    )["Reservations"]
+
+    reservations[0]["Instances"].should.have.length_of(1)
+
+
+@mock_ec2
 def test_get_instances_filtering_by_private_dns():
     image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
@@ -597,11 +740,11 @@ def test_instance_start_and_stop():
 
     instance_ids = [instance.id for instance in instances]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         stopped_instances = conn.stop_instances(instance_ids, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the StopInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -610,11 +753,11 @@ def test_instance_start_and_stop():
     for instance in stopped_instances:
         instance.state.should.equal("stopping")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         started_instances = conn.start_instances([instances[0].id], dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the StartInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -628,11 +771,11 @@ def test_instance_reboot():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.reboot(dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RebootInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -646,11 +789,11 @@ def test_instance_attribute_instance_type():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("instanceType", "m1.small", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceType operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -674,11 +817,11 @@ def test_modify_instance_attribute_security_groups():
         "test security group 2", "this is a test security group 2"
     ).id
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -697,11 +840,11 @@ def test_instance_attribute_user_data():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("userData", "this is my user data", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyUserData operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -727,11 +870,11 @@ def test_instance_attribute_source_dest_check():
 
     # Set to false (note: Boto converts bool to string, eg 'false')
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("sourceDestCheck", False, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifySourceDestCheck operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -765,7 +908,7 @@ def test_user_data_with_run_instance():
     instance_attribute = instance.get_attribute("userData")
     instance_attribute.should.be.a(InstanceAttribute)
     retrieved_user_data = instance_attribute.get("userData").encode("utf-8")
-    decoded_user_data = base64.decodestring(retrieved_user_data)
+    decoded_user_data = decode_method(retrieved_user_data)
     decoded_user_data.should.equal(b"some user data")
 
 
@@ -773,11 +916,11 @@ def test_user_data_with_run_instance():
 def test_run_instance_with_security_group_name():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         group = conn.create_security_group("group1", "some description", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -1050,11 +1193,11 @@ def test_instance_with_nic_attach_detach():
     set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
 
     # Attach
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.attach_network_interface(eni.id, instance.id, device_index=1, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -1077,11 +1220,11 @@ def test_instance_with_nic_attach_detach():
     )
 
     # Detach
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.detach_network_interface(instance_eni.attachment.id, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -1096,11 +1239,11 @@ def test_instance_with_nic_attach_detach():
     set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
 
     # Detach with invalid attachment ID
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.detach_network_interface("eni-attach-1234abcd")
-    cm.exception.code.should.equal("InvalidAttachmentID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAttachmentID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -1125,6 +1268,111 @@ def test_run_instance_with_keypair():
     instance.key_name.should.equal("keypair_name")
 
 
+@mock_ec2
+def test_run_instance_with_block_device_mappings():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": 50}}],
+    }
+
+    ec2_client.run_instances(**kwargs)
+
+    instances = ec2_client.describe_instances()
+    volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
+        "Ebs"
+    ]
+
+    volumes = ec2_client.describe_volumes(VolumeIds=[volume["VolumeId"]])
+    volumes["Volumes"][0]["Size"].should.equal(50)
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_missing_ebs():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [{"DeviceName": "/dev/sda2"}],
+    }
+    with pytest.raises(ClientError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter ebs"
+    )
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_missing_size():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [
+            {"DeviceName": "/dev/sda2", "Ebs": {"VolumeType": "standard"}}
+        ],
+    }
+    with pytest.raises(ClientError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter size or snapshotId"
+    )
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_from_snapshot():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+    volume_details = {
+        "AvailabilityZone": "1a",
+        "Size": 30,
+    }
+
+    volume = ec2_resource.create_volume(**volume_details)
+    snapshot = volume.create_snapshot()
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [
+            {"DeviceName": "/dev/sda2", "Ebs": {"SnapshotId": snapshot.snapshot_id}}
+        ],
+    }
+
+    ec2_client.run_instances(**kwargs)
+
+    instances = ec2_client.describe_instances()
+    volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
+        "Ebs"
+    ]
+
+    volumes = ec2_client.describe_volumes(VolumeIds=[volume["VolumeId"]])
+
+    volumes["Volumes"][0]["Size"].should.equal(30)
+    volumes["Volumes"][0]["SnapshotId"].should.equal(snapshot.snapshot_id)
+
+
 @mock_ec2_deprecated
 def test_describe_instance_status_no_instances():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -1144,7 +1392,7 @@ def test_describe_instance_status_with_instances():
 
 
 @mock_ec2_deprecated
-def test_describe_instance_status_with_instance_filter():
+def test_describe_instance_status_with_instance_filter_deprecated():
     conn = boto.connect_ec2("the_key", "the_secret")
 
     # We want to filter based on this one
@@ -1159,11 +1407,95 @@ def test_describe_instance_status_with_instance_filter():
     all_status[0].id.should.equal(instance.id)
 
     # Call get_all_instance_status with a bad id should raise an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_instance_status(instance_ids=[instance.id, "i-1234abcd"])
-    cm.exception.code.should.equal("InvalidInstanceID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidInstanceID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_describe_instance_credit_specifications():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    # We want to filter based on this one
+    reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=1, MaxCount=1)
+    result = conn.describe_instance_credit_specifications(
+        InstanceIds=[reservation["Instances"][0]["InstanceId"]]
+    )
+    assert (
+        result["InstanceCreditSpecifications"][0]["InstanceId"]
+        == reservation["Instances"][0]["InstanceId"]
+    )
+
+
+@mock_ec2
+def test_describe_instance_status_with_instance_filter():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    # We want to filter based on this one
+    reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=3, MaxCount=3)
+    instance1 = reservation["Instances"][0]
+    instance2 = reservation["Instances"][1]
+    instance3 = reservation["Instances"][2]
+    conn.stop_instances(InstanceIds=[instance1["InstanceId"]])
+    stopped_instance_ids = [instance1["InstanceId"]]
+    running_instance_ids = sorted([instance2["InstanceId"], instance3["InstanceId"]])
+    all_instance_ids = sorted(stopped_instance_ids + running_instance_ids)
+
+    # Filter instance using the state name
+    state_name_filter = {
+        "running_and_stopped": [
+            {"Name": "instance-state-name", "Values": ["running", "stopped"]}
+        ],
+        "running": [{"Name": "instance-state-name", "Values": ["running"]}],
+        "stopped": [{"Name": "instance-state-name", "Values": ["stopped"]}],
+    }
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_name_filter["running_and_stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(all_instance_ids)
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_name_filter["running"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(running_instance_ids)
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_name_filter["stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(stopped_instance_ids)
+
+    # Filter instance using the state code
+    state_code_filter = {
+        "running_and_stopped": [
+            {"Name": "instance-state-code", "Values": ["16", "80"]}
+        ],
+        "running": [{"Name": "instance-state-code", "Values": ["16"]}],
+        "stopped": [{"Name": "instance-state-code", "Values": ["80"]}],
+    }
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running_and_stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(all_instance_ids)
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(running_instance_ids)
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(stopped_instance_ids)
 
 
 @requires_boto_gte("2.32.0")
@@ -1202,13 +1534,13 @@ def test_get_instance_by_security_group():
 
     security_group = conn.create_security_group("test", "test")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.modify_instance_attribute(
             instance.id, "groupSet", [security_group.id], dry_run=True
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -1226,14 +1558,14 @@ def test_modify_delete_on_termination():
     result = ec2_client.create_instances(ImageId="ami-12345678", MinCount=1, MaxCount=1)
     instance = result[0]
     instance.load()
-    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(False)
+    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(True)
     instance.modify_attribute(
         BlockDeviceMappings=[
-            {"DeviceName": "/dev/sda1", "Ebs": {"DeleteOnTermination": True}}
+            {"DeviceName": "/dev/sda1", "Ebs": {"DeleteOnTermination": False}}
         ]
     )
     instance.load()
-    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(True)
+    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(False)
 
 
 @mock_ec2
@@ -1247,6 +1579,12 @@ def test_create_instance_ebs_optimized():
     instance.ebs_optimized.should.be(True)
 
     instance.modify_attribute(EbsOptimized={"Value": False})
+    instance.load()
+    instance.ebs_optimized.should.be(False)
+
+    instance = ec2_resource.create_instances(
+        ImageId="ami-12345678", MaxCount=1, MinCount=1,
+    )[0]
     instance.load()
     instance.ebs_optimized.should.be(False)
 
@@ -1320,13 +1658,13 @@ def test_describe_instance_attribute():
     ]
 
     for invalid_instance_attribute in invalid_instance_attributes:
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.describe_instance_attribute(
                 InstanceId=instance_id, Attribute=invalid_instance_attribute
             )
-        ex.exception.response["Error"]["Code"].should.equal("InvalidParameterValue")
-        ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
         message = "Value ({invalid_instance_attribute}) for parameter attribute is invalid. Unknown attribute.".format(
             invalid_instance_attribute=invalid_instance_attribute
         )
-        ex.exception.response["Error"]["Message"].should.equal(message)
+        ex.value.response["Error"]["Message"].should.equal(message)

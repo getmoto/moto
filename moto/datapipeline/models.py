@@ -4,7 +4,7 @@ import datetime
 from boto3 import Session
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 
@@ -18,7 +18,7 @@ class PipelineObject(BaseModel):
         return {"fields": self.fields, "id": self.object_id, "name": self.name}
 
 
-class Pipeline(BaseModel):
+class Pipeline(CloudFormationModel):
     def __init__(self, name, unique_id, **kwargs):
         self.name = name
         self.unique_id = unique_id
@@ -74,6 +74,15 @@ class Pipeline(BaseModel):
     def activate(self):
         self.status = "SCHEDULED"
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-datapipeline-pipeline.html
+        return "AWS::DataPipeline::Pipeline"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -81,9 +90,9 @@ class Pipeline(BaseModel):
         datapipeline_backend = datapipeline_backends[region_name]
         properties = cloudformation_json["Properties"]
 
-        cloudformation_unique_id = "cf-" + properties["Name"]
+        cloudformation_unique_id = "cf-" + resource_name
         pipeline = datapipeline_backend.create_pipeline(
-            properties["Name"], cloudformation_unique_id
+            resource_name, cloudformation_unique_id
         )
         datapipeline_backend.put_pipeline_definition(
             pipeline.pipeline_id, properties["PipelineObjects"]

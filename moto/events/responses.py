@@ -25,6 +25,7 @@ class EventsHandler(BaseResponse):
             "Description": rule.description,
             "ScheduleExpression": rule.schedule_exp,
             "RoleArn": rule.role_arn,
+            "EventBusName": rule.event_bus_name,
         }
 
     @property
@@ -62,7 +63,9 @@ class EventsHandler(BaseResponse):
         rule = self.events_backend.describe_rule(name)
 
         if not rule:
-            return self.error("ResourceNotFoundException", "Rule test does not exist.")
+            return self.error(
+                "ResourceNotFoundException", "Rule " + name + " does not exist."
+            )
 
         rule_dict = self._generate_rule_dict(rule)
         return json.dumps(rule_dict), self.response_headers
@@ -148,14 +151,15 @@ class EventsHandler(BaseResponse):
     def put_events(self):
         events = self._get_param("Entries")
 
-        failed_entries = self.events_backend.put_events(events)
+        entries = self.events_backend.put_events(events)
 
-        if failed_entries:
-            return json.dumps(
-                {"FailedEntryCount": len(failed_entries), "Entries": failed_entries}
-            )
+        failed_count = len([e for e in entries if "ErrorCode" in e])
+        response = {
+            "FailedEntryCount": failed_count,
+            "Entries": entries,
+        }
 
-        return "", self.response_headers
+        return json.dumps(response)
 
     def put_rule(self):
         name = self._get_param("Name")
@@ -164,6 +168,7 @@ class EventsHandler(BaseResponse):
         state = self._get_param("State")
         desc = self._get_param("Description")
         role_arn = self._get_param("RoleArn")
+        event_bus_name = self._get_param("EventBusName")
 
         if not name:
             return self.error("ValidationException", "Parameter Name is required.")
@@ -180,25 +185,26 @@ class EventsHandler(BaseResponse):
 
         if sched_exp:
             if not (
-                re.match("^cron\(.*\)", sched_exp)
+                re.match(r"^cron\(.*\)", sched_exp)
                 or re.match(
-                    "^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)", sched_exp
+                    r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)", sched_exp
                 )
             ):
                 return self.error(
                     "ValidationException", "Parameter ScheduleExpression is not valid."
                 )
 
-        rule_arn = self.events_backend.put_rule(
+        rule = self.events_backend.put_rule(
             name,
             ScheduleExpression=sched_exp,
             EventPattern=event_pattern,
             State=state,
             Description=desc,
             RoleArn=role_arn,
+            EventBusName=event_bus_name,
         )
 
-        return json.dumps({"RuleArn": rule_arn}), self.response_headers
+        return json.dumps({"RuleArn": rule.arn}), self.response_headers
 
     def put_targets(self):
         rule_name = self._get_param("Rule")
@@ -215,7 +221,10 @@ class EventsHandler(BaseResponse):
                 "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
             )
 
-        return "", self.response_headers
+        return (
+            json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),
+            self.response_headers,
+        )
 
     def remove_targets(self):
         rule_name = self._get_param("Rule")
@@ -232,7 +241,10 @@ class EventsHandler(BaseResponse):
                 "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
             )
 
-        return "", self.response_headers
+        return (
+            json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),
+            self.response_headers,
+        )
 
     def test_event_pattern(self):
         pass
@@ -297,3 +309,26 @@ class EventsHandler(BaseResponse):
         self.events_backend.delete_event_bus(name)
 
         return "", self.response_headers
+
+    def list_tags_for_resource(self):
+        arn = self._get_param("ResourceARN")
+
+        result = self.events_backend.list_tags_for_resource(arn)
+
+        return json.dumps(result), self.response_headers
+
+    def tag_resource(self):
+        arn = self._get_param("ResourceARN")
+        tags = self._get_param("Tags")
+
+        result = self.events_backend.tag_resource(arn, tags)
+
+        return json.dumps(result), self.response_headers
+
+    def untag_resource(self):
+        arn = self._get_param("ResourceARN")
+        tags = self._get_param("TagKeys")
+
+        result = self.events_backend.untag_resource(arn, tags)
+
+        return json.dumps(result), self.response_headers

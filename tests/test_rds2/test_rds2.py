@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
+from moto.core import ACCOUNT_ID
 
 
 @mock_rds2
@@ -183,12 +184,12 @@ def test_start_database():
 
 
 @mock_rds2
-def test_fail_to_stop_multi_az():
+def test_fail_to_stop_multi_az_and_sqlserver():
     conn = boto3.client("rds", region_name="us-west-2")
     database = conn.create_db_instance(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
-        Engine="postgres",
+        Engine="sqlserver-ee",
         DBName="staging-postgres",
         DBInstanceClass="db.m1.small",
         LicenseModel="license-included",
@@ -211,6 +212,33 @@ def test_fail_to_stop_multi_az():
     conn.start_db_instance.when.called_with(
         DBInstanceIdentifier=mydb["DBInstanceIdentifier"]
     ).should.throw(ClientError)
+
+
+@mock_rds2
+def test_stop_multi_az_postgres():
+    conn = boto3.client("rds", region_name="us-west-2")
+    database = conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        LicenseModel="license-included",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+        MultiAZ=True,
+    )
+
+    mydb = conn.describe_db_instances(
+        DBInstanceIdentifier=database["DBInstance"]["DBInstanceIdentifier"]
+    )["DBInstances"][0]
+    mydb["DBInstanceStatus"].should.equal("available")
+
+    response = conn.stop_db_instance(DBInstanceIdentifier=mydb["DBInstanceIdentifier"])
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["DBInstance"]["DBInstanceStatus"].should.equal("stopped")
 
 
 @mock_rds2
@@ -1477,7 +1505,9 @@ def test_create_database_with_encrypted_storage():
 
 @mock_rds2
 def test_create_db_parameter_group():
-    conn = boto3.client("rds", region_name="us-west-2")
+    region = "us-west-2"
+    pg_name = "test"
+    conn = boto3.client("rds", region_name=region)
     db_parameter_group = conn.create_db_parameter_group(
         DBParameterGroupName="test",
         DBParameterGroupFamily="mysql5.6",
@@ -1490,6 +1520,9 @@ def test_create_db_parameter_group():
     )
     db_parameter_group["DBParameterGroup"]["Description"].should.equal(
         "test parameter group"
+    )
+    db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"].should.equal(
+        "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, pg_name)
     )
 
 
@@ -1602,15 +1635,20 @@ def test_create_db_parameter_group_duplicate():
 
 @mock_rds2
 def test_describe_db_parameter_group():
-    conn = boto3.client("rds", region_name="us-west-2")
+    region = "us-west-2"
+    pg_name = "test"
+    conn = boto3.client("rds", region_name=region)
     conn.create_db_parameter_group(
-        DBParameterGroupName="test",
+        DBParameterGroupName=pg_name,
         DBParameterGroupFamily="mysql5.6",
         Description="test parameter group",
     )
     db_parameter_groups = conn.describe_db_parameter_groups(DBParameterGroupName="test")
     db_parameter_groups["DBParameterGroups"][0]["DBParameterGroupName"].should.equal(
         "test"
+    )
+    db_parameter_groups["DBParameterGroups"][0]["DBParameterGroupArn"].should.equal(
+        "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, pg_name)
     )
 
 
@@ -1722,3 +1760,21 @@ def test_create_db_snapshot_with_iam_authentication():
     ).get("DBSnapshot")
 
     snapshot.get("IAMDatabaseAuthenticationEnabled").should.equal(True)
+
+
+@mock_rds2
+def test_create_db_instance_with_tags():
+    client = boto3.client("rds", region_name="us-west-2")
+    tags = [{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}]
+    db_instance_identifier = "test-db-instance"
+    resp = client.create_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        Tags=tags,
+    )
+    resp["DBInstance"]["TagList"].should.equal(tags)
+
+    resp = client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
+    resp["DBInstances"][0]["TagList"].should.equal(tags)

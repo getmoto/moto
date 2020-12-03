@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
 
 import boto
 import sure  # noqa
@@ -16,7 +15,7 @@ from .helpers import rsa_check_private_key
 RSA_PUBLIC_KEY_OPENSSH = b"""\
 ssh-rsa \
 AAAAB3NzaC1yc2EAAAADAQABAAABAQDusXfgTE4eBP50NglSzCSEGnIL6+cr6m3H\
-6cZANOQ+P1o/W4BdtcAL3sor4iGi7SOeJgo\8kweyMQrhrt6HaKGgromRiz37LQx\
+6cZANOQ+P1o/W4BdtcAL3sor4iGi7SOeJgo\\8kweyMQrhrt6HaKGgromRiz37LQx\
 4YIAcBi4Zd023mO/V7Rc2Chh18mWgLSmA6ng+j37ip6452zxtv0jHAz9pJolbKBp\
 JzbZlPN45ZCTk9ck0fSVHRl6VRSSPQcpqi65XpRf+35zNOCGCc1mAOOTmw59Q2a6\
 A3t8mL7r91aM5q6QOQm219lctFM8O7HRJnDgmhGpnjRwE1LyKktWTbgFZ4SNWU2X\
@@ -56,22 +55,22 @@ def test_key_pairs_empty():
 def test_key_pairs_invalid_id():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_key_pairs("foo")
-    cm.exception.code.should.equal("InvalidKeyPair.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidKeyPair.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
 def test_key_pairs_create():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.create_key_pair("foo", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -110,11 +109,11 @@ def test_key_pairs_create_exist():
     conn.create_key_pair("foo")
     assert len(conn.get_all_key_pairs()) == 1
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_key_pair("foo")
-    cm.exception.code.should.equal("InvalidKeyPair.Duplicate")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidKeyPair.Duplicate")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -130,11 +129,11 @@ def test_key_pairs_delete_exist():
     conn = boto.connect_ec2("the_key", "the_secret")
     conn.create_key_pair("foo")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         r = conn.delete_key_pair("foo", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -147,11 +146,11 @@ def test_key_pairs_delete_exist():
 def test_key_pairs_import():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.import_key_pair("foo", RSA_PUBLIC_KEY_OPENSSH, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -176,34 +175,34 @@ def test_key_pairs_import_exist():
     assert kp.name == "foo"
     assert len(conn.get_all_key_pairs()) == 1
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_key_pair("foo")
-    cm.exception.code.should.equal("InvalidKeyPair.Duplicate")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidKeyPair.Duplicate")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
 def test_key_pairs_invalid():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.import_key_pair("foo", b"")
-    ex.exception.error_code.should.equal("InvalidKeyPair.Format")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal("Key is not in valid OpenSSH public key format")
+    ex.value.error_code.should.equal("InvalidKeyPair.Format")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal("Key is not in valid OpenSSH public key format")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.import_key_pair("foo", b"garbage")
-    ex.exception.error_code.should.equal("InvalidKeyPair.Format")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal("Key is not in valid OpenSSH public key format")
+    ex.value.error_code.should.equal("InvalidKeyPair.Format")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal("Key is not in valid OpenSSH public key format")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.import_key_pair("foo", DSA_PUBLIC_KEY_OPENSSH)
-    ex.exception.error_code.should.equal("InvalidKeyPair.Format")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal("Key is not in valid OpenSSH public key format")
+    ex.value.error_code.should.equal("InvalidKeyPair.Format")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal("Key is not in valid OpenSSH public key format")
 
 
 @mock_ec2_deprecated

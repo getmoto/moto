@@ -134,7 +134,7 @@ def parse_requestline(s):
     ValueError: Not a Request-Line
     """
     methods = "|".join(HttpBaseClass.METHODS)
-    m = re.match(r"(" + methods + ")\s+(.*)\s+HTTP/(1.[0|1])", s, re.I)
+    m = re.match(r"({})\s+(.*)\s+HTTP/(1.[0|1])".format(methods), s, re.I)
     if m:
         return m.group(1).upper(), m.group(2), m.group(3)
     else:

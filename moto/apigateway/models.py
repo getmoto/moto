@@ -14,12 +14,12 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 import responses
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from .utils import create_id
 from moto.core.utils import path_url
-from moto.sts.models import ACCOUNT_ID
 from .exceptions import (
     ApiKeyNotFoundException,
+    UsagePlanNotFoundException,
     AwsProxyNotAllowed,
     CrossAccountNotAllowed,
     IntegrationMethodNotDefined,
@@ -28,11 +28,18 @@ from .exceptions import (
     InvalidHttpEndpoint,
     InvalidResourcePathException,
     InvalidRequestInput,
+    AuthorizerNotFoundException,
     StageNotFoundException,
     RoleNotSpecified,
     NoIntegrationDefined,
     NoMethodDefined,
     ApiKeyAlreadyExists,
+    DomainNameNotFound,
+    InvalidDomainName,
+    InvalidRestApiId,
+    InvalidModelName,
+    RestAPINotFound,
+    ModelNotFound,
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -48,11 +55,21 @@ class Deployment(BaseModel, dict):
 
 
 class IntegrationResponse(BaseModel, dict):
-    def __init__(self, status_code, selection_pattern=None):
-        self["responseTemplates"] = {"application/json": None}
+    def __init__(
+        self,
+        status_code,
+        selection_pattern=None,
+        response_templates=None,
+        content_handling=None,
+    ):
+        if response_templates is None:
+            response_templates = {"application/json": None}
+        self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
         if selection_pattern:
             self["selectionPattern"] = selection_pattern
+        if content_handling:
+            self["contentHandling"] = content_handling
 
 
 class Integration(BaseModel, dict):
@@ -64,8 +81,14 @@ class Integration(BaseModel, dict):
         self["requestTemplates"] = request_templates
         self["integrationResponses"] = {"200": IntegrationResponse(200)}
 
-    def create_integration_response(self, status_code, selection_pattern):
-        integration_response = IntegrationResponse(status_code, selection_pattern)
+    def create_integration_response(
+        self, status_code, selection_pattern, response_templates, content_handling
+    ):
+        if response_templates == {}:
+            response_templates = None
+        integration_response = IntegrationResponse(
+            status_code, selection_pattern, response_templates, content_handling
+        )
         self["integrationResponses"][status_code] = integration_response
         return integration_response
 
@@ -83,14 +106,14 @@ class MethodResponse(BaseModel, dict):
 
 
 class Method(BaseModel, dict):
-    def __init__(self, method_type, authorization_type):
+    def __init__(self, method_type, authorization_type, **kwargs):
         super(Method, self).__init__()
         self.update(
             dict(
                 httpMethod=method_type,
                 authorizationType=authorization_type,
                 authorizerId=None,
-                apiKeyRequired=None,
+                apiKeyRequired=kwargs.get("api_key_required") or False,
                 requestParameters=None,
                 requestModels=None,
                 methodIntegration=None,
@@ -117,14 +140,15 @@ class Resource(BaseModel):
         self.api_id = api_id
         self.path_part = path_part
         self.parent_id = parent_id
-        self.resource_methods = {"GET": {}}
+        self.resource_methods = {}
 
     def to_dict(self):
         response = {
             "path": self.get_path(),
             "id": self.id,
-            "resourceMethods": self.resource_methods,
         }
+        if self.resource_methods:
+            response["resourceMethods"] = self.resource_methods
         if self.parent_id:
             response["parentId"] = self.parent_id
             response["pathPart"] = self.path_part
@@ -158,8 +182,12 @@ class Resource(BaseModel):
             )
         return response.status_code, response.text
 
-    def add_method(self, method_type, authorization_type):
-        method = Method(method_type=method_type, authorization_type=authorization_type)
+    def add_method(self, method_type, authorization_type, api_key_required):
+        method = Method(
+            method_type=method_type,
+            authorization_type=authorization_type,
+            api_key_required=api_key_required,
+        )
         self.resource_methods[method_type] = method
         return method
 
@@ -180,6 +208,54 @@ class Resource(BaseModel):
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop("methodIntegration")
+
+
+class Authorizer(BaseModel, dict):
+    def __init__(self, id, name, authorizer_type, **kwargs):
+        super(Authorizer, self).__init__()
+        self["id"] = id
+        self["name"] = name
+        self["type"] = authorizer_type
+        if kwargs.get("provider_arns"):
+            self["providerARNs"] = kwargs.get("provider_arns")
+        if kwargs.get("auth_type"):
+            self["authType"] = kwargs.get("auth_type")
+        if kwargs.get("authorizer_uri"):
+            self["authorizerUri"] = kwargs.get("authorizer_uri")
+        if kwargs.get("authorizer_credentials"):
+            self["authorizerCredentials"] = kwargs.get("authorizer_credentials")
+        if kwargs.get("identity_source"):
+            self["identitySource"] = kwargs.get("identity_source")
+        if kwargs.get("identity_validation_expression"):
+            self["identityValidationExpression"] = kwargs.get(
+                "identity_validation_expression"
+            )
+        self["authorizerResultTtlInSeconds"] = kwargs.get("authorizer_result_ttl")
+
+    def apply_operations(self, patch_operations):
+        for op in patch_operations:
+            if "/authorizerUri" in op["path"]:
+                self["authorizerUri"] = op["value"]
+            elif "/authorizerCredentials" in op["path"]:
+                self["authorizerCredentials"] = op["value"]
+            elif "/authorizerResultTtlInSeconds" in op["path"]:
+                self["authorizerResultTtlInSeconds"] = int(op["value"])
+            elif "/authType" in op["path"]:
+                self["authType"] = op["value"]
+            elif "/identitySource" in op["path"]:
+                self["identitySource"] = op["value"]
+            elif "/identityValidationExpression" in op["path"]:
+                self["identityValidationExpression"] = op["value"]
+            elif "/name" in op["path"]:
+                self["name"] = op["value"]
+            elif "/providerARNs" in op["path"]:
+                # TODO: add and remove
+                raise Exception('Patch operation for "%s" not implemented' % op["path"])
+            elif "/type" in op["path"]:
+                self["type"] = op["value"]
+            else:
+                raise Exception('Patch operation "%s" not implemented' % op["op"])
+        return self
 
 
 class Stage(BaseModel, dict):
@@ -323,10 +399,10 @@ class ApiKey(BaseModel, dict):
         self,
         name=None,
         description=None,
-        enabled=True,
+        enabled=False,
         generateDistinctId=False,
         value=None,
-        stageKeys=None,
+        stageKeys=[],
         tags=None,
         customerId=None,
     ):
@@ -401,15 +477,17 @@ class RestAPI(BaseModel):
         self.description = description
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
+        self.policy = kwargs.get("policy") or None
         self.endpoint_configuration = kwargs.get("endpoint_configuration") or {
             "types": ["EDGE"]
         }
         self.tags = kwargs.get("tags") or {}
 
         self.deployments = {}
+        self.authorizers = {}
         self.stages = {}
-
         self.resources = {}
+        self.models = {}
         self.add_child("/")  # Add default child
 
     def __repr__(self):
@@ -424,6 +502,7 @@ class RestAPI(BaseModel):
             "apiKeySource": self.api_key_source,
             "endpointConfiguration": self.endpoint_configuration,
             "tags": self.tags,
+            "policy": self.policy,
         }
 
     def add_child(self, path, parent_id=None):
@@ -437,6 +516,29 @@ class RestAPI(BaseModel):
         )
         self.resources[child_id] = child
         return child
+
+    def add_model(
+        self,
+        name,
+        description=None,
+        schema=None,
+        content_type=None,
+        cli_input_json=None,
+        generate_cli_skeleton=None,
+    ):
+        model_id = create_id()
+        new_model = Model(
+            id=model_id,
+            name=name,
+            description=description,
+            schema=schema,
+            content_type=content_type,
+            cli_input_json=cli_input_json,
+            generate_cli_skeleton=generate_cli_skeleton,
+        )
+
+        self.models[name] = new_model
+        return new_model
 
     def get_resource_for_path(self, path_after_stage_name):
         for resource in self.resources.values():
@@ -473,6 +575,34 @@ class RestAPI(BaseModel):
                     match_querystring=False,
                 ),
             )
+
+    def create_authorizer(
+        self,
+        id,
+        name,
+        authorizer_type,
+        provider_arns=None,
+        auth_type=None,
+        authorizer_uri=None,
+        authorizer_credentials=None,
+        identity_source=None,
+        identiy_validation_expression=None,
+        authorizer_result_ttl=None,
+    ):
+        authorizer = Authorizer(
+            id=id,
+            name=name,
+            authorizer_type=authorizer_type,
+            provider_arns=provider_arns,
+            auth_type=auth_type,
+            authorizer_uri=authorizer_uri,
+            authorizer_credentials=authorizer_credentials,
+            identity_source=identity_source,
+            identiy_validation_expression=identiy_validation_expression,
+            authorizer_result_ttl=authorizer_result_ttl,
+        )
+        self.authorizers[id] = authorizer
+        return authorizer
 
     def create_stage(
         self,
@@ -513,6 +643,9 @@ class RestAPI(BaseModel):
     def get_deployment(self, deployment_id):
         return self.deployments[deployment_id]
 
+    def get_authorizers(self):
+        return list(self.authorizers.values())
+
     def get_stages(self):
         return list(self.stages.values())
 
@@ -523,6 +656,58 @@ class RestAPI(BaseModel):
         return self.deployments.pop(deployment_id)
 
 
+class DomainName(BaseModel, dict):
+    def __init__(self, domain_name, **kwargs):
+        super(DomainName, self).__init__()
+        self["domainName"] = domain_name
+        self["regionalDomainName"] = domain_name
+        self["distributionDomainName"] = domain_name
+        self["domainNameStatus"] = "AVAILABLE"
+        self["domainNameStatusMessage"] = "Domain Name Available"
+        self["regionalHostedZoneId"] = "Z2FDTNDATAQYW2"
+        self["distributionHostedZoneId"] = "Z2FDTNDATAQYW2"
+        self["certificateUploadDate"] = int(time.time())
+        if kwargs.get("certificate_name"):
+            self["certificateName"] = kwargs.get("certificate_name")
+        if kwargs.get("certificate_arn"):
+            self["certificateArn"] = kwargs.get("certificate_arn")
+        if kwargs.get("certificate_body"):
+            self["certificateBody"] = kwargs.get("certificate_body")
+        if kwargs.get("tags"):
+            self["tags"] = kwargs.get("tags")
+        if kwargs.get("security_policy"):
+            self["securityPolicy"] = kwargs.get("security_policy")
+        if kwargs.get("certificate_chain"):
+            self["certificateChain"] = kwargs.get("certificate_chain")
+        if kwargs.get("regional_certificate_name"):
+            self["regionalCertificateName"] = kwargs.get("regional_certificate_name")
+        if kwargs.get("certificate_private_key"):
+            self["certificatePrivateKey"] = kwargs.get("certificate_private_key")
+        if kwargs.get("regional_certificate_arn"):
+            self["regionalCertificateArn"] = kwargs.get("regional_certificate_arn")
+        if kwargs.get("endpoint_configuration"):
+            self["endpointConfiguration"] = kwargs.get("endpoint_configuration")
+        if kwargs.get("generate_cli_skeleton"):
+            self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
+
+
+class Model(BaseModel, dict):
+    def __init__(self, id, name, **kwargs):
+        super(Model, self).__init__()
+        self["id"] = id
+        self["name"] = name
+        if kwargs.get("description"):
+            self["description"] = kwargs.get("description")
+        if kwargs.get("schema"):
+            self["schema"] = kwargs.get("schema")
+        if kwargs.get("content_type"):
+            self["contentType"] = kwargs.get("content_type")
+        if kwargs.get("cli_input_json"):
+            self["cliInputJson"] = kwargs.get("cli_input_json")
+        if kwargs.get("generate_cli_skeleton"):
+            self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
+
+
 class APIGatewayBackend(BaseBackend):
     def __init__(self, region_name):
         super(APIGatewayBackend, self).__init__()
@@ -530,6 +715,8 @@ class APIGatewayBackend(BaseBackend):
         self.keys = {}
         self.usage_plans = {}
         self.usage_plan_keys = {}
+        self.domain_names = {}
+        self.models = {}
         self.region_name = region_name
 
     def reset(self):
@@ -544,6 +731,7 @@ class APIGatewayBackend(BaseBackend):
         api_key_source=None,
         endpoint_configuration=None,
         tags=None,
+        policy=None,
     ):
         api_id = create_id()
         rest_api = RestAPI(
@@ -554,12 +742,15 @@ class APIGatewayBackend(BaseBackend):
             api_key_source=api_key_source,
             endpoint_configuration=endpoint_configuration,
             tags=tags,
+            policy=policy,
         )
         self.apis[api_id] = rest_api
         return rest_api
 
     def get_rest_api(self, function_id):
-        rest_api = self.apis[function_id]
+        rest_api = self.apis.get(function_id)
+        if rest_api is None:
+            raise RestAPINotFound()
         return rest_api
 
     def list_apis(self):
@@ -594,10 +785,59 @@ class APIGatewayBackend(BaseBackend):
         resource = self.get_resource(function_id, resource_id)
         return resource.get_method(method_type)
 
-    def create_method(self, function_id, resource_id, method_type, authorization_type):
+    def create_method(
+        self,
+        function_id,
+        resource_id,
+        method_type,
+        authorization_type,
+        api_key_required=None,
+    ):
         resource = self.get_resource(function_id, resource_id)
-        method = resource.add_method(method_type, authorization_type)
+        method = resource.add_method(
+            method_type, authorization_type, api_key_required=api_key_required
+        )
         return method
+
+    def get_authorizer(self, restapi_id, authorizer_id):
+        api = self.get_rest_api(restapi_id)
+        authorizer = api.authorizers.get(authorizer_id)
+        if authorizer is None:
+            raise AuthorizerNotFoundException()
+        else:
+            return authorizer
+
+    def get_authorizers(self, restapi_id):
+        api = self.get_rest_api(restapi_id)
+        return api.get_authorizers()
+
+    def create_authorizer(self, restapi_id, name, authorizer_type, **kwargs):
+        api = self.get_rest_api(restapi_id)
+        authorizer_id = create_id()
+        authorizer = api.create_authorizer(
+            authorizer_id,
+            name,
+            authorizer_type,
+            provider_arns=kwargs.get("provider_arns"),
+            auth_type=kwargs.get("auth_type"),
+            authorizer_uri=kwargs.get("authorizer_uri"),
+            authorizer_credentials=kwargs.get("authorizer_credentials"),
+            identity_source=kwargs.get("identity_source"),
+            identiy_validation_expression=kwargs.get("identiy_validation_expression"),
+            authorizer_result_ttl=kwargs.get("authorizer_result_ttl"),
+        )
+        return api.authorizers.get(authorizer["id"])
+
+    def update_authorizer(self, restapi_id, authorizer_id, patch_operations):
+        authorizer = self.get_authorizer(restapi_id, authorizer_id)
+        if not authorizer:
+            api = self.get_rest_api(restapi_id)
+            authorizer = api.authorizers[authorizer_id] = Authorizer()
+        return authorizer.apply_operations(patch_operations)
+
+    def delete_authorizer(self, restapi_id, authorizer_id):
+        api = self.get_rest_api(restapi_id)
+        del api.authorizers[authorizer_id]
 
     def get_stage(self, function_id, stage_name):
         api = self.get_rest_api(function_id)
@@ -726,12 +966,13 @@ class APIGatewayBackend(BaseBackend):
         status_code,
         selection_pattern,
         response_templates,
+        content_handling,
     ):
         if response_templates is None:
             raise InvalidRequestInput()
         integration = self.get_integration(function_id, resource_id, method_type)
         integration_response = integration.create_integration_response(
-            status_code, selection_pattern
+            status_code, selection_pattern, response_templates, content_handling
         )
         return integration_response
 
@@ -821,6 +1062,9 @@ class APIGatewayBackend(BaseBackend):
         return plans
 
     def get_usage_plan(self, usage_plan_id):
+        if usage_plan_id not in self.usage_plans:
+            raise UsagePlanNotFoundException()
+
         return self.usage_plans[usage_plan_id]
 
     def delete_usage_plan(self, usage_plan_id):
@@ -853,6 +1097,17 @@ class APIGatewayBackend(BaseBackend):
         return list(self.usage_plan_keys[usage_plan_id].values())
 
     def get_usage_plan_key(self, usage_plan_id, key_id):
+        # first check if is a valid api key
+        if key_id not in self.keys:
+            raise ApiKeyNotFoundException()
+
+        # then check if is a valid api key and that the key is in the plan
+        if (
+            usage_plan_id not in self.usage_plan_keys
+            or key_id not in self.usage_plan_keys[usage_plan_id]
+        ):
+            raise UsagePlanNotFoundException()
+
         return self.usage_plan_keys[usage_plan_id][key_id]
 
     def delete_usage_plan_key(self, usage_plan_id, key_id):
@@ -865,6 +1120,98 @@ class APIGatewayBackend(BaseBackend):
             return all([result.scheme, result.netloc, result.path])
         except Exception:
             return False
+
+    def create_domain_name(
+        self,
+        domain_name,
+        certificate_name=None,
+        tags=None,
+        certificate_arn=None,
+        certificate_body=None,
+        certificate_private_key=None,
+        certificate_chain=None,
+        regional_certificate_name=None,
+        regional_certificate_arn=None,
+        endpoint_configuration=None,
+        security_policy=None,
+        generate_cli_skeleton=None,
+    ):
+
+        if not domain_name:
+            raise InvalidDomainName()
+
+        new_domain_name = DomainName(
+            domain_name=domain_name,
+            certificate_name=certificate_name,
+            certificate_private_key=certificate_private_key,
+            certificate_arn=certificate_arn,
+            certificate_body=certificate_body,
+            certificate_chain=certificate_chain,
+            regional_certificate_name=regional_certificate_name,
+            regional_certificate_arn=regional_certificate_arn,
+            endpoint_configuration=endpoint_configuration,
+            tags=tags,
+            security_policy=security_policy,
+            generate_cli_skeleton=generate_cli_skeleton,
+        )
+
+        self.domain_names[domain_name] = new_domain_name
+        return new_domain_name
+
+    def get_domain_names(self):
+        return list(self.domain_names.values())
+
+    def get_domain_name(self, domain_name):
+        domain_info = self.domain_names.get(domain_name)
+        if domain_info is None:
+            raise DomainNameNotFound
+        else:
+            return self.domain_names[domain_name]
+
+    def create_model(
+        self,
+        rest_api_id,
+        name,
+        content_type,
+        description=None,
+        schema=None,
+        cli_input_json=None,
+        generate_cli_skeleton=None,
+    ):
+
+        if not rest_api_id:
+            raise InvalidRestApiId
+        if not name:
+            raise InvalidModelName
+
+        api = self.get_rest_api(rest_api_id)
+        new_model = api.add_model(
+            name=name,
+            description=description,
+            schema=schema,
+            content_type=content_type,
+            cli_input_json=cli_input_json,
+            generate_cli_skeleton=generate_cli_skeleton,
+        )
+
+        return new_model
+
+    def get_models(self, rest_api_id):
+        if not rest_api_id:
+            raise InvalidRestApiId
+        api = self.get_rest_api(rest_api_id)
+        models = api.models.values()
+        return list(models)
+
+    def get_model(self, rest_api_id, model_name):
+        if not rest_api_id:
+            raise InvalidRestApiId
+        api = self.get_rest_api(rest_api_id)
+        model = api.models.get(model_name)
+        if model is None:
+            raise ModelNotFound
+        else:
+            return model
 
 
 apigateway_backends = {}

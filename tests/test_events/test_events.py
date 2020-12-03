@@ -1,12 +1,17 @@
-import random
-import boto3
 import json
+import random
+import unittest
+
+import boto3
 import sure  # noqa
 
-from moto.events import mock_events
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
+
 from moto.core import ACCOUNT_ID
+from moto.core.exceptions import JsonRESTError
+from moto.events import mock_events
+from moto.events.models import EventsBackend
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -70,6 +75,30 @@ def generate_environment():
         client.put_targets(Rule=rule["Name"], Targets=targets)
 
     return client
+
+
+@mock_events
+def test_put_rule():
+    client = boto3.client("events", "us-west-2")
+    client.list_rules()["Rules"].should.have.length_of(0)
+
+    rule_data = {
+        "Name": "my-event",
+        "ScheduleExpression": "rate(5 minutes)",
+        "EventPattern": '{"source": ["test-source"]}',
+        "EventBusName": "test-bus",
+    }
+
+    client.put_rule(**rule_data)
+
+    rules = client.list_rules()["Rules"]
+
+    rules.should.have.length_of(1)
+    rules[0]["Name"].should.equal(rule_data["Name"])
+    rules[0]["ScheduleExpression"].should.equal(rule_data["ScheduleExpression"])
+    rules[0]["EventPattern"].should.equal(rule_data["EventPattern"])
+    rules[0]["EventBusName"].should.equal(rule_data["EventBusName"])
+    rules[0]["State"].should.equal("ENABLED")
 
 
 @mock_events
@@ -137,14 +166,6 @@ def test_list_rule_names_by_target():
 
 
 @mock_events
-def test_list_rules():
-    client = generate_environment()
-
-    rules = client.list_rules()
-    assert len(rules["Rules"]) == len(RULES)
-
-
-@mock_events
 def test_delete_rule():
     client = generate_environment()
 
@@ -176,11 +197,54 @@ def test_remove_targets():
     targets_before = len(targets)
     assert targets_before > 0
 
-    client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response = client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response["FailedEntryCount"].should.equal(0)
+    response["FailedEntries"].should.have.length_of(0)
 
     targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
     targets_after = len(targets)
     assert targets_before - 1 == targets_after
+
+
+@mock_events
+def test_remove_targets_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.remove_targets.when.called_with(
+        Rule="non-existent", Ids=["Id12345678"]
+    ).should.throw(
+        client.exceptions.ResourceNotFoundException,
+        "An entity that you specified does not exist",
+    )
+
+
+@mock_events
+def test_put_targets():
+    client = boto3.client("events", "us-west-2")
+    rule_name = "my-event"
+    rule_data = {
+        "Name": rule_name,
+        "ScheduleExpression": "rate(5 minutes)",
+        "EventPattern": '{"source": ["test-source"]}',
+    }
+
+    client.put_rule(**rule_data)
+
+    targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
+    targets_before = len(targets)
+    assert targets_before == 0
+
+    targets_data = [{"Arn": "test_arn", "Id": "test_id"}]
+    resp = client.put_targets(Rule=rule_name, Targets=targets_data)
+    assert resp["FailedEntryCount"] == 0
+    assert len(resp["FailedEntries"]) == 0
+
+    targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
+    targets_after = len(targets)
+    assert targets_before + 1 == targets_after
+
+    assert targets[0]["Arn"] == "test_arn"
+    assert targets[0]["Id"] == "test_id"
 
 
 @mock_events
@@ -264,10 +328,12 @@ def test_put_events():
         "DetailType": "myDetailType",
     }
 
-    client.put_events(Entries=[event])
+    response = client.put_events(Entries=[event])
     # Boto3 would error if it didn't return 200 OK
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.put_events(Entries=[event] * 20)
 
 
@@ -461,3 +527,50 @@ def test_delete_event_bus_errors():
     client.delete_event_bus.when.called_with(Name="default").should.throw(
         ClientError, "Cannot delete event bus default."
     )
+
+
+@mock_events
+def test_rule_tagging_happy():
+    client = generate_environment()
+    rule_name = get_random_rule()["Name"]
+    rule_arn = client.describe_rule(Name=rule_name).get("Arn")
+
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    client.tag_resource(ResourceARN=rule_arn, Tags=tags)
+
+    actual = client.list_tags_for_resource(ResourceARN=rule_arn).get("Tags")
+    tc = unittest.TestCase("__init__")
+    expected = [{"Value": "value1", "Key": "key1"}, {"Value": "value2", "Key": "key2"}]
+    tc.assertTrue(
+        (expected[0] == actual[0] and expected[1] == actual[1])
+        or (expected[1] == actual[0] and expected[0] == actual[1])
+    )
+
+    client.untag_resource(ResourceARN=rule_arn, TagKeys=["key1"])
+
+    actual = client.list_tags_for_resource(ResourceARN=rule_arn).get("Tags")
+    expected = [{"Key": "key2", "Value": "value2"}]
+    assert expected == actual
+
+
+@mock_events
+def test_rule_tagging_sad():
+    back_end = EventsBackend("us-west-2")
+
+    try:
+        back_end.tag_resource("unknown", [])
+        raise "tag_resource should fail if ResourceARN is not known"
+    except JsonRESTError:
+        pass
+
+    try:
+        back_end.untag_resource("unknown", [])
+        raise "untag_resource should fail if ResourceARN is not known"
+    except JsonRESTError:
+        pass
+
+    try:
+        back_end.list_tags_for_resource("unknown")
+        raise "list_tags_for_resource should fail if ResourceARN is not known"
+    except JsonRESTError:
+        pass

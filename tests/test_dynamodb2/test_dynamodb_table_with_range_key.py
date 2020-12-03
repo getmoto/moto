@@ -8,6 +8,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 import sure  # noqa
 from freezegun import freeze_time
+import pytest
+
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
@@ -574,6 +576,7 @@ def test_create_with_global_indexes():
                     "ReadCapacityUnits": 6,
                     "WriteCapacityUnits": 1,
                 },
+                "IndexStatus": "ACTIVE",
             }
         ]
     )
@@ -929,6 +932,83 @@ boto3
 
 
 @mock_dynamodb2
+def test_boto3_create_table_with_gsi():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    table = dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "subject", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ],
+    )
+    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
+        [
+            {
+                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+                "IndexName": "test_gsi",
+                "Projection": {"ProjectionType": "ALL"},
+                "IndexStatus": "ACTIVE",
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 0,
+                    "WriteCapacityUnits": 0,
+                },
+            }
+        ]
+    )
+
+    table = dynamodb.create_table(
+        TableName="users2",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "subject", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 3,
+                    "WriteCapacityUnits": 5,
+                },
+            }
+        ],
+    )
+    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
+        [
+            {
+                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+                "IndexName": "test_gsi",
+                "Projection": {"ProjectionType": "ALL"},
+                "IndexStatus": "ACTIVE",
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 3,
+                    "WriteCapacityUnits": 5,
+                },
+            }
+        ]
+    )
+
+
+@mock_dynamodb2
 def test_boto3_conditions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -1253,14 +1333,31 @@ def test_update_item_with_expression():
 
     item_key = {"forum_name": "the-key", "subject": "123"}
 
-    table.update_item(Key=item_key, UpdateExpression="SET field=2")
+    table.update_item(
+        Key=item_key,
+        UpdateExpression="SET field = :field_value",
+        ExpressionAttributeValues={":field_value": 2},
+    )
     dict(table.get_item(Key=item_key)["Item"]).should.equal(
-        {"field": "2", "forum_name": "the-key", "subject": "123"}
+        {"field": Decimal("2"), "forum_name": "the-key", "subject": "123"}
     )
 
-    table.update_item(Key=item_key, UpdateExpression="SET field  = 3")
+    table.update_item(
+        Key=item_key,
+        UpdateExpression="SET field = :field_value",
+        ExpressionAttributeValues={":field_value": 3},
+    )
     dict(table.get_item(Key=item_key)["Item"]).should.equal(
-        {"field": "3", "forum_name": "the-key", "subject": "123"}
+        {"field": Decimal("3"), "forum_name": "the-key", "subject": "123"}
+    )
+
+
+def assert_failure_due_to_key_not_in_schema(func, **kwargs):
+    with pytest.raises(ClientError) as ex:
+        func(**kwargs)
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
+        "The provided key element does not match the schema"
     )
 
 
@@ -1287,17 +1384,16 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": {"item4"}},
     )
     current_item["str_set"] = current_item["str_set"].union({"item4"})
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a string value to a non-existing set
-    # Should just create the set in the background
     table.update_item(
         Key=item_key,
         UpdateExpression="ADD non_existing_str_set :v",
         ExpressionAttributeValues={":v": {"item4"}},
     )
     current_item["non_existing_str_set"] = {"item4"}
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a num value to a num set
     table.update_item(
@@ -1306,7 +1402,7 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": {6}},
     )
     current_item["num_set"] = current_item["num_set"].union({6})
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a value to a number value
     table.update_item(
@@ -1315,7 +1411,7 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": 20},
     )
     current_item["num_val"] = current_item["num_val"] + 20
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Attempt to add a number value to a string set, should raise Client Error
     table.update_item.when.called_with(
@@ -1323,7 +1419,7 @@ def test_update_item_add_with_expression():
         UpdateExpression="ADD str_set :v",
         ExpressionAttributeValues={":v": 20},
     ).should.have.raised(ClientError)
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Attempt to add a number set to the string set, should raise a ClientError
     table.update_item.when.called_with(
@@ -1331,7 +1427,7 @@ def test_update_item_add_with_expression():
         UpdateExpression="ADD str_set :v",
         ExpressionAttributeValues={":v": {20}},
     ).should.have.raised(ClientError)
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Attempt to update with a bad expression
     table.update_item.when.called_with(
@@ -1369,10 +1465,10 @@ def test_update_item_add_with_nested_sets():
     current_item["nested"]["str_set"] = current_item["nested"]["str_set"].union(
         {"item4"}
     )
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a string value to a non-existing set
-    # Should just create the set in the background
+    # Should raise
     table.update_item(
         Key=item_key,
         UpdateExpression="ADD #ns.#ne :v",
@@ -1380,7 +1476,7 @@ def test_update_item_add_with_nested_sets():
         ExpressionAttributeValues={":v": {"new_item"}},
     )
     current_item["nested"]["non_existing_str_set"] = {"new_item"}
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
 
 @mock_dynamodb2

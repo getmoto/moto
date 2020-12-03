@@ -31,9 +31,9 @@ def test_make_random_create_account_status_id():
     create_account_status_id.should.match(utils.CREATE_ACCOUNT_STATUS_ID_REGEX)
 
 
-def test_make_random_service_control_policy_id():
-    service_control_policy_id = utils.make_random_service_control_policy_id()
-    service_control_policy_id.should.match(utils.SCP_ID_REGEX)
+def test_make_random_policy_id():
+    policy_id = utils.make_random_policy_id()
+    policy_id.should.match(utils.POLICY_ID_REGEX)
 
 
 def validate_organization(response):
@@ -128,7 +128,7 @@ def validate_create_account_status(create_status):
 
 def validate_policy_summary(org, summary):
     summary.should.be.a(dict)
-    summary.should.have.key("Id").should.match(utils.SCP_ID_REGEX)
+    summary.should.have.key("Id").should.match(utils.POLICY_ID_REGEX)
     summary.should.have.key("Arn").should.equal(
         utils.SCP_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], summary["Id"])
     )

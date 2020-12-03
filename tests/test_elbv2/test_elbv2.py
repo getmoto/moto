@@ -1,14 +1,13 @@
 from __future__ import unicode_literals
 
-import json
 import os
 import boto3
 import botocore
 from botocore.exceptions import ClientError, ParamValidationError
-from nose.tools import assert_raises
+import pytest
 import sure  # noqa
 
-from moto import mock_elbv2, mock_ec2, mock_acm, mock_cloudformation
+from moto import mock_elbv2, mock_ec2, mock_acm
 from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
@@ -97,9 +96,9 @@ def test_describe_load_balancers():
     response = conn.describe_load_balancers(Names=["my-lb"])
     response.get("LoadBalancers")[0].get("LoadBalancerName").should.equal("my-lb")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_load_balancers(LoadBalancerArns=["not-a/real/arn"])
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_load_balancers(Names=["nope"])
 
 
@@ -133,7 +132,7 @@ def test_add_remove_tags():
     lbs.should.have.length_of(1)
     lb = lbs[0]
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.add_tags(ResourceArns=["missing-arn"], Tags=[{"Key": "a", "Value": "b"}])
 
     conn.add_tags(
@@ -275,7 +274,7 @@ def test_create_target_group_and_listeners():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     # Can't create a target group with an invalid protocol
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_target_group(
             Name="a-target",
             Protocol="HTTP",
@@ -390,10 +389,10 @@ def test_create_target_group_and_listeners():
 
     # Try to delete the target group and it fails because there's a
     # listener referencing it
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         conn.delete_target_group(TargetGroupArn=target_group.get("TargetGroupArn"))
-    e.exception.operation_name.should.equal("DeleteTargetGroup")
-    e.exception.args.should.equal(
+    e.value.operation_name.should.equal("DeleteTargetGroup")
+    e.value.args.should.equal(
         (
             "An error occurred (ResourceInUse) when calling the DeleteTargetGroup operation: The target group 'arn:aws:elasticloadbalancing:us-east-1:1:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule",
         )
@@ -478,7 +477,7 @@ def test_create_invalid_target_group():
 
     # Fail to create target group with name which length is 33
     long_name = "A" * 33
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_target_group(
             Name=long_name,
             Protocol="HTTP",
@@ -496,7 +495,7 @@ def test_create_invalid_target_group():
 
     invalid_names = ["-name", "name-", "-name-", "example.com", "test@test", "Na--me"]
     for name in invalid_names:
-        with assert_raises(ClientError):
+        with pytest.raises(ClientError):
             conn.create_target_group(
                 Name=name,
                 Protocol="HTTP",
@@ -942,7 +941,7 @@ def test_handle_listener_rules():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     # Can't create a target group with an invalid protocol
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_target_group(
             Name="a-target",
             Protocol="HTTP",
@@ -994,12 +993,17 @@ def test_handle_listener_rules():
     priority = 100
     host = "xxx.example.com"
     path_pattern = "foobar"
+    pathpatternconfig_pattern = "foobar2"
     created_rule = conn.create_rule(
         ListenerArn=http_listener_arn,
         Priority=priority,
         Conditions=[
             {"Field": "host-header", "Values": [host]},
             {"Field": "path-pattern", "Values": [path_pattern]},
+            {
+                "Field": "path-pattern",
+                "PathPatternConfig": {"Values": [pathpatternconfig_pattern]},
+            },
         ],
         Actions=[
             {"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}
@@ -1017,6 +1021,10 @@ def test_handle_listener_rules():
         Conditions=[
             {"Field": "host-header", "Values": [host]},
             {"Field": "path-pattern", "Values": [path_pattern]},
+            {
+                "Field": "path-pattern",
+                "PathPatternConfig": {"Values": [pathpatternconfig_pattern]},
+            },
         ],
         Actions=[
             {"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}
@@ -1024,13 +1032,17 @@ def test_handle_listener_rules():
     )
 
     # test for PriorityInUse
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=priority,
             Conditions=[
                 {"Field": "host-header", "Values": [host]},
                 {"Field": "path-pattern", "Values": [path_pattern]},
+                {
+                    "Field": "path-pattern",
+                    "PathPatternConfig": {"Values": [pathpatternconfig_pattern]},
+                },
             ],
             Actions=[
                 {
@@ -1067,11 +1079,11 @@ def test_handle_listener_rules():
     )
 
     # test for invalid describe rule request
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_rules()
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_rules(RuleArns=[])
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_rules(
             ListenerArn=http_listener_arn, RuleArns=[first_rule["RuleArn"]]
         )
@@ -1079,11 +1091,16 @@ def test_handle_listener_rules():
     # modify rule partially
     new_host = "new.example.com"
     new_path_pattern = "new_path"
+    new_pathpatternconfig_pattern = "new_path2"
     modified_rule = conn.modify_rule(
         RuleArn=first_rule["RuleArn"],
         Conditions=[
             {"Field": "host-header", "Values": [new_host]},
             {"Field": "path-pattern", "Values": [new_path_pattern]},
+            {
+                "Field": "path-pattern",
+                "PathPatternConfig": {"Values": [new_pathpatternconfig_pattern]},
+            },
         ],
     )["Rules"][0]
 
@@ -1092,6 +1109,9 @@ def test_handle_listener_rules():
     modified_rule.should.equal(obtained_rule)
     obtained_rule["Conditions"][0]["Values"][0].should.equal(new_host)
     obtained_rule["Conditions"][1]["Values"][0].should.equal(new_path_pattern)
+    obtained_rule["Conditions"][2]["Values"][0].should.equal(
+        new_pathpatternconfig_pattern
+    )
     obtained_rule["Actions"][0]["TargetGroupArn"].should.equal(
         target_group.get("TargetGroupArn")
     )
@@ -1105,7 +1125,7 @@ def test_handle_listener_rules():
             }
         ]
     )
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.set_rule_priorities(
             RulePriorities=[
                 {"RuleArn": first_rule["RuleArn"], "Priority": 999},
@@ -1121,7 +1141,7 @@ def test_handle_listener_rules():
 
     # test for invalid action type
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1140,7 +1160,7 @@ def test_handle_listener_rules():
     # test for invalid action type
     safe_priority = 2
     invalid_target_group_arn = target_group.get("TargetGroupArn") + "x"
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1153,7 +1173,7 @@ def test_handle_listener_rules():
 
     # test for invalid condition field_name
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1168,7 +1188,7 @@ def test_handle_listener_rules():
 
     # test for emptry condition value
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1183,7 +1203,7 @@ def test_handle_listener_rules():
 
     # test for multiple condition value
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1240,7 +1260,7 @@ def test_describe_invalid_target_group():
     )
 
     # Check error raises correctly
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_target_groups(Names=["invalid"])
 
 
@@ -1338,7 +1358,7 @@ def test_set_ip_address_type():
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
     # Internal LBs cant be dualstack yet
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
 
     # Create internet facing one
@@ -1390,7 +1410,7 @@ def test_set_security_groups():
     resp = client.describe_load_balancers(LoadBalancerArns=[arn])
     len(resp["LoadBalancers"][0]["SecurityGroups"]).should.equal(2)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_security_groups(LoadBalancerArn=arn, SecurityGroups=["non_existent"])
 
 
@@ -1431,11 +1451,11 @@ def test_set_subnets():
     len(resp["LoadBalancers"][0]["AvailabilityZones"]).should.equal(3)
 
     # Only 1 AZ
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_subnets(LoadBalancerArn=arn, Subnets=[subnet1.id])
 
     # Multiple subnets in same AZ
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_subnets(
             LoadBalancerArn=arn, Subnets=[subnet1.id, subnet2.id, subnet2.id]
         )
@@ -1624,7 +1644,7 @@ def test_modify_listener_http_to_https():
         listener.certificate.should.equal(yahoo_arn)
 
     # No default cert
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.modify_listener(
             ListenerArn=listener_arn,
             Port=443,
@@ -1635,7 +1655,7 @@ def test_modify_listener_http_to_https():
         )
 
     # Bad cert
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.modify_listener(
             ListenerArn=listener_arn,
             Port=443,
@@ -1644,82 +1664,6 @@ def test_modify_listener_http_to_https():
             Certificates=[{"CertificateArn": "lalala", "IsDefault": True}],
             DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
         )
-
-
-@mock_ec2
-@mock_elbv2
-@mock_cloudformation
-def test_create_target_groups_through_cloudformation():
-    cfn_conn = boto3.client("cloudformation", region_name="us-east-1")
-    elbv2_client = boto3.client("elbv2", region_name="us-east-1")
-
-    # test that setting a name manually as well as letting cloudformation create a name both work
-    # this is a special case because test groups have a name length limit of 22 characters, and must be unique
-    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-name
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "ECS Cluster Test CloudFormation",
-        "Resources": {
-            "testVPC": {
-                "Type": "AWS::EC2::VPC",
-                "Properties": {"CidrBlock": "10.0.0.0/16"},
-            },
-            "testGroup1": {
-                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-                "Properties": {
-                    "Port": 80,
-                    "Protocol": "HTTP",
-                    "VpcId": {"Ref": "testVPC"},
-                },
-            },
-            "testGroup2": {
-                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-                "Properties": {
-                    "Port": 90,
-                    "Protocol": "HTTP",
-                    "VpcId": {"Ref": "testVPC"},
-                },
-            },
-            "testGroup3": {
-                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-                "Properties": {
-                    "Name": "MyTargetGroup",
-                    "Port": 70,
-                    "Protocol": "HTTPS",
-                    "VpcId": {"Ref": "testVPC"},
-                },
-            },
-        },
-    }
-    template_json = json.dumps(template)
-    cfn_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
-
-    describe_target_groups_response = elbv2_client.describe_target_groups()
-    target_group_dicts = describe_target_groups_response["TargetGroups"]
-    assert len(target_group_dicts) == 3
-
-    # there should be 2 target groups with the same prefix of 10 characters (since the random suffix is 12)
-    # and one named MyTargetGroup
-    assert (
-        len(
-            [
-                tg
-                for tg in target_group_dicts
-                if tg["TargetGroupName"] == "MyTargetGroup"
-            ]
-        )
-        == 1
-    )
-    assert (
-        len(
-            [
-                tg
-                for tg in target_group_dicts
-                if tg["TargetGroupName"].startswith("test-stack")
-            ]
-        )
-        == 2
-    )
 
 
 @mock_elbv2
@@ -1796,95 +1740,6 @@ def test_redirect_action_listener_rule():
 
 
 @mock_elbv2
-@mock_cloudformation
-def test_redirect_action_listener_rule_cloudformation():
-    cnf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    elbv2_client = boto3.client("elbv2", region_name="us-east-1")
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "ECS Cluster Test CloudFormation",
-        "Resources": {
-            "testVPC": {
-                "Type": "AWS::EC2::VPC",
-                "Properties": {"CidrBlock": "10.0.0.0/16"},
-            },
-            "subnet1": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "CidrBlock": "10.0.0.0/24",
-                    "VpcId": {"Ref": "testVPC"},
-                    "AvalabilityZone": "us-east-1b",
-                },
-            },
-            "subnet2": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "CidrBlock": "10.0.1.0/24",
-                    "VpcId": {"Ref": "testVPC"},
-                    "AvalabilityZone": "us-east-1b",
-                },
-            },
-            "testLb": {
-                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-                "Properties": {
-                    "Name": "my-lb",
-                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
-                    "Type": "application",
-                    "SecurityGroups": [],
-                },
-            },
-            "testListener": {
-                "Type": "AWS::ElasticLoadBalancingV2::Listener",
-                "Properties": {
-                    "LoadBalancerArn": {"Ref": "testLb"},
-                    "Port": 80,
-                    "Protocol": "HTTP",
-                    "DefaultActions": [
-                        {
-                            "Type": "redirect",
-                            "RedirectConfig": {
-                                "Port": "443",
-                                "Protocol": "HTTPS",
-                                "StatusCode": "HTTP_301",
-                            },
-                        }
-                    ],
-                },
-            },
-        },
-    }
-    template_json = json.dumps(template)
-    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
-
-    describe_load_balancers_response = elbv2_client.describe_load_balancers(
-        Names=["my-lb"]
-    )
-    describe_load_balancers_response["LoadBalancers"].should.have.length_of(1)
-    load_balancer_arn = describe_load_balancers_response["LoadBalancers"][0][
-        "LoadBalancerArn"
-    ]
-
-    describe_listeners_response = elbv2_client.describe_listeners(
-        LoadBalancerArn=load_balancer_arn
-    )
-
-    describe_listeners_response["Listeners"].should.have.length_of(1)
-    describe_listeners_response["Listeners"][0]["DefaultActions"].should.equal(
-        [
-            {
-                "Type": "redirect",
-                "RedirectConfig": {
-                    "Port": "443",
-                    "Protocol": "HTTPS",
-                    "StatusCode": "HTTP_301",
-                },
-            }
-        ]
-    )
-
-
-@mock_elbv2
 @mock_ec2
 def test_cognito_action_listener_rule():
     conn = boto3.client("elbv2", region_name="us-east-1")
@@ -1939,97 +1794,6 @@ def test_cognito_action_listener_rule():
         "DefaultActions"
     ][0]
     describe_listener_actions.should.equal(action)
-
-
-@mock_elbv2
-@mock_cloudformation
-def test_cognito_action_listener_rule_cloudformation():
-    cnf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    elbv2_client = boto3.client("elbv2", region_name="us-east-1")
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "ECS Cluster Test CloudFormation",
-        "Resources": {
-            "testVPC": {
-                "Type": "AWS::EC2::VPC",
-                "Properties": {"CidrBlock": "10.0.0.0/16"},
-            },
-            "subnet1": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "CidrBlock": "10.0.0.0/24",
-                    "VpcId": {"Ref": "testVPC"},
-                    "AvalabilityZone": "us-east-1b",
-                },
-            },
-            "subnet2": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "CidrBlock": "10.0.1.0/24",
-                    "VpcId": {"Ref": "testVPC"},
-                    "AvalabilityZone": "us-east-1b",
-                },
-            },
-            "testLb": {
-                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-                "Properties": {
-                    "Name": "my-lb",
-                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
-                    "Type": "application",
-                    "SecurityGroups": [],
-                },
-            },
-            "testListener": {
-                "Type": "AWS::ElasticLoadBalancingV2::Listener",
-                "Properties": {
-                    "LoadBalancerArn": {"Ref": "testLb"},
-                    "Port": 80,
-                    "Protocol": "HTTP",
-                    "DefaultActions": [
-                        {
-                            "Type": "authenticate-cognito",
-                            "AuthenticateCognitoConfig": {
-                                "UserPoolArn": "arn:aws:cognito-idp:us-east-1:{}:userpool/us-east-1_ABCD1234".format(
-                                    ACCOUNT_ID
-                                ),
-                                "UserPoolClientId": "abcd1234abcd",
-                                "UserPoolDomain": "testpool",
-                            },
-                        }
-                    ],
-                },
-            },
-        },
-    }
-    template_json = json.dumps(template)
-    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
-
-    describe_load_balancers_response = elbv2_client.describe_load_balancers(
-        Names=["my-lb"]
-    )
-    load_balancer_arn = describe_load_balancers_response["LoadBalancers"][0][
-        "LoadBalancerArn"
-    ]
-    describe_listeners_response = elbv2_client.describe_listeners(
-        LoadBalancerArn=load_balancer_arn
-    )
-
-    describe_listeners_response["Listeners"].should.have.length_of(1)
-    describe_listeners_response["Listeners"][0]["DefaultActions"].should.equal(
-        [
-            {
-                "Type": "authenticate-cognito",
-                "AuthenticateCognitoConfig": {
-                    "UserPoolArn": "arn:aws:cognito-idp:us-east-1:{}:userpool/us-east-1_ABCD1234".format(
-                        ACCOUNT_ID
-                    ),
-                    "UserPoolClientId": "abcd1234abcd",
-                    "UserPoolDomain": "testpool",
-                },
-            }
-        ]
-    )
 
 
 @mock_elbv2
@@ -2088,93 +1852,6 @@ def test_fixed_response_action_listener_rule():
 
 
 @mock_elbv2
-@mock_cloudformation
-def test_fixed_response_action_listener_rule_cloudformation():
-    cnf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    elbv2_client = boto3.client("elbv2", region_name="us-east-1")
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "ECS Cluster Test CloudFormation",
-        "Resources": {
-            "testVPC": {
-                "Type": "AWS::EC2::VPC",
-                "Properties": {"CidrBlock": "10.0.0.0/16"},
-            },
-            "subnet1": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "CidrBlock": "10.0.0.0/24",
-                    "VpcId": {"Ref": "testVPC"},
-                    "AvalabilityZone": "us-east-1b",
-                },
-            },
-            "subnet2": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "CidrBlock": "10.0.1.0/24",
-                    "VpcId": {"Ref": "testVPC"},
-                    "AvalabilityZone": "us-east-1b",
-                },
-            },
-            "testLb": {
-                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-                "Properties": {
-                    "Name": "my-lb",
-                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
-                    "Type": "application",
-                    "SecurityGroups": [],
-                },
-            },
-            "testListener": {
-                "Type": "AWS::ElasticLoadBalancingV2::Listener",
-                "Properties": {
-                    "LoadBalancerArn": {"Ref": "testLb"},
-                    "Port": 80,
-                    "Protocol": "HTTP",
-                    "DefaultActions": [
-                        {
-                            "Type": "fixed-response",
-                            "FixedResponseConfig": {
-                                "ContentType": "text/plain",
-                                "MessageBody": "This page does not exist",
-                                "StatusCode": "404",
-                            },
-                        }
-                    ],
-                },
-            },
-        },
-    }
-    template_json = json.dumps(template)
-    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
-
-    describe_load_balancers_response = elbv2_client.describe_load_balancers(
-        Names=["my-lb"]
-    )
-    load_balancer_arn = describe_load_balancers_response["LoadBalancers"][0][
-        "LoadBalancerArn"
-    ]
-    describe_listeners_response = elbv2_client.describe_listeners(
-        LoadBalancerArn=load_balancer_arn
-    )
-
-    describe_listeners_response["Listeners"].should.have.length_of(1)
-    describe_listeners_response["Listeners"][0]["DefaultActions"].should.equal(
-        [
-            {
-                "Type": "fixed-response",
-                "FixedResponseConfig": {
-                    "ContentType": "text/plain",
-                    "MessageBody": "This page does not exist",
-                    "StatusCode": "404",
-                },
-            }
-        ]
-    )
-
-
-@mock_elbv2
 @mock_ec2
 def test_fixed_response_action_listener_rule_validates_status_code():
     conn = boto3.client("elbv2", region_name="us-east-1")
@@ -2207,7 +1884,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
             "MessageBody": "This page does not exist",
         },
     }
-    with assert_raises(ParamValidationError):
+    with pytest.raises(ParamValidationError):
         conn.create_listener(
             LoadBalancerArn=load_balancer_arn,
             Protocol="HTTP",
@@ -2257,7 +1934,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
                 "MessageBody": "This page does not exist",
             },
         }
-        with assert_raises(ParamValidationError):
+        with pytest.raises(ParamValidationError):
             conn.create_listener(
                 LoadBalancerArn=load_balancer_arn,
                 Protocol="HTTP",
@@ -2274,7 +1951,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
             },
         }
 
-        with assert_raises(ClientError) as invalid_status_code_exception:
+        with pytest.raises(ClientError) as invalid_status_code_exception:
             conn.create_listener(
                 LoadBalancerArn=load_balancer_arn,
                 Protocol="HTTP",
@@ -2282,7 +1959,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
                 DefaultActions=[invalid_status_code_action],
             )
 
-        invalid_status_code_exception.exception.response["Error"]["Code"].should.equal(
+        invalid_status_code_exception.value.response["Error"]["Code"].should.equal(
             "ValidationError"
         )
 
@@ -2321,13 +1998,13 @@ def test_fixed_response_action_listener_rule_validates_content_type():
             "StatusCode": "200",
         },
     }
-    with assert_raises(ClientError) as invalid_content_type_exception:
+    with pytest.raises(ClientError) as invalid_content_type_exception:
         conn.create_listener(
             LoadBalancerArn=load_balancer_arn,
             Protocol="HTTP",
             Port=80,
             DefaultActions=[invalid_content_type_action],
         )
-    invalid_content_type_exception.exception.response["Error"]["Code"].should.equal(
+    invalid_content_type_exception.value.response["Error"]["Code"].should.equal(
         "InvalidLoadBalancerAction"
     )

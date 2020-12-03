@@ -5,24 +5,21 @@ import six
 from botocore.exceptions import ClientError
 
 from moto import mock_logs, settings
-from nose.tools import assert_raises
-from nose import SkipTest
+import pytest
+from unittest import SkipTest
 
 _logs_region = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
 @mock_logs
-def test_log_group_create():
+def test_create_log_group():
     conn = boto3.client("logs", "us-west-2")
-    log_group_name = "dummy"
-    response = conn.create_log_group(logGroupName=log_group_name)
 
-    response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
-    assert len(response["logGroups"]) == 1
-    # AWS defaults to Never Expire for log group retention
-    assert response["logGroups"][0].get("retentionInDays") == None
+    response = conn.create_log_group(logGroupName="dummy")
+    response = conn.describe_log_groups()
 
-    response = conn.delete_log_group(logGroupName=log_group_name)
+    response["logGroups"].should.have.length_of(1)
+    response["logGroups"][0].should_not.have.key("retentionInDays")
 
 
 @mock_logs
@@ -31,13 +28,13 @@ def test_exceptions():
     log_group_name = "dummy"
     log_stream_name = "dummp-stream"
     conn.create_log_group(logGroupName=log_group_name)
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_log_group(logGroupName=log_group_name)
 
     # descrine_log_groups is not implemented yet
 
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_log_stream(
             logGroupName=log_group_name, logStreamName=log_stream_name
         )
@@ -48,7 +45,7 @@ def test_exceptions():
         logEvents=[{"timestamp": 0, "message": "line"}],
     )
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.put_log_events(
             logGroupName=log_group_name,
             logStreamName="invalid-stream",
@@ -120,7 +117,7 @@ def test_filter_logs_raises_if_filter_pattern():
     conn.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
     )
-    with assert_raises(NotImplementedError):
+    with pytest.raises(NotImplementedError):
         conn.filter_log_events(
             logGroupName=log_group_name,
             logStreamNames=[log_stream_name],
@@ -335,13 +332,13 @@ def test_get_log_events_errors():
     client.create_log_group(logGroupName=log_group_name)
     client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_log_events(
             logGroupName=log_group_name,
             logStreamName=log_stream_name,
             nextToken="n/00000000000000000000000000000000000000000000000000000000",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetLogEvents")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -349,13 +346,13 @@ def test_get_log_events_errors():
         "The specified nextToken is invalid."
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_log_events(
             logGroupName=log_group_name,
             logStreamName=log_stream_name,
             nextToken="not-existing-token",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetLogEvents")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -428,3 +425,72 @@ def test_untag_log_group():
     assert response["tags"] == remaining_tags
 
     response = conn.delete_log_group(logGroupName=log_group_name)
+
+
+@mock_logs
+def test_describe_subscription_filters():
+    # given
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "/test"
+    client.create_log_group(logGroupName=log_group_name)
+
+    # when
+    response = client.describe_subscription_filters(logGroupName=log_group_name)
+
+    # then
+    response["subscriptionFilters"].should.have.length_of(0)
+
+
+@mock_logs
+def test_describe_subscription_filters_errors():
+    # given
+    client = boto3.client("logs", "us-east-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_subscription_filters(logGroupName="not-existing-log-group",)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeSubscriptionFilters")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified log group does not exist"
+    )
+
+
+@mock_logs
+def test_describe_log_groups_paging():
+    client = boto3.client("logs", "us-east-1")
+
+    group_names = [
+        "/aws/lambda/lowercase-dev",
+        "/aws/lambda/FileMonitoring",
+        "/aws/events/GetMetricData",
+        "/aws/lambda/fileAvailable",
+    ]
+
+    for name in group_names:
+        client.create_log_group(logGroupName=name)
+
+    resp = client.describe_log_groups()
+    resp["logGroups"].should.have.length_of(4)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_groups(limit=2)
+    resp["logGroups"].should.have.length_of(2)
+    resp["nextToken"].should.equal("/aws/lambda/FileMonitoring")
+
+    resp = client.describe_log_groups(nextToken=resp["nextToken"], limit=1)
+    resp["logGroups"].should.have.length_of(1)
+    resp["nextToken"].should.equal("/aws/lambda/fileAvailable")
+
+    resp = client.describe_log_groups(nextToken=resp["nextToken"])
+    resp["logGroups"].should.have.length_of(1)
+    resp["logGroups"][0]["logGroupName"].should.equal("/aws/lambda/lowercase-dev")
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_groups(nextToken="invalid-token")
+    resp["logGroups"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")

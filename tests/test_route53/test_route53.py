@@ -10,7 +10,7 @@ import sure  # noqa
 import uuid
 
 import botocore
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_route53, mock_route53_deprecated
 
@@ -645,6 +645,94 @@ def test_change_resource_record_sets_crud_valid():
 
 
 @mock_route53
+def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create TXT Record.
+    txt_record_endpoint_payload = {
+        "Comment": "Create TXT record prod.redis.db",
+        "Changes": [
+            {
+                "Action": "CREATE",
+                "ResourceRecordSet": {
+                    "Name": "prod.redis.db.",
+                    "Type": "TXT",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": "SomeInitialValue"}],
+                },
+            }
+        ],
+    }
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id, ChangeBatch=txt_record_endpoint_payload
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(1)
+    a_record_detail = response["ResourceRecordSets"][0]
+    a_record_detail["Name"].should.equal("prod.redis.db.")
+    a_record_detail["Type"].should.equal("TXT")
+    a_record_detail["TTL"].should.equal(10)
+    a_record_detail["ResourceRecords"].should.equal([{"Value": "SomeInitialValue"}])
+
+    # Update TXT Record with XML Special Character &.
+    txt_record_with_special_char_endpoint_payload = {
+        "Comment": "Update TXT record prod.redis.db",
+        "Changes": [
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "prod.redis.db.",
+                    "Type": "TXT",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "SomeInitialValue&NewValue"}],
+                },
+            }
+        ],
+    }
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch=txt_record_with_special_char_endpoint_payload,
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(1)
+    cname_record_detail = response["ResourceRecordSets"][0]
+    cname_record_detail["Name"].should.equal("prod.redis.db.")
+    cname_record_detail["Type"].should.equal("TXT")
+    cname_record_detail["TTL"].should.equal(60)
+    cname_record_detail["ResourceRecords"].should.equal(
+        [{"Value": "SomeInitialValue&NewValue"}]
+    )
+
+    # Delete record.
+    delete_payload = {
+        "Comment": "delete prod.redis.db",
+        "Changes": [
+            {
+                "Action": "DELETE",
+                "ResourceRecordSet": {"Name": "prod.redis.db", "Type": "TXT"},
+            }
+        ],
+    }
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload
+    )
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(0)
+
+
+@mock_route53
 def test_change_weighted_resource_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
     conn.create_hosted_zone(
@@ -754,6 +842,79 @@ def test_change_weighted_resource_record_sets():
 
 
 @mock_route53
+def test_failover_record_sets():
+    conn = boto3.client("route53", region_name="us-east-2")
+    conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
+    zones = conn.list_hosted_zones_by_name(DNSName="test.zone.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create geolocation record
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "failover.test.zone.",
+                        "Type": "A",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": "127.0.0.1"}],
+                        "Failover": "PRIMARY",
+                    },
+                }
+            ]
+        },
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    record = response["ResourceRecordSets"][0]
+    record["Failover"].should.equal("PRIMARY")
+
+
+@mock_route53
+def test_geolocation_record_sets():
+    conn = boto3.client("route53", region_name="us-east-2")
+    conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
+    zones = conn.list_hosted_zones_by_name(DNSName="test.zone.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create geolocation record
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "georecord1.test.zone.",
+                        "Type": "A",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": "127.0.0.1"}],
+                        "GeoLocation": {"ContinentCode": "EU"},
+                    },
+                },
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "georecord2.test.zone.",
+                        "Type": "A",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": "127.0.0.2"}],
+                        "GeoLocation": {"CountryCode": "US", "SubdivisionCode": "NY"},
+                    },
+                },
+            ]
+        },
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    rrs = response["ResourceRecordSets"]
+    rrs[0]["GeoLocation"].should.equal({"ContinentCode": "EU"})
+    rrs[1]["GeoLocation"].should.equal({"CountryCode": "US", "SubdivisionCode": "NY"})
+
+
+@mock_route53
 def test_change_resource_record_invalid():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
@@ -782,7 +943,7 @@ def test_change_resource_record_invalid():
         ],
     }
 
-    with assert_raises(botocore.exceptions.ClientError):
+    with pytest.raises(botocore.exceptions.ClientError):
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id, ChangeBatch=invalid_a_record_payload
         )
@@ -805,7 +966,7 @@ def test_change_resource_record_invalid():
         ],
     }
 
-    with assert_raises(botocore.exceptions.ClientError):
+    with pytest.raises(botocore.exceptions.ClientError):
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id, ChangeBatch=invalid_cname_record_payload
         )
@@ -870,3 +1031,14 @@ def test_list_resource_record_sets_name_type_filters():
     len(returned_records).should.equal(len(all_records) - start_with)
     for desired_record in all_records[start_with:]:
         returned_records.should.contain(desired_record)
+
+
+@mock_route53
+def test_get_change():
+    conn = boto3.client("route53", region_name="us-east-2")
+
+    change_id = "123456"
+    response = conn.get_change(Id=change_id)
+
+    response["ChangeInfo"]["Id"].should.equal(change_id)
+    response["ChangeInfo"]["Status"].should.equal("INSYNC")

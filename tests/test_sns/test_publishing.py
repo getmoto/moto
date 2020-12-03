@@ -54,7 +54,7 @@ def test_publish_to_sqs():
         "us-east-1",
     )
     acquired_message = re.sub(
-        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
         "2015-01-01T12:00:00.000Z",
         message.get_body(),
     )
@@ -98,7 +98,7 @@ def test_publish_to_sqs_in_different_region():
     )
 
     acquired_message = re.sub(
-        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
         "2015-01-01T12:00:00.000Z",
         message.get_body(),
     )

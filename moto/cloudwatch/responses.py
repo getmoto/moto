@@ -1,7 +1,7 @@
 import json
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
-from .models import cloudwatch_backends
+from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
 from dateutil.parser import parse as dtparse
 
 
@@ -19,8 +19,37 @@ class CloudWatchResponse(BaseResponse):
         name = self._get_param("AlarmName")
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
+        metrics = self._get_multi_param("Metrics.member")
+        metric_data_queries = None
+        if metrics:
+            metric_data_queries = [
+                MetricDataQuery(
+                    id=metric.get("Id"),
+                    label=metric.get("Label"),
+                    period=metric.get("Period"),
+                    return_data=metric.get("ReturnData"),
+                    expression=metric.get("Expression"),
+                    metric_stat=MetricStat(
+                        metric=Metric(
+                            metric_name=metric.get("MetricStat.Metric.MetricName"),
+                            namespace=metric.get("MetricStat.Metric.Namespace"),
+                            dimensions=[
+                                Dimension(name=dim["Name"], value=dim["Value"])
+                                for dim in metric["MetricStat.Metric.Dimensions.member"]
+                            ],
+                        ),
+                        period=metric.get("MetricStat.Period"),
+                        stat=metric.get("MetricStat.Stat"),
+                        unit=metric.get("MetricStat.Unit"),
+                    )
+                    if "MetricStat.Metric.MetricName" in metric
+                    else None,
+                )
+                for metric in metrics
+            ]
         comparison_operator = self._get_param("ComparisonOperator")
         evaluation_periods = self._get_param("EvaluationPeriods")
+        datapoints_to_alarm = self._get_param("DatapointsToAlarm")
         period = self._get_param("Period")
         threshold = self._get_param("Threshold")
         statistic = self._get_param("Statistic")
@@ -28,6 +57,7 @@ class CloudWatchResponse(BaseResponse):
         dimensions = self._get_list_prefix("Dimensions.member")
         alarm_actions = self._get_multi_param("AlarmActions.member")
         ok_actions = self._get_multi_param("OKActions.member")
+        actions_enabled = self._get_param("ActionsEnabled")
         insufficient_data_actions = self._get_multi_param(
             "InsufficientDataActions.member"
         )
@@ -36,8 +66,10 @@ class CloudWatchResponse(BaseResponse):
             name,
             namespace,
             metric_name,
+            metric_data_queries,
             comparison_operator,
             evaluation_periods,
+            datapoints_to_alarm,
             period,
             threshold,
             statistic,
@@ -47,6 +79,8 @@ class CloudWatchResponse(BaseResponse):
             ok_actions,
             insufficient_data_actions,
             unit,
+            actions_enabled,
+            self.region,
         )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
@@ -91,6 +125,18 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     @amzn_request_id
+    def get_metric_data(self):
+        start = dtparse(self._get_param("StartTime"))
+        end = dtparse(self._get_param("EndTime"))
+        queries = self._get_list_prefix("MetricDataQueries.member")
+        results = self.cloudwatch_backend.get_metric_data(
+            start_time=start, end_time=end, queries=queries
+        )
+
+        template = self.response_template(GET_METRIC_DATA_TEMPLATE)
+        return template.render(results=results)
+
+    @amzn_request_id
     def get_metric_statistics(self):
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -122,9 +168,10 @@ class CloudWatchResponse(BaseResponse):
     def list_metrics(self):
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
+        dimensions = self._get_multi_param("Dimensions.member")
         next_token = self._get_param("NextToken")
         next_token, metrics = self.cloudwatch_backend.list_metrics(
-            next_token, namespace, metric_name
+            next_token, namespace, metric_name, dimensions
         )
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics, next_token=next_token)
@@ -146,9 +193,23 @@ class CloudWatchResponse(BaseResponse):
     def describe_alarm_history(self):
         raise NotImplementedError()
 
+    @staticmethod
+    def filter_alarms(alarms, metric_name, namespace):
+        metric_filtered_alarms = []
+
+        for alarm in alarms:
+            if alarm.metric_name == metric_name and alarm.namespace == namespace:
+                metric_filtered_alarms.append(alarm)
+        return metric_filtered_alarms
+
     @amzn_request_id
     def describe_alarms_for_metric(self):
-        raise NotImplementedError()
+        alarms = self.cloudwatch_backend.get_all_alarms()
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        filtered_alarms = self.filter_alarms(alarms, metric_name, namespace)
+        template = self.response_template(DESCRIBE_METRIC_ALARMS_TEMPLATE)
+        return template.render(alarms=filtered_alarms)
 
     @amzn_request_id
     def disable_alarm_actions(self):
@@ -227,7 +288,115 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                     <member>{{ action }}</member>
                     {% endfor %}
                 </AlarmActions>
-                <AlarmArn>{{ alarm.arn }}</AlarmArn>
+                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
+                <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
+                <AlarmDescription>{{ alarm.description }}</AlarmDescription>
+                <AlarmName>{{ alarm.name }}</AlarmName>
+                <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
+                {% if alarm.dimensions is not none %}
+                    <Dimensions>
+                        {% for dimension in alarm.dimensions %}
+                        <member>
+                            <Name>{{ dimension.name }}</Name>
+                            <Value>{{ dimension.value }}</Value>
+                        </member>
+                        {% endfor %}
+                    </Dimensions>
+                {% endif %}
+                <EvaluationPeriods>{{ alarm.evaluation_periods }}</EvaluationPeriods>
+                {% if alarm.datapoints_to_alarm is not none %}
+                <DatapointsToAlarm>{{ alarm.datapoints_to_alarm }}</DatapointsToAlarm>
+                {% endif %}
+                <InsufficientDataActions>
+                    {% for action in alarm.insufficient_data_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </InsufficientDataActions>
+                {% if alarm.metric_name is not none %}
+                <MetricName>{{ alarm.metric_name }}</MetricName>
+                {% endif %}
+                {% if alarm.metric_data_queries is not none %}
+                <Metrics>
+                    {% for metric in alarm.metric_data_queries %}
+                     <member>
+                        <Id>{{ metric.id }}</Id>
+                        {% if metric.label is not none %}
+                        <Label>{{ metric.label }}</Label>
+                        {% endif %}
+                        {% if metric.expression is not none %}
+                        <Expression>{{ metric.expression }}</Expression>
+                        {% endif %}
+                        {% if metric.metric_stat is not none %}
+                        <MetricStat>
+                            <Metric>
+                                <Namespace>{{ metric.metric_stat.metric.namespace }}</Namespace>
+                                <MetricName>{{ metric.metric_stat.metric.metric_name }}</MetricName>
+                                <Dimensions>
+                                {% for dim in metric.metric_stat.metric.dimensions %}
+                                    <member>
+                                        <Name>{{ dim.name }}</Name>
+                                        <Value>{{ dim.value }}</Value>
+                                    </member>
+                                {% endfor %}
+                                </Dimensions>
+                            </Metric>
+                            {% if metric.metric_stat.period is not none %}
+                            <Period>{{ metric.metric_stat.period }}</Period>
+                            {% endif %}
+                            <Stat>{{ metric.metric_stat.stat }}</Stat>
+                            {% if metric.metric_stat.unit is not none %}
+                            <Unit>{{ metric.metric_stat.unit }}</Unit>
+                            {% endif %}
+                        </MetricStat>
+                        {% endif %}
+                        {% if metric.period is not none %}
+                        <Period>{{ metric.period }}</Period>
+                        {% endif %}
+                        <ReturnData>{{ metric.return_data }}</ReturnData>
+                    </member>
+                    {% endfor %}
+                </Metrics>
+                {% endif %}
+                {% if alarm.namespace is not none %}
+                <Namespace>{{ alarm.namespace }}</Namespace>
+                {% endif %}
+                <OKActions>
+                    {% for action in alarm.ok_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </OKActions>
+                {% if alarm.period is not none %}
+                <Period>{{ alarm.period }}</Period>
+                {% endif %}
+                <StateReason>{{ alarm.state_reason }}</StateReason>
+                <StateReasonData>{{ alarm.state_reason_data }}</StateReasonData>
+                <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
+                <StateValue>{{ alarm.state_value }}</StateValue>
+                {% if alarm.statistic is not none %}
+                <Statistic>{{ alarm.statistic }}</Statistic>
+                {% endif %}
+                <Threshold>{{ alarm.threshold }}</Threshold>
+                {% if alarm.unit is not none %}
+                <Unit>{{ alarm.unit }}</Unit>
+                {% endif %}
+            </member>
+            {% endfor %}
+        </MetricAlarms>
+    </DescribeAlarmsResult>
+</DescribeAlarmsResponse>"""
+
+DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <DescribeAlarmsForMetricResult>
+        <MetricAlarms>
+            {% for alarm in alarms %}
+            <member>
+                <ActionsEnabled>{{ alarm.actions_enabled }}</ActionsEnabled>
+                <AlarmActions>
+                    {% for action in alarm.alarm_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </AlarmActions>
+                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
                 <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
                 <AlarmDescription>{{ alarm.description }}</AlarmDescription>
                 <AlarmName>{{ alarm.name }}</AlarmName>
@@ -264,8 +433,8 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
             </member>
             {% endfor %}
         </MetricAlarms>
-    </DescribeAlarmsResult>
-</DescribeAlarmsResponse>"""
+    </DescribeAlarmsForMetricResult>
+</DescribeAlarmsForMetricResponse>"""
 
 DELETE_METRIC_ALARMS_TEMPLATE = """<DeleteMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
@@ -282,6 +451,35 @@ PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.am
       </RequestId>
    </ResponseMetadata>
 </PutMetricDataResponse>"""
+
+GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+   <ResponseMetadata>
+      <RequestId>
+         {{ request_id }}
+      </RequestId>
+   </ResponseMetadata>
+   <GetMetricDataResult>
+       <MetricDataResults>
+           {% for result in results %}
+            <member>
+                <Id>{{ result.id }}</Id>
+                <Label>{{ result.label }}</Label>
+                <StatusCode>Complete</StatusCode>
+                <Timestamps>
+                    {% for val in result.timestamps %}
+                    <member>{{ val }}</member>
+                    {% endfor %}
+                </Timestamps>
+                <Values>
+                    {% for val in result.vals %}
+                    <member>{{ val }}</member>
+                    {% endfor %}
+                </Values>
+            </member>
+            {% endfor %}
+       </MetricDataResults>
+   </GetMetricDataResult>
+</GetMetricDataResponse>"""
 
 GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>

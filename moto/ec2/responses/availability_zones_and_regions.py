@@ -22,6 +22,7 @@ DESCRIBE_REGIONS_RESPONSE = """<DescribeRegionsResponse xmlns="http://ec2.amazon
           <item>
              <regionName>{{ region.name }}</regionName>
              <regionEndpoint>{{ region.endpoint }}</regionEndpoint>
+             <optInStatus>{{ region.opt_in_status }}</optInStatus>
           </item>
       {% endfor %}
    </regionInfo>
@@ -35,6 +36,7 @@ DESCRIBE_ZONES_RESPONSE = """<DescribeAvailabilityZonesResponse xmlns="http://ec
           <zoneName>{{ zone.name }}</zoneName>
           <zoneState>available</zoneState>
           <regionName>{{ zone.region_name }}</regionName>
+          <zoneId>{{ zone.zone_id }}</zoneId>
           <messageSet/>
        </item>
    {% endfor %}

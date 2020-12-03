@@ -11,7 +11,7 @@ import re
 from boto3 import Session
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
@@ -35,15 +35,17 @@ from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
+MAXIMUM_SMS_MESSAGE_BYTES = 1600  # Amazon limit for a single publish SMS action
 
 
-class Topic(BaseModel):
+class Topic(CloudFormationModel):
     def __init__(self, name, sns_backend):
         self.name = name
         self.sns_backend = sns_backend
         self.account_id = DEFAULT_ACCOUNT_ID
         self.display_name = ""
         self.delivery_policy = ""
+        self.kms_master_key_id = ""
         self.effective_delivery_policy = json.dumps(DEFAULT_EFFECTIVE_DELIVERY_POLICY)
         self.arn = make_arn_for_topic(self.account_id, name, sns_backend.region_name)
 
@@ -87,6 +89,15 @@ class Topic(BaseModel):
     def policy(self, policy):
         self._policy_json = json.loads(policy)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "TopicName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sns-topic.html
+        return "AWS::SNS::Topic"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -94,7 +105,7 @@ class Topic(BaseModel):
         sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
 
-        topic = sns_backend.create_topic(properties.get("TopicName"))
+        topic = sns_backend.create_topic(resource_name)
         for subscription in properties.get("Subscription", []):
             sns_backend.subscribe(
                 topic.arn, subscription["Endpoint"], subscription["Protocol"]
@@ -146,20 +157,38 @@ class Subscription(BaseModel):
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
             if self.attributes.get("RawMessageDelivery") != "true":
-                enveloped_message = json.dumps(
-                    self.get_post_data(
-                        message,
-                        message_id,
-                        subject,
-                        message_attributes=message_attributes,
+                sqs_backends[region].send_message(
+                    queue_name,
+                    json.dumps(
+                        self.get_post_data(
+                            message,
+                            message_id,
+                            subject,
+                            message_attributes=message_attributes,
+                        ),
+                        sort_keys=True,
+                        indent=2,
+                        separators=(",", ": "),
                     ),
-                    sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
                 )
             else:
-                enveloped_message = message
-            sqs_backends[region].send_message(queue_name, enveloped_message)
+                raw_message_attributes = {}
+                for key, value in message_attributes.items():
+                    type = "string_value"
+                    type_value = value["Value"]
+                    if value["Type"].startswith("Binary"):
+                        type = "binary_value"
+                    elif value["Type"].startswith("Number"):
+                        type_value = "{0:g}".format(value["Value"])
+
+                    raw_message_attributes[key] = {
+                        "data_type": value["Type"],
+                        type: type_value,
+                    }
+
+                sqs_backends[region].send_message(
+                    queue_name, message, message_attributes=raw_message_attributes
+                )
         elif self.protocol in ["http", "https"]:
             post_data = self.get_post_data(message, message_id, subject)
             requests.post(
@@ -338,6 +367,7 @@ class SNSBackend(BaseBackend):
         self.platform_endpoints = {}
         self.region_name = region_name
         self.sms_attributes = {}
+        self.sms_messages = OrderedDict()
         self.opt_out_numbers = [
             "+447420500600",
             "+447420505401",
@@ -396,20 +426,24 @@ class SNSBackend(BaseBackend):
     def list_topics(self, next_token=None):
         return self._get_values_nexttoken(self.topics, next_token)
 
+    def delete_topic_subscriptions(self, topic):
+        for key, value in self.subscriptions.items():
+            if value.topic == topic:
+                self.subscriptions.pop(key)
+
     def delete_topic(self, arn):
-        self.topics.pop(arn)
+        try:
+            topic = self.get_topic(arn)
+            self.delete_topic_subscriptions(topic)
+            self.topics.pop(arn)
+        except KeyError:
+            raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
 
     def get_topic(self, arn):
         try:
             return self.topics[arn]
         except KeyError:
             raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
-
-    def get_topic_from_phone_number(self, number):
-        for subscription in self.subscriptions.values():
-            if subscription.protocol == "sms" and subscription.endpoint == number:
-                return subscription.topic.arn
-        raise SNSNotFoundError("Could not find valid subscription")
 
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)
@@ -474,10 +508,26 @@ class SNSBackend(BaseBackend):
         else:
             return self._get_values_nexttoken(self.subscriptions, next_token)
 
-    def publish(self, arn, message, subject=None, message_attributes=None):
+    def publish(
+        self,
+        message,
+        arn=None,
+        phone_number=None,
+        subject=None,
+        message_attributes=None,
+    ):
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
             raise ValueError("Subject must be less than 100 characters")
+
+        if phone_number:
+            # This is only an approximation. In fact, we should try to use GSM-7 or UCS-2 encoding to count used bytes
+            if len(message) > MAXIMUM_SMS_MESSAGE_BYTES:
+                raise ValueError("SMS message must be less than 1600 bytes")
+
+            message_id = six.text_type(uuid.uuid4())
+            self.sms_messages[message_id] = (phone_number, message)
+            return message_id
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             raise InvalidParameterValue(
@@ -562,7 +612,12 @@ class SNSBackend(BaseBackend):
         return subscription.attributes
 
     def set_subscription_attributes(self, arn, name, value):
-        if name not in ["RawMessageDelivery", "DeliveryPolicy", "FilterPolicy"]:
+        if name not in [
+            "RawMessageDelivery",
+            "DeliveryPolicy",
+            "FilterPolicy",
+            "RedrivePolicy",
+        ]:
             raise SNSInvalidParameter("AttributeName")
 
         # TODO: should do validation

@@ -6,7 +6,7 @@ from jinja2 import Template
 from botocore.exceptions import ParamValidationError
 from moto.compat import OrderedDict
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
@@ -50,7 +50,7 @@ class FakeHealthStatus(BaseModel):
         self.description = description
 
 
-class FakeTargetGroup(BaseModel):
+class FakeTargetGroup(CloudFormationModel):
     HTTP_CODE_REGEX = re.compile(r"(?:(?:\d+-\d+|\d+),?)+")
 
     def __init__(
@@ -143,6 +143,15 @@ class FakeTargetGroup(BaseModel):
                 )
         return FakeHealthStatus(t["id"], t["port"], self.healthcheck_port, "healthy")
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html
+        return "AWS::ElasticLoadBalancingV2::TargetGroup"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -151,7 +160,6 @@ class FakeTargetGroup(BaseModel):
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get("Name")
         vpc_id = properties.get("VpcId")
         protocol = properties.get("Protocol")
         port = properties.get("Port")
@@ -166,7 +174,7 @@ class FakeTargetGroup(BaseModel):
         target_type = properties.get("TargetType")
 
         target_group = elbv2_backend.create_target_group(
-            name=name,
+            name=resource_name,
             vpc_id=vpc_id,
             protocol=protocol,
             port=port,
@@ -183,7 +191,7 @@ class FakeTargetGroup(BaseModel):
         return target_group
 
 
-class FakeListener(BaseModel):
+class FakeListener(CloudFormationModel):
     def __init__(
         self,
         load_balancer_arn,
@@ -227,6 +235,15 @@ class FakeListener(BaseModel):
         self._non_default_rules = sorted(
             self._non_default_rules, key=lambda x: x.priority
         )
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listener.html
+        return "AWS::ElasticLoadBalancingV2::Listener"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -343,7 +360,7 @@ class FakeBackend(BaseModel):
         )
 
 
-class FakeLoadBalancer(BaseModel):
+class FakeLoadBalancer(CloudFormationModel):
     VALID_ATTRS = {
         "access_logs.s3.enabled",
         "access_logs.s3.bucket",
@@ -402,6 +419,15 @@ class FakeLoadBalancer(BaseModel):
         """ Not exposed as part of the ELB API - used for CloudFormation. """
         elbv2_backends[region].delete_load_balancer(self.arn)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html
+        return "AWS::ElasticLoadBalancingV2::LoadBalancer"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -410,13 +436,12 @@ class FakeLoadBalancer(BaseModel):
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get("Name", resource_name)
         security_groups = properties.get("SecurityGroups")
         subnet_ids = properties.get("Subnets")
         scheme = properties.get("Scheme", "internet-facing")
 
         load_balancer = elbv2_backend.create_load_balancer(
-            name, security_groups, subnet_ids, scheme=scheme
+            resource_name, security_groups, subnet_ids, scheme=scheme
         )
         return load_balancer
 
@@ -582,11 +607,13 @@ class ELBv2Backend(BaseBackend):
                 report='Missing required parameter in Actions[%s].FixedResponseConfig: "StatusCode"'
                 % i
             )
-        if not re.match(r"^(2|4|5)\d\d$", status_code):
+        expression = r"^(2|4|5)\d\d$"
+        if not re.match(expression, status_code):
             raise InvalidStatusCodeActionTypeError(
-                "1 validation error detected: Value '%s' at 'actions.%s.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
-Member must satisfy regular expression pattern: ^(2|4|5)\d\d$"
-                % (status_code, index)
+                "1 validation error detected: Value '{}' at 'actions.{}.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
+Member must satisfy regular expression pattern: {}".format(
+                    status_code, index, expression
+                )
             )
         content_type = action.data["fixed_response_config._content_type"]
         if content_type and content_type not in [
@@ -603,16 +630,19 @@ Member must satisfy regular expression pattern: ^(2|4|5)\d\d$"
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' cannot be longer than '32' characters" % name
+                "Target group name '{}' cannot be longer than '32' characters".format(
+                    name
+                )
             )
-        if not re.match("^[a-zA-Z0-9\-]+$", name):
+        if not re.match(r"^[a-zA-Z0-9\-]+$", name):
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' can only contain characters that are alphanumeric characters or hyphens(-)"
-                % name
+                "Target group name '{}' can only contain characters that are alphanumeric characters or hyphens(-)".format(
+                    name
+                )
             )
 
         # undocumented validation
-        if not re.match("(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$", name):
+        if not re.match(r"(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$", name):
             raise InvalidTargetGroupNameError(
                 "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$"
                 % name

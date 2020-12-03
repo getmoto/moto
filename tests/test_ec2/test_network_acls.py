@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import boto
 import boto3
 import sure  # noqa
-from nose.tools import assert_raises
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2_deprecated, mock_ec2
@@ -261,7 +261,7 @@ def test_duplicate_network_acl_entry():
         RuleNumber=rule_number,
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         default_network_acl.create_entry(
             CidrBlock="10.0.0.0/0",
             Egress=egress,
@@ -269,9 +269,61 @@ def test_duplicate_network_acl_entry():
             RuleAction="deny",
             RuleNumber=rule_number,
         )
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (NetworkAclEntryAlreadyExists) when calling the CreateNetworkAclEntry "
         "operation: The network acl entry identified by {} already exists.".format(
             rule_number
         )
+    )
+
+
+@mock_ec2
+def test_describe_network_acls():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+
+    network_acl = conn.create_network_acl(VpcId=vpc_id)
+
+    network_acl_id = network_acl["NetworkAcl"]["NetworkAclId"]
+
+    resp = conn.describe_network_acls(NetworkAclIds=[network_acl_id])
+    result = resp["NetworkAcls"]
+
+    result.should.have.length_of(1)
+    result[0]["NetworkAclId"].should.equal(network_acl_id)
+
+    resp2 = conn.describe_network_acls()["NetworkAcls"]
+    resp2.should.have.length_of(3)
+
+    with pytest.raises(ClientError) as ex:
+        conn.describe_network_acls(NetworkAclIds=["1"])
+
+    str(ex.value).should.equal(
+        "An error occurred (InvalidRouteTableID.NotFound) when calling the "
+        "DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
+    )
+
+
+@mock_ec2
+def test_create_network_acl_with_tags():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+
+    network_acl = conn.create_network_acl(
+        VpcId=vpc_id,
+        TagSpecifications=[
+            {
+                "ResourceType": "network-acl",
+                "Tags": [{"Key": "test", "Value": "TestTags"}],
+            }
+        ],
+    )
+
+    (len(network_acl.get("NetworkAcl").get("Tags"))).should.equal(1)
+    network_acl.get("NetworkAcl").get("Tags").should.equal(
+        [{"Key": "test", "Value": "TestTags"}]
     )

@@ -158,7 +158,7 @@ class ELBV2Response(BaseResponse):
             condition = {}
             condition["field"] = _condition["field"]
             values = sorted(
-                [e for e in _condition.items() if e[0].startswith("values.member")],
+                [e for e in _condition.items() if "values.member" in e[0]],
                 key=lambda x: x[0],
             )
             condition["values"] = [e[1] for e in values]
@@ -356,7 +356,7 @@ class ELBV2Response(BaseResponse):
             condition = {}
             condition["field"] = _condition["field"]
             values = sorted(
-                [e for e in _condition.items() if e[0].startswith("values.member")],
+                [e for e in _condition.items() if "values.member" in e[0]],
                 key=lambda x: x[0],
             )
             condition["values"] = [e[1] for e in values]

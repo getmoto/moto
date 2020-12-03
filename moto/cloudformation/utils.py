@@ -6,7 +6,6 @@ import yaml
 import os
 import string
 
-from cfnlint import decode, core
 from moto.core import ACCOUNT_ID
 
 
@@ -42,8 +41,7 @@ def random_suffix():
 
 
 def yaml_tag_constructor(loader, tag, node):
-    """convert shorthand intrinsic function to full name
-    """
+    """convert shorthand intrinsic function to full name"""
 
     def _f(loader, tag, node):
         if tag == "!GetAtt":
@@ -62,6 +60,8 @@ def yaml_tag_constructor(loader, tag, node):
 
 
 def validate_template_cfn_lint(template):
+    # Importing cfnlint adds a significant overhead, so we keep it local
+    from cfnlint import decode, core
 
     # Save the template to a temporary file -- cfn-lint requires a file
     filename = "file.tmp"
@@ -70,7 +70,12 @@ def validate_template_cfn_lint(template):
     abs_filename = os.path.abspath(filename)
 
     # decode handles both yaml and json
-    template, matches = decode.decode(abs_filename, False)
+    try:
+        template, matches = decode.decode(abs_filename, False)
+    except TypeError:
+        # As of cfn-lint 0.39.0, the second argument (ignore_bad_template) was dropped
+        # https://github.com/aws-cloudformation/cfn-python-lint/pull/1580
+        template, matches = decode.decode(abs_filename)
 
     # Set cfn-lint to info
     core.configure_logging(None)

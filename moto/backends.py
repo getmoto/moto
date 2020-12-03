@@ -1,122 +1,113 @@
 from __future__ import unicode_literals
 
-from moto.acm import acm_backends
-from moto.apigateway import apigateway_backends
-from moto.athena import athena_backends
-from moto.autoscaling import autoscaling_backends
-from moto.awslambda import lambda_backends
-from moto.batch import batch_backends
-from moto.cloudformation import cloudformation_backends
-from moto.cloudwatch import cloudwatch_backends
-from moto.codecommit import codecommit_backends
-from moto.codepipeline import codepipeline_backends
-from moto.cognitoidentity import cognitoidentity_backends
-from moto.cognitoidp import cognitoidp_backends
-from moto.config import config_backends
-from moto.core import moto_api_backends
-from moto.datapipeline import datapipeline_backends
-from moto.datasync import datasync_backends
-from moto.dynamodb import dynamodb_backends
-from moto.dynamodb2 import dynamodb_backends2
-from moto.dynamodbstreams import dynamodbstreams_backends
-from moto.ec2 import ec2_backends
-from moto.ec2_instance_connect import ec2_instance_connect_backends
-from moto.ecr import ecr_backends
-from moto.ecs import ecs_backends
-from moto.elb import elb_backends
-from moto.elbv2 import elbv2_backends
-from moto.emr import emr_backends
-from moto.events import events_backends
-from moto.glacier import glacier_backends
-from moto.glue import glue_backends
-from moto.iam import iam_backends
-from moto.instance_metadata import instance_metadata_backends
-from moto.iot import iot_backends
-from moto.iotdata import iotdata_backends
-from moto.kinesis import kinesis_backends
-from moto.kms import kms_backends
-from moto.logs import logs_backends
-from moto.opsworks import opsworks_backends
-from moto.organizations import organizations_backends
-from moto.polly import polly_backends
-from moto.rds2 import rds2_backends
-from moto.redshift import redshift_backends
-from moto.resourcegroups import resourcegroups_backends
-from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
-from moto.route53 import route53_backends
-from moto.s3 import s3_backends
-from moto.secretsmanager import secretsmanager_backends
-from moto.ses import ses_backends
-from moto.sns import sns_backends
-from moto.sqs import sqs_backends
-from moto.ssm import ssm_backends
-from moto.stepfunctions import stepfunction_backends
-from moto.sts import sts_backends
-from moto.swf import swf_backends
-from moto.xray import xray_backends
+import importlib
 
 BACKENDS = {
-    "acm": acm_backends,
-    "apigateway": apigateway_backends,
-    "athena": athena_backends,
-    "autoscaling": autoscaling_backends,
-    "batch": batch_backends,
-    "cloudformation": cloudformation_backends,
-    "cloudwatch": cloudwatch_backends,
-    "codecommit": codecommit_backends,
-    "codepipeline": codepipeline_backends,
-    "cognito-identity": cognitoidentity_backends,
-    "cognito-idp": cognitoidp_backends,
-    "config": config_backends,
-    "datapipeline": datapipeline_backends,
-    "datasync": datasync_backends,
-    "dynamodb": dynamodb_backends,
-    "dynamodb2": dynamodb_backends2,
-    "dynamodbstreams": dynamodbstreams_backends,
-    "ec2": ec2_backends,
-    "ec2_instance_connect": ec2_instance_connect_backends,
-    "ecr": ecr_backends,
-    "ecs": ecs_backends,
-    "elb": elb_backends,
-    "elbv2": elbv2_backends,
-    "events": events_backends,
-    "emr": emr_backends,
-    "glacier": glacier_backends,
-    "glue": glue_backends,
-    "iam": iam_backends,
-    "moto_api": moto_api_backends,
-    "instance_metadata": instance_metadata_backends,
-    "logs": logs_backends,
-    "kinesis": kinesis_backends,
-    "kms": kms_backends,
-    "opsworks": opsworks_backends,
-    "organizations": organizations_backends,
-    "polly": polly_backends,
-    "redshift": redshift_backends,
-    "resource-groups": resourcegroups_backends,
-    "rds": rds2_backends,
-    "s3": s3_backends,
-    "s3bucket_path": s3_backends,
-    "ses": ses_backends,
-    "secretsmanager": secretsmanager_backends,
-    "sns": sns_backends,
-    "sqs": sqs_backends,
-    "ssm": ssm_backends,
-    "stepfunctions": stepfunction_backends,
-    "sts": sts_backends,
-    "swf": swf_backends,
-    "route53": route53_backends,
-    "lambda": lambda_backends,
-    "xray": xray_backends,
-    "resourcegroupstaggingapi": resourcegroupstaggingapi_backends,
-    "iot": iot_backends,
-    "iot-data": iotdata_backends,
+    "acm": ("acm", "acm_backends"),
+    "apigateway": ("apigateway", "apigateway_backends"),
+    "athena": ("athena", "athena_backends"),
+    "applicationautoscaling": (
+        "applicationautoscaling",
+        "applicationautoscaling_backends",
+    ),
+    "autoscaling": ("autoscaling", "autoscaling_backends"),
+    "batch": ("batch", "batch_backends"),
+    "cloudformation": ("cloudformation", "cloudformation_backends"),
+    "cloudwatch": ("cloudwatch", "cloudwatch_backends"),
+    "codecommit": ("codecommit", "codecommit_backends"),
+    "codepipeline": ("codepipeline", "codepipeline_backends"),
+    "cognito-identity": ("cognitoidentity", "cognitoidentity_backends"),
+    "cognito-idp": ("cognitoidp", "cognitoidp_backends"),
+    "config": ("config", "config_backends"),
+    "datapipeline": ("datapipeline", "datapipeline_backends"),
+    "datasync": ("datasync", "datasync_backends"),
+    "dynamodb": ("dynamodb", "dynamodb_backends"),
+    "dynamodb2": ("dynamodb2", "dynamodb_backends2"),
+    "dynamodbstreams": ("dynamodbstreams", "dynamodbstreams_backends"),
+    "ec2": ("ec2", "ec2_backends"),
+    "ec2instanceconnect": ("ec2instanceconnect", "ec2instanceconnect_backends"),
+    "ecr": ("ecr", "ecr_backends"),
+    "ecs": ("ecs", "ecs_backends"),
+    "elasticbeanstalk": ("elasticbeanstalk", "eb_backends"),
+    "elb": ("elb", "elb_backends"),
+    "elbv2": ("elbv2", "elbv2_backends"),
+    "emr": ("emr", "emr_backends"),
+    "events": ("events", "events_backends"),
+    "glacier": ("glacier", "glacier_backends"),
+    "glue": ("glue", "glue_backends"),
+    "iam": ("iam", "iam_backends"),
+    "instance_metadata": ("instance_metadata", "instance_metadata_backends"),
+    "iot": ("iot", "iot_backends"),
+    "iot-data": ("iotdata", "iotdata_backends"),
+    "kinesis": ("kinesis", "kinesis_backends"),
+    "kms": ("kms", "kms_backends"),
+    "lambda": ("awslambda", "lambda_backends"),
+    "logs": ("logs", "logs_backends"),
+    "managedblockchain": ("managedblockchain", "managedblockchain_backends"),
+    "moto_api": ("core", "moto_api_backends"),
+    "opsworks": ("opsworks", "opsworks_backends"),
+    "organizations": ("organizations", "organizations_backends"),
+    "polly": ("polly", "polly_backends"),
+    "ram": ("ram", "ram_backends"),
+    "rds": ("rds2", "rds2_backends"),
+    "redshift": ("redshift", "redshift_backends"),
+    "resource-groups": ("resourcegroups", "resourcegroups_backends"),
+    "resourcegroupstaggingapi": (
+        "resourcegroupstaggingapi",
+        "resourcegroupstaggingapi_backends",
+    ),
+    "route53": ("route53", "route53_backends"),
+    "s3": ("s3", "s3_backends"),
+    "s3bucket_path": ("s3", "s3_backends"),
+    "sagemaker": ("sagemaker", "sagemaker_backends"),
+    "secretsmanager": ("secretsmanager", "secretsmanager_backends"),
+    "ses": ("ses", "ses_backends"),
+    "sns": ("sns", "sns_backends"),
+    "sqs": ("sqs", "sqs_backends"),
+    "ssm": ("ssm", "ssm_backends"),
+    "stepfunctions": ("stepfunctions", "stepfunction_backends"),
+    "sts": ("sts", "sts_backends"),
+    "swf": ("swf", "swf_backends"),
+    "transcribe": ("transcribe", "transcribe_backends"),
+    "xray": ("xray", "xray_backends"),
+    "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
+    "kinesis-video-archived-media": (
+        "kinesisvideoarchivedmedia",
+        "kinesisvideoarchivedmedia_backends",
+    ),
+    "forecast": ("forecast", "forecast_backends"),
 }
 
 
+def _import_backend(module_name, backends_name):
+    module = importlib.import_module("moto." + module_name)
+    return getattr(module, backends_name)
+
+
+def backends():
+    for module_name, backends_name in BACKENDS.values():
+        yield _import_backend(module_name, backends_name)
+
+
+def named_backends():
+    for name, (module_name, backends_name) in BACKENDS.items():
+        yield name, _import_backend(module_name, backends_name)
+
+
+def get_backend(name):
+    module_name, backends_name = BACKENDS[name]
+    return _import_backend(module_name, backends_name)
+
+
+def search_backend(predicate):
+    for name, backend in named_backends():
+        if predicate(backend):
+            return name
+
+
 def get_model(name, region_name):
-    for backends in BACKENDS.values():
-        for region, backend in backends.items():
+    for backends_ in backends():
+        for region, backend in backends_.items():
             if region == region_name:
                 models = getattr(backend.__class__, "__models__", {})
                 if name in models:

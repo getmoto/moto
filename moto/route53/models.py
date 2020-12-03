@@ -7,7 +7,7 @@ import random
 import uuid
 from jinja2 import Template
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, CloudFormationModel
 
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
@@ -18,7 +18,7 @@ def create_route53_zone_id():
     return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
 
 
-class HealthCheck(BaseModel):
+class HealthCheck(CloudFormationModel):
     def __init__(self, health_check_id, health_check_args):
         self.id = health_check_id
         self.ip_address = health_check_args.get("ip_address")
@@ -33,6 +33,15 @@ class HealthCheck(BaseModel):
     @property
     def physical_resource_id(self):
         return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-healthcheck.html
+        return "AWS::Route53::HealthCheck"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -75,7 +84,7 @@ class HealthCheck(BaseModel):
         return template.render(health_check=self)
 
 
-class RecordSet(BaseModel):
+class RecordSet(CloudFormationModel):
     def __init__(self, kwargs):
         self.name = kwargs.get("Name")
         self.type_ = kwargs.get("Type")
@@ -88,6 +97,17 @@ class RecordSet(BaseModel):
         self.hosted_zone_name = kwargs.get("HostedZoneName")
         self.hosted_zone_id = kwargs.get("HostedZoneId")
         self.alias_target = kwargs.get("AliasTarget")
+        self.failover = kwargs.get("Failover")
+        self.geo_location = kwargs.get("GeoLocation")
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-recordset.html
+        return "AWS::Route53::RecordSet"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -154,6 +174,16 @@ class RecordSet(BaseModel):
                 {% if record_set.ttl %}
                     <TTL>{{ record_set.ttl }}</TTL>
                 {% endif %}
+                {% if record_set.failover %}
+                    <Failover>{{ record_set.failover }}</Failover>
+                {% endif %}
+                {% if record_set.geo_location %}
+                <GeoLocation>
+                {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}
+                  {% if record_set.geo_location[geo_key] %}<{{ geo_key }}>{{ record_set.geo_location[geo_key] }}</{{ geo_key }}>{% endif %}
+                {% endfor %}
+                </GeoLocation>
+                {% endif %}
                 {% if record_set.alias_target %}
                 <AliasTarget>
                     <HostedZoneId>{{ record_set.alias_target['HostedZoneId'] }}</HostedZoneId>
@@ -164,7 +194,7 @@ class RecordSet(BaseModel):
                 <ResourceRecords>
                     {% for record in record_set.records %}
                     <ResourceRecord>
-                        <Value>{{ record }}</Value>
+                        <Value>{{ record|e }}</Value>
                     </ResourceRecord>
                     {% endfor %}
                 </ResourceRecords>
@@ -190,7 +220,7 @@ def reverse_domain_name(domain_name):
     return ".".join(reversed(domain_name.split(".")))
 
 
-class FakeZone(BaseModel):
+class FakeZone(CloudFormationModel):
     def __init__(self, name, id_, private_zone, comment=None):
         self.name = name
         self.id = id_
@@ -255,18 +285,26 @@ class FakeZone(BaseModel):
     def physical_resource_id(self):
         return self.id
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-hostedzone.html
+        return "AWS::Route53::HostedZone"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-        name = properties["Name"]
-
-        hosted_zone = route53_backend.create_hosted_zone(name, private_zone=False)
+        hosted_zone = route53_backend.create_hosted_zone(
+            resource_name, private_zone=False
+        )
         return hosted_zone
 
 
-class RecordSetGroup(BaseModel):
+class RecordSetGroup(CloudFormationModel):
     def __init__(self, hosted_zone_id, record_sets):
         self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
@@ -274,6 +312,15 @@ class RecordSetGroup(BaseModel):
     @property
     def physical_resource_id(self):
         return "arn:aws:route53:::hostedzone/{0}".format(self.hosted_zone_id)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-recordsetgroup.html
+        return "AWS::Route53::RecordSetGroup"
 
     @classmethod
     def create_from_cloudformation_json(

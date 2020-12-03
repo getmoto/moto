@@ -1,14 +1,14 @@
 from __future__ import unicode_literals
 
 import boto3
+import json
 import sure  # noqa
-import datetime
 
 from datetime import datetime
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
-from moto import mock_sts, mock_stepfunctions
+from moto import mock_cloudformation, mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
 
 region = "us-east-1"
@@ -134,7 +134,7 @@ def test_state_machine_creation_fails_with_invalid_names():
     #
 
     for invalid_name in invalid_names:
-        with assert_raises(ClientError) as exc:
+        with pytest.raises(ClientError):
             client.create_state_machine(
                 name=invalid_name,
                 definition=str(simple_definition),
@@ -147,12 +147,39 @@ def test_state_machine_creation_requires_valid_role_arn():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
     #
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError):
         client.create_state_machine(
             name=name,
             definition=str(simple_definition),
             roleArn="arn:aws:iam::1234:role/unknown_role",
         )
+
+
+@mock_stepfunctions
+@mock_sts
+def test_update_state_machine():
+    client = boto3.client("stepfunctions", region_name=region)
+
+    resp = client.create_state_machine(
+        name="test", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    state_machine_arn = resp["stateMachineArn"]
+
+    updated_role = _get_default_role() + "-updated"
+    updated_definition = str(simple_definition).replace(
+        "DefaultState", "DefaultStateUpdated"
+    )
+    resp = client.update_state_machine(
+        stateMachineArn=state_machine_arn,
+        definition=updated_definition,
+        roleArn=updated_role,
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    resp["updateDate"].should.be.a(datetime)
+
+    desc = client.describe_state_machine(stateMachineArn=state_machine_arn)
+    desc["definition"].should.equal(updated_definition)
+    desc["roleArn"].should.equal(updated_role)
 
 
 @mock_stepfunctions
@@ -168,14 +195,14 @@ def test_state_machine_list_returns_empty_list_by_default():
 def test_state_machine_list_returns_created_state_machines():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    machine2 = client.create_state_machine(
-        name="name2", definition=str(simple_definition), roleArn=_get_default_role()
-    )
     machine1 = client.create_state_machine(
         name="name1",
         definition=str(simple_definition),
         roleArn=_get_default_role(),
         tags=[{"key": "tag_key", "value": "tag_value"}],
+    )
+    machine2 = client.create_state_machine(
+        name="name2", definition=str(simple_definition), roleArn=_get_default_role()
     )
     list = client.list_state_machines()
     #
@@ -193,6 +220,28 @@ def test_state_machine_list_returns_created_state_machines():
     list["stateMachines"][1]["stateMachineArn"].should.equal(
         machine2["stateMachineArn"]
     )
+
+
+@mock_stepfunctions
+def test_state_machine_list_pagination():
+    client = boto3.client("stepfunctions", region_name=region)
+    for i in range(25):
+        machine_name = "StateMachine-{}".format(i)
+        client.create_state_machine(
+            name=machine_name,
+            definition=str(simple_definition),
+            roleArn=_get_default_role(),
+        )
+
+    resp = client.list_state_machines()
+    resp.should_not.have.key("nextToken")
+    resp["stateMachines"].should.have.length_of(25)
+
+    paginator = client.get_paginator("list_state_machines")
+    page_iterator = paginator.paginate(maxResults=5)
+    for page in page_iterator:
+        page["stateMachines"].should.have.length_of(5)
+    page["stateMachines"][-1]["name"].should.contain("24")
 
 
 @mock_stepfunctions
@@ -242,7 +291,7 @@ def test_state_machine_creation_can_be_described():
 def test_state_machine_throws_error_when_describing_unknown_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:"
             + region
@@ -255,10 +304,19 @@ def test_state_machine_throws_error_when_describing_unknown_machine():
 
 @mock_stepfunctions
 @mock_sts
+def test_state_machine_throws_error_when_describing_bad_arn():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    with pytest.raises(ClientError):
+        client.describe_state_machine(stateMachineArn="bad")
+
+
+@mock_stepfunctions
+@mock_sts
 def test_state_machine_throws_error_when_describing_machine_in_different_account():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:" + region + ":000000000000:stateMachine:unknown"
         )
@@ -293,6 +351,85 @@ def test_state_machine_can_deleted_nonexisting_machine():
     #
     sm_list = client.list_state_machines()
     sm_list["stateMachines"].should.have.length_of(0)
+
+
+@mock_stepfunctions
+def test_state_machine_tagging_non_existent_resource_fails():
+    client = boto3.client("stepfunctions", region_name=region)
+    non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
+        region=region, account=ACCOUNT_ID
+    )
+    with pytest.raises(ClientError) as ex:
+        client.tag_resource(resourceArn=non_existent_arn, tags=[])
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
+
+
+@mock_stepfunctions
+def test_state_machine_untagging_non_existent_resource_fails():
+    client = boto3.client("stepfunctions", region_name=region)
+    non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
+        region=region, account=ACCOUNT_ID
+    )
+    with pytest.raises(ClientError) as ex:
+        client.untag_resource(resourceArn=non_existent_arn, tagKeys=[])
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_tagging():
+    client = boto3.client("stepfunctions", region_name=region)
+    tags = [
+        {"key": "tag_key1", "value": "tag_value1"},
+        {"key": "tag_key2", "value": "tag_value2"},
+    ]
+    machine = client.create_state_machine(
+        name="test", definition=str(simple_definition), roleArn=_get_default_role(),
+    )
+    client.tag_resource(resourceArn=machine["stateMachineArn"], tags=tags)
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    resp["tags"].should.equal(tags)
+
+    tags_update = [
+        {"key": "tag_key1", "value": "tag_value1_new"},
+        {"key": "tag_key3", "value": "tag_value3"},
+    ]
+    client.tag_resource(resourceArn=machine["stateMachineArn"], tags=tags_update)
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    tags_expected = [
+        tags_update[0],
+        tags[1],
+        tags_update[1],
+    ]
+    resp["tags"].should.equal(tags_expected)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_untagging():
+    client = boto3.client("stepfunctions", region_name=region)
+    tags = [
+        {"key": "tag_key1", "value": "tag_value1"},
+        {"key": "tag_key2", "value": "tag_value2"},
+        {"key": "tag_key3", "value": "tag_value3"},
+    ]
+    machine = client.create_state_machine(
+        name="test",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        tags=tags,
+    )
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    resp["tags"].should.equal(tags)
+    tags_to_delete = ["tag_key1", "tag_key2"]
+    client.untag_resource(
+        resourceArn=machine["stateMachineArn"], tagKeys=tags_to_delete
+    )
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    expected_tags = [tag for tag in tags if tag["key"] not in tags_to_delete]
+    resp["tags"].should.equal(expected_tags)
 
 
 @mock_stepfunctions
@@ -364,6 +501,15 @@ def test_state_machine_start_execution():
 
 @mock_stepfunctions
 @mock_sts
+def test_state_machine_start_execution_bad_arn_raises_exception():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    with pytest.raises(ClientError):
+        client.start_execution(stateMachineArn="bad")
+
+
+@mock_stepfunctions
+@mock_sts
 def test_state_machine_start_execution_with_custom_name():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -384,6 +530,68 @@ def test_state_machine_start_execution_with_custom_name():
     )
     execution["executionArn"].should.equal(expected_exec_name)
     execution["startDate"].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_start_execution_fails_on_duplicate_execution_name():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution_one = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], name="execution_name"
+    )
+    #
+    with pytest.raises(ClientError) as ex:
+        _ = client.start_execution(
+            stateMachineArn=sm["stateMachineArn"], name="execution_name"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "Execution Already Exists: '" + execution_one["executionArn"] + "'"
+    )
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_start_execution_with_custom_input():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution_input = json.dumps({"input_key": "input_value"})
+    execution = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], input=execution_input
+    )
+    #
+    execution["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    uuid_regex = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
+    expected_exec_name = (
+        "arn:aws:states:"
+        + region
+        + ":"
+        + _get_account_id()
+        + ":execution:name:"
+        + uuid_regex
+    )
+    execution["executionArn"].should.match(expected_exec_name)
+    execution["startDate"].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_start_execution_with_invalid_input():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    with pytest.raises(ClientError):
+        _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="")
+    with pytest.raises(ClientError):
+        _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="{")
 
 
 @mock_stepfunctions
@@ -410,6 +618,69 @@ def test_state_machine_list_executions():
 
 
 @mock_stepfunctions
+def test_state_machine_list_executions_with_filter():
+    client = boto3.client("stepfunctions", region_name=region)
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    for i in range(20):
+        execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
+        if not i % 4:
+            client.stop_execution(executionArn=execution["executionArn"])
+
+    resp = client.list_executions(stateMachineArn=sm["stateMachineArn"])
+    resp["executions"].should.have.length_of(20)
+
+    resp = client.list_executions(
+        stateMachineArn=sm["stateMachineArn"], statusFilter="ABORTED"
+    )
+    resp["executions"].should.have.length_of(5)
+    all([e["status"] == "ABORTED" for e in resp["executions"]]).should.be.true
+
+
+@mock_stepfunctions
+def test_state_machine_list_executions_with_pagination():
+    client = boto3.client("stepfunctions", region_name=region)
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    for _ in range(100):
+        client.start_execution(stateMachineArn=sm["stateMachineArn"])
+
+    resp = client.list_executions(stateMachineArn=sm["stateMachineArn"])
+    resp.should_not.have.key("nextToken")
+    resp["executions"].should.have.length_of(100)
+
+    paginator = client.get_paginator("list_executions")
+    page_iterator = paginator.paginate(
+        stateMachineArn=sm["stateMachineArn"], maxResults=25
+    )
+    for page in page_iterator:
+        page["executions"].should.have.length_of(25)
+
+    with pytest.raises(ClientError) as ex:
+        resp = client.list_executions(
+            stateMachineArn=sm["stateMachineArn"], maxResults=10
+        )
+        client.list_executions(
+            stateMachineArn=sm["stateMachineArn"],
+            maxResults=10,
+            statusFilter="ABORTED",
+            nextToken=resp["nextToken"],
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
+    ex.value.response["Error"]["Message"].should.contain(
+        "Input inconsistent with page token"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.list_executions(
+            stateMachineArn=sm["stateMachineArn"], nextToken="invalid"
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
+
+
+@mock_stepfunctions
 @mock_sts
 def test_state_machine_list_executions_when_none_exist():
     client = boto3.client("stepfunctions", region_name=region)
@@ -425,7 +696,7 @@ def test_state_machine_list_executions_when_none_exist():
 
 @mock_stepfunctions
 @mock_sts
-def test_state_machine_describe_execution():
+def test_state_machine_describe_execution_with_no_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
     sm = client.create_state_machine(
@@ -446,10 +717,34 @@ def test_state_machine_describe_execution():
 
 @mock_stepfunctions
 @mock_sts
-def test_state_machine_throws_error_when_describing_unknown_machine():
+def test_state_machine_describe_execution_with_custom_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    execution_input = json.dumps({"input_key": "input_val"})
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], input=execution_input
+    )
+    description = client.describe_execution(executionArn=execution["executionArn"])
+    #
+    description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    description["executionArn"].should.equal(execution["executionArn"])
+    description["input"].should.equal(execution_input)
+    description["name"].shouldnt.be.empty
+    description["startDate"].should.equal(execution["startDate"])
+    description["stateMachineArn"].should.equal(sm["stateMachineArn"])
+    description["status"].should.equal("RUNNING")
+    description.shouldnt.have("stopDate")
+
+
+@mock_stepfunctions
+@mock_sts
+def test_execution_throws_error_when_describing_unknown_execution():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    with pytest.raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )
@@ -480,7 +775,7 @@ def test_state_machine_can_be_described_by_execution():
 def test_state_machine_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )
@@ -516,8 +811,200 @@ def test_state_machine_describe_execution_after_stoppage():
     description = client.describe_execution(executionArn=execution["executionArn"])
     #
     description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    description["status"].should.equal("SUCCEEDED")
+    description["status"].should.equal("ABORTED")
     description["stopDate"].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_cloudformation
+def test_state_machine_cloudformation():
+    sf = boto3.client("stepfunctions", region_name="us-east-1")
+    cf = boto3.resource("cloudformation", region_name="us-east-1")
+    definition = '{"StartAt": "HelloWorld", "States": {"HelloWorld": {"Type": "Task", "Resource": "arn:aws:lambda:us-east-1:111122223333;:function:HelloFunction", "End": true}}}'
+    role_arn = (
+        "arn:aws:iam::111122223333:role/service-role/StatesExecutionRole-us-east-1;"
+    )
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "An example template for a Step Functions state machine.",
+        "Resources": {
+            "MyStateMachine": {
+                "Type": "AWS::StepFunctions::StateMachine",
+                "Properties": {
+                    "StateMachineName": "HelloWorld-StateMachine",
+                    "StateMachineType": "STANDARD",
+                    "DefinitionString": definition,
+                    "RoleArn": role_arn,
+                    "Tags": [
+                        {"Key": "key1", "Value": "value1"},
+                        {"Key": "key2", "Value": "value2"},
+                    ],
+                },
+            }
+        },
+        "Outputs": {
+            "StateMachineArn": {"Value": {"Ref": "MyStateMachine"}},
+            "StateMachineName": {"Value": {"Fn::GetAtt": ["MyStateMachine", "Name"]}},
+        },
+    }
+    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    outputs_list = cf.Stack("test_stack").outputs
+    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
+    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
+    state_machine["stateMachineArn"].should.equal(output["StateMachineArn"])
+    state_machine["name"].should.equal(output["StateMachineName"])
+    state_machine["roleArn"].should.equal(role_arn)
+    state_machine["definition"].should.equal(definition)
+    tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
+    for i, tag in enumerate(tags, 1):
+        tag["key"].should.equal("key{}".format(i))
+        tag["value"].should.equal("value{}".format(i))
+
+    cf.Stack("test_stack").delete()
+    with pytest.raises(ClientError) as ex:
+        sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
+    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain("Does Not Exist")
+
+
+@mock_stepfunctions
+@mock_cloudformation
+def test_state_machine_cloudformation_update_with_replacement():
+    sf = boto3.client("stepfunctions", region_name="us-east-1")
+    cf = boto3.resource("cloudformation", region_name="us-east-1")
+    definition = '{"StartAt": "HelloWorld", "States": {"HelloWorld": {"Type": "Task", "Resource": "arn:aws:lambda:us-east-1:111122223333;:function:HelloFunction", "End": true}}}'
+    role_arn = (
+        "arn:aws:iam::111122223333:role/service-role/StatesExecutionRole-us-east-1"
+    )
+    properties = {
+        "StateMachineName": "HelloWorld-StateMachine",
+        "DefinitionString": definition,
+        "RoleArn": role_arn,
+        "Tags": [
+            {"Key": "key1", "Value": "value1"},
+            {"Key": "key2", "Value": "value2"},
+        ],
+    }
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "An example template for a Step Functions state machine.",
+        "Resources": {
+            "MyStateMachine": {
+                "Type": "AWS::StepFunctions::StateMachine",
+                "Properties": {},
+            }
+        },
+        "Outputs": {
+            "StateMachineArn": {"Value": {"Ref": "MyStateMachine"}},
+            "StateMachineName": {"Value": {"Fn::GetAtt": ["MyStateMachine", "Name"]}},
+        },
+    }
+    template["Resources"]["MyStateMachine"]["Properties"] = properties
+    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    outputs_list = cf.Stack("test_stack").outputs
+    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
+    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
+    original_machine_arn = state_machine["stateMachineArn"]
+    original_creation_date = state_machine["creationDate"]
+
+    # Update State Machine, with replacement.
+    updated_role = role_arn + "-updated"
+    updated_definition = definition.replace("HelloWorld", "HelloWorld2")
+    updated_properties = {
+        "StateMachineName": "New-StateMachine-Name",
+        "DefinitionString": updated_definition,
+        "RoleArn": updated_role,
+        "Tags": [
+            {"Key": "key3", "Value": "value3"},
+            {"Key": "key1", "Value": "updated_value"},
+        ],
+    }
+    template["Resources"]["MyStateMachine"]["Properties"] = updated_properties
+    cf.Stack("test_stack").update(TemplateBody=json.dumps(template))
+    outputs_list = cf.Stack("test_stack").outputs
+    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
+    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
+    state_machine["stateMachineArn"].should_not.equal(original_machine_arn)
+    state_machine["name"].should.equal("New-StateMachine-Name")
+    state_machine["creationDate"].should.be.greater_than(original_creation_date)
+    state_machine["roleArn"].should.equal(updated_role)
+    state_machine["definition"].should.equal(updated_definition)
+    tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
+    tags.should.have.length_of(3)
+    for tag in tags:
+        if tag["key"] == "key1":
+            tag["value"].should.equal("updated_value")
+
+    with pytest.raises(ClientError) as ex:
+        sf.describe_state_machine(stateMachineArn=original_machine_arn)
+    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
+    ex.value.response["Error"]["Message"].should.contain("State Machine Does Not Exist")
+
+
+@mock_stepfunctions
+@mock_cloudformation
+def test_state_machine_cloudformation_update_with_no_interruption():
+    sf = boto3.client("stepfunctions", region_name="us-east-1")
+    cf = boto3.resource("cloudformation", region_name="us-east-1")
+    definition = '{"StartAt": "HelloWorld", "States": {"HelloWorld": {"Type": "Task", "Resource": "arn:aws:lambda:us-east-1:111122223333;:function:HelloFunction", "End": true}}}'
+    role_arn = (
+        "arn:aws:iam::111122223333:role/service-role/StatesExecutionRole-us-east-1"
+    )
+    properties = {
+        "StateMachineName": "HelloWorld-StateMachine",
+        "DefinitionString": definition,
+        "RoleArn": role_arn,
+        "Tags": [
+            {"Key": "key1", "Value": "value1"},
+            {"Key": "key2", "Value": "value2"},
+        ],
+    }
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "An example template for a Step Functions state machine.",
+        "Resources": {
+            "MyStateMachine": {
+                "Type": "AWS::StepFunctions::StateMachine",
+                "Properties": {},
+            }
+        },
+        "Outputs": {
+            "StateMachineArn": {"Value": {"Ref": "MyStateMachine"}},
+            "StateMachineName": {"Value": {"Fn::GetAtt": ["MyStateMachine", "Name"]}},
+        },
+    }
+    template["Resources"]["MyStateMachine"]["Properties"] = properties
+    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    outputs_list = cf.Stack("test_stack").outputs
+    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
+    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
+    machine_arn = state_machine["stateMachineArn"]
+    creation_date = state_machine["creationDate"]
+
+    # Update State Machine in-place, no replacement.
+    updated_role = role_arn + "-updated"
+    updated_definition = definition.replace("HelloWorld", "HelloWorldUpdated")
+    updated_properties = {
+        "DefinitionString": updated_definition,
+        "RoleArn": updated_role,
+        "Tags": [
+            {"Key": "key3", "Value": "value3"},
+            {"Key": "key1", "Value": "updated_value"},
+        ],
+    }
+    template["Resources"]["MyStateMachine"]["Properties"] = updated_properties
+    cf.Stack("test_stack").update(TemplateBody=json.dumps(template))
+
+    state_machine = sf.describe_state_machine(stateMachineArn=machine_arn)
+    state_machine["name"].should.equal("HelloWorld-StateMachine")
+    state_machine["creationDate"].should.equal(creation_date)
+    state_machine["roleArn"].should.equal(updated_role)
+    state_machine["definition"].should.equal(updated_definition)
+    tags = sf.list_tags_for_resource(resourceArn=machine_arn).get("tags")
+    tags.should.have.length_of(3)
+    for tag in tags:
+        if tag["key"] == "key1":
+            tag["value"].should.equal("updated_value")
 
 
 def _get_account_id():

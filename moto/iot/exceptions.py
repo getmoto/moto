@@ -7,10 +7,10 @@ class IoTClientError(JsonRESTError):
 
 
 class ResourceNotFoundException(IoTClientError):
-    def __init__(self):
+    def __init__(self, msg=None):
         self.code = 404
         super(ResourceNotFoundException, self).__init__(
-            "ResourceNotFoundException", "The specified resource does not exist"
+            "ResourceNotFoundException", msg or "The specified resource does not exist"
         )
 
 
@@ -19,6 +19,15 @@ class InvalidRequestException(IoTClientError):
         self.code = 400
         super(InvalidRequestException, self).__init__(
             "InvalidRequestException", msg or "The request is not valid."
+        )
+
+
+class InvalidStateTransitionException(IoTClientError):
+    def __init__(self, msg=None):
+        self.code = 409
+        super(InvalidStateTransitionException, self).__init__(
+            "InvalidStateTransitionException",
+            msg or "An attempt was made to change to an invalid state.",
         )
 
 
@@ -43,3 +52,11 @@ class DeleteConflictException(IoTClientError):
     def __init__(self, msg):
         self.code = 409
         super(DeleteConflictException, self).__init__("DeleteConflictException", msg)
+
+
+class ResourceAlreadyExistsException(IoTClientError):
+    def __init__(self, msg):
+        self.code = 409
+        super(ResourceAlreadyExistsException, self).__init__(
+            "ResourceAlreadyExistsException", msg or "The resource already exists."
+        )

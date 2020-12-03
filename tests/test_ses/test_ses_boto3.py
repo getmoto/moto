@@ -4,6 +4,8 @@ import boto3
 from botocore.exceptions import ClientError
 from six.moves.email_mime_multipart import MIMEMultipart
 from six.moves.email_mime_text import MIMEText
+import pytest
+
 
 import sure  # noqa
 
@@ -83,6 +85,35 @@ def test_send_email():
 
 
 @mock_ses
+def test_send_email_when_verify_source():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Destination={"ToAddresses": ["test_to@example.com"],},
+        Message={
+            "Subject": {"Data": "test subject"},
+            "Body": {"Text": {"Data": "test body"}},
+        },
+    )
+
+    conn.send_email.when.called_with(
+        Source="verify_email_address@example.com", **kwargs
+    ).should.throw(ClientError)
+    conn.verify_email_address(EmailAddress="verify_email_address@example.com")
+    conn.send_email(Source="verify_email_address@example.com", **kwargs)
+
+    conn.send_email.when.called_with(
+        Source="verify_email_identity@example.com", **kwargs
+    ).should.throw(ClientError)
+    conn.verify_email_identity(EmailAddress="verify_email_identity@example.com")
+    conn.send_email(Source="verify_email_identity@example.com", **kwargs)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(2)
+
+
+@mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -139,19 +170,7 @@ def test_send_html_email():
 def test_send_raw_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    message = MIMEMultipart()
-    message["Subject"] = "Test"
-    message["From"] = "test@example.com"
-    message["To"] = "to@example.com, foo@example.com"
-
-    # Message body
-    part = MIMEText("test file attached")
-    message.attach(part)
-
-    # Attachment
-    part = MIMEText("contents of test file here")
-    part.add_header("Content-Disposition", "attachment; filename=test.txt")
-    message.attach(part)
+    message = get_raw_email()
 
     kwargs = dict(Source=message["From"], RawMessage={"Data": message.as_string()})
 
@@ -163,6 +182,39 @@ def test_send_raw_email():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     sent_count.should.equal(2)
+
+
+@mock_ses
+def test_send_raw_email_validate_domain():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    message = get_raw_email()
+
+    kwargs = dict(Source=message["From"], RawMessage={"Data": message.as_string()})
+
+    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+
+    conn.verify_domain_identity(Domain="example.com")
+    conn.send_raw_email(**kwargs)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(2)
+
+
+def get_raw_email():
+    message = MIMEMultipart()
+    message["Subject"] = "Test"
+    message["From"] = "test@example.com"
+    message["To"] = "to@example.com, foo@example.com"
+    # Message body
+    part = MIMEText("test file attached")
+    message.attach(part)
+    # Attachment
+    part = MIMEText("contents of test file here")
+    part.add_header("Content-Disposition", "attachment; filename=test.txt")
+    message.attach(part)
+    return message
 
 
 @mock_ses
@@ -214,3 +266,221 @@ def test_send_raw_email_without_source_or_from():
     kwargs = dict(RawMessage={"Data": message.as_string()})
 
     conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+
+
+@mock_ses
+def test_send_email_notification_with_encoded_sender():
+    sender = "Foo <foo@bar.baz>"
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_email_identity(EmailAddress=sender)
+    response = conn.send_email(
+        Source=sender,
+        Destination={"ToAddresses": ["your.friend@hotmail.com"]},
+        Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}},},
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_ses
+def test_create_configuration_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
+
+    conn.create_configuration_set_event_destination(
+        ConfigurationSetName="test",
+        EventDestination={
+            "Name": "snsEvent",
+            "Enabled": True,
+            "MatchingEventTypes": ["send",],
+            "SNSDestination": {
+                "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
+            },
+        },
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_configuration_set_event_destination(
+            ConfigurationSetName="failtest",
+            EventDestination={
+                "Name": "snsEvent",
+                "Enabled": True,
+                "MatchingEventTypes": ["send",],
+                "SNSDestination": {
+                    "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
+                },
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_configuration_set_event_destination(
+            ConfigurationSetName="test",
+            EventDestination={
+                "Name": "snsEvent",
+                "Enabled": True,
+                "MatchingEventTypes": ["send",],
+                "SNSDestination": {
+                    "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
+                },
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+
+
+@mock_ses
+def test_create_receipt_rule_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    result = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
+
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule_set(RuleSetName="testRuleSet")
+
+    ex.value.response["Error"]["Code"].should.equal("RuleSetNameAlreadyExists")
+
+
+@mock_ses
+def test_create_receipt_rule():
+    conn = boto3.client("ses", region_name="us-east-1")
+    rule_set_name = "testRuleSet"
+    conn.create_receipt_rule_set(RuleSetName=rule_set_name)
+
+    result = conn.create_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": "testRule",
+            "Enabled": False,
+            "TlsPolicy": "Optional",
+            "Recipients": ["string"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "string",
+                        "BucketName": "string",
+                        "ObjectKeyPrefix": "string",
+                        "KmsKeyArn": "string",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "string",
+                        "SmtpReplyCode": "string",
+                        "StatusCode": "string",
+                        "Message": "string",
+                        "Sender": "string",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
+
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule(
+            RuleSetName=rule_set_name,
+            Rule={
+                "Name": "testRule",
+                "Enabled": False,
+                "TlsPolicy": "Optional",
+                "Recipients": ["string"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "string",
+                            "ObjectKeyPrefix": "string",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("RuleAlreadyExists")
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule(
+            RuleSetName="InvalidRuleSetaName",
+            Rule={
+                "Name": "testRule",
+                "Enabled": False,
+                "TlsPolicy": "Optional",
+                "Recipients": ["string"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "string",
+                            "ObjectKeyPrefix": "string",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
+
+
+@mock_ses
+def test_create_ses_template():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    conn.create_template(
+        Template={
+            "TemplateName": "MyTemplate",
+            "SubjectPart": "Greetings, {{name}}!",
+            "TextPart": "Dear {{name}},"
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "HtmlPart": "<h1>Hello {{name}},"
+            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+        }
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.create_template(
+            Template={
+                "TemplateName": "MyTemplate",
+                "SubjectPart": "Greetings, {{name}}!",
+                "TextPart": "Dear {{name}},"
+                "\r\nYour favorite animal is {{favoriteanimal}}.",
+                "HtmlPart": "<h1>Hello {{name}},"
+                "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+            }
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
+
+    # get a template which is already added
+    result = conn.get_template(TemplateName="MyTemplate")
+    result["Template"]["TemplateName"].should.equal("MyTemplate")
+    result["Template"]["SubjectPart"].should.equal("Greetings, {{name}}!")
+    result["Template"]["HtmlPart"].should.equal(
+        "<h1>Hello {{name}}," "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+    )
+    # get a template which is not present
+    with pytest.raises(ClientError) as ex:
+        conn.get_template(TemplateName="MyFakeTemplate")
+
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+
+    result = conn.list_templates()
+    result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")

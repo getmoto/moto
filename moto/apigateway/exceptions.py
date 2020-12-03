@@ -85,6 +85,15 @@ class NoMethodDefined(BadRequestException):
         )
 
 
+class AuthorizerNotFoundException(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(AuthorizerNotFoundException, self).__init__(
+            "NotFoundException", "Invalid Authorizer identifier specified"
+        )
+
+
 class StageNotFoundException(RESTError):
     code = 404
 
@@ -103,10 +112,73 @@ class ApiKeyNotFoundException(RESTError):
         )
 
 
+class UsagePlanNotFoundException(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(UsagePlanNotFoundException, self).__init__(
+            "NotFoundException", "Invalid Usage Plan ID specified"
+        )
+
+
 class ApiKeyAlreadyExists(RESTError):
     code = 409
 
     def __init__(self):
         super(ApiKeyAlreadyExists, self).__init__(
             "ConflictException", "API Key already exists"
+        )
+
+
+class InvalidDomainName(BadRequestException):
+    code = 404
+
+    def __init__(self):
+        super(InvalidDomainName, self).__init__(
+            "BadRequestException", "No Domain Name specified"
+        )
+
+
+class DomainNameNotFound(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(DomainNameNotFound, self).__init__(
+            "NotFoundException", "Invalid Domain Name specified"
+        )
+
+
+class InvalidRestApiId(BadRequestException):
+    code = 404
+
+    def __init__(self):
+        super(InvalidRestApiId, self).__init__(
+            "BadRequestException", "No Rest API Id specified"
+        )
+
+
+class InvalidModelName(BadRequestException):
+    code = 404
+
+    def __init__(self):
+        super(InvalidModelName, self).__init__(
+            "BadRequestException", "No Model Name specified"
+        )
+
+
+class RestAPINotFound(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(RestAPINotFound, self).__init__(
+            "NotFoundException", "Invalid Rest API Id specified"
+        )
+
+
+class ModelNotFound(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(ModelNotFound, self).__init__(
+            "NotFoundException", "Invalid Model Name specified"
         )

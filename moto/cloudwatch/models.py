@@ -2,13 +2,15 @@ import json
 
 from boto3 import Session
 
-from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
+from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
-from .utils import make_arn_for_dashboard
+from .utils import make_arn_for_dashboard, make_arn_for_alarm
+from dateutil import parser
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
@@ -19,6 +21,41 @@ class Dimension(object):
     def __init__(self, name, value):
         self.name = name
         self.value = value
+
+    def __eq__(self, item):
+        if isinstance(item, Dimension):
+            return self.name == item.name and self.value == item.value
+        return False
+
+    def __ne__(self, item):  # Only needed on Py2; Py3 defines it implicitly
+        return self != item
+
+
+class Metric(object):
+    def __init__(self, metric_name, namespace, dimensions):
+        self.metric_name = metric_name
+        self.namespace = namespace
+        self.dimensions = dimensions
+
+
+class MetricStat(object):
+    def __init__(self, metric, period, stat, unit):
+        self.metric = metric
+        self.period = period
+        self.stat = stat
+        self.unit = unit
+
+
+class MetricDataQuery(object):
+    def __init__(
+        self, id, label, period, return_data, expression=None, metric_stat=None
+    ):
+        self.id = id
+        self.label = label
+        self.period = period
+        self.return_data = return_data
+        self.expression = expression
+        self.metric_stat = metric_stat
 
 
 def daterange(start, stop, step=timedelta(days=1), inclusive=False):
@@ -55,8 +92,10 @@ class FakeAlarm(BaseModel):
         name,
         namespace,
         metric_name,
+        metric_data_queries,
         comparison_operator,
         evaluation_periods,
+        datapoints_to_alarm,
         period,
         threshold,
         statistic,
@@ -66,12 +105,17 @@ class FakeAlarm(BaseModel):
         ok_actions,
         insufficient_data_actions,
         unit,
+        actions_enabled,
+        region="us-east-1",
     ):
         self.name = name
+        self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
         self.namespace = namespace
         self.metric_name = metric_name
+        self.metric_data_queries = metric_data_queries
         self.comparison_operator = comparison_operator
         self.evaluation_periods = evaluation_periods
+        self.datapoints_to_alarm = datapoints_to_alarm
         self.period = period
         self.threshold = threshold
         self.statistic = statistic
@@ -79,6 +123,7 @@ class FakeAlarm(BaseModel):
         self.dimensions = [
             Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
         ]
+        self.actions_enabled = actions_enabled
         self.alarm_actions = alarm_actions
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
@@ -110,6 +155,18 @@ class FakeAlarm(BaseModel):
         self.state_updated_timestamp = datetime.utcnow()
 
 
+def are_dimensions_same(metric_dimensions, dimensions):
+    for dimension in metric_dimensions:
+        for new_dimension in dimensions:
+            if (
+                dimension.name != new_dimension.name
+                or dimension.value != new_dimension.value
+            ):
+                return False
+
+    return True
+
+
 class MetricDatum(BaseModel):
     def __init__(self, namespace, name, value, dimensions, timestamp):
         self.namespace = namespace
@@ -119,6 +176,23 @@ class MetricDatum(BaseModel):
         self.dimensions = [
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
+
+    def filter(self, namespace, name, dimensions, already_present_metrics):
+        if namespace and namespace != self.namespace:
+            return False
+        if name and name != self.name:
+            return False
+        for metric in already_present_metrics:
+            if self.dimensions and are_dimensions_same(
+                metric.dimensions, self.dimensions
+            ):
+                return False
+
+        if dimensions and any(
+            Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
+        ):
+            return False
+        return True
 
 
 class Dashboard(BaseModel):
@@ -146,7 +220,7 @@ class Dashboard(BaseModel):
 
 class Statistics:
     def __init__(self, stats, dt):
-        self.timestamp = iso_8601_datetime_with_milliseconds(dt)
+        self.timestamp = iso_8601_datetime_without_milliseconds(dt)
         self.values = []
         self.stats = stats
 
@@ -198,13 +272,24 @@ class CloudWatchBackend(BaseBackend):
         self.metric_data = []
         self.paged_metric_data = {}
 
+    @property
+    # Retrieve a list of all OOTB metrics that are provided by metrics providers
+    # Computed on the fly
+    def aws_metric_data(self):
+        md = []
+        for name, service in metric_providers.items():
+            md.extend(service.get_cloudwatch_metrics())
+        return md
+
     def put_metric_alarm(
         self,
         name,
         namespace,
         metric_name,
+        metric_data_queries,
         comparison_operator,
         evaluation_periods,
+        datapoints_to_alarm,
         period,
         threshold,
         statistic,
@@ -214,13 +299,17 @@ class CloudWatchBackend(BaseBackend):
         ok_actions,
         insufficient_data_actions,
         unit,
+        actions_enabled,
+        region="us-east-1",
     ):
         alarm = FakeAlarm(
             name,
             namespace,
             metric_name,
+            metric_data_queries,
             comparison_operator,
             evaluation_periods,
+            datapoints_to_alarm,
             period,
             threshold,
             statistic,
@@ -230,7 +319,10 @@ class CloudWatchBackend(BaseBackend):
             ok_actions,
             insufficient_data_actions,
             unit,
+            actions_enabled,
+            region,
         )
+
         self.alarms[name] = alarm
         return alarm
 
@@ -271,6 +363,13 @@ class CloudWatchBackend(BaseBackend):
 
     def delete_alarms(self, alarm_names):
         for alarm_name in alarm_names:
+            if alarm_name not in self.alarms:
+                raise RESTError(
+                    "ResourceNotFound",
+                    "Alarm {0} not found".format(alarm_name),
+                    status=404,
+                )
+        for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(self, namespace, metric_data):
@@ -278,8 +377,7 @@ class CloudWatchBackend(BaseBackend):
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
             if timestamp is not None and type(timestamp) != datetime:
-                timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
-                timestamp = timestamp.replace(tzinfo=tzutc())
+                timestamp = parser.parse(timestamp)
             self.metric_data.append(
                 MetricDatum(
                     namespace,
@@ -289,6 +387,43 @@ class CloudWatchBackend(BaseBackend):
                     timestamp,
                 )
             )
+
+    def get_metric_data(self, queries, start_time, end_time):
+        period_data = [
+            md for md in self.metric_data if start_time <= md.timestamp <= end_time
+        ]
+        results = []
+        for query in queries:
+            query_ns = query["metric_stat._metric._namespace"]
+            query_name = query["metric_stat._metric._metric_name"]
+            query_data = [
+                md
+                for md in period_data
+                if md.namespace == query_ns and md.name == query_name
+            ]
+            metric_values = [m.value for m in query_data]
+            result_vals = []
+            stat = query["metric_stat._stat"]
+            if len(metric_values) > 0:
+                if stat == "Average":
+                    result_vals.append(sum(metric_values) / len(metric_values))
+                elif stat == "Minimum":
+                    result_vals.append(min(metric_values))
+                elif stat == "Maximum":
+                    result_vals.append(max(metric_values))
+                elif stat == "Sum":
+                    result_vals.append(sum(metric_values))
+
+            label = query["metric_stat._metric._metric_name"] + " " + stat
+            results.append(
+                {
+                    "id": query["id"],
+                    "label": label,
+                    "vals": result_vals,
+                    "timestamps": [datetime.now() for _ in result_vals],
+                }
+            )
+        return results
 
     def get_metric_statistics(
         self, namespace, metric_name, start_time, end_time, period, stats
@@ -329,7 +464,7 @@ class CloudWatchBackend(BaseBackend):
         return data
 
     def get_all_metrics(self):
-        return self.metric_data
+        return self.metric_data + self.aws_metric_data
 
     def put_dashboard(self, name, body):
         self.dashboards[name] = Dashboard(name, body)
@@ -381,7 +516,7 @@ class CloudWatchBackend(BaseBackend):
 
         self.alarms[alarm_name].update_state(reason, reason_data, state_value)
 
-    def list_metrics(self, next_token, namespace, metric_name):
+    def list_metrics(self, next_token, namespace, metric_name, dimensions):
         if next_token:
             if next_token not in self.paged_metric_data:
                 raise RESTError(
@@ -392,16 +527,21 @@ class CloudWatchBackend(BaseBackend):
                 del self.paged_metric_data[next_token]  # Cant reuse same token twice
                 return self._get_paginated(metrics)
         else:
-            metrics = self.get_filtered_metrics(metric_name, namespace)
+            metrics = self.get_filtered_metrics(metric_name, namespace, dimensions)
             return self._get_paginated(metrics)
 
-    def get_filtered_metrics(self, metric_name, namespace):
+    def get_filtered_metrics(self, metric_name, namespace, dimensions):
         metrics = self.get_all_metrics()
-        if namespace:
-            metrics = [md for md in metrics if md.namespace == namespace]
-        if metric_name:
-            metrics = [md for md in metrics if md.name == metric_name]
-        return metrics
+        new_metrics = []
+        for md in metrics:
+            if md.filter(
+                namespace=namespace,
+                name=metric_name,
+                dimensions=dimensions,
+                already_present_metrics=new_metrics,
+            ):
+                new_metrics.append(md)
+        return new_metrics
 
     def _get_paginated(self, metrics):
         if len(metrics) > 500:
@@ -412,24 +552,31 @@ class CloudWatchBackend(BaseBackend):
             return None, metrics
 
 
-class LogGroup(BaseModel):
+class LogGroup(CloudFormationModel):
     def __init__(self, spec):
         # required
         self.name = spec["LogGroupName"]
         # optional
         self.tags = spec.get("Tags", [])
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "LogGroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
+        return "AWS::Logs::LogGroup"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        spec = {"LogGroupName": properties["LogGroupName"]}
-        optional_properties = "Tags".split()
-        for prop in optional_properties:
-            if prop in properties:
-                spec[prop] = properties[prop]
-        return LogGroup(spec)
+        tags = properties.get("Tags", {})
+        return logs_backends[region_name].create_log_group(
+            resource_name, tags, **properties
+        )
 
 
 cloudwatch_backends = {}
@@ -441,3 +588,8 @@ for region in Session().get_available_regions(
     cloudwatch_backends[region] = CloudWatchBackend()
 for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
     cloudwatch_backends[region] = CloudWatchBackend()
+
+# List of services that provide OOTB CW metrics
+# See the S3Backend constructor for an example
+# TODO: We might have to separate this out per region for non-global services
+metric_providers = {}

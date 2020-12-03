@@ -152,8 +152,8 @@ def test_create_launch_configuration_using_ip_association_should_default_to_fals
 
 @mock_autoscaling_deprecated
 def test_create_launch_configuration_defaults():
-    """ Test with the minimum inputs and check that all of the proper defaults
-    are assigned for the other attributes """
+    """Test with the minimum inputs and check that all of the proper defaults
+    are assigned for the other attributes"""
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name="tester", image_id="ami-abcd1234", instance_type="m1.small"

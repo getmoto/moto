@@ -7,7 +7,7 @@ from random import random
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2 import ec2_backends
 from moto.ecr.exceptions import ImageNotFoundException, RepositoryNotFoundException
 
@@ -38,7 +38,7 @@ class BaseObject(BaseModel):
         return self.gen_response_object()
 
 
-class Repository(BaseObject):
+class Repository(BaseObject, CloudFormationModel):
     def __init__(self, repository_name):
         self.registry_id = DEFAULT_REGISTRY_ID
         self.arn = "arn:aws:ecr:us-east-1:{0}:repository/{1}".format(
@@ -67,19 +67,24 @@ class Repository(BaseObject):
         del response_object["arn"], response_object["name"], response_object["images"]
         return response_object
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "RepositoryName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecr-repository.html
+        return "AWS::ECR::Repository"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-
         ecr_backend = ecr_backends[region_name]
         return ecr_backend.create_repository(
             # RepositoryName is optional in CloudFormation, thus create a random
             # name if necessary
-            repository_name=properties.get(
-                "RepositoryName", "ecrrepository{0}".format(int(random() * 10 ** 6))
-            )
+            repository_name=resource_name
         )
 
     @classmethod
@@ -159,7 +164,7 @@ class Image(BaseObject):
     def response_list_object(self):
         response_object = self.gen_response_object()
         response_object["imageTag"] = self.image_tag
-        response_object["imageDigest"] = "i don't know"
+        response_object["imageDigest"] = self.get_image_digest()
         return {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
@@ -403,7 +408,7 @@ class ECRBackend(BaseBackend):
 
             # If we have a digest, is it valid?
             if "imageDigest" in image_id:
-                pattern = re.compile("^[0-9a-zA-Z_+\.-]+:[0-9a-fA-F]{64}")
+                pattern = re.compile(r"^[0-9a-zA-Z_+\.-]+:[0-9a-fA-F]{64}")
                 if not pattern.match(image_id.get("imageDigest")):
                     response["failures"].append(
                         {

@@ -443,22 +443,39 @@ def test_update_item_nested_remove():
     dict(returned_item).should.equal({"username": "steve", "Meta": {}})
 
 
-@mock_dynamodb2_deprecated
+@mock_dynamodb2
 def test_update_item_double_nested_remove():
-    conn = boto.dynamodb2.connect_to_region("us-east-1")
-    table = Table.create("messages", schema=[HashKey("username")])
+    conn = boto3.client("dynamodb", region_name="us-east-1")
+    conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
 
-    data = {"username": "steve", "Meta": {"Name": {"First": "Steve", "Last": "Urkel"}}}
-    table.put_item(data=data)
+    item = {
+        "username": {"S": "steve"},
+        "Meta": {
+            "M": {"Name": {"M": {"First": {"S": "Steve"}, "Last": {"S": "Urkel"}}}}
+        },
+    }
+    conn.put_item(TableName="messages", Item=item)
     key_map = {"username": {"S": "steve"}}
 
     # Then remove the Meta.FullName field
-    conn.update_item("messages", key_map, update_expression="REMOVE Meta.Name.First")
-
-    returned_item = table.get_item(username="steve")
-    dict(returned_item).should.equal(
-        {"username": "steve", "Meta": {"Name": {"Last": "Urkel"}}}
+    conn.update_item(
+        TableName="messages",
+        Key=key_map,
+        UpdateExpression="REMOVE Meta.#N.#F",
+        ExpressionAttributeNames={"#N": "Name", "#F": "First"},
     )
+
+    returned_item = conn.get_item(TableName="messages", Key=key_map)
+    expected_item = {
+        "username": {"S": "steve"},
+        "Meta": {"M": {"Name": {"M": {"Last": {"S": "Urkel"}}}}},
+    }
+    dict(returned_item["Item"]).should.equal(expected_item)
 
 
 @mock_dynamodb2_deprecated
@@ -471,7 +488,10 @@ def test_update_item_set():
     key_map = {"username": {"S": "steve"}}
 
     conn.update_item(
-        "messages", key_map, update_expression="SET foo=bar, blah=baz REMOVE SentBy"
+        "messages",
+        key_map,
+        update_expression="SET foo=:bar, blah=:baz REMOVE SentBy",
+        expression_attribute_values={":bar": {"S": "bar"}, ":baz": {"S": "baz"}},
     )
 
     returned_item = table.get_item(username="steve")
@@ -616,8 +636,9 @@ def test_boto3_update_item_conditions_fail():
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
     table.update_item.when.called_with(
         Key={"username": "johndoe"},
-        UpdateExpression="SET foo=bar",
+        UpdateExpression="SET foo=:bar",
         Expected={"foo": {"Value": "bar"}},
+        ExpressionAttributeValues={":bar": "bar"},
     ).should.throw(botocore.client.ClientError)
 
 
@@ -627,8 +648,9 @@ def test_boto3_update_item_conditions_fail_because_expect_not_exists():
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
     table.update_item.when.called_with(
         Key={"username": "johndoe"},
-        UpdateExpression="SET foo=bar",
+        UpdateExpression="SET foo=:bar",
         Expected={"foo": {"Exists": False}},
+        ExpressionAttributeValues={":bar": "bar"},
     ).should.throw(botocore.client.ClientError)
 
 
@@ -638,8 +660,9 @@ def test_boto3_update_item_conditions_fail_because_expect_not_exists_by_compare_
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
     table.update_item.when.called_with(
         Key={"username": "johndoe"},
-        UpdateExpression="SET foo=bar",
+        UpdateExpression="SET foo=:bar",
         Expected={"foo": {"ComparisonOperator": "NULL"}},
+        ExpressionAttributeValues={":bar": "bar"},
     ).should.throw(botocore.client.ClientError)
 
 
@@ -649,8 +672,9 @@ def test_boto3_update_item_conditions_pass():
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
     table.update_item(
         Key={"username": "johndoe"},
-        UpdateExpression="SET foo=baz",
+        UpdateExpression="SET foo=:baz",
         Expected={"foo": {"Value": "bar"}},
+        ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")
@@ -662,8 +686,9 @@ def test_boto3_update_item_conditions_pass_because_expect_not_exists():
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
     table.update_item(
         Key={"username": "johndoe"},
-        UpdateExpression="SET foo=baz",
+        UpdateExpression="SET foo=:baz",
         Expected={"whatever": {"Exists": False}},
+        ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")
@@ -675,8 +700,9 @@ def test_boto3_update_item_conditions_pass_because_expect_not_exists_by_compare_
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
     table.update_item(
         Key={"username": "johndoe"},
-        UpdateExpression="SET foo=baz",
+        UpdateExpression="SET foo=:baz",
         Expected={"whatever": {"ComparisonOperator": "NULL"}},
+        ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")
@@ -688,8 +714,9 @@ def test_boto3_update_item_conditions_pass_because_expect_exists_by_compare_to_n
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
     table.update_item(
         Key={"username": "johndoe"},
-        UpdateExpression="SET foo=baz",
+        UpdateExpression="SET foo=:baz",
         Expected={"foo": {"ComparisonOperator": "NOT_NULL"}},
+        ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")

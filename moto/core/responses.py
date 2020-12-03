@@ -11,16 +11,14 @@ import requests
 
 import pytz
 
-from moto.core.access_control import IAMRequest, S3IAMRequest
 from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
 import six
-from six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, parse_qsl, urlparse
 
 import xmltodict
-from pkg_resources import resource_filename
 from werkzeug.exceptions import HTTPException
 
 import boto3
@@ -32,7 +30,7 @@ log = logging.getLogger(__name__)
 
 
 def _decode_dict(d):
-    decoded = {}
+    decoded = OrderedDict()
     for key, value in d.items():
         if isinstance(key, six.binary_type):
             newkey = key.decode("utf-8")
@@ -64,9 +62,9 @@ def _decode_dict(d):
 
 class DynamicDictLoader(DictLoader):
     """
-      Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
-        Including the fixed (current) method version here to ensure performance benefit
-        even for those using older jinja versions.
+    Note: There's a bug in jinja2 pre-2.7.3 DictLoader where caching does not work.
+      Including the fixed (current) method version here to ensure performance benefit
+      even for those using older jinja versions.
     """
 
     def get_source(self, environment, template):
@@ -135,9 +133,13 @@ class ActionAuthenticatorMixin(object):
             ActionAuthenticatorMixin.request_count += 1
 
     def _authenticate_and_authorize_normal_action(self):
+        from moto.iam.access_control import IAMRequest
+
         self._authenticate_and_authorize_action(IAMRequest)
 
     def _authenticate_and_authorize_s3_action(self):
+        from moto.iam.access_control import S3IAMRequest
+
         self._authenticate_and_authorize_action(S3IAMRequest)
 
     @staticmethod
@@ -186,6 +188,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     default_region = "us-east-1"
     # to extract region, use [^.]
     region_regex = re.compile(r"\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com")
+    region_from_useragent_regex = re.compile(
+        r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
+    )
     param_list_regex = re.compile(r"(.*)\.(\d+)\.")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
@@ -197,7 +202,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return cls()._dispatch(*args, **kwargs)
 
     def setup_class(self, request, full_url, headers):
-        querystring = {}
+        querystring = OrderedDict()
         if hasattr(request, "body"):
             # Boto
             self.body = request.body
@@ -209,7 +214,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # definition for back-compatibility
             self.body = request.data
 
-            querystring = {}
+            querystring = OrderedDict()
             for key, value in request.form.items():
                 querystring[key] = [value]
 
@@ -238,7 +243,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     querystring[key] = [value]
             elif self.body:
                 try:
-                    querystring.update(parse_qs(raw_body, keep_blank_values=True))
+                    querystring.update(
+                        OrderedDict(
+                            (key, [value])
+                            for key, value in parse_qsl(
+                                raw_body, keep_blank_values=True
+                            )
+                        )
+                    )
                 except UnicodeEncodeError:
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
@@ -263,9 +275,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.response_headers = {"server": "amazon.com"}
 
     def get_region_from_url(self, request, full_url):
-        match = self.region_regex.search(full_url)
-        if match:
-            region = match.group(1)
+        url_match = self.region_regex.search(full_url)
+        user_agent_match = self.region_from_useragent_regex.search(
+            request.headers.get("User-Agent", "")
+        )
+        if url_match:
+            region = url_match.group(1)
+        elif user_agent_match:
+            region = user_agent_match.group(1)
         elif (
             "Authorization" in request.headers
             and "AWS4" in request.headers["Authorization"]
@@ -521,8 +538,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         returns
         {
-            "SlaveInstanceType": "m1.small",
-            "InstanceCount": "1",
+            "slave_instance_type": "m1.small",
+            "instance_count": "1",
         }
         """
         params = {}
@@ -766,6 +783,9 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path):
+        # Importing pkg_resources takes ~60ms; keep it local
+        from pkg_resources import resource_filename  # noqa
+
         self.path = resource_filename("botocore", path)
         with io.open(self.path, "r", encoding="utf-8") as f:
             spec = json.load(f)

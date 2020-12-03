@@ -12,6 +12,7 @@ from boto.redshift.exceptions import (
     InvalidSubnet,
 )
 from botocore.exceptions import ClientError
+import pytest
 import sure  # noqa
 
 from moto import mock_ec2
@@ -42,7 +43,7 @@ def test_create_cluster_boto3():
 
 
 @mock_redshift
-def test_create_cluster_boto3():
+def test_create_cluster_with_enhanced_vpc_routing_enabled():
     client = boto3.client("redshift", region_name="us-east-1")
     response = client.create_cluster(
         DBName="test",
@@ -75,7 +76,7 @@ def test_create_snapshot_copy_grant():
 
     client.describe_snapshot_copy_grants.when.called_with(
         SnapshotCopyGrantName="test-us-east-1"
-    ).should.throw(Exception)
+    ).should.throw(ClientError)
 
 
 @mock_redshift
@@ -423,7 +424,7 @@ def test_delete_cluster():
     )
 
     conn.delete_cluster.when.called_with(cluster_identifier, False).should.throw(
-        AttributeError
+        boto.exception.JSONResponseError
     )
 
     clusters = conn.describe_clusters()["DescribeClustersResponse"][
@@ -825,12 +826,11 @@ def test_describe_cluster_snapshots():
 @mock_redshift
 def test_describe_cluster_snapshots_not_found_error():
     client = boto3.client("redshift", region_name="us-east-1")
-    cluster_identifier = "my_cluster"
-    snapshot_identifier = "my_snapshot"
+    cluster_identifier = "non-existent-cluster-id"
+    snapshot_identifier = "non-existent-snapshot-id"
 
-    client.describe_cluster_snapshots.when.called_with(
-        ClusterIdentifier=cluster_identifier
-    ).should.throw(ClientError, "Cluster {} not found.".format(cluster_identifier))
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(0)
 
     client.describe_cluster_snapshots.when.called_with(
         SnapshotIdentifier=snapshot_identifier
@@ -866,8 +866,8 @@ def test_delete_cluster_snapshot():
 
     # Delete invalid id
     client.delete_cluster_snapshot.when.called_with(
-        SnapshotIdentifier="not-a-snapshot"
-    ).should.throw(ClientError)
+        SnapshotIdentifier="non-existent"
+    ).should.throw(ClientError, "Snapshot non-existent not found.")
 
 
 @mock_redshift
@@ -891,7 +891,7 @@ def test_cluster_snapshot_already_exists():
 
     client.create_cluster_snapshot.when.called_with(
         SnapshotIdentifier=snapshot_identifier, ClusterIdentifier=cluster_identifier
-    ).should.throw(ClientError)
+    ).should.throw(ClientError, "{} already exists".format(snapshot_identifier))
 
 
 @mock_redshift
@@ -914,6 +914,11 @@ def test_create_cluster_from_snapshot():
         SnapshotIdentifier=original_snapshot_identifier,
         ClusterIdentifier=original_cluster_identifier,
     )
+
+    client.restore_from_cluster_snapshot.when.called_with(
+        ClusterIdentifier=original_cluster_identifier,
+        SnapshotIdentifier=original_snapshot_identifier,
+    ).should.throw(ClientError, "ClusterAlreadyExists")
 
     response = client.restore_from_cluster_snapshot(
         ClusterIdentifier=new_cluster_identifier,
@@ -1255,6 +1260,23 @@ def test_enable_snapshot_copy():
         MasterUserPassword="password",
         NodeType="ds2.xlarge",
     )
+    with pytest.raises(ClientError) as ex:
+        client.enable_snapshot_copy(
+            ClusterIdentifier="test", DestinationRegion="us-west-2", RetentionPeriod=3,
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["Error"]["Message"].should.contain(
+        "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
+    )
+    with pytest.raises(ClientError) as ex:
+        client.enable_snapshot_copy(
+            ClusterIdentifier="test",
+            DestinationRegion="us-east-1",
+            RetentionPeriod=3,
+            SnapshotCopyGrantName="invalid-us-east-1-to-us-east-1",
+        )
+    ex.value.response["Error"]["Code"].should.equal("UnknownSnapshotCopyRegionFault")
+    ex.value.response["Error"]["Message"].should.contain("Invalid region us-east-1")
     client.enable_snapshot_copy(
         ClusterIdentifier="test",
         DestinationRegion="us-west-2",
@@ -1333,3 +1355,91 @@ def test_modify_snapshot_copy_retention_period():
     response = client.describe_clusters(ClusterIdentifier="test")
     cluster_snapshot_copy_status = response["Clusters"][0]["ClusterSnapshotCopyStatus"]
     cluster_snapshot_copy_status["RetentionPeriod"].should.equal(5)
+
+
+@mock_redshift
+def test_create_duplicate_cluster_fails():
+    kwargs = {
+        "ClusterIdentifier": "test",
+        "ClusterType": "single-node",
+        "DBName": "test",
+        "MasterUsername": "user",
+        "MasterUserPassword": "password",
+        "NodeType": "ds2.xlarge",
+    }
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(**kwargs)
+    client.create_cluster.when.called_with(**kwargs).should.throw(
+        ClientError, "ClusterAlreadyExists"
+    )
+
+
+@mock_redshift
+def test_delete_cluster_with_final_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_cluster(ClusterIdentifier="non-existent")
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
+
+    cluster_identifier = "my_cluster"
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        DBName="test",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        NodeType="ds2.xlarge",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_cluster(
+            ClusterIdentifier=cluster_identifier, SkipFinalClusterSnapshot=False
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
+    ex.value.response["Error"]["Message"].should.contain(
+        "FinalClusterSnapshotIdentifier is required unless SkipFinalClusterSnapshot is specified."
+    )
+
+    snapshot_identifier = "my_snapshot"
+    client.delete_cluster(
+        ClusterIdentifier=cluster_identifier,
+        SkipFinalClusterSnapshot=False,
+        FinalClusterSnapshotIdentifier=snapshot_identifier,
+    )
+
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(1)
+    resp["Snapshots"][0]["SnapshotIdentifier"].should.equal(snapshot_identifier)
+    resp["Snapshots"][0]["SnapshotType"].should.equal("manual")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
+
+
+@mock_redshift
+def test_delete_cluster_without_final_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        DBName="test",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        NodeType="ds2.xlarge",
+    )
+    client.delete_cluster(
+        ClusterIdentifier=cluster_identifier, SkipFinalClusterSnapshot=True
+    )
+
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(0)
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")

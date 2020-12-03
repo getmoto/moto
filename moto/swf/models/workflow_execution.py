@@ -82,6 +82,7 @@ class WorkflowExecution(BaseModel):
         self._events = []
         # child workflows
         self.child_workflow_executions = []
+        self._previous_started_event_id = None
 
     def __repr__(self):
         return "WorkflowExecution(run_id: {0})".format(self.run_id)
@@ -127,6 +128,10 @@ class WorkflowExecution(BaseModel):
             "executionInfo": self.to_medium_dict(),
             "executionConfiguration": {"taskList": {"name": self.task_list}},
         }
+        # info
+        if self.execution_status == "CLOSED":
+            hsh["executionInfo"]["closeStatus"] = self.close_status
+            hsh["executionInfo"]["closeTimestamp"] = self.close_timestamp
         # configuration
         for key in self._configuration_keys:
             attr = camelcase_to_underscores(key)
@@ -291,7 +296,8 @@ class WorkflowExecution(BaseModel):
             scheduled_event_id=dt.scheduled_event_id,
             identity=identity,
         )
-        dt.start(evt.event_id)
+        dt.start(evt.event_id, self._previous_started_event_id)
+        self._previous_started_event_id = evt.event_id
 
     def complete_decision_task(
         self, task_token, decisions=None, execution_context=None
