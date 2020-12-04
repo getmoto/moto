@@ -205,7 +205,6 @@ class CloudFormationResponse(BaseResponse):
             return template.render()
 
     def describe_stacks(self):
-        print("describe stack in moto")
         stack_name_or_id = None
         if self._get_param("StackName"):
             stack_name_or_id = self.querystring.get("StackName")[0]
