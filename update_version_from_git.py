@@ -22,6 +22,9 @@ import io
 import os
 import re
 import subprocess
+from typing import Tuple
+
+from packaging.version import Version
 
 
 def migrate_source_attribute(attr, to_this, target_file, regex):
@@ -68,11 +71,11 @@ def git_tag_name():
     return tag_branch
 
 
-def get_git_version_info():
+def get_git_version_info() -> Tuple[Version, int, str]:
     cmd = "git describe --tags"
     ver_str = subprocess.check_output(cmd, shell=True)
     ver, commits_since, githash = ver_str.decode().strip().split("-")
-    return ver, commits_since, githash
+    return Version(ver), int(commits_since), githash
 
 
 def prerelease_version():
@@ -83,13 +86,10 @@ def prerelease_version():
     ver, commits_since, githash = get_git_version_info()
     initpy_ver = get_version()
 
-    assert len(initpy_ver.split(".")) in [
-        3,
-        4,
-    ], "moto/__init__.py version should be like 0.0.2.dev"
-    assert (
-        initpy_ver > ver
-    ), "the moto/__init__.py version should be newer than the last tagged release."
+    assert initpy_ver > ver, (
+        "the moto/__init__.py version ({}) should be newer than the last tagged release ({})."
+        .format(initpy_ver, ver)
+    )
     return "{initpy_ver}.{commits_since}".format(
         initpy_ver=initpy_ver, commits_since=commits_since
     )
@@ -103,15 +103,20 @@ def read(*parts):
         return ""
 
 
-def get_version():
+def get_version() -> Version:
     """Returns version from moto/__init__.py"""
     version_file = read("moto", "__init__.py")
     version_match = re.search(
         r'^__version__ = [\'"]([^\'"]*)[\'"]', version_file, re.MULTILINE
     )
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+    if not version_match:
+        raise RuntimeError("Unable to find version string.")
+    initpy_ver = version_match.group(1)
+    assert len(initpy_ver.split(".")) in [
+        3,
+        4,
+    ], "moto/__init__.py version should be like 0.0.2.dev"
+    return Version(initpy_ver)
 
 
 def release_version_correct():
@@ -137,7 +142,7 @@ def release_version_correct():
         assert False, "No non-master deployments yet"
         # check that we are a tag with the same version as in __init__.py
         assert (
-            get_version() == git_tag_name()
+            get_version() == Version(git_tag_name())
         ), "git tag/branch name not the same as moto/__init__.py __verion__"
 
 
