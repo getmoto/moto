@@ -134,19 +134,21 @@ def test_delete_server_cert():
 
 
 @mock_iam_deprecated()
-@pytest.mark.xfail(raises=BotoServerError)
 def test_get_role__should_throw__when_role_does_not_exist():
     conn = boto.connect_iam()
-
-    conn.get_role("unexisting_role")
+    with pytest.raises(BotoServerError) as ex:
+        conn.get_role("unexisting_role")
+    ex.value.error_code.should.equal("NoSuchEntity")
+    ex.value.message.should.contain("not found")
 
 
 @mock_iam_deprecated()
-@pytest.mark.xfail(raises=BotoServerError)
 def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
     conn = boto.connect_iam()
-
-    conn.get_instance_profile("unexisting_instance_profile")
+    with pytest.raises(BotoServerError) as ex:
+        conn.get_instance_profile("unexisting_instance_profile")
+    ex.value.error_code.should.equal("NoSuchEntity")
+    ex.value.message.should.contain("not found")
 
 
 @mock_iam_deprecated()
