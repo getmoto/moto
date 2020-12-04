@@ -632,6 +632,20 @@ class RedshiftBackend(BaseBackend):
         cluster_identifier = cluster_kwargs.pop("cluster_identifier")
         new_cluster_identifier = cluster_kwargs.pop("new_cluster_identifier", None)
 
+        cluster_type = cluster_kwargs.get("cluster_type")
+        if cluster_type and cluster_type not in ["multi-node", "single-node"]:
+            raise InvalidParameterValueError(
+                "Invalid cluster type. Cluster type can be one of multi-node or single-node"
+            )
+        if cluster_type == "single-node":
+            # AWS will always silently override this value for single-node clusters.
+            cluster_kwargs["number_of_nodes"] = 1
+        elif cluster_type == "multi-node":
+            if cluster_kwargs.get("number_of_nodes", 0) < 2:
+                raise InvalidParameterCombinationError(
+                    "Number of nodes for cluster type multi-node must be greater than or equal to 2"
+                )
+
         cluster = self.describe_clusters(cluster_identifier)[0]
 
         for key, value in cluster_kwargs.items():

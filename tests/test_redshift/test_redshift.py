@@ -534,6 +534,7 @@ def test_modify_cluster():
     conn.modify_cluster(
         cluster_identifier,
         cluster_type="multi-node",
+        number_of_nodes=4,
         node_type="dw.hs1.xlarge",
         cluster_security_groups="security_group",
         master_user_password="new_password",
@@ -559,8 +560,7 @@ def test_modify_cluster():
     )
     cluster["AutomatedSnapshotRetentionPeriod"].should.equal(7)
     cluster["AllowVersionUpgrade"].should.equal(False)
-    # This one should remain unmodified.
-    cluster["NumberOfNodes"].should.equal(1)
+    cluster["NumberOfNodes"].should.equal(4)
 
 
 @mock_redshift
@@ -1443,3 +1443,47 @@ def test_delete_cluster_without_final_snapshot():
         client.describe_clusters(ClusterIdentifier=cluster_identifier)
     ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
     ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
+
+
+@mock_redshift
+def test_resize_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+    resp["Cluster"]["NumberOfNodes"].should.equal(1)
+
+    client.modify_cluster(
+        ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=2,
+    )
+    resp = client.describe_clusters(ClusterIdentifier="test")
+    resp["Clusters"][0]["NumberOfNodes"].should.equal(2)
+
+    client.modify_cluster(
+        ClusterIdentifier="test", ClusterType="single-node",
+    )
+    resp = client.describe_clusters(ClusterIdentifier="test")
+    resp["Clusters"][0]["NumberOfNodes"].should.equal(1)
+
+    with pytest.raises(ClientError) as ex:
+        client.modify_cluster(
+            ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=1,
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
+    ex.value.response["Error"]["Message"].should.contain(
+        "Number of nodes for cluster type multi-node must be greater than or equal to 2"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.modify_cluster(
+            ClusterIdentifier="test",
+            ClusterType="invalid-cluster-type",
+            NumberOfNodes=1,
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["Error"]["Message"].should.contain("Invalid cluster type")
