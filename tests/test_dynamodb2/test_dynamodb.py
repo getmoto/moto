@@ -5628,3 +5628,24 @@ def test_transact_get_items_should_return_empty_map_for_non_existent_item():
     items.should.have.length_of(2)
     items[0].should.equal({"Item": item})
     items[1].should.equal({})
+
+
+@mock_dynamodb2
+def test_dynamodb_update_item_fails_on_string_sets():
+    dynamodb = boto3.resource("dynamodb", region_name="eu-west-1")
+    client = boto3.client("dynamodb", region_name="eu-west-1")
+
+    table = dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "record_id", "KeyType": "HASH"},],
+        AttributeDefinitions=[{"AttributeName": "record_id", "AttributeType": "S"},],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table.meta.client.get_waiter("table_exists").wait(TableName="test")
+    attribute = {"test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT"}}
+
+    client.update_item(
+        TableName="test",
+        Key={"record_id": {"S": "testrecord"}},
+        AttributeUpdates=attribute,
+    )
