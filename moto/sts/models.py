@@ -86,14 +86,22 @@ class STSBackend(BaseBackend):
         saml_assertion_encoded = kwargs.pop("saml_assertion")
         saml_assertion_decoded = b64decode(saml_assertion_encoded)
         saml_assertion = xmltodict.parse(saml_assertion_decoded.decode("utf-8"))
-        kwargs["duration"] = int(
-            saml_assertion["samlp:Response"]["Assertion"]["AttributeStatement"][
-                "Attribute"
-            ][2]["AttributeValue"]
-        )
-        kwargs["role_session_name"] = saml_assertion["samlp:Response"]["Assertion"][
+
+        saml_assertion_attributes = saml_assertion["samlp:Response"]["Assertion"][
             "AttributeStatement"
-        ]["Attribute"][0]["AttributeValue"]
+        ]["Attribute"]
+        for attribute in saml_assertion_attributes:
+            if (
+                attribute["@Name"]
+                == "https://aws.amazon.com/SAML/Attributes/RoleSessionName"
+            ):
+                kwargs["role_session_name"] = attribute["AttributeValue"]
+            if (
+                attribute["@Name"]
+                == "https://aws.amazon.com/SAML/Attributes/SessionDuration"
+            ):
+                kwargs["duration"] = int(attribute["AttributeValue"])
+
         kwargs["external_id"] = None
         kwargs["policy"] = None
         role = AssumedRole(**kwargs)
