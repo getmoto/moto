@@ -170,7 +170,29 @@ dummy_redrive_template = {
     },
 }
 
+dummy_template_special_chars_in_description = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 1 <env>",
+    "Resources": {
+        "EC2Instance1": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-d3adb33f",
+                "KeyName": "dummy",
+                "InstanceType": "t2.micro",
+                "Tags": [
+                    {"Key": "Description", "Value": "Test tag"},
+                    {"Key": "Name", "Value": "Name tag for tests"},
+                ],
+            },
+        }
+    },
+}
+
 dummy_template_json = json.dumps(dummy_template)
+dummy_template_special_chars_in_description_json = json.dumps(
+    dummy_template_special_chars_in_description
+)
 dummy_update_template_json = json.dumps(dummy_update_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
 dummy_import_template_json = json.dumps(dummy_import_template)
@@ -1147,6 +1169,19 @@ def test_describe_deleted_stack():
     stack_by_id["StackId"].should.equal(stack["StackId"])
     stack_by_id["StackName"].should.equal("test_stack")
     stack_by_id["StackStatus"].should.equal("DELETE_COMPLETE")
+
+
+@mock_cloudformation
+def test_describe_stack_with_special_chars():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    cf_conn.create_stack(
+        StackName="test_stack_spl",
+        TemplateBody=dummy_template_special_chars_in_description_json,
+    )
+
+    stack = cf_conn.describe_stacks(StackName="test_stack_spl")["Stacks"][0]
+    assert stack.get("StackName") == "test_stack_spl"
+    assert stack.get("Description") == "Stack 1 <env>"
 
 
 @mock_cloudformation
