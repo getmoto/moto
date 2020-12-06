@@ -868,3 +868,43 @@ def test_describe_vpc_end_point_services():
         "us-west-1a",
         "us-west-1b",
     ]
+
+
+@mock_ec2
+def test_describe_vpc_end_points():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    route_table = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
+    vpc_end_point = ec2.create_vpc_endpoint(
+        VpcId=vpc["Vpc"]["VpcId"],
+        ServiceName="com.amazonaws.us-east-1.s3",
+        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
+        VpcEndpointType="gateway",
+    )
+
+    vpc_endpoints = ec2.describe_vpc_endpoints()
+    assert vpc_endpoints.get("VpcEndpoints")[0].get(
+        "VpcEndpointId"
+    ) == vpc_end_point.get("VpcEndpoint").get("VpcEndpointId")
+    assert vpc_endpoints.get("VpcEndpoints")[0].get("VpcId") == vpc["Vpc"]["VpcId"]
+    assert vpc_endpoints.get("VpcEndpoints")[0].get("RouteTableIds") == [
+        route_table.get("RouteTable").get("RouteTableId")
+    ]
+    assert "VpcEndpointType" in vpc_endpoints.get("VpcEndpoints")[0]
+    assert "ServiceName" in vpc_endpoints.get("VpcEndpoints")[0]
+    assert "State" in vpc_endpoints.get("VpcEndpoints")[0]
+
+    vpc_endpoints = ec2.describe_vpc_endpoints(
+        VpcEndpointIds=[vpc_end_point.get("VpcEndpoint").get("VpcEndpointId")]
+    )
+    assert vpc_endpoints.get("VpcEndpoints")[0].get(
+        "VpcEndpointId"
+    ) == vpc_end_point.get("VpcEndpoint").get("VpcEndpointId")
+    assert vpc_endpoints.get("VpcEndpoints")[0].get("VpcId") == vpc["Vpc"]["VpcId"]
+    assert vpc_endpoints.get("VpcEndpoints")[0].get("RouteTableIds") == [
+        route_table.get("RouteTable").get("RouteTableId")
+    ]
+    assert "VpcEndpointType" in vpc_endpoints.get("VpcEndpoints")[0]
+    assert "ServiceName" in vpc_endpoints.get("VpcEndpoints")[0]
+    assert "State" in vpc_endpoints.get("VpcEndpoints")[0]
