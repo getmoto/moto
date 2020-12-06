@@ -226,7 +226,9 @@ class StateReason(object):
 
 class TaggedEC2Resource(BaseModel):
     def get_tags(self, *args, **kwargs):
-        tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
+        tags = []
+        if self.id:
+            tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
         return tags
 
     def add_tag(self, key, value):
