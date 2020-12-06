@@ -86,22 +86,31 @@ class STSBackend(BaseBackend):
         del kwargs["principal_arn"]
         saml_assertion_encoded = kwargs.pop("saml_assertion")
         saml_assertion_decoded = b64decode(saml_assertion_encoded)
-        saml_assertion = xmltodict.parse(saml_assertion_decoded.decode("utf-8"))
 
-        saml_assertion_attributes = saml_assertion["samlp:Response"]["Assertion"][
-            "AttributeStatement"
-        ]["Attribute"]
+        namespaces = {
+            "urn:oasis:names:tc:SAML:2.0:protocol": "samlp",
+            "urn:oasis:names:tc:SAML:2.0:assertion": "saml",
+        }
+        saml_assertion = xmltodict.parse(
+            saml_assertion_decoded.decode("utf-8"),
+            process_namespaces=True,
+            namespaces=namespaces,
+        )
+
+        saml_assertion_attributes = saml_assertion["samlp:Response"]["saml:Assertion"][
+            "saml:AttributeStatement"
+        ]["saml:Attribute"]
         for attribute in saml_assertion_attributes:
             if (
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/RoleSessionName"
             ):
-                kwargs["role_session_name"] = attribute["AttributeValue"]
+                kwargs["role_session_name"] = attribute["saml:AttributeValue"]
             if (
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/SessionDuration"
             ):
-                kwargs["duration"] = int(attribute["AttributeValue"])
+                kwargs["duration"] = int(attribute["saml:AttributeValue"])
 
         if "duration" not in kwargs:
             kwargs["duration"] = DEFAULT_STS_SESSION_DURATION
