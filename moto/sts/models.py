@@ -10,6 +10,7 @@ from moto.sts.utils import (
     random_secret_access_key,
     random_session_token,
     random_assumed_role_id,
+    DEFAULT_STS_SESSION_DURATION,
 )
 
 
@@ -101,6 +102,9 @@ class STSBackend(BaseBackend):
                 == "https://aws.amazon.com/SAML/Attributes/SessionDuration"
             ):
                 kwargs["duration"] = int(attribute["AttributeValue"])
+
+        if "duration" not in kwargs:
+            kwargs["duration"] = DEFAULT_STS_SESSION_DURATION
 
         kwargs["external_id"] = None
         kwargs["policy"] = None
