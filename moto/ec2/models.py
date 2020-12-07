@@ -3228,14 +3228,14 @@ class VPCBackend(object):
 
         if vpc_end_point_ids:
             vpc_end_point_ids = [
-                route_table
-                for route_table in vpc_end_points
-                if route_table.id in vpc_end_point_ids
+                vpc_end_point
+                for vpc_end_point in vpc_end_points
+                if vpc_end_point.id in vpc_end_point_ids
             ]
             if len(vpc_end_points) != len(vpc_end_point_ids):
                 invalid_id = list(
                     set(vpc_end_point_ids).difference(
-                        set([route_table.id for route_table in vpc_end_points])
+                        set([vpc_end_point.id for vpc_end_point in vpc_end_points])
                     )
                 )[0]
                 raise InvalidVpcEndPointIdError(invalid_id)
