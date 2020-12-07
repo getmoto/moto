@@ -93,6 +93,7 @@ class STSBackend(BaseBackend):
         }
         saml_assertion = xmltodict.parse(
             saml_assertion_decoded.decode("utf-8"),
+            force_cdata=True,
             process_namespaces=True,
             namespaces=namespaces,
         )
@@ -105,12 +106,12 @@ class STSBackend(BaseBackend):
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/RoleSessionName"
             ):
-                kwargs["role_session_name"] = attribute["saml:AttributeValue"]
+                kwargs["role_session_name"] = attribute["saml:AttributeValue"]["#text"]
             if (
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/SessionDuration"
             ):
-                kwargs["duration"] = int(attribute["saml:AttributeValue"])
+                kwargs["duration"] = int(attribute["saml:AttributeValue"]["#text"])
 
         if "duration" not in kwargs:
             kwargs["duration"] = DEFAULT_STS_SESSION_DURATION
