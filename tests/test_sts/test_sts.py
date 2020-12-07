@@ -108,23 +108,10 @@ def test_assume_role():
 @mock_sts
 def test_assume_role_with_saml():
     client = boto3.client("sts", region_name="us-east-1")
-
-    session_name = "session-name"
-    policy = json.dumps(
-        {
-            "Statement": [
-                {
-                    "Sid": "Stmt13690092345534",
-                    "Action": ["S3:ListBucket"],
-                    "Effect": "Allow",
-                    "Resource": ["arn:aws:s3:::foobar-tester"],
-                }
-            ]
-        }
-    )
     role_name = "test-role"
     provider_name = "TestProvFed"
-    user_name = "testuser"
+    fed_identifier = "7ca82df9-1bad-4dd3-9b2b-adb68b554282"
+    fed_name = "testuser"
     role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
         account_id=ACCOUNT_ID, role_name=role_name
     )
@@ -161,7 +148,7 @@ def test_assume_role_with_saml():
       </KeyInfo>
     </ds:Signature>
     <Subject>
-      <NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent">{username}</NameID>
+      <NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent">{fed_identifier}</NameID>
       <SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
         <SubjectConfirmationData NotOnOrAfter="2012-01-01T13:00:00.000Z" Recipient="https://signin.aws.amazon.com/saml"/>
       </SubjectConfirmation>
@@ -173,7 +160,7 @@ def test_assume_role_with_saml():
     </Conditions>
     <AttributeStatement>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/RoleSessionName">
-        <AttributeValue>{username}@localhost</AttributeValue>
+        <AttributeValue>{fed_name}</AttributeValue>
       </Attribute>
       <Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
         <AttributeValue>arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</AttributeValue>
@@ -192,7 +179,8 @@ def test_assume_role_with_saml():
         account_id=ACCOUNT_ID,
         role_name=role_name,
         provider_name=provider_name,
-        username=user_name,
+        fed_identifier=fed_identifier,
+        fed_name=fed_name,
     ).replace(
         "\n", ""
     )
@@ -213,16 +201,16 @@ def test_assume_role_with_saml():
     credentials["SecretAccessKey"].should.have.length_of(40)
 
     assume_role_response["AssumedRoleUser"]["Arn"].should.equal(
-        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{fed_name}@localhost".format(
-            account_id=ACCOUNT_ID, role_name=role_name, fed_name=user_name
+        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{fed_name}".format(
+            account_id=ACCOUNT_ID, role_name=role_name, fed_name=fed_name
         )
     )
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].startswith("AROA")
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].endswith(
-        ":{fed_name}@localhost".format(fed_name=user_name)
+        ":{fed_name}".format(fed_name=fed_name)
     )
     assume_role_response["AssumedRoleUser"]["AssumedRoleId"].should.have.length_of(
-        21 + 1 + len("{fed_name}@localhost".format(fed_name=user_name))
+        21 + 1 + len("{fed_name}".format(fed_name=fed_name))
     )
 
 
