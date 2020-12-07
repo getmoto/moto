@@ -108,6 +108,7 @@ from .exceptions import (
     InvalidParameterDependency,
     IncorrectStateIamProfileAssociationError,
     InvalidAssociationIDIamProfileAssociationError,
+    InvalidVpcEndPointIdError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -3221,6 +3222,25 @@ class VPCBackend(object):
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
 
         return vpc_end_point
+
+    def get_vpc_end_point(self, vpc_end_point_ids, filters=None):
+        vpc_end_points = self.vpc_end_points.values()
+
+        if vpc_end_point_ids:
+            vpc_end_points = [
+                vpc_end_point
+                for vpc_end_point in vpc_end_points
+                if vpc_end_point.id in vpc_end_point_ids
+            ]
+            if len(vpc_end_points) != len(vpc_end_point_ids):
+                invalid_id = list(
+                    set(vpc_end_point_ids).difference(
+                        set([vpc_end_point.id for vpc_end_point in vpc_end_points])
+                    )
+                )[0]
+                raise InvalidVpcEndPointIdError(invalid_id)
+
+        return generic_filter(filters, vpc_end_points)
 
     def get_vpc_end_point_services(self):
         vpc_end_point_services = self.vpc_end_points.values()

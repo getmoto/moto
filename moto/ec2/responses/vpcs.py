@@ -198,8 +198,17 @@ class VPCs(BaseResponse):
 
     def describe_vpc_endpoint_services(self):
         vpc_end_point_services = self.ec2_backend.get_vpc_end_point_services()
-        template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
+        template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE)
         return template.render(vpc_end_points=vpc_end_point_services)
+
+    def describe_vpc_endpoints(self):
+        vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
+        filters = filters_from_querystring(self.querystring)
+        vpc_end_points = self.ec2_backend.get_vpc_end_point(
+            vpc_end_point_ids=vpc_end_points_ids, filters=filters
+        )
+        template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
+        return template.render(vpc_end_points=vpc_end_points)
 
 
 CREATE_VPC_RESPONSE = """
@@ -460,7 +469,7 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
     </vpcEndpoint>
 </CreateVpcEndpointResponse>"""
 
-DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
     <serviceNameSet>
         {% for serviceName in vpc_end_points.services %}
@@ -491,3 +500,69 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="
         </item>
     </serviceDetailSet>
 </DescribeVpcEndpointServicesResponse>"""
+
+DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
+    <vpcEndpointSet>
+        {% for vpc_end_point in vpc_end_points %}
+            <item>
+                {% if vpc_end_point.policy_document %}
+                    <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
+                {% endif %}
+                <state>available</state>
+                <privateDnsEnabled>{{ vpc_end_point.private_dns_enabled }}</privateDnsEnabled>
+                <serviceName>{{ vpc_end_point.service_name }}</serviceName>
+                <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
+                <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>
+                <vpcEndpointType>{{ vpc_end_point.type }}</vpcEndpointType>
+                {% if vpc_end_point.subnet_ids %}
+                    <subnetIdSet>
+                        {% for subnet_id in vpc_end_point.subnet_ids %}
+                            <item>{{ subnet_id }}</item>
+                        {% endfor %}
+                    </subnetIdSet>
+                {% endif %}
+                {% if vpc_end_point.route_table_ids %}
+                    <routeTableIdSet>
+                        {% for route_table_id in vpc_end_point.route_table_ids %}
+                            <item>{{ route_table_id }}</item>
+                        {% endfor %}
+                    </routeTableIdSet>
+                {% endif %}
+                {% if vpc_end_point.network_interface_ids %}
+                    <networkInterfaceIdSet>
+                        {% for network_interface_id in vpc_end_point.network_interface_ids %}
+                            <item>{{ network_interface_id }}</item>
+                        {% endfor %}
+                    </networkInterfaceIdSet>
+                {% endif %}
+                {% if vpc_end_point.dns_entries %}
+                    <dnsEntries>
+                        {% for dns_entry in vpc_end_point.dns_entries %}
+                            <item>{{ dns_entry }}</item>
+                        {% endfor %}
+                    </dnsEntries>
+                {% endif %}
+                {% if vpc_end_point.groups %}
+                    <groups>
+                        {% for group in vpc_end_point.groups %}
+                            <item>{{ group }}</item>
+                        {% endfor %}
+                    </groups>
+                {% endif %}
+                {% if vpc_end_point.tag_specifications %}
+                    <tagSet>
+                        {% for tag in vpc_end_point.tag_specifications %}
+                          <item>
+                            <key>{{ tag.key }}</key>
+                            <value>{{ tag.value }}</value>
+                          </item>
+                        {% endfor %}
+                    </tagSet>
+                {% endif %}
+                <ownerId>123456789012</ownerId>
+                <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
+            </item>
+        {% endfor %}
+    </vpcEndpointSet>
+</DescribeVpcEndpointsResponse>"""
