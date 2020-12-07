@@ -3227,7 +3227,7 @@ class VPCBackend(object):
         vpc_end_points = self.vpc_end_points.values()
 
         if vpc_end_point_ids:
-            vpc_end_point_ids = [
+            vpc_end_points = [
                 vpc_end_point
                 for vpc_end_point in vpc_end_points
                 if vpc_end_point.id in vpc_end_point_ids

@@ -8,7 +8,8 @@ from botocore.exceptions import ClientError
 import boto3
 import boto
 from boto.exception import EC2ResponseError
-import sure  # noqa
+
+# import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
 
@@ -908,3 +909,10 @@ def test_describe_vpc_end_points():
     assert "VpcEndpointType" in vpc_endpoints.get("VpcEndpoints")[0]
     assert "ServiceName" in vpc_endpoints.get("VpcEndpoints")[0]
     assert "State" in vpc_endpoints.get("VpcEndpoints")[0]
+
+    try:
+        ec2.describe_vpc_endpoints(
+            VpcEndpointIds=[route_table.get("RouteTable").get("RouteTableId")]
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidVpcEndPointId.NotFound"

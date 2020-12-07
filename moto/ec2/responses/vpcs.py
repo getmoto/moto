@@ -202,7 +202,7 @@ class VPCs(BaseResponse):
         return template.render(vpc_end_points=vpc_end_point_services)
 
     def describe_vpc_endpoints(self):
-        vpc_end_points_ids = self._get_multi_param("VpcEndPointId")
+        vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
         filters = filters_from_querystring(self.querystring)
         vpc_end_points = self.ec2_backend.get_vpc_end_point(
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
