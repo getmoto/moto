@@ -10,6 +10,13 @@ from uuid import UUID
 
 from moto import mock_ecs
 from moto import mock_ec2
+from moto.ecs.exceptions import (
+    ClusterNotFoundException,
+    ServiceNotFoundException,
+    InvalidParameterException,
+    TaskDefinitionNotFoundException,
+    RevisionNotFoundException,
+)
 import pytest
 
 
@@ -71,6 +78,14 @@ def test_delete_cluster():
 
     response = client.list_clusters()
     len(response["clusterArns"]).should.equal(0)
+
+
+@mock_ecs
+def test_delete_cluster_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.delete_cluster.when.called_with(cluster="not_a_cluster").should.throw(
+        ClientError, ClusterNotFoundException().message
+    )
 
 
 @mock_ecs
@@ -345,6 +360,23 @@ def test_deregister_task_definition():
     response["taskDefinition"]["containerDefinitions"][0]["logConfiguration"][
         "logDriver"
     ].should.equal("json-file")
+
+
+@mock_ecs
+def test_deregister_task_definition():
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.deregister_task_definition.when.called_with(
+        taskDefinition="fake_task"
+    ).should.throw(ClientError, RevisionNotFoundException().message)
+    client.deregister_task_definition.when.called_with(
+        taskDefinition="fake_task:foo"
+    ).should.throw(
+        ClientError,
+        InvalidParameterException("Invalid revision number. Number: foo").message,
+    )
+    client.deregister_task_definition.when.called_with(
+        taskDefinition="fake_task:1"
+    ).should.throw(ClientError, TaskDefinitionNotFoundException().message)
 
 
 @mock_ecs
@@ -751,17 +783,56 @@ def test_delete_service():
 
 
 @mock_ecs
-def test_update_non_existent_service():
+def test_delete_service_exceptions():
     client = boto3.client("ecs", region_name="us-east-1")
-    try:
-        client.update_service(
-            cluster="my-clustet", service="my-service", desiredCount=0
-        )
-    except ClientError as exc:
-        error_code = exc.response["Error"]["Code"]
-        error_code.should.equal("ServiceNotFoundException")
-    else:
-        raise Exception("Didn't raise ClientError")
+
+    # Raises ClusterNotFoundException because "default" is not a cluster
+    client.delete_service.when.called_with(service="not_as_service").should.throw(
+        ClientError, ClusterNotFoundException().message
+    )
+
+    _ = client.create_cluster()
+    client.delete_service.when.called_with(service="not_as_service").should.throw(
+        ClientError, ServiceNotFoundException().message
+    )
+
+    _ = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+
+    _ = client.create_service(
+        serviceName="test_ecs_service", taskDefinition="test_ecs_task", desiredCount=1,
+    )
+
+    client.delete_service.when.called_with(service="test_ecs_service").should.throw(
+        ClientError,
+        InvalidParameterException(
+            "The service cannot be stopped while it is scaled above 0."
+        ).message,
+    )
+
+
+@mock_ecs
+def test_update_service_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+
+    client.update_service.when.called_with(
+        service="not_a_service", desiredCount=0
+    ).should.throw(ClientError, ClusterNotFoundException().message)
+
+    _ = client.create_cluster()
+
+    client.update_service.when.called_with(
+        service="not_a_service", desiredCount=0
+    ).should.throw(ClientError, ServiceNotFoundException().message)
 
 
 @mock_ec2
@@ -956,6 +1027,23 @@ def test_describe_container_instances():
         ecs_client.describe_container_instances(
             cluster=test_cluster_name, containerInstances=[]
         )
+
+
+@mock_ecs
+def test_describe_container_instances_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+
+    client.describe_container_instances.when.called_with(
+        containerInstances=[]
+    ).should.throw(ClientError, ClusterNotFoundException().message)
+
+    _ = client.create_cluster()
+    client.describe_container_instances.when.called_with(
+        containerInstances=[]
+    ).should.throw(
+        ClientError,
+        InvalidParameterException("Container Instances cannot be empty.").message,
+    )
 
 
 @mock_ec2
@@ -1213,6 +1301,26 @@ def test_run_task_default_cluster():
     response["tasks"][0]["stoppedReason"].should.equal("")
 
 
+@mock_ecs
+def test_run_task_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+    _ = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+
+    client.run_task.when.called_with(
+        cluster="not_a_cluster", taskDefinition="test_ecs_task"
+    ).should.throw(ClientError, ClusterNotFoundException().message)
+
+
 @mock_ec2
 @mock_ecs
 def test_start_task():
@@ -1287,15 +1395,40 @@ def test_start_task():
     response["tasks"][0]["stoppedReason"].should.equal("")
 
 
+@mock_ecs
+def test_start_task_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+    _ = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+
+    client.start_task.when.called_with(
+        taskDefinition="test_ecs_task", containerInstances=["not_a_container_instance"]
+    ).should.throw(ClientError, ClusterNotFoundException().message)
+
+    _ = client.create_cluster()
+    client.start_task.when.called_with(
+        taskDefinition="test_ecs_task", containerInstances=[]
+    ).should.throw(
+        ClientError, InvalidParameterException("Container Instances cannot be empty.")
+    )
+
+
 @mock_ec2
 @mock_ecs
 def test_list_tasks():
     client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
-    test_cluster_name = "test_ecs_cluster"
-
-    _ = client.create_cluster(clusterName=test_cluster_name)
+    _ = client.create_cluster()
 
     test_instance = ec2.create_instances(
         ImageId="ami-1234abcd", MinCount=1, MaxCount=1
@@ -1306,10 +1439,10 @@ def test_list_tasks():
     )
 
     _ = client.register_container_instance(
-        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+        instanceIdentityDocument=instance_id_document
     )
 
-    container_instances = client.list_container_instances(cluster=test_cluster_name)
+    container_instances = client.list_container_instances()
     container_instance_id = container_instances["containerInstanceArns"][0].split("/")[
         -1
     ]
@@ -1332,7 +1465,6 @@ def test_list_tasks():
     )
 
     _ = client.start_task(
-        cluster="test_ecs_cluster",
         taskDefinition="test_ecs_task",
         overrides={},
         containerInstances=[container_instance_id],
@@ -1340,7 +1472,6 @@ def test_list_tasks():
     )
 
     _ = client.start_task(
-        cluster="test_ecs_cluster",
         taskDefinition="test_ecs_task",
         overrides={},
         containerInstances=[container_instance_id],
@@ -1348,10 +1479,15 @@ def test_list_tasks():
     )
 
     assert len(client.list_tasks()["taskArns"]).should.equal(2)
-    assert len(client.list_tasks(cluster="test_ecs_cluster")["taskArns"]).should.equal(
-        2
-    )
     assert len(client.list_tasks(startedBy="foo")["taskArns"]).should.equal(1)
+
+
+@mock_ecs
+def test_list_tasks_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+    client.list_tasks.when.called_with(cluster="not_a_cluster").should.throw(
+        ClientError, ClusterNotFoundException().message
+    )
 
 
 @mock_ec2
@@ -1414,6 +1550,20 @@ def test_describe_tasks():
         cluster="test_ecs_cluster", tasks=[tasks_arns[0].split("/")[-1]]
     )
     len(response["tasks"]).should.equal(1)
+
+
+@mock_ecs
+def test_describe_tasks_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+
+    client.describe_tasks.when.called_with(tasks=[]).should.throw(
+        ClientError, ClusterNotFoundException().message
+    )
+
+    _ = client.create_cluster()
+    client.describe_tasks.when.called_with(tasks=[]).should.throw(
+        ClientError, InvalidParameterException("Tasks cannot be empty.").message
+    )
 
 
 @mock_ecs
@@ -1497,6 +1647,15 @@ def test_stop_task():
     stop_response["task"]["lastStatus"].should.equal("STOPPED")
     stop_response["task"]["desiredStatus"].should.equal("STOPPED")
     stop_response["task"]["stoppedReason"].should.equal("moto testing")
+
+
+@mock_ecs
+def test_stop_task_exceptions():
+    client = boto3.client("ecs", region_name="us-east-1")
+
+    client.stop_task.when.called_with(task="fake_task").should.throw(
+        ClientError, ClusterNotFoundException().message
+    )
 
 
 @mock_ec2
@@ -2160,13 +2319,14 @@ def test_list_tags_for_resource():
 
 
 @mock_ecs
-def test_list_tags_for_resource_unknown():
+def test_list_tags_exceptions():
     client = boto3.client("ecs", region_name="us-east-1")
-    task_definition_arn = "arn:aws:ecs:us-east-1:012345678910:task-definition/unknown:1"
-    try:
-        client.list_tags_for_resource(resourceArn=task_definition_arn)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ClientException")
+    client.list_tags_for_resource.when.called_with(
+        resourceArn="arn:aws:ecs:us-east-1:012345678910:service/fake_service:1"
+    ).should.throw(ClientError, ServiceNotFoundException().message)
+    client.list_tags_for_resource.when.called_with(
+        resourceArn="arn:aws:ecs:us-east-1:012345678910:task-definition/fake_task:1"
+    ).should.throw(ClientError, TaskDefinitionNotFoundException().message)
 
 
 @mock_ecs
@@ -2206,16 +2366,6 @@ def test_list_tags_for_resource_ecs_service():
     response["tags"].should.equal(
         [{"key": "createdBy", "value": "moto-unittest"}, {"key": "foo", "value": "bar"}]
     )
-
-
-@mock_ecs
-def test_list_tags_for_resource_unknown_service():
-    client = boto3.client("ecs", region_name="us-east-1")
-    service_arn = "arn:aws:ecs:us-east-1:012345678910:service/unknown:1"
-    try:
-        client.list_tags_for_resource(resourceArn=service_arn)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ServiceNotFoundException")
 
 
 @mock_ecs
@@ -2816,30 +2966,68 @@ def test_list_tasks_with_filters():
         startedBy="bar",
     )
 
-    len(ecs.list_tasks()["taskArns"]).should.equal(3)
-
     len(ecs.list_tasks(cluster="test_cluster_1")["taskArns"]).should.equal(2)
     len(ecs.list_tasks(cluster="test_cluster_2")["taskArns"]).should.equal(1)
 
-    len(ecs.list_tasks(containerInstance="bad-id")["taskArns"]).should.equal(0)
-    len(ecs.list_tasks(containerInstance=container_id_1)["taskArns"]).should.equal(2)
-    len(ecs.list_tasks(containerInstance=container_id_2)["taskArns"]).should.equal(1)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", containerInstance="bad-id")["taskArns"]
+    ).should.equal(0)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", containerInstance=container_id_1)[
+            "taskArns"
+        ]
+    ).should.equal(2)
+    len(
+        ecs.list_tasks(cluster="test_cluster_2", containerInstance=container_id_2)[
+            "taskArns"
+        ]
+    ).should.equal(1)
 
-    len(ecs.list_tasks(family="non-existent-family")["taskArns"]).should.equal(0)
-    len(ecs.list_tasks(family="test_task_def_1")["taskArns"]).should.equal(2)
-    len(ecs.list_tasks(family="test_task_def_2")["taskArns"]).should.equal(1)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", family="non-existent-family")[
+            "taskArns"
+        ]
+    ).should.equal(0)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", family="test_task_def_1")["taskArns"]
+    ).should.equal(2)
+    len(
+        ecs.list_tasks(cluster="test_cluster_2", family="test_task_def_2")["taskArns"]
+    ).should.equal(1)
 
-    len(ecs.list_tasks(startedBy="non-existent-entity")["taskArns"]).should.equal(0)
-    len(ecs.list_tasks(startedBy="foo")["taskArns"]).should.equal(2)
-    len(ecs.list_tasks(startedBy="bar")["taskArns"]).should.equal(1)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", startedBy="non-existent-entity")[
+            "taskArns"
+        ]
+    ).should.equal(0)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", startedBy="foo")["taskArns"]
+    ).should.equal(1)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", startedBy="bar")["taskArns"]
+    ).should.equal(1)
+    len(
+        ecs.list_tasks(cluster="test_cluster_2", startedBy="foo")["taskArns"]
+    ).should.equal(1)
 
-    len(ecs.list_tasks(desiredStatus="RUNNING")["taskArns"]).should.equal(3)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", desiredStatus="RUNNING")["taskArns"]
+    ).should.equal(2)
+    len(
+        ecs.list_tasks(cluster="test_cluster_2", desiredStatus="RUNNING")["taskArns"]
+    ).should.equal(1)
     _ = ecs.stop_task(cluster="test_cluster_2", task=task_to_stop, reason="for testing")
-    len(ecs.list_tasks(desiredStatus="RUNNING")["taskArns"]).should.equal(2)
-    len(ecs.list_tasks(desiredStatus="STOPPED")["taskArns"]).should.equal(1)
+    len(
+        ecs.list_tasks(cluster="test_cluster_1", desiredStatus="RUNNING")["taskArns"]
+    ).should.equal(2)
+    len(
+        ecs.list_tasks(cluster="test_cluster_2", desiredStatus="STOPPED")["taskArns"]
+    ).should.equal(1)
 
     resp = ecs.list_tasks(cluster="test_cluster_1", startedBy="foo")
     len(resp["taskArns"]).should.equal(1)
 
-    resp = ecs.list_tasks(containerInstance=container_id_1, startedBy="bar")
+    resp = ecs.list_tasks(
+        cluster="test_cluster_1", containerInstance=container_id_1, startedBy="bar"
+    )
     len(resp["taskArns"]).should.equal(1)

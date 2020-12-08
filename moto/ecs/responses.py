@@ -100,7 +100,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"taskDefinition": task_definition.response_object})
 
     def run_task(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         overrides = self._get_param("overrides")
         task_definition_str = self._get_param("taskDefinition")
         count = self._get_int_param("count")
@@ -113,7 +113,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def describe_tasks(self):
-        cluster = self._get_param("cluster")
+        cluster = self._get_param("cluster", "default")
         tasks = self._get_param("tasks")
         data = self.ecs_backend.describe_tasks(cluster, tasks)
         return json.dumps(
@@ -121,7 +121,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def start_task(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         overrides = self._get_param("overrides")
         task_definition_str = self._get_param("taskDefinition")
         container_instances = self._get_param("containerInstances")
@@ -134,7 +134,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def list_tasks(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         container_instance = self._get_param("containerInstance")
         family = self._get_param("family")
         started_by = self._get_param("startedBy")
@@ -151,14 +151,14 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"taskArns": task_arns})
 
     def stop_task(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         task = self._get_param("task")
         reason = self._get_param("reason")
         task = self.ecs_backend.stop_task(cluster_str, task, reason)
         return json.dumps({"task": task.response_object})
 
     def create_service(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         service_name = self._get_param("serviceName")
         task_definition_str = self._get_param("taskDefinition")
         desired_count = self._get_int_param("desiredCount")
@@ -179,7 +179,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"service": service.response_object})
 
     def list_services(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         scheduling_strategy = self._get_param("schedulingStrategy")
         service_arns = self.ecs_backend.list_services(cluster_str, scheduling_strategy)
         return json.dumps(
@@ -191,7 +191,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def describe_services(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         service_names = self._get_param("services")
         services = self.ecs_backend.describe_services(cluster_str, service_names)
         resp = {
@@ -206,7 +206,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps(resp)
 
     def update_service(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         service_name = self._get_param("service")
         task_definition = self._get_param("taskDefinition")
         desired_count = self._get_int_param("desiredCount")
@@ -217,12 +217,12 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def delete_service(self):
         service_name = self._get_param("service")
-        cluster_name = self._get_param("cluster")
+        cluster_name = self._get_param("cluster", "default")
         service = self.ecs_backend.delete_service(cluster_name, service_name)
         return json.dumps({"service": service.response_object})
 
     def register_container_instance(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         instance_identity_document_str = self._get_param("instanceIdentityDocument")
         instance_identity_document = json.loads(instance_identity_document_str)
         ec2_instance_id = instance_identity_document["instanceId"]
@@ -232,9 +232,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"containerInstance": container_instance.response_object})
 
     def deregister_container_instance(self):
-        cluster_str = self._get_param("cluster")
-        if not cluster_str:
-            cluster_str = "default"
+        cluster_str = self._get_param("cluster", "default")
         container_instance_str = self._get_param("containerInstance")
         force = self._get_param("force")
         container_instance, failures = self.ecs_backend.deregister_container_instance(
@@ -243,12 +241,12 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"containerInstance": container_instance.response_object})
 
     def list_container_instances(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         container_instance_arns = self.ecs_backend.list_container_instances(cluster_str)
         return json.dumps({"containerInstanceArns": container_instance_arns})
 
     def describe_container_instances(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         list_container_instance_arns = self._get_param("containerInstances")
         container_instances, failures = self.ecs_backend.describe_container_instances(
             cluster_str, list_container_instance_arns
@@ -263,7 +261,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def update_container_instances_state(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         list_container_instance_arns = self._get_param("containerInstances")
         status_str = self._get_param("status")
         (
@@ -312,7 +310,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"attributes": formatted_results})
 
     def delete_attributes(self):
-        cluster_name = self._get_param("cluster")
+        cluster_name = self._get_param("cluster", "default")
         attributes = self._get_param("attributes")
 
         self.ecs_backend.delete_attributes(cluster_name, attributes)
@@ -359,7 +357,7 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def create_task_set(self):
         service_str = self._get_param("service")
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         task_definition = self._get_param("taskDefinition")
         external_id = self._get_param("externalId")
         network_configuration = self._get_param("networkConfiguration")
@@ -389,7 +387,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"taskSet": task_set.response_object})
 
     def describe_task_sets(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         service_str = self._get_param("service")
         task_sets = self._get_param("taskSets")
         include = self._get_param("include", [])
@@ -414,7 +412,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"taskSet": task_set.response_object})
 
     def update_task_set(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         service_str = self._get_param("service")
         task_set = self._get_param("taskSet")
         scale = self._get_param("scale")
@@ -425,7 +423,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"taskSet": task_set.response_object})
 
     def update_service_primary_task_set(self):
-        cluster_str = self._get_param("cluster")
+        cluster_str = self._get_param("cluster", "default")
         service_str = self._get_param("service")
         primary_task_set = self._get_param("primaryTaskSet")
 

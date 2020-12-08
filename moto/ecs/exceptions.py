@@ -5,11 +5,9 @@ from moto.core.exceptions import RESTError, JsonRESTError
 class ServiceNotFoundException(RESTError):
     code = 400
 
-    def __init__(self, service_name):
+    def __init__(self):
         super(ServiceNotFoundException, self).__init__(
-            error_type="ServiceNotFoundException",
-            message="The service {0} does not exist".format(service_name),
-            template="error_json",
+            error_type="ServiceNotFoundException", message="Service not found."
         )
 
 
@@ -20,6 +18,15 @@ class TaskDefinitionNotFoundException(JsonRESTError):
         super(TaskDefinitionNotFoundException, self).__init__(
             error_type="ClientException",
             message="The specified task definition does not exist.",
+        )
+
+
+class RevisionNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(RevisionNotFoundException, self).__init__(
+            error_type="ClientException", message="Revision is missing.",
         )
 
 
@@ -39,4 +46,13 @@ class ClusterNotFoundException(JsonRESTError):
     def __init__(self):
         super(ClusterNotFoundException, self).__init__(
             error_type="ClientException", message="Cluster not found",
+        )
+
+
+class InvalidParameterException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidParameterException, self).__init__(
+            error_type="ClientException", message=message,
         )
