@@ -332,7 +332,7 @@ class PlatformEndpoint(BaseModel):
         if "Token" not in self.attributes:
             self.attributes["Token"] = self.token
         if "Enabled" not in self.attributes:
-            self.attributes["Enabled"] = "True"
+            self.attributes["Enabled"] = "true"
 
     @property
     def enabled(self):
