@@ -523,6 +523,16 @@ def test_untag_resource_error():
 
 
 @mock_sns
+def test_create_fifo_topic():
+    conn = boto3.client("sns", region_name="us-east-1")
+    response = conn.create_topic(
+        Name="test_topic.fifo", Attributes={"FifoTopic": "true"}
+    )
+
+    assert "TopicArn" in response
+
+
+@mock_sns
 def test_topic_kms_master_key_id_attribute():
     client = boto3.client("sns", region_name="us-west-2")
     resp = client.create_topic(Name="test-sns-no-key-attr",)
