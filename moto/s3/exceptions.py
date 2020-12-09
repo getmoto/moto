@@ -10,6 +10,11 @@ ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
 {% block extra %}<KeyName>{{ key_name }}</KeyName>{% endblock %}
 """
 
+ERROR_WITH_ARGUMENT = """{% extends 'single_error' %}
+{% block extra %}<ArgumentName>{{ name }}</ArgumentName>
+<ArgumentValue>{{ value }}</ArgumentValue>{% endblock %}
+"""
+
 ERROR_WITH_CONDITION_NAME = """{% extends 'single_error' %}
 {% block extra %}<Condition>{{ condition }}</Condition>{% endblock %}
 """
@@ -65,6 +70,19 @@ class MissingKey(S3ClientError):
     def __init__(self, key_name):
         super(MissingKey, self).__init__(
             "NoSuchKey", "The specified key does not exist.", Key=key_name
+        )
+
+
+class MissingVersion(S3ClientError):
+    code = 404
+
+    def __init__(self, version_id, *args, **kwargs):
+        kwargs.setdefault("template", "argument_error")
+        kwargs["name"] = "versionId"
+        kwargs["value"] = version_id
+        self.templates["argument_error"] = ERROR_WITH_ARGUMENT
+        super(MissingVersion, self).__init__(
+            "InvalidArgument", "Invalid version id specified", *args, **kwargs
         )
 
 
