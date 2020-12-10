@@ -223,7 +223,7 @@ class GlueResponse(BaseResponse):
             except PartitionNotFoundException:
                 errors_output.append(
                     {
-                        "PartitionValues": part_to_update,
+                        "PartitionValueList": part_to_update,
                         "ErrorDetail": {
                             "ErrorCode": "EntityNotFoundException",
                             "ErrorMessage": "Partition not found.",
