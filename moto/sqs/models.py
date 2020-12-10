@@ -826,6 +826,7 @@ class SQSBackend(BaseBackend):
                     >= queue.redrive_policy["maxReceiveCount"]
                 ):
                     messages_to_dlq.append(message)
+                    queue.pending_messages.remove(message)
                     continue
 
                 message.mark_received(visibility_timeout=visibility_timeout)

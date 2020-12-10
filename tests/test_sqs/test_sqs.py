@@ -2384,3 +2384,42 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
     )
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_fifo_send_message_when_same_group_id_is_in_dlq():
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    dlq = sqs.create_queue(
+        QueueName="test-queue-dlq.fifo", Attributes={"FifoQueue": "true"}
+    )
+
+    queue = sqs.get_queue_by_name(QueueName="test-queue-dlq.fifo")
+    dead_letter_queue_arn = queue.attributes.get("QueueArn")
+
+    msg_queue = sqs.create_queue(
+        QueueName="test-queue.fifo",
+        Attributes={
+            "FifoQueue": "true",
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dead_letter_queue_arn, "maxReceiveCount": 1},
+            ),
+            "VisibilityTimeout": "1",
+        },
+    )
+
+    msg_queue.send_message(MessageBody="first", MessageGroupId="1")
+    messages = msg_queue.receive_messages()
+    messages.should.have.length_of(1)
+
+    time.sleep(1.1)
+
+    messages = msg_queue.receive_messages()
+    messages.should.have.length_of(0)
+
+    messages = dlq.receive_messages()
+    messages.should.have.length_of(1)
+
+    msg_queue.send_message(MessageBody="second", MessageGroupId="1")
+    messages = msg_queue.receive_messages()
+    messages.should.have.length_of(1)
