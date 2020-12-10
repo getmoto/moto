@@ -536,7 +536,8 @@ def test_create_fifo_topic():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
         err.response["Error"]["Message"].should.equal(
-            "Fifo Topic names must end with .fifo"
+            "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, "
+            "numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
         )
 
     try:
@@ -544,7 +545,17 @@ def test_create_fifo_topic():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
         err.response["Error"]["Message"].should.equal(
-            "Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
+            "Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, "
+            "and hyphens, and must be between 1 and 256 characters long."
+        )
+
+    try:
+        conn.create_topic(Name="topic.name.fifo", Attributes={"FifoTopic": "true"})
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        err.response["Error"]["Message"].should.equal(
+            "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, "
+            "numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
         )
 
 

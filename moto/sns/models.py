@@ -393,8 +393,8 @@ class SNSBackend(BaseBackend):
             attributes.get("FifoTopic")
             and attributes.get("FifoTopic").lower() == "true"
         ):
-            fails_constraints = not re.match(r"^[a-zA-Z0-9_.-]{1,256}fifo$", name)
-            msg = "Fifo Topic names must end with .fifo"
+            fails_constraints = not re.match(r"^[a-zA-Z0-9_-]{1,256}\.fifo$", name)
+            msg = "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
 
         else:
             fails_constraints = not re.match(r"^[a-zA-Z0-9_-]{1,256}$", name)
