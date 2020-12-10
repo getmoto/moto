@@ -208,6 +208,35 @@ class GlueResponse(BaseResponse):
 
         return ""
 
+    def batch_update_partition(self):
+        database_name = self.parameters.get("DatabaseName")
+        table_name = self.parameters.get("TableName")
+        table = self.glue_backend.get_table(database_name, table_name)
+
+        errors_output = []
+        for entry in self.parameters.get("Entries"):
+            part_to_update = entry["PartitionValueList"]
+            part_input = entry["PartitionInput"]
+
+            try:
+                table.update_partition(part_to_update, part_input)
+            except PartitionNotFoundException:
+                errors_output.append(
+                    {
+                        "PartitionValues": part_to_update,
+                        "ErrorDetail": {
+                            "ErrorCode": "EntityNotFoundException",
+                            "ErrorMessage": "Partition not found.",
+                        },
+                    }
+                )
+
+        out = {}
+        if errors_output:
+            out["Errors"] = errors_output
+
+        return json.dumps(out)
+
     def delete_partition(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")

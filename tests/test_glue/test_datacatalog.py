@@ -664,6 +664,63 @@ def test_update_partition_move():
 
 
 @mock_glue
+def test_batch_update_partition():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+
+    values = [
+        ["2020-12-04"],
+        ["2020-12-05"],
+        ["2020-12-06"],
+    ]
+
+    new_values = [
+        ["2020-11-04"],
+        ["2020-11-05"],
+        ["2020-11-06"],
+    ]
+
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    batch_update_values = []
+    for idx, value in enumerate(values):
+        helpers.create_partition(client, database_name, table_name, values=value)
+        batch_update_values.append(
+            {
+                "PartitionValueList": value,
+                "PartitionInput": helpers.create_partition_input(
+                    database_name,
+                    table_name,
+                    values=new_values[idx],
+                    columns=[{"Name": "country", "Type": "string"}],
+                ),
+            }
+        )
+
+    response = client.batch_update_partition(
+        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values,
+    )
+
+    for value in values:
+        with pytest.raises(ClientError) as exc:
+            helpers.get_partition(client, database_name, table_name, value)
+        exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+
+    for value in new_values:
+        response = client.get_partition(
+            DatabaseName=database_name, TableName=table_name, PartitionValues=value
+        )
+        partition = response["Partition"]
+
+        partition["TableName"].should.equal(table_name)
+        partition["StorageDescriptor"]["Columns"].should.equal(
+            [{"Name": "country", "Type": "string"}]
+        )
+
+
+@mock_glue
 def test_delete_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
