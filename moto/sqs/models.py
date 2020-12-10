@@ -478,6 +478,16 @@ class Queue(CloudFormationModel):
         ]
 
     def add_message(self, message):
+        if self.fifo_queue:
+            if self.attributes.get("ContentBasedDeduplication") == "true":
+                for m in self._messages:
+                    if m.deduplication_id == message.deduplication_id:
+                        diff = message.sent_timestamp - m.sent_timestamp
+                        # if a duplicate message is received within 5 minutes then it should
+                        # not be added to the queue
+                        if diff/1000 < 300:
+                            return
+
         self._messages.append(message)
         from moto.awslambda import lambda_backends
 
@@ -674,6 +684,13 @@ class SQSBackend(BaseBackend):
 
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
+
+# if content based deduplication is set then set sha256 hash of the message
+# as the deduplication_id 
+        if queue.attributes.get("ContentBasedDeduplication") == "true":
+            sha256 = hashlib.sha256()
+            sha256.update(message_body.encode("utf-8"))
+            message.deduplication_id = sha256.hexdigest()
 
         # Attributes, but not *message* attributes
         if deduplication_id is not None:

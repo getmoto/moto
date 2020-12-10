@@ -2283,3 +2283,83 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
     ex.response["Error"]["Message"].should.contain(
         "{} bytes".format(message_size_limit)
     )
+
+@mock_sqs
+def test_fifo_queue_send_multiple_duplicate_messages():
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    msg_queue = sqs.create_queue(
+        QueueName="test-queue-dlq.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
+
+    msg_queue.send_message(MessageBody="first", MessageGroupId="1")
+    msg_queue.send_message(MessageBody="first", MessageGroupId="2")
+    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
+    messages.should.have.length_of(1)
+
+@mock_sqs
+def test_fifo_queue_send_multiple_duplicate_messages_after_five_minutes():
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    msg_queue = sqs.create_queue(
+        QueueName="test-queue-dlq.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
+
+    msg_queue.send_message(MessageBody="first", MessageGroupId="1")
+    time.sleep(301)
+    msg_queue.send_message(MessageBody="first", MessageGroupId="2")
+    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
+    messages.should.have.length_of(2)
+
+@mock_sqs
+def test_fifo_queue_send_multiple_duplicate_messages_with_deduplication_id():
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    msg_queue = sqs.create_queue(
+        QueueName="test-queue-dlq.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
+
+    msg_queue.send_message(
+        MessageBody="first", MessageGroupId="1", MessageDeduplicationId="duplicate"
+    )
+    msg_queue.send_message(
+        MessageBody="first", MessageGroupId="2", MessageDeduplicationId="duplicate"
+    )
+
+    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
+    messages.should.have.length_of(1)
+
+@mock_sqs
+def test_fifo_queue_send_multiple_non_duplicate_messages():
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    msg_queue = sqs.create_queue(
+        QueueName="test-queue-dlq.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
+
+    msg_queue.send_message(MessageBody="first", MessageGroupId="1")
+    msg_queue.send_message(MessageBody="second", MessageGroupId="2")
+    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
+    messages.should.have.length_of(2)
+
+@mock_sqs
+def test_fifo_queue_send_multiple_non_duplicate_messages_with_deduplication_id():
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    msg_queue = sqs.create_queue(
+        QueueName="test-queue-dlq.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
+
+    msg_queue.send_message(
+        MessageBody="first", MessageGroupId="1", MessageDeduplicationId="unique"
+    )
+    msg_queue.send_message(
+        MessageBody="first", MessageGroupId="2", MessageDeduplicationId="unique1"
+    )
+    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
+    messages.should.have.length_of(2)
