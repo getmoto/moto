@@ -35,6 +35,7 @@ RESPONSES_VERSION = pkg_resources.get_distribution("responses").version
 
 class BaseMockAWS(object):
     nested_count = 0
+    mocks_active = False
 
     def __init__(self, backends):
         from moto.instance_metadata import instance_metadata_backend
@@ -74,8 +75,10 @@ class BaseMockAWS(object):
         self.stop()
 
     def start(self, reset=True):
-        self.default_session_mock.start()
-        self.env_variables_mocks.start()
+        if not self.__class__.mocks_active:
+            self.default_session_mock.start()
+            self.env_variables_mocks.start()
+            self.__class__.mocks_active = True
 
         self.__class__.nested_count += 1
         if reset:
@@ -85,14 +88,16 @@ class BaseMockAWS(object):
         self.enable_patching()
 
     def stop(self):
-        self.default_session_mock.stop()
-        self.env_variables_mocks.stop()
         self.__class__.nested_count -= 1
 
         if self.__class__.nested_count < 0:
             raise RuntimeError("Called stop() before start().")
 
         if self.__class__.nested_count == 0:
+            if self.__class__.mocks_active:
+                self.default_session_mock.stop()
+                self.env_variables_mocks.stop()
+                self.__class__.mocks_active = False
             self.disable_patching()
 
     def decorate_callable(self, func, reset):
