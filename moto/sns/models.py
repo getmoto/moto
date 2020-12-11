@@ -331,8 +331,11 @@ class PlatformEndpoint(BaseModel):
         # automatically ensure they exist as well.
         if "Token" not in self.attributes:
             self.attributes["Token"] = self.token
-        if "Enabled" not in self.attributes:
-            self.attributes["Enabled"] = "True"
+        if "Enabled" in self.attributes:
+            enabled = self.attributes["Enabled"]
+            self.attributes["Enabled"] = enabled.lower()
+        else:
+            self.attributes["Enabled"] = "true"
 
     @property
     def enabled(self):
@@ -594,6 +597,8 @@ class SNSBackend(BaseBackend):
 
     def set_endpoint_attributes(self, arn, attributes):
         endpoint = self.get_endpoint(arn)
+        if "Enabled" in attributes:
+            attributes["Enabled"] = attributes["Enabled"].lower()
         endpoint.attributes.update(attributes)
         return endpoint
 
