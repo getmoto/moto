@@ -485,7 +485,7 @@ class Queue(CloudFormationModel):
                         diff = message.sent_timestamp - m.sent_timestamp
                         # if a duplicate message is received within 5 minutes then it should
                         # not be added to the queue
-                        if diff/1000 < 300:
+                        if diff / 1000 < 300:
                             return
 
         self._messages.append(message)
@@ -685,8 +685,8 @@ class SQSBackend(BaseBackend):
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
 
-# if content based deduplication is set then set sha256 hash of the message
-# as the deduplication_id 
+        # if content based deduplication is set then set sha256 hash of the message
+        # as the deduplication_id
         if queue.attributes.get("ContentBasedDeduplication") == "true":
             sha256 = hashlib.sha256()
             sha256.update(message_body.encode("utf-8"))

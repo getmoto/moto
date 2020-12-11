@@ -2284,6 +2284,7 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
         "{} bytes".format(message_size_limit)
     )
 
+
 @mock_sqs
 def test_fifo_queue_send_multiple_duplicate_messages():
 
@@ -2297,6 +2298,7 @@ def test_fifo_queue_send_multiple_duplicate_messages():
     msg_queue.send_message(MessageBody="first", MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
     messages.should.have.length_of(1)
+
 
 @mock_sqs
 def test_fifo_queue_send_multiple_duplicate_messages_after_five_minutes():
@@ -2312,6 +2314,7 @@ def test_fifo_queue_send_multiple_duplicate_messages_after_five_minutes():
     msg_queue.send_message(MessageBody="first", MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
     messages.should.have.length_of(2)
+
 
 @mock_sqs
 def test_fifo_queue_send_multiple_duplicate_messages_with_deduplication_id():
@@ -2332,6 +2335,7 @@ def test_fifo_queue_send_multiple_duplicate_messages_with_deduplication_id():
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
     messages.should.have.length_of(1)
 
+
 @mock_sqs
 def test_fifo_queue_send_multiple_non_duplicate_messages():
 
@@ -2345,6 +2349,7 @@ def test_fifo_queue_send_multiple_non_duplicate_messages():
     msg_queue.send_message(MessageBody="second", MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
     messages.should.have.length_of(2)
+
 
 @mock_sqs
 def test_fifo_queue_send_multiple_non_duplicate_messages_with_deduplication_id():
