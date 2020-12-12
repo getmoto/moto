@@ -63,6 +63,8 @@ BINARY_LIST_TYPE_FIELD_INDEX = 4
 # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html
 ATTRIBUTE_NAME_PATTERN = re.compile("^([a-z]|[A-Z]|[0-9]|[_.\\-])+$")
 
+DEDUPLICATION_TIME_IN_SECONDS = 300
+
 
 class Message(BaseModel):
     def __init__(self, message_id, body):
@@ -478,15 +480,17 @@ class Queue(CloudFormationModel):
         ]
 
     def add_message(self, message):
-        if self.fifo_queue:
-            if self.attributes.get("ContentBasedDeduplication") == "true":
-                for m in self._messages:
-                    if m.deduplication_id == message.deduplication_id:
-                        diff = message.sent_timestamp - m.sent_timestamp
-                        # if a duplicate message is received within 5 minutes then it should
-                        # not be added to the queue
-                        if diff / 1000 < 300:
-                            return
+        if (
+            self.fifo_queue
+            and self.attributes.get("ContentBasedDeduplication") == "true"
+        ):
+            for m in self._messages:
+                if m.deduplication_id == message.deduplication_id:
+                    diff = message.sent_timestamp - m.sent_timestamp
+                    # if a duplicate message is received within the deduplication time then it should
+                    # not be added to the queue
+                    if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
+                        return
 
         self._messages.append(message)
         from moto.awslambda import lambda_backends
