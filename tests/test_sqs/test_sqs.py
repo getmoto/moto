@@ -2292,7 +2292,7 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
 
 @mock_sqs
 @pytest.mark.parametrize(
-    "msg_1, msg_2, dedupid_1, dedupid_2, expectedCount",
+    "msg_1, msg_2, dedupid_1, dedupid_2, expected_count",
     [
         ("msg1", "msg1", "1", "1", 1),
         ("msg1", "msg1", "1", "2", 2),
@@ -2301,7 +2301,7 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
     ],
 )
 def test_fifo_queue_deduplication_with_id(
-    msg_1, msg_2, dedupid_1, dedupid_2, expectedCount
+    msg_1, msg_2, dedupid_1, dedupid_2, expected_count
 ):
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -2317,14 +2317,14 @@ def test_fifo_queue_deduplication_with_id(
         MessageBody=msg_2, MessageDeduplicationId=dedupid_2, MessageGroupId="2"
     )
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(expectedCount)
+    messages.should.have.length_of(expected_count)
 
 
 @mock_sqs
 @pytest.mark.parametrize(
-    "msg_1, msg_2, expectedCount", [("msg1", "msg1", 1), ("msg1", "msg2", 2),],
+    "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2),],
 )
-def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expectedCount):
+def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     msg_queue = sqs.create_queue(
@@ -2335,7 +2335,7 @@ def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expectedCount):
     msg_queue.send_message(MessageBody=msg_1, MessageGroupId="1")
     msg_queue.send_message(MessageBody=msg_2, MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(expectedCount)
+    messages.should.have.length_of(expected_count)
 
 
 @mock.patch(
