@@ -11,6 +11,7 @@ import boto
 import boto3
 import botocore.exceptions
 import six
+import sys
 import sure  # noqa
 from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
@@ -18,13 +19,17 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_sqs, mock_sqs_deprecated, mock_lambda, mock_logs, settings
 from unittest import SkipTest
-import unittest.mock as mock
+
+if sys.version_info[0] < 3:
+    import mock
+    from unittest import SkipTest
+else:
+    from unittest import SkipTest, mock
 import pytest
 from tests.helpers import requires_boto_gte
 from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
 from moto.core import ACCOUNT_ID
 from moto.sqs.models import (
-    DEDUPLICATION_TIME_IN_SECONDS,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     MAXIMUM_MESSAGE_LENGTH,
@@ -49,7 +54,7 @@ TEST_POLICY = """
 }
 """
 
-MOCK_DEDUPLICATION_TIME_IN_SECONDS = 1
+MOCK_DEDUPLICATION_TIME_IN_SECONDS = 5
 
 
 @mock_sqs
@@ -2351,7 +2356,7 @@ def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     )
 
     msg_queue.send_message(MessageBody="first", MessageGroupId="1")
-    time.sleep(MOCK_DEDUPLICATION_TIME_IN_SECONDS + 1)
+    time.sleep(MOCK_DEDUPLICATION_TIME_IN_SECONDS + 5)
     msg_queue.send_message(MessageBody="first", MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
     messages.should.have.length_of(2)
