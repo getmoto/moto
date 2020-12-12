@@ -51,13 +51,12 @@ class BaseMockAWS(object):
         self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
 
-        # "Mock" the AWS credentials as they can't be mocked in Botocore currently
-        FAKE_KEYS = {
+        self.FAKE_KEYS = {
             "AWS_ACCESS_KEY_ID": "foobar_key",
             "AWS_SECRET_ACCESS_KEY": "foobar_secret",
         }
+        self.ORIG_KEYS = {}
         self.default_session_mock = mock.patch("boto3.DEFAULT_SESSION", None)
-        self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
 
         if self.__class__.nested_count == 0:
             self.reset()
@@ -77,7 +76,7 @@ class BaseMockAWS(object):
     def start(self, reset=True):
         if not self.__class__.mocks_active:
             self.default_session_mock.start()
-            self.env_variables_mocks.start()
+            self.mock_env_variables()
             self.__class__.mocks_active = True
 
         self.__class__.nested_count += 1
@@ -96,7 +95,7 @@ class BaseMockAWS(object):
         if self.__class__.nested_count == 0:
             if self.__class__.mocks_active:
                 self.default_session_mock.stop()
-                self.env_variables_mocks.stop()
+                self.unmock_env_variables()
                 self.__class__.mocks_active = False
             self.disable_patching()
 
@@ -143,6 +142,24 @@ class BaseMockAWS(object):
                 # Sometimes we can't set this for built-in types
                 continue
         return klass
+
+    def mock_env_variables(self):
+        # "Mock" the AWS credentials as they can't be mocked in Botocore currently
+        # self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
+        # self.env_variables_mocks.start()
+        for k, v in self.FAKE_KEYS.items():
+            self.ORIG_KEYS[k] = os.environ.get(k, None)
+            os.environ[k] = v
+
+    def unmock_env_variables(self):
+        # This doesn't work in Python2 - for some reason, unmocking clears the entire os.environ dict
+        # Obviously bad user experience, and also breaks pytest - as it uses PYTEST_CURRENT_TEST as an env var
+        # self.env_variables_mocks.stop()
+        for k, v in self.ORIG_KEYS.items():
+            if v:
+                os.environ[k] = v
+            else:
+                del os.environ[k]
 
 
 class HttprettyMockAWS(BaseMockAWS):
