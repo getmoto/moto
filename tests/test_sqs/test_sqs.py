@@ -2348,6 +2348,8 @@ def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 )
 @mock_sqs
 def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     msg_queue = sqs.create_queue(
