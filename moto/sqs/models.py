@@ -818,17 +818,15 @@ class SQSBackend(BaseBackend):
                         # A previous call is still processing messages in this group, so we cannot deliver this one.
                         continue
 
-                queue.pending_messages.add(message)
-
                 if (
                     queue.dead_letter_queue is not None
                     and message.approximate_receive_count
                     >= queue.redrive_policy["maxReceiveCount"]
                 ):
                     messages_to_dlq.append(message)
-                    queue.pending_messages.remove(message)
                     continue
 
+                queue.pending_messages.add(message)
                 message.mark_received(visibility_timeout=visibility_timeout)
                 _filter_message_attributes(message, message_attribute_names)
                 result.append(message)
