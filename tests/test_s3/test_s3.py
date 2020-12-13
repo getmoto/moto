@@ -1830,6 +1830,9 @@ def test_boto3_list_objects_v2_common_invalid_continuation_token():
     with pytest.raises(botocore.exceptions.ClientError) as exc:
         s3.list_objects_v2(**args)
     exc.value.response["Error"]["Code"].should.equal("InvalidArgument")
+    exc.value.response["Error"]["Message"].should.equal(
+        "The continuation token provided is incorrect"
+    )
 
 
 @mock_s3
