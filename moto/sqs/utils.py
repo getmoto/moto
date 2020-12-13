@@ -1,8 +1,17 @@
 from __future__ import unicode_literals
+import os
 import random
 import string
+import moto
 
 from .exceptions import MessageAttributesInvalid
+from moto.settings import TEST_SERVER_MODE
+
+try:
+    import configparser
+except ModuleNotFoundError:
+    # why are you using python 2.7?
+    import ConfigParser as configparser
 
 
 def generate_receipt_handle():
@@ -49,11 +58,7 @@ def parse_message_attributes(querystring, base="", value_namespace="Value."):
             )
 
         data_type_parts = data_type[0].split(".")
-        if data_type_parts[0] not in [
-            "String",
-            "Binary",
-            "Number",
-        ]:
+        if data_type_parts[0] not in ["String", "Binary", "Number"]:
             raise MessageAttributesInvalid(
                 "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(
                     name[0]
@@ -83,3 +88,17 @@ def parse_message_attributes(querystring, base="", value_namespace="Value."):
         index += 1
 
     return message_attributes
+
+
+def read_config():
+    section = os.getenv("MOTO_ENVIRONMENT", "production")
+    parser = configparser.ConfigParser()
+    filename = "configuration.ini"
+    config_path = os.path.join(os.getcwd(), "moto", filename)
+
+    if TEST_SERVER_MODE:
+        # in server mode the config resides in the package
+        config_path = os.path.join(os.path.dirname(moto.__file__), filename)
+
+    parser.read(config_path)
+    return parser[section]
