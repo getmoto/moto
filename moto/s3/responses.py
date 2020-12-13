@@ -25,6 +25,7 @@ from moto.s3bucket_path.utils import (
 from .exceptions import (
     BucketAlreadyExists,
     DuplicateTagKeys,
+    InvalidContinuationToken,
     S3ClientError,
     MissingBucket,
     MissingKey,
@@ -529,6 +530,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         template = self.response_template(S3_BUCKET_GET_RESPONSE_V2)
         bucket = self.backend.get_bucket(bucket_name)
 
+        continuation_token = querystring.get("continuation-token", [None])[0]
+        if continuation_token is not None and continuation_token == "":
+            raise InvalidContinuationToken()
+
         prefix = querystring.get("prefix", [None])[0]
         if prefix and isinstance(prefix, six.binary_type):
             prefix = prefix.decode("utf-8")
@@ -539,7 +544,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         fetch_owner = querystring.get("fetch-owner", [False])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
-        continuation_token = querystring.get("continuation-token", [None])[0]
         start_after = querystring.get("start-after", [None])[0]
 
         # sort the combination of folders and keys into lexicographical order
