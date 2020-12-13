@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring
@@ -208,7 +209,7 @@ class VPCs(BaseResponse):
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
-        return template.render(vpc_end_points=vpc_end_points)
+        return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
 
 
 CREATE_VPC_RESPONSE = """
@@ -560,7 +561,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </tagSet>
                 {% endif %}
-                <ownerId>123456789012</ownerId>
+                <ownerId>{{ account_id }}</ownerId>
                 <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
             </item>
         {% endfor %}
