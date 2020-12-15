@@ -400,6 +400,7 @@ def test_elastic_network_interfaces_get_by_description():
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(0)
 
+
 @mock_ec2
 def test_elastic_network_interfaces_get_by_attachment_instance_id():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
@@ -410,9 +411,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
     )
 
     create_instances_result = ec2.create_instances(
-        ImageId="ami-d3adb33f",
-        MinCount=1,
-        MaxCount=1
+        ImageId="ami-d3adb33f", MinCount=1, MaxCount=1
     )
     instance = create_instances_result[0]
 
@@ -420,9 +419,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
         SubnetId=subnet.id, PrivateIpAddress="10.0.10.5", Description="test interface"
     )
 
-    attachment_id = ec2.attach_network_interface(
-        eni1.eni_id, instance.id, 0
-    )
+    attachment_id = ec2.attach_network_interface(eni1.eni_id, instance.id, 0)
 
     # The status of the new interface should be 'available'
     waiter = ec2.get_waiter("network_interface_available")
