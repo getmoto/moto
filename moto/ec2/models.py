@@ -460,7 +460,7 @@ class NetworkInterfaceBackend(object):
                 elif _filter == "description":
                     enis = [eni for eni in enis if eni.description in _filter_value]
                 elif _filter == "attachment.instance-id":
-                    enis = [eni for eni in enis if (eni.instance != None and eni.instance.id in _filter_value)]
+                    enis = [eni for eni in enis if (eni.instance is not None and eni.instance.id in _filter_value)]
                 else:
                     self.raise_not_implemented_error(
                         "The filter '{0}' for DescribeNetworkInterfaces".format(_filter)

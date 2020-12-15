@@ -400,6 +400,42 @@ def test_elastic_network_interfaces_get_by_description():
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(0)
 
+@mock_ec2
+def test_elastic_network_interfaces_get_by_attachment_instance_id():
+    ec2 = boto3.resource("ec2", region_name="us-west-2")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    create_instances_result = ec2.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1
+    )
+    instance = create_instances_result[0]
+
+    eni1 = ec2.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress="10.0.10.5", Description="test interface"
+    )
+
+    attachment_id = ec2.attach_network_interface(
+        eni1.eni_id, instance.id, 0
+    )
+
+    # The status of the new interface should be 'available'
+    waiter = ec2.get_waiter("network_interface_available")
+    waiter.wait(NetworkInterfaceIds=[eni1.id])
+
+    filters = [{"Name": "attachment.instance-id", "Values": [eni1.instance.id]}]
+    enis = list(ec2.network_interfaces.filter(Filters=filters))
+    enis.should.have.length_of(1)
+
+    filters = [{"Name": "attachment.instance-id", "Values": ["this-doesnt-match-lol"]}]
+    enis = list(ec2.network_interfaces.filter(Filters=filters))
+    enis.should.have.length_of(0)
+
 
 @mock_ec2
 def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
