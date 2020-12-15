@@ -422,7 +422,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
     # we should have one ENI attached to our ec2 instance by default
     filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)
-    enis.get('NetworkInterfaces').should.have.length_of(1)
+    enis.get("NetworkInterfaces").should.have.length_of(1)
 
     # attach another ENI to our existing instance, total should be 2
     eni1 = conn.create_network_interface(subnet.id, groups=[security_group1.id])
@@ -430,12 +430,12 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
 
     filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)
-    enis.get('NetworkInterfaces').should.have.length_of(2)
+    enis.get("NetworkInterfaces").should.have.length_of(2)
 
     # we shouldn't find any ENIs that are attached to this fake instance ID
     filters = [{"Name": "attachment.instance-id", "Values": ["this-doesnt-match-lol"]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)
-    enis.get('NetworkInterfaces').should.have.length_of(0)
+    enis.get("NetworkInterfaces").should.have.length_of(0)
 
 
 @mock_ec2
