@@ -12,12 +12,13 @@ import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
 import pytest
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ec2_deprecated
 def test_add_tag():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as ex:
@@ -41,7 +42,7 @@ def test_add_tag():
 @mock_ec2_deprecated
 def test_remove_tag():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     instance.add_tag("a key", "some value")
@@ -70,7 +71,7 @@ def test_remove_tag():
 @mock_ec2_deprecated
 def test_get_all_tags():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     instance.add_tag("a key", "some value")
@@ -84,7 +85,7 @@ def test_get_all_tags():
 @mock_ec2_deprecated
 def test_get_all_tags_with_special_characters():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     instance.add_tag("a key", "some<> value")
@@ -98,7 +99,7 @@ def test_get_all_tags_with_special_characters():
 @mock_ec2_deprecated
 def test_create_tags():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     tag_dict = {
         "a key": "some value",
@@ -125,7 +126,7 @@ def test_create_tags():
 @mock_ec2_deprecated
 def test_tag_limit_exceeded():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     tag_dict = {}
     for i in range(51):
@@ -154,7 +155,7 @@ def test_tag_limit_exceeded():
 @mock_ec2_deprecated
 def test_invalid_parameter_tag_null():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as cm:
@@ -183,7 +184,7 @@ def test_invalid_id():
 @mock_ec2_deprecated
 def test_get_all_tags_resource_id_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     instance.add_tag("an instance key", "some value")
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
@@ -210,7 +211,7 @@ def test_get_all_tags_resource_id_filter():
 @mock_ec2_deprecated
 def test_get_all_tags_resource_type_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     instance.add_tag("an instance key", "some value")
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
@@ -237,7 +238,7 @@ def test_get_all_tags_resource_type_filter():
 @mock_ec2_deprecated
 def test_get_all_tags_key_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     instance.add_tag("an instance key", "some value")
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
@@ -256,19 +257,19 @@ def test_get_all_tags_key_filter():
 @mock_ec2_deprecated
 def test_get_all_tags_value_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     instance.add_tag("an instance key", "some value")
-    reservation_b = conn.run_instances("ami-1234abcd")
+    reservation_b = conn.run_instances(EXAMPLE_AMI_ID)
     instance_b = reservation_b.instances[0]
     instance_b.add_tag("an instance key", "some other value")
-    reservation_c = conn.run_instances("ami-1234abcd")
+    reservation_c = conn.run_instances(EXAMPLE_AMI_ID)
     instance_c = reservation_c.instances[0]
     instance_c.add_tag("an instance key", "other value*")
-    reservation_d = conn.run_instances("ami-1234abcd")
+    reservation_d = conn.run_instances(EXAMPLE_AMI_ID)
     instance_d = reservation_d.instances[0]
     instance_d.add_tag("an instance key", "other value**")
-    reservation_e = conn.run_instances("ami-1234abcd")
+    reservation_e = conn.run_instances(EXAMPLE_AMI_ID)
     instance_e = reservation_e.instances[0]
     instance_e.add_tag("an instance key", "other value*?")
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
@@ -304,7 +305,7 @@ def test_retrieved_instances_must_contain_their_tags():
     tags_to_be_set = {tag_key: tag_value}
 
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     reservation.should.be.a(Reservation)
     reservation.instances.should.have.length_of(1)
     instance = reservation.instances[0]
@@ -380,10 +381,10 @@ def test_filter_instances_by_wildcard_tags():
     conn = boto.connect_ec2(
         aws_access_key_id="the_key", aws_secret_access_key="the_secret"
     )
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance_a = reservation.instances[0]
     instance_a.add_tag("Key1", "Value1")
-    reservation_b = conn.run_instances("ami-1234abcd")
+    reservation_b = conn.run_instances(EXAMPLE_AMI_ID)
     instance_b = reservation_b.instances[0]
     instance_b.add_tag("Key1", "Value2")
 
@@ -473,7 +474,7 @@ def test_delete_tag_empty_resource():
 @mock_ec2
 def test_retrieve_resource_with_multiple_tags():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
-    blue, green = ec2.create_instances(ImageId="ANY_ID", MinCount=2, MaxCount=2)
+    blue, green = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
     ec2.create_tags(
         Resources=[blue.instance_id],
         Tags=[

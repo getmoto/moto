@@ -1,5 +1,6 @@
 from moto import mock_cloudformation_deprecated, mock_ec2_deprecated
 from moto import mock_cloudformation, mock_ec2
+from tests import EXAMPLE_AMI_ID
 from tests.test_cloudformation.fixtures import vpc_eni
 import boto
 import boto.ec2
@@ -46,7 +47,7 @@ def test_volume_size_through_cloudformation():
             "testInstance": {
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
-                    "ImageId": "ami-d3adb33f",
+                    "ImageId": EXAMPLE_AMI_ID,
                     "KeyName": "dummy",
                     "InstanceType": "t2.micro",
                     "BlockDeviceMappings": [

@@ -45,6 +45,7 @@ from moto import (
 )
 from moto.core import ACCOUNT_ID
 
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
     fn_join,
@@ -208,7 +209,7 @@ def test_stack_ec2_integration():
         "Resources": {
             "WebServerGroup": {
                 "Type": "AWS::EC2::Instance",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             }
         },
     }
@@ -252,7 +253,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
             },
             "Ec2Instance1": {
                 "Type": "AWS::EC2::Instance",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             },
         },
     }
@@ -418,7 +419,7 @@ def test_stack_security_groups():
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
                     "SecurityGroups": [{"Ref": "InstanceSecurityGroup"}],
-                    "ImageId": "ami-1234abcd",
+                    "ImageId": EXAMPLE_AMI_ID,
                 },
             },
             "InstanceSecurityGroup": {
@@ -513,7 +514,7 @@ def test_autoscaling_group_with_elb():
             },
             "my-launch-config": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             },
             "my-elb": {
                 "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
@@ -609,7 +610,7 @@ def test_autoscaling_group_update():
             },
             "my-launch-config": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             },
         },
     }
@@ -844,7 +845,7 @@ def test_iam_roles():
             "my-launch-config": {
                 "Properties": {
                     "IamInstanceProfile": {"Ref": "my-instance-profile-with-path"},
-                    "ImageId": "ami-1234abcd",
+                    "ImageId": EXAMPLE_AMI_ID,
                 },
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
             },
@@ -1132,7 +1133,7 @@ def test_conditional_if_handling():
             "App1": {
                 "Properties": {
                     "ImageId": {
-                        "Fn::If": ["EnvEqualsPrd", "ami-00000000", "ami-ffffffff"]
+                        "Fn::If": ["EnvEqualsPrd", EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2]
                     }
                 },
                 "Type": "AWS::EC2::Instance",
@@ -1146,7 +1147,7 @@ def test_conditional_if_handling():
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-ffffffff")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID2)
     ec2_instance.terminate()
 
     conn = boto.cloudformation.connect_to_region("us-west-2")
@@ -1156,7 +1157,7 @@ def test_conditional_if_handling():
     ec2_conn = boto.ec2.connect_to_region("us-west-2")
     reservation = ec2_conn.get_all_instances()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-00000000")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
 
 @mock_cloudformation_deprecated()
@@ -1927,7 +1928,7 @@ def test_stack_spot_fleet():
                             {
                                 "EbsOptimized": "false",
                                 "InstanceType": "t2.small",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "SubnetId": subnet_id,
                                 "WeightedCapacity": "2",
                                 "SpotPrice": "0.13",
@@ -1935,7 +1936,7 @@ def test_stack_spot_fleet():
                             {
                                 "EbsOptimized": "true",
                                 "InstanceType": "t2.large",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "Monitoring": {"Enabled": "true"},
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
@@ -1984,7 +1985,7 @@ def test_stack_spot_fleet():
     launch_spec = spot_fleet_config["LaunchSpecifications"][0]
 
     launch_spec["EbsOptimized"].should.equal(False)
-    launch_spec["ImageId"].should.equal("ami-1234")
+    launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
     launch_spec["InstanceType"].should.equal("t2.small")
     launch_spec["SubnetId"].should.equal(subnet_id)
     launch_spec["SpotPrice"].should.equal("0.13")
@@ -2015,14 +2016,14 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                             {
                                 "EbsOptimized": "false",
                                 "InstanceType": "t2.small",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "SubnetId": subnet_id,
                                 "WeightedCapacity": "2",
                             },
                             {
                                 "EbsOptimized": "true",
                                 "InstanceType": "t2.large",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "Monitoring": {"Enabled": "true"},
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
@@ -2165,7 +2166,7 @@ def test_stack_elbv2_resources_integration():
             },
             "ec2instance": {
                 "Type": "AWS::EC2::Instance",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             },
         },
     }
