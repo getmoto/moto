@@ -635,3 +635,47 @@ class IoTResponse(BaseResponse):
             thing_groups_to_remove=thing_groups_to_remove,
         )
         return json.dumps(dict())
+
+    def list_topic_rules(self):
+        return json.dumps(dict(rules=self.iot_backend.list_topic_rules()))
+
+    def get_topic_rule(self):
+        return json.dumps(
+            self.iot_backend.get_topic_rule(rule_name=self._get_param("ruleName"))
+        )
+
+    def create_topic_rule(self):
+        self.iot_backend.create_topic_rule(
+            rule_name=self._get_param("ruleName"),
+            description=self._get_param("description"),
+            rule_disabled=self._get_param("ruleDisabled"),
+            actions=self._get_param("actions"),
+            error_action=self._get_param("errorAction"),
+            sql=self._get_param("sql"),
+            aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
+        )
+        return json.dumps(dict())
+
+    def replace_topic_rule(self):
+        self.iot_backend.replace_topic_rule(
+            rule_name=self._get_param("ruleName"),
+            description=self._get_param("description"),
+            rule_disabled=self._get_param("ruleDisabled"),
+            actions=self._get_param("actions"),
+            error_action=self._get_param("errorAction"),
+            sql=self._get_param("sql"),
+            aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
+        )
+        return json.dumps(dict())
+
+    def delete_topic_rule(self):
+        self.iot_backend.delete_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())
+
+    def enable_topic_rule(self):
+        self.iot_backend.enable_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())
+
+    def disable_topic_rule(self):
+        self.iot_backend.disable_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())

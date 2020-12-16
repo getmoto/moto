@@ -4406,7 +4406,7 @@
 - [X] create_thing
 - [X] create_thing_group
 - [X] create_thing_type
-- [ ] create_topic_rule
+- [X] create_topic_rule
 - [ ] create_topic_rule_destination
 - [ ] delete_account_audit_configuration
 - [ ] delete_authorizer
@@ -4432,7 +4432,7 @@
 - [X] delete_thing
 - [X] delete_thing_group
 - [X] delete_thing_type
-- [ ] delete_topic_rule
+- [X] delete_topic_rule
 - [ ] delete_topic_rule_destination
 - [ ] delete_v2_logging_level
 - [ ] deprecate_thing_type
@@ -4467,8 +4467,8 @@
 - [X] detach_principal_policy
 - [ ] detach_security_profile
 - [X] detach_thing_principal
-- [ ] disable_topic_rule
-- [ ] enable_topic_rule
+- [X] disable_topic_rule
+- [X] enable_topic_rule
 - [ ] get_cardinality
 - [ ] get_effective_policies
 - [ ] get_indexing_configuration
@@ -4480,7 +4480,7 @@
 - [X] get_policy_version
 - [ ] get_registration_code
 - [ ] get_statistics
-- [ ] get_topic_rule
+- [X] get_topic_rule
 - [ ] get_topic_rule_destination
 - [ ] get_v2_logging_options
 - [ ] list_active_violations
@@ -4528,7 +4528,7 @@
 - [ ] list_things_in_billing_group
 - [X] list_things_in_thing_group
 - [ ] list_topic_rule_destinations
-- [ ] list_topic_rules
+- [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
 - [ ] register_ca_certificate
@@ -4538,7 +4538,7 @@
 - [ ] reject_certificate_transfer
 - [ ] remove_thing_from_billing_group
 - [X] remove_thing_from_thing_group
-- [ ] replace_topic_rule
+- [X] replace_topic_rule
 - [ ] search_index
 - [ ] set_default_authorizer
 - [X] set_default_policy_version

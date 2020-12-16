@@ -1991,3 +1991,133 @@ def test_list_job_executions_for_thing():
     job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
         job_id
     )
+
+
+@mock_iot
+def test_topic_rules():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-rule"
+    payload = {
+        "sql": "SELECT * FROM 'topic/*' WHERE something > 0",
+        "actions": [
+            {"dynamoDBv2": {"putItem": {"tableName": "my-table"}, "roleArn": "my-role"}}
+        ],
+        "errorAction": {
+            "republish": {"qos": 0, "roleArn": "my-role", "topic": "other-topic"}
+        },
+        "description": "my-description",
+        "ruleDisabled": False,
+        "awsIotSqlVersion": "2016-03-23",
+    }
+
+    # create
+    client.create_topic_rule(ruleName=name, topicRulePayload=payload)
+
+    # list
+    res = client.list_topic_rules()
+    res.should.have.key("rules").which.should.have.length_of(1)
+    for rule in res["rules"]:
+        rule.should.have.key("ruleName").which.should.equal(name)
+        rule.should.have.key("createdAt").which.should_not.be.none
+        rule.should.have.key("ruleArn").which.should_not.be.none
+        rule.should.have.key("ruleDisabled").which.should.equal(payload["ruleDisabled"])
+        rule.should.have.key("topicPattern").which.should.equal("topic/*")
+
+    # get
+    rule = client.get_topic_rule(ruleName=name)
+    rule.should.have.key("ruleArn").which.should_not.be.none
+    rule.should.have.key("rule")
+    rrule = rule["rule"]
+    rrule.should.have.key("actions").which.should.equal(payload["actions"])
+    rrule.should.have.key("awsIotSqlVersion").which.should.equal(
+        payload["awsIotSqlVersion"]
+    )
+    rrule.should.have.key("createdAt").which.should_not.be.none
+    rrule.should.have.key("description").which.should.equal(payload["description"])
+    rrule.should.have.key("errorAction").which.should.equal(payload["errorAction"])
+    rrule.should.have.key("ruleDisabled").which.should.equal(payload["ruleDisabled"])
+    rrule.should.have.key("ruleName").which.should.equal(name)
+    rrule.should.have.key("sql").which.should.equal(payload["sql"])
+
+    # replace
+    payload["description"] = "new-description"
+    client.replace_topic_rule(
+        ruleName=name, topicRulePayload=payload,
+    )
+    rule = client.get_topic_rule(ruleName=name)
+    rule["rule"]["ruleName"].should.equal(name)
+    rule["rule"]["description"].should.equal(payload["description"])
+
+    # disable
+    client.disable_topic_rule(ruleName=name)
+    rule = client.get_topic_rule(ruleName=name)
+    rule["rule"]["ruleName"].should.equal(name)
+    rule["rule"]["ruleDisabled"].should.equal(True)
+
+    # enable
+    client.enable_topic_rule(ruleName=name)
+    rule = client.get_topic_rule(ruleName=name)
+    rule["rule"]["ruleName"].should.equal(name)
+    rule["rule"]["ruleDisabled"].should.equal(False)
+
+    # delete
+    client.delete_topic_rule(ruleName=name)
+    res = client.list_topic_rules()
+    res.should.have.key("rules").which.should.have.length_of(0)
+
+    # errors
+
+    # get not existing rule
+    try:
+        client.get_topic_rule(ruleName=name)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+    # replace not existing rule
+    try:
+        client.replace_topic_rule(ruleName=name, topicRulePayload=payload)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+    # delete not existing rule
+    try:
+        client.delete_topic_rule(ruleName=name)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+    # enable not existing rule
+    try:
+        client.enable_topic_rule(ruleName=name)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+    # disable not existing rule
+    try:
+        client.disable_topic_rule(ruleName=name)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+    # create duplicated rule
+    client.create_topic_rule(ruleName=name, topicRulePayload=payload)
+    try:
+        client.create_topic_rule(ruleName=name, topicRulePayload=payload)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceAlreadyExistsException")
+    else:
+        raise Exception("Should have raised error")
