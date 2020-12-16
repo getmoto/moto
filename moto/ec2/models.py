@@ -2231,7 +2231,9 @@ class SecurityGroupBackend(object):
                 ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr["CidrIp"]):
+                if (type(cidr) is dict and not is_valid_cidr(cidr["CidrIp"])) or (
+                    type(cidr) is str and not is_valid_cidr(cidr)
+                ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2432,6 +2434,7 @@ class SecurityGroupIngress(CloudFormationModel):
         group_id = properties.get("GroupId")
         ip_protocol = properties.get("IpProtocol")
         cidr_ip = properties.get("CidrIp")
+        cidr_desc = properties.get("Description")
         cidr_ipv6 = properties.get("CidrIpv6")
         from_port = properties.get("FromPort")
         source_security_group_id = properties.get("SourceSecurityGroupId")
@@ -2458,7 +2461,7 @@ class SecurityGroupIngress(CloudFormationModel):
         else:
             source_security_group_names = None
         if cidr_ip:
-            ip_ranges = [cidr_ip]
+            ip_ranges = [{"CidrIp": cidr_ip, "Description": cidr_desc}]
         else:
             ip_ranges = []
 
