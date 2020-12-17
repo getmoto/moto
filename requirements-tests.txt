@@ -1,4 +1,5 @@
 pytest
 pytest-cov
+pytest-xdist
 sure==1.4.11
 freezegun

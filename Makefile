@@ -28,7 +28,7 @@ test-only:
 test-coverage:
 	rm -f .coverage
 	rm -rf cover
-	pytest -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
+	pytest -n=4 --dist loadfile -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
 
 test: lint test-only
 
