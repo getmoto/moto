@@ -707,6 +707,7 @@ class CloudFormationBackend(BaseBackend):
             for stack in self.stacks.values():
                 if stack.name == name_or_stack_id:
                     return stack
+            raise ValidationError(name_or_stack_id)
 
     def update_stack(self, name, template, role_arn=None, parameters=None, tags=None):
         stack = self.get_stack(name)

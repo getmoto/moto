@@ -254,6 +254,10 @@ def test_boto3_filter_stacks():
     conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
     conn.create_stack(StackName="test_stack2", TemplateBody=dummy_template_json)
     conn.update_stack(StackName="test_stack", TemplateBody=dummy_template_json2)
+
+    with pytest.raises(ClientError):
+        conn.update_stack(StackName="non_existing_stack", TemplateBody=dummy_template_json2)
+
     stacks = conn.list_stacks(StackStatusFilter=["CREATE_COMPLETE"])
     stacks.get("StackSummaries").should.have.length_of(1)
     stacks = conn.list_stacks(StackStatusFilter=["UPDATE_COMPLETE"])

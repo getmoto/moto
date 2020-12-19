@@ -446,6 +446,9 @@ def test_update_stack_with_previous_template():
     conn.create_stack("test_stack", template_body=dummy_template_json)
     conn.update_stack("test_stack", use_previous_template=True)
 
+    with pytest.raises(BotoServerError):
+        conn.update_stack("non_existing_stack", use_previous_template=True)
+
     stack = conn.describe_stacks()[0]
     stack.stack_status.should.equal("UPDATE_COMPLETE")
     stack.get_template().should.equal(
