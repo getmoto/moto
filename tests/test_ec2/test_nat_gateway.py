@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import boto3
-import sure  # noqa
+
+# import sure  # noqa
 from moto import mock_ec2
 
 
@@ -24,11 +25,54 @@ def test_create_nat_gateway():
     allocation_id = conn.allocate_address(Domain="vpc")["AllocationId"]
     subnet_id = subnet["Subnet"]["SubnetId"]
 
-    response = conn.create_nat_gateway(SubnetId=subnet_id, AllocationId=allocation_id)
+    response = conn.create_nat_gateway(
+        SubnetId=subnet_id,
+        AllocationId=allocation_id,
+        TagSpecifications=[
+            {
+                "ResourceType": "nat-gateway",
+                "Tags": [{"Key": "name", "Value": "some-nat-gateway"}],
+            }
+        ],
+    )
 
     response["NatGateway"]["VpcId"].should.equal(vpc_id)
     response["NatGateway"]["SubnetId"].should.equal(subnet_id)
     response["NatGateway"]["State"].should.equal("available")
+
+
+@mock_ec2
+def test_describe_nat_gateway_tags():
+    conn = boto3.client("ec2", "us-east-1")
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    subnet = conn.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.1.0/27", AvailabilityZone="us-east-1a"
+    )
+    allocation_id = conn.allocate_address(Domain="vpc")["AllocationId"]
+    subnet_id = subnet["Subnet"]["SubnetId"]
+
+    conn.create_nat_gateway(
+        SubnetId=subnet_id,
+        AllocationId=allocation_id,
+        TagSpecifications=[
+            {
+                "ResourceType": "nat-gateway",
+                "Tags": [
+                    {"Key": "name", "Value": "some-nat-gateway"},
+                    {"Key": "name", "Value": "some-nat-gateway-1"},
+                ],
+            }
+        ],
+    )
+
+    describe_response = conn.describe_nat_gateways()
+
+    assert describe_response["NatGateways"][0]["VpcId"] == vpc_id
+    assert describe_response["NatGateways"][0]["Tags"] == [
+        {"Key": "name", "Value": "some-nat-gateway"},
+        {"Key": "name", "Value": "some-nat-gateway-1"},
+    ]
 
 
 @mock_ec2

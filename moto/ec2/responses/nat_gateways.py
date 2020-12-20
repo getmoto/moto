@@ -7,8 +7,11 @@ class NatGateways(BaseResponse):
     def create_nat_gateway(self):
         subnet_id = self._get_param("SubnetId")
         allocation_id = self._get_param("AllocationId")
+        tags = self._get_multi_param("TagSpecification")
+        if tags:
+            tags = tags[0].get("Tag")
         nat_gateway = self.ec2_backend.create_nat_gateway(
-            subnet_id=subnet_id, allocation_id=allocation_id
+            subnet_id=subnet_id, allocation_id=allocation_id, tags=tags
         )
         template = self.response_template(CREATE_NAT_GATEWAY)
         return template.render(nat_gateway=nat_gateway)
@@ -22,6 +25,8 @@ class NatGateways(BaseResponse):
     def describe_nat_gateways(self):
         filters = filters_from_querystring(self.querystring)
         nat_gateways = self.ec2_backend.get_all_nat_gateways(filters)
+        for gateway in nat_gateways:
+            print(gateway.tags)
         template = self.response_template(DESCRIBE_NAT_GATEWAYS_RESPONSE)
         return template.render(nat_gateways=nat_gateways)
 
@@ -44,6 +49,16 @@ DESCRIBE_NAT_GATEWAYS_RESPONSE = """<DescribeNatGatewaysResponse xmlns="http://e
             <vpcId>{{ nat_gateway.vpc_id }}</vpcId>
             <natGatewayId>{{ nat_gateway.id }}</natGatewayId>
             <state>{{ nat_gateway.state }}</state>
+            {% if nat_gateway.tags %}
+                <tagSet>
+                    {% for tag in nat_gateway.tags %}
+                      <item>
+                        <key>{{ tag['Key'] }}</key>
+                        <value>{{ tag['Value'] }}</value>
+                      </item>
+                    {% endfor %}
+                </tagSet>
+            {% endif %}
         </item>
     {% endfor %}
     </natGatewaySet>
