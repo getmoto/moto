@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import boto3
 
-# import sure  # noqa
+import sure  # noqa
 from moto import mock_ec2
 
 
@@ -25,16 +25,7 @@ def test_create_nat_gateway():
     allocation_id = conn.allocate_address(Domain="vpc")["AllocationId"]
     subnet_id = subnet["Subnet"]["SubnetId"]
 
-    response = conn.create_nat_gateway(
-        SubnetId=subnet_id,
-        AllocationId=allocation_id,
-        TagSpecifications=[
-            {
-                "ResourceType": "nat-gateway",
-                "Tags": [{"Key": "name", "Value": "some-nat-gateway"}],
-            }
-        ],
-    )
+    response = conn.create_nat_gateway(SubnetId=subnet_id, AllocationId=allocation_id)
 
     response["NatGateway"]["VpcId"].should.equal(vpc_id)
     response["NatGateway"]["SubnetId"].should.equal(subnet_id)
