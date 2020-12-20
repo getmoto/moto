@@ -255,9 +255,6 @@ def test_boto3_filter_stacks():
     conn.create_stack(StackName="test_stack2", TemplateBody=dummy_template_json)
     conn.update_stack(StackName="test_stack", TemplateBody=dummy_template_json2)
 
-    with pytest.raises(ClientError):
-        conn.update_stack(StackName="non_existing_stack", TemplateBody=dummy_template_json2)
-
     stacks = conn.list_stacks(StackStatusFilter=["CREATE_COMPLETE"])
     stacks.get("StackSummaries").should.have.length_of(1)
     stacks = conn.list_stacks(StackStatusFilter=["UPDATE_COMPLETE"])
@@ -1309,6 +1306,10 @@ def test_stack_events():
                     event.resource_status_reason.should.equal(reason_to_look_for)
     except StopIteration:
         assert False, "Too many stack events"
+
+    with pytest.raises(ClientError):
+        stack = cf.Stack('non_existing_stack')
+        events = list(stack.events.all())
 
     list(stack_events_to_look_for).should.be.empty
 

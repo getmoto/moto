@@ -446,9 +446,6 @@ def test_update_stack_with_previous_template():
     conn.create_stack("test_stack", template_body=dummy_template_json)
     conn.update_stack("test_stack", use_previous_template=True)
 
-    with pytest.raises(BotoServerError):
-        conn.update_stack("non_existing_stack", use_previous_template=True)
-
     stack = conn.describe_stacks()[0]
     stack.stack_status.should.equal("UPDATE_COMPLETE")
     stack.get_template().should.equal(
@@ -570,6 +567,9 @@ def test_describe_stack_events_shows_create_update_and_delete():
                     event.resource_status_reason.should.equal(reason_to_look_for)
     except StopIteration:
         assert False, "Too many stack events"
+
+    with pytest.raises(BotoServerError):
+        conn.describe_stack_events("non_existing_stack")
 
     list(stack_events_to_look_for).should.be.empty
 
