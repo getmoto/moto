@@ -232,8 +232,6 @@ class CloudFormationResponse(BaseResponse):
             if stack_resource.logical_resource_id == logical_resource_id:
                 resource = stack_resource
                 break
-        else:
-            raise ValidationError(logical_resource_id)
 
         template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
