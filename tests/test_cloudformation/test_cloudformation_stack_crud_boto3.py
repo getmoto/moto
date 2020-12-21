@@ -318,7 +318,10 @@ def test_boto3_describe_stack_set_operation():
 
     response["StackSetOperation"]["Status"].should.equal("STOPPED")
     response["StackSetOperation"]["Action"].should.equal("CREATE")
-
+    with pytest.raises(ClientError):
+        cf_conn.describe_stack_set_operation(
+            StackSetName="test_stack_set", OperationId='non_existing_operation'
+        )
 
 @mock_cloudformation
 def test_boto3_list_stack_set_operation_results():
@@ -1135,6 +1138,17 @@ def test_delete_change_set():
     cf_conn.list_change_sets(StackName="NewStack")["Summaries"].should.have.length_of(1)
     cf_conn.delete_change_set(ChangeSetName="NewChangeSet", StackName="NewStack")
     cf_conn.list_change_sets(StackName="NewStack")["Summaries"].should.have.length_of(0)
+
+    # Testing deletion by arn
+    result = cf_conn.create_change_set(
+        StackName="NewStack",
+        TemplateBody=dummy_template_json,
+        ChangeSetName="NewChangeSet1",
+        ChangeSetType="CREATE",
+    )
+    cf_conn.delete_change_set(ChangeSetName=result.get('Id'), StackName="NewStack")
+    cf_conn.list_change_sets(StackName="NewStack")["Summaries"].should.have.length_of(0)
+
 
 
 @mock_cloudformation
