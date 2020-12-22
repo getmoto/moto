@@ -395,6 +395,7 @@ def test_create_function_from_aws_bucket():
             },
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "State": "Active",
+            "Layers": []
         }
     )
 
@@ -439,6 +440,7 @@ def test_create_function_from_zipfile():
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "State": "Active",
+            "Layers": []
         }
     )
 
@@ -783,6 +785,7 @@ def test_list_create_list_get_delete_list():
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
+            "Layers": []
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
@@ -985,6 +988,7 @@ def test_get_function_created_with_zipfile():
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
+            "Layers": []
         }
     )
 
@@ -1675,6 +1679,7 @@ def test_update_function_zip():
             "Version": "2",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
+            "Layers": []
         }
     )
 
@@ -1741,6 +1746,7 @@ def test_update_function_s3():
             "Version": "2",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
+            "Layers": []
         }
     )
 
@@ -1881,6 +1887,101 @@ def test_get_function_concurrency():
     result = conn.get_function_concurrency(FunctionName=function_name)
 
     result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
+
+
+@mock_lambda
+@mock_s3
+@freeze_time("2015-01-01 00:00:00")
+def test_get_lambda_layers():
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket="test-bucket",
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket="test-bucket", Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+
+    for _i in range(2):
+        conn.publish_layer_version(
+            LayerName="testLayer",
+            Content={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
+            CompatibleRuntimes=["python3.6"],
+            LicenseInfo="MIT",
+        )
+
+    result = conn.list_layer_versions(LayerName="testLayer")
+
+    for version in result["LayerVersions"]:
+        version.pop("CreatedDate")
+    result["LayerVersions"].sort(key=lambda x: x["Version"])
+    expected_arn = "arn:aws:lambda:{0}:{1}:layer:testLayer:".format(
+        _lambda_region, ACCOUNT_ID
+    )
+    result["LayerVersions"].should.equal(
+        [
+            {
+                "Version": 1,
+                "LayerVersionArn": expected_arn + "1",
+                "CompatibleRuntimes": ["python3.6"],
+                "Description": "",
+                "LicenseInfo": "MIT",
+            },
+            {
+                "Version": 2,
+                "LayerVersionArn": expected_arn + "2",
+                "CompatibleRuntimes": ["python3.6"],
+                "Description": "",
+                "LicenseInfo": "MIT",
+            },
+        ]
+    )
+
+    conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Environment={"Variables": {"test_variable": "test_value"}},
+        Layers=[(expected_arn + "1")],
+    )
+
+    result = conn.get_function_configuration(FunctionName="testFunction")
+    result["Layers"].should.equal(
+        [{"Arn": (expected_arn + "1"), "CodeSize": len(zip_content)}]
+    )
+    result = conn.update_function_configuration(
+        FunctionName="testFunction", Layers=[(expected_arn + "2")]
+    )
+    result["Layers"].should.equal(
+        [{"Arn": (expected_arn + "2"), "CodeSize": len(zip_content)}]
+    )
+
+    # Test get layer versions for non existant layer
+    result = conn.list_layer_versions(LayerName="testLayer2")
+    result["LayerVersions"].should.equal([])
+
+    # Test create function with non existant layer version
+    with pytest.raises(ValueError):
+        conn.create_function(
+            FunctionName="testFunction",
+            Runtime="python2.7",
+            Role=get_role_name(),
+            Handler="lambda_function.lambda_handler",
+            Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+            Environment={"Variables": {"test_variable": "test_value"}},
+            Layers=[(expected_arn + "3")],
+        )
 
 
 def create_invalid_lambda(role):
