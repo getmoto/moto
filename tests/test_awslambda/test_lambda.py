@@ -508,6 +508,70 @@ def test_get_function():
 
 @mock_lambda
 @mock_s3
+@freeze_time("2015-01-01 00:00:00")
+def test_get_function_configuration():
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket="test-bucket",
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket="test-bucket", Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+
+    conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Environment={"Variables": {"test_variable": "test_value"}},
+    )
+
+    result = conn.get_function_configuration(FunctionName="testFunction")
+    # this is hard to match against, so remove it
+    result["ResponseMetadata"].pop("HTTPHeaders", None)
+    # Botocore inserts retry attempts not seen in Python27
+    result["ResponseMetadata"].pop("RetryAttempts", None)
+    result.pop("LastModified")
+
+    result["CodeSha256"].should.equal(hashlib.sha256(zip_content).hexdigest())
+    result["CodeSize"].should.equal(len(zip_content))
+    result["Description"].should.equal("test lambda function")
+    result.should.contain("FunctionArn")
+    result["FunctionName"].should.equal("testFunction")
+    result["Handler"].should.equal("lambda_function.lambda_handler")
+    result["MemorySize"].should.equal(128)
+    result["Role"].should.equal(get_role_name())
+    result["Runtime"].should.equal("python2.7")
+    result["Timeout"].should.equal(3)
+    result["Version"].should.equal("$LATEST")
+    result.should.contain("VpcConfig")
+    result.should.contain("Environment")
+    result["Environment"].should.contain("Variables")
+    result["Environment"]["Variables"].should.equal({"test_variable": "test_value"})
+
+    # Test get function with qualifier
+    result = conn.get_function_configuration(
+        FunctionName="testFunction", Qualifier="$LATEST"
+    )
+    result["Version"].should.equal("$LATEST")
+    result["FunctionArn"].should.equal(
+        "arn:aws:lambda:us-west-2:{}:function:testFunction:$LATEST".format(ACCOUNT_ID)
+    )
+
+    # Test get function when can't find function name
+    with pytest.raises(conn.exceptions.ResourceNotFoundException):
+        conn.get_function_configuration(FunctionName="junk", Qualifier="$LATEST")
+
+
+@mock_lambda
+@mock_s3
 def test_get_function_by_arn():
     bucket_name = "test-bucket"
     s3_conn = boto3.client("s3", "us-east-1")
