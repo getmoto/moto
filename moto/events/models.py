@@ -5,6 +5,7 @@ from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
+from moto.events.exceptions import ValidationException
 from moto.utilities.tagging_service import TaggingService
 
 from uuid import uuid4
@@ -359,10 +360,52 @@ class EventsBackend(BaseBackend):
         if num_events < 1:
             raise JsonRESTError("ValidationError", "Need at least 1 event")
         elif num_events > 10:
-            raise JsonRESTError("ValidationError", "Can only submit 10 events at once")
+            # the exact error text is longer, the Value list consists of all the put events
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '[PutEventsRequestEntry]' at 'entries' failed to satisfy constraint: "
+                "Member must have length less than or equal to 10"
+            )
+
+        entries = []
+        for event in events:
+            if "Source" not in event:
+                entries.append(
+                    {
+                        "ErrorCode": "InvalidArgument",
+                        "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
+                    }
+                )
+            elif "DetailType" not in event:
+                entries.append(
+                    {
+                        "ErrorCode": "InvalidArgument",
+                        "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
+                    }
+                )
+            elif "Detail" not in event:
+                entries.append(
+                    {
+                        "ErrorCode": "InvalidArgument",
+                        "ErrorMessage": "Parameter Detail is not valid. Reason: Detail is a required argument.",
+                    }
+                )
+            else:
+                try:
+                    json.loads(event["Detail"])
+                except json.JSONDecodeError:
+                    entries.append(
+                        {
+                            "ErrorCode": "MalformedDetail",
+                            "ErrorMessage": "Detail is malformed.",
+                        }
+                    )
+                    continue
+
+                entries.append({"EventId": str(uuid4())})
 
         # We dont really need to store the events yet
-        return [{"EventId": str(uuid4())} for _ in events]
+        return entries
 
     def remove_targets(self, name, ids):
         rule = self.rules.get(name)

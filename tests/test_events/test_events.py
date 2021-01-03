@@ -333,8 +333,91 @@ def test_put_events():
     response["FailedEntryCount"].should.equal(0)
     response["Entries"].should.have.length_of(1)
 
-    with pytest.raises(ClientError):
-        client.put_events(Entries=[event] * 20)
+
+@mock_events
+def test_put_events_errors():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # too many entries
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_events(
+            Entries=[
+                {
+                    "Source": "source",
+                    "DetailType": "type",
+                    "Detail": '{ "key1": "value1" }',
+                },
+            ]
+            * 11
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutEvents")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value '[PutEventsRequestEntry]' at 'entries' failed to satisfy constraint: "
+        "Member must have length less than or equal to 10"
+    )
+
+    # missing argument 'Source'
+    # when
+    response = client.put_events(Entries=[{}])
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {
+            "ErrorCode": "InvalidArgument",
+            "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
+        }
+    )
+
+    # missing argument 'DetailType'
+    # when
+    response = client.put_events(Entries=[{"Source": "source"}])
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {
+            "ErrorCode": "InvalidArgument",
+            "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
+        }
+    )
+
+    # missing argument 'Detail'
+    # when
+    response = client.put_events(Entries=[{"DetailType": "type", "Source": "source"}])
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {
+            "ErrorCode": "InvalidArgument",
+            "ErrorMessage": "Parameter Detail is not valid. Reason: Detail is a required argument.",
+        }
+    )
+
+    # invalid JSON input
+    # when
+    response = client.put_events(
+        Entries=[{"Detail": "detail", "DetailType": "type", "Source": "source"}]
+    )
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {"ErrorCode": "MalformedDetail", "ErrorMessage": "Detail is malformed.",}
+    )
 
 
 @mock_events
