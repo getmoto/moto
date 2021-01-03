@@ -256,6 +256,7 @@ class Service(BaseObject, CloudFormationModel):
         scheduling_strategy=None,
         tags=None,
         deployment_controller=None,
+        launch_type=None,
     ):
         self.cluster_arn = cluster.arn
         self.arn = "arn:aws:ecs:{0}:012345678910:service/{1}".format(
@@ -272,12 +273,14 @@ class Service(BaseObject, CloudFormationModel):
         self.task_sets = []
         self.deployment_controller = deployment_controller or {"type": "ECS"}
         self.events = []
+        self.launch_type = launch_type
         if self.deployment_controller["type"] == "ECS":
             self.deployments = [
                 {
                     "createdAt": datetime.now(pytz.utc),
                     "desiredCount": self.desired_count,
                     "id": "ecs-svc/{}".format(randint(0, 32 ** 12)),
+                    "launchType": self.launch_type,
                     "pendingCount": self.desired_count,
                     "runningCount": 0,
                     "status": "PRIMARY",
@@ -1011,6 +1014,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         scheduling_strategy=None,
         tags=None,
         deployment_controller=None,
+        launch_type=None,
     ):
         cluster_name = cluster_str.split("/")[-1]
         if cluster_name in self.clusters:
@@ -1023,6 +1027,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             task_definition = None
         desired_count = desired_count if desired_count is not None else 0
 
+        launch_type = launch_type if launch_type is not None else "EC2"
+        if launch_type not in ["EC2", "FARGATE"]:
+            raise InvalidParameterException(
+                "launch type should be one of [EC2,FARGATE]"
+            )
+
         service = Service(
             cluster,
             service_name,
@@ -1032,6 +1042,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             scheduling_strategy,
             tags,
             deployment_controller,
+            launch_type,
         )
         cluster_service_pair = "{0}:{1}".format(cluster_name, service_name)
         self.services[cluster_service_pair] = service
@@ -1478,6 +1489,12 @@ class EC2ContainerServiceBackend(BaseBackend):
         client_token=None,
         tags=None,
     ):
+        launch_type = launch_type if launch_type is not None else "EC2"
+        if launch_type not in ["EC2", "FARGATE"]:
+            raise InvalidParameterException(
+                "launch type should be one of [EC2,FARGATE]"
+            )
+
         task_set = TaskSet(
             service,
             cluster,
