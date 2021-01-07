@@ -1810,6 +1810,32 @@ def test_boto3_list_objects_v2_common_prefix_pagination():
 
 
 @mock_s3
+def test_boto3_list_objects_v2_common_invalid_continuation_token():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    max_keys = 1
+    keys = ["test/{i}/{i}".format(i=i) for i in range(3)]
+    for key in keys:
+        s3.put_object(Bucket="mybucket", Key=key, Body=b"v")
+
+    args = {
+        "Bucket": "mybucket",
+        "Delimiter": "/",
+        "Prefix": "test/",
+        "MaxKeys": max_keys,
+        "ContinuationToken": "",
+    }
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        s3.list_objects_v2(**args)
+    exc.value.response["Error"]["Code"].should.equal("InvalidArgument")
+    exc.value.response["Error"]["Message"].should.equal(
+        "The continuation token provided is incorrect"
+    )
+
+
+@mock_s3
 def test_boto3_list_objects_v2_truncated_response():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")

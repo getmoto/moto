@@ -424,3 +424,15 @@ class InvalidRange(S3ClientError):
             actual_size=actual_size,
             **kwargs
         )
+
+
+class InvalidContinuationToken(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(InvalidContinuationToken, self).__init__(
+            "InvalidArgument",
+            "The continuation token provided is incorrect",
+            *args,
+            **kwargs
+        )

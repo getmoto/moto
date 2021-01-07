@@ -70,7 +70,7 @@ if PY2:
 else:
     install_requires += [
         "Jinja2>=2.10.1",
-        "mock",
+        "mock<=4.0.2",
         "more-itertools",
         "setuptools",
         "zipp",

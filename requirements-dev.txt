@@ -21,7 +21,7 @@ beautifulsoup4==4.6.0
 # The below pins mirror the Python version-conditional pins in setup.py
 #
 Jinja2>=2.10.1; python_version >= '3.6'
-mock; python_version >= '3.6'
+mock<=4.0.2; python_version >= '3.6'
 more-itertools; python_version >= '3.6'
 setuptools; python_version >= '3.6'
 sshpubkeys>=3.1.0; python_version >= '3.6'
