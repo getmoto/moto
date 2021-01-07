@@ -518,10 +518,8 @@ class Queue(CloudFormationModel):
             if result:
                 [backend.delete_message(self.name, m.receipt_handle) for m in messages]
             else:
-                [
-                    backend.change_message_visibility(self.name, m.receipt_handle, 0)
-                    for m in messages
-                ]
+                # Make messages visible again
+                [m.change_visibility(visibility_timeout=0) for m in messages]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
