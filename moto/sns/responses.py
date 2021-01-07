@@ -6,7 +6,7 @@ from collections import defaultdict
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends
-from .exceptions import SNSNotFoundError, InvalidParameterValue
+from .exceptions import InvalidParameterValue
 from .utils import is_e164
 
 
@@ -158,28 +158,28 @@ class SNSResponse(BaseResponse):
         topic = self.backend.get_topic(topic_arn)
 
         if self.request_json:
-            return json.dumps(
-                {
-                    "GetTopicAttributesResponse": {
-                        "GetTopicAttributesResult": {
-                            "Attributes": {
-                                "Owner": topic.account_id,
-                                "Policy": topic.policy,
-                                "TopicArn": topic.arn,
-                                "DisplayName": topic.display_name,
-                                "SubscriptionsPending": topic.subscriptions_pending,
-                                "SubscriptionsConfirmed": topic.subscriptions_confimed,
-                                "SubscriptionsDeleted": topic.subscriptions_deleted,
-                                "DeliveryPolicy": topic.delivery_policy,
-                                "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
-                            }
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "057f074c-33a7-11df-9540-99d0768312d3"
-                        },
-                    }
+            attributes = {
+                "Owner": topic.account_id,
+                "Policy": topic.policy,
+                "TopicArn": topic.arn,
+                "DisplayName": topic.display_name,
+                "SubscriptionsPending": topic.subscriptions_pending,
+                "SubscriptionsConfirmed": topic.subscriptions_confimed,
+                "SubscriptionsDeleted": topic.subscriptions_deleted,
+                "DeliveryPolicy": topic.delivery_policy,
+                "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
+            }
+            if topic.kms_master_key_id:
+                attributes["KmsMasterKeyId"] = topic.kms_master_key_id
+            response = {
+                "GetTopicAttributesResponse": {
+                    "GetTopicAttributesResult": {"Attributes": attributes},
+                    "ResponseMetadata": {
+                        "RequestId": "057f074c-33a7-11df-9540-99d0768312d3"
+                    },
                 }
-            )
+            }
+            return json.dumps(response)
 
         template = self.response_template(GET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render(topic=topic)
@@ -327,24 +327,13 @@ class SNSResponse(BaseResponse):
 
         message_attributes = self._parse_message_attributes()
 
+        arn = None
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
                 return (
                     self._error(
                         "InvalidParameter", "Phone number does not meet the E164 format"
-                    ),
-                    dict(status=400),
-                )
-
-            # Look up topic arn by phone number
-            try:
-                arn = self.backend.get_topic_from_phone_number(phone_number)
-            except SNSNotFoundError:
-                return (
-                    self._error(
-                        "ParameterValueInvalid",
-                        "Could not find topic associated with phone number",
                     ),
                     dict(status=400),
                 )
@@ -357,7 +346,11 @@ class SNSResponse(BaseResponse):
 
         try:
             message_id = self.backend.publish(
-                arn, message, subject=subject, message_attributes=message_attributes
+                message,
+                arn=arn,
+                phone_number=phone_number,
+                subject=subject,
+                message_attributes=message_attributes,
             )
         except ValueError as err:
             error_response = self._error("InvalidParameter", str(err))
@@ -834,6 +827,12 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
         <key>EffectiveDeliveryPolicy</key>
         <value>{{ topic.effective_delivery_policy }}</value>
       </entry>
+      {% if topic.kms_master_key_id %}
+      <entry>
+        <key>KmsMasterKeyId</key>
+        <value>{{ topic.kms_master_key_id }}</value>
+      </entry>
+      {% endif %}
     </Attributes>
   </GetTopicAttributesResult>
   <ResponseMetadata>

@@ -9,8 +9,8 @@ from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -28,7 +28,7 @@ from .exceptions import (
 )
 
 
-class Database(BaseModel):
+class Database(CloudFormationModel):
     def __init__(self, **kwargs):
         self.status = "available"
         self.is_replica = False
@@ -158,6 +158,7 @@ class Database(BaseModel):
                     family=db_family,
                     description=description,
                     tags={},
+                    region=self.region,
                 )
             ]
         else:
@@ -281,6 +282,14 @@ class Database(BaseModel):
                 <Port>{{ database.port }}</Port>
               </Endpoint>
               <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
+              <TagList>
+              {%- for tag in database.tags -%}
+                <Tag>
+                  <Key>{{ tag['Key'] }}</Key>
+                  <Value>{{ tag['Value'] }}</Value>
+                </Tag>
+              {%- endfor -%}
+              </TagList>
             </DBInstance>"""
         )
         return template.render(database=self)
@@ -356,15 +365,21 @@ class Database(BaseModel):
             "sqlserver-web": {"gp2": 20, "io1": 100, "standard": 20},
         }[engine][storage_type]
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "DBInstanceIdentifier"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-rds-dbinstance.html
+        return "AWS::RDS::DBInstance"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 
-        db_instance_identifier = properties.get("DBInstanceIdentifier")
-        if not db_instance_identifier:
-            db_instance_identifier = resource_name.lower() + get_random_hex(12)
         db_security_groups = properties.get("DBSecurityGroups")
         if not db_security_groups:
             db_security_groups = []
@@ -377,7 +392,7 @@ class Database(BaseModel):
             "availability_zone": properties.get("AvailabilityZone"),
             "backup_retention_period": properties.get("BackupRetentionPeriod"),
             "db_instance_class": properties.get("DBInstanceClass"),
-            "db_instance_identifier": db_instance_identifier,
+            "db_instance_identifier": resource_name,
             "db_name": properties.get("DBName"),
             "db_subnet_group_name": db_subnet_group_name,
             "engine": properties.get("Engine"),
@@ -564,7 +579,7 @@ class Snapshot(BaseModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class SecurityGroup(BaseModel):
+class SecurityGroup(CloudFormationModel):
     def __init__(self, group_name, description, tags):
         self.group_name = group_name
         self.description = description
@@ -627,12 +642,21 @@ class SecurityGroup(BaseModel):
     def authorize_security_group(self, security_group):
         self.ec2_security_groups.append(security_group)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-rds-dbsecuritygroup.html
+        return "AWS::RDS::DBSecurityGroup"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        group_name = resource_name.lower() + get_random_hex(12)
+        group_name = resource_name.lower()
         description = properties["GroupDescription"]
         security_group_ingress_rules = properties.get("DBSecurityGroupIngress", [])
         tags = properties.get("Tags")
@@ -671,7 +695,7 @@ class SecurityGroup(BaseModel):
         backend.delete_security_group(self.group_name)
 
 
-class SubnetGroup(BaseModel):
+class SubnetGroup(CloudFormationModel):
     def __init__(self, subnet_name, description, subnets, tags):
         self.subnet_name = subnet_name
         self.description = description
@@ -726,13 +750,21 @@ class SubnetGroup(BaseModel):
         )
         return template.render(subnet_group=self)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "DBSubnetGroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-rds-dbsubnetgroup.html
+        return "AWS::RDS::DBSubnetGroup"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 
-        subnet_name = resource_name.lower() + get_random_hex(12)
         description = properties["DBSubnetGroupDescription"]
         subnet_ids = properties["SubnetIds"]
         tags = properties.get("Tags")
@@ -741,7 +773,7 @@ class SubnetGroup(BaseModel):
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
         rds2_backend = rds2_backends[region_name]
         subnet_group = rds2_backend.create_subnet_group(
-            subnet_name, description, subnets, tags
+            resource_name, description, subnets, tags
         )
         return subnet_group
 
@@ -1142,7 +1174,7 @@ class RDS2Backend(BaseBackend):
                 "InvalidParameterValue",
                 "The parameter DBParameterGroupName must be provided and must not be blank.",
             )
-
+        db_parameter_group_kwargs["region"] = self.region
         db_parameter_group = DBParameterGroup(**db_parameter_group_kwargs)
         self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
         return db_parameter_group
@@ -1441,13 +1473,18 @@ class OptionGroupOptionSetting(object):
         return template.render(option_group_option_setting=self)
 
 
-class DBParameterGroup(object):
-    def __init__(self, name, description, family, tags):
+def make_rds_arn(region, name):
+    return "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, name)
+
+
+class DBParameterGroup(CloudFormationModel):
+    def __init__(self, name, description, family, tags, region):
         self.name = name
         self.description = description
         self.family = family
         self.tags = tags
         self.parameters = defaultdict(dict)
+        self.arn = make_rds_arn(region, name)
 
     def to_xml(self):
         template = Template(
@@ -1455,6 +1492,7 @@ class DBParameterGroup(object):
           <DBParameterGroupName>{{ param_group.name }}</DBParameterGroupName>
           <DBParameterGroupFamily>{{ param_group.family }}</DBParameterGroupFamily>
           <Description>{{ param_group.description }}</Description>
+          <DBParameterGroupArn>{{ param_group.arn }}</DBParameterGroupArn>
         </DBParameterGroup>"""
         )
         return template.render(param_group=self)
@@ -1479,6 +1517,15 @@ class DBParameterGroup(object):
     def delete(self, region_name):
         backend = rds2_backends[region_name]
         backend.delete_db_parameter_group(self.name)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-rds-dbparametergroup.html
+        return "AWS::RDS::DBParameterGroup"
 
     @classmethod
     def create_from_cloudformation_json(

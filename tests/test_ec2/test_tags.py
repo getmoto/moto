@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from nose.tools import assert_raises
+import pytest
 
 import itertools
 
@@ -11,7 +11,7 @@ from boto.ec2.instance import Reservation
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
-from nose.tools import assert_raises
+import pytest
 
 
 @mock_ec2_deprecated
@@ -20,11 +20,11 @@ def test_add_tag():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.add_tag("a key", "some value", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -51,11 +51,11 @@ def test_remove_tag():
     tag.name.should.equal("a key")
     tag.value.should.equal("some value")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         instance.remove_tag("a key", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -106,11 +106,11 @@ def test_create_tags():
         "blank key": "",
     }
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.create_tags(instance.id, tag_dict, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -131,18 +131,18 @@ def test_tag_limit_exceeded():
     for i in range(51):
         tag_dict["{0:02d}".format(i + 1)] = ""
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_tags(instance.id, tag_dict)
-    cm.exception.code.should.equal("TagLimitExceeded")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("TagLimitExceeded")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     instance.add_tag("a key", "a value")
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_tags(instance.id, tag_dict)
-    cm.exception.code.should.equal("TagLimitExceeded")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("TagLimitExceeded")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     tags = conn.get_all_tags()
     tag = tags[0]
@@ -157,27 +157,27 @@ def test_invalid_parameter_tag_null():
     reservation = conn.run_instances("ami-1234abcd")
     instance = reservation.instances[0]
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         instance.add_tag("a key", None)
-    cm.exception.code.should.equal("InvalidParameterValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidParameterValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
 def test_invalid_id():
     conn = boto.connect_ec2("the_key", "the_secret")
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_tags("ami-blah", {"key": "tag"})
-    cm.exception.code.should.equal("InvalidID")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidID")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_tags("blah-blah", {"key": "tag"})
-    cm.exception.code.should.equal("InvalidID")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidID")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -287,13 +287,13 @@ def test_get_all_tags_value_filter():
     tags = conn.get_all_tags(filters={"value": "*some*value*"})
     tags.should.have.length_of(3)
 
-    tags = conn.get_all_tags(filters={"value": "*value\*"})
+    tags = conn.get_all_tags(filters={"value": r"*value\*"})
     tags.should.have.length_of(1)
 
-    tags = conn.get_all_tags(filters={"value": "*value\*\*"})
+    tags = conn.get_all_tags(filters={"value": r"*value\*\*"})
     tags.should.have.length_of(1)
 
-    tags = conn.get_all_tags(filters={"value": "*value\*\?"})
+    tags = conn.get_all_tags(filters={"value": r"*value\*\?"})
     tags.should.have.length_of(1)
 
 
@@ -449,10 +449,10 @@ def test_create_tag_empty_resource():
     # create ec2 client in us-west-1
     client = boto3.client("ec2", region_name="us-west-1")
     # create tag with empty resource
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_tags(Resources=[], Tags=[{"Key": "Value"}])
-    ex.exception.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.value.response["Error"]["Message"].should.equal(
         "The request must contain the parameter resourceIdSet"
     )
 
@@ -462,10 +462,10 @@ def test_delete_tag_empty_resource():
     # create ec2 client in us-west-1
     client = boto3.client("ec2", region_name="us-west-1")
     # delete tag with empty resource
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_tags(Resources=[], Tags=[{"Key": "Value"}])
-    ex.exception.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.value.response["Error"]["Message"].should.equal(
         "The request must contain the parameter resourceIdSet"
     )
 

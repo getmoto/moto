@@ -71,6 +71,24 @@ class InvalidSubnetIdError(EC2ClientError):
         )
 
 
+class InvalidFlowLogIdError(EC2ClientError):
+    def __init__(self, count, flow_log_ids):
+        super(InvalidFlowLogIdError, self).__init__(
+            "InvalidFlowLogId.NotFound",
+            "These flow log ids in the input list are not found: [TotalCount: {0}] {1}".format(
+                count, flow_log_ids
+            ),
+        )
+
+
+class FlowLogAlreadyExists(EC2ClientError):
+    def __init__(self):
+        super(FlowLogAlreadyExists, self).__init__(
+            "FlowLogAlreadyExists",
+            "Error. There is an existing Flow Log with the same configuration and log destination.",
+        )
+
+
 class InvalidNetworkAclIdError(EC2ClientError):
     def __init__(self, network_acl_id):
         super(InvalidNetworkAclIdError, self).__init__(
@@ -180,6 +198,14 @@ class InvalidInstanceIdError(EC2ClientError):
         )
 
 
+class InvalidInstanceTypeError(EC2ClientError):
+    def __init__(self, instance_type):
+        super(InvalidInstanceTypeError, self).__init__(
+            "InvalidInstanceType.NotFound",
+            "The instance type '{0}' does not exist".format(instance_type),
+        )
+
+
 class InvalidAMIIdError(EC2ClientError):
     def __init__(self, ami_id):
         super(InvalidAMIIdError, self).__init__(
@@ -231,6 +257,16 @@ class InvalidVolumeAttachmentError(EC2ClientError):
         )
 
 
+class InvalidVolumeDetachmentError(EC2ClientError):
+    def __init__(self, volume_id, instance_id, device):
+        super(InvalidVolumeDetachmentError, self).__init__(
+            "InvalidAttachment.NotFound",
+            "The volume {0} is not attached to instance {1} as device {2}".format(
+                volume_id, instance_id, device
+            ),
+        )
+
+
 class VolumeInUseError(EC2ClientError):
     def __init__(self, volume_id, instance_id):
         super(VolumeInUseError, self).__init__(
@@ -250,6 +286,14 @@ class InvalidAddressError(EC2ClientError):
     def __init__(self, ip):
         super(InvalidAddressError, self).__init__(
             "InvalidAddress.NotFound", "Address '{0}' not found.".format(ip)
+        )
+
+
+class LogDestinationNotFoundError(EC2ClientError):
+    def __init__(self, bucket_name):
+        super(LogDestinationNotFoundError, self).__init__(
+            "LogDestinationNotFoundException",
+            "LogDestination: '{0}' does not exist.".format(bucket_name),
         )
 
 
@@ -296,6 +340,33 @@ class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
             "VpcPeeringConnectionID {0} is not in the correct state for the request.".format(
                 vpc_peering_connection_id
             ),
+        )
+
+
+class InvalidDependantParameterError(EC2ClientError):
+    def __init__(self, dependant_parameter, parameter, parameter_value):
+        super(InvalidDependantParameterError, self).__init__(
+            "InvalidParameter",
+            "{0} can't be empty if {1} is {2}.".format(
+                dependant_parameter, parameter, parameter_value,
+            ),
+        )
+
+
+class InvalidDependantParameterTypeError(EC2ClientError):
+    def __init__(self, dependant_parameter, parameter_value, parameter):
+        super(InvalidDependantParameterTypeError, self).__init__(
+            "InvalidParameter",
+            "{0} type must be {1} if {2} is provided.".format(
+                dependant_parameter, parameter_value, parameter,
+            ),
+        )
+
+
+class InvalidAggregationIntervalParameterError(EC2ClientError):
+    def __init__(self, parameter):
+        super(InvalidAggregationIntervalParameterError, self).__init__(
+            "InvalidParameter", "Invalid {0}".format(parameter),
         )
 
 
@@ -509,4 +580,38 @@ class InvalidLaunchTemplateNameError(EC2ClientError):
         super(InvalidLaunchTemplateNameError, self).__init__(
             "InvalidLaunchTemplateName.AlreadyExistsException",
             "Launch template name already in use.",
+        )
+
+
+class InvalidParameterDependency(EC2ClientError):
+    def __init__(self, param, param_needed):
+        super(InvalidParameterDependency, self).__init__(
+            "InvalidParameterDependency",
+            "The parameter [{0}] requires the parameter {1} to be set.".format(
+                param, param_needed
+            ),
+        )
+
+
+class IncorrectStateIamProfileAssociationError(EC2ClientError):
+    def __init__(self, instance_id):
+        super(IncorrectStateIamProfileAssociationError, self).__init__(
+            "IncorrectState",
+            "There is an existing association for instance {0}".format(instance_id),
+        )
+
+
+class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
+    def __init__(self, association_id):
+        super(InvalidAssociationIDIamProfileAssociationError, self).__init__(
+            "InvalidAssociationID.NotFound",
+            "An invalid association-id of '{0}' was given".format(association_id),
+        )
+
+
+class InvalidVpcEndPointIdError(EC2ClientError):
+    def __init__(self, vpc_end_point_id):
+        super(InvalidVpcEndPointIdError, self).__init__(
+            "InvalidVpcEndPointId.NotFound",
+            "The VpcEndPoint ID '{0}' does not exist".format(vpc_end_point_id),
         )

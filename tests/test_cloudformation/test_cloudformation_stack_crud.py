@@ -4,6 +4,7 @@ import os
 import json
 
 import boto
+import boto3
 import boto.iam
 import boto.s3
 import boto.s3.key
@@ -11,9 +12,7 @@ import boto.cloudformation
 from boto.exception import BotoServerError
 import sure  # noqa
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
+import pytest
 from moto.core import ACCOUNT_ID
 
 from moto import (
@@ -21,6 +20,8 @@ from moto import (
     mock_s3_deprecated,
     mock_route53_deprecated,
     mock_iam_deprecated,
+    mock_dynamodb2,
+    mock_cloudformation,
 )
 from moto.cloudformation import cloudformation_backends
 
@@ -42,6 +43,30 @@ dummy_template3 = {
     "Description": "Stack 3",
     "Resources": {
         "VPC": {"Properties": {"CidrBlock": "192.168.0.0/16"}, "Type": "AWS::EC2::VPC"}
+    },
+}
+
+dummy_template4 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "myDynamoDBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [
+                    {"AttributeName": "Name", "AttributeType": "S"},
+                    {"AttributeName": "Age", "AttributeType": "S"},
+                ],
+                "KeySchema": [
+                    {"AttributeName": "Name", "KeyType": "HASH"},
+                    {"AttributeName": "Age", "KeyType": "RANGE"},
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5,
+                },
+                "TableName": "Person",
+            },
+        }
     },
 }
 
@@ -98,12 +123,12 @@ def test_create_stack_hosted_zone_by_id():
         },
     }
     conn.create_stack(
-        "test_stack", template_body=json.dumps(dummy_template), parameters={}.items()
+        "test_stack1", template_body=json.dumps(dummy_template), parameters={}.items()
     )
     r53_conn = boto.connect_route53()
     zone_id = r53_conn.get_zones()[0].id
     conn.create_stack(
-        "test_stack",
+        "test_stack2",
         template_body=json.dumps(dummy_template2),
         parameters={"ZoneId": zone_id}.items(),
     )
@@ -188,6 +213,34 @@ def test_describe_stack_by_stack_id():
     stack_by_id.stack_name.should.equal("test_stack")
 
 
+@mock_dynamodb2
+@mock_cloudformation_deprecated
+def test_delete_stack_dynamo_template():
+    conn = boto.connect_cloudformation()
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    conn.create_stack("test_stack", template_body=dummy_template4)
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(1)
+    conn.delete_stack("test_stack")
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(0)
+    conn.create_stack("test_stack", template_body=dummy_template4)
+
+
+@mock_dynamodb2
+@mock_cloudformation
+def test_delete_stack_dynamo_template():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template4))
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(1)
+    conn.delete_stack(StackName="test_stack")
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(0)
+    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template4))
+
+
 @mock_cloudformation_deprecated
 def test_describe_deleted_stack():
     conn = boto.connect_cloudformation()
@@ -234,6 +287,19 @@ def test_list_stacks():
 
 
 @mock_cloudformation_deprecated
+def test_list_stacks_with_filter():
+    conn = boto.connect_cloudformation()
+    conn.create_stack("test_stack", template_body=dummy_template_json)
+    conn.create_stack("test_stack2", template_body=dummy_template_json)
+    conn.update_stack("test_stack", template_body=dummy_template_json2)
+    stacks = conn.list_stacks("CREATE_COMPLETE")
+    stacks.should.have.length_of(1)
+    stacks[0].template_description.should.equal("Stack 1")
+    stacks = conn.list_stacks("UPDATE_COMPLETE")
+    stacks.should.have.length_of(1)
+
+
+@mock_cloudformation_deprecated
 def test_delete_stack_by_name():
     conn = boto.connect_cloudformation()
     conn.create_stack("test_stack", template_body=dummy_template_json)
@@ -251,7 +317,7 @@ def test_delete_stack_by_id():
     conn.describe_stacks().should.have.length_of(1)
     conn.delete_stack(stack_id)
     conn.describe_stacks().should.have.length_of(0)
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.describe_stacks("test_stack")
 
     conn.describe_stacks(stack_id).should.have.length_of(1)
@@ -270,7 +336,7 @@ def test_delete_stack_with_resource_missing_delete_attr():
 @mock_cloudformation_deprecated
 def test_bad_describe_stack():
     conn = boto.connect_cloudformation()
-    with assert_raises(BotoServerError):
+    with pytest.raises(BotoServerError):
         conn.describe_stacks("bad_stack")
 
 
@@ -451,10 +517,10 @@ def test_update_stack_when_rolled_back():
         stack_id
     ].status = "ROLLBACK_COMPLETE"
 
-    with assert_raises(BotoServerError) as err:
+    with pytest.raises(BotoServerError) as err:
         conn.update_stack("test_stack", dummy_template_json)
 
-    ex = err.exception
+    ex = err.value
     ex.body.should.match(r"is in ROLLBACK_COMPLETE state and can not be updated")
     ex.error_code.should.equal("ValidationError")
     ex.reason.should.equal("Bad Request")
@@ -541,13 +607,14 @@ def test_create_stack_lambda_and_dynamodb():
                         "ReadCapacityUnits": 10,
                         "WriteCapacityUnits": 10,
                     },
+                    "StreamSpecification": {"StreamViewType": "KEYS_ONLY"},
                 },
             },
             "func1mapping": {
                 "Type": "AWS::Lambda::EventSourceMapping",
                 "Properties": {
                     "FunctionName": {"Ref": "func1"},
-                    "EventSourceArn": "arn:aws:dynamodb:region:XXXXXX:table/tab1/stream/2000T00:00:00.000",
+                    "EventSourceArn": {"Fn::GetAtt": ["tab1", "StreamArn"]},
                     "StartingPosition": "0",
                     "BatchSize": 100,
                     "Enabled": True,

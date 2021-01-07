@@ -19,4 +19,5 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/policy/?$": response.policy,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/configuration/?$": response.configuration,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/code/?$": response.code,
+    r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/concurrency/?$": response.function_concurrency,
 }

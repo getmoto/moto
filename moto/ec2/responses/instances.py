@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-from boto.ec2.instancetype import InstanceType
 
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
@@ -13,6 +12,7 @@ from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
+import six
 
 
 class InstanceResponse(BaseResponse):
@@ -143,11 +143,19 @@ class InstanceResponse(BaseResponse):
         return template.render(instances=instances)
 
     def describe_instance_types(self):
-        instance_types = [
-            InstanceType(name="t1.micro", cores=1, memory=644874240, disk=0)
-        ]
+        instance_type_filters = self._get_multi_param("InstanceType")
+        instance_types = self.ec2_backend.describe_instance_types(instance_type_filters)
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
+
+    def describe_instance_type_offerings(self):
+        location_type_filters = self._get_param("LocationType")
+        filter_dict = filters_from_querystring(self.querystring)
+        offerings = self.ec2_backend.describe_instance_type_offerings(
+            location_type_filters, filter_dict
+        )
+        template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS)
+        return template.render(instance_type_offerings=offerings)
 
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if
@@ -283,15 +291,15 @@ class InstanceResponse(BaseResponse):
             device_template["Ebs"]["VolumeSize"] = device_mapping.get(
                 "ebs._volume_size"
             )
-            device_template["Ebs"]["DeleteOnTermination"] = device_mapping.get(
-                "ebs._delete_on_termination", False
+            device_template["Ebs"]["DeleteOnTermination"] = self._convert_to_bool(
+                device_mapping.get("ebs._delete_on_termination", False)
             )
             device_template["Ebs"]["VolumeType"] = device_mapping.get(
                 "ebs._volume_type"
             )
             device_template["Ebs"]["Iops"] = device_mapping.get("ebs._iops")
-            device_template["Ebs"]["Encrypted"] = device_mapping.get(
-                "ebs._encrypted", False
+            device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
+                device_mapping.get("ebs._encrypted", False)
             )
             mappings.append(device_template)
 
@@ -307,6 +315,16 @@ class InstanceResponse(BaseResponse):
             and "ebs._snapshot_id" not in device_mapping
         ):
             raise MissingParameterError("size or snapshotId")
+
+    @staticmethod
+    def _convert_to_bool(bool_str):
+        if isinstance(bool_str, bool):
+            return bool_str
+
+        if isinstance(bool_str, six.text_type):
+            return str(bool_str).lower() == "true"
+
+        return False
 
 
 BLOCK_DEVICE_MAPPING_TEMPLATE = {
@@ -807,14 +825,41 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     <instanceTypeSet>
     {% for instance_type in instance_types %}
         <item>
-            <name>{{ instance_type.name }}</name>
-            <vcpu>{{ instance_type.cores }}</vcpu>
-            <memory>{{ instance_type.memory }}</memory>
-            <storageSize>{{ instance_type.disk }}</storageSize>
-            <storageCount>{{ instance_type.storageCount }}</storageCount>
-            <maxIpAddresses>{{ instance_type.maxIpAddresses }}</maxIpAddresses>
-            <ebsOptimizedAvailable>{{ instance_type.ebsOptimizedAvailable }}</ebsOptimizedAvailable>
+            <instanceType>{{ instance_type.apiname }}</instanceType>
+            <vCpuInfo>
+                <defaultVCpus>{{ instance_type.vcpus|int }}</defaultVCpus>
+                <defaultCores>{{ instance_type.vcpus|int }}</defaultCores>
+                <defaultThreadsPerCore>1</defaultThreadsPerCore>
+            </vCpuInfo>
+            <memoryInfo>
+                <sizeInMiB>{{ instance_type.memory|int }}</sizeInMiB>
+            </memoryInfo>
+            <instanceStorageInfo>
+                <totalSizeInGB>{{ instance_type.storage|int }}</totalSizeInGB>
+            </instanceStorageInfo>
+            <processorInfo>
+                <supportedArchitectures>
+                    <item>
+                        x86_64
+                    </item>
+                </supportedArchitectures>
+            </processorInfo>
         </item>
     {% endfor %}
     </instanceTypeSet>
 </DescribeInstanceTypesResponse>"""
+
+
+EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
+<DescribeInstanceTypeOfferingsResponse xmlns="http://api.outscale.com/wsdl/fcuext/2014-04-15/">
+    <requestId>f8b86168-d034-4e65-b48d-3b84c78e64af</requestId>
+    <instanceTypeOfferingSet>
+    {% for offering in instance_type_offerings %}
+        <item>
+            <instanceType>{{ offering.InstanceType }}</instanceType>
+            <location>{{ offering.Location }}</location>
+            <locationType>{{ offering.LocationType }}</locationType>
+        </item>
+    {% endfor %}
+    </instanceTypeOfferingSet>
+</DescribeInstanceTypeOfferingsResponse>"""

@@ -9,6 +9,7 @@ from threading import Lock
 
 import six
 from flask import Flask
+from flask_cors import CORS
 from flask.testing import FlaskClient
 
 from six.moves.urllib.parse import urlencode
@@ -92,6 +93,11 @@ class DomainDispatcherApplication(object):
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
+        if service == "EventBridge":
+            # Go SDK uses 'EventBridge' in the SigV4 request instead of 'events'
+            # see https://github.com/spulec/moto/issues/3494
+            service = "events"
+
         if service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
@@ -102,6 +108,10 @@ class DomainDispatcherApplication(object):
                 # If Newer API version, use dynamodb2
                 if dynamo_api_version > "20111205":
                     host = "dynamodb2"
+        elif service == "sagemaker":
+            host = "api.sagemaker.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
         else:
             host = "{service}.{region}.amazonaws.com".format(
                 service=service, region=region
@@ -201,6 +211,7 @@ def create_backend_app(service):
     backend_app = Flask(__name__)
     backend_app.debug = True
     backend_app.service = service
+    CORS(backend_app)
 
     # Reset view functions to reset the app
     backend_app.view_functions = {}

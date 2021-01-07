@@ -4,8 +4,7 @@ import boto
 import boto.dynamodb
 import sure  # noqa
 import requests
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_dynamodb, mock_dynamodb_deprecated
 from moto.dynamodb import dynamodb_backend
@@ -38,7 +37,7 @@ def test_list_tables_layer_1():
 @mock_dynamodb_deprecated
 def test_describe_missing_table():
     conn = boto.connect_dynamodb("the_key", "the_secret")
-    with assert_raises(DynamoDBResponseError):
+    with pytest.raises(DynamoDBResponseError):
         conn.describe_table("messages")
 
 

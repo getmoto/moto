@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 
 import boto3
+import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_cognitoidentity
 from moto.cognitoidentity.utils import get_random_identity_id
@@ -74,12 +75,12 @@ def test_describe_identity_pool():
 def test_describe_identity_pool_with_invalid_id_raises_error():
     conn = boto3.client("cognito-identity", "us-west-2")
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.describe_identity_pool(IdentityPoolId="us-west-2_non-existent")
 
-        cm.exception.operation_name.should.equal("DescribeIdentityPool")
-        cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-        cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        cm.value.operation_name.should.equal("DescribeIdentityPool")
+        cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 # testing a helper function

@@ -2,7 +2,8 @@ from __future__ import unicode_literals
 from .responses import KinesisResponse
 
 url_bases = [
-    "https?://kinesis.(.+).amazonaws.com",
+    # Need to avoid conflicting with kinesisvideo
+    r"https?://kinesis\.(.+).amazonaws.com",
     "https?://firehose.(.+).amazonaws.com",
 ]
 

@@ -7,7 +7,7 @@ class VPNConnections(BaseResponse):
     def create_vpn_connection(self):
         type = self._get_param("Type")
         cgw_id = self._get_param("CustomerGatewayId")
-        vgw_id = self._get_param("VPNGatewayId")
+        vgw_id = self._get_param("VpnGatewayId")
         static_routes = self._get_param("StaticRoutesOnly")
         vpn_connection = self.ec2_backend.create_vpn_connection(
             type, cgw_id, vgw_id, static_routes_only=static_routes

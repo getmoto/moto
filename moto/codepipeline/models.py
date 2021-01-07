@@ -15,9 +15,7 @@ from moto.codepipeline.exceptions import (
     InvalidTagsException,
     TooManyTagsException,
 )
-from moto.core import BaseBackend, BaseModel
-
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 
 
 class CodePipeline(BaseModel):

@@ -4,9 +4,9 @@ import copy
 import datetime
 
 from boto3 import Session
-from botocore.exceptions import ClientError
+
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
 from .exceptions import (
@@ -17,6 +17,7 @@ from .exceptions import (
     ClusterSnapshotAlreadyExistsError,
     ClusterSnapshotNotFoundError,
     ClusterSubnetGroupNotFoundError,
+    InvalidParameterCombinationError,
     InvalidParameterValueError,
     InvalidSubnetError,
     ResourceNotFoundFaultError,
@@ -25,6 +26,7 @@ from .exceptions import (
     SnapshotCopyDisabledFaultError,
     SnapshotCopyGrantAlreadyExistsFaultError,
     SnapshotCopyGrantNotFoundFaultError,
+    UnknownSnapshotCopyRegionFaultError,
 )
 
 
@@ -63,7 +65,7 @@ class TaggableResourceMixin(object):
         return self.tags
 
 
-class Cluster(TaggableResourceMixin, BaseModel):
+class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     resource_type = "cluster"
 
@@ -157,6 +159,15 @@ class Cluster(TaggableResourceMixin, BaseModel):
         self.iam_roles_arn = iam_roles_arn or []
         self.restored_from_snapshot = restored_from_snapshot
 
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-cluster.html
+        return "AWS::Redshift::Cluster"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -170,6 +181,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
             ].cluster_subnet_group_name
         else:
             subnet_group_name = None
+
         cluster = redshift_backend.create_cluster(
             cluster_identifier=resource_name,
             node_type=properties.get("NodeType"),
@@ -321,7 +333,7 @@ class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
         }
 
 
-class SubnetGroup(TaggableResourceMixin, BaseModel):
+class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     resource_type = "subnetgroup"
 
@@ -341,6 +353,15 @@ class SubnetGroup(TaggableResourceMixin, BaseModel):
         self.subnet_ids = subnet_ids
         if not self.subnets:
             raise InvalidSubnetError(subnet_ids)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-clustersubnetgroup.html
+        return "AWS::Redshift::ClusterSubnetGroup"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -412,7 +433,7 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
         }
 
 
-class ParameterGroup(TaggableResourceMixin, BaseModel):
+class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     resource_type = "parametergroup"
 
@@ -428,6 +449,15 @@ class ParameterGroup(TaggableResourceMixin, BaseModel):
         self.cluster_parameter_group_name = cluster_parameter_group_name
         self.group_family = group_family
         self.description = description
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-clusterparametergroup.html
+        return "AWS::Redshift::ClusterParameterGroup"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -545,10 +575,12 @@ class RedshiftBackend(BaseBackend):
                 cluster.encrypted == "true"
                 and kwargs["snapshot_copy_grant_name"] is None
             ):
-                raise ClientError(
-                    "InvalidParameterValue",
-                    "SnapshotCopyGrantName is required for Snapshot Copy "
-                    "on KMS encrypted clusters.",
+                raise InvalidParameterValueError(
+                    "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
+                )
+            if kwargs["destination_region"] == self.region:
+                raise UnknownSnapshotCopyRegionFaultError(
+                    "Invalid region {}".format(self.region)
                 )
             status = {
                 "DestinationRegion": kwargs["destination_region"],
@@ -600,6 +632,20 @@ class RedshiftBackend(BaseBackend):
         cluster_identifier = cluster_kwargs.pop("cluster_identifier")
         new_cluster_identifier = cluster_kwargs.pop("new_cluster_identifier", None)
 
+        cluster_type = cluster_kwargs.get("cluster_type")
+        if cluster_type and cluster_type not in ["multi-node", "single-node"]:
+            raise InvalidParameterValueError(
+                "Invalid cluster type. Cluster type can be one of multi-node or single-node"
+            )
+        if cluster_type == "single-node":
+            # AWS will always silently override this value for single-node clusters.
+            cluster_kwargs["number_of_nodes"] = 1
+        elif cluster_type == "multi-node":
+            if cluster_kwargs.get("number_of_nodes", 0) < 2:
+                raise InvalidParameterCombinationError(
+                    "Number of nodes for cluster type multi-node must be greater than or equal to 2"
+                )
+
         cluster = self.describe_clusters(cluster_identifier)[0]
 
         for key, value in cluster_kwargs.items():
@@ -629,10 +675,8 @@ class RedshiftBackend(BaseBackend):
                 cluster_skip_final_snapshot is False
                 and cluster_snapshot_identifer is None
             ):
-                raise ClientError(
-                    "InvalidParameterValue",
-                    "FinalSnapshotIdentifier is required for Snapshot copy "
-                    "when SkipFinalSnapshot is False",
+                raise InvalidParameterCombinationError(
+                    "FinalClusterSnapshotIdentifier is required unless SkipFinalClusterSnapshot is specified."
                 )
             elif (
                 cluster_skip_final_snapshot is False
@@ -751,7 +795,6 @@ class RedshiftBackend(BaseBackend):
                     cluster_snapshots.append(snapshot)
             if cluster_snapshots:
                 return cluster_snapshots
-            raise ClusterNotFoundError(cluster_identifier)
 
         if snapshot_identifier:
             if snapshot_identifier in self.snapshots:

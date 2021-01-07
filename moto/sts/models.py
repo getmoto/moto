@@ -10,6 +10,7 @@ from moto.sts.utils import (
     random_secret_access_key,
     random_session_token,
     random_assumed_role_id,
+    DEFAULT_STS_SESSION_DURATION,
 )
 
 
@@ -85,15 +86,36 @@ class STSBackend(BaseBackend):
         del kwargs["principal_arn"]
         saml_assertion_encoded = kwargs.pop("saml_assertion")
         saml_assertion_decoded = b64decode(saml_assertion_encoded)
-        saml_assertion = xmltodict.parse(saml_assertion_decoded.decode("utf-8"))
-        kwargs["duration"] = int(
-            saml_assertion["samlp:Response"]["Assertion"]["AttributeStatement"][
-                "Attribute"
-            ][2]["AttributeValue"]
+
+        namespaces = {
+            "urn:oasis:names:tc:SAML:2.0:protocol": "samlp",
+            "urn:oasis:names:tc:SAML:2.0:assertion": "saml",
+        }
+        saml_assertion = xmltodict.parse(
+            saml_assertion_decoded.decode("utf-8"),
+            force_cdata=True,
+            process_namespaces=True,
+            namespaces=namespaces,
         )
-        kwargs["role_session_name"] = saml_assertion["samlp:Response"]["Assertion"][
-            "AttributeStatement"
-        ]["Attribute"][0]["AttributeValue"]
+
+        saml_assertion_attributes = saml_assertion["samlp:Response"]["saml:Assertion"][
+            "saml:AttributeStatement"
+        ]["saml:Attribute"]
+        for attribute in saml_assertion_attributes:
+            if (
+                attribute["@Name"]
+                == "https://aws.amazon.com/SAML/Attributes/RoleSessionName"
+            ):
+                kwargs["role_session_name"] = attribute["saml:AttributeValue"]["#text"]
+            if (
+                attribute["@Name"]
+                == "https://aws.amazon.com/SAML/Attributes/SessionDuration"
+            ):
+                kwargs["duration"] = int(attribute["saml:AttributeValue"]["#text"])
+
+        if "duration" not in kwargs:
+            kwargs["duration"] = DEFAULT_STS_SESSION_DURATION
+
         kwargs["external_id"] = None
         kwargs["policy"] = None
         role = AssumedRole(**kwargs)

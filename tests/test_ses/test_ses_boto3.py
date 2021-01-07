@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from six.moves.email_mime_multipart import MIMEMultipart
 from six.moves.email_mime_text import MIMEText
-from nose.tools import assert_raises
+import pytest
 
 
 import sure  # noqa
@@ -82,6 +82,35 @@ def test_send_email():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     sent_count.should.equal(3)
+
+
+@mock_ses
+def test_send_email_when_verify_source():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Destination={"ToAddresses": ["test_to@example.com"],},
+        Message={
+            "Subject": {"Data": "test subject"},
+            "Body": {"Text": {"Data": "test body"}},
+        },
+    )
+
+    conn.send_email.when.called_with(
+        Source="verify_email_address@example.com", **kwargs
+    ).should.throw(ClientError)
+    conn.verify_email_address(EmailAddress="verify_email_address@example.com")
+    conn.send_email(Source="verify_email_address@example.com", **kwargs)
+
+    conn.send_email.when.called_with(
+        Source="verify_email_identity@example.com", **kwargs
+    ).should.throw(ClientError)
+    conn.verify_email_identity(EmailAddress="verify_email_identity@example.com")
+    conn.send_email(Source="verify_email_identity@example.com", **kwargs)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(2)
 
 
 @mock_ses
@@ -247,7 +276,7 @@ def test_send_email_notification_with_encoded_sender():
     response = conn.send_email(
         Source=sender,
         Destination={"ToAddresses": ["your.friend@hotmail.com"]},
-        Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}}},
+        Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}},},
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
@@ -269,7 +298,7 @@ def test_create_configuration_set():
         },
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
             ConfigurationSetName="failtest",
             EventDestination={
@@ -282,9 +311,9 @@ def test_create_configuration_set():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
             ConfigurationSetName="test",
             EventDestination={
@@ -297,7 +326,119 @@ def test_create_configuration_set():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+
+
+@mock_ses
+def test_create_receipt_rule_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    result = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
+
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule_set(RuleSetName="testRuleSet")
+
+    ex.value.response["Error"]["Code"].should.equal("RuleSetNameAlreadyExists")
+
+
+@mock_ses
+def test_create_receipt_rule():
+    conn = boto3.client("ses", region_name="us-east-1")
+    rule_set_name = "testRuleSet"
+    conn.create_receipt_rule_set(RuleSetName=rule_set_name)
+
+    result = conn.create_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": "testRule",
+            "Enabled": False,
+            "TlsPolicy": "Optional",
+            "Recipients": ["string"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "string",
+                        "BucketName": "string",
+                        "ObjectKeyPrefix": "string",
+                        "KmsKeyArn": "string",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "string",
+                        "SmtpReplyCode": "string",
+                        "StatusCode": "string",
+                        "Message": "string",
+                        "Sender": "string",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
+
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule(
+            RuleSetName=rule_set_name,
+            Rule={
+                "Name": "testRule",
+                "Enabled": False,
+                "TlsPolicy": "Optional",
+                "Recipients": ["string"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "string",
+                            "ObjectKeyPrefix": "string",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("RuleAlreadyExists")
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule(
+            RuleSetName="InvalidRuleSetaName",
+            Rule={
+                "Name": "testRule",
+                "Enabled": False,
+                "TlsPolicy": "Optional",
+                "Recipients": ["string"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "string",
+                            "ObjectKeyPrefix": "string",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
 
 
 @mock_ses
@@ -314,7 +455,7 @@ def test_create_ses_template():
             "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_template(
             Template={
                 "TemplateName": "MyTemplate",
@@ -326,18 +467,20 @@ def test_create_ses_template():
             }
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
 
     # get a template which is already added
     result = conn.get_template(TemplateName="MyTemplate")
     result["Template"]["TemplateName"].should.equal("MyTemplate")
     result["Template"]["SubjectPart"].should.equal("Greetings, {{name}}!")
-
+    result["Template"]["HtmlPart"].should.equal(
+        "<h1>Hello {{name}}," "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+    )
     # get a template which is not present
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.get_template(TemplateName="MyFakeTemplate")
 
-    ex.exception.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
 
     result = conn.list_templates()
     result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")

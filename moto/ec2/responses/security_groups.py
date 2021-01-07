@@ -20,7 +20,11 @@ def parse_sg_attributes_from_dict(sg_attributes):
     ip_ranges = []
     ip_ranges_tree = sg_attributes.get("IpRanges") or {}
     for ip_range_idx in sorted(ip_ranges_tree.keys()):
-        ip_ranges.append(ip_ranges_tree[ip_range_idx]["CidrIp"][0])
+        ip_range = {"CidrIp": ip_ranges_tree[ip_range_idx]["CidrIp"][0]}
+        if ip_ranges_tree[ip_range_idx].get("Description"):
+            ip_range["Description"] = ip_ranges_tree[ip_range_idx].get("Description")[0]
+
+        ip_ranges.append(ip_range)
 
     source_groups = []
     source_group_ids = []
@@ -61,6 +65,7 @@ class SecurityGroups(BaseResponse):
                 source_groups,
                 source_group_ids,
             ) = parse_sg_attributes_from_dict(querytree)
+
             yield (
                 group_name_or_id,
                 ip_protocol,
@@ -211,7 +216,10 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                        <ipRanges>
                           {% for ip_range in rule.ip_ranges %}
                               <item>
-                                 <cidrIp>{{ ip_range }}</cidrIp>
+                                 <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                    {% if ip_range['Description'] %}
+                                        <description>{{ ip_range['Description'] }}</description>
+                                    {% endif %}
                               </item>
                           {% endfor %}
                        </ipRanges>
@@ -242,7 +250,10 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                        <ipRanges>
                           {% for ip_range in rule.ip_ranges %}
                               <item>
-                                 <cidrIp>{{ ip_range }}</cidrIp>
+                                 <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                    {% if ip_range['Description'] %}
+                                        <description>{{ ip_range['Description'] }}</description>
+                                    {% endif %}
                               </item>
                           {% endfor %}
                        </ipRanges>

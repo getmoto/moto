@@ -4,7 +4,7 @@ import boto3
 
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_s3
 
@@ -105,7 +105,7 @@ def test_s3_invalid_copied_storage_class():
     )
 
     # Try to copy an object with an invalid storage class
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.copy_object(
             CopySource={"Bucket": "Bucket", "Key": "First_Object"},
             Bucket="Bucket2",
@@ -113,7 +113,7 @@ def test_s3_invalid_copied_storage_class():
             StorageClass="STANDARD2",
         )
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("InvalidStorageClass")
     e.response["Error"]["Message"].should.equal(
         "The storage class you specified is not valid"
@@ -128,12 +128,12 @@ def test_s3_invalid_storage_class():
     )
 
     # Try to add an object with an invalid storage class
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_object(
             Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="STANDARDD"
         )
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("InvalidStorageClass")
     e.response["Error"]["Message"].should.equal(
         "The storage class you specified is not valid"
@@ -156,7 +156,7 @@ def test_s3_default_storage_class():
 
 
 @mock_s3
-def test_s3_copy_object_error_for_glacier_storage_class():
+def test_s3_copy_object_error_for_glacier_storage_class_not_restored():
     s3 = boto3.client("s3")
     s3.create_bucket(
         Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
@@ -166,18 +166,18 @@ def test_s3_copy_object_error_for_glacier_storage_class():
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="GLACIER"
     )
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as ex:
         s3.copy_object(
             CopySource={"Bucket": "Bucket", "Key": "First_Object"},
             Bucket="Bucket",
             Key="Second_Object",
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
+    ex.value.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
 
 
 @mock_s3
-def test_s3_copy_object_error_for_deep_archive_storage_class():
+def test_s3_copy_object_error_for_deep_archive_storage_class_not_restored():
     s3 = boto3.client("s3")
     s3.create_bucket(
         Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
@@ -187,11 +187,65 @@ def test_s3_copy_object_error_for_deep_archive_storage_class():
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="DEEP_ARCHIVE"
     )
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.copy_object(
             CopySource={"Bucket": "Bucket", "Key": "First_Object"},
             Bucket="Bucket",
             Key="Second_Object",
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
+    exc.value.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
+
+
+@mock_s3
+def test_s3_copy_object_for_glacier_storage_class_restored():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="Bucket")
+
+    s3.put_object(
+        Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="GLACIER"
+    )
+
+    s3.create_bucket(Bucket="Bucket2")
+    s3.restore_object(Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123})
+
+    s3.copy_object(
+        CopySource={"Bucket": "Bucket", "Key": "First_Object"},
+        Bucket="Bucket2",
+        Key="Second_Object",
+    )
+
+    list_of_copied_objects = s3.list_objects(Bucket="Bucket2")
+    # checks that copy of restored Glacier object has STANDARD storage class
+    list_of_copied_objects["Contents"][0]["StorageClass"].should.equal("STANDARD")
+    # checks that metadata of copy has no Restore property
+    s3.head_object(Bucket="Bucket2", Key="Second_Object").should.not_have.property(
+        "Restore"
+    )
+
+
+@mock_s3
+def test_s3_copy_object_for_deep_archive_storage_class_restored():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="Bucket")
+
+    s3.put_object(
+        Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="DEEP_ARCHIVE"
+    )
+
+    s3.create_bucket(Bucket="Bucket2")
+    s3.restore_object(Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123})
+
+    s3.copy_object(
+        CopySource={"Bucket": "Bucket", "Key": "First_Object"},
+        Bucket="Bucket2",
+        Key="Second_Object",
+    )
+
+    list_of_copied_objects = s3.list_objects(Bucket="Bucket2")
+    # checks that copy of restored Glacier object has STANDARD storage class
+    list_of_copied_objects["Contents"][0]["StorageClass"].should.equal("STANDARD")
+    # checks that metadata of copy has no Restore property
+    s3.head_object(Bucket="Bucket2", Key="Second_Object").should.not_have.property(
+        "Restore"
+    )

@@ -6,7 +6,7 @@ import boto3
 
 from moto import mock_iot
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 
 def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
@@ -464,6 +464,60 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
 
 
 @mock_iot
+def test_endpoints():
+    region_name = "ap-northeast-1"
+    client = boto3.client("iot", region_name=region_name)
+
+    # iot:Data
+    endpoint = client.describe_endpoint(endpointType="iot:Data")
+    endpoint.should.have.key("endpointAddress").which.should_not.contain("ats")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:Data-ATS")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "ats.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:CredentialProvider")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "credentials.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:Jobs")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "jobs.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # raise InvalidRequestException
+    try:
+        client.describe_endpoint(endpointType="iot:Abc")
+    except client.exceptions.InvalidRequestException as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("InvalidRequestException")
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
+def test_certificate_id_generation_deterministic():
+    # Creating the same certificate twice should result in the same certificate ID
+    client = boto3.client("iot", region_name="us-east-1")
+    cert1 = client.create_keys_and_certificate(setAsActive=False)
+    client.delete_certificate(certificateId=cert1["certificateId"])
+
+    cert2 = client.register_certificate(
+        certificatePem=cert1["certificatePem"], setAsActive=False
+    )
+    cert2.should.have.key("certificateId").which.should.equal(cert1["certificateId"])
+    client.delete_certificate(certificateId=cert2["certificateId"])
+
+
+@mock_iot
 def test_certs():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -523,6 +577,49 @@ def test_certs():
     res = client.list_certificates()
     res.should.have.key("certificates")
 
+    # Test register_certificate without CA flow
+    cert = client.register_certificate_without_ca(
+        certificatePem=cert_pem, status="INACTIVE"
+    )
+    cert.should.have.key("certificateId").which.should_not.be.none
+    cert.should.have.key("certificateArn").which.should_not.be.none
+    cert_id = cert["certificateId"]
+
+    res = client.list_certificates()
+    res.should.have.key("certificates").which.should.have.length_of(1)
+    for cert in res["certificates"]:
+        cert.should.have.key("certificateArn").which.should_not.be.none
+        cert.should.have.key("certificateId").which.should_not.be.none
+        cert.should.have.key("status").which.should_not.be.none
+        cert.should.have.key("creationDate").which.should_not.be.none
+
+    client.delete_certificate(certificateId=cert_id)
+    res = client.list_certificates()
+    res.should.have.key("certificates")
+
+
+@mock_iot
+def test_create_certificate_validation():
+    # Test we can't create a cert that already exists
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=False)
+
+    with pytest.raises(ClientError) as e:
+        client.register_certificate(
+            certificatePem=cert["certificatePem"], setAsActive=False
+        )
+    e.value.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
+
+    with pytest.raises(ClientError) as e:
+        client.register_certificate_without_ca(
+            certificatePem=cert["certificatePem"], status="ACTIVE"
+        )
+    e.value.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
+
 
 @mock_iot
 def test_delete_policy_validation():
@@ -546,9 +643,9 @@ def test_delete_policy_validation():
     client.create_policy(policyName=policy_name, policyDocument=doc)
     client.attach_principal_policy(policyName=policy_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_policy(policyName=policy_name)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "The policy cannot be deleted as the policy is attached to one or more principals (name=%s)"
         % policy_name
     )
@@ -587,27 +684,27 @@ def test_delete_certificate_validation():
     client.create_thing(thingName=thing_name)
     client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Certificate must be deactivated (not ACTIVE) before deletion."
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Things must be detached before deletion (arn: %s)" % cert_arn
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Certificate policies must be detached before deletion (arn: %s)" % cert_arn
     )
     res = client.list_certificates()
@@ -701,9 +798,9 @@ def test_principal_policy():
     res.should.have.key("policies").which.should.have.length_of(0)
     res = client.list_policy_principals(policyName=policy_name)
     res.should.have.key("principals").which.should.have.length_of(0)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.detach_policy(policyName=policy_name, target=cert_arn)
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_iot
@@ -760,11 +857,11 @@ def test_principal_thing():
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key("principals").which.should.have.length_of(0)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_thing_principals(thingName="xxx")
 
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Message"].should.equal(
         "Failed to list principals for thing xxx because the thing does not exist in your account"
     )
 
@@ -840,11 +937,9 @@ class TestListThingGroup:
         resp = client.list_thing_groups(parentGroup=self.group_name_1b)
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(0)
-        with assert_raises(ClientError) as e:
+        with pytest.raises(ClientError) as e:
             client.list_thing_groups(parentGroup="inexistant-group-name")
-            e.exception.response["Error"]["Code"].should.equal(
-                "ResourceNotFoundException"
-            )
+            e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
@@ -941,10 +1036,14 @@ def test_delete_thing_group():
     res.should.have.key("thingGroups").which.should.have.length_of(1)
     res["thingGroups"].should_not.have.key(group_name_2a)
 
-    # now that there is no child group, we can delete the previus group safely
+    # now that there is no child group, we can delete the previous group safely
     client.delete_thing_group(thingGroupName=group_name_1a)
     res = client.list_thing_groups()
     res.should.have.key("thingGroups").which.should.have.length_of(0)
+
+    # Deleting an invalid thing group does not raise an error.
+    res = client.delete_thing_group(thingGroupName="non-existent-group-name")
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_iot

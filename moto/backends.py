@@ -6,6 +6,10 @@ BACKENDS = {
     "acm": ("acm", "acm_backends"),
     "apigateway": ("apigateway", "apigateway_backends"),
     "athena": ("athena", "athena_backends"),
+    "applicationautoscaling": (
+        "applicationautoscaling",
+        "applicationautoscaling_backends",
+    ),
     "autoscaling": ("autoscaling", "autoscaling_backends"),
     "batch": ("batch", "batch_backends"),
     "cloudformation": ("cloudformation", "cloudformation_backends"),
@@ -44,6 +48,7 @@ BACKENDS = {
     "opsworks": ("opsworks", "opsworks_backends"),
     "organizations": ("organizations", "organizations_backends"),
     "polly": ("polly", "polly_backends"),
+    "ram": ("ram", "ram_backends"),
     "rds": ("rds2", "rds2_backends"),
     "redshift": ("redshift", "redshift_backends"),
     "resource-groups": ("resourcegroups", "resourcegroups_backends"),
@@ -54,6 +59,7 @@ BACKENDS = {
     "route53": ("route53", "route53_backends"),
     "s3": ("s3", "s3_backends"),
     "s3bucket_path": ("s3", "s3_backends"),
+    "sagemaker": ("sagemaker", "sagemaker_backends"),
     "secretsmanager": ("secretsmanager", "secretsmanager_backends"),
     "ses": ("ses", "ses_backends"),
     "sns": ("sns", "sns_backends"),
@@ -62,7 +68,14 @@ BACKENDS = {
     "stepfunctions": ("stepfunctions", "stepfunction_backends"),
     "sts": ("sts", "sts_backends"),
     "swf": ("swf", "swf_backends"),
+    "transcribe": ("transcribe", "transcribe_backends"),
     "xray": ("xray", "xray_backends"),
+    "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
+    "kinesis-video-archived-media": (
+        "kinesisvideoarchivedmedia",
+        "kinesisvideoarchivedmedia_backends",
+    ),
+    "forecast": ("forecast", "forecast_backends"),
 }
 
 

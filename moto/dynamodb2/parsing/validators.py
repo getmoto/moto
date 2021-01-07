@@ -12,6 +12,7 @@ from moto.dynamodb2.exceptions import (
     IncorrectOperandType,
     InvalidUpdateExpressionInvalidDocumentPath,
     ProvidedKeyDoesNotExist,
+    EmptyKeyAttributeException,
 )
 from moto.dynamodb2.models import DynamoType
 from moto.dynamodb2.parsing.ast_nodes import (
@@ -318,13 +319,36 @@ class ExecuteOperations(DepthFirstTraverser):
             raise IncorrectOperandType("-", left_operand.type)
 
 
+class EmptyStringKeyValueValidator(DepthFirstTraverser):
+    def __init__(self, key_attributes):
+        self.key_attributes = key_attributes
+
+    def _processing_map(self):
+        return {UpdateExpressionSetAction: self.check_for_empty_string_key_value}
+
+    def check_for_empty_string_key_value(self, node):
+        """A node representing a SET action. Check that keys are not being assigned empty strings"""
+        assert isinstance(node, UpdateExpressionSetAction)
+        assert len(node.children) == 2
+        key = node.children[0].children[0].children[0]
+        val_node = node.children[1].children[0]
+        if val_node.type in ["S", "B"] and key in self.key_attributes:
+            raise EmptyKeyAttributeException
+        return node
+
+
 class Validator(object):
     """
     A validator is used to validate expressions which are passed in as an AST.
     """
 
     def __init__(
-        self, expression, expression_attribute_names, expression_attribute_values, item
+        self,
+        expression,
+        expression_attribute_names,
+        expression_attribute_values,
+        item,
+        table,
     ):
         """
         Besides validation the Validator should also replace referenced parts of an item which is cheapest upon
@@ -339,6 +363,7 @@ class Validator(object):
         self.expression_attribute_names = expression_attribute_names
         self.expression_attribute_values = expression_attribute_values
         self.item = item
+        self.table = table
         self.processors = self.get_ast_processors()
         self.node_to_validate = deepcopy(expression)
 
@@ -364,5 +389,6 @@ class UpdateExpressionValidator(Validator):
             UpdateExpressionFunctionEvaluator(),
             NoneExistingPathChecker(),
             ExecuteOperations(),
+            EmptyStringKeyValueValidator(self.table.key_attributes),
         ]
         return processors

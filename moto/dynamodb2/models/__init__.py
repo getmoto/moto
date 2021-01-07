@@ -9,7 +9,7 @@ import uuid
 
 from boto3 import Session
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb2.comparisons import get_filter_expression
@@ -20,6 +20,7 @@ from moto.dynamodb2.exceptions import (
     ItemSizeToUpdateTooLarge,
     ConditionalCheckFailed,
     TransactionCanceledException,
+    EmptyKeyAttributeException,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -107,9 +108,19 @@ class Item(BaseModel):
             included = self.attrs
         return {"Item": included}
 
+    def validate_no_empty_key_values(self, attribute_updates, key_attributes):
+        for attribute_name, update_action in attribute_updates.items():
+            action = update_action.get("Action") or "PUT"  # PUT is default
+            new_value = next(iter(update_action["Value"].values()))
+            if action == "PUT" and new_value == "" and attribute_name in key_attributes:
+                raise EmptyKeyAttributeException
+
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
-            action = update_action["Action"]
+            # Use default Action value, if no explicit Action is passed.
+            # Default value is 'Put', according to
+            # Boto3 DynamoDB.Client.update_item documentation.
+            action = update_action.get("Action", "PUT")
             if action == "DELETE" and "Value" not in update_action:
                 if attribute_name in self.attrs:
                     del self.attrs[attribute_name]
@@ -117,10 +128,10 @@ class Item(BaseModel):
             new_value = list(update_action["Value"].values())[0]
             if action == "PUT":
                 # TODO deal with other types
-                if isinstance(new_value, list):
-                    self.attrs[attribute_name] = DynamoType({"L": new_value})
-                elif isinstance(new_value, set):
+                if set(update_action["Value"].keys()) == set(["SS"]):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
+                elif isinstance(new_value, list):
+                    self.attrs[attribute_name] = DynamoType({"L": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
                 elif set(update_action["Value"].keys()) == set(["N"]):
@@ -245,7 +256,7 @@ class StreamShard(BaseModel):
         if old is None:
             event_name = "INSERT"
         elif new is None:
-            event_name = "DELETE"
+            event_name = "REMOVE"
         else:
             event_name = "MODIFY"
         seq = len(self.items) + self.starting_sequence_number
@@ -272,7 +283,102 @@ class StreamShard(BaseModel):
         return [i.to_json() for i in self.items[start:end]]
 
 
-class Table(BaseModel):
+class SecondaryIndex(BaseModel):
+    def project(self, item):
+        """
+        Enforces the ProjectionType of this Index (LSI/GSI)
+        Removes any non-wanted attributes from the item
+        :param item:
+        :return:
+        """
+        if self.projection:
+            projection_type = self.projection.get("ProjectionType", None)
+            key_attributes = self.table_key_attrs + [
+                key["AttributeName"] for key in self.schema
+            ]
+
+            if projection_type == "KEYS_ONLY":
+                item.filter(",".join(key_attributes))
+            elif projection_type == "INCLUDE":
+                allowed_attributes = key_attributes + self.projection.get(
+                    "NonKeyAttributes", []
+                )
+                item.filter(",".join(allowed_attributes))
+            # ALL is handled implicitly by not filtering
+        return item
+
+
+class LocalSecondaryIndex(SecondaryIndex):
+    def __init__(self, index_name, schema, projection, table_key_attrs):
+        self.name = index_name
+        self.schema = schema
+        self.projection = projection
+        self.table_key_attrs = table_key_attrs
+
+    def describe(self):
+        return {
+            "IndexName": self.name,
+            "KeySchema": self.schema,
+            "Projection": self.projection,
+        }
+
+    @staticmethod
+    def create(dct, table_key_attrs):
+        return LocalSecondaryIndex(
+            index_name=dct["IndexName"],
+            schema=dct["KeySchema"],
+            projection=dct["Projection"],
+            table_key_attrs=table_key_attrs,
+        )
+
+
+class GlobalSecondaryIndex(SecondaryIndex):
+    def __init__(
+        self,
+        index_name,
+        schema,
+        projection,
+        table_key_attrs,
+        status="ACTIVE",
+        throughput=None,
+    ):
+        self.name = index_name
+        self.schema = schema
+        self.projection = projection
+        self.table_key_attrs = table_key_attrs
+        self.status = status
+        self.throughput = throughput or {
+            "ReadCapacityUnits": 0,
+            "WriteCapacityUnits": 0,
+        }
+
+    def describe(self):
+        return {
+            "IndexName": self.name,
+            "KeySchema": self.schema,
+            "Projection": self.projection,
+            "IndexStatus": self.status,
+            "ProvisionedThroughput": self.throughput,
+        }
+
+    @staticmethod
+    def create(dct, table_key_attrs):
+        return GlobalSecondaryIndex(
+            index_name=dct["IndexName"],
+            schema=dct["KeySchema"],
+            projection=dct["Projection"],
+            table_key_attrs=table_key_attrs,
+            throughput=dct.get("ProvisionedThroughput", None),
+        )
+
+    def update(self, u):
+        self.name = u.get("IndexName", self.name)
+        self.schema = u.get("KeySchema", self.schema)
+        self.projection = u.get("Projection", self.projection)
+        self.throughput = u.get("ProvisionedThroughput", self.throughput)
+
+
+class Table(CloudFormationModel):
     def __init__(
         self,
         table_name,
@@ -297,17 +403,22 @@ class Table(BaseModel):
             else:
                 self.range_key_attr = elem["AttributeName"]
                 self.range_key_type = elem["KeyType"]
+        self.table_key_attrs = [
+            key for key in (self.hash_key_attr, self.range_key_attr) if key
+        ]
         if throughput is None:
             self.throughput = {"WriteCapacityUnits": 10, "ReadCapacityUnits": 10}
         else:
             self.throughput = throughput
         self.throughput["NumberOfDecreasesToday"] = 0
-        self.indexes = indexes
-        self.global_indexes = global_indexes if global_indexes else []
-        for index in self.global_indexes:
-            index[
-                "IndexStatus"
-            ] = "ACTIVE"  # One of 'CREATING'|'UPDATING'|'DELETING'|'ACTIVE'
+        self.indexes = [
+            LocalSecondaryIndex.create(i, self.table_key_attrs)
+            for i in (indexes if indexes else [])
+        ]
+        self.global_indexes = [
+            GlobalSecondaryIndex.create(i, self.table_key_attrs)
+            for i in (global_indexes if global_indexes else [])
+        ]
         self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
         self.table_arn = self._generate_arn(table_name)
@@ -324,6 +435,41 @@ class Table(BaseModel):
                 "PointInTimeRecoveryStatus": "DISABLED"  # One of 'ENABLED'|'DISABLED'
             },
         }
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.table_arn
+        elif attribute_name == "StreamArn" and self.stream_specification:
+            return self.describe()["TableDescription"]["LatestStreamArn"]
+
+        raise UnformattedGetAttTemplateException()
+
+    @property
+    def physical_resource_id(self):
+        return self.name
+
+    @property
+    def key_attributes(self):
+        # A set of all the hash or range attributes for all indexes
+        def keys_from_index(idx):
+            schema = idx.schema
+            return [attr["AttributeName"] for attr in schema]
+
+        fieldnames = copy.copy(self.table_key_attrs)
+        for idx in self.indexes + self.global_indexes:
+            fieldnames += keys_from_index(idx)
+        return fieldnames
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "TableName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::DynamoDB::Table"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -342,10 +488,19 @@ class Table(BaseModel):
             params["throughput"] = properties["ProvisionedThroughput"]
         if "LocalSecondaryIndexes" in properties:
             params["indexes"] = properties["LocalSecondaryIndexes"]
+        if "StreamSpecification" in properties:
+            params["streams"] = properties["StreamSpecification"]
 
         table = dynamodb_backends[region_name].create_table(
-            name=properties["TableName"], **params
+            name=resource_name, **params
         )
+        return table
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        table = dynamodb_backends[region_name].delete_table(name=resource_name)
         return table
 
     def _generate_arn(self, name):
@@ -374,8 +529,10 @@ class Table(BaseModel):
                 "KeySchema": self.schema,
                 "ItemCount": len(self),
                 "CreationDateTime": unix_time(self.created_at),
-                "GlobalSecondaryIndexes": [index for index in self.global_indexes],
-                "LocalSecondaryIndexes": [index for index in self.indexes],
+                "GlobalSecondaryIndexes": [
+                    index.describe() for index in self.global_indexes
+                ],
+                "LocalSecondaryIndexes": [index.describe() for index in self.indexes],
             }
         }
         if self.stream_specification and self.stream_specification["StreamEnabled"]:
@@ -401,7 +558,7 @@ class Table(BaseModel):
         keys = [self.hash_key_attr]
         for index in self.global_indexes:
             hash_key = None
-            for key in index["KeySchema"]:
+            for key in index.schema:
                 if key["KeyType"] == "HASH":
                     hash_key = key["AttributeName"]
             keys.append(hash_key)
@@ -412,7 +569,7 @@ class Table(BaseModel):
         keys = [self.range_key_attr]
         for index in self.global_indexes:
             range_key = None
-            for key in index["KeySchema"]:
+            for key in index.schema:
                 if key["KeyType"] == "RANGE":
                     range_key = keys.append(key["AttributeName"])
             keys.append(range_key)
@@ -545,7 +702,7 @@ class Table(BaseModel):
 
         if index_name:
             all_indexes = self.all_indexes()
-            indexes_by_name = dict((i["IndexName"], i) for i in all_indexes)
+            indexes_by_name = dict((i.name, i) for i in all_indexes)
             if index_name not in indexes_by_name:
                 raise ValueError(
                     "Invalid index: %s for table: %s. Available indexes are: %s"
@@ -555,14 +712,14 @@ class Table(BaseModel):
             index = indexes_by_name[index_name]
             try:
                 index_hash_key = [
-                    key for key in index["KeySchema"] if key["KeyType"] == "HASH"
+                    key for key in index.schema if key["KeyType"] == "HASH"
                 ][0]
             except IndexError:
-                raise ValueError("Missing Hash Key. KeySchema: %s" % index["KeySchema"])
+                raise ValueError("Missing Hash Key. KeySchema: %s" % index.name)
 
             try:
                 index_range_key = [
-                    key for key in index["KeySchema"] if key["KeyType"] == "RANGE"
+                    key for key in index.schema if key["KeyType"] == "RANGE"
                 ][0]
             except IndexError:
                 index_range_key = None
@@ -644,6 +801,10 @@ class Table(BaseModel):
             results = [item for item in results if filter_expression.expr(item)]
 
         results = copy.deepcopy(results)
+        if index_name:
+            index = self.get_index(index_name)
+            for result in results:
+                index.project(result)
         if projection_expression:
             for result in results:
                 result.filter(projection_expression)
@@ -664,12 +825,17 @@ class Table(BaseModel):
     def all_indexes(self):
         return (self.global_indexes or []) + (self.indexes or [])
 
+    def get_index(self, index_name, err=None):
+        all_indexes = self.all_indexes()
+        indexes_by_name = dict((i.name, i) for i in all_indexes)
+        if err and index_name not in indexes_by_name:
+            raise err
+        return indexes_by_name[index_name]
+
     def has_idx_items(self, index_name):
 
-        all_indexes = self.all_indexes()
-        indexes_by_name = dict((i["IndexName"], i) for i in all_indexes)
-        idx = indexes_by_name[index_name]
-        idx_col_set = set([i["AttributeName"] for i in idx["KeySchema"]])
+        idx = self.get_index(index_name)
+        idx_col_set = set([i["AttributeName"] for i in idx.schema])
 
         for hash_set in self.items.values():
             if self.range_key_attr:
@@ -691,14 +857,12 @@ class Table(BaseModel):
     ):
         results = []
         scanned_count = 0
-        all_indexes = self.all_indexes()
-        indexes_by_name = dict((i["IndexName"], i) for i in all_indexes)
 
         if index_name:
-            if index_name not in indexes_by_name:
-                raise InvalidIndexNameError(
-                    "The table does not have the specified index: %s" % index_name
-                )
+            err = InvalidIndexNameError(
+                "The table does not have the specified index: %s" % index_name
+            )
+            self.get_index(index_name, err)
             items = self.has_idx_items(index_name)
         else:
             items = self.all_items()
@@ -772,10 +936,8 @@ class Table(BaseModel):
                 last_evaluated_key[self.range_key_attr] = results[-1].range_key
 
             if scanned_index:
-                all_indexes = self.all_indexes()
-                indexes_by_name = dict((i["IndexName"], i) for i in all_indexes)
-                idx = indexes_by_name[scanned_index]
-                idx_col_list = [i["AttributeName"] for i in idx["KeySchema"]]
+                idx = self.get_index(scanned_index)
+                idx_col_list = [i["AttributeName"] for i in idx.schema]
                 for col in idx_col_list:
                     last_evaluated_key[col] = results[-1].attrs[col]
 
@@ -790,6 +952,9 @@ class Table(BaseModel):
         if not ret.keys():
             return None
         return ret
+
+    def delete(self, region_name):
+        dynamodb_backends[region_name].delete_table(self.name)
 
 
 class DynamoDBBackend(BaseBackend):
@@ -885,7 +1050,7 @@ class DynamoDBBackend(BaseBackend):
 
     def update_table_global_indexes(self, name, global_index_updates):
         table = self.tables[name]
-        gsis_by_name = dict((i["IndexName"], i) for i in table.global_indexes)
+        gsis_by_name = dict((i.name, i) for i in table.global_indexes)
         for gsi_update in global_index_updates:
             gsi_to_create = gsi_update.get("Create")
             gsi_to_update = gsi_update.get("Update")
@@ -906,7 +1071,7 @@ class DynamoDBBackend(BaseBackend):
                 if index_name not in gsis_by_name:
                     raise ValueError(
                         "Global Secondary Index does not exist, but tried to update: %s"
-                        % gsi_to_update["IndexName"]
+                        % index_name
                     )
                 gsis_by_name[index_name].update(gsi_to_update)
 
@@ -917,7 +1082,9 @@ class DynamoDBBackend(BaseBackend):
                         % gsi_to_create["IndexName"]
                     )
 
-                gsis_by_name[gsi_to_create["IndexName"]] = gsi_to_create
+                gsis_by_name[gsi_to_create["IndexName"]] = GlobalSecondaryIndex.create(
+                    gsi_to_create, table.table_key_attrs,
+                )
 
         # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other
         # parts of the codebase
@@ -1134,12 +1301,16 @@ class DynamoDBBackend(BaseBackend):
             table.put_item(data)
             item = table.get_item(hash_value, range_value)
 
+        if attribute_updates:
+            item.validate_no_empty_key_values(attribute_updates, table.key_attributes)
+
         if update_expression:
             validated_ast = UpdateExpressionValidator(
                 update_expression_ast,
                 expression_attribute_names=expression_attribute_names,
                 expression_attribute_values=expression_attribute_values,
                 item=item,
+                table=table,
             ).validate()
             try:
                 UpdateExpressionExecutor(

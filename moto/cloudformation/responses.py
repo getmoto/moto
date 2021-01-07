@@ -10,6 +10,31 @@ from moto.s3 import s3_backend
 from moto.core import ACCOUNT_ID
 from .models import cloudformation_backends
 from .exceptions import ValidationError
+from .utils import yaml_tag_constructor
+
+
+def get_template_summary_response_from_template(template_body):
+    def get_resource_types(template_dict):
+        resources = {}
+        for key, value in template_dict.items():
+            if key == "Resources":
+                resources = value
+
+        resource_types = []
+        for key, value in resources.items():
+            resource_types.append(value["Type"])
+        return resource_types
+
+    yaml.add_multi_constructor("", yaml_tag_constructor)
+
+    try:
+        template_dict = yaml.load(template_body, Loader=yaml.Loader)
+    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        template_dict = json.loads(template_body)
+
+    resources_types = get_resource_types(template_dict)
+    template_dict["resourceTypes"] = resources_types
+    return template_dict
 
 
 class CloudFormationResponse(BaseResponse):
@@ -36,7 +61,7 @@ class CloudFormationResponse(BaseResponse):
                 bucket_name = template_url_parts.netloc.split(".")[0]
                 key_name = template_url_parts.path.lstrip("/")
 
-        key = s3_backend.get_key(bucket_name, key_name)
+        key = s3_backend.get_object(bucket_name, key_name)
         return key.value.decode("utf-8")
 
     def create_stack(self):
@@ -49,6 +74,12 @@ class CloudFormationResponse(BaseResponse):
             (item["key"], item["value"])
             for item in self._get_list_prefix("Tags.member")
         )
+
+        if self.stack_name_exists(new_stack_name=stack_name):
+            template = self.response_template(
+                CREATE_STACK_NAME_EXISTS_RESPONSE_TEMPLATE
+            )
+            return 400, {"status": 400}, template.render(name=stack_name)
 
         # Hack dict-comprehension
         parameters = dict(
@@ -81,6 +112,12 @@ class CloudFormationResponse(BaseResponse):
         else:
             template = self.response_template(CREATE_STACK_RESPONSE_TEMPLATE)
             return template.render(stack=stack)
+
+    def stack_name_exists(self, new_stack_name):
+        for stack in self.cloudformation_backend.stacks.values():
+            if stack.name == new_stack_name:
+                return True
+        return False
 
     @amzn_request_id
     def create_change_set(self):
@@ -221,7 +258,8 @@ class CloudFormationResponse(BaseResponse):
         return template.render(change_sets=change_sets)
 
     def list_stacks(self):
-        stacks = self.cloudformation_backend.list_stacks()
+        status_filter = self._get_multi_param("StackStatusFilter.member")
+        stacks = self.cloudformation_backend.list_stacks(status_filter)
         template = self.response_template(LIST_STACKS_RESPONSE)
         return template.render(stacks=stacks)
 
@@ -255,6 +293,20 @@ class CloudFormationResponse(BaseResponse):
         else:
             template = self.response_template(GET_TEMPLATE_RESPONSE_TEMPLATE)
             return template.render(stack=stack)
+
+    def get_template_summary(self):
+        stack_name = self._get_param("StackName")
+        template_url = self._get_param("TemplateURL")
+        stack_body = self._get_param("TemplateBody")
+
+        if stack_name:
+            stack_body = self.cloudformation_backend.get_stack(stack_name).template
+        elif template_url:
+            stack_body = self._get_stack_from_s3_url(template_url)
+
+        template_summary = get_template_summary_response_from_template(stack_body)
+        template = self.response_template(GET_TEMPLATE_SUMMARY_TEMPLATE)
+        return template.render(template_summary=template_summary)
 
     def update_stack(self):
         stack_name = self._get_param("StackName")
@@ -339,19 +391,22 @@ class CloudFormationResponse(BaseResponse):
         return template.render(exports=exports, next_token=next_token)
 
     def validate_template(self):
-        cfn_lint = self.cloudformation_backend.validate_template(
-            self._get_param("TemplateBody")
-        )
+        template_body = self._get_param("TemplateBody")
+        template_url = self._get_param("TemplateURL")
+        if template_url:
+            template_body = self._get_stack_from_s3_url(template_url)
+
+        cfn_lint = self.cloudformation_backend.validate_template(template_body)
         if cfn_lint:
             raise ValidationError(cfn_lint[0].message)
         description = ""
         try:
-            description = json.loads(self._get_param("TemplateBody"))["Description"]
+            description = json.loads(template_body)["Description"]
         except (ValueError, KeyError):
             pass
         try:
-            description = yaml.load(self._get_param("TemplateBody"))["Description"]
-        except (yaml.ParserError, KeyError):
+            description = yaml.load(template_body, Loader=yaml.Loader)["Description"]
+        except (yaml.parser.ParserError, yaml.scanner.ScannerError, KeyError):
             pass
         template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
         return template.render(description=description)
@@ -564,6 +619,15 @@ CREATE_STACK_RESPONSE_TEMPLATE = """<CreateStackResponse>
 </CreateStackResponse>
 """
 
+CREATE_STACK_NAME_EXISTS_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>AlreadyExistsException</Code>
+    <Message>Stack [{{ name }}] already exists</Message>
+  </Error>
+  <RequestId>950ff8d7-812a-44b3-bb0c-9b271b954104</RequestId>
+</ErrorResponse>"""
+
 UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <UpdateStackResult>
     <StackId>{{ stack.stack_id }}</StackId>
@@ -609,7 +673,7 @@ DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
         </member>
       {% endfor %}
     </Parameters>
-    <CreationTime>2011-05-23T15:47:44Z</CreationTime>
+    <CreationTime>{{ change_set.creation_time_iso_8601 }}</CreationTime>
     <ExecutionStatus>{{ change_set.execution_status }}</ExecutionStatus>
     <Status>{{ change_set.status }}</Status>
     <StatusReason>{{ change_set.status_reason }}</StatusReason>
@@ -662,6 +726,10 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
       <member>
         <StackName>{{ stack.name }}</StackName>
         <StackId>{{ stack.stack_id }}</StackId>
+        {% if stack.change_set_id %}
+        <ChangeSetId>{{ stack.change_set_id }}</ChangeSetId>
+        {% endif %}
+        <Description><![CDATA[{{ stack.description }}]]></Description>
         <CreationTime>{{ stack.creation_time_iso_8601 }}</CreationTime>
         <StackStatus>{{ stack.status }}</StackStatus>
         {% if stack.notification_arns %}
@@ -714,7 +782,6 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
   </DescribeStacksResult>
 </DescribeStacksResponse>"""
 
-
 DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
   <DescribeStackResourceResult>
     <StackResourceDetail>
@@ -728,7 +795,6 @@ DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
     </StackResourceDetail>
   </DescribeStackResourceResult>
 </DescribeStackResourceResponse>"""
-
 
 DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
     <DescribeStackResourcesResult>
@@ -747,7 +813,6 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
       </StackResources>
     </DescribeStackResourcesResult>
 </DescribeStackResourcesResponse>"""
-
 
 DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <DescribeStackEventsResult>
@@ -773,7 +838,6 @@ DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://c
   </ResponseMetadata>
 </DescribeStackEventsResponse>"""
 
-
 LIST_CHANGE_SETS_RESPONSE = """<ListChangeSetsResponse>
  <ListChangeSetsResult>
   <Summaries>
@@ -794,7 +858,6 @@ LIST_CHANGE_SETS_RESPONSE = """<ListChangeSetsResponse>
  </ListChangeSetsResult>
 </ListChangeSetsResponse>"""
 
-
 LIST_STACKS_RESPONSE = """<ListStacksResponse>
  <ListStacksResult>
   <StackSummaries>
@@ -810,7 +873,6 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
   </StackSummaries>
  </ListStacksResult>
 </ListStacksResponse>"""
-
 
 LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
   <ListStackResourcesResult>
@@ -831,7 +893,6 @@ LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
   </ResponseMetadata>
 </ListStackResourcesResponse>"""
 
-
 GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
   <GetTemplateResult>
     <TemplateBody>{{ stack.template }}</TemplateBody>
@@ -841,14 +902,12 @@ GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
   </ResponseMetadata>
 </GetTemplateResponse>"""
 
-
 DELETE_STACK_RESPONSE_TEMPLATE = """<DeleteStackResponse>
   <ResponseMetadata>
     <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
   </ResponseMetadata>
 </DeleteStackResponse>
 """
-
 
 LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <ListExportsResult>
@@ -1110,3 +1169,19 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = (
 </ListStackSetOperationResultsResponse>
 """
 )
+
+GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <GetTemplateSummaryResult>
+    <Description>{{ template_summary.Description }}</Description>
+    {% for resource in template_summary.resourceTypes %}
+      <ResourceTypes>
+        <ResourceType>{{ resource }}</ResourceType>
+      </ResourceTypes>
+    {% endfor %}
+    <Version>{{ template_summary.AWSTemplateFormatVersion }}</Version>
+  </GetTemplateSummaryResult>
+  <ResponseMetadata>
+    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+  </ResponseMetadata>
+</GetTemplateSummaryResponse>
+"""

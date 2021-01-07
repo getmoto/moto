@@ -219,7 +219,12 @@ class FakeStack(BaseModel):
         self.stack_id = stack_id
         self.name = name
         self.template = template
-        self._parse_template()
+        if template != {}:
+            self._parse_template()
+            self.description = self.template_dict.get("Description")
+        else:
+            self.template_dict = {}
+            self.description = None
         self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
@@ -235,12 +240,12 @@ class FakeStack(BaseModel):
                 "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
             )
 
-        self.description = self.template_dict.get("Description")
         self.cross_stack_resources = cross_stack_resources or {}
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
         if create_change_set:
-            self.status = "REVIEW_IN_PROGRESS"
+            self.status = "CREATE_COMPLETE"
+            self.execution_status = "AVAILABLE"
         else:
             self.create_resources()
             self._add_stack_event("CREATE_COMPLETE")
@@ -310,8 +315,8 @@ class FakeStack(BaseModel):
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
-        except yaml.parser.ParserError:
-            self.template_dict = json.loads(self.template, Loader=yaml.Loader)
+        except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+            self.template_dict = json.loads(self.template)
 
     @property
     def stack_parameters(self):
@@ -330,7 +335,9 @@ class FakeStack(BaseModel):
         return self.output_map.exports
 
     def create_resources(self):
-        self.resource_map.create()
+        self.resource_map.create(self.template_dict)
+        # Set the description of the stack
+        self.description = self.template_dict.get("Description")
         self.status = "CREATE_COMPLETE"
 
     def update(self, template, role_arn=None, parameters=None, tags=None):
@@ -397,6 +404,9 @@ class FakeChangeSet(FakeStack):
         self.change_set_id = change_set_id
         self.change_set_name = change_set_name
         self.changes = self.diff(template=template, parameters=parameters)
+        if self.description is None:
+            self.description = self.template_dict.get("Description")
+        self.creation_time = datetime.utcnow()
 
     def diff(self, template, parameters=None):
         self.template = template
@@ -437,6 +447,16 @@ class FakeEvent(BaseModel):
         self.resource_properties = resource_properties
         self.timestamp = datetime.utcnow()
         self.event_id = uuid.uuid4()
+
+
+def filter_stacks(all_stacks, status_filter):
+    filtered_stacks = []
+    if not status_filter:
+        return all_stacks
+    for stack in all_stacks:
+        if stack.status in status_filter:
+            filtered_stacks.append(stack)
+    return filtered_stacks
 
 
 class CloudFormationBackend(BaseBackend):
@@ -587,8 +607,8 @@ class CloudFormationBackend(BaseBackend):
             if stack is None:
                 raise ValidationError(stack_name)
         else:
-            stack_id = generate_stack_id(stack_name)
-            stack_template = template
+            stack_id = generate_stack_id(stack_name, region_name)
+            stack_template = {}
 
         change_set_id = generate_changeset_id(change_set_name, region_name)
         new_change_set = FakeChangeSet(
@@ -643,6 +663,9 @@ class CloudFormationBackend(BaseBackend):
         if stack is None:
             raise ValidationError(stack_name)
         if stack.events[-1].resource_status == "REVIEW_IN_PROGRESS":
+            stack._add_stack_event(
+                "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
+            )
             stack._add_stack_event("CREATE_COMPLETE")
         else:
             stack._add_stack_event("UPDATE_IN_PROGRESS")
@@ -668,10 +691,11 @@ class CloudFormationBackend(BaseBackend):
     def list_change_sets(self):
         return self.change_sets.values()
 
-    def list_stacks(self):
-        return [v for v in self.stacks.values()] + [
+    def list_stacks(self, status_filter=None):
+        total_stacks = [v for v in self.stacks.values()] + [
             v for v in self.deleted_stacks.values()
         ]
+        return filter_stacks(total_stacks, status_filter)
 
     def get_stack(self, name_or_stack_id):
         all_stacks = dict(self.deleted_stacks, **self.stacks)

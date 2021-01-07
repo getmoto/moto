@@ -17,18 +17,17 @@ import json
 import re
 import zipfile
 import uuid
-import functools
 import tarfile
 import calendar
 import threading
 import traceback
 import weakref
-import requests.adapters
+import requests.exceptions
 
 from boto3 import Session
 
 from moto.awslambda.policy import Policy
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
@@ -47,6 +46,7 @@ from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
+from moto.utilities.docker_utilities import DockerModel
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,6 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-_orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
 
@@ -151,8 +150,9 @@ class _DockerDataVolumeContext:
                     raise  # multiple processes trying to use same volume?
 
 
-class LambdaFunction(BaseModel):
+class LambdaFunction(CloudFormationModel, DockerModel):
     def __init__(self, spec, region, validate_s3=True, version=1):
+        DockerModel.__init__(self)
         # required
         self.region = region
         self.code = spec["Code"]
@@ -162,23 +162,9 @@ class LambdaFunction(BaseModel):
         self.run_time = spec["Runtime"]
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.docker_client = docker.from_env()
         self.policy = None
         self.state = "Active"
-
-        # Unfortunately mocking replaces this method w/o fallback enabled, so we
-        # need to replace it if we detect it's been mocked
-        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
-            _orig_get_adapter = self.docker_client.api.get_adapter
-
-            def replace_adapter_send(*args, **kwargs):
-                adapter = _orig_get_adapter(*args, **kwargs)
-
-                if isinstance(adapter, requests.adapters.HTTPAdapter):
-                    adapter.send = functools.partial(_orig_adapter_send, adapter)
-                return adapter
-
-            self.docker_client.api.get_adapter = replace_adapter_send
+        self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
         # optional
         self.description = spec.get("Description", "")
@@ -218,7 +204,7 @@ class LambdaFunction(BaseModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(self.code["S3Bucket"], self.code["S3Key"])
+                key = s3_backend.get_object(self.code["S3Bucket"], self.code["S3Key"])
             except MissingBucket:
                 if do_validate_s3():
                     raise InvalidParameterValueException(
@@ -285,7 +271,7 @@ class LambdaFunction(BaseModel):
         return config
 
     def get_code(self):
-        return {
+        code = {
             "Code": {
                 "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/{1}".format(
                     self.region, self.code["S3Key"]
@@ -294,6 +280,15 @@ class LambdaFunction(BaseModel):
             },
             "Configuration": self.get_configuration(),
         }
+        if self.reserved_concurrency:
+            code.update(
+                {
+                    "Concurrency": {
+                        "ReservedConcurrentExecutions": self.reserved_concurrency
+                    }
+                }
+            )
+        return code
 
     def update_configuration(self, config_updates):
         for key, value in config_updates.items():
@@ -310,7 +305,7 @@ class LambdaFunction(BaseModel):
             elif key == "Timeout":
                 self.timeout = value
             elif key == "VpcConfig":
-                self.vpc_config = value
+                self._vpc_config = value
             elif key == "Environment":
                 self.environment_vars = value["Variables"]
 
@@ -344,7 +339,7 @@ class LambdaFunction(BaseModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(
+                key = s3_backend.get_object(
                     updated_spec["S3Bucket"], updated_spec["S3Key"]
                 )
             except MissingBucket:
@@ -388,11 +383,16 @@ class LambdaFunction(BaseModel):
             #       also need to hook it up to the other services so it can make kws/s3 etc calls
             #  Should get invoke_id /RequestId from invocation
             env_vars = {
+                "_HANDLER": self.handler,
+                "AWS_EXECUTION_ENV": "AWS_Lambda_{}".format(self.run_time),
                 "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
                 "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
                 "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
                 "AWS_LAMBDA_FUNCTION_VERSION": self.version,
                 "AWS_REGION": self.region,
+                "AWS_ACCESS_KEY_ID": "role-account-id",
+                "AWS_SECRET_ACCESS_KEY": "role-secret-key",
+                "AWS_SESSION_TOKEN": "session-token",
             }
 
             env_vars.update(self.environment_vars)
@@ -401,6 +401,7 @@ class LambdaFunction(BaseModel):
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
+                    self.docker_client.ping()  # Verify Docker is running
                     run_kwargs = (
                         dict(links={"motoserver": "motoserver"})
                         if settings.TEST_SERVER_MODE
@@ -463,6 +464,9 @@ class LambdaFunction(BaseModel):
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
             return resp, False, logs
+        except docker.errors.DockerException as e:
+            # Docker itself is probably not running - there will be no Lambda-logs to handle
+            return "error running docker: {}".format(e), True, ""
         except BaseException as e:
             traceback.print_exc()
             logs = os.linesep.join(
@@ -488,11 +492,29 @@ class LambdaFunction(BaseModel):
 
         return result
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "FunctionName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html
+        return "AWS::Lambda::Function"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        optional_properties = (
+            "Description",
+            "MemorySize",
+            "Publish",
+            "Timeout",
+            "VpcConfig",
+            "Environment",
+            "ReservedConcurrentExecutions",
+        )
 
         # required
         spec = {
@@ -502,9 +524,7 @@ class LambdaFunction(BaseModel):
             "Role": properties["Role"],
             "Runtime": properties["Runtime"],
         }
-        optional_properties = (
-            "Description MemorySize Publish Timeout VpcConfig Environment".split()
-        )
+
         # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
         # default logic
         for prop in optional_properties:
@@ -552,43 +572,66 @@ class LambdaFunction(BaseModel):
         lambda_backends[region].delete_function(self.function_name)
 
 
-class EventSourceMapping(BaseModel):
+class EventSourceMapping(CloudFormationModel):
     def __init__(self, spec):
         # required
-        self.function_arn = spec["FunctionArn"]
+        self.function_name = spec["FunctionName"]
         self.event_source_arn = spec["EventSourceArn"]
+
+        # optional
+        self.batch_size = spec.get("BatchSize")
+        self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
+        self.enabled = spec.get("Enabled", True)
+        self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
+
+        self.function_arn = spec["FunctionArn"]
         self.uuid = str(uuid.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
-        # BatchSize service default/max mapping
-        batch_size_map = {
+    def _get_service_source_from_arn(self, event_source_arn):
+        return event_source_arn.split(":")[2].lower()
+
+    def _validate_event_source(self, event_source_arn):
+        valid_services = ("dynamodb", "kinesis", "sqs")
+        service = self._get_service_source_from_arn(event_source_arn)
+        return True if service in valid_services else False
+
+    @property
+    def event_source_arn(self):
+        return self._event_source_arn
+
+    @event_source_arn.setter
+    def event_source_arn(self, event_source_arn):
+        if not self._validate_event_source(event_source_arn):
+            raise ValueError(
+                "InvalidParameterValueException", "Unsupported event source type"
+            )
+        self._event_source_arn = event_source_arn
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, batch_size):
+        batch_size_service_map = {
             "kinesis": (100, 10000),
             "dynamodb": (100, 1000),
             "sqs": (10, 10),
         }
-        source_type = self.event_source_arn.split(":")[2].lower()
-        batch_size_entry = batch_size_map.get(source_type)
-        if batch_size_entry:
-            # Use service default if not provided
-            batch_size = int(spec.get("BatchSize", batch_size_entry[0]))
-            if batch_size > batch_size_entry[1]:
-                raise ValueError(
-                    "InvalidParameterValueException",
-                    "BatchSize {} exceeds the max of {}".format(
-                        batch_size, batch_size_entry[1]
-                    ),
-                )
-            else:
-                self.batch_size = batch_size
-        else:
-            raise ValueError(
-                "InvalidParameterValueException", "Unsupported event source type"
-            )
 
-        # optional
-        self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
-        self.enabled = spec.get("Enabled", True)
-        self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
+        source_type = self._get_service_source_from_arn(self.event_source_arn)
+        batch_size_for_source = batch_size_service_map[source_type]
+
+        if batch_size is None:
+            self._batch_size = batch_size_for_source[0]
+        elif batch_size > batch_size_for_source[1]:
+            error_message = "BatchSize {} exceeds the max of {}".format(
+                batch_size, batch_size_for_source[1]
+            )
+            raise ValueError("InvalidParameterValueException", error_message)
+        else:
+            self._batch_size = int(batch_size)
 
     def get_configuration(self):
         return {
@@ -602,31 +645,71 @@ class EventSourceMapping(BaseModel):
             "StateTransitionReason": "User initiated",
         }
 
+    def delete(self, region_name):
+        lambda_backend = lambda_backends[region_name]
+        lambda_backend.delete_event_source_mapping(self.uuid)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-eventsourcemapping.html
+        return "AWS::Lambda::EventSourceMapping"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        func = lambda_backends[region_name].get_function(properties["FunctionName"])
-        spec = {
-            "FunctionArn": func.function_arn,
-            "EventSourceArn": properties["EventSourceArn"],
-            "StartingPosition": properties["StartingPosition"],
-            "BatchSize": properties.get("BatchSize", 100),
-        }
-        optional_properties = "BatchSize Enabled StartingPositionTimestamp".split()
-        for prop in optional_properties:
-            if prop in properties:
-                spec[prop] = properties[prop]
-        return EventSourceMapping(spec)
+        lambda_backend = lambda_backends[region_name]
+        return lambda_backend.create_event_source_mapping(properties)
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, new_resource_name, cloudformation_json, original_resource, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_source_uuid = original_resource.uuid
+        lambda_backend = lambda_backends[region_name]
+        return lambda_backend.update_event_source_mapping(event_source_uuid, properties)
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        lambda_backend = lambda_backends[region_name]
+        esms = lambda_backend.list_event_source_mappings(
+            event_source_arn=properties["EventSourceArn"],
+            function_name=properties["FunctionName"],
+        )
+
+        for esm in esms:
+            if esm.uuid == resource_name:
+                esm.delete(region_name)
+
+    @property
+    def physical_resource_id(self):
+        return self.uuid
 
 
-class LambdaVersion(BaseModel):
+class LambdaVersion(CloudFormationModel):
     def __init__(self, spec):
         self.version = spec["Version"]
 
     def __repr__(self):
         return str(self.logical_resource_id)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-version.html
+        return "AWS::Lambda::Version"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -819,7 +902,7 @@ class LambdaBackend(BaseBackend):
                 )
 
         # Validate function name
-        func = self._lambdas.get_function_by_name_or_arn(spec.pop("FunctionName", ""))
+        func = self._lambdas.get_function_by_name_or_arn(spec.get("FunctionName", ""))
         if not func:
             raise RESTError("ResourceNotFoundException", "Invalid FunctionName")
 
@@ -877,18 +960,20 @@ class LambdaBackend(BaseBackend):
 
     def update_event_source_mapping(self, uuid, spec):
         esm = self.get_event_source_mapping(uuid)
-        if esm:
-            if spec.get("FunctionName"):
-                func = self._lambdas.get_function_by_name_or_arn(
-                    spec.get("FunctionName")
-                )
+        if not esm:
+            return False
+
+        for key, value in spec.items():
+            if key == "FunctionName":
+                func = self._lambdas.get_function_by_name_or_arn(spec[key])
                 esm.function_arn = func.function_arn
-            if "BatchSize" in spec:
-                esm.batch_size = spec["BatchSize"]
-            if "Enabled" in spec:
-                esm.enabled = spec["Enabled"]
-            return esm
-        return False
+            elif key == "BatchSize":
+                esm.batch_size = spec[key]
+            elif key == "Enabled":
+                esm.enabled = spec[key]
+
+        esm.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        return esm
 
     def list_event_source_mappings(self, event_source_arn, function_name):
         esms = list(self._event_source_mappings.values())
@@ -1076,6 +1161,20 @@ class LambdaBackend(BaseBackend):
             return payload
         else:
             return None
+
+    def put_function_concurrency(self, function_name, reserved_concurrency):
+        fn = self.get_function(function_name)
+        fn.reserved_concurrency = reserved_concurrency
+        return fn.reserved_concurrency
+
+    def delete_function_concurrency(self, function_name):
+        fn = self.get_function(function_name)
+        fn.reserved_concurrency = None
+        return fn.reserved_concurrency
+
+    def get_function_concurrency(self, function_name):
+        fn = self.get_function(function_name)
+        return fn.reserved_concurrency
 
 
 def do_validate_s3():

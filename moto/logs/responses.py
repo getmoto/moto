@@ -42,7 +42,10 @@ class LogsResponse(BaseResponse):
         groups, next_token = self.logs_backend.describe_log_groups(
             limit, log_group_name_prefix, next_token
         )
-        return json.dumps({"logGroups": groups, "nextToken": next_token})
+        result = {"logGroups": groups}
+        if next_token:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def create_log_stream(self):
         log_group_name = self._get_param("logGroupName")

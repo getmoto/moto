@@ -10,7 +10,8 @@ from .utils import (
     networkid_from_managedblockchain_url,
     proposalid_from_managedblockchain_url,
     invitationid_from_managedblockchain_url,
-    memberid_from_managedblockchain_url,
+    memberid_from_managedblockchain_request,
+    nodeid_from_managedblockchain_url,
 )
 
 
@@ -296,7 +297,7 @@ class ManagedBlockchainResponse(BaseResponse):
         else:
             body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
-        member_id = memberid_from_managedblockchain_url(full_url)
+        member_id = memberid_from_managedblockchain_request(full_url, body)
         if method == "GET":
             return self._memberid_response_get(network_id, member_id, headers)
         elif method == "PATCH":
@@ -322,5 +323,105 @@ class ManagedBlockchainResponse(BaseResponse):
 
     def _memberid_response_delete(self, network_id, member_id, headers):
         self.backend.delete_member(network_id, member_id)
+        headers["content-type"] = "application/json"
+        return 200, headers, ""
+
+    @classmethod
+    def node_response(clazz, request, full_url, headers):
+        region_name = region_from_managedblckchain_url(full_url)
+        response_instance = ManagedBlockchainResponse(
+            managedblockchain_backends[region_name]
+        )
+        return response_instance._node_response(request, full_url, headers)
+
+    def _node_response(self, request, full_url, headers):
+        method = request.method
+        if hasattr(request, "body"):
+            body = request.body
+        else:
+            body = request.data
+        parsed_url = urlparse(full_url)
+        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
+        network_id = networkid_from_managedblockchain_url(full_url)
+        member_id = memberid_from_managedblockchain_request(full_url, body)
+        if method == "GET":
+            status = None
+            if "status" in querystring:
+                status = querystring["status"][0]
+            return self._all_nodes_response(network_id, member_id, status, headers)
+        elif method == "POST":
+            json_body = json.loads(body.decode("utf-8"))
+            return self._node_response_post(
+                network_id, member_id, json_body, querystring, headers
+            )
+
+    def _all_nodes_response(self, network_id, member_id, status, headers):
+        nodes = self.backend.list_nodes(network_id, member_id, status)
+        response = json.dumps({"Nodes": [node.to_dict() for node in nodes]})
+        headers["content-type"] = "application/json"
+        return 200, headers, response
+
+    def _node_response_post(
+        self, network_id, member_id, json_body, querystring, headers
+    ):
+        instancetype = json_body["NodeConfiguration"]["InstanceType"]
+        availabilityzone = json_body["NodeConfiguration"]["AvailabilityZone"]
+        logpublishingconfiguration = json_body["NodeConfiguration"][
+            "LogPublishingConfiguration"
+        ]
+
+        response = self.backend.create_node(
+            network_id,
+            member_id,
+            availabilityzone,
+            instancetype,
+            logpublishingconfiguration,
+        )
+        return 200, headers, json.dumps(response)
+
+    @classmethod
+    def nodeid_response(clazz, request, full_url, headers):
+        region_name = region_from_managedblckchain_url(full_url)
+        response_instance = ManagedBlockchainResponse(
+            managedblockchain_backends[region_name]
+        )
+        return response_instance._nodeid_response(request, full_url, headers)
+
+    def _nodeid_response(self, request, full_url, headers):
+        method = request.method
+        if hasattr(request, "body"):
+            body = request.body
+        else:
+            body = request.data
+        network_id = networkid_from_managedblockchain_url(full_url)
+        member_id = memberid_from_managedblockchain_request(full_url, body)
+        node_id = nodeid_from_managedblockchain_url(full_url)
+        if method == "GET":
+            return self._nodeid_response_get(network_id, member_id, node_id, headers)
+        elif method == "PATCH":
+            json_body = json.loads(body.decode("utf-8"))
+            return self._nodeid_response_patch(
+                network_id, member_id, node_id, json_body, headers
+            )
+        elif method == "DELETE":
+            return self._nodeid_response_delete(network_id, member_id, node_id, headers)
+
+    def _nodeid_response_get(self, network_id, member_id, node_id, headers):
+        node = self.backend.get_node(network_id, member_id, node_id)
+        response = json.dumps({"Node": node.get_format()})
+        headers["content-type"] = "application/json"
+        return 200, headers, response
+
+    def _nodeid_response_patch(
+        self, network_id, member_id, node_id, json_body, headers
+    ):
+        logpublishingconfiguration = json_body
+        self.backend.update_node(
+            network_id, member_id, node_id, logpublishingconfiguration,
+        )
+        return 200, headers, ""
+
+    def _nodeid_response_delete(self, network_id, member_id, node_id, headers):
+        self.backend.delete_node(network_id, member_id, node_id)
         headers["content-type"] = "application/json"
         return 200, headers, ""

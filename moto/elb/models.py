@@ -4,16 +4,16 @@ import datetime
 
 import pytz
 
-from boto.ec2.elb.attributes import (
+from moto.packages.boto.ec2.elb.attributes import (
     LbAttributes,
     ConnectionSettingAttribute,
     ConnectionDrainingAttribute,
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
-from boto.ec2.elb.policies import Policies, OtherPolicy
+from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2.models import ec2_backends
 from .exceptions import (
     BadHealthCheckDefinition,
@@ -69,7 +69,7 @@ class FakeBackend(BaseModel):
         )
 
 
-class FakeLoadBalancer(BaseModel):
+class FakeLoadBalancer(CloudFormationModel):
     def __init__(
         self,
         name,
@@ -118,6 +118,15 @@ class FakeLoadBalancer(BaseModel):
                 instance_port=(port.get("instance_port") or port["InstancePort"])
             )
             self.backends.append(backend)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "LoadBalancerName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancing-loadbalancer.html
+        return "AWS::ElasticLoadBalancing::LoadBalancer"
 
     @classmethod
     def create_from_cloudformation_json(

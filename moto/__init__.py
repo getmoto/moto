@@ -15,6 +15,9 @@ mock_acm = lazy_load(".acm", "mock_acm")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
 mock_apigateway_deprecated = lazy_load(".apigateway", "mock_apigateway_deprecated")
 mock_athena = lazy_load(".athena", "mock_athena")
+mock_applicationautoscaling = lazy_load(
+    ".applicationautoscaling", "mock_applicationautoscaling"
+)
 mock_autoscaling = lazy_load(".autoscaling", "mock_autoscaling")
 mock_autoscaling_deprecated = lazy_load(".autoscaling", "mock_autoscaling_deprecated")
 mock_lambda = lazy_load(".awslambda", "mock_lambda")
@@ -60,6 +63,7 @@ mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
 mock_emr = lazy_load(".emr", "mock_emr")
 mock_emr_deprecated = lazy_load(".emr", "mock_emr_deprecated")
 mock_events = lazy_load(".events", "mock_events")
+mock_forecast = lazy_load(".forecast", "mock_forecast")
 mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glacier_deprecated = lazy_load(".glacier", "mock_glacier_deprecated")
 mock_glue = lazy_load(".glue", "mock_glue")
@@ -78,6 +82,7 @@ mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_opsworks_deprecated = lazy_load(".opsworks", "mock_opsworks_deprecated")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
 mock_polly = lazy_load(".polly", "mock_polly")
+mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds")
 mock_rds_deprecated = lazy_load(".rds", "mock_rds_deprecated")
 mock_rds2 = lazy_load(".rds2", "mock_rds2")
@@ -92,6 +97,7 @@ mock_route53 = lazy_load(".route53", "mock_route53")
 mock_route53_deprecated = lazy_load(".route53", "mock_route53_deprecated")
 mock_s3 = lazy_load(".s3", "mock_s3")
 mock_s3_deprecated = lazy_load(".s3", "mock_s3_deprecated")
+mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
 mock_secretsmanager = lazy_load(".secretsmanager", "mock_secretsmanager")
 mock_ses = lazy_load(".ses", "mock_ses")
 mock_ses_deprecated = lazy_load(".ses", "mock_ses_deprecated")
@@ -105,15 +111,20 @@ mock_sts = lazy_load(".sts", "mock_sts")
 mock_sts_deprecated = lazy_load(".sts", "mock_sts_deprecated")
 mock_swf = lazy_load(".swf", "mock_swf")
 mock_swf_deprecated = lazy_load(".swf", "mock_swf_deprecated")
+mock_transcribe = lazy_load(".transcribe", "mock_transcribe")
 XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
+mock_kinesisvideo = lazy_load(".kinesisvideo", "mock_kinesisvideo")
+mock_kinesisvideoarchivedmedia = lazy_load(
+    ".kinesisvideoarchivedmedia", "mock_kinesisvideoarchivedmedia"
+)
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "1.3.15.dev"
+__version__ = "1.3.16.dev"
 
 
 try:

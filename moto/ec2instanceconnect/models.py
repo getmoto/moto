@@ -1,4 +1,4 @@
-import boto.ec2
+from boto3 import Session
 import json
 from moto.core import BaseBackend
 
@@ -11,5 +11,9 @@ class Ec2InstanceConnectBackend(BaseBackend):
 
 
 ec2instanceconnect_backends = {}
-for region in boto.ec2.regions():
-    ec2instanceconnect_backends[region.name] = Ec2InstanceConnectBackend()
+for region in Session().get_available_regions("ec2"):
+    ec2instanceconnect_backends[region] = Ec2InstanceConnectBackend()
+for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
+    ec2instanceconnect_backends[region] = Ec2InstanceConnectBackend()
+for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
+    ec2instanceconnect_backends[region] = Ec2InstanceConnectBackend()

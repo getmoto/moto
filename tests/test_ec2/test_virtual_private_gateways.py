@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 
 
 @mock_ec2_deprecated
@@ -31,6 +32,138 @@ def test_describe_vpn_gateway():
     vpn_gateway.type.should.equal("ipsec.1")
     vpn_gateway.state.should.equal("available")
     vpn_gateway.availability_zone.should.equal("us-east-1a")
+
+
+@mock_ec2
+def test_describe_vpn_connections_attachment_vpc_id_filter():
+    """ describe_vpn_gateways attachment.vpc-id filter """
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    gateway = ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
+    gateway_id = gateway["VpnGateway"]["VpnGatewayId"]
+
+    ec2.attach_vpn_gateway(VpcId=vpc_id, VpnGatewayId=gateway_id)
+
+    gateways = ec2.describe_vpn_gateways(
+        Filters=[{"Name": "attachment.vpc-id", "Values": [vpc_id]}]
+    )
+
+    gateways["VpnGateways"].should.have.length_of(1)
+    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
+    gateways["VpnGateways"][0]["VpcAttachments"].should.contain(
+        {"State": "attached", "VpcId": vpc_id}
+    )
+
+
+@mock_ec2
+def test_describe_vpn_connections_state_filter_attached():
+    """ describe_vpn_gateways attachment.state filter - match attached """
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    gateway = ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
+    gateway_id = gateway["VpnGateway"]["VpnGatewayId"]
+
+    ec2.attach_vpn_gateway(VpcId=vpc_id, VpnGatewayId=gateway_id)
+
+    gateways = ec2.describe_vpn_gateways(
+        Filters=[{"Name": "attachment.state", "Values": ["attached"]}]
+    )
+
+    gateways["VpnGateways"].should.have.length_of(1)
+    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
+    gateways["VpnGateways"][0]["VpcAttachments"].should.contain(
+        {"State": "attached", "VpcId": vpc_id}
+    )
+
+
+@mock_ec2
+def test_describe_vpn_connections_state_filter_deatched():
+    """ describe_vpn_gateways attachment.state filter - don't match detatched """
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    gateway = ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
+    gateway_id = gateway["VpnGateway"]["VpnGatewayId"]
+
+    ec2.attach_vpn_gateway(VpcId=vpc_id, VpnGatewayId=gateway_id)
+
+    gateways = ec2.describe_vpn_gateways(
+        Filters=[{"Name": "attachment.state", "Values": ["detached"]}]
+    )
+
+    gateways["VpnGateways"].should.have.length_of(0)
+
+
+@mock_ec2
+def test_describe_vpn_connections_id_filter_match():
+    """ describe_vpn_gateways vpn-gateway-id filter - match correct id """
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    gateway = ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
+    gateway_id = gateway["VpnGateway"]["VpnGatewayId"]
+
+    gateways = ec2.describe_vpn_gateways(
+        Filters=[{"Name": "vpn-gateway-id", "Values": [gateway_id]}]
+    )
+
+    gateways["VpnGateways"].should.have.length_of(1)
+    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
+
+
+@mock_ec2
+def test_describe_vpn_connections_id_filter_miss():
+    """ describe_vpn_gateways vpn-gateway-id filter - don't match """
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
+
+    gateways = ec2.describe_vpn_gateways(
+        Filters=[{"Name": "vpn-gateway-id", "Values": ["unknown_gateway_id"]}]
+    )
+
+    gateways["VpnGateways"].should.have.length_of(0)
+
+
+@mock_ec2
+def test_describe_vpn_connections_type_filter_match():
+    """ describe_vpn_gateways type filter - match """
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    gateway = ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
+    gateway_id = gateway["VpnGateway"]["VpnGatewayId"]
+
+    gateways = ec2.describe_vpn_gateways(
+        Filters=[{"Name": "type", "Values": ["ipsec.1"]}]
+    )
+
+    gateways["VpnGateways"].should.have.length_of(1)
+    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
+
+
+@mock_ec2
+def test_describe_vpn_connections_type_filter_miss():
+    """ describe_vpn_gateways type filter - don't match """
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
+
+    gateways = ec2.describe_vpn_gateways(
+        Filters=[{"Name": "type", "Values": ["unknown_type"]}]
+    )
+
+    gateways["VpnGateways"].should.have.length_of(0)
 
 
 @mock_ec2_deprecated

@@ -24,6 +24,7 @@ from .security_groups import SecurityGroups
 from .spot_fleets import SpotFleets
 from .spot_instances import SpotInstances
 from .subnets import Subnets
+from .flow_logs import FlowLogs
 from .tags import TagResponse
 from .virtual_private_gateways import VirtualPrivateGateways
 from .vm_export import VMExport
@@ -33,6 +34,7 @@ from .vpc_peering_connections import VPCPeeringConnections
 from .vpn_connections import VPNConnections
 from .windows import Windows
 from .nat_gateways import NatGateways
+from .iam_instance_profiles import IamInstanceProfiles
 
 
 class EC2Response(
@@ -60,6 +62,7 @@ class EC2Response(
     SpotFleets,
     SpotInstances,
     Subnets,
+    FlowLogs,
     TagResponse,
     VirtualPrivateGateways,
     VMExport,
@@ -69,6 +72,7 @@ class EC2Response(
     VPNConnections,
     Windows,
     NatGateways,
+    IamInstanceProfiles,
 ):
     @property
     def ec2_backend(self):

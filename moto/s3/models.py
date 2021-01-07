@@ -5,6 +5,7 @@ import json
 import os
 import base64
 import datetime
+import pytz
 import hashlib
 import copy
 import itertools
@@ -20,8 +21,8 @@ import uuid
 import six
 
 from bisect import insort
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -42,6 +43,7 @@ from .exceptions import (
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
 )
+from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -64,7 +66,7 @@ OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
 def get_moto_s3_account_id():
     """This makes it easy for mocking AWS Account IDs when using AWS Config
-       -- Simply mock.patch the ACCOUNT_ID here, and Config gets it for free.
+    -- Simply mock.patch the ACCOUNT_ID here, and Config gets it for free.
     """
     return ACCOUNT_ID
 
@@ -78,7 +80,7 @@ class FakeDeleteMarker(BaseModel):
 
     @property
     def last_modified_ISO8601(self):
-        return iso_8601_datetime_with_milliseconds(self.last_modified)
+        return iso_8601_datetime_without_milliseconds_s3(self.last_modified)
 
     @property
     def version_id(self):
@@ -167,6 +169,9 @@ class FakeKey(BaseModel):
             raise InvalidStorageClass(storage=storage)
         self._storage_class = storage
 
+    def set_expiry(self, expiry):
+        self._expiry = expiry
+
     def set_acl(self, acl):
         self.acl = acl
 
@@ -205,7 +210,7 @@ class FakeKey(BaseModel):
 
     @property
     def last_modified_ISO8601(self):
-        return iso_8601_datetime_with_milliseconds(self.last_modified)
+        return iso_8601_datetime_without_milliseconds_s3(self.last_modified)
 
     @property
     def last_modified_RFC1123(self):
@@ -279,7 +284,9 @@ class FakeMultipart(BaseModel):
         self.parts = {}
         self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
-        self.id = rand_b64.decode("utf-8").replace("=", "").replace("+", "")
+        self.id = (
+            rand_b64.decode("utf-8").replace("=", "").replace("+", "").replace("/", "")
+        )
 
     def complete(self, body):
         decode_hex = codecs.getdecoder("hex_codec")
@@ -760,7 +767,7 @@ class PublicAccessBlock(BaseModel):
         }
 
 
-class FakeBucket(BaseModel):
+class FakeBucket(CloudFormationModel):
     def __init__(self, name, region_name):
         self.name = name
         self.region_name = region_name
@@ -776,12 +783,17 @@ class FakeBucket(BaseModel):
         self.notification_configuration = None
         self.accelerate_configuration = None
         self.payer = "BucketOwner"
-        self.creation_date = datetime.datetime.utcnow()
+        self.creation_date = datetime.datetime.now(tz=pytz.utc)
         self.public_access_block = None
+        self.encryption = None
 
     @property
     def location(self):
         return self.region_name
+
+    @property
+    def creation_date_ISO8601(self):
+        return iso_8601_datetime_without_milliseconds_s3(self.creation_date)
 
     @property
     def is_versioned(self):
@@ -1049,10 +1061,16 @@ class FakeBucket(BaseModel):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
-        if attribute_name == "DomainName":
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "DomainName" ]"')
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "DomainName":
+            return self.domain_name
+        elif attribute_name == "DualStackDomainName":
+            return self.dual_stack_domain_name
+        elif attribute_name == "RegionalDomainName":
+            return self.regional_domain_name
         elif attribute_name == "WebsiteURL":
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "WebsiteURL" ]"')
+            return self.website_url
         raise UnformattedGetAttTemplateException()
 
     def set_acl(self, acl):
@@ -1063,15 +1081,86 @@ class FakeBucket(BaseModel):
         return "arn:aws:s3:::{}".format(self.name)
 
     @property
+    def domain_name(self):
+        return "{}.s3.amazonaws.com".format(self.name)
+
+    @property
+    def dual_stack_domain_name(self):
+        return "{}.s3.dualstack.{}.amazonaws.com".format(self.name, self.region_name)
+
+    @property
+    def regional_domain_name(self):
+        return "{}.s3.{}.amazonaws.com".format(self.name, self.region_name)
+
+    @property
+    def website_url(self):
+        return "http://{}.s3-website.{}.amazonaws.com".format(
+            self.name, self.region_name
+        )
+
+    @property
     def physical_resource_id(self):
         return self.name
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "BucketName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-bucket.html
+        return "AWS::S3::Bucket"
 
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         bucket = s3_backend.create_bucket(resource_name, region_name)
+
+        properties = cloudformation_json.get("Properties", {})
+
+        if "BucketEncryption" in properties:
+            bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
+            s3_backend.put_bucket_encryption(
+                bucket_name=resource_name, encryption=[bucket_encryption]
+            )
+
         return bucket
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        properties = cloudformation_json["Properties"]
+
+        if is_replacement_update(properties):
+            resource_name_property = cls.cloudformation_name_type()
+            if resource_name_property not in properties:
+                properties[resource_name_property] = new_resource_name
+            new_resource = cls.create_from_cloudformation_json(
+                properties[resource_name_property], cloudformation_json, region_name
+            )
+            properties[resource_name_property] = original_resource.name
+            cls.delete_from_cloudformation_json(
+                original_resource.name, cloudformation_json, region_name
+            )
+            return new_resource
+
+        else:  # No Interruption
+            if "BucketEncryption" in properties:
+                bucket_encryption = cfn_to_api_encryption(
+                    properties["BucketEncryption"]
+                )
+                s3_backend.put_bucket_encryption(
+                    bucket_name=original_resource.name, encryption=[bucket_encryption]
+                )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        s3_backend.delete_bucket(resource_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.
@@ -1227,6 +1316,9 @@ class S3Backend(BaseBackend):
     def get_bucket_versioning(self, bucket_name):
         return self.get_bucket(bucket_name).versioning_status
 
+    def get_bucket_encryption(self, bucket_name):
+        return self.get_bucket(bucket_name).encryption
+
     def get_bucket_latest_versions(self, bucket_name):
         versions = self.get_bucket_versions(bucket_name)
         latest_modified_per_key = {}
@@ -1275,6 +1367,12 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.policy = None
 
+    def put_bucket_encryption(self, bucket_name, encryption):
+        self.get_bucket(bucket_name).encryption = encryption
+
+    def delete_bucket_encryption(self, bucket_name):
+        self.get_bucket(bucket_name).encryption = None
+
     def set_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
@@ -1305,7 +1403,7 @@ class S3Backend(BaseBackend):
 
         return self.account_public_access_block
 
-    def set_key(
+    def set_object(
         self, bucket_name, key_name, value, storage=None, etag=None, multipart=None
     ):
         key_name = clean_key_name(key_name)
@@ -1336,11 +1434,11 @@ class S3Backend(BaseBackend):
     def append_to_key(self, bucket_name, key_name, value):
         key_name = clean_key_name(key_name)
 
-        key = self.get_key(bucket_name, key_name)
+        key = self.get_object(bucket_name, key_name)
         key.append_to_value(value)
         return key
 
-    def get_key(self, bucket_name, key_name, version_id=None, part_number=None):
+    def get_object(self, bucket_name, key_name, version_id=None, part_number=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None
@@ -1375,11 +1473,11 @@ class S3Backend(BaseBackend):
         )
         return key
 
-    def get_bucket_tags(self, bucket_name):
+    def get_bucket_tagging(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return self.tagger.list_tags_for_resource(bucket.arn)
 
-    def put_bucket_tags(self, bucket_name, tags):
+    def put_bucket_tagging(self, bucket_name, tags):
         bucket = self.get_bucket(bucket_name)
         self.tagger.delete_all_tags_for_resource(bucket.arn)
         self.tagger.tag_resource(
@@ -1471,7 +1569,7 @@ class S3Backend(BaseBackend):
             return
         del bucket.multiparts[multipart_id]
 
-        key = self.set_key(
+        key = self.set_object(
             bucket_name, multipart.key_name, value, etag=etag, multipart=multipart
         )
         key.set_metadata(multipart.metadata)
@@ -1511,7 +1609,7 @@ class S3Backend(BaseBackend):
         dest_bucket = self.get_bucket(dest_bucket_name)
         multipart = dest_bucket.multiparts[multipart_id]
 
-        src_value = self.get_key(
+        src_value = self.get_object(
             src_bucket_name, src_key_name, version_id=src_version_id
         ).value
         if start_byte is not None:
@@ -1553,21 +1651,38 @@ class S3Backend(BaseBackend):
 
     def _set_delete_marker(self, bucket_name, key_name):
         bucket = self.get_bucket(bucket_name)
-        bucket.keys[key_name] = FakeDeleteMarker(key=bucket.keys[key_name])
+        delete_marker = FakeDeleteMarker(key=bucket.keys[key_name])
+        bucket.keys[key_name] = delete_marker
+        return delete_marker
 
-    def delete_key(self, bucket_name, key_name, version_id=None):
+    def delete_object_tagging(self, bucket_name, key_name, version_id=None):
+        key = self.get_object(bucket_name, key_name, version_id=version_id)
+        self.tagger.delete_all_tags_for_resource(key.arn)
+
+    def delete_object(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
+
+        response_meta = {}
 
         try:
             if not bucket.is_versioned:
                 bucket.keys.pop(key_name)
             else:
                 if version_id is None:
-                    self._set_delete_marker(bucket_name, key_name)
+                    delete_marker = self._set_delete_marker(bucket_name, key_name)
+                    response_meta["version-id"] = delete_marker.version_id
                 else:
                     if key_name not in bucket.keys:
                         raise KeyError
+
+                    response_meta["delete-marker"] = "false"
+                    for key in bucket.keys.getlist(key_name):
+                        if str(key.version_id) == str(version_id):
+                            if type(key) is FakeDeleteMarker:
+                                response_meta["delete-marker"] = "true"
+                            break
+
                     bucket.keys.setlist(
                         key_name,
                         [
@@ -1579,9 +1694,9 @@ class S3Backend(BaseBackend):
 
                     if not bucket.keys.getlist(key_name):
                         bucket.keys.pop(key_name)
-            return True
+            return True, response_meta
         except KeyError:
-            return False
+            return False, None
 
     def copy_key(
         self,
@@ -1596,7 +1711,7 @@ class S3Backend(BaseBackend):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
         dest_bucket = self.get_bucket(dest_bucket_name)
-        key = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id)
+        key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
         new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
         self.tagger.copy_tags(key.arn, new_key.arn)
@@ -1605,6 +1720,9 @@ class S3Backend(BaseBackend):
             new_key.set_storage_class(storage)
         if acl is not None:
             new_key.set_acl(acl)
+        if key.storage_class in "GLACIER":
+            # Object copied from Glacier object should not have expiry
+            new_key.set_expiry(None)
 
         dest_bucket.keys[dest_key_name] = new_key
 
@@ -1615,6 +1733,18 @@ class S3Backend(BaseBackend):
     def get_bucket_acl(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return bucket.acl
+
+    def get_bucket_cors(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.cors
+
+    def get_bucket_logging(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.logging
+
+    def get_bucket_notification_configuration(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.notification_configuration
 
 
 s3_backend = S3Backend()

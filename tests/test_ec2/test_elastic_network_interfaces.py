@@ -1,21 +1,17 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
 
 import boto3
 from botocore.exceptions import ClientError
 import boto
-import boto.cloudformation
 import boto.ec2
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2, mock_cloudformation_deprecated, mock_ec2_deprecated
+from moto import mock_ec2, mock_ec2_deprecated
 from tests.helpers import requires_boto_gte
-from tests.test_cloudformation.fixtures import vpc_eni
-import json
 
 
 @mock_ec2_deprecated
@@ -24,11 +20,11 @@ def test_elastic_network_interfaces():
     vpc = conn.create_vpc("10.0.0.0/16")
     subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         eni = conn.create_network_interface(subnet.id, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -41,11 +37,11 @@ def test_elastic_network_interfaces():
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.startswith("10.").should.be.true
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.delete_network_interface(eni.id, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -54,22 +50,22 @@ def test_elastic_network_interfaces():
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(0)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_network_interface(eni.id)
-    cm.exception.error_code.should.equal("InvalidNetworkInterfaceID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.error_code.should.equal("InvalidNetworkInterfaceID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
 def test_elastic_network_interfaces_subnet_validation():
     conn = boto.connect_vpc("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_network_interface("subnet-abcd1234")
-    cm.exception.error_code.should.equal("InvalidSubnetID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.error_code.should.equal("InvalidSubnetID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -136,13 +132,13 @@ def test_elastic_network_interfaces_modify_attribute():
     eni.groups.should.have.length_of(1)
     eni.groups[0].id.should.equal(security_group1.id)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.modify_network_interface_attribute(
             eni.id, "groupset", [security_group2.id], dry_run=True
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -231,11 +227,11 @@ def test_elastic_network_interfaces_get_by_tag_name():
         SubnetId=subnet.id, PrivateIpAddress="10.0.10.5"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         eni1.create_tags(Tags=[{"Key": "Name", "Value": "eni1"}], DryRun=True)
-    ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -501,27 +497,3 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
         eni1.private_ip_address
     )
     response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
-
-
-@mock_ec2_deprecated
-@mock_cloudformation_deprecated
-def test_elastic_network_interfaces_cloudformation():
-    template = vpc_eni.template
-    template_json = json.dumps(template)
-    conn = boto.cloudformation.connect_to_region("us-west-1")
-    conn.create_stack("test_stack", template_body=template_json)
-    ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    eni = ec2_conn.get_all_network_interfaces()[0]
-    eni.private_ip_addresses.should.have.length_of(1)
-
-    stack = conn.describe_stacks()[0]
-    resources = stack.describe_resources()
-    cfn_eni = [
-        resource
-        for resource in resources
-        if resource.resource_type == "AWS::EC2::NetworkInterface"
-    ][0]
-    cfn_eni.physical_resource_id.should.equal(eni.id)
-
-    outputs = {output.key: output.value for output in stack.outputs}
-    outputs["ENIIpAddress"].should.equal(eni.private_ip_addresses[0].private_ip_address)

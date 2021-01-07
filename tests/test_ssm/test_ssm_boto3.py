@@ -7,12 +7,11 @@ import botocore.exceptions
 import sure  # noqa
 import datetime
 import uuid
-import json
 
 from botocore.exceptions import ClientError, ParamValidationError
-from nose.tools import assert_raises
+import pytest
 
-from moto import mock_ssm, mock_cloudformation
+from moto import mock_ec2, mock_ssm
 
 
 @mock_ssm
@@ -36,10 +35,10 @@ def test_delete_parameter():
 def test_delete_nonexistent_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_parameter(Name="test_noexist")
-    ex.exception.response["Error"]["Code"].should.equal("ParameterNotFound")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
         "Parameter test_noexist not found."
     )
 
@@ -198,6 +197,33 @@ def test_get_parameters_by_path():
     len(response["Parameters"]).should.equal(1)
     response.should_not.have.key("NextToken")
 
+    filters = [{"Key": "Name", "Values": ["error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Name. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
+    filters = [{"Key": "Path", "Values": ["/error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Path. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
+    filters = [{"Key": "Tier", "Values": ["Standard"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Tier. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
 
 @mock_ssm
 def test_put_parameter():
@@ -273,6 +299,73 @@ def test_put_parameter():
 
 
 @mock_ssm
+def test_put_parameter_invalid_names():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    invalid_prefix_err = (
+        'Parameter name: can\'t be prefixed with "aws" or "ssm" (case-insensitive).'
+    )
+
+    client.put_parameter.when.called_with(
+        Name="ssm_test", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="SSM_TEST", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="aws_test", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="AWS_TEST", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    ssm_path = "/ssm_test/path/to/var"
+    client.put_parameter.when.called_with(
+        Name=ssm_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError,
+        'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). If formed as a path, it can consist of '
+        "sub-paths divided by slash symbol; each sub-path can be formed as a mix of letters, numbers and the following "
+        "3 symbols .-_",
+    )
+
+    ssm_path = "/SSM/PATH/TO/VAR"
+    client.put_parameter.when.called_with(
+        Name=ssm_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError,
+        'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). If formed as a path, it can consist of '
+        "sub-paths divided by slash symbol; each sub-path can be formed as a mix of letters, numbers and the following "
+        "3 symbols .-_",
+    )
+
+    aws_path = "/aws_test/path/to/var"
+    client.put_parameter.when.called_with(
+        Name=aws_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+    )
+
+    aws_path = "/AWS/PATH/TO/VAR"
+    client.put_parameter.when.called_with(
+        Name=aws_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+    )
+
+
+@mock_ssm
 def test_put_parameter_china():
     client = boto3.client("ssm", region_name="cn-north-1")
 
@@ -303,6 +396,62 @@ def test_get_parameter():
 
 
 @mock_ssm
+def test_get_parameter_with_version_and_labels():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.put_parameter(
+        Name="test-1", Description="A test parameter", Value="value", Type="String"
+    )
+    client.put_parameter(
+        Name="test-2", Description="A test parameter", Value="value", Type="String"
+    )
+
+    client.label_parameter_version(
+        Name="test-2", ParameterVersion=1, Labels=["test-label"]
+    )
+
+    response = client.get_parameter(Name="test-1:1", WithDecryption=False)
+
+    response["Parameter"]["Name"].should.equal("test-1")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-1"
+    )
+
+    response = client.get_parameter(Name="test-2:1", WithDecryption=False)
+    response["Parameter"]["Name"].should.equal("test-2")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+    )
+
+    response = client.get_parameter(Name="test-2:test-label", WithDecryption=False)
+    response["Parameter"]["Name"].should.equal("test-2")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter(Name="test-2:2:3", WithDecryption=False)
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Parameter test-2:2:3 not found."
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter(Name="test-2:2", WithDecryption=False)
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal("Parameter test-2:2 not found.")
+
+
+@mock_ssm
 def test_get_parameters_errors():
     client = boto3.client("ssm", region_name="us-east-1")
 
@@ -311,9 +460,9 @@ def test_get_parameters_errors():
     for name, value in ssm_parameters.items():
         client.put_parameter(Name=name, Value=value, Type="String")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_parameters(Names=list(ssm_parameters.keys()))
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetParameters")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ValidationException")
@@ -504,6 +653,9 @@ def test_describe_parameters_with_parameter_filters_name():
     client = boto3.client("ssm", region_name="us-east-1")
     client.put_parameter(Name="param", Value="value", Type="String")
     client.put_parameter(Name="/param-2", Value="value-2", Type="String")
+    client.put_parameter(Name="/tangent-3", Value="value-3", Type="String")
+    client.put_parameter(Name="tangram-4", Value="value-4", Type="String")
+    client.put_parameter(Name="standby-5", Value="value-5", Type="String")
 
     response = client.describe_parameters(
         ParameterFilters=[{"Key": "Name", "Values": ["param"]}]
@@ -537,6 +689,22 @@ def test_describe_parameters_with_parameter_filters_name():
 
     response = client.describe_parameters(
         ParameterFilters=[{"Key": "Name", "Option": "BeginsWith", "Values": ["param"]}]
+    )
+
+    parameters = response["Parameters"]
+    parameters.should.have.length_of(2)
+    response.should_not.have.key("NextToken")
+
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Contains", "Values": ["ram"]}]
+    )
+
+    parameters = response["Parameters"]
+    parameters.should.have.length_of(3)
+    response.should_not.have.key("NextToken")
+
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Contains", "Values": ["/tan"]}]
     )
 
     parameters = response["Parameters"]
@@ -1501,7 +1669,7 @@ def test_list_commands():
         cmd["InstanceIds"].should.contain("i-123456")
 
     # test the error case for an invalid command id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         response = client.list_commands(CommandId=str(uuid.uuid4()))
 
 
@@ -1533,78 +1701,46 @@ def test_get_command_invocation():
     invocation_response["InstanceId"].should.equal(instance_id)
 
     # test the error case for an invalid instance id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId="i-FAKE"
         )
 
     # test the error case for an invalid plugin name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId=instance_id, PluginName="FAKE"
         )
 
 
+@mock_ec2
 @mock_ssm
-@mock_cloudformation
-def test_get_command_invocations_from_stack():
-    stack_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "Test Stack",
-        "Resources": {
-            "EC2Instance1": {
-                "Type": "AWS::EC2::Instance",
-                "Properties": {
-                    "ImageId": "ami-test-image-id",
-                    "KeyName": "test",
-                    "InstanceType": "t2.micro",
-                    "Tags": [
-                        {"Key": "Test Description", "Value": "Test tag"},
-                        {"Key": "Test Name", "Value": "Name tag for tests"},
-                    ],
-                },
-            }
-        },
-        "Outputs": {
-            "test": {
-                "Description": "Test Output",
-                "Value": "Test output value",
-                "Export": {"Name": "Test value to export"},
-            },
-            "PublicIP": {"Value": "Test public ip"},
-        },
-    }
-
-    cloudformation_client = boto3.client("cloudformation", region_name="us-east-1")
-
-    stack_template_str = json.dumps(stack_template)
-
-    response = cloudformation_client.create_stack(
-        StackName="test_stack",
-        TemplateBody=stack_template_str,
-        Capabilities=("CAPABILITY_IAM",),
+def test_get_command_invocations_by_instance_tag():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ssm = boto3.client("ssm", region_name="us-east-1")
+    tag_specifications = [
+        {"ResourceType": "instance", "Tags": [{"Key": "Name", "Value": "test-tag"}]}
+    ]
+    num_instances = 3
+    resp = ec2.run_instances(
+        ImageId="ami-1234abcd",
+        MaxCount=num_instances,
+        MinCount=num_instances,
+        TagSpecifications=tag_specifications,
     )
+    instance_ids = []
+    for instance in resp["Instances"]:
+        instance_ids.append(instance["InstanceId"])
+    instance_ids.should.have.length_of(num_instances)
 
-    client = boto3.client("ssm", region_name="us-east-1")
+    command_id = ssm.send_command(
+        DocumentName="AWS-RunShellScript",
+        Targets=[{"Key": "tag:Name", "Values": ["test-tag"]}],
+    )["Command"]["CommandId"]
 
-    ssm_document = "AWS-RunShellScript"
-    params = {"commands": ["#!/bin/bash\necho 'hello world'"]}
+    resp = ssm.list_commands(CommandId=command_id)
+    resp["Commands"][0]["TargetCount"].should.equal(num_instances)
 
-    response = client.send_command(
-        Targets=[
-            {"Key": "tag:aws:cloudformation:stack-name", "Values": ("test_stack",)}
-        ],
-        DocumentName=ssm_document,
-        Parameters=params,
-        OutputS3Region="us-east-2",
-        OutputS3BucketName="the-bucket",
-        OutputS3KeyPrefix="pref",
-    )
-
-    cmd = response["Command"]
-    cmd_id = cmd["CommandId"]
-    instance_ids = cmd["InstanceIds"]
-
-    invocation_response = client.get_command_invocation(
-        CommandId=cmd_id, InstanceId=instance_ids[0], PluginName="aws:runShellScript"
-    )
+    for instance_id in instance_ids:
+        resp = ssm.get_command_invocation(CommandId=command_id, InstanceId=instance_id)
+        resp["Status"].should.equal("Success")

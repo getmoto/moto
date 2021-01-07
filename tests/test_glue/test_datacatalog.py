@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import sure  # noqa
 import re
-from nose.tools import assert_raises
+import pytest
 import boto3
 from botocore.client import ClientError
 
@@ -32,10 +32,10 @@ def test_create_database_already_exists():
     database_name = "cantcreatethisdatabasetwice"
     helpers.create_database(client, database_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.create_database(client, database_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -43,11 +43,11 @@ def test_get_database_not_exits():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "nosuchdatabase"
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_database(client, database_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Database nosuchdatabase not found"
     )
 
@@ -102,10 +102,10 @@ def test_create_table_already_exists():
     table_name = "cantcreatethistabletwice"
     helpers.create_table(client, database_name, table_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.create_table(client, database_name, table_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -192,11 +192,11 @@ def test_get_table_version_not_found():
     helpers.create_database(client, database_name)
     helpers.create_table(client, database_name, table_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_table_version(client, database_name, "myfirsttable", "20")
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("version", re.I)
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("version", re.I)
 
 
 @mock_glue
@@ -207,10 +207,10 @@ def test_get_table_version_invalid_input():
     helpers.create_database(client, database_name)
     helpers.create_table(client, database_name, table_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_table_version(client, database_name, "myfirsttable", "10not-an-int")
 
-    exc.exception.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
 
 
 @mock_glue
@@ -219,13 +219,11 @@ def test_get_table_not_exits():
     database_name = "myspecialdatabase"
     helpers.create_database(client, database_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, "myfirsttable")
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
-        "Table myfirsttable not found"
-    )
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("Table myfirsttable not found")
 
 
 @mock_glue
@@ -233,11 +231,11 @@ def test_get_table_when_database_not_exits():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "nosuchdatabase"
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, "myfirsttable")
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Database nosuchdatabase not found"
     )
 
@@ -256,11 +254,11 @@ def test_delete_table():
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     # confirm table is deleted
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, table_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Table myspecialtable not found"
     )
 
@@ -281,11 +279,11 @@ def test_batch_delete_table():
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     # confirm table is deleted
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, table_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Table myspecialtable not found"
     )
 
@@ -350,10 +348,10 @@ def test_create_partition_already_exist():
 
     helpers.create_partition(client, database_name, table_name, values=values)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.create_partition(client, database_name, table_name, values=values)
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -366,11 +364,11 @@ def test_get_partition_not_found():
 
     helpers.create_table(client, database_name, table_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_partition(client, database_name, table_name, values)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("partition")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("partition")
 
 
 @mock_glue
@@ -542,7 +540,7 @@ def test_update_partition_not_found_moving():
     helpers.create_database(client, database_name)
     helpers.create_table(client, database_name, table_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.update_partition(
             client,
             database_name,
@@ -551,8 +549,8 @@ def test_update_partition_not_found_moving():
             values=["2018-10-02"],
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("partition")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("partition")
 
 
 @mock_glue
@@ -565,13 +563,13 @@ def test_update_partition_not_found_change_in_place():
     helpers.create_database(client, database_name)
     helpers.create_table(client, database_name, table_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.update_partition(
             client, database_name, table_name, old_values=values, values=values
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("partition")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("partition")
 
 
 @mock_glue
@@ -588,12 +586,12 @@ def test_update_partition_cannot_overwrite():
     helpers.create_partition(client, database_name, table_name, values=values[0])
     helpers.create_partition(client, database_name, table_name, values=values[1])
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.update_partition(
             client, database_name, table_name, old_values=values[0], values=values[1]
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -648,11 +646,11 @@ def test_update_partition_move():
         columns=[{"Name": "country", "Type": "string"}],
     )
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         helpers.get_partition(client, database_name, table_name, values)
 
     # Old partition shouldn't exist anymore
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
 
     response = client.get_partition(
         DatabaseName=database_name, TableName=table_name, PartitionValues=new_values
@@ -663,6 +661,119 @@ def test_update_partition_move():
     partition["StorageDescriptor"]["Columns"].should.equal(
         [{"Name": "country", "Type": "string"}]
     )
+
+
+@mock_glue
+def test_batch_update_partition():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+
+    values = [
+        ["2020-12-04"],
+        ["2020-12-05"],
+        ["2020-12-06"],
+    ]
+
+    new_values = [
+        ["2020-11-04"],
+        ["2020-11-05"],
+        ["2020-11-06"],
+    ]
+
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    batch_update_values = []
+    for idx, value in enumerate(values):
+        helpers.create_partition(client, database_name, table_name, values=value)
+        batch_update_values.append(
+            {
+                "PartitionValueList": value,
+                "PartitionInput": helpers.create_partition_input(
+                    database_name,
+                    table_name,
+                    values=new_values[idx],
+                    columns=[{"Name": "country", "Type": "string"}],
+                ),
+            }
+        )
+
+    response = client.batch_update_partition(
+        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values,
+    )
+
+    for value in values:
+        with pytest.raises(ClientError) as exc:
+            helpers.get_partition(client, database_name, table_name, value)
+        exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+
+    for value in new_values:
+        response = client.get_partition(
+            DatabaseName=database_name, TableName=table_name, PartitionValues=value
+        )
+        partition = response["Partition"]
+
+        partition["TableName"].should.equal(table_name)
+        partition["StorageDescriptor"]["Columns"].should.equal(
+            [{"Name": "country", "Type": "string"}]
+        )
+
+
+@mock_glue
+def test_batch_update_partition_missing_partition():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+
+    values = [
+        ["2020-12-05"],
+        ["2020-12-06"],
+    ]
+
+    new_values = [
+        ["2020-11-05"],
+        ["2020-11-06"],
+    ]
+
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    batch_update_values = []
+    for idx, value in enumerate(values):
+        helpers.create_partition(client, database_name, table_name, values=value)
+        batch_update_values.append(
+            {
+                "PartitionValueList": value,
+                "PartitionInput": helpers.create_partition_input(
+                    database_name,
+                    table_name,
+                    values=new_values[idx],
+                    columns=[{"Name": "country", "Type": "string"}],
+                ),
+            }
+        )
+
+    # add a non-existent partition to the batch update values
+    batch_update_values.append(
+        {
+            "PartitionValueList": ["2020-10-10"],
+            "PartitionInput": helpers.create_partition_input(
+                database_name,
+                table_name,
+                values=["2019-09-09"],
+                columns=[{"Name": "country", "Type": "string"}],
+            ),
+        }
+    )
+
+    response = client.batch_update_partition(
+        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values,
+    )
+
+    response.should.have.key("Errors")
+    response["Errors"].should.have.length_of(1)
+    response["Errors"][0]["PartitionValueList"].should.equal(["2020-10-10"])
 
 
 @mock_glue
@@ -697,12 +808,12 @@ def test_delete_partition_bad_partition():
     helpers.create_database(client, database_name)
     helpers.create_table(client, database_name, table_name)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         client.delete_partition(
             DatabaseName=database_name, TableName=table_name, PartitionValues=values
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
 
 
 @mock_glue

@@ -164,3 +164,10 @@ class TransactionCanceledException(ValueError):
     def __init__(self, errors):
         msg = self.cancel_reason_msg.format(", ".join([str(err) for err in errors]))
         super(TransactionCanceledException, self).__init__(msg)
+
+
+class EmptyKeyAttributeException(MockValidationException):
+    empty_str_msg = "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+
+    def __init__(self):
+        super(EmptyKeyAttributeException, self).__init__(self.empty_str_msg)
