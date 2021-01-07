@@ -9,12 +9,11 @@ from six.moves.urllib.parse import urlparse
 from .exceptions import (
     EmptyBatchRequest,
     InvalidAttributeName,
-    MessageAttributesInvalid,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
 )
 from .models import sqs_backends
-from .utils import parse_message_attributes
+from .utils import parse_message_attributes, extract_input_message_attributes
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -71,7 +70,10 @@ class SQSResponse(BaseResponse):
     def call_action(self):
         status_code, headers, body = super(SQSResponse, self).call_action()
         if status_code == 404:
-            return 404, headers, ERROR_INEXISTENT_QUEUE
+            queue_name = self.querystring.get("QueueName", [""])[0]
+            template = self.response_template(ERROR_INEXISTENT_QUEUE)
+            response = template.render(queue_name=queue_name)
+            return 404, headers, response
         return status_code, headers, body
 
     def _error(self, code, message, status=400):
@@ -82,12 +84,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        try:
-            queue = self.sqs_backend.create_queue(
-                queue_name, self.tags, **self.attribute
-            )
-        except MessageAttributesInvalid as e:
-            return self._error("InvalidParameterValue", e.description)
+        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -225,12 +222,17 @@ class SQSResponse(BaseResponse):
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
 
-        try:
-            message_attributes = parse_message_attributes(self.querystring)
-        except MessageAttributesInvalid as e:
-            return e.description, dict(status=e.status_code)
+        message_attributes = parse_message_attributes(self.querystring)
 
         queue_name = self._get_queue_name()
+
+        if not message_group_id:
+            queue = self.sqs_backend.get_queue(queue_name)
+            if queue.attributes.get("FifoQueue", False):
+                return self._error(
+                    "MissingParameter",
+                    "The request must contain the parameter MessageGroupId.",
+                )
 
         message = self.sqs_backend.send_message(
             queue_name,
@@ -283,6 +285,16 @@ class SQSResponse(BaseResponse):
                         [None],
                     )[0],
                     "MessageAttributes": message_attributes,
+                    "MessageGroupId": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.MessageGroupId".format(index),
+                        [None],
+                    )[0],
+                    "MessageDeduplicationId": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.MessageDeduplicationId".format(
+                            index
+                        ),
+                        [None],
+                    )[0],
                 }
 
         if entries == {}:
@@ -340,6 +352,9 @@ class SQSResponse(BaseResponse):
 
     def receive_message(self):
         queue_name = self._get_queue_name()
+        message_attributes = self._get_multi_param("message_attributes")
+        if not message_attributes:
+            message_attributes = extract_input_message_attributes(self.querystring,)
 
         queue = self.sqs_backend.get_queue(queue_name)
 
@@ -379,7 +394,7 @@ class SQSResponse(BaseResponse):
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
         messages = self.sqs_backend.receive_messages(
-            queue_name, message_count, wait_time, visibility_timeout
+            queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages)
@@ -478,10 +493,12 @@ DELETE_QUEUE_RESPONSE = """<DeleteQueueResponse>
 GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
   <GetQueueAttributesResult>
     {% for key, value in attributes.items() %}
-        <Attribute>
-          <Name>{{ key }}</Name>
-          <Value>{{ value }}</Value>
-        </Attribute>
+        {% if value is not none %}
+            <Attribute>
+                <Name>{{ key }}</Name>
+                <Value>{{ value }}</Value>
+            </Attribute>
+        {% endif %}
     {% endfor %}
   </GetQueueAttributesResult>
   <ResponseMetadata>
@@ -709,7 +726,11 @@ ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc
     <Error>
         <Type>Sender</Type>
         <Code>AWS.SimpleQueueService.NonExistentQueue</Code>
-        <Message>The specified queue does not exist for this wsdl version.</Message>
+         {% if queue_name %}
+            <Message>The specified queue {{queue_name}} does not exist for this wsdl version.</Message>
+        {% else %}
+            <Message>The specified queue does not exist for this wsdl version.</Message>
+        {% endif %}
         <Detail/>
     </Error>
     <RequestId>b8bc806b-fa6b-53b5-8be8-cfa2f9836bc3</RequestId>

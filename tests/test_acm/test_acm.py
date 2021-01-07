@@ -1,16 +1,16 @@
 from __future__ import unicode_literals
 
 import os
-import boto3
-from freezegun import freeze_time
-import sure  # noqa
 import uuid
 
+import boto3
+import pytest
+import sure  # noqa
 from botocore.exceptions import ClientError
-
-from moto import mock_acm
+from freezegun import freeze_time
+from moto import mock_acm, settings
 from moto.core import ACCOUNT_ID
-
+from unittest import SkipTest
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 _GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
@@ -44,6 +44,30 @@ def test_import_certificate():
 
     resp["Certificate"].should.equal(SERVER_CRT.decode())
     resp.should.contain("CertificateChain")
+
+
+@mock_acm
+def test_import_certificate_with_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    resp = client.import_certificate(
+        Certificate=SERVER_CRT,
+        PrivateKey=SERVER_KEY,
+        CertificateChain=CA_CRT,
+        Tags=[{"Key": "Environment", "Value": "QA"}, {"Key": "KeyOnly"},],
+    )
+    arn = resp["CertificateArn"]
+
+    resp = client.get_certificate(CertificateArn=arn)
+    resp["Certificate"].should.equal(SERVER_CRT.decode())
+    resp.should.contain("CertificateChain")
+
+    resp = client.list_tags_for_certificate(CertificateArn=arn)
+    tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
+    tags.should.contain("Environment")
+    tags.should.contain("KeyOnly")
+    tags["Environment"].should.equal("QA")
+    tags["KeyOnly"].should.equal("__NONE__")
 
 
 @mock_acm
@@ -140,7 +164,7 @@ def test_describe_certificate():
 
 
 @mock_acm
-def test_describe_certificate():
+def test_describe_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
 
     try:
@@ -314,6 +338,150 @@ def test_request_certificate():
 
 
 @mock_acm
+def test_request_certificate_with_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    token = str(uuid.uuid4())
+
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        Tags=[
+            {"Key": "Environment", "Value": "QA"},
+            {"Key": "WithEmptyStr", "Value": ""},
+        ],
+    )
+    resp.should.contain("CertificateArn")
+    arn_1 = resp["CertificateArn"]
+
+    resp = client.list_tags_for_certificate(CertificateArn=arn_1)
+    tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
+    tags.should.have.length_of(2)
+    tags["Environment"].should.equal("QA")
+    tags["WithEmptyStr"].should.equal("")
+
+    # Request certificate for "google.com" with same IdempotencyToken but with different Tags
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        Tags=[{"Key": "Environment", "Value": "Prod"}, {"Key": "KeyOnly"},],
+    )
+    arn_2 = resp["CertificateArn"]
+
+    assert arn_1 != arn_2  # if tags are matched, ACM would have returned same arn
+
+    resp = client.list_tags_for_certificate(CertificateArn=arn_2)
+    tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
+    tags.should.have.length_of(2)
+    tags["Environment"].should.equal("Prod")
+    tags["KeyOnly"].should.equal("__NONE__")
+
+    resp = client.request_certificate(
+        DomainName="google.com",
+        IdempotencyToken=token,
+        SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        Tags=[
+            {"Key": "Environment", "Value": "QA"},
+            {"Key": "WithEmptyStr", "Value": ""},
+        ],
+    )
+
+
+@mock_acm
+def test_operations_with_invalid_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    # request certificate with invalid tags
+    with pytest.raises(ClientError) as ex:
+        client.request_certificate(
+            DomainName="example.com", Tags=[{"Key": "X" * 200, "Value": "Valid"}],
+        )
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(
+        "Member must have length less than or equal to 128"
+    )
+
+    # import certificate with invalid tags
+    with pytest.raises(ClientError) as ex:
+        client.import_certificate(
+            Certificate=SERVER_CRT,
+            PrivateKey=SERVER_KEY,
+            CertificateChain=CA_CRT,
+            Tags=[
+                {"Key": "Valid", "Value": "X" * 300},
+                {"Key": "aws:xx", "Value": "Valid"},
+            ],
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(
+        "Member must have length less than or equal to 256"
+    )
+
+    arn = _import_cert(client)
+
+    # add invalid tags to existing certificate
+    with pytest.raises(ClientError) as ex:
+        client.add_tags_to_certificate(
+            CertificateArn=arn,
+            Tags=[{"Key": "aws:xxx", "Value": "Valid"}, {"Key": "key2"}],
+        )
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(
+        "AWS internal tags cannot be changed with this API"
+    )
+
+    # try removing invalid tags from existing certificate
+    with pytest.raises(ClientError) as ex:
+        client.remove_tags_from_certificate(
+            CertificateArn=arn, Tags=[{"Key": "aws:xxx", "Value": "Valid"}]
+        )
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(
+        "AWS internal tags cannot be changed with this API"
+    )
+
+
+@mock_acm
+def test_add_too_many_tags():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    # Add 51 tags
+    with pytest.raises(ClientError) as ex:
+        client.add_tags_to_certificate(
+            CertificateArn=arn,
+            Tags=[{"Key": "a-%d" % i, "Value": "abcd"} for i in range(1, 52)],
+        )
+    ex.value.response["Error"]["Code"].should.equal("TooManyTagsException")
+    ex.value.response["Error"]["Message"].should.contain("contains too many Tags")
+    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.empty
+
+    # Add 49 tags first, then try to add 2 more.
+    client.add_tags_to_certificate(
+        CertificateArn=arn,
+        Tags=[{"Key": "p-%d" % i, "Value": "pqrs"} for i in range(1, 50)],
+    )
+    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
+        49
+    )
+    with pytest.raises(ClientError) as ex:
+        client.add_tags_to_certificate(
+            CertificateArn=arn,
+            Tags=[{"Key": "x-1", "Value": "xyz"}, {"Key": "x-2", "Value": "xyz"}],
+        )
+    ex.value.response["Error"]["Code"].should.equal("TooManyTagsException")
+    ex.value.response["Error"]["Message"].should.contain("contains too many Tags")
+    ex.value.response["Error"]["Message"].count("pqrs").should.equal(49)
+    ex.value.response["Error"]["Message"].count("xyz").should.equal(2)
+    client.list_tags_for_certificate(CertificateArn=arn)["Tags"].should.have.length_of(
+        49
+    )
+
+
+@mock_acm
 def test_request_certificate_no_san():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -324,70 +492,87 @@ def test_request_certificate_no_san():
     resp2.should.contain("Certificate")
 
 
-# # Also tests the SAN code
-# # requires Pull: https://github.com/spulec/freezegun/pull/210
-# @freeze_time("2012-01-01 12:00:00", as_arg=True)
-# @mock_acm
-# def test_request_certificate(frozen_time):
-#     # After requesting a certificate, it should then auto-validate after 1 minute
-#     # Some sneaky programming for that ;-)
-#     client = boto3.client('acm', region_name='eu-central-1')
-#
-#     resp = client.request_certificate(
-#         DomainName='google.com',
-#         SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-#     )
-#     arn = resp['CertificateArn']
-#
-#     resp = client.describe_certificate(CertificateArn=arn)
-#     resp['Certificate']['CertificateArn'].should.equal(arn)
-#     resp['Certificate']['DomainName'].should.equal('google.com')
-#     resp['Certificate']['Issuer'].should.equal('Amazon')
-#     resp['Certificate']['KeyAlgorithm'].should.equal('RSA_2048')
-#     resp['Certificate']['Status'].should.equal('PENDING_VALIDATION')
-#     resp['Certificate']['Type'].should.equal('AMAZON_ISSUED')
-#     len(resp['Certificate']['SubjectAlternativeNames']).should.equal(3)
-#
-#     # Move time
-#     frozen_time.move_to('2012-01-01 12:02:00')
-#     resp = client.describe_certificate(CertificateArn=arn)
-#     resp['Certificate']['CertificateArn'].should.equal(arn)
-#     resp['Certificate']['Status'].should.equal('ISSUED')
-#
-#
-# # requires Pull: https://github.com/spulec/freezegun/pull/210
-# @freeze_time("2012-01-01 12:00:00", as_arg=True)
-# @mock_acm
-# def test_request_certificate(frozen_time):
-#     # After requesting a certificate, it should then auto-validate after 1 minute
-#     # Some sneaky programming for that ;-)
-#     client = boto3.client('acm', region_name='eu-central-1')
-#
-#     resp = client.request_certificate(
-#         IdempotencyToken='test_token',
-#         DomainName='google.com',
-#         SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-#     )
-#     original_arn = resp['CertificateArn']
-#
-#     # Should be able to request a certificate multiple times in an hour
-#     # after that it makes a new one
-#     for time_intervals in ('2012-01-01 12:15:00', '2012-01-01 12:30:00', '2012-01-01 12:45:00'):
-#         frozen_time.move_to(time_intervals)
-#         resp = client.request_certificate(
-#             IdempotencyToken='test_token',
-#             DomainName='google.com',
-#             SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-#         )
-#         arn = resp['CertificateArn']
-#         arn.should.equal(original_arn)
-#
-#     # Move time
-#     frozen_time.move_to('2012-01-01 13:01:00')
-#     resp = client.request_certificate(
-#         IdempotencyToken='test_token',
-#         DomainName='google.com',
-#         SubjectAlternativeNames=['google.com', 'www.google.com', 'mail.google.com'],
-#     )
-#     arn = resp['CertificateArn']
-#     arn.should_not.equal(original_arn)
+# Also tests the SAN code
+@mock_acm
+def test_request_certificate_issued_status():
+    # After requesting a certificate, it should then auto-validate after 1 minute
+    # Some sneaky programming for that ;-)
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    with freeze_time("2012-01-01 12:00:00"):
+        resp = client.request_certificate(
+            DomainName="google.com",
+            SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        )
+    arn = resp["CertificateArn"]
+
+    with freeze_time("2012-01-01 12:00:00"):
+        resp = client.describe_certificate(CertificateArn=arn)
+    resp["Certificate"]["CertificateArn"].should.equal(arn)
+    resp["Certificate"]["DomainName"].should.equal("google.com")
+    resp["Certificate"]["Issuer"].should.equal("Amazon")
+    resp["Certificate"]["KeyAlgorithm"].should.equal("RSA_2048")
+    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
+    resp["Certificate"]["Type"].should.equal("AMAZON_ISSUED")
+    len(resp["Certificate"]["SubjectAlternativeNames"]).should.equal(3)
+
+    # validation will be pending for 1 minute.
+    with freeze_time("2012-01-01 12:00:00"):
+        resp = client.describe_certificate(CertificateArn=arn)
+    resp["Certificate"]["CertificateArn"].should.equal(arn)
+    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
+
+    if not settings.TEST_SERVER_MODE:
+        # Move time to get it issued.
+        with freeze_time("2012-01-01 12:02:00"):
+            resp = client.describe_certificate(CertificateArn=arn)
+        resp["Certificate"]["CertificateArn"].should.equal(arn)
+        resp["Certificate"]["Status"].should.equal("ISSUED")
+
+
+@mock_acm
+def test_request_certificate_with_mutiple_times():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
+    # After requesting a certificate, it should then auto-validate after 1 minute
+    # Some sneaky programming for that ;-)
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    with freeze_time("2012-01-01 12:00:00"):
+        resp = client.request_certificate(
+            IdempotencyToken="test_token",
+            DomainName="google.com",
+            SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        )
+    original_arn = resp["CertificateArn"]
+
+    # Should be able to request a certificate multiple times in an hour
+    # after that it makes a new one
+    for time_intervals in (
+        "2012-01-01 12:15:00",
+        "2012-01-01 12:30:00",
+        "2012-01-01 12:45:00",
+    ):
+        with freeze_time(time_intervals):
+            resp = client.request_certificate(
+                IdempotencyToken="test_token",
+                DomainName="google.com",
+                SubjectAlternativeNames=[
+                    "google.com",
+                    "www.google.com",
+                    "mail.google.com",
+                ],
+            )
+        arn = resp["CertificateArn"]
+        arn.should.equal(original_arn)
+
+    # Move time
+    with freeze_time("2012-01-01 13:01:00"):
+        resp = client.request_certificate(
+            IdempotencyToken="test_token",
+            DomainName="google.com",
+            SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
+        )
+    arn = resp["CertificateArn"]
+    arn.should_not.equal(original_arn)

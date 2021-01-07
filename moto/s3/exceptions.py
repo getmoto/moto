@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
 
+from moto.core.exceptions import RESTError
 
 ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
 {% block extra %}<BucketName>{{ bucket }}</BucketName>{% endblock %}
@@ -8,6 +8,15 @@ ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
 
 ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
 {% block extra %}<KeyName>{{ key_name }}</KeyName>{% endblock %}
+"""
+
+ERROR_WITH_CONDITION_NAME = """{% extends 'single_error' %}
+{% block extra %}<Condition>{{ condition }}</Condition>{% endblock %}
+"""
+
+ERROR_WITH_RANGE = """{% extends 'single_error' %}
+{% block extra %}<ActualObjectSize>{{ actual_size }}</ActualObjectSize>
+<RangeRequested>{{ range_requested }}</RangeRequested>{% endblock %}
 """
 
 
@@ -385,4 +394,45 @@ class NoSuchUpload(S3ClientError):
     def __init__(self):
         super(NoSuchUpload, self).__init__(
             "NoSuchUpload", "The specified multipart upload does not exist."
+        )
+
+
+class PreconditionFailed(S3ClientError):
+    code = 412
+
+    def __init__(self, failed_condition, **kwargs):
+        kwargs.setdefault("template", "condition_error")
+        self.templates["condition_error"] = ERROR_WITH_CONDITION_NAME
+        super(PreconditionFailed, self).__init__(
+            "PreconditionFailed",
+            "At least one of the pre-conditions you specified did not hold",
+            condition=failed_condition,
+            **kwargs
+        )
+
+
+class InvalidRange(S3ClientError):
+    code = 416
+
+    def __init__(self, range_requested, actual_size, **kwargs):
+        kwargs.setdefault("template", "range_error")
+        self.templates["range_error"] = ERROR_WITH_RANGE
+        super(InvalidRange, self).__init__(
+            "InvalidRange",
+            "The requested range is not satisfiable",
+            range_requested=range_requested,
+            actual_size=actual_size,
+            **kwargs
+        )
+
+
+class InvalidContinuationToken(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(InvalidContinuationToken, self).__init__(
+            "InvalidArgument",
+            "The continuation token provided is incorrect",
+            *args,
+            **kwargs
         )

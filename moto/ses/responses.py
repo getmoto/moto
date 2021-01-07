@@ -199,6 +199,19 @@ class EmailResponse(BaseResponse):
         template = self.response_template(LIST_TEMPLATES)
         return template.render(templates=email_templates)
 
+    def create_receipt_rule_set(self):
+        rule_set_name = self._get_param("RuleSetName")
+        ses_backend.create_receipt_rule_set(rule_set_name)
+        template = self.response_template(CREATE_RECEIPT_RULE_SET)
+        return template.render()
+
+    def create_receipt_rule(self):
+        rule_set_name = self._get_param("RuleSetName")
+        rule = self._get_dict_param("Rule")
+        ses_backend.create_receipt_rule(rule_set_name, rule)
+        template = self.response_template(CREATE_RECEIPT_RULE)
+        return template.render()
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -361,7 +374,7 @@ GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-
         <Template>
             <TemplateName>{{ template_data["template_name"] }}</TemplateName>
             <SubjectPart>{{ template_data["subject_part"] }}</SubjectPart>
-            <HtmlPart>{{ template_data["html_part"] }}</HtmlPart>
+            <HtmlPart><![CDATA[{{ template_data["html_part"] }}]]></HtmlPart>
             <TextPart>{{ template_data["text_part"] }}</TextPart>
         </Template>
     </GetTemplateResult>
@@ -385,3 +398,17 @@ LIST_TEMPLATES = """<ListTemplatesResponse xmlns="http://ses.amazonaws.com/doc/2
         <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
     </ResponseMetadata>
 </ListTemplatesResponse>"""
+
+CREATE_RECEIPT_RULE_SET = """<CreateReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <CreateReceiptRuleSetResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
+  </ResponseMetadata>
+</CreateReceiptRuleSetResponse>"""
+
+CREATE_RECEIPT_RULE = """<CreateReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <CreateReceiptRuleResult/>
+  <ResponseMetadata>
+    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
+  </ResponseMetadata>
+</CreateReceiptRuleResponse>"""

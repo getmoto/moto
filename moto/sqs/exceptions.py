@@ -16,11 +16,13 @@ class ReceiptHandleIsInvalid(RESTError):
         )
 
 
-class MessageAttributesInvalid(Exception):
-    status_code = 400
+class MessageAttributesInvalid(RESTError):
+    code = 400
 
     def __init__(self, description):
-        self.description = description
+        super(MessageAttributesInvalid, self).__init__(
+            "MessageAttributesInvalid", description
+        )
 
 
 class QueueDoesNotExist(RESTError):
@@ -98,6 +100,16 @@ class InvalidAttributeName(RESTError):
     def __init__(self, attribute_name):
         super(InvalidAttributeName, self).__init__(
             "InvalidAttributeName", "Unknown Attribute {}.".format(attribute_name)
+        )
+
+
+class InvalidAttributeValue(RESTError):
+    code = 400
+
+    def __init__(self, attribute_name):
+        super(InvalidAttributeValue, self).__init__(
+            "InvalidAttributeValue",
+            "Invalid value for the parameter {}.".format(attribute_name),
         )
 
 

@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
-from boto.ec2.elb.attributes import (
+from moto.packages.boto.ec2.elb.attributes import (
     ConnectionSettingAttribute,
     ConnectionDrainingAttribute,
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
-from boto.ec2.elb.policies import AppCookieStickinessPolicy, OtherPolicy
+from moto.packages.boto.ec2.elb.policies import AppCookieStickinessPolicy, OtherPolicy
 
 from moto.core.responses import BaseResponse
 from .models import elb_backends

@@ -6,7 +6,10 @@ from moto.ec2.utils import filters_from_querystring
 class NetworkACLs(BaseResponse):
     def create_network_acl(self):
         vpc_id = self._get_param("VpcId")
-        network_acl = self.ec2_backend.create_network_acl(vpc_id)
+        tags = self._get_multi_param("TagSpecification")
+        if tags:
+            tags = tags[0].get("Tag")
+        network_acl = self.ec2_backend.create_network_acl(vpc_id, tags=tags)
         template = self.response_template(CREATE_NETWORK_ACL_RESPONSE)
         return template.render(network_acl=network_acl)
 
@@ -83,7 +86,7 @@ class NetworkACLs(BaseResponse):
     def describe_network_acls(self):
         network_acl_ids = self._get_multi_param("NetworkAclId")
         filters = filters_from_querystring(self.querystring)
-        network_acls = self.ec2_backend.get_all_network_acls(network_acl_ids, filters)
+        network_acls = self.ec2_backend.describe_network_acls(network_acl_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_ACL_RESPONSE)
         return template.render(network_acls=network_acls)
 
@@ -161,7 +164,7 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
         <item>
           <resourceId>{{ tag.resource_id }}</resourceId>
           <resourceType>{{ tag.resource_type }}</resourceType>
-          <key>{{ tag.key }}</key>
+          <key>{{ tag.key}}</key>
           <value>{{ tag.value }}</value>
         </item>
       {% endfor %}

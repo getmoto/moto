@@ -4,7 +4,7 @@ import boto3
 import sure  # noqa
 from moto import mock_autoscaling, mock_ec2, mock_elbv2
 
-from utils import setup_networking
+from .utils import setup_networking
 
 
 @mock_elbv2

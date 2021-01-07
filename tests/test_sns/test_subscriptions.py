@@ -72,9 +72,7 @@ def test_deleting_subscriptions_by_deleting_topic():
     subscriptions = conn.get_all_subscriptions()["ListSubscriptionsResponse"][
         "ListSubscriptionsResult"
     ]["Subscriptions"]
-    subscriptions.should.have.length_of(1)
-    subscription = subscriptions[0]
-    subscription["SubscriptionArn"].should.equal(subscription_arn)
+    subscriptions.should.have.length_of(0)
 
     # Now delete hanging subscription
     conn.unsubscribe(subscription_arn)

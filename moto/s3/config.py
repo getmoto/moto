@@ -19,6 +19,7 @@ class S3ConfigQuery(ConfigQueryModel):
         next_token,
         backend_region=None,
         resource_region=None,
+        aggregator=None,
     ):
         # The resource_region only matters for aggregated queries as you can filter on bucket regions for them.
         # For other resource types, you would need to iterate appropriately for the backend_region.
@@ -132,6 +133,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
         next_token,
         backend_region=None,
         resource_region=None,
+        aggregator=None,
     ):
         # For the Account Public Access Block, they are the same for all regions. The resource ID is the AWS account ID
         # There is no resource name -- it should be a blank string "" if provided.

@@ -1,4 +1,5 @@
 import requests
+import pytest
 import sure  # noqa
 
 import boto3
@@ -6,6 +7,7 @@ from moto import mock_sqs, settings
 
 
 @mock_sqs
+@pytest.mark.network
 def test_passthrough_requests():
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")

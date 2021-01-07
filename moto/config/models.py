@@ -41,12 +41,15 @@ from moto.config.exceptions import (
     ResourceNotDiscoveredException,
     TooManyResourceKeys,
     InvalidResultTokenException,
+    ValidationException,
+    NoSuchOrganizationConformancePackException,
 )
 
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_account_public_access_block_query, s3_config_query
-
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+
+from moto.iam.config import role_config_query, policy_config_query
 
 POP_STRINGS = [
     "capitalizeStart",
@@ -62,6 +65,8 @@ DEFAULT_PAGE_SIZE = 100
 RESOURCE_MAP = {
     "AWS::S3::Bucket": s3_config_query,
     "AWS::S3::AccountPublicAccessBlock": s3_account_public_access_block_query,
+    "AWS::IAM::Role": role_config_query,
+    "AWS::IAM::Policy": policy_config_query,
 }
 
 
@@ -159,7 +164,8 @@ class ConfigEmptyDictable(BaseModel):
     def to_dict(self):
         data = {}
         for item, value in self.__dict__.items():
-            if value is not None:
+            # ignore private attributes
+            if not item.startswith("_") and value is not None:
                 if isinstance(value, ConfigEmptyDictable):
                     data[
                         snake_to_camels(
@@ -367,12 +373,56 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
         self.tags = tags or {}
 
 
+class OrganizationConformancePack(ConfigEmptyDictable):
+    def __init__(
+        self,
+        region,
+        name,
+        delivery_s3_bucket,
+        delivery_s3_key_prefix=None,
+        input_parameters=None,
+        excluded_accounts=None,
+    ):
+        super(OrganizationConformancePack, self).__init__(
+            capitalize_start=True, capitalize_arn=False
+        )
+
+        self._status = "CREATE_SUCCESSFUL"
+        self._unique_pack_name = "{0}-{1}".format(name, random_string())
+
+        self.conformance_pack_input_parameters = input_parameters or []
+        self.delivery_s3_bucket = delivery_s3_bucket
+        self.delivery_s3_key_prefix = delivery_s3_key_prefix
+        self.excluded_accounts = excluded_accounts or []
+        self.last_update_time = datetime2int(datetime.utcnow())
+        self.organization_conformance_pack_arn = "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}".format(
+            region, DEFAULT_ACCOUNT_ID, self._unique_pack_name
+        )
+        self.organization_conformance_pack_name = name
+
+    def update(
+        self,
+        delivery_s3_bucket,
+        delivery_s3_key_prefix,
+        input_parameters,
+        excluded_accounts,
+    ):
+        self._status = "UPDATE_SUCCESSFUL"
+
+        self.conformance_pack_input_parameters = input_parameters
+        self.delivery_s3_bucket = delivery_s3_bucket
+        self.delivery_s3_key_prefix = delivery_s3_key_prefix
+        self.excluded_accounts = excluded_accounts
+        self.last_update_time = datetime2int(datetime.utcnow())
+
+
 class ConfigBackend(BaseBackend):
     def __init__(self):
         self.recorders = {}
         self.delivery_channels = {}
         self.config_aggregators = {}
         self.aggregation_authorizations = {}
+        self.organization_conformance_packs = {}
 
     @staticmethod
     def _validate_resource_types(resource_list):
@@ -930,6 +980,7 @@ class ConfigBackend(BaseBackend):
                 limit,
                 next_token,
                 resource_region=resource_region,
+                aggregator=self.config_aggregators.get(aggregator_name).__dict__,
             )
 
         resource_identifiers = []
@@ -940,7 +991,6 @@ class ConfigBackend(BaseBackend):
                 "ResourceType": identifier["type"],
                 "ResourceId": identifier["id"],
             }
-
             if identifier.get("name"):
                 item["ResourceName"] = identifier["name"]
 
@@ -956,9 +1006,9 @@ class ConfigBackend(BaseBackend):
     def get_resource_config_history(self, resource_type, id, backend_region):
         """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
 
-            NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
-                  As such, the later_time, earlier_time, limit, and next_token are ignored as this will only
-                  return 1 item. (If no items, it raises an exception)
+        NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
+              As such, the later_time, earlier_time, limit, and next_token are ignored as this will only
+              return 1 item. (If no items, it raises an exception)
         """
         # If the type isn't implemented then we won't find the item:
         if resource_type not in RESOURCE_MAP:
@@ -1040,10 +1090,10 @@ class ConfigBackend(BaseBackend):
     ):
         """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
 
-            As far a moto goes -- the only real difference between this function and the `batch_get_resource_config` function is that
-            this will require a Config Aggregator be set up a priori and can search based on resource regions.
+        As far a moto goes -- the only real difference between this function and the `batch_get_resource_config` function is that
+        this will require a Config Aggregator be set up a priori and can search based on resource regions.
 
-            Note: moto will IGNORE the resource account ID in the search query.
+        Note: moto will IGNORE the resource account ID in the search query.
         """
         if not self.config_aggregators.get(aggregator_name):
             raise NoSuchConfigurationAggregatorException()
@@ -1109,6 +1159,134 @@ class ConfigBackend(BaseBackend):
         return {
             "FailedEvaluations": [],
         }  # At this time, moto is not adding failed evaluations.
+
+    def put_organization_conformance_pack(
+        self,
+        region,
+        name,
+        template_s3_uri,
+        template_body,
+        delivery_s3_bucket,
+        delivery_s3_key_prefix,
+        input_parameters,
+        excluded_accounts,
+    ):
+        # a real validation of the content of the template is missing at the moment
+        if not template_s3_uri and not template_body:
+            raise ValidationException("Template body is invalid")
+
+        if not re.match(r"s3://.*", template_s3_uri):
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '{}' at 'templateS3Uri' failed to satisfy constraint: "
+                "Member must satisfy regular expression pattern: "
+                "s3://.*".format(template_s3_uri)
+            )
+
+        pack = self.organization_conformance_packs.get(name)
+
+        if pack:
+            pack.update(
+                delivery_s3_bucket=delivery_s3_bucket,
+                delivery_s3_key_prefix=delivery_s3_key_prefix,
+                input_parameters=input_parameters,
+                excluded_accounts=excluded_accounts,
+            )
+        else:
+            pack = OrganizationConformancePack(
+                region=region,
+                name=name,
+                delivery_s3_bucket=delivery_s3_bucket,
+                delivery_s3_key_prefix=delivery_s3_key_prefix,
+                input_parameters=input_parameters,
+                excluded_accounts=excluded_accounts,
+            )
+
+        self.organization_conformance_packs[name] = pack
+
+        return {
+            "OrganizationConformancePackArn": pack.organization_conformance_pack_arn
+        }
+
+    def describe_organization_conformance_packs(self, names):
+        packs = []
+
+        for name in names:
+            pack = self.organization_conformance_packs.get(name)
+
+            if not pack:
+                raise NoSuchOrganizationConformancePackException(
+                    "One or more organization conformance packs with specified names are not present. "
+                    "Ensure your names are correct and try your request again later."
+                )
+
+            packs.append(pack.to_dict())
+
+        return {"OrganizationConformancePacks": packs}
+
+    def describe_organization_conformance_pack_statuses(self, names):
+        packs = []
+        statuses = []
+
+        if names:
+            for name in names:
+                pack = self.organization_conformance_packs.get(name)
+
+                if not pack:
+                    raise NoSuchOrganizationConformancePackException(
+                        "One or more organization conformance packs with specified names are not present. "
+                        "Ensure your names are correct and try your request again later."
+                    )
+
+                packs.append(pack)
+        else:
+            packs = list(self.organization_conformance_packs.values())
+
+        for pack in packs:
+            statuses.append(
+                {
+                    "OrganizationConformancePackName": pack.organization_conformance_pack_name,
+                    "Status": pack._status,
+                    "LastUpdateTime": pack.last_update_time,
+                }
+            )
+
+        return {"OrganizationConformancePackStatuses": statuses}
+
+    def get_organization_conformance_pack_detailed_status(self, name):
+        pack = self.organization_conformance_packs.get(name)
+
+        if not pack:
+            raise NoSuchOrganizationConformancePackException(
+                "One or more organization conformance packs with specified names are not present. "
+                "Ensure your names are correct and try your request again later."
+            )
+
+        # actually here would be a list of all accounts in the organization
+        statuses = [
+            {
+                "AccountId": DEFAULT_ACCOUNT_ID,
+                "ConformancePackName": "OrgConformsPack-{0}".format(
+                    pack._unique_pack_name
+                ),
+                "Status": pack._status,
+                "LastUpdateTime": datetime2int(datetime.utcnow()),
+            }
+        ]
+
+        return {"OrganizationConformancePackDetailedStatuses": statuses}
+
+    def delete_organization_conformance_pack(self, name):
+        pack = self.organization_conformance_packs.get(name)
+
+        if not pack:
+            raise NoSuchOrganizationConformancePackException(
+                "Could not find an OrganizationConformancePack for given request with resourceName {}".format(
+                    name
+                )
+            )
+
+        self.organization_conformance_packs.pop(name)
 
 
 config_backends = {}

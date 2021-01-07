@@ -2,10 +2,10 @@ from __future__ import unicode_literals
 import logging
 import os
 
-from boto.s3.key import Key
 import re
 import six
 from six.moves.urllib.parse import urlparse, unquote, quote
+from requests.structures import CaseInsensitiveDict
 import sys
 
 
@@ -13,6 +13,16 @@ log = logging.getLogger(__name__)
 
 
 bucket_name_regex = re.compile("(.+).s3(.*).amazonaws.com")
+user_settable_fields = {
+    "content-md5",
+    "content-language",
+    "content-type",
+    "content-encoding",
+    "cache-control",
+    "expires",
+    "content-disposition",
+    "x-robots-tag",
+}
 
 
 def bucket_name_from_url(url):
@@ -62,7 +72,7 @@ def parse_region_from_url(url):
 
 
 def metadata_from_headers(headers):
-    metadata = {}
+    metadata = CaseInsensitiveDict()
     meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_]+)$", flags=re.IGNORECASE)
     for header, value in headers.items():
         if isinstance(header, six.string_types):
@@ -71,11 +81,15 @@ def metadata_from_headers(headers):
             if result:
                 # Check for extra metadata
                 meta_key = result.group(0).lower()
-            elif header.lower() in Key.base_user_settable_fields:
+            elif header.lower() in user_settable_fields:
                 # Check for special metadata that doesn't start with x-amz-meta
                 meta_key = header
             if meta_key:
-                metadata[meta_key] = headers[header]
+                metadata[meta_key] = (
+                    headers[header][0]
+                    if type(headers[header]) == list
+                    else headers[header]
+                )
     return metadata
 
 
@@ -93,7 +107,7 @@ def undo_clean_key_name(key_name):
 
 class _VersionedKeyStore(dict):
 
-    """ A simplified/modified version of Django's `MultiValueDict` taken from:
+    """A simplified/modified version of Django's `MultiValueDict` taken from:
     https://github.com/django/django/blob/70576740b0bb5289873f5a9a9a4e1a26b2c330e5/django/utils/datastructures.py#L282
     """
 

@@ -7,7 +7,7 @@ import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
 
-from utils import setup_networking_deprecated
+from .utils import setup_networking_deprecated
 
 
 def setup_autoscale_group():
@@ -170,7 +170,7 @@ def test_execute_policy_percent_change_in_capacity():
 
 @mock_autoscaling_deprecated
 def test_execute_policy_small_percent_change_in_capacity():
-    """ http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
+    """http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
     If PercentChangeInCapacity returns a value between 0 and 1,
     Auto Scaling will round it off to 1."""
     setup_autoscale_group()

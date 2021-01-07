@@ -4,12 +4,14 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 from freezegun import freeze_time
-from nose.tools import assert_raises
+import pytest
 from uuid import uuid4
 import pytz
 import sure  # noqa
 
 from moto import mock_cloudwatch
+from moto.cloudwatch.utils import make_arn_for_alarm
+from moto.core import ACCOUNT_ID
 
 
 @mock_cloudwatch
@@ -90,6 +92,141 @@ def test_get_dashboard_fail():
         err.response["Error"]["Code"].should.equal("ResourceNotFound")
     else:
         raise RuntimeError("Should of raised error")
+
+
+@mock_cloudwatch
+def test_delete_invalid_alarm():
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    cloudwatch.put_metric_alarm(
+        AlarmName="testalarm1",
+        MetricName="cpu",
+        Namespace="blah",
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic="Average",
+        Threshold=2,
+        ComparisonOperator="GreaterThanThreshold",
+        ActionsEnabled=True,
+    )
+
+    # trying to delete an alarm which is not created along with valid alarm.
+    with pytest.raises(ClientError) as e:
+        cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName", "testalarm1"])
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+
+    resp = cloudwatch.describe_alarms(AlarmNames=["testalarm1"])
+    # making sure other alarms are not deleted in case of an error.
+    len(resp["MetricAlarms"]).should.equal(1)
+
+    # test to check if the error raises if only one invalid alarm is tried to delete.
+    with pytest.raises(ClientError) as e:
+        cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName"])
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
+
+
+@mock_cloudwatch
+def test_describe_alarms_for_metric():
+    conn = boto3.client("cloudwatch", region_name="eu-central-1")
+    conn.put_metric_alarm(
+        AlarmName="testalarm1",
+        MetricName="cpu",
+        Namespace="blah",
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic="Average",
+        Threshold=2,
+        ComparisonOperator="GreaterThanThreshold",
+        ActionsEnabled=True,
+    )
+    alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
+    alarms.get("MetricAlarms").should.have.length_of(1)
+
+    assert "testalarm1" in alarms.get("MetricAlarms")[0].get("AlarmArn")
+
+
+@mock_cloudwatch
+def test_describe_alarms():
+    conn = boto3.client("cloudwatch", region_name="eu-central-1")
+    conn.put_metric_alarm(
+        AlarmName="testalarm1",
+        MetricName="cpu",
+        Namespace="blah",
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic="Average",
+        Threshold=2,
+        ComparisonOperator="GreaterThanThreshold",
+        ActionsEnabled=True,
+    )
+    metric_data_queries = [
+        {
+            "Id": "metricA",
+            "Expression": "metricB + metricC",
+            "Label": "metricA",
+            "ReturnData": True,
+        },
+        {
+            "Id": "metricB",
+            "MetricStat": {
+                "Metric": {
+                    "Namespace": "ns",
+                    "MetricName": "metricB",
+                    "Dimensions": [{"Name": "Name", "Value": "B"}],
+                },
+                "Period": 60,
+                "Stat": "Sum",
+            },
+            "ReturnData": False,
+        },
+        {
+            "Id": "metricC",
+            "MetricStat": {
+                "Metric": {
+                    "Namespace": "AWS/Lambda",
+                    "MetricName": "metricC",
+                    "Dimensions": [{"Name": "Name", "Value": "C"}],
+                },
+                "Period": 60,
+                "Stat": "Sum",
+                "Unit": "Seconds",
+            },
+            "ReturnData": False,
+        },
+    ]
+    conn.put_metric_alarm(
+        AlarmName="testalarm2",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Metrics=metric_data_queries,
+        ComparisonOperator="GreaterThanThreshold",
+        Threshold=1.0,
+    )
+    alarms = conn.describe_alarms()
+    metric_alarms = alarms.get("MetricAlarms")
+    metric_alarms.should.have.length_of(2)
+    single_metric_alarm = [
+        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm1"
+    ][0]
+    multiple_metric_alarm = [
+        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm2"
+    ][0]
+
+    single_metric_alarm["MetricName"].should.equal("cpu")
+    single_metric_alarm.shouldnt.have.property("Metrics")
+    single_metric_alarm["Namespace"].should.equal("blah")
+    single_metric_alarm["Period"].should.equal(10)
+    single_metric_alarm["EvaluationPeriods"].should.equal(5)
+    single_metric_alarm["Statistic"].should.equal("Average")
+    single_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
+    single_metric_alarm["Threshold"].should.equal(2)
+
+    multiple_metric_alarm.shouldnt.have.property("MetricName")
+    multiple_metric_alarm["EvaluationPeriods"].should.equal(1)
+    multiple_metric_alarm["DatapointsToAlarm"].should.equal(1)
+    multiple_metric_alarm["Metrics"].should.equal(metric_data_queries)
+    multiple_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
+    multiple_metric_alarm["Threshold"].should.equal(1.0)
 
 
 @mock_cloudwatch
@@ -213,6 +350,123 @@ def test_get_metric_statistics():
 
 
 @mock_cloudwatch
+def test_duplicate_put_metric_data():
+    conn = boto3.client("cloudwatch", region_name="us-east-1")
+    utc_now = datetime.now(tz=pytz.utc)
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[{"Name": "Name", "Value": "B"}],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
+    len(result).should.equal(1)
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[{"Name": "Name", "Value": "B"}],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
+    len(result).should.equal(1)
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[{"Name": "Name", "Value": "B"}],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
+    result.should.equal(
+        [
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+            }
+        ]
+    )
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName="metric",
+                Dimensions=[
+                    {"Name": "Name", "Value": "B"},
+                    {"Name": "Name", "Value": "C"},
+                ],
+                Value=1.5,
+                Timestamp=utc_now,
+            )
+        ],
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
+    )["Metrics"]
+    result.should.equal(
+        [
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+            },
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [
+                    {"Name": "Name", "Value": "B"},
+                    {"Name": "Name", "Value": "C"},
+                ],
+            },
+        ]
+    )
+
+    result = conn.list_metrics(
+        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "C"}]
+    )["Metrics"]
+    result.should.equal(
+        [
+            {
+                "Namespace": "tester",
+                "MetricName": "metric",
+                "Dimensions": [
+                    {"Name": "Name", "Value": "B"},
+                    {"Name": "Name", "Value": "C"},
+                ],
+            }
+        ]
+    )
+
+
+@mock_cloudwatch
 @freeze_time("2020-02-10 18:44:05")
 def test_custom_timestamp():
     utc_now = datetime.now(tz=pytz.utc)
@@ -286,9 +540,9 @@ def test_list_metrics_paginated():
     # Verify that only a single page of metrics is returned
     cloudwatch.list_metrics()["Metrics"].should.be.empty
     # Verify we can't pass a random NextToken
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=str(uuid4()))
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Message"].should.equal(
         "Request parameter NextToken is invalid"
     )
     # Add a boatload of metrics
@@ -315,9 +569,9 @@ def test_list_metrics_paginated():
     len(third_page["Metrics"]).should.equal(100)
     third_page.shouldnt.contain("NextToken")
     # Verify that we can't reuse an existing token
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=first_page["NextToken"])
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Message"].should.equal(
         "Request parameter NextToken is invalid"
     )
 

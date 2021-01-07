@@ -6,8 +6,13 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError
-from .utils import random_instance_group_id, random_cluster_id, random_step_id
+from moto.emr.exceptions import EmrError, InvalidRequestException
+from .utils import (
+    random_instance_group_id,
+    random_cluster_id,
+    random_step_id,
+    CamelToUnderscoresWalker,
+)
 
 
 class FakeApplication(BaseModel):
@@ -28,6 +33,7 @@ class FakeBootstrapAction(BaseModel):
 class FakeInstanceGroup(BaseModel):
     def __init__(
         self,
+        cluster_id,
         instance_count,
         instance_role,
         instance_type,
@@ -36,8 +42,10 @@ class FakeInstanceGroup(BaseModel):
         id=None,
         bid_price=None,
         ebs_configuration=None,
+        auto_scaling_policy=None,
     ):
         self.id = id or random_instance_group_id()
+        self.cluster_id = cluster_id
 
         self.bid_price = bid_price
         self.market = market
@@ -53,7 +61,7 @@ class FakeInstanceGroup(BaseModel):
         self.role = instance_role
         self.type = instance_type
         self.ebs_configuration = ebs_configuration
-
+        self.auto_scaling_policy = auto_scaling_policy
         self.creation_datetime = datetime.now(pytz.utc)
         self.start_datetime = datetime.now(pytz.utc)
         self.ready_datetime = datetime.now(pytz.utc)
@@ -62,6 +70,34 @@ class FakeInstanceGroup(BaseModel):
 
     def set_instance_count(self, instance_count):
         self.num_instances = instance_count
+
+    @property
+    def auto_scaling_policy(self):
+        return self._auto_scaling_policy
+
+    @auto_scaling_policy.setter
+    def auto_scaling_policy(self, value):
+        if value is None:
+            self._auto_scaling_policy = value
+            return
+        self._auto_scaling_policy = CamelToUnderscoresWalker.parse(value)
+        self._auto_scaling_policy["status"] = {"state": "ATTACHED"}
+        # Transform common ${emr.clusterId} placeholder in any dimensions it occurs in.
+        if "rules" in self._auto_scaling_policy:
+            for rule in self._auto_scaling_policy["rules"]:
+                if (
+                    "trigger" in rule
+                    and "cloud_watch_alarm_definition" in rule["trigger"]
+                    and "dimensions" in rule["trigger"]["cloud_watch_alarm_definition"]
+                ):
+                    for dimension in rule["trigger"]["cloud_watch_alarm_definition"][
+                        "dimensions"
+                    ]:
+                        if (
+                            "value" in dimension
+                            and dimension["value"] == "${emr.clusterId}"
+                        ):
+                            dimension["value"] = self.cluster_id
 
 
 class FakeStep(BaseModel):
@@ -110,6 +146,9 @@ class FakeCluster(BaseModel):
         requested_ami_version=None,
         running_ami_version=None,
         custom_ami_id=None,
+        step_concurrency_level=1,
+        security_configuration=None,
+        kerberos_attributes=None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -200,6 +239,7 @@ class FakeCluster(BaseModel):
 
         self.role = job_flow_role or "EMRJobflowDefault"
         self.service_role = service_role
+        self.step_concurrency_level = step_concurrency_level
 
         self.creation_datetime = datetime.now(pytz.utc)
         self.start_datetime = None
@@ -211,6 +251,10 @@ class FakeCluster(BaseModel):
         self.run_bootstrap_actions()
         if self.steps:
             self.steps[0].start()
+        self.security_configuration = (
+            security_configuration  # ToDo: Raise if doesn't already exist.
+        )
+        self.kerberos_attributes = kerberos_attributes
 
     @property
     def instance_groups(self):
@@ -299,12 +343,20 @@ class FakeCluster(BaseModel):
         self.visible_to_all_users = visibility
 
 
+class FakeSecurityConfiguration(BaseModel):
+    def __init__(self, name, security_configuration):
+        self.name = name
+        self.security_configuration = security_configuration
+        self.creation_date_time = datetime.now(pytz.utc)
+
+
 class ElasticMapReduceBackend(BaseBackend):
     def __init__(self, region_name):
         super(ElasticMapReduceBackend, self).__init__()
         self.region_name = region_name
         self.clusters = {}
         self.instance_groups = {}
+        self.security_configurations = {}
 
     def reset(self):
         region_name = self.region_name
@@ -319,7 +371,7 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster = self.clusters[cluster_id]
         result_groups = []
         for instance_group in instance_groups:
-            group = FakeInstanceGroup(**instance_group)
+            group = FakeInstanceGroup(cluster_id=cluster_id, **instance_group)
             self.instance_groups[group.id] = group
             cluster.add_instance_group(group)
             result_groups.append(group)
@@ -433,6 +485,11 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         return steps[start_idx : start_idx + max_items], marker
 
+    def modify_cluster(self, cluster_id, step_concurrency_level):
+        cluster = self.clusters[cluster_id]
+        cluster.step_concurrency_level = step_concurrency_level
+        return cluster
+
     def modify_instance_groups(self, instance_groups):
         result_groups = []
         for instance_group in instance_groups:
@@ -464,6 +521,56 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.terminate()
             clusters.append(cluster)
         return clusters
+
+    def put_auto_scaling_policy(self, instance_group_id, auto_scaling_policy):
+        instance_groups = self.get_instance_groups(
+            instance_group_ids=[instance_group_id]
+        )
+        if len(instance_groups) == 0:
+            return None
+        instance_group = instance_groups[0]
+        instance_group.auto_scaling_policy = auto_scaling_policy
+        return instance_group
+
+    def remove_auto_scaling_policy(self, cluster_id, instance_group_id):
+        instance_groups = self.get_instance_groups(
+            instance_group_ids=[instance_group_id]
+        )
+        if len(instance_groups) == 0:
+            return None
+        instance_group = instance_groups[0]
+        instance_group.auto_scaling_policy = None
+
+    def create_security_configuration(self, name, security_configuration):
+        if name in self.security_configurations:
+            raise InvalidRequestException(
+                message="SecurityConfiguration with name '{}' already exists.".format(
+                    name
+                )
+            )
+        security_configuration = FakeSecurityConfiguration(
+            name=name, security_configuration=security_configuration
+        )
+        self.security_configurations[name] = security_configuration
+        return security_configuration
+
+    def get_security_configuration(self, name):
+        if name not in self.security_configurations:
+            raise InvalidRequestException(
+                message="Security configuration with name '{}' does not exist.".format(
+                    name
+                )
+            )
+        return self.security_configurations[name]
+
+    def delete_security_configuration(self, name):
+        if name not in self.security_configurations:
+            raise InvalidRequestException(
+                message="Security configuration with name '{}' does not exist.".format(
+                    name
+                )
+            )
+        del self.security_configurations[name]
 
 
 emr_backends = {}

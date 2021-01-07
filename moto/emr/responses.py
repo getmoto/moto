@@ -13,7 +13,7 @@ from moto.core.responses import xml_to_json_response
 from moto.core.utils import tags_from_query_string
 from .exceptions import EmrError
 from .models import emr_backends
-from .utils import steps_from_query_string
+from .utils import steps_from_query_string, Unflattener, ReleaseLabel
 
 
 def generate_boto3_response(operation):
@@ -76,6 +76,8 @@ class ElasticMapReduceResponse(BaseResponse):
             item["instance_count"] = int(item["instance_count"])
             # Adding support to EbsConfiguration
             self._parse_ebs_configuration(item)
+            # Adding support for auto_scaling_policy
+            Unflattener.unflatten_complex_params(item, "auto_scaling_policy")
         instance_groups = self.backend.add_instance_groups(jobflow_id, instance_groups)
         template = self.response_template(ADD_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
@@ -100,11 +102,29 @@ class ElasticMapReduceResponse(BaseResponse):
     def cancel_steps(self):
         raise NotImplementedError
 
+    @generate_boto3_response("CreateSecurityConfiguration")
     def create_security_configuration(self):
-        raise NotImplementedError
+        name = self._get_param("Name")
+        security_configuration = self._get_param("SecurityConfiguration")
+        resp = self.backend.create_security_configuration(
+            name=name, security_configuration=security_configuration
+        )
+        template = self.response_template(CREATE_SECURITY_CONFIGURATION_TEMPLATE)
+        return template.render(name=name, creation_date_time=resp.creation_date_time)
 
+    @generate_boto3_response("DescribeSecurityConfiguration")
+    def describe_security_configuration(self):
+        name = self._get_param("Name")
+        security_configuration = self.backend.get_security_configuration(name=name)
+        template = self.response_template(DESCRIBE_SECURITY_CONFIGURATION_TEMPLATE)
+        return template.render(security_configuration=security_configuration)
+
+    @generate_boto3_response("DeleteSecurityConfiguration")
     def delete_security_configuration(self):
-        raise NotImplementedError
+        name = self._get_param("Name")
+        self.backend.delete_security_configuration(name=name)
+        template = self.response_template(DELETE_SECURITY_CONFIGURATION_TEMPLATE)
+        return template.render()
 
     @generate_boto3_response("DescribeCluster")
     def describe_cluster(self):
@@ -124,9 +144,6 @@ class ElasticMapReduceResponse(BaseResponse):
         )
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(clusters=clusters)
-
-    def describe_security_configuration(self):
-        raise NotImplementedError
 
     @generate_boto3_response("DescribeStep")
     def describe_step(self):
@@ -182,6 +199,14 @@ class ElasticMapReduceResponse(BaseResponse):
         )
         template = self.response_template(LIST_STEPS_TEMPLATE)
         return template.render(steps=steps, marker=marker)
+
+    @generate_boto3_response("ModifyCluster")
+    def modify_cluster(self):
+        cluster_id = self._get_param("ClusterId")
+        step_concurrency_level = self._get_param("StepConcurrencyLevel")
+        cluster = self.backend.modify_cluster(cluster_id, step_concurrency_level)
+        template = self.response_template(MODIFY_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
 
     @generate_boto3_response("ModifyInstanceGroups")
     def modify_instance_groups(self):
@@ -298,7 +323,9 @@ class ElasticMapReduceResponse(BaseResponse):
         custom_ami_id = self._get_param("CustomAmiId")
         if custom_ami_id:
             kwargs["custom_ami_id"] = custom_ami_id
-            if release_label and release_label < "emr-5.7.0":
+            if release_label and (
+                ReleaseLabel(release_label) < ReleaseLabel("emr-5.7.0")
+            ):
                 message = "Custom AMI is not allowed"
                 raise EmrError(
                     error_type="ValidationException",
@@ -312,6 +339,43 @@ class ElasticMapReduceResponse(BaseResponse):
                     message=message,
                     template="error_json",
                 )
+
+        step_concurrency_level = self._get_param("StepConcurrencyLevel")
+        if step_concurrency_level:
+            kwargs["step_concurrency_level"] = step_concurrency_level
+
+        security_configuration = self._get_param("SecurityConfiguration")
+        if security_configuration:
+            kwargs["security_configuration"] = security_configuration
+
+        kerberos_attributes = {}
+        kwargs["kerberos_attributes"] = kerberos_attributes
+
+        realm = self._get_param("KerberosAttributes.Realm")
+        if realm:
+            kerberos_attributes["Realm"] = realm
+
+        kdc_admin_password = self._get_param("KerberosAttributes.KdcAdminPassword")
+        if kdc_admin_password:
+            kerberos_attributes["KdcAdminPassword"] = kdc_admin_password
+
+        cross_realm_principal_password = self._get_param(
+            "KerberosAttributes.CrossRealmTrustPrincipalPassword"
+        )
+        if cross_realm_principal_password:
+            kerberos_attributes[
+                "CrossRealmTrustPrincipalPassword"
+            ] = cross_realm_principal_password
+
+        ad_domain_join_user = self._get_param("KerberosAttributes.ADDomainJoinUser")
+        if ad_domain_join_user:
+            kerberos_attributes["ADDomainJoinUser"] = ad_domain_join_user
+
+        ad_domain_join_password = self._get_param(
+            "KerberosAttributes.ADDomainJoinPassword"
+        )
+        if ad_domain_join_password:
+            kerberos_attributes["ADDomainJoinPassword"] = ad_domain_join_password
 
         cluster = self.backend.run_job_flow(**kwargs)
 
@@ -329,6 +393,8 @@ class ElasticMapReduceResponse(BaseResponse):
                 ig["instance_count"] = int(ig["instance_count"])
                 # Adding support to EbsConfiguration
                 self._parse_ebs_configuration(ig)
+                # Adding support for auto_scaling_policy
+                Unflattener.unflatten_complex_params(ig, "auto_scaling_policy")
             self.backend.add_instance_groups(cluster.id, instance_groups)
 
         tags = self._get_list_prefix("Tags.member")
@@ -442,6 +508,25 @@ class ElasticMapReduceResponse(BaseResponse):
         template = self.response_template(TERMINATE_JOB_FLOWS_TEMPLATE)
         return template.render()
 
+    @generate_boto3_response("PutAutoScalingPolicy")
+    def put_auto_scaling_policy(self):
+        cluster_id = self._get_param("ClusterId")
+        instance_group_id = self._get_param("InstanceGroupId")
+        auto_scaling_policy = self._get_param("AutoScalingPolicy")
+        instance_group = self.backend.put_auto_scaling_policy(
+            instance_group_id, auto_scaling_policy
+        )
+        template = self.response_template(PUT_AUTO_SCALING_POLICY)
+        return template.render(cluster_id=cluster_id, instance_group=instance_group)
+
+    @generate_boto3_response("RemoveAutoScalingPolicy")
+    def remove_auto_scaling_policy(self):
+        cluster_id = self._get_param("ClusterId")
+        instance_group_id = self._get_param("InstanceGroupId")
+        instance_group = self.backend.put_auto_scaling_policy(instance_group_id, None)
+        template = self.response_template(REMOVE_AUTO_SCALING_POLICY)
+        return template.render(cluster_id=cluster_id, instance_group=instance_group)
+
 
 ADD_INSTANCE_GROUPS_TEMPLATE = """<AddInstanceGroupsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <AddInstanceGroupsResult>
@@ -525,6 +610,23 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
         <ServiceAccessSecurityGroup>{{ cluster.service_access_security_group }}</ServiceAccessSecurityGroup>
       </Ec2InstanceAttributes>
       <Id>{{ cluster.id }}</Id>
+      <KerberosAttributes>
+        {% if 'Realm' in cluster.kerberos_attributes%}
+        <Realm>{{ cluster.kerberos_attributes['Realm'] }}</Realm>
+        {% endif %}
+        {% if 'KdcAdminPassword' in cluster.kerberos_attributes%}
+        <KdcAdminPassword>{{ cluster.kerberos_attributes['KdcAdminPassword'] }}</KdcAdminPassword>
+        {% endif %}
+        {% if 'CrossRealmTrustPrincipalPassword' in cluster.kerberos_attributes%}
+        <CrossRealmTrustPrincipalPassword>{{ cluster.kerberos_attributes['CrossRealmTrustPrincipalPassword'] }}</CrossRealmTrustPrincipalPassword>
+        {% endif %}
+        {% if 'ADDomainJoinUser' in cluster.kerberos_attributes%}
+        <ADDomainJoinUser>{{ cluster.kerberos_attributes['ADDomainJoinUser'] }}</ADDomainJoinUser>
+        {% endif %}
+        {% if 'ADDomainJoinPassword' in cluster.kerberos_attributes%}
+        <ADDomainJoinPassword>{{ cluster.kerberos_attributes['ADDomainJoinPassword'] }}</ADDomainJoinPassword>
+        {% endif %}
+      </KerberosAttributes>
       <LogUri>{{ cluster.log_uri }}</LogUri>
       <MasterPublicDnsName>ec2-184-0-0-1.us-west-1.compute.amazonaws.com</MasterPublicDnsName>
       <Name>{{ cluster.name }}</Name>
@@ -538,7 +640,9 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       {% if cluster.running_ami_version is not none %}
       <RunningAmiVersion>{{ cluster.running_ami_version }}</RunningAmiVersion>
       {% endif %}
-      <SecurityConfiguration/>
+      {% if cluster.security_configuration is not none %}
+      <SecurityConfiguration>{{ cluster.security_configuration }}</SecurityConfiguration>
+      {% endif %}
       <ServiceRole>{{ cluster.service_role }}</ServiceRole>
       <Status>
         <State>{{ cluster.state }}</State>
@@ -568,6 +672,7 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       </Tags>
       <TerminationProtected>{{ cluster.termination_protected|lower }}</TerminationProtected>
       <VisibleToAllUsers>{{ cluster.visible_to_all_users|lower }}</VisibleToAllUsers>
+      <StepConcurrencyLevel>{{ cluster.step_concurrency_level }}</StepConcurrencyLevel>
     </Cluster>
   </DescribeClusterResult>
   <ResponseMetadata>
@@ -854,6 +959,107 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
             {% endfor %}
         </EbsBlockDevices>
         {% endif %}
+        {% if instance_group.auto_scaling_policy is not none %}
+        <AutoScalingPolicy>
+            {% if instance_group.auto_scaling_policy.constraints is not none %}
+            <Constraints>
+                {% if instance_group.auto_scaling_policy.constraints.min_capacity is not none %}
+                <MinCapacity>{{instance_group.auto_scaling_policy.constraints.min_capacity}}</MinCapacity>
+                {% endif %}
+                {% if instance_group.auto_scaling_policy.constraints.max_capacity is not none %}
+                <MaxCapacity>{{instance_group.auto_scaling_policy.constraints.max_capacity}}</MaxCapacity>
+                {% endif %}
+            </Constraints>
+            {% endif %}
+            {% if instance_group.auto_scaling_policy.rules is not none %}
+            <Rules>
+                {% for rule in instance_group.auto_scaling_policy.rules %}
+                <member>
+                    {% if 'name' in rule %}
+                    <Name>{{rule['name']}}</Name>
+                    {% endif %}
+                    {% if 'description' in rule %}
+                    <Description>{{rule['description']}}</Description>
+                    {% endif %}
+                    {% if 'action' in rule %}
+                    <Action>
+                        {% if 'market' in rule['action'] %}
+                        <Market>{{rule['action']['market']}}</Market>
+                        {% endif %}
+                        {% if 'simple_scaling_policy_configuration' in rule['action'] %}
+                        <SimpleScalingPolicyConfiguration>
+                            {% if 'adjustment_type' in rule['action']['simple_scaling_policy_configuration'] %}
+                            <AdjustmentType>{{rule['action']['simple_scaling_policy_configuration']['adjustment_type']}}</AdjustmentType>
+                            {% endif %}
+                            {% if 'scaling_adjustment' in rule['action']['simple_scaling_policy_configuration'] %}
+                            <ScalingAdjustment>{{rule['action']['simple_scaling_policy_configuration']['scaling_adjustment']}}</ScalingAdjustment>
+                            {% endif %}
+                            {% if 'cool_down' in rule['action']['simple_scaling_policy_configuration'] %}
+                            <CoolDown>{{rule['action']['simple_scaling_policy_configuration']['cool_down']}}</CoolDown>
+                            {% endif %}
+                        </SimpleScalingPolicyConfiguration>
+                        {% endif %}
+                    </Action>
+                    {% endif %}
+                    {% if 'trigger' in rule %}
+                    <Trigger>
+                        {% if 'cloud_watch_alarm_definition' in rule['trigger'] %}
+                        <CloudWatchAlarmDefinition>
+                            {% if 'comparison_operator' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <ComparisonOperator>{{rule['trigger']['cloud_watch_alarm_definition']['comparison_operator']}}</ComparisonOperator>
+                            {% endif %}
+                            {% if 'evaluation_periods' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <EvaluationPeriods>{{rule['trigger']['cloud_watch_alarm_definition']['evaluation_periods']}}</EvaluationPeriods>
+                            {% endif %}
+                            {% if 'metric_name' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <MetricName>{{rule['trigger']['cloud_watch_alarm_definition']['metric_name']}}</MetricName>
+                            {% endif %}
+                            {% if 'namespace' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <Namespace>{{rule['trigger']['cloud_watch_alarm_definition']['namespace']}}</Namespace>
+                            {% endif %}
+                            {% if 'period' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <Period>{{rule['trigger']['cloud_watch_alarm_definition']['period']}}</Period>
+                            {% endif %}
+                            {% if 'statistic' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <Statistic>{{rule['trigger']['cloud_watch_alarm_definition']['statistic']}}</Statistic>
+                            {% endif %}
+                            {% if 'threshold' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <Threshold>{{rule['trigger']['cloud_watch_alarm_definition']['threshold']}}</Threshold>
+                            {% endif %}
+                            {% if 'unit' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <Unit>{{rule['trigger']['cloud_watch_alarm_definition']['unit']}}</Unit>
+                            {% endif %}
+                            {% if 'dimensions' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                            <Dimensions>
+                                {% for dimension in rule['trigger']['cloud_watch_alarm_definition']['dimensions'] %}
+                                <member>
+                                    {% if 'key' in dimension %}
+                                    <Key>{{dimension['key']}}</Key>
+                                    {% endif %}
+                                    {% if 'value' in dimension %}
+                                    <Value>{{dimension['value']}}</Value>
+                                    {% endif %}
+                                </member>
+                                {% endfor %}
+                            </Dimensions>
+                            {% endif %}
+                        </CloudWatchAlarmDefinition>
+                        {% endif %}
+                    </Trigger>
+                    {% endif %}
+                </member>
+                {% endfor %}
+            </Rules>
+            {% endif %}
+            {% if instance_group.auto_scaling_policy.status is not none %}
+            <Status>
+                {% if 'state' in instance_group.auto_scaling_policy.status %}
+                <State>{{instance_group.auto_scaling_policy.status['state']}}</State>
+                {% endif %}
+            </Status>
+            {% endif %}
+        </AutoScalingPolicy>
+        {% endif %}
         {% if instance_group.ebs_optimized is not none %}
         <EbsOptimized>{{ instance_group.ebs_optimized }}</EbsOptimized>
         {% endif %}
@@ -951,6 +1157,16 @@ LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazo
   </ResponseMetadata>
 </ListStepsResponse>"""
 
+MODIFY_CLUSTER_TEMPLATE = """<ModifyClusterResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ModifyClusterResult>
+    <StepConcurrencyLevel>{{ cluster.step_concurrency_level }}</StepConcurrencyLevel>
+  </ModifyClusterResult>
+  <ResponseMetadata>
+    <RequestId>0751c837-e78d-4aef-95c9-9c4d29a092ff</RequestId>
+  </ResponseMetadata>
+</ModifyClusterResponse>
+"""
+
 MODIFY_INSTANCE_GROUPS_TEMPLATE = """<ModifyInstanceGroupsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <ResponseMetadata>
     <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
@@ -989,3 +1205,147 @@ TERMINATE_JOB_FLOWS_TEMPLATE = """<TerminateJobFlowsResponse xmlns="http://elast
     <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
   </ResponseMetadata>
 </TerminateJobFlowsResponse>"""
+
+PUT_AUTO_SCALING_POLICY = """<PutAutoScalingPolicyResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <PutAutoScalingPolicyResult>
+    <ClusterId>{{cluster_id}}</ClusterId>
+    <InstanceGroupId>{{instance_group.id}}</InstanceGroupId>
+    {% if instance_group.auto_scaling_policy is not none %}
+    <AutoScalingPolicy>
+        {% if instance_group.auto_scaling_policy.constraints is not none %}
+        <Constraints>
+            {% if instance_group.auto_scaling_policy.constraints.min_capacity is not none %}
+            <MinCapacity>{{instance_group.auto_scaling_policy.constraints.min_capacity}}</MinCapacity>
+            {% endif %}
+            {% if instance_group.auto_scaling_policy.constraints.max_capacity is not none %}
+            <MaxCapacity>{{instance_group.auto_scaling_policy.constraints.max_capacity}}</MaxCapacity>
+            {% endif %}
+        </Constraints>
+        {% endif %}
+        {% if instance_group.auto_scaling_policy.rules is not none %}
+        <Rules>
+            {% for rule in instance_group.auto_scaling_policy.rules %}
+            <member>
+                {% if 'name' in rule %}
+                <Name>{{rule['name']}}</Name>
+                {% endif %}
+                {% if 'description' in rule %}
+                <Description>{{rule['description']}}</Description>
+                {% endif %}
+                {% if 'action' in rule %}
+                <Action>
+                    {% if 'market' in rule['action'] %}
+                    <Market>{{rule['action']['market']}}</Market>
+                    {% endif %}
+                    {% if 'simple_scaling_policy_configuration' in rule['action'] %}
+                    <SimpleScalingPolicyConfiguration>
+                        {% if 'adjustment_type' in rule['action']['simple_scaling_policy_configuration'] %}
+                        <AdjustmentType>{{rule['action']['simple_scaling_policy_configuration']['adjustment_type']}}</AdjustmentType>
+                        {% endif %}
+                        {% if 'scaling_adjustment' in rule['action']['simple_scaling_policy_configuration'] %}
+                        <ScalingAdjustment>{{rule['action']['simple_scaling_policy_configuration']['scaling_adjustment']}}</ScalingAdjustment>
+                        {% endif %}
+                        {% if 'cool_down' in rule['action']['simple_scaling_policy_configuration'] %}
+                        <CoolDown>{{rule['action']['simple_scaling_policy_configuration']['cool_down']}}</CoolDown>
+                        {% endif %}
+                    </SimpleScalingPolicyConfiguration>
+                    {% endif %}
+                </Action>
+                {% endif %}
+                {% if 'trigger' in rule %}
+                <Trigger>
+                    {% if 'cloud_watch_alarm_definition' in rule['trigger'] %}
+                    <CloudWatchAlarmDefinition>
+                        {% if 'comparison_operator' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <ComparisonOperator>{{rule['trigger']['cloud_watch_alarm_definition']['comparison_operator']}}</ComparisonOperator>
+                        {% endif %}
+                        {% if 'evaluation_periods' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <EvaluationPeriods>{{rule['trigger']['cloud_watch_alarm_definition']['evaluation_periods']}}</EvaluationPeriods>
+                        {% endif %}
+                        {% if 'metric_name' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <MetricName>{{rule['trigger']['cloud_watch_alarm_definition']['metric_name']}}</MetricName>
+                        {% endif %}
+                        {% if 'namespace' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <Namespace>{{rule['trigger']['cloud_watch_alarm_definition']['namespace']}}</Namespace>
+                        {% endif %}
+                        {% if 'period' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <Period>{{rule['trigger']['cloud_watch_alarm_definition']['period']}}</Period>
+                        {% endif %}
+                        {% if 'statistic' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <Statistic>{{rule['trigger']['cloud_watch_alarm_definition']['statistic']}}</Statistic>
+                        {% endif %}
+                        {% if 'threshold' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <Threshold>{{rule['trigger']['cloud_watch_alarm_definition']['threshold']}}</Threshold>
+                        {% endif %}
+                        {% if 'unit' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <Unit>{{rule['trigger']['cloud_watch_alarm_definition']['unit']}}</Unit>
+                        {% endif %}
+                        {% if 'dimensions' in rule['trigger']['cloud_watch_alarm_definition'] %}
+                        <Dimensions>
+                            {% for dimension in rule['trigger']['cloud_watch_alarm_definition']['dimensions'] %}
+                            <member>
+                                {% if 'key' in dimension %}
+                                <Key>{{dimension['key']}}</Key>
+                                {% endif %}
+                                {% if 'value' in dimension %}
+                                <Value>{{dimension['value']}}</Value>
+                                {% endif %}
+                            </member>
+                            {% endfor %}
+                        </Dimensions>
+                        {% endif %}
+                    </CloudWatchAlarmDefinition>
+                    {% endif %}
+                </Trigger>
+                {% endif %}
+            </member>
+            {% endfor %}
+        </Rules>
+        {% endif %}
+        {% if instance_group.auto_scaling_policy.status is not none %}
+        <Status>
+            {% if 'state' in instance_group.auto_scaling_policy.status %}
+            <State>{{instance_group.auto_scaling_policy.status['state']}}</State>
+            {% endif %}
+        </Status>
+        {% endif %}
+    </AutoScalingPolicy>
+    {% endif %}
+  </PutAutoScalingPolicyResult>
+  <ResponseMetadata>
+    <RequestId>d47379d9-b505-49af-9335-a68950d82535</RequestId>
+  </ResponseMetadata>
+</PutAutoScalingPolicyResponse>"""
+
+REMOVE_AUTO_SCALING_POLICY = """<RemoveAutoScalingPolicyResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ResponseMetadata>
+    <RequestId>c04a1042-5340-4c0a-a7b5-7779725ce4f7</RequestId>
+  </ResponseMetadata>
+</RemoveAutoScalingPolicyResponse>"""
+
+CREATE_SECURITY_CONFIGURATION_TEMPLATE = """<CreateSecurityConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <CreateSecurityConfigurationResult>
+    <Name>{{name}}</Name>
+    <CreationDateTime>{{creation_date_time}}</CreationDateTime>
+  </CreateSecurityConfigurationResult>
+  <ResponseMetadata>
+    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+  </ResponseMetadata>
+</CreateSecurityConfigurationResponse>"""
+
+DESCRIBE_SECURITY_CONFIGURATION_TEMPLATE = """<DescribeSecurityConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <DescribeSecurityConfigurationResult>
+    <Name>{{security_configuration['name']}}</Name>
+    <SecurityConfiguration>{{security_configuration['security_configuration']}}</SecurityConfiguration>
+    <CreationDateTime>{{security_configuration['creation_date_time']}}</CreationDateTime>
+  </DescribeSecurityConfigurationResult>
+  <ResponseMetadata>
+    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+  </ResponseMetadata>
+</DescribeSecurityConfigurationResponse>"""
+
+DELETE_SECURITY_CONFIGURATION_TEMPLATE = """<DeleteSecurityConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ResponseMetadata>
+    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+  </ResponseMetadata>
+</DeleteSecurityConfigurationResponse>"""

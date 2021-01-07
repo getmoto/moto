@@ -3,6 +3,8 @@ from boto.ec2.cloudwatch.alarm import MetricAlarm
 from boto.s3.key import Key
 from datetime import datetime
 import sure  # noqa
+from moto.cloudwatch.utils import make_arn_for_alarm
+from moto.core import ACCOUNT_ID
 
 from moto import mock_cloudwatch_deprecated, mock_s3_deprecated
 
@@ -51,6 +53,7 @@ def test_create_alarm():
     list(alarm.ok_actions).should.equal(["arn:ok"])
     list(alarm.insufficient_data_actions).should.equal(["arn:insufficient"])
     alarm.unit.should.equal("Seconds")
+    assert "tester" in alarm.alarm_arn
 
 
 @mock_cloudwatch_deprecated
@@ -125,6 +128,22 @@ def test_describe_alarms():
 
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(0)
+
+
+@mock_cloudwatch_deprecated
+def test_describe_alarms_for_metric():
+    conn = boto.connect_cloudwatch()
+
+    conn.create_alarm(alarm_fixture(name="nfoobar", action="afoobar"))
+    conn.create_alarm(alarm_fixture(name="nfoobaz", action="afoobaz"))
+    conn.create_alarm(alarm_fixture(name="nbarfoo", action="abarfoo"))
+    conn.create_alarm(alarm_fixture(name="nbazfoo", action="abazfoo"))
+
+    alarms = conn.describe_alarms_for_metric("nbarfoo_metric", "nbarfoo_namespace")
+    alarms.should.have.length_of(1)
+
+    alarms = conn.describe_alarms_for_metric("nbazfoo_metric", "nbazfoo_namespace")
+    alarms.should.have.length_of(1)
 
 
 @mock_cloudwatch_deprecated

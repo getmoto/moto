@@ -4,8 +4,9 @@ import unittest
 
 import boto3
 import sure  # noqa
+
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto.core import ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
@@ -85,6 +86,7 @@ def test_put_rule():
         "Name": "my-event",
         "ScheduleExpression": "rate(5 minutes)",
         "EventPattern": '{"source": ["test-source"]}',
+        "EventBusName": "test-bus",
     }
 
     client.put_rule(**rule_data)
@@ -95,6 +97,7 @@ def test_put_rule():
     rules[0]["Name"].should.equal(rule_data["Name"])
     rules[0]["ScheduleExpression"].should.equal(rule_data["ScheduleExpression"])
     rules[0]["EventPattern"].should.equal(rule_data["EventPattern"])
+    rules[0]["EventBusName"].should.equal(rule_data["EventBusName"])
     rules[0]["State"].should.equal("ENABLED")
 
 
@@ -194,11 +197,54 @@ def test_remove_targets():
     targets_before = len(targets)
     assert targets_before > 0
 
-    client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response = client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response["FailedEntryCount"].should.equal(0)
+    response["FailedEntries"].should.have.length_of(0)
 
     targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
     targets_after = len(targets)
     assert targets_before - 1 == targets_after
+
+
+@mock_events
+def test_remove_targets_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.remove_targets.when.called_with(
+        Rule="non-existent", Ids=["Id12345678"]
+    ).should.throw(
+        client.exceptions.ResourceNotFoundException,
+        "An entity that you specified does not exist",
+    )
+
+
+@mock_events
+def test_put_targets():
+    client = boto3.client("events", "us-west-2")
+    rule_name = "my-event"
+    rule_data = {
+        "Name": rule_name,
+        "ScheduleExpression": "rate(5 minutes)",
+        "EventPattern": '{"source": ["test-source"]}',
+    }
+
+    client.put_rule(**rule_data)
+
+    targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
+    targets_before = len(targets)
+    assert targets_before == 0
+
+    targets_data = [{"Arn": "test_arn", "Id": "test_id"}]
+    resp = client.put_targets(Rule=rule_name, Targets=targets_data)
+    assert resp["FailedEntryCount"] == 0
+    assert len(resp["FailedEntries"]) == 0
+
+    targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
+    targets_after = len(targets)
+    assert targets_before + 1 == targets_after
+
+    assert targets[0]["Arn"] == "test_arn"
+    assert targets[0]["Id"] == "test_id"
 
 
 @mock_events
@@ -282,10 +328,12 @@ def test_put_events():
         "DetailType": "myDetailType",
     }
 
-    client.put_events(Entries=[event])
+    response = client.put_events(Entries=[event])
     # Boto3 would error if it didn't return 200 OK
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.put_events(Entries=[event] * 20)
 
 

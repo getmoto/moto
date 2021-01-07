@@ -151,6 +151,16 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
           {% if address.association_id %}
             <associationId>{{ address.association_id }}</associationId>
           {% endif %}
+          <tagSet>
+            {% for tag in address.get_tags() %}
+              <item>
+                <resourceId>{{ tag.resource_id }}</resourceId>
+                <resourceType>{{ tag.resource_type }}</resourceType>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
         </item>
     {% endfor %}
   </addressesSet>

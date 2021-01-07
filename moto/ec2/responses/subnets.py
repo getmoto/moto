@@ -9,12 +9,23 @@ class Subnets(BaseResponse):
     def create_subnet(self):
         vpc_id = self._get_param("VpcId")
         cidr_block = self._get_param("CidrBlock")
-        availability_zone = self._get_param(
-            "AvailabilityZone",
-            if_none=random.choice(self.ec2_backend.describe_availability_zones()).name,
-        )
+        availability_zone = self._get_param("AvailabilityZone")
+        availability_zone_id = self._get_param("AvailabilityZoneId")
+        tags = self._get_multi_param("TagSpecification")
+        if tags:
+            tags = tags[0].get("Tag")
+
+        if not availability_zone and not availability_zone_id:
+            availability_zone = random.choice(
+                self.ec2_backend.describe_availability_zones()
+            ).name
         subnet = self.ec2_backend.create_subnet(
-            vpc_id, cidr_block, availability_zone, context=self
+            vpc_id,
+            cidr_block,
+            availability_zone,
+            availability_zone_id,
+            context=self,
+            tags=tags,
         )
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
@@ -62,6 +73,16 @@ CREATE_SUBNET_RESPONSE = """
     <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
     <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
     <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
+    <tagSet>
+        {% for tag in subnet.get_tags() %}
+          <item>
+            <resourceId>{{ tag.resource_id }}</resourceId>
+            <resourceType>{{ tag.resource_type }}</resourceType>
+            <key>{{ tag.key }}</key>
+            <value>{{ tag.value }}</value>
+          </item>
+        {% endfor %}
+    </tagSet>
   </subnet>
 </CreateSubnetResponse>"""
 
@@ -78,7 +99,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
     {% for subnet in subnets %}
       <item>
         <subnetId>{{ subnet.id }}</subnetId>
-        <state>available</state>
+        <state>{{ subnet.state }}</state>
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>

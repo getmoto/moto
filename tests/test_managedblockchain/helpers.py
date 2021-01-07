@@ -28,6 +28,17 @@ multiple_policy_actions = {
     "Invitations": [{"Principal": "123456789012"}, {"Principal": "123456789013"}]
 }
 
+default_nodeconfiguration = {
+    "InstanceType": "bc.t3.small",
+    "AvailabilityZone": "us-east-1a",
+    "LogPublishingConfiguration": {
+        "Fabric": {
+            "ChaincodeLogs": {"Cloudwatch": {"Enabled": False}},
+            "PeerLogs": {"Cloudwatch": {"Enabled": False}},
+        }
+    },
+}
+
 
 def member_id_exist_in_list(members, memberid):
     memberidxists = False
@@ -65,3 +76,12 @@ def select_invitation_id_for_network(invitations, networkid, status=None):
             if status is None or invitation["Status"] == status:
                 invitationsfornetwork.append(invitation["InvitationId"])
     return invitationsfornetwork
+
+
+def node_id_exist_in_list(nodes, nodeid):
+    nodeidxists = False
+    for node in nodes:
+        if node["Id"] == nodeid:
+            nodeidxists = True
+            break
+    return nodeidxists

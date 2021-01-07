@@ -10,9 +10,10 @@ import sure  # noqa
 
 import responses
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
-from moto import mock_sns, mock_sqs
+import pytest
+from moto import mock_sns, mock_sqs, settings
 from moto.core import ACCOUNT_ID
+from moto.sns import sns_backend
 
 MESSAGE_FROM_SQS_TEMPLATE = (
     '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "my subject",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:'
@@ -48,7 +49,7 @@ def test_publish_to_sqs():
     messages = queue.receive_messages(MaxNumberOfMessages=1)
     expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, "us-east-1")
     acquired_message = re.sub(
-        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
         "2015-01-01T12:00:00.000Z",
         messages[0].body,
     )
@@ -182,9 +183,6 @@ def test_publish_to_sqs_msg_attr_byte_value():
 
     message = queue_raw.receive_messages()[0]
     message.body.should.equal("my message")
-    message.message_attributes.should.equal(
-        {"store": {"DataType": "Binary", "BinaryValue": b"\x02\x03\x04"}}
-    )
 
 
 @mock_sqs
@@ -215,44 +213,36 @@ def test_publish_to_sqs_msg_attr_number_type():
 
     message = queue_raw.receive_messages()[0]
     message.body.should.equal("test message")
-    message.message_attributes.should.equal(
-        {"retries": {"DataType": "Number", "StringValue": "0"}}
-    )
 
 
 @mock_sns
 def test_publish_sms():
     client = boto3.client("sns", region_name="us-east-1")
-    client.create_topic(Name="some-topic")
-    resp = client.create_topic(Name="some-topic")
-    arn = resp["TopicArn"]
-
-    client.subscribe(TopicArn=arn, Protocol="sms", Endpoint="+15551234567")
 
     result = client.publish(PhoneNumber="+15551234567", Message="my message")
+
     result.should.contain("MessageId")
+    if not settings.TEST_SERVER_MODE:
+        sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
+            ("+15551234567", "my message")
+        )
 
 
 @mock_sns
 def test_publish_bad_sms():
     client = boto3.client("sns", region_name="us-east-1")
-    client.create_topic(Name="some-topic")
-    resp = client.create_topic(Name="some-topic")
-    arn = resp["TopicArn"]
 
-    client.subscribe(TopicArn=arn, Protocol="sms", Endpoint="+15551234567")
-
-    try:
-        # Test invalid number
+    # Test invalid number
+    with pytest.raises(ClientError) as cm:
         client.publish(PhoneNumber="NAA+15551234567", Message="my message")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.value.response["Error"]["Message"].should.contain("not meet the E164")
 
-    try:
-        # Test not found number
-        client.publish(PhoneNumber="+44001234567", Message="my message")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ParameterValueInvalid")
+    # Test to long ASCII message
+    with pytest.raises(ClientError) as cm:
+        client.publish(PhoneNumber="+15551234567", Message="a" * 1601)
+    cm.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.value.response["Error"]["Message"].should.contain("must be less than 1600")
 
 
 @mock_sqs
@@ -294,7 +284,7 @@ def test_publish_to_sqs_dump_json():
     escaped = message.replace('"', '\\"')
     expected = MESSAGE_FROM_SQS_TEMPLATE % (escaped, published_message_id, "us-east-1")
     acquired_message = re.sub(
-        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
         "2015-01-01T12:00:00.000Z",
         messages[0].body,
     )
@@ -327,7 +317,7 @@ def test_publish_to_sqs_in_different_region():
     messages = queue.receive_messages(MaxNumberOfMessages=1)
     expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, "us-west-1")
     acquired_message = re.sub(
-        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
         "2015-01-01T12:00:00.000Z",
         messages[0].body,
     )
@@ -397,7 +387,7 @@ def test_publish_message_too_long():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="some-topic")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         topic.publish(Message="".join(["." for i in range(0, 262145)]))
 
     # message short enough - does not raise an error

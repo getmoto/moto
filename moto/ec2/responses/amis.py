@@ -73,8 +73,12 @@ class AmisResponse(BaseResponse):
             return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
     def register_image(self):
+        name = self.querystring.get("Name")[0]
+        description = self._get_param("Description", if_none="")
         if self.is_not_dryrun("RegisterImage"):
-            raise NotImplementedError("AMIs.register_image is not yet implemented")
+            image = self.ec2_backend.register_image(name, description)
+            template = self.response_template(REGISTER_IMAGE_RESPONSE)
+            return template.render(image=image)
 
     def reset_image_attribute(self):
         if self.is_not_dryrun("ResetImageAttribute"):
@@ -125,7 +129,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
                 <snapshotId>{{ image.ebs_snapshot.id }}</snapshotId>
                 <volumeSize>15</volumeSize>
                 <deleteOnTermination>false</deleteOnTermination>
-                <volumeType>{{ image.root_device_type }}</volumeType>
+                <volumeType>standard</volumeType>
               </ebs>
             </item>
           </blockDeviceMapping>
@@ -190,3 +194,8 @@ MODIFY_IMAGE_ATTRIBUTE_RESPONSE = """
    <return>true</return>
 </ModifyImageAttributeResponse>
 """
+
+REGISTER_IMAGE_RESPONSE = """<RegisterImageResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <imageId>{{ image.id }}</imageId>
+</RegisterImageResponse>"""

@@ -9,6 +9,25 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
 ![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+
+## Install
+
+To install moto for a specific service:
+```console
+$ pip install moto[ec2,s3]
+```
+This will install Moto, and the dependencies required for that specific service.  
+If you don't care about the number of dependencies, or if you want to mock many AWS services:
+```console
+$ pip install moto[all]
+```
+Not all services might be covered, in which case you might see a warning:  
+`moto 1.3.16 does not provide the extra 'service'`.  
+You can ignore the warning, or simply install moto as is:
+```console
+$ pip install moto
+```
+
 ## In a nutshell
 
 Moto is a library that allows your tests to easily mock out AWS Services.
@@ -57,98 +76,58 @@ With the decorator wrapping the test, all the calls to s3 are automatically mock
 
 It gets even better! Moto isn't just for Python code and it isn't just for S3. Look at the [standalone server mode](https://github.com/spulec/moto#stand-alone-server-mode) for more information about running Moto with other languages. Here's the status of the other AWS services implemented:
 
-```gherkin
-|-------------------------------------------------------------------------------------|
-| Service Name              | Decorator             | Development Status              |
-|-------------------------------------------------------------------------------------|
-| ACM                       | @mock_acm             | all endpoints done              |
-|-------------------------------------------------------------------------------------|
-| API Gateway               | @mock_apigateway      | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Autoscaling               | @mock_autoscaling     | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Cloudformation            | @mock_cloudformation  | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Cloudwatch                | @mock_cloudwatch      | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| CloudwatchEvents          | @mock_events          | all endpoints done              |
-|-------------------------------------------------------------------------------------|
-| Cognito Identity          | @mock_cognitoidentity | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| Cognito Identity Provider | @mock_cognitoidp      | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| Config                    | @mock_config          | basic endpoints done            |
-|                           |                       | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Data Pipeline             | @mock_datapipeline    | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| DynamoDB                  | @mock_dynamodb        | core endpoints done             |
-| DynamoDB2                 | @mock_dynamodb2       | all endpoints + partial indexes |
-|-------------------------------------------------------------------------------------|
-| EC2                       | @mock_ec2             | core endpoints done             |
-|     - AMI                 |                       | core endpoints done             |
-|     - EBS                 |                       | core endpoints done             |
-|     - Instances           |                       | all  endpoints done             |
-|     - Security Groups     |                       | core endpoints done             |
-|     - Tags                |                       | all  endpoints done             |
-|-------------------------------------------------------------------------------------|
-| ECR                       | @mock_ecr             | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| ECS                       | @mock_ecs             | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| ELB                       | @mock_elb             | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| ELBv2                     | @mock_elbv2           | all endpoints done              |
-|-------------------------------------------------------------------------------------|
-| EMR                       | @mock_emr             | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Glacier                   | @mock_glacier         | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| IAM                       | @mock_iam             | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| IoT                       | @mock_iot             | core endpoints done             |
-|                           | @mock_iotdata         | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Kinesis                   | @mock_kinesis         | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| KMS                       | @mock_kms             | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| Lambda                    | @mock_lambda          | basic endpoints done, requires  |
-|                           |                       | docker                          |
-|-------------------------------------------------------------------------------------|
-| Logs                      | @mock_logs            | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| Organizations             | @mock_organizations   | some core endpoints done        |
-|-------------------------------------------------------------------------------------|
-| Polly                     | @mock_polly           | all endpoints done              |
-|-------------------------------------------------------------------------------------|
-| RDS                       | @mock_rds             | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| RDS2                      | @mock_rds2            | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Redshift                  | @mock_redshift        | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| Route53                   | @mock_route53         | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| S3                        | @mock_s3              | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| SecretsManager            | @mock_secretsmanager  | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| SES                       | @mock_ses             | all endpoints done              |
-|-------------------------------------------------------------------------------------|
-| SNS                       | @mock_sns             | all endpoints done              |
-|-------------------------------------------------------------------------------------|
-| SQS                       | @mock_sqs             | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| SSM                       | @mock_ssm             | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| STS                       | @mock_sts             | core endpoints done             |
-|-------------------------------------------------------------------------------------|
-| SWF                       | @mock_swf             | basic endpoints done            |
-|-------------------------------------------------------------------------------------|
-| X-Ray                     | @mock_xray            | all endpoints done              |
-|-------------------------------------------------------------------------------------|
-```
+| Service Name              | Decorator             | Development Status              | Comment                     |
+|---------------------------|-----------------------|---------------------------------|-----------------------------|
+| ACM                       | @mock_acm             | all endpoints done              |                             |
+| API Gateway               | @mock_apigateway      | core endpoints done             |                             |
+| Application Autoscaling   | @mock_applicationautoscaling | basic endpoints done     |                             |
+| Athena                    | @mock_athena          | core endpoints done             |                             |
+| Autoscaling               | @mock_autoscaling     | core endpoints done             |                             |
+| Cloudformation            | @mock_cloudformation  | core endpoints done             |                             |
+| Cloudwatch                | @mock_cloudwatch      | basic endpoints done            |                             |
+| CloudwatchEvents          | @mock_events          | all endpoints done              |                             |
+| Cognito Identity          | @mock_cognitoidentity | basic endpoints done            |                             |
+| Cognito Identity Provider | @mock_cognitoidp      | basic endpoints done            |                             |
+| Config                    | @mock_config          | basic + core endpoints done     |                             |
+| Data Pipeline             | @mock_datapipeline    | basic endpoints done            |                             |
+| DynamoDB                  | @mock_dynamodb        | core endpoints done             | API 20111205. Deprecated.   |
+| DynamoDB2                 | @mock_dynamodb2       | all endpoints + partial indexes | API 20120810 (Latest)       |
+| EC2                       | @mock_ec2             | core endpoints done             |                             |
+|     - AMI                 |                       | core endpoints done             |                             |
+|     - EBS                 |                       | core endpoints done             |                             |
+|     - Instances           |                       | all  endpoints done             |                             |
+|     - Security Groups     |                       | core endpoints done             |                             |
+|     - Tags                |                       | all  endpoints done             |                             |
+| ECR                       | @mock_ecr             | basic endpoints done            |                             |
+| ECS                       | @mock_ecs             | basic endpoints done            |                             |
+| ELB                       | @mock_elb             | core endpoints done             |                             |
+| ELBv2                     | @mock_elbv2           | all endpoints done              |                             |
+| EMR                       | @mock_emr             | core endpoints done             |                             |
+| Forecast                  | @mock_forecast        | some core endpoints done        |                             |                  
+| Glacier                   | @mock_glacier         | core endpoints done             |                             |
+| Glue                      | @mock_glue            | core endpoints done             |                             |
+| IAM                       | @mock_iam             | core endpoints done             |                             |
+| IoT                       | @mock_iot             | core endpoints done             |                             |
+| IoT data                  | @mock_iotdata         | core endpoints done             |                             |
+| Kinesis                   | @mock_kinesis         | core endpoints done             |                             |
+| KMS                       | @mock_kms             | basic endpoints done            |                             |
+| Lambda                    | @mock_lambda          | basic endpoints done, requires docker |                       |
+| Logs                      | @mock_logs            | basic endpoints done            |                             |
+| Organizations             | @mock_organizations   | some core endpoints done        |                             |
+| Polly                     | @mock_polly           | all endpoints done              |                             |
+| RDS                       | @mock_rds             | core endpoints done             |                             |
+| RDS2                      | @mock_rds2            | core endpoints done             |                             |
+| Redshift                  | @mock_redshift        | core endpoints done             |                             |
+| Route53                   | @mock_route53         | core endpoints done             |                             |
+| S3                        | @mock_s3              | core endpoints done             |                             |
+| SecretsManager            | @mock_secretsmanager  | basic endpoints done            |                             |
+| SES                       | @mock_ses             | all endpoints done              |                             |
+| SNS                       | @mock_sns             | all endpoints done              |                             |
+| SQS                       | @mock_sqs             | core endpoints done             |                             |
+| SSM                       | @mock_ssm             | core endpoints done             |                             |
+| STS                       | @mock_sts             | core endpoints done             |                             |
+| SWF                       | @mock_swf             | basic endpoints done            |                             |
+| X-Ray                     | @mock_xray            | all endpoints done              |                             |
 
 For a full list of endpoint [implementation coverage](https://github.com/spulec/moto/blob/master/IMPLEMENTATION_COVERAGE.md)
 
@@ -457,15 +436,7 @@ require that you update your hosts file for your code to work properly:
 1. `s3-control`
 
 For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
-As a result, you need to add that entry to your host file for your tests to function properly.
-
-
-## Install
-
-
-```console
-$ pip install moto
-```
+As a result, you need to add that entry to your host file for your tests to function properly. 
 
 ## Releases
 

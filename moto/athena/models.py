@@ -2,10 +2,9 @@ from __future__ import unicode_literals
 import time
 
 from boto3 import Session
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 
-from moto.core import BaseBackend, BaseModel
-
-from moto.core import ACCOUNT_ID
+from uuid import uuid4
 
 
 class TaggableResourceMixin(object):
@@ -50,6 +49,27 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
         self.configuration = configuration
 
 
+class Execution(BaseModel):
+    def __init__(self, query, context, config, workgroup):
+        self.id = str(uuid4())
+        self.query = query
+        self.context = context
+        self.config = config
+        self.workgroup = workgroup
+        self.start_time = time.time()
+        self.status = "QUEUED"
+
+
+class NamedQuery(BaseModel):
+    def __init__(self, name, description, database, query_string, workgroup):
+        self.id = str(uuid4())
+        self.name = name
+        self.description = description
+        self.database = database
+        self.query_string = query_string
+        self.workgroup = workgroup
+
+
 class AthenaBackend(BaseBackend):
     region_name = None
 
@@ -57,6 +77,8 @@ class AthenaBackend(BaseBackend):
         if region_name is not None:
             self.region_name = region_name
         self.work_groups = {}
+        self.executions = {}
+        self.named_queries = {}
 
     def create_work_group(self, name, configuration, description, tags):
         if name in self.work_groups:
@@ -75,6 +97,46 @@ class AthenaBackend(BaseBackend):
             }
             for wg in self.work_groups.values()
         ]
+
+    def get_work_group(self, name):
+        if name not in self.work_groups:
+            return None
+        wg = self.work_groups[name]
+        return {
+            "Name": wg.name,
+            "State": wg.state,
+            "Configuration": wg.configuration,
+            "Description": wg.description,
+            "CreationTime": time.time(),
+        }
+
+    def start_query_execution(self, query, context, config, workgroup):
+        execution = Execution(
+            query=query, context=context, config=config, workgroup=workgroup
+        )
+        self.executions[execution.id] = execution
+        return execution.id
+
+    def get_execution(self, exec_id):
+        return self.executions[exec_id]
+
+    def stop_query_execution(self, exec_id):
+        execution = self.executions[exec_id]
+        execution.status = "CANCELLED"
+
+    def create_named_query(self, name, description, database, query_string, workgroup):
+        nq = NamedQuery(
+            name=name,
+            description=description,
+            database=database,
+            query_string=query_string,
+            workgroup=workgroup,
+        )
+        self.named_queries[nq.id] = nq
+        return nq.id
+
+    def get_named_query(self, query_id):
+        return self.named_queries[query_id] if query_id in self.named_queries else None
 
 
 athena_backends = {}

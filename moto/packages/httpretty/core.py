@@ -269,13 +269,13 @@ class fakesock(object):
             _sock=None,
         ):
             """
-                Matches both the Python 2 API:
-                    def __init__(self, family=AF_INET, type=SOCK_STREAM, proto=0, _sock=None):
-                    https://github.com/python/cpython/blob/2.7/Lib/socket.py
+            Matches both the Python 2 API:
+                def __init__(self, family=AF_INET, type=SOCK_STREAM, proto=0, _sock=None):
+                https://github.com/python/cpython/blob/2.7/Lib/socket.py
 
-                and the Python 3 API:
-                    def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
-                    https://github.com/python/cpython/blob/3.5/Lib/socket.py
+            and the Python 3 API:
+                def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
+                https://github.com/python/cpython/blob/3.5/Lib/socket.py
             """
             if httpretty.allow_net_connect:
                 if PY3:

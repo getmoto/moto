@@ -8,7 +8,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 import sure  # noqa
 from freezegun import freeze_time
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
@@ -932,6 +932,83 @@ boto3
 
 
 @mock_dynamodb2
+def test_boto3_create_table_with_gsi():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    table = dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "subject", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ],
+    )
+    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
+        [
+            {
+                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+                "IndexName": "test_gsi",
+                "Projection": {"ProjectionType": "ALL"},
+                "IndexStatus": "ACTIVE",
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 0,
+                    "WriteCapacityUnits": 0,
+                },
+            }
+        ]
+    )
+
+    table = dynamodb.create_table(
+        TableName="users2",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "subject", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 3,
+                    "WriteCapacityUnits": 5,
+                },
+            }
+        ],
+    )
+    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
+        [
+            {
+                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+                "IndexName": "test_gsi",
+                "Projection": {"ProjectionType": "ALL"},
+                "IndexStatus": "ACTIVE",
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 3,
+                    "WriteCapacityUnits": 5,
+                },
+            }
+        ]
+    )
+
+
+@mock_dynamodb2
 def test_boto3_conditions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -1276,10 +1353,10 @@ def test_update_item_with_expression():
 
 
 def assert_failure_due_to_key_not_in_schema(func, **kwargs):
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "The provided key element does not match the schema"
     )
 

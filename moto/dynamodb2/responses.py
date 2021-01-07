@@ -21,15 +21,18 @@ from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 TRANSACTION_MAX_ITEMS = 25
 
 
-def has_empty_keys_or_values(_dict):
-    if _dict == "":
-        return True
-    if not isinstance(_dict, dict):
-        return False
-    return any(
-        key == "" or value == "" or has_empty_keys_or_values(value)
-        for key, value in _dict.items()
-    )
+def put_has_empty_keys(field_updates, table):
+    if table:
+        key_names = table.key_attributes
+
+        # string/binary fields with empty string as value
+        empty_str_fields = [
+            key
+            for (key, val) in field_updates.items()
+            if next(iter(val.keys())) in ["S", "B"] and next(iter(val.values())) == ""
+        ]
+        return any([keyname in empty_str_fields for keyname in key_names])
+    return False
 
 
 def get_empty_str_error():
@@ -257,7 +260,7 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, "Return values set to invalid value")
 
-        if has_empty_keys_or_values(item):
+        if put_has_empty_keys(item, self.dynamodb_backend.get_table(name)):
             return get_empty_str_error()
 
         overwrite = "Expected" not in self.body
@@ -371,6 +374,26 @@ class DynamoHandler(BaseResponse):
 
         results = {"ConsumedCapacity": [], "Responses": {}, "UnprocessedKeys": {}}
 
+        # Validation: Can only request up to 100 items at the same time
+        # Scenario 1: We're requesting more than a 100 keys from a single table
+        for table_name, table_request in table_batches.items():
+            if len(table_request["Keys"]) > 100:
+                return self.error(
+                    "com.amazonaws.dynamodb.v20111205#ValidationException",
+                    "1 validation error detected: Value at 'requestItems."
+                    + table_name
+                    + ".member.keys' failed to satisfy constraint: Member must have length less than or equal to 100",
+                )
+        # Scenario 2: We're requesting more than a 100 keys across all tables
+        nr_of_keys_across_all_tables = sum(
+            [len(req["Keys"]) for _, req in table_batches.items()]
+        )
+        if nr_of_keys_across_all_tables > 100:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#ValidationException",
+                "Too many items requested for the BatchGetItem call",
+            )
+
         for table_name, table_request in table_batches.items():
             keys = table_request["Keys"]
             if self._contains_duplicates(keys):
@@ -411,7 +434,6 @@ class DynamoHandler(BaseResponse):
 
     def query(self):
         name = self.body["TableName"]
-        # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
         key_condition_expression = self.body.get("KeyConditionExpression")
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
@@ -439,7 +461,7 @@ class DynamoHandler(BaseResponse):
             index_name = self.body.get("IndexName")
             if index_name:
                 all_indexes = (table.global_indexes or []) + (table.indexes or [])
-                indexes_by_name = dict((i["IndexName"], i) for i in all_indexes)
+                indexes_by_name = dict((i.name, i) for i in all_indexes)
                 if index_name not in indexes_by_name:
                     er = "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
                     return self.error(
@@ -449,7 +471,7 @@ class DynamoHandler(BaseResponse):
                         ),
                     )
 
-                index = indexes_by_name[index_name]["KeySchema"]
+                index = indexes_by_name[index_name].schema
             else:
                 index = table.schema
 
@@ -732,9 +754,6 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, "Return values set to invalid value")
 
-        if has_empty_keys_or_values(expression_attribute_values):
-            return get_empty_str_error()
-
         if "Expected" in self.body:
             expected = self.body["Expected"]
         else:
@@ -794,7 +813,6 @@ class DynamoHandler(BaseResponse):
             item_dict["Attributes"] = self._build_updated_new_attributes(
                 existing_attributes, item_dict["Attributes"]
             )
-
         return dynamo_json_dump(item_dict)
 
     def _build_updated_new_attributes(self, original, changed):
@@ -807,7 +825,7 @@ class DynamoHandler(BaseResponse):
                         original.get(key, None), changed[key]
                     )
                     for key in changed.keys()
-                    if changed[key] != original.get(key, None)
+                    if key not in original or changed[key] != original[key]
                 }
             elif type(changed) in (set, list):
                 if len(changed) != len(original):
@@ -819,10 +837,8 @@ class DynamoHandler(BaseResponse):
                         )
                         for index in range(len(changed))
                     ]
-            elif changed != original:
-                return changed
             else:
-                return None
+                return changed
 
     def describe_limits(self):
         return json.dumps(
@@ -887,6 +903,7 @@ class DynamoHandler(BaseResponse):
                 return self.error(er, "Requested resource not found")
 
             if not item:
+                responses.append({})
                 continue
 
             item_describe = item.describe_attrs(False)

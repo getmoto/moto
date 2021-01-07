@@ -51,6 +51,8 @@ def random_password(
     if include_space:
         password += " "
         required_characters += " "
+    if exclude_characters:
+        password = _exclude_characters(password, exclude_characters)
 
     password = "".join(
         six.text_type(random.choice(password)) for x in range(password_length)
@@ -61,7 +63,6 @@ def random_password(
             password, required_characters
         )
 
-    password = _exclude_characters(password, exclude_characters)
     return password
 
 
