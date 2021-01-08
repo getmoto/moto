@@ -534,11 +534,6 @@ def test_get_function_configuration():
     )
 
     result = conn.get_function_configuration(FunctionName="testFunction")
-    # this is hard to match against, so remove it
-    result["ResponseMetadata"].pop("HTTPHeaders", None)
-    # Botocore inserts retry attempts not seen in Python27
-    result["ResponseMetadata"].pop("RetryAttempts", None)
-    result.pop("LastModified")
 
     result["CodeSha256"].should.equal(hashlib.sha256(zip_content).hexdigest())
     result["CodeSize"].should.equal(len(zip_content))
@@ -562,7 +557,7 @@ def test_get_function_configuration():
     )
     result["Version"].should.equal("$LATEST")
     result["FunctionArn"].should.equal(
-        "arn:aws:lambda:us-west-2:{}:function:testFunction:$LATEST".format(ACCOUNT_ID)
+        "arn:aws:lambda:{}:{}:function:testFunction:$LATEST".format(_lambda_region, ACCOUNT_ID)
     )
 
     # Test get function when can't find function name
