@@ -303,8 +303,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     @staticmethod
-    def _update_function_configuration(configuration, qualifier):
-        configuration = {k: v for k, v in configuration.items()}
+    def _set_configuration_qualifier(configuration, qualifier):
         if qualifier is None or qualifier == "$LATEST":
             configuration["Version"] = "$LATEST"
         if qualifier == "$LATEST":
@@ -319,7 +318,7 @@ class LambdaResponse(BaseResponse):
 
         if fn:
             code = fn.get_code()
-            code["Configuration"] = self._update_function_configuration(
+            code["Configuration"] = self._set_configuration_qualifier(
                 code["Configuration"], qualifier
             )
             return 200, {}, json.dumps(code)
@@ -333,7 +332,7 @@ class LambdaResponse(BaseResponse):
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
         if fn:
-            configuration = self._update_function_configuration(
+            configuration = self._set_configuration_qualifier(
                 fn.get_configuration(), qualifier
             )
             return 200, {}, json.dumps(configuration)
