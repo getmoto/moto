@@ -166,6 +166,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         scheduling_strategy = self._get_param("schedulingStrategy")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
+        launch_type = self._get_param("launchType")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -175,6 +176,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             scheduling_strategy,
             tags,
             deployment_controller,
+            launch_type,
         )
         return json.dumps({"service": service.response_object})
 
