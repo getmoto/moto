@@ -86,6 +86,14 @@ def lambda_handler(event, context):
     return _process_lambda(pfunc)
 
 
+@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
+@mock_lambda
+def test_lambda_regions(region):
+    client = boto3.client("lambda", region_name=region)
+    resp = client.list_functions()
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
 @mock_lambda
 def test_list_functions():
     conn = boto3.client("lambda", _lambda_region)
