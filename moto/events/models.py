@@ -5,7 +5,7 @@ from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
-from moto.events.exceptions import ValidationException
+from moto.events.exceptions import ValidationException, ResourceNotFoundException
 from moto.utilities.tagging_service import TaggingService
 
 from uuid import uuid4
@@ -522,8 +522,8 @@ class EventsBackend(BaseBackend):
         name = arn.split("/")[-1]
         if name in self.rules:
             return self.tagger.list_tags_for_resource(self.rules[name].arn)
-        raise JsonRESTError(
-            "ResourceNotFoundException", "An entity that you specified does not exist."
+        raise ResourceNotFoundException(
+            "Rule {0} does not exist on EventBus default.".format(name)
         )
 
     def tag_resource(self, arn, tags):
@@ -531,8 +531,8 @@ class EventsBackend(BaseBackend):
         if name in self.rules:
             self.tagger.tag_resource(self.rules[name].arn, tags)
             return {}
-        raise JsonRESTError(
-            "ResourceNotFoundException", "An entity that you specified does not exist."
+        raise ResourceNotFoundException(
+            "Rule {0} does not exist on EventBus default.".format(name)
         )
 
     def untag_resource(self, arn, tag_names):
@@ -540,8 +540,8 @@ class EventsBackend(BaseBackend):
         if name in self.rules:
             self.tagger.untag_resource_using_names(self.rules[name].arn, tag_names)
             return {}
-        raise JsonRESTError(
-            "ResourceNotFoundException", "An entity that you specified does not exist."
+        raise ResourceNotFoundException(
+            "Rule {0} does not exist on EventBus default.".format(name)
         )
 
 
