@@ -91,53 +91,113 @@ def test_delete_cluster_exceptions():
 @mock_ecs
 def test_register_task_definition():
     client = boto3.client("ecs", region_name="us-east-1")
-    response = client.register_task_definition(
+    # Registering with minimal definition
+    definition = dict(
         family="test_ecs_task",
         containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
-            }
-        ],
-        networkMode="bridge",
-        tags=[
-            {"key": "createdBy", "value": "moto-unittest"},
-            {"key": "foo", "value": "bar"},
+            {"name": "hello_world", "image": "hello-world:latest", "memory": 400,}
         ],
     )
-    type(response["taskDefinition"]).should.be(dict)
+
+    response = client.register_task_definition(**definition)
+
+    response["taskDefinition"] = response["taskDefinition"]
+    response["taskDefinition"]["family"].should.equal("test_ecs_task")
     response["taskDefinition"]["revision"].should.equal(1)
     response["taskDefinition"]["taskDefinitionArn"].should.equal(
         "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1"
     )
+    response["taskDefinition"]["networkMode"].should.equal("bridge")
+    response["taskDefinition"]["volumes"].should.equal([])
+    response["taskDefinition"]["placementConstraints"].should.equal([])
+    response["taskDefinition"]["compatibilities"].should.equal(["EC2"])
+    response["taskDefinition"].shouldnt.have.key("requiresCompatibilities")
+    response["taskDefinition"].shouldnt.have.key("cpu")
+    response["taskDefinition"].shouldnt.have.key("memory")
+
     response["taskDefinition"]["containerDefinitions"][0]["name"].should.equal(
         "hello_world"
     )
     response["taskDefinition"]["containerDefinitions"][0]["image"].should.equal(
-        "docker/hello-world:latest"
+        "hello-world:latest"
     )
-    response["taskDefinition"]["containerDefinitions"][0]["cpu"].should.equal(1024)
-    response["taskDefinition"]["containerDefinitions"][0]["memory"].should.equal(400)
+    response["taskDefinition"]["containerDefinitions"][0]["cpu"].should.equal(0)
+    response["taskDefinition"]["containerDefinitions"][0]["portMappings"].should.equal(
+        []
+    )
     response["taskDefinition"]["containerDefinitions"][0]["essential"].should.equal(
         True
     )
+    response["taskDefinition"]["containerDefinitions"][0]["environment"].should.equal(
+        []
+    )
+    response["taskDefinition"]["containerDefinitions"][0]["mountPoints"].should.equal(
+        []
+    )
+    response["taskDefinition"]["containerDefinitions"][0]["volumesFrom"].should.equal(
+        []
+    )
+
+    # Registering again increments the revision
+    response = client.register_task_definition(**definition)
+
+    response["taskDefinition"]["revision"].should.equal(2)
+    response["taskDefinition"]["taskDefinitionArn"].should.equal(
+        "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:2"
+    )
+
+    # Registering with optional top-level params
+    definition["requiresCompatibilities"] = ["FARGATE"]
+    response = client.register_task_definition(**definition)
+    response["taskDefinition"]["requiresCompatibilities"].should.equal(["FARGATE"])
+    response["taskDefinition"]["compatibilities"].should.equal(["EC2", "FARGATE"])
+    response["taskDefinition"]["networkMode"].should.equal("awsvpc")
+
+    definition["requiresCompatibilities"] = ["EC2", "FARGATE"]
+    response = client.register_task_definition(**definition)
+    response["taskDefinition"]["requiresCompatibilities"].should.equal(
+        ["EC2", "FARGATE"]
+    )
+    response["taskDefinition"]["compatibilities"].should.equal(["EC2", "FARGATE"])
+    response["taskDefinition"]["networkMode"].should.equal("awsvpc")
+
+    definition["cpu"] = "512"
+    response = client.register_task_definition(**definition)
+    response["taskDefinition"]["cpu"].should.equal("512")
+
+    definition.update({"memory": "512"})
+    response = client.register_task_definition(**definition)
+    response["taskDefinition"]["memory"].should.equal("512")
+
+    # Registering with optional container params
+    definition["containerDefinitions"][0]["cpu"] = 512
+    response = client.register_task_definition(**definition)
+    response["taskDefinition"]["containerDefinitions"][0]["cpu"].should.equal(512)
+
+    definition["containerDefinitions"][0]["essential"] = False
+    response = client.register_task_definition(**definition)
+    response["taskDefinition"]["containerDefinitions"][0]["essential"].should.equal(
+        False
+    )
+
+    definition["containerDefinitions"][0]["environment"] = [
+        {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+    ]
+    response = client.register_task_definition(**definition)
     response["taskDefinition"]["containerDefinitions"][0]["environment"][0][
         "name"
     ].should.equal("AWS_ACCESS_KEY_ID")
     response["taskDefinition"]["containerDefinitions"][0]["environment"][0][
         "value"
     ].should.equal("SOME_ACCESS_KEY")
+
+    definition["containerDefinitions"][0]["logConfiguration"] = {
+        "logDriver": "json-file"
+    }
+    response = client.register_task_definition(**definition)
     response["taskDefinition"]["containerDefinitions"][0]["logConfiguration"][
         "logDriver"
     ].should.equal("json-file")
-    response["taskDefinition"]["networkMode"].should.equal("bridge")
 
 
 @mock_ecs
