@@ -114,17 +114,11 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        try:
-            self.sqs_backend.change_message_visibility(
-                queue_name=queue_name,
-                receipt_handle=receipt_handle,
-                visibility_timeout=visibility_timeout,
-            )
-        except MessageNotInflight as e:
-            return (
-                "Invalid request: {0}".format(e.description),
-                dict(status=e.status_code),
-            )
+        self.sqs_backend.change_message_visibility(
+            queue_name=queue_name,
+            receipt_handle=receipt_handle,
+            visibility_timeout=visibility_timeout,
+        )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()

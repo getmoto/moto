@@ -1184,6 +1184,36 @@ def test_change_message_visibility_on_visible_message():
     original_message.change_visibility.when.called_with(100).should.throw(SQSError)
 
 
+@mock_sqs
+def test_change_message_visibility_error_message_not_inflight():
+    # given
+    client = boto3.client("sqs", region_name="eu-central-1")
+    queue_url = client.create_queue(
+        QueueName="test-queue", Attributes={"VisibilityTimeout": "1"}
+    )["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="test-message")
+    message = client.receive_message(QueueUrl=queue_url)["Messages"][0]
+
+    time.sleep(2)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.change_message_visibility(
+            QueueUrl=queue_url,
+            ReceiptHandle=message["ReceiptHandle"],
+            VisibilityTimeout=1,
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ChangeMessageVisibility")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("MessageNotInflight")
+    ex.response["Error"]["Message"].should.equal(
+        "The message referred to is not in flight."
+    )
+
+
 @mock_sqs_deprecated
 def test_purge_action():
     conn = boto.sqs.connect_to_region("us-east-1")

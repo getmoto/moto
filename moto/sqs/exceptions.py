@@ -2,9 +2,13 @@ from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
-class MessageNotInflight(Exception):
-    description = "The message referred to is not in flight."
+class MessageNotInflight(RESTError):
     status_code = 400
+
+    def __init__(self):
+        super(MessageNotInflight, self).__init__(
+            "MessageNotInflight", "The message referred to is not in flight."
+        )
 
 
 class ReceiptHandleIsInvalid(RESTError):
