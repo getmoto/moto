@@ -393,7 +393,7 @@ class EventsBackend(BaseBackend):
             else:
                 try:
                     json.loads(event["Detail"])
-                except json.JSONDecodeError:
+                except ValueError:  # json.JSONDecodeError exists since Python 3.5
                     entries.append(
                         {
                             "ErrorCode": "MalformedDetail",
