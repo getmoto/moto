@@ -36,7 +36,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install Linux dependencies
       run: |
-        apt install libxslt-dev libxml2-dev -y
+        sudo apt-get install libxslt-dev libxml2-dev -y
     - name: Install project dependencies
       run: |
         python -m pip install --upgrade pip
