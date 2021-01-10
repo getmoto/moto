@@ -557,7 +557,9 @@ def test_get_function_configuration():
     )
     result["Version"].should.equal("$LATEST")
     result["FunctionArn"].should.equal(
-        "arn:aws:lambda:{}:{}:function:testFunction:$LATEST".format(_lambda_region, ACCOUNT_ID)
+        "arn:aws:lambda:{}:{}:function:testFunction:$LATEST".format(
+            _lambda_region, ACCOUNT_ID
+        )
     )
 
     # Test get function when can't find function name
