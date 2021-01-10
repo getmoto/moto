@@ -74,6 +74,6 @@ jobs:
         python -m pip install -r requirements-dev.txt
     - name: Test ServerMode
       env:
-        TEST_SERVER_MODE: true
+        TEST_SERVER_MODE: ${{ true }}
       run: |
         pytest -sv tests/test_awslambda
