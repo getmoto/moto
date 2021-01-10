@@ -4,7 +4,6 @@ on: [pull_request]
 
 jobs:
   lint:
-    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,7 +23,6 @@ jobs:
         make lint
 
   test:
-    if: false
     runs-on: ubuntu-latest
     needs: lint
     strategy:
@@ -46,10 +44,11 @@ jobs:
         pip install -r requirements-dev.txt
     - name: Test with pytest
       run: |
-        pytest -sv tests/test_awslambda
+        pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
 
   testserver:
     runs-on: ubuntu-latest
+    needs: test
     strategy:
       matrix:
         python-version: [3.7]
@@ -76,4 +75,4 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        pytest -sv tests/test_awslambda
+        pytest -sv --cov=moto --cov-report html ./tests/
