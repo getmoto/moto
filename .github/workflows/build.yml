@@ -59,15 +59,9 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install Linux dependencies
-      run: |
-        sudo apt-get install libxslt-dev libxml2-dev -y
-    - name: Install project dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
     - name: Start MotoServer
       run: |
+        python setup.py sdist
         docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
         python wait_for.py
     - name: Test ServerMode
