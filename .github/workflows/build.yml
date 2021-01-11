@@ -44,7 +44,7 @@ jobs:
         pip install -r requirements-dev.txt
     - name: Test with pytest
       run: |
-        pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
+        make test-only
 
   testserver:
     runs-on: ubuntu-latest
@@ -75,4 +75,4 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        pytest -sv --cov=moto --cov-report html ./tests/
+        make test_server
