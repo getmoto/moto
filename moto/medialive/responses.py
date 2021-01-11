@@ -41,7 +41,9 @@ class MediaLiveResponse(BaseResponse):
             tags=tags,
         )
 
-        return json.dumps(dict(channel=channel))
+        return json.dumps(
+            dict(channel=channel.to_dict(exclude=["pipelinesRunningCount"]))
+        )
 
     def list_channels(self):
         max_results = self._get_int_param("maxResults")
@@ -54,82 +56,10 @@ class MediaLiveResponse(BaseResponse):
 
     def describe_channel(self):
         channel_id = self._get_param("channelId")
-        (
-            arn,
-            cdi_input_specification,
-            channel_class,
-            destinations,
-            egress_endpoints,
-            encoder_settings,
-            id,
-            input_attachments,
-            input_specification,
-            log_level,
-            name,
-            pipeline_details,
-            pipelines_running_count,
-            role_arn,
-            state,
-            tags,
-        ) = self.medialive_backend.describe_channel(channel_id=channel_id,)
         return json.dumps(
-            dict(
-                arn=arn,
-                cdiInputSpecification=cdi_input_specification,
-                channelClass=channel_class,
-                destinations=destinations,
-                egressEndpoints=egress_endpoints,
-                encoderSettings=encoder_settings,
-                id=id,
-                inputAttachments=input_attachments,
-                inputSpecification=input_specification,
-                logLevel=log_level,
-                name=name,
-                pipelineDetails=pipeline_details,
-                pipelinesRunningCount=pipelines_running_count,
-                roleArn=role_arn,
-                state=state,
-                tags=tags,
-            )
+            self.medialive_backend.describe_channel(channel_id=channel_id,)
         )
 
     def delete_channel(self):
         channel_id = self._get_param("channelId")
-        (
-            arn,
-            cdi_input_specification,
-            channel_class,
-            destinations,
-            egress_endpoints,
-            encoder_settings,
-            id,
-            input_attachments,
-            input_specification,
-            log_level,
-            name,
-            pipeline_details,
-            pipelines_running_count,
-            role_arn,
-            state,
-            tags,
-        ) = self.medialive_backend.delete_channel(channel_id=channel_id,)
-        return json.dumps(
-            dict(
-                arn=arn,
-                cdiInputSpecification=cdi_input_specification,
-                channelClass=channel_class,
-                destinations=destinations,
-                egressEndpoints=egress_endpoints,
-                encoderSettings=encoder_settings,
-                id=id,
-                inputAttachments=input_attachments,
-                inputSpecification=input_specification,
-                logLevel=log_level,
-                name=name,
-                pipelineDetails=pipeline_details,
-                pipelinesRunningCount=pipelines_running_count,
-                roleArn=role_arn,
-                state=state,
-                tags=tags,
-            )
-        )
+        return json.dumps(self.medialive_backend.delete_channel(channel_id=channel_id,))
