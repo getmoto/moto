@@ -11,7 +11,7 @@ from datetime import datetime
 import pytz
 from freezegun import freeze_time
 
-from moto import mock_glue
+from moto import mock_glue, settings
 from . import helpers
 
 
@@ -33,7 +33,8 @@ def test_create_database():
     database.get("Description").should.equal(database_input.get("Description"))
     database.get("LocationUri").should.equal(database_input.get("LocationUri"))
     database.get("Parameters").should.equal(database_input.get("Parameters"))
-    database.get("CreateTime").should.equal(FROZEN_CREATE_TIME)
+    if not settings.TEST_SERVER_MODE:
+        database.get("CreateTime").should.equal(FROZEN_CREATE_TIME)
     database.get("CreateTableDefaultPermissions").should.equal(
         database_input.get("CreateTableDefaultPermissions")
     )
