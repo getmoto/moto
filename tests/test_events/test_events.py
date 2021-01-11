@@ -9,9 +9,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto.core import ACCOUNT_ID
-from moto.core.exceptions import JsonRESTError
 from moto.events import mock_events
-from moto.events.models import EventsBackend
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -333,8 +331,136 @@ def test_put_events():
     response["FailedEntryCount"].should.equal(0)
     response["Entries"].should.have.length_of(1)
 
-    with pytest.raises(ClientError):
-        client.put_events(Entries=[event] * 20)
+
+@mock_events
+def test_put_events_error_too_many_entries():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_events(
+            Entries=[
+                {
+                    "Source": "source",
+                    "DetailType": "type",
+                    "Detail": '{ "key1": "value1" }',
+                },
+            ]
+            * 11
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutEvents")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value '[PutEventsRequestEntry]' at 'entries' failed to satisfy constraint: "
+        "Member must have length less than or equal to 10"
+    )
+
+
+@mock_events
+def test_put_events_error_missing_argument_source():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(Entries=[{}])
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {
+            "ErrorCode": "InvalidArgument",
+            "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
+        }
+    )
+
+
+@mock_events
+def test_put_events_error_missing_argument_detail_type():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(Entries=[{"Source": "source"}])
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {
+            "ErrorCode": "InvalidArgument",
+            "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
+        }
+    )
+
+
+@mock_events
+def test_put_events_error_missing_argument_detail():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(Entries=[{"DetailType": "type", "Source": "source"}])
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {
+            "ErrorCode": "InvalidArgument",
+            "ErrorMessage": "Parameter Detail is not valid. Reason: Detail is a required argument.",
+        }
+    )
+
+
+@mock_events
+def test_put_events_error_invalid_json_detail():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(
+        Entries=[{"Detail": "detail", "DetailType": "type", "Source": "source"}]
+    )
+
+    # then
+    response["FailedEntryCount"].should.equal(1)
+    response["Entries"].should.have.length_of(1)
+    response["Entries"][0].should.equal(
+        {"ErrorCode": "MalformedDetail", "ErrorMessage": "Detail is malformed."}
+    )
+
+
+@mock_events
+def test_put_events_with_mixed_entries():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(
+        Entries=[
+            {"Source": "source"},
+            {"Detail": '{"key": "value"}', "DetailType": "type", "Source": "source"},
+            {"Detail": "detail", "DetailType": "type", "Source": "source"},
+            {"Detail": '{"key2": "value2"}', "DetailType": "type", "Source": "source"},
+        ]
+    )
+
+    # then
+    response["FailedEntryCount"].should.equal(2)
+    response["Entries"].should.have.length_of(4)
+    [
+        entry for entry in response["Entries"] if "EventId" in entry
+    ].should.have.length_of(2)
+    [
+        entry for entry in response["Entries"] if "ErrorCode" in entry
+    ].should.have.length_of(2)
 
 
 @mock_events
@@ -554,23 +680,71 @@ def test_rule_tagging_happy():
 
 
 @mock_events
-def test_rule_tagging_sad():
-    back_end = EventsBackend("us-west-2")
+def test_tag_resource_error_unknown_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
 
-    try:
-        back_end.tag_resource("unknown", [])
-        raise "tag_resource should fail if ResourceARN is not known"
-    except JsonRESTError:
-        pass
+    # when
+    with pytest.raises(ClientError) as e:
+        client.tag_resource(
+            ResourceARN="arn:aws:events:eu-central-1:{0}:rule/unknown".format(
+                ACCOUNT_ID
+            ),
+            Tags=[],
+        )
 
-    try:
-        back_end.untag_resource("unknown", [])
-        raise "untag_resource should fail if ResourceARN is not known"
-    except JsonRESTError:
-        pass
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("TagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
+    )
 
-    try:
-        back_end.list_tags_for_resource("unknown")
-        raise "list_tags_for_resource should fail if ResourceARN is not known"
-    except JsonRESTError:
-        pass
+
+@mock_events
+def test_untag_resource_error_unknown_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.untag_resource(
+            ResourceARN="arn:aws:events:eu-central-1:{0}:rule/unknown".format(
+                ACCOUNT_ID
+            ),
+            TagKeys=[],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UntagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
+    )
+
+
+@mock_events
+def test_list_tags_for_resource_error_unknown_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_tags_for_resource(
+            ResourceARN="arn:aws:events:eu-central-1:{0}:rule/unknown".format(
+                ACCOUNT_ID
+            )
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
+    )
