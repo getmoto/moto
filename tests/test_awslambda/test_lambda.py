@@ -24,6 +24,7 @@ from moto import (
     mock_sqs,
 )
 from moto.sts.models import ACCOUNT_ID
+from moto.core.exceptions import RESTError
 import pytest
 from botocore.exceptions import ClientError
 
@@ -1903,13 +1904,25 @@ def test_get_lambda_layers():
     s3_conn.put_object(Bucket="test-bucket", Key="test.zip", Body=zip_content)
     conn = boto3.client("lambda", _lambda_region)
 
-    for _i in range(2):
+    with pytest.raises((RESTError, ClientError)):
         conn.publish_layer_version(
             LayerName="testLayer",
-            Content={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
+            Content={},
             CompatibleRuntimes=["python3.6"],
             LicenseInfo="MIT",
         )
+    conn.publish_layer_version(
+        LayerName="testLayer",
+        Content={"ZipFile": get_test_zip_file1()},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+    )
+    conn.publish_layer_version(
+        LayerName="testLayer",
+        Content={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+    )
 
     result = conn.list_layer_versions(LayerName="testLayer")
 
@@ -1968,7 +1981,7 @@ def test_get_lambda_layers():
     result["LayerVersions"].should.equal([])
 
     # Test create function with non existant layer version
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, ClientError)):
         conn.create_function(
             FunctionName="testFunction",
             Runtime="python2.7",

@@ -264,14 +264,6 @@ class LayerVersion(CloudFormationModel):
             if prop in properties:
                 spec[prop] = properties[prop]
 
-        # when ZipFile is present in CloudFormation, per the official docs,
-        # the code it's a plaintext code snippet up to 4096 bytes.
-        # this snippet converts this plaintext code to a proper base64-encoded ZIP file.
-        if "ZipFile" in properties["Contente"]:
-            spec["Contente"]["ZipFile"] = base64.b64encode(
-                cls._create_zipfile_from_plaintext_code(spec["Contente"]["ZipFile"])
-            )
-
         backend = lambda_backends[region_name]
         layer_version = backend.publish_layer_version(spec)
         return layer_version
@@ -1023,6 +1015,7 @@ class LayerStorage(object):
         self._layers[layer_version.name].attach_version(layer_version)
 
     def get_layer_versions(self, layer_name):
+        __import__('pdb').set_trace()
         if layer_name in self._layers:
             return list(iter(self._layers[layer_name].layer_versions.values()))
         return []
