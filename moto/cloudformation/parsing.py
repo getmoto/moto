@@ -38,6 +38,7 @@ from moto.s3 import models as s3_models, s3_backend  # noqa
 from moto.s3.utils import bucket_and_name_from_url
 from moto.sns import models as sns_models  # noqa
 from moto.sqs import models as sqs_models  # noqa
+from moto.stepfunctions import models as stepfunctions_models  # noqa
 
 # End ugly list of imports
 
@@ -49,7 +50,7 @@ from .exceptions import (
     UnformattedGetAttTemplateException,
     ValidationError,
 )
-from boto.cloudformation.stack import Output
+from moto.packages.boto.cloudformation.stack import Output
 
 # List of supported CloudFormation models
 MODEL_LIST = CloudFormationModel.__subclasses__()

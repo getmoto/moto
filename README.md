@@ -81,6 +81,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | ACM                       | @mock_acm             | all endpoints done              |                             |
 | API Gateway               | @mock_apigateway      | core endpoints done             |                             |
 | Application Autoscaling   | @mock_applicationautoscaling | basic endpoints done     |                             |
+| Athena                    | @mock_athena          | core endpoints done             |                             |
 | Autoscaling               | @mock_autoscaling     | core endpoints done             |                             |
 | Cloudformation            | @mock_cloudformation  | core endpoints done             |                             |
 | Cloudwatch                | @mock_cloudwatch      | basic endpoints done            |                             |
@@ -102,7 +103,9 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | ELB                       | @mock_elb             | core endpoints done             |                             |
 | ELBv2                     | @mock_elbv2           | all endpoints done              |                             |
 | EMR                       | @mock_emr             | core endpoints done             |                             |
+| Forecast                  | @mock_forecast        | some core endpoints done        |                             |                  
 | Glacier                   | @mock_glacier         | core endpoints done             |                             |
+| Glue                      | @mock_glue            | core endpoints done             |                             |
 | IAM                       | @mock_iam             | core endpoints done             |                             |
 | IoT                       | @mock_iot             | core endpoints done             |                             |
 | IoT data                  | @mock_iotdata         | core endpoints done             |                             |

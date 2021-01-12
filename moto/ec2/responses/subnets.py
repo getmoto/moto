@@ -99,7 +99,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
     {% for subnet in subnets %}
       <item>
         <subnetId>{{ subnet.id }}</subnetId>
-        <state>available</state>
+        <state>{{ subnet.state }}</state>
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>

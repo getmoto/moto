@@ -15,10 +15,15 @@ from pkg_resources import resource_filename
 from collections import defaultdict
 import weakref
 from datetime import datetime
-from boto.ec2.instance import Instance as BotoInstance, Reservation
-from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
-from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
-from boto.ec2.launchspecification import LaunchSpecification
+from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
+from moto.packages.boto.ec2.blockdevicemapping import (
+    BlockDeviceMapping,
+    BlockDeviceType,
+)
+from moto.packages.boto.ec2.spotinstancerequest import (
+    SpotInstanceRequest as BotoSpotRequest,
+)
+from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -29,6 +34,7 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
+from os import listdir
 
 from .exceptions import (
     CidrLimitExceeded,
@@ -51,6 +57,7 @@ from .exceptions import (
     InvalidDomainError,
     InvalidID,
     InvalidInstanceIdError,
+    InvalidInstanceTypeError,
     InvalidInternetGatewayIdError,
     InvalidKeyPairDuplicateError,
     InvalidKeyPairFormatError,
@@ -99,6 +106,9 @@ from .exceptions import (
     RulesPerSecurityGroupLimitExceededError,
     TagLimitExceeded,
     InvalidParameterDependency,
+    IncorrectStateIamProfileAssociationError,
+    InvalidAssociationIDIamProfileAssociationError,
+    InvalidVpcEndPointIdError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -136,6 +146,7 @@ from .utils import (
     random_vpc_id,
     random_vpc_cidr_association_id,
     random_vpc_peering_connection_id,
+    random_iam_instance_profile_association_id,
     generic_filter,
     is_valid_resource_id,
     get_prefix,
@@ -143,6 +154,8 @@ from .utils import (
     is_valid_cidr,
     filter_internet_gateways,
     filter_reservations,
+    filter_iam_instance_profile_associations,
+    filter_iam_instance_profiles,
     random_network_acl_id,
     random_network_acl_subnet_association_id,
     random_vpn_gateway_id,
@@ -163,6 +176,21 @@ def _load_resource(filename):
 INSTANCE_TYPES = _load_resource(
     resource_filename(__name__, "resources/instance_types.json")
 )
+
+offerings_path = "resources/instance_type_offerings"
+INSTANCE_TYPE_OFFERINGS = {}
+for location_type in listdir(resource_filename(__name__, offerings_path)):
+    INSTANCE_TYPE_OFFERINGS[location_type] = {}
+    for region in listdir(
+        resource_filename(__name__, offerings_path + "/" + location_type)
+    ):
+        full_path = resource_filename(
+            __name__, offerings_path + "/" + location_type + "/" + region
+        )
+        INSTANCE_TYPE_OFFERINGS[location_type][
+            region.replace(".json", "")
+        ] = _load_resource(full_path)
+
 
 AMIS = _load_resource(
     os.environ.get("MOTO_AMIS_PATH")
@@ -199,7 +227,9 @@ class StateReason(object):
 
 class TaggedEC2Resource(BaseModel):
     def get_tags(self, *args, **kwargs):
-        tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
+        tags = []
+        if self.id:
+            tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
         return tags
 
     def add_tag(self, key, value):
@@ -674,6 +704,16 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         instance = reservation.instances[0]
         for tag in properties.get("Tags", []):
             instance.add_tag(tag["Key"], tag["Value"])
+
+        # Associating iam instance profile.
+        # TODO: Don't forget to implement replace_iam_instance_profile_association once update_from_cloudformation_json
+        #  for ec2 instance will be implemented.
+        if properties.get("IamInstanceProfile"):
+            ec2_backend.associate_iam_instance_profile(
+                instance_id=instance.id,
+                iam_instance_profile_name=properties.get("IamInstanceProfile"),
+            )
+
         return instance
 
     @classmethod
@@ -758,6 +798,15 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
         )
+
+        # Disassociate iam instance profile if associated, otherwise iam_instance_profile_associations will
+        # be pointing to None.
+        if self.ec2_backend.iam_instance_profile_associations.get(self.id):
+            self.ec2_backend.disassociate_iam_instance_profile(
+                association_id=self.ec2_backend.iam_instance_profile_associations[
+                    self.id
+                ].id
+            )
 
     def reboot(self, *args, **kwargs):
         self._state.name = "running"
@@ -1059,7 +1108,7 @@ class InstanceBackend(object):
                     return instance
 
     def get_reservations_by_instance_ids(self, instance_ids, filters=None):
-        """ Go through all of the reservations and filter to only return those
+        """Go through all of the reservations and filter to only return those
         associated with the given instance_ids.
         """
         reservations = []
@@ -1096,6 +1145,51 @@ class InstanceBackend(object):
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
+
+
+class InstanceTypeBackend(object):
+    def __init__(self):
+        super(InstanceTypeBackend, self).__init__()
+
+    def describe_instance_types(self, instance_types=None):
+        matches = INSTANCE_TYPES.values()
+        if instance_types:
+            matches = [t for t in matches if t.get("apiname") in instance_types]
+            if len(instance_types) > len(matches):
+                unknown_ids = set(instance_types) - set(matches)
+                raise InvalidInstanceTypeError(unknown_ids)
+        return matches
+
+
+class InstanceTypeOfferingBackend(object):
+    def __init__(self):
+        super(InstanceTypeOfferingBackend, self).__init__()
+
+    def describe_instance_type_offerings(self, location_type=None, filters=None):
+        location_type = location_type or "region"
+        matches = INSTANCE_TYPE_OFFERINGS[location_type]
+        matches = matches[self.region_name]
+
+        def matches_filters(offering, filters):
+            def matches_filter(key, values):
+                if key == "location":
+                    if location_type in ("availability-zone", "availability-zone-id"):
+                        return offering.get("Location") in values
+                    elif location_type == "region":
+                        return any(
+                            v for v in values if offering.get("Location").startswith(v)
+                        )
+                    else:
+                        return False
+                elif key == "instance-type":
+                    return offering.get("InstanceType") in values
+                else:
+                    return False
+
+            return all([matches_filter(key, values) for key, values in filters.items()])
+
+        matches = [o for o in matches if matches_filters(o, filters)]
+        return matches
 
 
 class KeyPair(object):
@@ -1358,9 +1452,9 @@ class Ami(TaggedEC2Resource):
 
         elif source_ami:
             """
-              http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html
-              "We don't copy launch permissions, user-defined tags, or Amazon S3 bucket permissions from the source AMI to the new AMI."
-              ~ 2014.09.29
+            http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html
+            "We don't copy launch permissions, user-defined tags, or Amazon S3 bucket permissions from the source AMI to the new AMI."
+            ~ 2014.09.29
             """
             self.virtualization_type = source_ami.virtualization_type
             self.architecture = source_ami.architecture
@@ -1518,9 +1612,9 @@ class AmiBackend(object):
         # If anything is invalid, nothing is added. (No partial success.)
         if user_ids:
             """
-              AWS docs:
-                "The AWS account ID is a 12-digit number, such as 123456789012, that you use to construct Amazon Resource Names (ARNs)."
-                http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
+            AWS docs:
+              "The AWS account ID is a 12-digit number, such as 123456789012, that you use to construct Amazon Resource Names (ARNs)."
+              http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
             """
             for user_id in user_ids:
                 if len(user_id) != 12 or not user_id.isdigit():
@@ -3129,6 +3223,25 @@ class VPCBackend(object):
 
         return vpc_end_point
 
+    def get_vpc_end_point(self, vpc_end_point_ids, filters=None):
+        vpc_end_points = self.vpc_end_points.values()
+
+        if vpc_end_point_ids:
+            vpc_end_points = [
+                vpc_end_point
+                for vpc_end_point in vpc_end_points
+                if vpc_end_point.id in vpc_end_point_ids
+            ]
+            if len(vpc_end_points) != len(vpc_end_point_ids):
+                invalid_id = list(
+                    set(vpc_end_point_ids).difference(
+                        set([vpc_end_point.id for vpc_end_point in vpc_end_points])
+                    )
+                )[0]
+                raise InvalidVpcEndPointIdError(invalid_id)
+
+        return generic_filter(filters, vpc_end_points)
+
     def get_vpc_end_point_services(self):
         vpc_end_point_services = self.vpc_end_points.values()
 
@@ -3307,6 +3420,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         ]  # Reserved by AWS
         self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
         self._subnet_ips = {}  # has IP: instance
+        self.state = "available"
 
     @staticmethod
     def cloudformation_name_type():
@@ -3387,6 +3501,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             return self.availability_zone
         elif filter_name in ("defaultForAz", "default-for-az"):
             return self.default_for_az
+        elif filter_name == "state":
+            return self.state
         else:
             return super(Subnet, self).get_filter_value(filter_name, "DescribeSubnets")
 
@@ -3969,10 +4085,12 @@ class RouteTableBackend(object):
         self.route_tables = {}
         super(RouteTableBackend, self).__init__()
 
-    def create_route_table(self, vpc_id, main=False):
+    def create_route_table(self, vpc_id, tags=[], main=False):
         route_table_id = random_route_table_id()
         vpc = self.get_vpc(vpc_id)  # Validate VPC exists
         route_table = RouteTable(self, route_table_id, vpc_id, main=main)
+        for tag in tags:
+            route_table.add_tag(tag.get("Key"), tag.get("Value"))
         self.route_tables[route_table_id] = route_table
 
         # AWS creates a default local route.
@@ -4300,8 +4418,10 @@ class InternetGatewayBackend(object):
         self.internet_gateways = {}
         super(InternetGatewayBackend, self).__init__()
 
-    def create_internet_gateway(self):
+    def create_internet_gateway(self, tags=[]):
         igw = InternetGateway(self)
+        for tag in tags:
+            igw.add_tag(tag.get("Key"), tag.get("Value"))
         self.internet_gateways[igw.id] = igw
         return igw
 
@@ -5299,10 +5419,12 @@ class NetworkAclBackend(object):
             raise InvalidNetworkAclIdError(network_acl_id)
         return network_acl
 
-    def create_network_acl(self, vpc_id, default=False):
+    def create_network_acl(self, vpc_id, tags=[], default=False):
         network_acl_id = random_network_acl_id()
         self.get_vpc(vpc_id)
         network_acl = NetworkAcl(self, network_acl_id, vpc_id, default)
+        for tag in tags:
+            network_acl.add_tag(tag.get("Key"), tag.get("Value"))
         self.network_acls[network_acl_id] = network_acl
         if default:
             self.add_default_entries(network_acl_id)
@@ -5651,7 +5773,7 @@ class CustomerGatewayBackend(object):
 
 
 class NatGateway(CloudFormationModel):
-    def __init__(self, backend, subnet_id, allocation_id):
+    def __init__(self, backend, subnet_id, allocation_id, tags=[]):
         # public properties
         self.id = random_nat_gateway_id()
         self.subnet_id = subnet_id
@@ -5669,6 +5791,7 @@ class NatGateway(CloudFormationModel):
 
         # associate allocation with ENI
         self._backend.associate_address(eni=self._eni, allocation_id=self.allocation_id)
+        self.tags = tags
 
     @property
     def vpc_id(self):
@@ -5745,8 +5868,8 @@ class NatGatewayBackend(object):
 
         return nat_gateways
 
-    def create_nat_gateway(self, subnet_id, allocation_id):
-        nat_gateway = NatGateway(self, subnet_id, allocation_id)
+    def create_nat_gateway(self, subnet_id, allocation_id, tags=[]):
+        nat_gateway = NatGateway(self, subnet_id, allocation_id, tags)
         self.nat_gateways[nat_gateway.id] = nat_gateway
         return nat_gateway
 
@@ -5859,9 +5982,126 @@ class LaunchTemplateBackend(object):
         return generic_filter(filters, templates)
 
 
+class IamInstanceProfileAssociation(CloudFormationModel):
+    def __init__(self, ec2_backend, association_id, instance, iam_instance_profile):
+        self.ec2_backend = ec2_backend
+        self.id = association_id
+        self.instance = instance
+        self.iam_instance_profile = iam_instance_profile
+        self.state = "associated"
+
+
+class IamInstanceProfileAssociationBackend(object):
+    def __init__(self):
+        self.iam_instance_profile_associations = {}
+        super(IamInstanceProfileAssociationBackend, self).__init__()
+
+    def associate_iam_instance_profile(
+        self,
+        instance_id,
+        iam_instance_profile_name=None,
+        iam_instance_profile_arn=None,
+    ):
+        iam_association_id = random_iam_instance_profile_association_id()
+
+        instance_profile = filter_iam_instance_profiles(
+            iam_instance_profile_arn, iam_instance_profile_name
+        )
+
+        if instance_id in self.iam_instance_profile_associations.keys():
+            raise IncorrectStateIamProfileAssociationError(instance_id)
+
+        iam_instance_profile_associations = IamInstanceProfileAssociation(
+            self,
+            iam_association_id,
+            self.get_instance(instance_id) if instance_id else None,
+            instance_profile,
+        )
+        # Regarding to AWS there can be only one association with ec2.
+        self.iam_instance_profile_associations[
+            instance_id
+        ] = iam_instance_profile_associations
+        return iam_instance_profile_associations
+
+    def describe_iam_instance_profile_associations(
+        self, association_ids, filters=None, max_results=100, next_token=None
+    ):
+        associations_list = []
+        if association_ids:
+            for association in self.iam_instance_profile_associations.values():
+                if association.id in association_ids:
+                    associations_list.append(association)
+        else:
+            # That's mean that no association id were given. Showing all.
+            associations_list.extend(self.iam_instance_profile_associations.values())
+
+        associations_list = filter_iam_instance_profile_associations(
+            associations_list, filters
+        )
+
+        starting_point = int(next_token or 0)
+        ending_point = starting_point + int(max_results or 100)
+        associations_page = associations_list[starting_point:ending_point]
+        new_next_token = (
+            str(ending_point) if ending_point < len(associations_list) else None
+        )
+
+        return associations_page, new_next_token
+
+    def disassociate_iam_instance_profile(self, association_id):
+        iam_instance_profile_associations = None
+        for association_key in self.iam_instance_profile_associations.keys():
+            if (
+                self.iam_instance_profile_associations[association_key].id
+                == association_id
+            ):
+                iam_instance_profile_associations = self.iam_instance_profile_associations[
+                    association_key
+                ]
+                del self.iam_instance_profile_associations[association_key]
+                # Deleting once and avoiding `RuntimeError: dictionary changed size during iteration`
+                break
+
+        if not iam_instance_profile_associations:
+            raise InvalidAssociationIDIamProfileAssociationError(association_id)
+
+        return iam_instance_profile_associations
+
+    def replace_iam_instance_profile_association(
+        self,
+        association_id,
+        iam_instance_profile_name=None,
+        iam_instance_profile_arn=None,
+    ):
+        instance_profile = filter_iam_instance_profiles(
+            iam_instance_profile_arn, iam_instance_profile_name
+        )
+
+        iam_instance_profile_association = None
+        for association_key in self.iam_instance_profile_associations.keys():
+            if (
+                self.iam_instance_profile_associations[association_key].id
+                == association_id
+            ):
+                self.iam_instance_profile_associations[
+                    association_key
+                ].iam_instance_profile = instance_profile
+                iam_instance_profile_association = self.iam_instance_profile_associations[
+                    association_key
+                ]
+                break
+
+        if not iam_instance_profile_association:
+            raise InvalidAssociationIDIamProfileAssociationError(association_id)
+
+        return iam_instance_profile_association
+
+
 class EC2Backend(
     BaseBackend,
     InstanceBackend,
+    InstanceTypeBackend,
+    InstanceTypeOfferingBackend,
     TagBackend,
     EBSBackend,
     RegionsAndZonesBackend,
@@ -5888,6 +6128,7 @@ class EC2Backend(
     CustomerGatewayBackend,
     NatGatewayBackend,
     LaunchTemplateBackend,
+    IamInstanceProfileAssociationBackend,
 ):
     def __init__(self, region_name):
         self.region_name = region_name
@@ -5974,6 +6215,13 @@ class EC2Backend(
                 self.describe_vpn_connections(vpn_connection_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpn-gateway"]:
                 self.get_vpn_gateway(vpn_gateway_id=resource_id)
+            elif (
+                resource_prefix
+                == EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"]
+            ):
+                self.describe_iam_instance_profile_associations(
+                    association_ids=[resource_id]
+                )
         return True
 
 

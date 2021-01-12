@@ -198,6 +198,14 @@ class InvalidInstanceIdError(EC2ClientError):
         )
 
 
+class InvalidInstanceTypeError(EC2ClientError):
+    def __init__(self, instance_type):
+        super(InvalidInstanceTypeError, self).__init__(
+            "InvalidInstanceType.NotFound",
+            "The instance type '{0}' does not exist".format(instance_type),
+        )
+
+
 class InvalidAMIIdError(EC2ClientError):
     def __init__(self, ami_id):
         super(InvalidAMIIdError, self).__init__(
@@ -582,4 +590,28 @@ class InvalidParameterDependency(EC2ClientError):
             "The parameter [{0}] requires the parameter {1} to be set.".format(
                 param, param_needed
             ),
+        )
+
+
+class IncorrectStateIamProfileAssociationError(EC2ClientError):
+    def __init__(self, instance_id):
+        super(IncorrectStateIamProfileAssociationError, self).__init__(
+            "IncorrectState",
+            "There is an existing association for instance {0}".format(instance_id),
+        )
+
+
+class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
+    def __init__(self, association_id):
+        super(InvalidAssociationIDIamProfileAssociationError, self).__init__(
+            "InvalidAssociationID.NotFound",
+            "An invalid association-id of '{0}' was given".format(association_id),
+        )
+
+
+class InvalidVpcEndPointIdError(EC2ClientError):
+    def __init__(self, vpc_end_point_id):
+        super(InvalidVpcEndPointIdError, self).__init__(
+            "InvalidVpcEndPointId.NotFound",
+            "The VpcEndPoint ID '{0}' does not exist".format(vpc_end_point_id),
         )

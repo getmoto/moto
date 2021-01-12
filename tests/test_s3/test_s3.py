@@ -24,13 +24,11 @@ from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
-from parameterized import parameterized
 import six
 import requests
-import tests.backport_assert_raises  # noqa
 from moto.s3.responses import DEFAULT_REGION_NAME
-from nose import SkipTest
-from nose.tools import assert_raises
+from unittest import SkipTest
+import pytest
 
 import sure  # noqa
 
@@ -49,8 +47,8 @@ else:
 
 
 def reduced_min_part_size(f):
-    """ speed up tests by temporarily making the multipart minimum part size
-        small
+    """speed up tests by temporarily making the multipart minimum part size
+    small
     """
     orig_size = s3model.UPLOAD_PART_MIN_SIZE
 
@@ -427,7 +425,7 @@ def test_copy_key():
     bucket.get_key("new-key").get_contents_as_string().should.equal(b"some value")
 
 
-@parameterized([("the-unicode-💩-key",), ("key-with?question-mark",)])
+@pytest.mark.parametrize("key_name", ["the-unicode-💩-key", "key-with?question-mark"])
 @mock_s3_deprecated
 def test_copy_key_with_special_chars(key_name):
     conn = boto.connect_s3("the_key", "the_secret")
@@ -523,7 +521,7 @@ def test_create_existing_bucket():
     "Trying to create a bucket that already exists should raise an Error"
     conn = boto.s3.connect_to_region("us-west-2")
     conn.create_bucket("foobar", location="us-west-2")
-    with assert_raises(S3CreateError):
+    with pytest.raises(S3CreateError):
         conn.create_bucket("foobar", location="us-west-2")
 
 
@@ -665,9 +663,9 @@ def test_delete_keys_invalid():
 
 @mock_s3
 def test_boto3_delete_empty_keys_list():
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         boto3.client("s3").delete_objects(Bucket="foobar", Delete={"Objects": []})
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3_deprecated
@@ -1015,9 +1013,9 @@ def test_s3_object_in_public_bucket():
 
     bucket.put_object(ACL="private", Body=b"ABCD", Key="file.txt")
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3_anonymous.Object(key="file.txt", bucket_name="test-bucket").get()
-    exc.exception.response["Error"]["Code"].should.equal("403")
+    exc.value.response["Error"]["Code"].should.equal("403")
 
 
 @mock_s3
@@ -1089,9 +1087,9 @@ def test_s3_object_in_private_bucket():
     s3_anonymous = boto3.resource("s3")
     s3_anonymous.meta.client.meta.events.register("choose-signer.s3.*", disable_signing)
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3_anonymous.Object(key="file.txt", bucket_name="test-bucket").get()
-    exc.exception.response["Error"]["Code"].should.equal("403")
+    exc.value.response["Error"]["Code"].should.equal("403")
 
     bucket.put_object(ACL="public-read", Body=b"ABCD", Key="file.txt")
     contents = (
@@ -1181,9 +1179,9 @@ if not settings.TEST_SERVER_MODE:
 
         bucket_name = "asdfasdfsdfdsfasda"
 
-        with assert_raises(ClientError) as e:
+        with pytest.raises(ClientError) as e:
             s3.create_bucket(Bucket=bucket_name)
-        e.exception.response["Error"]["Message"].should.equal(
+        e.value.response["Error"]["Message"].should.equal(
             "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
         )
 
@@ -1200,35 +1198,34 @@ if not settings.TEST_SERVER_MODE:
         client = boto3.client("s3control", region_name="us-west-2")
 
         # With an invalid account ID:
-        with assert_raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce:
             client.get_public_access_block(AccountId="111111111111")
-        assert ce.exception.response["Error"]["Code"] == "AccessDenied"
+        assert ce.value.response["Error"]["Code"] == "AccessDenied"
 
         # Without one defined:
-        with assert_raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce:
             client.get_public_access_block(AccountId=ACCOUNT_ID)
         assert (
-            ce.exception.response["Error"]["Code"]
-            == "NoSuchPublicAccessBlockConfiguration"
+            ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
         )
 
         # Put a with an invalid account ID:
-        with assert_raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce:
             client.put_public_access_block(
                 AccountId="111111111111",
                 PublicAccessBlockConfiguration={"BlockPublicAcls": True},
             )
-        assert ce.exception.response["Error"]["Code"] == "AccessDenied"
+        assert ce.value.response["Error"]["Code"] == "AccessDenied"
 
         # Put with an invalid PAB:
-        with assert_raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce:
             client.put_public_access_block(
                 AccountId=ACCOUNT_ID, PublicAccessBlockConfiguration={}
             )
-        assert ce.exception.response["Error"]["Code"] == "InvalidRequest"
+        assert ce.value.response["Error"]["Code"] == "InvalidRequest"
         assert (
             "Must specify at least one configuration."
-            in ce.exception.response["Error"]["Message"]
+            in ce.value.response["Error"]["Message"]
         )
 
         # Correct PAB:
@@ -1255,19 +1252,18 @@ if not settings.TEST_SERVER_MODE:
             }
 
         # Delete with an invalid account ID:
-        with assert_raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce:
             client.delete_public_access_block(AccountId="111111111111")
-        assert ce.exception.response["Error"]["Code"] == "AccessDenied"
+        assert ce.value.response["Error"]["Code"] == "AccessDenied"
 
         # Delete successfully:
         client.delete_public_access_block(AccountId=ACCOUNT_ID)
 
         # Confirm that it's deleted:
-        with assert_raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce:
             client.get_public_access_block(AccountId=ACCOUNT_ID)
         assert (
-            ce.exception.response["Error"]["Code"]
-            == "NoSuchPublicAccessBlockConfiguration"
+            ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
         )
 
     @mock_s3
@@ -1462,13 +1458,11 @@ if not settings.TEST_SERVER_MODE:
         )
 
         # Without a PAB in place:
-        with assert_raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce:
             config_client.get_resource_config_history(
                 resourceType="AWS::S3::AccountPublicAccessBlock", resourceId=ACCOUNT_ID
             )
-        assert (
-            ce.exception.response["Error"]["Code"] == "ResourceNotDiscoveredException"
-        )
+        assert ce.value.response["Error"]["Code"] == "ResourceNotDiscoveredException"
         # aggregate
         result = config_client.batch_get_resource_config(
             resourceKeys=[
@@ -1633,10 +1627,10 @@ def test_policy():
         }
     )
 
-    with assert_raises(S3ResponseError) as err:
+    with pytest.raises(S3ResponseError) as err:
         bucket.get_policy()
 
-    ex = err.exception
+    ex = err.value
     ex.box_usage.should.be.none
     ex.error_code.should.equal("NoSuchBucketPolicy")
     ex.message.should.equal("The bucket policy does not exist")
@@ -1654,7 +1648,7 @@ def test_policy():
 
     bucket.delete_policy()
 
-    with assert_raises(S3ResponseError) as err:
+    with pytest.raises(S3ResponseError) as err:
         bucket.get_policy()
 
 
@@ -1813,6 +1807,32 @@ def test_boto3_list_objects_v2_common_prefix_pagination():
             prefixes.extend(i["Prefix"] for i in resp["CommonPrefixes"])
 
     assert prefixes == [k[: k.rindex("/") + 1] for k in keys]
+
+
+@mock_s3
+def test_boto3_list_objects_v2_common_invalid_continuation_token():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    max_keys = 1
+    keys = ["test/{i}/{i}".format(i=i) for i in range(3)]
+    for key in keys:
+        s3.put_object(Bucket="mybucket", Key=key, Body=b"v")
+
+    args = {
+        "Bucket": "mybucket",
+        "Delimiter": "/",
+        "Prefix": "test/",
+        "MaxKeys": max_keys,
+        "ContinuationToken": "",
+    }
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        s3.list_objects_v2(**args)
+    exc.value.response["Error"]["Code"].should.equal("InvalidArgument")
+    exc.value.response["Error"]["Message"].should.equal(
+        "The continuation token provided is incorrect"
+    )
 
 
 @mock_s3
@@ -1976,22 +1996,22 @@ def test_bucket_create_duplicate():
     s3.create_bucket(
         Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "us-west-2"}
     )
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.create_bucket(
             Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "us-west-2"}
         )
-    exc.exception.response["Error"]["Code"].should.equal("BucketAlreadyExists")
+    exc.value.response["Error"]["Code"].should.equal("BucketAlreadyExists")
 
 
 @mock_s3
 def test_bucket_create_force_us_east_1():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.create_bucket(
             Bucket="blah",
             CreateBucketConfiguration={"LocationConstraint": DEFAULT_REGION_NAME},
         )
-    exc.exception.response["Error"]["Code"].should.equal("InvalidLocationConstraint")
+    exc.value.response["Error"]["Code"].should.equal("InvalidLocationConstraint")
 
 
 @mock_s3
@@ -2011,10 +2031,10 @@ def test_boto3_bucket_create_eu_central():
 @mock_s3
 def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_error():
     s3 = boto3.resource("s3", region_name="us-east-1")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.create_bucket(Bucket="whatever", CreateBucketConfiguration={})
-    e.exception.response["Error"]["Code"].should.equal("MalformedXML")
-    e.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    e.value.response["Error"]["Code"].should.equal("MalformedXML")
+    e.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_s3
@@ -2028,11 +2048,11 @@ def test_boto3_head_object():
         Bucket="blah", Key="hello.txt"
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.Object("blah", "hello2.txt").meta.client.head_object(
             Bucket="blah", Key="hello_bad.txt"
         )
-    e.exception.response["Error"]["Code"].should.equal("404")
+    e.value.response["Error"]["Code"].should.equal("404")
 
 
 @mock_s3
@@ -2077,10 +2097,10 @@ def test_boto3_get_object():
         Bucket="blah", Key="hello.txt"
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.Object("blah", "hello2.txt").get()
 
-    e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
 
 @mock_s3
@@ -2104,12 +2124,12 @@ def test_boto3_get_missing_object_with_part_number():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="blah")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.Object("blah", "hello.txt").meta.client.head_object(
             Bucket="blah", Key="hello.txt", PartNumber=123
         )
 
-    e.exception.response["Error"]["Code"].should.equal("404")
+    e.value.response["Error"]["Code"].should.equal("404")
 
 
 @mock_s3
@@ -2176,13 +2196,13 @@ def test_boto3_copy_object_with_versioning():
     obj3_version_new.should_not.equal(obj2_version_new)
 
     # Copy file that doesn't exist
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.copy_object(
             CopySource={"Bucket": "blah", "Key": "test4", "VersionId": obj2_version},
             Bucket="blah",
             Key="test5",
         )
-    e.exception.response["Error"]["Code"].should.equal("404")
+    e.value.response["Error"]["Code"].should.equal("404")
 
     response = client.create_multipart_upload(Bucket="blah", Key="test4")
     upload_id = response["UploadId"]
@@ -2212,11 +2232,11 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
 
     client.create_bucket(Bucket="blah")
 
-    with assert_raises(Exception) as err:
+    with pytest.raises(Exception) as err:
         client.abort_multipart_upload(
             Bucket="blah", Key="foobar", UploadId="dummy_upload_id"
         )
-    err.exception.response["Error"]["Code"].should.equal("NoSuchUpload")
+    err.value.response["Error"]["Code"].should.equal("NoSuchUpload")
 
 
 @mock_s3
@@ -2360,13 +2380,13 @@ def test_boto3_get_object_if_modified_since():
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
             Bucket=bucket_name,
             Key=key,
             IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
         )
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
 
@@ -2380,13 +2400,13 @@ def test_boto3_get_object_if_unmodified_since():
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
             Bucket=bucket_name,
             Key=key,
             IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
         )
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("PreconditionFailed")
     e.response["Error"]["Condition"].should.equal("If-Unmodified-Since")
 
@@ -2401,11 +2421,11 @@ def test_boto3_get_object_if_match():
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
             Bucket=bucket_name, Key=key, IfMatch='"hello"',
         )
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("PreconditionFailed")
     e.response["Error"]["Condition"].should.equal("If-Match")
 
@@ -2420,11 +2440,11 @@ def test_boto3_get_object_if_none_match():
 
     etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
             Bucket=bucket_name, Key=key, IfNoneMatch=etag,
         )
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
 
@@ -2438,13 +2458,13 @@ def test_boto3_head_object_if_modified_since():
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
             Bucket=bucket_name,
             Key=key,
             IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
         )
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
 
@@ -2458,13 +2478,13 @@ def test_boto3_head_object_if_unmodified_since():
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
             Bucket=bucket_name,
             Key=key,
             IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
         )
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
 
 
@@ -2478,11 +2498,11 @@ def test_boto3_head_object_if_match():
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
             Bucket=bucket_name, Key=key, IfMatch='"hello"',
         )
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
 
 
@@ -2496,11 +2516,11 @@ def test_boto3_head_object_if_none_match():
 
     etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
             Bucket=bucket_name, Key=key, IfNoneMatch=etag,
         )
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
 
@@ -2633,7 +2653,7 @@ def test_boto3_put_bucket_tagging():
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     # With duplicate tag keys:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         resp = s3.put_bucket_tagging(
             Bucket=bucket_name,
             Tagging={
@@ -2643,19 +2663,19 @@ def test_boto3_put_bucket_tagging():
                 ]
             },
         )
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("InvalidTag")
     e.response["Error"]["Message"].should.equal(
         "Cannot provide multiple Tags with the same key"
     )
 
     # Cannot put tags that are "system" tags - i.e. tags that start with "aws:"
-    with assert_raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce:
         s3.put_bucket_tagging(
             Bucket=bucket_name,
             Tagging={"TagSet": [{"Key": "aws:sometag", "Value": "nope"}]},
         )
-    e = ce.exception
+    e = ce.value
     e.response["Error"]["Code"].should.equal("InvalidTag")
     e.response["Error"]["Message"].should.equal(
         "System tags cannot be added/updated by requester"
@@ -2691,10 +2711,10 @@ def test_boto3_get_bucket_tagging():
     # With no tags:
     s3.put_bucket_tagging(Bucket=bucket_name, Tagging={"TagSet": []})
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.get_bucket_tagging(Bucket=bucket_name)
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("NoSuchTagSet")
     e.response["Error"]["Message"].should.equal("The TagSet does not exist")
 
@@ -2718,10 +2738,10 @@ def test_boto3_delete_bucket_tagging():
     resp = s3.delete_bucket_tagging(Bucket=bucket_name)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.get_bucket_tagging(Bucket=bucket_name)
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("NoSuchTagSet")
     e.response["Error"]["Message"].should.equal("The TagSet does not exist")
 
@@ -2756,7 +2776,7 @@ def test_boto3_put_bucket_cors():
 
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_cors(
             Bucket=bucket_name,
             CORSConfiguration={
@@ -2765,24 +2785,24 @@ def test_boto3_put_bucket_cors():
                 ]
             },
         )
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("InvalidRequest")
     e.response["Error"]["Message"].should.equal(
         "Found unsupported HTTP method in CORS config. " "Unsupported method is NOTREAL"
     )
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_cors(Bucket=bucket_name, CORSConfiguration={"CORSRules": []})
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("MalformedXML")
 
     # And 101:
     many_rules = [{"AllowedOrigins": ["*"], "AllowedMethods": ["GET"]}] * 101
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_cors(
             Bucket=bucket_name, CORSConfiguration={"CORSRules": many_rules}
         )
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("MalformedXML")
 
 
@@ -2793,10 +2813,10 @@ def test_boto3_get_bucket_cors():
     s3.create_bucket(Bucket=bucket_name)
 
     # Without CORS:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.get_bucket_cors(Bucket=bucket_name)
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("NoSuchCORSConfiguration")
     e.response["Error"]["Message"].should.equal("The CORS configuration does not exist")
 
@@ -2843,10 +2863,10 @@ def test_boto3_delete_bucket_cors():
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
 
     # Verify deletion:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.get_bucket_cors(Bucket=bucket_name)
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("NoSuchCORSConfiguration")
     e.response["Error"]["Message"].should.equal("The CORS configuration does not exist")
 
@@ -2906,7 +2926,7 @@ def test_put_bucket_acl_body():
     assert len(result["Grants"]) == 1
 
     # With no owner:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_acl(
             Bucket="bucket",
             AccessControlPolicy={
@@ -2921,10 +2941,10 @@ def test_put_bucket_acl_body():
                 ]
             },
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedACLError"
+    assert err.value.response["Error"]["Code"] == "MalformedACLError"
 
     # With incorrect permission:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_acl(
             Bucket="bucket",
             AccessControlPolicy={
@@ -2940,7 +2960,7 @@ def test_put_bucket_acl_body():
                 "Owner": bucket_owner,
             },
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedACLError"
+    assert err.value.response["Error"]["Code"] == "MalformedACLError"
 
     # Clear the ACLs:
     result = s3.put_bucket_acl(
@@ -3185,7 +3205,7 @@ def test_put_bucket_notification_errors():
 
     # With incorrect ARNs:
     for tech, arn in [("Queue", "sqs"), ("Topic", "sns"), ("LambdaFunction", "lambda")]:
-        with assert_raises(ClientError) as err:
+        with pytest.raises(ClientError) as err:
             s3.put_bucket_notification_configuration(
                 Bucket="bucket",
                 NotificationConfiguration={
@@ -3200,13 +3220,11 @@ def test_put_bucket_notification_errors():
                 },
             )
 
-        assert err.exception.response["Error"]["Code"] == "InvalidArgument"
-        assert (
-            err.exception.response["Error"]["Message"] == "The ARN is not well formed"
-        )
+        assert err.value.response["Error"]["Code"] == "InvalidArgument"
+        assert err.value.response["Error"]["Message"] == "The ARN is not well formed"
 
     # Region not the same as the bucket:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_notification_configuration(
             Bucket="bucket",
             NotificationConfiguration={
@@ -3219,14 +3237,14 @@ def test_put_bucket_notification_errors():
             },
         )
 
-    assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+    assert err.value.response["Error"]["Code"] == "InvalidArgument"
     assert (
-        err.exception.response["Error"]["Message"]
+        err.value.response["Error"]["Message"]
         == "The notification destination service region is not valid for the bucket location constraint"
     )
 
     # Invalid event name:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_notification_configuration(
             Bucket="bucket",
             NotificationConfiguration={
@@ -3238,9 +3256,9 @@ def test_put_bucket_notification_errors():
                 ]
             },
         )
-    assert err.exception.response["Error"]["Code"] == "InvalidArgument"
+    assert err.value.response["Error"]["Code"] == "InvalidArgument"
     assert (
-        err.exception.response["Error"]["Message"]
+        err.value.response["Error"]["Message"]
         == "The event is not supported for notifications"
     )
 
@@ -3263,25 +3281,25 @@ def test_boto3_put_bucket_logging():
     assert not result.get("LoggingEnabled")
 
     # A log-bucket that doesn't exist:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
                 "LoggingEnabled": {"TargetBucket": "IAMNOTREAL", "TargetPrefix": ""}
             },
         )
-    assert err.exception.response["Error"]["Code"] == "InvalidTargetBucketForLogging"
+    assert err.value.response["Error"]["Code"] == "InvalidTargetBucketForLogging"
 
     # A log-bucket that's missing the proper ACLs for LogDelivery:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
                 "LoggingEnabled": {"TargetBucket": log_bucket, "TargetPrefix": ""}
             },
         )
-    assert err.exception.response["Error"]["Code"] == "InvalidTargetBucketForLogging"
-    assert "log-delivery" in err.exception.response["Error"]["Message"]
+    assert err.value.response["Error"]["Code"] == "InvalidTargetBucketForLogging"
+    assert "log-delivery" in err.value.response["Error"]["Message"]
 
     # Add the proper "log-delivery" ACL to the log buckets:
     bucket_owner = s3.get_bucket_acl(Bucket=log_bucket)["Owner"]
@@ -3314,7 +3332,7 @@ def test_boto3_put_bucket_logging():
         )
 
     # A log-bucket that's in the wrong region:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
@@ -3324,7 +3342,7 @@ def test_boto3_put_bucket_logging():
                 }
             },
         )
-    assert err.exception.response["Error"]["Code"] == "CrossLocationLoggingProhibitted"
+    assert err.value.response["Error"]["Code"] == "CrossLocationLoggingProhibitted"
 
     # Correct logging:
     s3.put_bucket_logging(
@@ -3402,7 +3420,7 @@ def test_boto3_put_bucket_logging():
     assert len(result["LoggingEnabled"]["TargetGrants"]) == 1
 
     # With an invalid grant:
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
@@ -3421,7 +3439,7 @@ def test_boto3_put_bucket_logging():
                 }
             },
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3
@@ -3431,7 +3449,7 @@ def test_boto3_put_object_tagging():
     key = "key-with-tags"
     s3.create_bucket(Bucket=bucket_name)
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_object_tagging(
             Bucket=bucket_name,
             Key=key,
@@ -3443,7 +3461,7 @@ def test_boto3_put_object_tagging():
             },
         )
 
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal(
         {
             "Code": "NoSuchKey",
@@ -3479,7 +3497,7 @@ def test_boto3_put_object_tagging_on_earliest_version():
     bucket_versioning.enable()
     bucket_versioning.status.should.equal("Enabled")
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_object_tagging(
             Bucket=bucket_name,
             Key=key,
@@ -3491,7 +3509,7 @@ def test_boto3_put_object_tagging_on_earliest_version():
             },
         )
 
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal(
         {
             "Code": "NoSuchKey",
@@ -3547,7 +3565,7 @@ def test_boto3_put_object_tagging_on_both_version():
     bucket_versioning.enable()
     bucket_versioning.status.should.equal("Enabled")
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         s3.put_object_tagging(
             Bucket=bucket_name,
             Key=key,
@@ -3559,7 +3577,7 @@ def test_boto3_put_object_tagging_on_both_version():
             },
         )
 
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal(
         {
             "Code": "NoSuchKey",
@@ -3772,9 +3790,9 @@ def test_boto3_delete_markers():
 
     s3.delete_objects(Bucket=bucket_name, Delete={"Objects": [{"Key": key}]})
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.get_object(Bucket=bucket_name, Key=key)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
     response = s3.list_object_versions(Bucket=bucket_name)
     response["Versions"].should.have.length_of(2)
@@ -3820,7 +3838,7 @@ def test_boto3_multiple_delete_markers():
     response = s3.list_object_versions(Bucket=bucket_name)
     response["DeleteMarkers"].should.have.length_of(2)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.get_object(Bucket=bucket_name, Key=key)
         e.response["Error"]["Code"].should.equal("404")
 
@@ -3892,17 +3910,17 @@ TEST_XML = """\
 @mock_s3
 def test_boto3_bucket_name_too_long():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.create_bucket(Bucket="x" * 64)
-    exc.exception.response["Error"]["Code"].should.equal("InvalidBucketName")
+    exc.value.response["Error"]["Code"].should.equal("InvalidBucketName")
 
 
 @mock_s3
 def test_boto3_bucket_name_too_short():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.create_bucket(Bucket="x" * 2)
-    exc.exception.response["Error"]["Code"].should.equal("InvalidBucketName")
+    exc.value.response["Error"]["Code"].should.equal("InvalidBucketName")
 
 
 @mock_s3
@@ -3972,11 +3990,11 @@ def test_accelerate_configuration_status_validation():
     bucket_name = "some_bucket"
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket_name)
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.put_bucket_accelerate_configuration(
             Bucket=bucket_name, AccelerateConfiguration={"Status": "bad_status"}
         )
-    exc.exception.response["Error"]["Code"].should.equal("MalformedXML")
+    exc.value.response["Error"]["Code"].should.equal("MalformedXML")
 
 
 @mock_s3
@@ -3984,11 +4002,11 @@ def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
     bucket_name = "some.bucket.with.dots"
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket_name)
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         s3.put_bucket_accelerate_configuration(
             Bucket=bucket_name, AccelerateConfiguration={"Status": "Enabled"}
         )
-    exc.exception.response["Error"]["Code"].should.equal("InvalidRequest")
+    exc.value.response["Error"]["Code"].should.equal("InvalidRequest")
 
 
 def store_and_read_back_a_key(key):
@@ -4015,7 +4033,7 @@ def test_root_dir_with_empty_name_works():
     store_and_read_back_a_key("/")
 
 
-@parameterized(["mybucket", "my.bucket"])
+@pytest.mark.parametrize("bucket_name", ["mybucket", "my.bucket"])
 @mock_s3
 def test_leading_slashes_not_removed(bucket_name):
     """Make sure that leading slashes are not removed internally."""
@@ -4028,17 +4046,17 @@ def test_leading_slashes_not_removed(bucket_name):
 
     s3.put_object(Bucket=bucket_name, Key=uploaded_key, Body=b"Some body")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.get_object(Bucket=bucket_name, Key=invalid_key_1)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         s3.get_object(Bucket=bucket_name, Key=invalid_key_2)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
 
-@parameterized(
-    [("foo/bar/baz",), ("foo",), ("foo/run_dt%3D2019-01-01%252012%253A30%253A00",)]
+@pytest.mark.parametrize(
+    "key", ["foo/bar/baz", "foo", "foo/run_dt%3D2019-01-01%252012%253A30%253A00"]
 )
 @mock_s3
 def test_delete_objects_with_url_encoded_key(key):
@@ -4052,10 +4070,10 @@ def test_delete_objects_with_url_encoded_key(key):
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
 
     def assert_deleted():
-        with assert_raises(ClientError) as e:
+        with pytest.raises(ClientError) as e:
             s3.get_object(Bucket=bucket_name, Key=key)
 
-        e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
+        e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
     put_object()
     s3.delete_object(Bucket=bucket_name, Key=key)
@@ -4073,17 +4091,15 @@ def test_public_access_block():
     client.create_bucket(Bucket="mybucket")
 
     # Try to get the public access block (should not exist by default)
-    with assert_raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce:
         client.get_public_access_block(Bucket="mybucket")
 
+    assert ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
     assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
-    )
-    assert (
-        ce.exception.response["Error"]["Message"]
+        ce.value.response["Error"]["Message"]
         == "The public access block configuration was not found"
     )
-    assert ce.exception.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert ce.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
     # Put a public block in place:
     test_map = {
@@ -4123,17 +4139,17 @@ def test_public_access_block():
     }
 
     # Test with a blank PublicAccessBlockConfiguration:
-    with assert_raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce:
         client.put_public_access_block(
             Bucket="mybucket", PublicAccessBlockConfiguration={}
         )
 
-    assert ce.exception.response["Error"]["Code"] == "InvalidRequest"
+    assert ce.value.response["Error"]["Code"] == "InvalidRequest"
     assert (
-        ce.exception.response["Error"]["Message"]
+        ce.value.response["Error"]["Message"]
         == "Must specify at least one configuration."
     )
-    assert ce.exception.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ce.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
     # Test that things work with AWS Config:
     config_client = boto3.client("config", region_name=DEFAULT_REGION_NAME)
@@ -4156,11 +4172,9 @@ def test_public_access_block():
     # Delete:
     client.delete_public_access_block(Bucket="mybucket")
 
-    with assert_raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce:
         client.get_public_access_block(Bucket="mybucket")
-    assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
 
 
 @mock_s3
@@ -4301,10 +4315,10 @@ def test_list_config_discovered_resources():
     )
 
     # With an invalid page:
-    with assert_raises(InvalidNextTokenException) as inte:
+    with pytest.raises(InvalidNextTokenException) as inte:
         s3_config_query.list_config_service_resources(None, None, 1, "notabucket")
 
-    assert "The nextToken provided is invalid" in inte.exception.message
+    assert "The nextToken provided is invalid" in inte.value.message
 
 
 @mock_s3
@@ -4761,7 +4775,7 @@ def test_encryption():
     conn = boto3.client("s3", region_name="us-east-1")
     conn.create_bucket(Bucket="mybucket")
 
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         conn.get_bucket_encryption(Bucket="mybucket")
 
     sse_config = {
@@ -4784,7 +4798,7 @@ def test_encryption():
     assert resp["ServerSideEncryptionConfiguration"] == sse_config
 
     conn.delete_bucket_encryption(Bucket="mybucket")
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         conn.get_bucket_encryption(Bucket="mybucket")
 
 
@@ -4799,12 +4813,12 @@ def test_presigned_url_restrict_parameters():
     s3 = boto3.client("s3", region_name="us-east-1")
 
     # Create a pre-signed url with some metadata.
-    with assert_raises(botocore.exceptions.ParamValidationError) as err:
+    with pytest.raises(botocore.exceptions.ParamValidationError) as err:
         s3.generate_presigned_url(
             ClientMethod="put_object",
             Params={"Bucket": bucket, "Key": key, "Unknown": "metadata"},
         )
-    assert str(err.exception).should.match(
+    assert str(err.value).should.match(
         r'Parameter validation failed:\nUnknown parameter in input: "Unknown", must be one of:.*'
     )
 

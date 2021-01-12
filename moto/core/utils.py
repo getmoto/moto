@@ -16,7 +16,7 @@ REQUEST_ID_LONG = string.digits + string.ascii_uppercase
 
 
 def camelcase_to_underscores(argument):
-    """ Converts a camelcase param like theNewAttribute to the equivalent
+    """Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute"""
     result = ""
     prev_char_title = True
@@ -42,9 +42,9 @@ def camelcase_to_underscores(argument):
 
 
 def underscores_to_camelcase(argument):
-    """ Converts a camelcase param like the_new_attribute to the equivalent
+    """Converts a camelcase param like the_new_attribute to the equivalent
     camelcase version like theNewAttribute. Note that the first letter is
-    NOT capitalized by this function """
+    NOT capitalized by this function"""
     result = ""
     previous_was_underscore = False
     for char in argument:

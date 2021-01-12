@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 import json
 
+from moto.core.exceptions import AWSError
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
-from .exceptions import AWSError
 from .models import sagemaker_backends
 
 
@@ -238,4 +238,39 @@ class SageMakerResponse(BaseResponse):
     def delete_training_job(self):
         training_job_name = self._get_param("TrainingJobName")
         self.sagemaker_backend.delete_training_job(training_job_name)
+        return 200, {}, json.dumps("{}")
+
+    @amzn_request_id
+    def create_notebook_instance_lifecycle_config(self):
+        try:
+            lifecycle_configuration = self.sagemaker_backend.create_notebook_instance_lifecycle_config(
+                notebook_instance_lifecycle_config_name=self._get_param(
+                    "NotebookInstanceLifecycleConfigName"
+                ),
+                on_create=self._get_param("OnCreate"),
+                on_start=self._get_param("OnStart"),
+            )
+            response = {
+                "NotebookInstanceLifecycleConfigArn": lifecycle_configuration.notebook_instance_lifecycle_config_arn,
+            }
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
+    def describe_notebook_instance_lifecycle_config(self):
+        response = self.sagemaker_backend.describe_notebook_instance_lifecycle_config(
+            notebook_instance_lifecycle_config_name=self._get_param(
+                "NotebookInstanceLifecycleConfigName"
+            )
+        )
+        return json.dumps(response)
+
+    @amzn_request_id
+    def delete_notebook_instance_lifecycle_config(self):
+        self.sagemaker_backend.delete_notebook_instance_lifecycle_config(
+            notebook_instance_lifecycle_config_name=self._get_param(
+                "NotebookInstanceLifecycleConfigName"
+            )
+        )
         return 200, {}, json.dumps("{}")

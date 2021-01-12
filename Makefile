@@ -7,7 +7,7 @@ ifeq ($(TEST_SERVER_MODE), true)
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
 
-	TEST_EXCLUDE :=  --exclude='test_iot.*' --exclude="test_kinesisvideoarchivedmedia.*"
+	TEST_EXCLUDE :=  -k 'not (test_iot or test_kinesisvideoarchivedmedia)'
 else
 	TEST_EXCLUDE :=
 endif
@@ -20,16 +20,18 @@ lint:
 	flake8 moto
 	black --check moto/ tests/
 
+format:
+	black moto/ tests/
+
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	@nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
-
+	@pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
 
 test: lint test-only
 
 test_server:
-	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/
+	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report html ./tests/
 
 aws_managed_policies:
 	scripts/update_managed_policies.py
@@ -39,7 +41,7 @@ upload_pypi_artifact:
 	twine upload dist/*
 
 push_dockerhub_image:
-	docker build -t motoserver/moto .
+	docker build -t motoserver/moto . --tag moto:`python setup.py --version`
 	docker push motoserver/moto
 
 tag_github_release:

@@ -2,9 +2,8 @@
 from __future__ import unicode_literals
 
 import boto3
-import tests.backport_assert_raises  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 from moto import mock_sagemaker
 
 import sure  # noqa
@@ -76,11 +75,11 @@ def test_delete_model():
 
 @mock_sagemaker
 def test_delete_model_not_found():
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         boto3.client("sagemaker", region_name="us-east-1").delete_model(
             ModelName="blah"
         )
-    assert err.exception.response["Error"]["Code"].should.equal("404")
+    assert err.value.response["Error"]["Code"].should.equal("404")
 
 
 @mock_sagemaker

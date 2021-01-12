@@ -4,7 +4,7 @@ import os
 import boto3
 import botocore
 from botocore.exceptions import ClientError, ParamValidationError
-from nose.tools import assert_raises
+import pytest
 import sure  # noqa
 
 from moto import mock_elbv2, mock_ec2, mock_acm
@@ -96,9 +96,9 @@ def test_describe_load_balancers():
     response = conn.describe_load_balancers(Names=["my-lb"])
     response.get("LoadBalancers")[0].get("LoadBalancerName").should.equal("my-lb")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_load_balancers(LoadBalancerArns=["not-a/real/arn"])
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_load_balancers(Names=["nope"])
 
 
@@ -132,7 +132,7 @@ def test_add_remove_tags():
     lbs.should.have.length_of(1)
     lb = lbs[0]
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.add_tags(ResourceArns=["missing-arn"], Tags=[{"Key": "a", "Value": "b"}])
 
     conn.add_tags(
@@ -274,7 +274,7 @@ def test_create_target_group_and_listeners():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     # Can't create a target group with an invalid protocol
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_target_group(
             Name="a-target",
             Protocol="HTTP",
@@ -389,10 +389,10 @@ def test_create_target_group_and_listeners():
 
     # Try to delete the target group and it fails because there's a
     # listener referencing it
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         conn.delete_target_group(TargetGroupArn=target_group.get("TargetGroupArn"))
-    e.exception.operation_name.should.equal("DeleteTargetGroup")
-    e.exception.args.should.equal(
+    e.value.operation_name.should.equal("DeleteTargetGroup")
+    e.value.args.should.equal(
         (
             "An error occurred (ResourceInUse) when calling the DeleteTargetGroup operation: The target group 'arn:aws:elasticloadbalancing:us-east-1:1:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule",
         )
@@ -477,7 +477,7 @@ def test_create_invalid_target_group():
 
     # Fail to create target group with name which length is 33
     long_name = "A" * 33
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_target_group(
             Name=long_name,
             Protocol="HTTP",
@@ -495,7 +495,7 @@ def test_create_invalid_target_group():
 
     invalid_names = ["-name", "name-", "-name-", "example.com", "test@test", "Na--me"]
     for name in invalid_names:
-        with assert_raises(ClientError):
+        with pytest.raises(ClientError):
             conn.create_target_group(
                 Name=name,
                 Protocol="HTTP",
@@ -941,7 +941,7 @@ def test_handle_listener_rules():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     # Can't create a target group with an invalid protocol
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_target_group(
             Name="a-target",
             Protocol="HTTP",
@@ -1032,7 +1032,7 @@ def test_handle_listener_rules():
     )
 
     # test for PriorityInUse
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=priority,
@@ -1079,11 +1079,11 @@ def test_handle_listener_rules():
     )
 
     # test for invalid describe rule request
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_rules()
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_rules(RuleArns=[])
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_rules(
             ListenerArn=http_listener_arn, RuleArns=[first_rule["RuleArn"]]
         )
@@ -1125,7 +1125,7 @@ def test_handle_listener_rules():
             }
         ]
     )
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.set_rule_priorities(
             RulePriorities=[
                 {"RuleArn": first_rule["RuleArn"], "Priority": 999},
@@ -1141,7 +1141,7 @@ def test_handle_listener_rules():
 
     # test for invalid action type
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1160,7 +1160,7 @@ def test_handle_listener_rules():
     # test for invalid action type
     safe_priority = 2
     invalid_target_group_arn = target_group.get("TargetGroupArn") + "x"
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1173,7 +1173,7 @@ def test_handle_listener_rules():
 
     # test for invalid condition field_name
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1188,7 +1188,7 @@ def test_handle_listener_rules():
 
     # test for emptry condition value
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1203,7 +1203,7 @@ def test_handle_listener_rules():
 
     # test for multiple condition value
     safe_priority = 2
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=safe_priority,
@@ -1260,7 +1260,7 @@ def test_describe_invalid_target_group():
     )
 
     # Check error raises correctly
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.describe_target_groups(Names=["invalid"])
 
 
@@ -1358,7 +1358,7 @@ def test_set_ip_address_type():
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
     # Internal LBs cant be dualstack yet
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
 
     # Create internet facing one
@@ -1410,7 +1410,7 @@ def test_set_security_groups():
     resp = client.describe_load_balancers(LoadBalancerArns=[arn])
     len(resp["LoadBalancers"][0]["SecurityGroups"]).should.equal(2)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_security_groups(LoadBalancerArn=arn, SecurityGroups=["non_existent"])
 
 
@@ -1451,11 +1451,11 @@ def test_set_subnets():
     len(resp["LoadBalancers"][0]["AvailabilityZones"]).should.equal(3)
 
     # Only 1 AZ
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_subnets(LoadBalancerArn=arn, Subnets=[subnet1.id])
 
     # Multiple subnets in same AZ
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.set_subnets(
             LoadBalancerArn=arn, Subnets=[subnet1.id, subnet2.id, subnet2.id]
         )
@@ -1644,7 +1644,7 @@ def test_modify_listener_http_to_https():
         listener.certificate.should.equal(yahoo_arn)
 
     # No default cert
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.modify_listener(
             ListenerArn=listener_arn,
             Port=443,
@@ -1655,7 +1655,7 @@ def test_modify_listener_http_to_https():
         )
 
     # Bad cert
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.modify_listener(
             ListenerArn=listener_arn,
             Port=443,
@@ -1884,7 +1884,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
             "MessageBody": "This page does not exist",
         },
     }
-    with assert_raises(ParamValidationError):
+    with pytest.raises(ParamValidationError):
         conn.create_listener(
             LoadBalancerArn=load_balancer_arn,
             Protocol="HTTP",
@@ -1934,7 +1934,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
                 "MessageBody": "This page does not exist",
             },
         }
-        with assert_raises(ParamValidationError):
+        with pytest.raises(ParamValidationError):
             conn.create_listener(
                 LoadBalancerArn=load_balancer_arn,
                 Protocol="HTTP",
@@ -1951,7 +1951,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
             },
         }
 
-        with assert_raises(ClientError) as invalid_status_code_exception:
+        with pytest.raises(ClientError) as invalid_status_code_exception:
             conn.create_listener(
                 LoadBalancerArn=load_balancer_arn,
                 Protocol="HTTP",
@@ -1959,7 +1959,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
                 DefaultActions=[invalid_status_code_action],
             )
 
-        invalid_status_code_exception.exception.response["Error"]["Code"].should.equal(
+        invalid_status_code_exception.value.response["Error"]["Code"].should.equal(
             "ValidationError"
         )
 
@@ -1998,13 +1998,13 @@ def test_fixed_response_action_listener_rule_validates_content_type():
             "StatusCode": "200",
         },
     }
-    with assert_raises(ClientError) as invalid_content_type_exception:
+    with pytest.raises(ClientError) as invalid_content_type_exception:
         conn.create_listener(
             LoadBalancerArn=load_balancer_arn,
             Protocol="HTTP",
             Port=80,
             DefaultActions=[invalid_content_type_action],
         )
-    invalid_content_type_exception.exception.response["Error"]["Code"].should.equal(
+    invalid_content_type_exception.value.response["Error"]["Code"].should.equal(
         "InvalidLoadBalancerAction"
     )

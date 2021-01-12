@@ -9,9 +9,9 @@ import datetime
 import uuid
 
 from botocore.exceptions import ClientError, ParamValidationError
-from nose.tools import assert_raises
+import pytest
 
-from moto import mock_ssm
+from moto import mock_ec2, mock_ssm
 
 
 @mock_ssm
@@ -35,10 +35,10 @@ def test_delete_parameter():
 def test_delete_nonexistent_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_parameter(Name="test_noexist")
-    ex.exception.response["Error"]["Code"].should.equal("ParameterNotFound")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
         "Parameter test_noexist not found."
     )
 
@@ -438,19 +438,17 @@ def test_get_parameter_with_version_and_labels():
         "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_parameter(Name="test-2:2:3", WithDecryption=False)
-    ex.exception.response["Error"]["Code"].should.equal("ParameterNotFound")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
         "Parameter test-2:2:3 not found."
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_parameter(Name="test-2:2", WithDecryption=False)
-    ex.exception.response["Error"]["Code"].should.equal("ParameterNotFound")
-    ex.exception.response["Error"]["Message"].should.equal(
-        "Parameter test-2:2 not found."
-    )
+    ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.value.response["Error"]["Message"].should.equal("Parameter test-2:2 not found.")
 
 
 @mock_ssm
@@ -462,9 +460,9 @@ def test_get_parameters_errors():
     for name, value in ssm_parameters.items():
         client.put_parameter(Name=name, Value=value, Type="String")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_parameters(Names=list(ssm_parameters.keys()))
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetParameters")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ValidationException")
@@ -1671,7 +1669,7 @@ def test_list_commands():
         cmd["InstanceIds"].should.contain("i-123456")
 
     # test the error case for an invalid command id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         response = client.list_commands(CommandId=str(uuid.uuid4()))
 
 
@@ -1703,13 +1701,46 @@ def test_get_command_invocation():
     invocation_response["InstanceId"].should.equal(instance_id)
 
     # test the error case for an invalid instance id
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId="i-FAKE"
         )
 
     # test the error case for an invalid plugin name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         invocation_response = client.get_command_invocation(
             CommandId=cmd_id, InstanceId=instance_id, PluginName="FAKE"
         )
+
+
+@mock_ec2
+@mock_ssm
+def test_get_command_invocations_by_instance_tag():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ssm = boto3.client("ssm", region_name="us-east-1")
+    tag_specifications = [
+        {"ResourceType": "instance", "Tags": [{"Key": "Name", "Value": "test-tag"}]}
+    ]
+    num_instances = 3
+    resp = ec2.run_instances(
+        ImageId="ami-1234abcd",
+        MaxCount=num_instances,
+        MinCount=num_instances,
+        TagSpecifications=tag_specifications,
+    )
+    instance_ids = []
+    for instance in resp["Instances"]:
+        instance_ids.append(instance["InstanceId"])
+    instance_ids.should.have.length_of(num_instances)
+
+    command_id = ssm.send_command(
+        DocumentName="AWS-RunShellScript",
+        Targets=[{"Key": "tag:Name", "Values": ["test-tag"]}],
+    )["Command"]["CommandId"]
+
+    resp = ssm.list_commands(CommandId=command_id)
+    resp["Commands"][0]["TargetCount"].should.equal(num_instances)
+
+    for instance_id in instance_ids:
+        resp = ssm.get_command_invocation(CommandId=command_id, InstanceId=instance_id)
+        resp["Status"].should.equal("Success")

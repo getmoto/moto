@@ -6,7 +6,7 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError
+from moto.emr.exceptions import EmrError, InvalidRequestException
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
@@ -147,6 +147,8 @@ class FakeCluster(BaseModel):
         running_ami_version=None,
         custom_ami_id=None,
         step_concurrency_level=1,
+        security_configuration=None,
+        kerberos_attributes=None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -249,6 +251,10 @@ class FakeCluster(BaseModel):
         self.run_bootstrap_actions()
         if self.steps:
             self.steps[0].start()
+        self.security_configuration = (
+            security_configuration  # ToDo: Raise if doesn't already exist.
+        )
+        self.kerberos_attributes = kerberos_attributes
 
     @property
     def instance_groups(self):
@@ -337,12 +343,20 @@ class FakeCluster(BaseModel):
         self.visible_to_all_users = visibility
 
 
+class FakeSecurityConfiguration(BaseModel):
+    def __init__(self, name, security_configuration):
+        self.name = name
+        self.security_configuration = security_configuration
+        self.creation_date_time = datetime.now(pytz.utc)
+
+
 class ElasticMapReduceBackend(BaseBackend):
     def __init__(self, region_name):
         super(ElasticMapReduceBackend, self).__init__()
         self.region_name = region_name
         self.clusters = {}
         self.instance_groups = {}
+        self.security_configurations = {}
 
     def reset(self):
         region_name = self.region_name
@@ -526,6 +540,37 @@ class ElasticMapReduceBackend(BaseBackend):
             return None
         instance_group = instance_groups[0]
         instance_group.auto_scaling_policy = None
+
+    def create_security_configuration(self, name, security_configuration):
+        if name in self.security_configurations:
+            raise InvalidRequestException(
+                message="SecurityConfiguration with name '{}' already exists.".format(
+                    name
+                )
+            )
+        security_configuration = FakeSecurityConfiguration(
+            name=name, security_configuration=security_configuration
+        )
+        self.security_configurations[name] = security_configuration
+        return security_configuration
+
+    def get_security_configuration(self, name):
+        if name not in self.security_configurations:
+            raise InvalidRequestException(
+                message="Security configuration with name '{}' does not exist.".format(
+                    name
+                )
+            )
+        return self.security_configurations[name]
+
+    def delete_security_configuration(self, name):
+        if name not in self.security_configurations:
+            raise InvalidRequestException(
+                message="Security configuration with name '{}' does not exist.".format(
+                    name
+                )
+            )
+        del self.security_configurations[name]
 
 
 emr_backends = {}

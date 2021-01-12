@@ -24,7 +24,7 @@ from moto import (
     mock_sqs,
 )
 from moto.sts.models import ACCOUNT_ID
-from nose.tools import assert_raises
+import pytest
 from botocore.exceptions import ClientError
 
 _lambda_region = "us-west-2"
@@ -86,6 +86,14 @@ def lambda_handler(event, context):
     return _process_lambda(pfunc)
 
 
+@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
+@mock_lambda
+def test_lambda_regions(region):
+    client = boto3.client("lambda", region_name=region)
+    resp = client.list_functions()
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
 @mock_lambda
 def test_list_functions():
     conn = boto3.client("lambda", _lambda_region)
@@ -93,6 +101,7 @@ def test_list_functions():
     result["Functions"].should.have.length_of(0)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_requestresponse_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -137,6 +146,7 @@ def test_invoke_requestresponse_function():
     assert "LogResult" not in success_result
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_requestresponse_function_with_arn():
     from moto.awslambda.models import ACCOUNT_ID
@@ -169,6 +179,7 @@ def test_invoke_requestresponse_function_with_arn():
     json.loads(payload).should.equal(in_data)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_event_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -196,6 +207,7 @@ def test_invoke_event_function():
     json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_dryrun_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -258,6 +270,7 @@ if settings.TEST_SERVER_MODE:
         actual_payload.should.equal(expected_payload)
 
 
+@pytest.mark.network
 @mock_logs
 @mock_sns
 @mock_ec2
@@ -497,8 +510,69 @@ def test_get_function():
     )
 
     # Test get function when can't find function name
-    with assert_raises(conn.exceptions.ResourceNotFoundException):
+    with pytest.raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
+
+
+@mock_lambda
+@mock_s3
+@freeze_time("2015-01-01 00:00:00")
+def test_get_function_configuration():
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket="test-bucket",
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket="test-bucket", Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+
+    conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Environment={"Variables": {"test_variable": "test_value"}},
+    )
+
+    result = conn.get_function_configuration(FunctionName="testFunction")
+
+    result["CodeSha256"].should.equal(hashlib.sha256(zip_content).hexdigest())
+    result["CodeSize"].should.equal(len(zip_content))
+    result["Description"].should.equal("test lambda function")
+    result.should.contain("FunctionArn")
+    result["FunctionName"].should.equal("testFunction")
+    result["Handler"].should.equal("lambda_function.lambda_handler")
+    result["MemorySize"].should.equal(128)
+    result["Role"].should.equal(get_role_name())
+    result["Runtime"].should.equal("python2.7")
+    result["Timeout"].should.equal(3)
+    result["Version"].should.equal("$LATEST")
+    result.should.contain("VpcConfig")
+    result.should.contain("Environment")
+    result["Environment"].should.contain("Variables")
+    result["Environment"]["Variables"].should.equal({"test_variable": "test_value"})
+
+    # Test get function with qualifier
+    result = conn.get_function_configuration(
+        FunctionName="testFunction", Qualifier="$LATEST"
+    )
+    result["Version"].should.equal("$LATEST")
+    result["FunctionArn"].should.equal(
+        "arn:aws:lambda:{}:{}:function:testFunction:$LATEST".format(
+            _lambda_region, ACCOUNT_ID
+        )
+    )
+
+    # Test get function when can't find function name
+    with pytest.raises(conn.exceptions.ResourceNotFoundException):
+        conn.get_function_configuration(FunctionName="junk", Qualifier="$LATEST")
 
 
 @mock_lambda
@@ -729,6 +803,7 @@ def test_list_create_list_get_delete_list():
     conn.list_functions()["Functions"].should.have.length_of(0)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_lambda_error():
     lambda_fx = """
@@ -844,6 +919,7 @@ def test_tags_not_found():
     ).should.throw(botocore.client.ClientError)
 
 
+@pytest.mark.network
 @mock_lambda
 def test_invoke_async_function():
     conn = boto3.client("lambda", _lambda_region)
@@ -1115,6 +1191,7 @@ def test_create_event_source_mapping():
     assert response["State"] == "Enabled"
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_sqs
@@ -1156,6 +1233,7 @@ def test_invoke_function_from_sqs():
     )
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_dynamodb2
@@ -1204,6 +1282,7 @@ def test_invoke_function_from_dynamodb_put():
     )
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_dynamodb2
@@ -1286,6 +1365,7 @@ def wait_for_log_msg(expected_msg, log_group):
     return False, received_messages
 
 
+@pytest.mark.network
 @mock_logs
 @mock_lambda
 @mock_sqs
@@ -1525,6 +1605,7 @@ def test_update_configuration():
         Handler="lambda_function.new_lambda_handler",
         Runtime="python3.6",
         Timeout=7,
+        VpcConfig={"SecurityGroupIds": ["sg-123abc"], "SubnetIds": ["subnet-123abc"]},
         Environment={"Variables": {"test_environment": "test_value"}},
     )
 
@@ -1536,6 +1617,11 @@ def test_update_configuration():
     assert updated_config["Timeout"] == 7
     assert updated_config["Environment"]["Variables"] == {
         "test_environment": "test_value"
+    }
+    assert updated_config["VpcConfig"] == {
+        "SecurityGroupIds": ["sg-123abc"],
+        "SubnetIds": ["subnet-123abc"],
+        "VpcId": "vpc-123abc",
     }
 
 
@@ -1662,7 +1748,7 @@ def test_update_function_s3():
 @mock_lambda
 def test_create_function_with_invalid_arn():
     err = create_invalid_lambda("test-iam-role")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         r"1 validation error detected: Value 'test-iam-role' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
     )
 
@@ -1670,7 +1756,7 @@ def test_create_function_with_invalid_arn():
 @mock_lambda
 def test_create_function_with_arn_from_different_account():
     err = create_invalid_lambda("arn:aws:iam::000000000000:role/example_role")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         "Cross-account pass role is not allowed."
     )
 
@@ -1680,7 +1766,7 @@ def test_create_function_with_unknown_arn():
     err = create_invalid_lambda(
         "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/service-role/unknown_role"
     )
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         "The role defined for the function cannot be assumed by Lambda."
     )
 
@@ -1800,7 +1886,7 @@ def test_get_function_concurrency():
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         conn.create_function(
             FunctionName="testFunction",
             Runtime="python2.7",

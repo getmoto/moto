@@ -2,7 +2,7 @@ import boto3
 import yaml
 import sure  # noqa
 
-from nose.tools import assert_raises
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_iam, mock_cloudformation, mock_s3, mock_sts
@@ -111,9 +111,9 @@ Resources:
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=original_user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
     iam_client.get_user(UserName=new_user_name)
 
@@ -175,9 +175,9 @@ Resources:
     second_user_name.should.equal(second_provisioned_user["PhysicalResourceId"])
 
     iam_client.get_user(UserName=second_user_name)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=first_user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
 @mock_iam
@@ -205,9 +205,9 @@ Resources:
 
     cf_client.delete_stack(StackName=stack_name)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         user = iam_client.get_user(UserName=user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
 @mock_iam
@@ -235,9 +235,9 @@ Resources:
 
     cf_client.delete_stack(StackName=stack_name)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         user = iam_client.get_user(UserName=user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
 @mock_iam

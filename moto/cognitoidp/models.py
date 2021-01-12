@@ -720,6 +720,27 @@ class CognitoIdpBackend(BaseBackend):
                 }
 
             return self._log_user_in(user_pool, client, username)
+        elif auth_flow == "ADMIN_USER_PASSWORD_AUTH":
+            username = auth_parameters.get("USERNAME")
+            password = auth_parameters.get("PASSWORD")
+            user = user_pool.users.get(username)
+            if not user:
+                raise UserNotFoundError(username)
+
+            if user.password != password:
+                raise NotAuthorizedError(username)
+
+            if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
+                session = str(uuid.uuid4())
+                self.sessions[session] = user_pool
+
+                return {
+                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
+            return self._log_user_in(user_pool, client, username)
         elif auth_flow == "REFRESH_TOKEN":
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             (
@@ -944,8 +965,8 @@ class CognitoIdpBackend(BaseBackend):
                 "ChallengeName": "PASSWORD_VERIFIER",
                 "Session": session,
                 "ChallengeParameters": {
-                    "SALT": str(uuid.uuid4()),
-                    "SRP_B": str(uuid.uuid4()),
+                    "SALT": uuid.uuid4().hex,
+                    "SRP_B": uuid.uuid4().hex,
                     "USERNAME": user.id,
                     "USER_ID_FOR_SRP": user.id,
                     "SECRET_BLOCK": session,
@@ -1066,5 +1087,7 @@ def find_region_by_value(key, value):
 
             if key == "access_token" and value in user_pool.access_tokens:
                 return region
-
-    return cognitoidp_backends.keys()[0]
+    # If we can't find the `client_id` or `access_token`, we just pass
+    # back a default backend region, which will raise the appropriate
+    # error message (e.g. NotAuthorized or NotFound).
+    return list(cognitoidp_backends)[0]

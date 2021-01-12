@@ -4,7 +4,7 @@ import copy
 import datetime
 
 from boto3 import Session
-from botocore.exceptions import ClientError
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -17,6 +17,7 @@ from .exceptions import (
     ClusterSnapshotAlreadyExistsError,
     ClusterSnapshotNotFoundError,
     ClusterSubnetGroupNotFoundError,
+    InvalidParameterCombinationError,
     InvalidParameterValueError,
     InvalidSubnetError,
     ResourceNotFoundFaultError,
@@ -25,6 +26,7 @@ from .exceptions import (
     SnapshotCopyDisabledFaultError,
     SnapshotCopyGrantAlreadyExistsFaultError,
     SnapshotCopyGrantNotFoundFaultError,
+    UnknownSnapshotCopyRegionFaultError,
 )
 
 
@@ -573,10 +575,12 @@ class RedshiftBackend(BaseBackend):
                 cluster.encrypted == "true"
                 and kwargs["snapshot_copy_grant_name"] is None
             ):
-                raise ClientError(
-                    "InvalidParameterValue",
-                    "SnapshotCopyGrantName is required for Snapshot Copy "
-                    "on KMS encrypted clusters.",
+                raise InvalidParameterValueError(
+                    "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
+                )
+            if kwargs["destination_region"] == self.region:
+                raise UnknownSnapshotCopyRegionFaultError(
+                    "Invalid region {}".format(self.region)
                 )
             status = {
                 "DestinationRegion": kwargs["destination_region"],
@@ -628,6 +632,20 @@ class RedshiftBackend(BaseBackend):
         cluster_identifier = cluster_kwargs.pop("cluster_identifier")
         new_cluster_identifier = cluster_kwargs.pop("new_cluster_identifier", None)
 
+        cluster_type = cluster_kwargs.get("cluster_type")
+        if cluster_type and cluster_type not in ["multi-node", "single-node"]:
+            raise InvalidParameterValueError(
+                "Invalid cluster type. Cluster type can be one of multi-node or single-node"
+            )
+        if cluster_type == "single-node":
+            # AWS will always silently override this value for single-node clusters.
+            cluster_kwargs["number_of_nodes"] = 1
+        elif cluster_type == "multi-node":
+            if cluster_kwargs.get("number_of_nodes", 0) < 2:
+                raise InvalidParameterCombinationError(
+                    "Number of nodes for cluster type multi-node must be greater than or equal to 2"
+                )
+
         cluster = self.describe_clusters(cluster_identifier)[0]
 
         for key, value in cluster_kwargs.items():
@@ -657,10 +675,8 @@ class RedshiftBackend(BaseBackend):
                 cluster_skip_final_snapshot is False
                 and cluster_snapshot_identifer is None
             ):
-                raise ClientError(
-                    "InvalidParameterValue",
-                    "FinalSnapshotIdentifier is required for Snapshot copy "
-                    "when SkipFinalSnapshot is False",
+                raise InvalidParameterCombinationError(
+                    "FinalClusterSnapshotIdentifier is required unless SkipFinalClusterSnapshot is specified."
                 )
             elif (
                 cluster_skip_final_snapshot is False
@@ -779,7 +795,6 @@ class RedshiftBackend(BaseBackend):
                     cluster_snapshots.append(snapshot)
             if cluster_snapshots:
                 return cluster_snapshots
-            raise ClusterNotFoundError(cluster_identifier)
 
         if snapshot_identifier:
             if snapshot_identifier in self.snapshots:

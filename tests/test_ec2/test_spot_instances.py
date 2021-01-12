@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from nose.tools import assert_raises
+import pytest
 import datetime
 
 import boto
@@ -31,7 +31,7 @@ def test_request_spot_instances():
     start = iso_8601_datetime_with_milliseconds(start_dt)
     end = iso_8601_datetime_with_milliseconds(end_dt)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         request = conn.request_spot_instances(
             SpotPrice="0.5",
             InstanceCount=1,
@@ -54,9 +54,9 @@ def test_request_spot_instances():
             },
             DryRun=True,
         )
-    ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the RequestSpotInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -155,11 +155,11 @@ def test_cancel_spot_instance_request():
     requests = conn.get_all_spot_instance_requests()
     requests.should.have.length_of(1)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.cancel_spot_instance_requests([requests[0].id], dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CancelSpotInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 

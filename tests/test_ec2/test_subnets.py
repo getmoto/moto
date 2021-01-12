@@ -1,17 +1,16 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
-
-import boto3
-import boto
-import boto.vpc
-from boto.exception import EC2ResponseError
-from botocore.exceptions import ParamValidationError, ClientError
-import sure  # noqa
 import random
 
+import boto
+import boto3
+import boto.vpc
+
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
+import sure  # noqa
+from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_ec2, mock_ec2_deprecated
 
 
@@ -30,22 +29,22 @@ def test_subnets():
     all_subnets = conn.get_all_subnets()
     all_subnets.should.have.length_of(0 + len(ec2.get_all_zones()))
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_subnet(subnet.id)
-    cm.exception.code.should.equal("InvalidSubnetID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidSubnetID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
 def test_subnet_create_vpc_validation():
     conn = boto.connect_vpc("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_subnet("vpc-abcd1234", "10.0.0.0/18")
-    cm.exception.code.should.equal("InvalidVpcID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVpcID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -202,7 +201,7 @@ def test_modify_subnet_attribute_validation():
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
     )
 
-    with assert_raises(ParamValidationError):
+    with pytest.raises(ParamValidationError):
         client.modify_subnet_attribute(
             SubnetId=subnet.id, MapPublicIpOnLaunch={"Value": "invalid"}
         )
@@ -228,11 +227,11 @@ def test_subnet_get_by_id():
     subnetA.id.should.be.within(subnets_by_id)
     subnetB1.id.should.be.within(subnets_by_id)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_subnets(subnet_ids=["subnet-does_not_exist"])
-    cm.exception.code.should.equal("InvalidSubnetID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidSubnetID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -386,13 +385,13 @@ def test_create_subnet_with_invalid_availability_zone():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
 
     subnet_availability_zone = "asfasfas"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         subnet = client.create_subnet(
             VpcId=vpc.id,
             CidrBlock="10.0.0.0/24",
             AvailabilityZone=subnet_availability_zone,
         )
-    assert str(ex.exception).startswith(
+    assert str(ex.value).startswith(
         "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
         "operation: Value ({}) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: ".format(
             subnet_availability_zone
@@ -409,9 +408,9 @@ def test_create_subnet_with_invalid_cidr_range():
     vpc.is_default.shouldnt.be.ok
 
     subnet_cidr_block = "10.1.0.0/20"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
         "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
     )
@@ -427,9 +426,9 @@ def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
     vpc.is_default.shouldnt.be.ok
 
     subnet_cidr_block = "10.2.0.0/20"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
         "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
     )
@@ -444,9 +443,9 @@ def test_create_subnet_with_invalid_cidr_block_parameter():
     vpc.is_default.shouldnt.be.ok
 
     subnet_cidr_block = "1000.1.0.0/20"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
         "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
             subnet_cidr_block
@@ -503,10 +502,10 @@ def test_create_subnets_with_overlapping_cidr_blocks():
     vpc.is_default.shouldnt.be.ok
 
     subnet_cidr_block = "10.0.0.0/24"
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
         subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Conflict) when calling the CreateSubnet "
         "operation: The CIDR '{}' conflicts with another subnet".format(
             subnet_cidr_block
@@ -678,3 +677,59 @@ def test_run_instances_should_attach_to_default_subnet():
         subnets[0]["AvailableIpAddressCount"] == 4090
         or subnets[1]["AvailableIpAddressCount"] == 4090
     )
+
+
+@mock_ec2
+def test_describe_subnets_by_vpc_id():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc1.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
+    )
+    vpc2 = ec2.create_vpc(CidrBlock="172.31.0.0/16")
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc2.id, CidrBlock="172.31.48.0/20", AvailabilityZone="us-west-1b"
+    )
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": [vpc1.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(1)
+    subnets[0]["SubnetId"].should.equal(subnet1.id)
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": [vpc2.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(1)
+    subnets[0]["SubnetId"].should.equal(subnet2.id)
+
+    # Specify multiple VPCs in Filter.
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": [vpc1.id, vpc2.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(2)
+
+    # Specify mismatched SubnetIds/Filters.
+    subnets = client.describe_subnets(
+        SubnetIds=[subnet1.id], Filters=[{"Name": "vpc-id", "Values": [vpc2.id]}]
+    ).get("Subnets", [])
+    subnets.should.have.length_of(0)
+
+
+@mock_ec2
+def test_describe_subnets_by_state():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
+    )
+
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "state", "Values": ["available"]}]
+    ).get("Subnets", [])
+    for subnet in subnets:
+        subnet["State"].should.equal("available")

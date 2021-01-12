@@ -21,15 +21,18 @@ from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 TRANSACTION_MAX_ITEMS = 25
 
 
-def has_empty_keys_or_values(_dict):
-    if _dict == "":
-        return True
-    if not isinstance(_dict, dict):
-        return False
-    return any(
-        key == "" or value == "" or has_empty_keys_or_values(value)
-        for key, value in _dict.items()
-    )
+def put_has_empty_keys(field_updates, table):
+    if table:
+        key_names = table.key_attributes
+
+        # string/binary fields with empty string as value
+        empty_str_fields = [
+            key
+            for (key, val) in field_updates.items()
+            if next(iter(val.keys())) in ["S", "B"] and next(iter(val.values())) == ""
+        ]
+        return any([keyname in empty_str_fields for keyname in key_names])
+    return False
 
 
 def get_empty_str_error():
@@ -257,7 +260,7 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, "Return values set to invalid value")
 
-        if has_empty_keys_or_values(item):
+        if put_has_empty_keys(item, self.dynamodb_backend.get_table(name)):
             return get_empty_str_error()
 
         overwrite = "Expected" not in self.body
@@ -751,9 +754,6 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, "Return values set to invalid value")
 
-        if has_empty_keys_or_values(expression_attribute_values):
-            return get_empty_str_error()
-
         if "Expected" in self.body:
             expected = self.body["Expected"]
         else:
@@ -813,7 +813,6 @@ class DynamoHandler(BaseResponse):
             item_dict["Attributes"] = self._build_updated_new_attributes(
                 existing_attributes, item_dict["Attributes"]
             )
-
         return dynamo_json_dump(item_dict)
 
     def _build_updated_new_attributes(self, original, changed):
@@ -838,10 +837,8 @@ class DynamoHandler(BaseResponse):
                         )
                         for index in range(len(changed))
                     ]
-            elif changed != original:
-                return changed
             else:
-                return None
+                return changed
 
     def describe_limits(self):
         return json.dumps(

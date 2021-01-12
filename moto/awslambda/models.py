@@ -17,13 +17,12 @@ import json
 import re
 import zipfile
 import uuid
-import functools
 import tarfile
 import calendar
 import threading
 import traceback
 import weakref
-import requests.adapters
+import requests.exceptions
 
 from boto3 import Session
 
@@ -47,6 +46,7 @@ from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
+from moto.utilities.docker_utilities import DockerModel
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,6 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-_orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
 
@@ -151,8 +150,9 @@ class _DockerDataVolumeContext:
                     raise  # multiple processes trying to use same volume?
 
 
-class LambdaFunction(CloudFormationModel):
+class LambdaFunction(CloudFormationModel, DockerModel):
     def __init__(self, spec, region, validate_s3=True, version=1):
+        DockerModel.__init__(self)
         # required
         self.region = region
         self.code = spec["Code"]
@@ -162,24 +162,9 @@ class LambdaFunction(CloudFormationModel):
         self.run_time = spec["Runtime"]
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.docker_client = docker.from_env()
         self.policy = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
-
-        # Unfortunately mocking replaces this method w/o fallback enabled, so we
-        # need to replace it if we detect it's been mocked
-        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
-            _orig_get_adapter = self.docker_client.api.get_adapter
-
-            def replace_adapter_send(*args, **kwargs):
-                adapter = _orig_get_adapter(*args, **kwargs)
-
-                if isinstance(adapter, requests.adapters.HTTPAdapter):
-                    adapter.send = functools.partial(_orig_adapter_send, adapter)
-                return adapter
-
-            self.docker_client.api.get_adapter = replace_adapter_send
 
         # optional
         self.description = spec.get("Description", "")
@@ -320,7 +305,7 @@ class LambdaFunction(CloudFormationModel):
             elif key == "Timeout":
                 self.timeout = value
             elif key == "VpcConfig":
-                self.vpc_config = value
+                self._vpc_config = value
             elif key == "Environment":
                 self.environment_vars = value["Variables"]
 

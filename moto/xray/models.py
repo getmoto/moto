@@ -6,7 +6,8 @@ import datetime
 from collections import defaultdict
 import json
 from moto.core import BaseBackend, BaseModel
-from .exceptions import BadSegmentException, AWSError
+from moto.core.exceptions import AWSError
+from .exceptions import BadSegmentException
 
 
 class TelemetryRecords(BaseModel):

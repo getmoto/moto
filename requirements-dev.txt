@@ -9,7 +9,7 @@ flask
 flask-cors
 boto>=2.45.0
 boto3>=1.4.4
-botocore>=1.15.13
+botocore>=1.18.17
 six>=1.9
 prompt-toolkit==2.0.10 # 3.x is not available with python2
 click==6.7
@@ -21,7 +21,7 @@ beautifulsoup4==4.6.0
 # The below pins mirror the Python version-conditional pins in setup.py
 #
 Jinja2>=2.10.1; python_version >= '3.6'
-mock; python_version >= '3.6'
+mock<=4.0.2; python_version >= '3.6'
 more-itertools; python_version >= '3.6'
 setuptools; python_version >= '3.6'
 sshpubkeys>=3.1.0; python_version >= '3.6'

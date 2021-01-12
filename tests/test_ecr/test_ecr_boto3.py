@@ -15,7 +15,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 from dateutil.tz import tzlocal
 
 from moto import mock_ecr
-from nose import SkipTest
+from unittest import SkipTest
 
 
 def _create_image_digest(contents=None):
@@ -318,6 +318,9 @@ def test_list_images():
     type(response["imageIds"]).should.be(list)
     len(response["imageIds"]).should.be(3)
 
+    for image in response["imageIds"]:
+        image["imageDigest"].should.contain("sha")
+
     image_tags = ["latest", "v1", "v2"]
     set(
         [
@@ -331,6 +334,7 @@ def test_list_images():
     type(response["imageIds"]).should.be(list)
     len(response["imageIds"]).should.be(1)
     response["imageIds"][0]["imageTag"].should.equal("oldest")
+    response["imageIds"][0]["imageDigest"].should.contain("sha")
 
 
 @mock_ecr

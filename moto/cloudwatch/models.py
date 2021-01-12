@@ -9,7 +9,7 @@ from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
-from .utils import make_arn_for_dashboard
+from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
@@ -29,6 +29,33 @@ class Dimension(object):
 
     def __ne__(self, item):  # Only needed on Py2; Py3 defines it implicitly
         return self != item
+
+
+class Metric(object):
+    def __init__(self, metric_name, namespace, dimensions):
+        self.metric_name = metric_name
+        self.namespace = namespace
+        self.dimensions = dimensions
+
+
+class MetricStat(object):
+    def __init__(self, metric, period, stat, unit):
+        self.metric = metric
+        self.period = period
+        self.stat = stat
+        self.unit = unit
+
+
+class MetricDataQuery(object):
+    def __init__(
+        self, id, label, period, return_data, expression=None, metric_stat=None
+    ):
+        self.id = id
+        self.label = label
+        self.period = period
+        self.return_data = return_data
+        self.expression = expression
+        self.metric_stat = metric_stat
 
 
 def daterange(start, stop, step=timedelta(days=1), inclusive=False):
@@ -65,8 +92,10 @@ class FakeAlarm(BaseModel):
         name,
         namespace,
         metric_name,
+        metric_data_queries,
         comparison_operator,
         evaluation_periods,
+        datapoints_to_alarm,
         period,
         threshold,
         statistic,
@@ -77,12 +106,16 @@ class FakeAlarm(BaseModel):
         insufficient_data_actions,
         unit,
         actions_enabled,
+        region="us-east-1",
     ):
         self.name = name
+        self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
         self.namespace = namespace
         self.metric_name = metric_name
+        self.metric_data_queries = metric_data_queries
         self.comparison_operator = comparison_operator
         self.evaluation_periods = evaluation_periods
+        self.datapoints_to_alarm = datapoints_to_alarm
         self.period = period
         self.threshold = threshold
         self.statistic = statistic
@@ -122,6 +155,18 @@ class FakeAlarm(BaseModel):
         self.state_updated_timestamp = datetime.utcnow()
 
 
+def are_dimensions_same(metric_dimensions, dimensions):
+    for dimension in metric_dimensions:
+        for new_dimension in dimensions:
+            if (
+                dimension.name != new_dimension.name
+                or dimension.value != new_dimension.value
+            ):
+                return False
+
+    return True
+
+
 class MetricDatum(BaseModel):
     def __init__(self, namespace, name, value, dimensions, timestamp):
         self.namespace = namespace
@@ -132,11 +177,17 @@ class MetricDatum(BaseModel):
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
 
-    def filter(self, namespace, name, dimensions):
+    def filter(self, namespace, name, dimensions, already_present_metrics):
         if namespace and namespace != self.namespace:
             return False
         if name and name != self.name:
             return False
+        for metric in already_present_metrics:
+            if self.dimensions and are_dimensions_same(
+                metric.dimensions, self.dimensions
+            ):
+                return False
+
         if dimensions and any(
             Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
         ):
@@ -235,8 +286,10 @@ class CloudWatchBackend(BaseBackend):
         name,
         namespace,
         metric_name,
+        metric_data_queries,
         comparison_operator,
         evaluation_periods,
+        datapoints_to_alarm,
         period,
         threshold,
         statistic,
@@ -247,13 +300,16 @@ class CloudWatchBackend(BaseBackend):
         insufficient_data_actions,
         unit,
         actions_enabled,
+        region="us-east-1",
     ):
         alarm = FakeAlarm(
             name,
             namespace,
             metric_name,
+            metric_data_queries,
             comparison_operator,
             evaluation_periods,
+            datapoints_to_alarm,
             period,
             threshold,
             statistic,
@@ -264,7 +320,9 @@ class CloudWatchBackend(BaseBackend):
             insufficient_data_actions,
             unit,
             actions_enabled,
+            region,
         )
+
         self.alarms[name] = alarm
         return alarm
 
@@ -474,12 +532,16 @@ class CloudWatchBackend(BaseBackend):
 
     def get_filtered_metrics(self, metric_name, namespace, dimensions):
         metrics = self.get_all_metrics()
-        metrics = [
-            md
-            for md in metrics
-            if md.filter(namespace=namespace, name=metric_name, dimensions=dimensions)
-        ]
-        return metrics
+        new_metrics = []
+        for md in metrics:
+            if md.filter(
+                namespace=namespace,
+                name=metric_name,
+                dimensions=dimensions,
+                already_present_metrics=new_metrics,
+            ):
+                new_metrics.append(md)
+        return new_metrics
 
     def _get_paginated(self, metrics):
         if len(metrics) > 500:

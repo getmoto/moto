@@ -1,12 +1,13 @@
+import pytest
+
 from moto.dynamodb2.exceptions import IncorrectOperandType, IncorrectDataType
 from moto.dynamodb2.models import Item, DynamoType
 from moto.dynamodb2.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
-from parameterized import parameterized
 
 
-def test_execution_of_if_not_exists_not_existing_value():
+def test_execution_of_if_not_exists_not_existing_value(table):
     update_expression = "SET a = if_not_exists(b, a)"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -21,6 +22,7 @@ def test_execution_of_if_not_exists_not_existing_value():
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -33,7 +35,9 @@ def test_execution_of_if_not_exists_not_existing_value():
     assert expected_item == item
 
 
-def test_execution_of_if_not_exists_with_existing_attribute_should_return_attribute():
+def test_execution_of_if_not_exists_with_existing_attribute_should_return_attribute(
+    table,
+):
     update_expression = "SET a = if_not_exists(b, a)"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -48,6 +52,7 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_attrib
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -60,7 +65,7 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_attrib
     assert expected_item == item
 
 
-def test_execution_of_if_not_exists_with_existing_attribute_should_return_value():
+def test_execution_of_if_not_exists_with_existing_attribute_should_return_value(table):
     update_expression = "SET a = if_not_exists(b, :val)"
     update_expression_values = {":val": {"N": "4"}}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -76,6 +81,7 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_value(
         expression_attribute_names=None,
         expression_attribute_values=update_expression_values,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -88,7 +94,9 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_value(
     assert expected_item == item
 
 
-def test_execution_of_if_not_exists_with_non_existing_attribute_should_return_value():
+def test_execution_of_if_not_exists_with_non_existing_attribute_should_return_value(
+    table,
+):
     update_expression = "SET a = if_not_exists(b, :val)"
     update_expression_values = {":val": {"N": "4"}}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -104,6 +112,7 @@ def test_execution_of_if_not_exists_with_non_existing_attribute_should_return_va
         expression_attribute_names=None,
         expression_attribute_values=update_expression_values,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -116,7 +125,7 @@ def test_execution_of_if_not_exists_with_non_existing_attribute_should_return_va
     assert expected_item == item
 
 
-def test_execution_of_sum_operation():
+def test_execution_of_sum_operation(table):
     update_expression = "SET a = a + b"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -131,6 +140,7 @@ def test_execution_of_sum_operation():
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -143,7 +153,7 @@ def test_execution_of_sum_operation():
     assert expected_item == item
 
 
-def test_execution_of_remove():
+def test_execution_of_remove(table):
     update_expression = "Remove a"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -158,6 +168,7 @@ def test_execution_of_remove():
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -170,7 +181,7 @@ def test_execution_of_remove():
     assert expected_item == item
 
 
-def test_execution_of_remove_in_map():
+def test_execution_of_remove_in_map(table):
     update_expression = "Remove itemmap.itemlist[1].foo11"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -197,6 +208,7 @@ def test_execution_of_remove_in_map():
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -221,7 +233,7 @@ def test_execution_of_remove_in_map():
     assert expected_item == item
 
 
-def test_execution_of_remove_in_list():
+def test_execution_of_remove_in_list(table):
     update_expression = "Remove itemmap.itemlist[1]"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -248,6 +260,7 @@ def test_execution_of_remove_in_list():
         expression_attribute_names=None,
         expression_attribute_values=None,
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -269,7 +282,7 @@ def test_execution_of_remove_in_list():
     assert expected_item == item
 
 
-def test_execution_of_delete_element_from_set():
+def test_execution_of_delete_element_from_set(table):
     update_expression = "delete s :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -284,6 +297,7 @@ def test_execution_of_delete_element_from_set():
         expression_attribute_names=None,
         expression_attribute_values={":value": {"SS": ["value2", "value5"]}},
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -296,7 +310,7 @@ def test_execution_of_delete_element_from_set():
     assert expected_item == item
 
 
-def test_execution_of_add_number():
+def test_execution_of_add_number(table):
     update_expression = "add s :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -311,6 +325,7 @@ def test_execution_of_add_number():
         expression_attribute_names=None,
         expression_attribute_values={":value": {"N": "10"}},
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -323,7 +338,7 @@ def test_execution_of_add_number():
     assert expected_item == item
 
 
-def test_execution_of_add_set_to_a_number():
+def test_execution_of_add_set_to_a_number(table):
     update_expression = "add s :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -339,6 +354,7 @@ def test_execution_of_add_set_to_a_number():
             expression_attribute_names=None,
             expression_attribute_values={":value": {"SS": ["s1"]}},
             item=item,
+            table=table,
         ).validate()
         UpdateExpressionExecutor(validated_ast, item, None).execute()
         expected_item = Item(
@@ -354,7 +370,7 @@ def test_execution_of_add_set_to_a_number():
         assert True
 
 
-def test_execution_of_add_to_a_set():
+def test_execution_of_add_to_a_set(table):
     update_expression = "ADD s :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
@@ -369,6 +385,7 @@ def test_execution_of_add_to_a_set():
         expression_attribute_names=None,
         expression_attribute_values={":value": {"SS": ["value2", "value5"]}},
         item=item,
+        table=table,
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
@@ -384,7 +401,8 @@ def test_execution_of_add_to_a_set():
     assert expected_item == item
 
 
-@parameterized(
+@pytest.mark.parametrize(
+    "expression_attribute_values,unexpected_data_type",
     [
         ({":value": {"S": "10"}}, "STRING",),
         ({":value": {"N": "10"}}, "NUMBER",),
@@ -393,10 +411,10 @@ def test_execution_of_add_to_a_set():
         ({":value": {"NULL": True}}, "NULL",),
         ({":value": {"M": {"el0": {"S": "10"}}}}, "MAP",),
         ({":value": {"L": []}}, "LIST",),
-    ]
+    ],
 )
 def test_execution_of__delete_element_from_set_invalid_value(
-    expression_attribute_values, unexpected_data_type
+    expression_attribute_values, unexpected_data_type, table
 ):
     """A delete statement must use a value of type SS in order to delete elements from a set."""
     update_expression = "delete s :value"
@@ -414,6 +432,7 @@ def test_execution_of__delete_element_from_set_invalid_value(
             expression_attribute_names=None,
             expression_attribute_values=expression_attribute_values,
             item=item,
+            table=table,
         ).validate()
         UpdateExpressionExecutor(validated_ast, item, None).execute()
         assert False, "Must raise exception"
@@ -422,7 +441,7 @@ def test_execution_of__delete_element_from_set_invalid_value(
         assert e.operand_type == unexpected_data_type
 
 
-def test_execution_of_delete_element_from_a_string_attribute():
+def test_execution_of_delete_element_from_a_string_attribute(table):
     """A delete statement must use a value of type SS in order to delete elements from a set."""
     update_expression = "delete s :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
@@ -439,6 +458,7 @@ def test_execution_of_delete_element_from_a_string_attribute():
             expression_attribute_names=None,
             expression_attribute_values={":value": {"SS": ["value2"]}},
             item=item,
+            table=table,
         ).validate()
         UpdateExpressionExecutor(validated_ast, item, None).execute()
         assert False, "Must raise exception"

@@ -2,7 +2,10 @@ from __future__ import unicode_literals
 
 import random
 
-from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
+from moto.packages.boto.ec2.blockdevicemapping import (
+    BlockDeviceType,
+    BlockDeviceMapping,
+)
 from moto.ec2.exceptions import InvalidInstanceIdError
 
 from moto.compat import OrderedDict
@@ -863,7 +866,7 @@ class AutoScalingBackend(BaseBackend):
         self.set_desired_capacity(group_name, desired_capacity)
 
     def change_capacity_percent(self, group_name, scaling_adjustment):
-        """ http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
+        """http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
         If PercentChangeInCapacity returns a value between 0 and 1,
         Auto Scaling will round it off to 1. If the PercentChangeInCapacity
         returns a value greater than 1, Auto Scaling will round it off to the

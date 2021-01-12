@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import os
+import pytest
 from sure import expect
 from moto.s3.utils import (
     bucket_name_from_url,
@@ -8,7 +9,6 @@ from moto.s3.utils import (
     clean_key_name,
     undo_clean_key_name,
 )
-from parameterized import parameterized
 
 
 def test_base_url():
@@ -93,7 +93,8 @@ def test_parse_region_from_url():
         parse_region_from_url(url).should.equal(expected)
 
 
-@parameterized(
+@pytest.mark.parametrize(
+    "key,expected",
     [
         ("foo/bar/baz", "foo/bar/baz"),
         ("foo", "foo"),
@@ -101,13 +102,14 @@ def test_parse_region_from_url():
             "foo/run_dt%3D2019-01-01%252012%253A30%253A00",
             "foo/run_dt=2019-01-01%2012%3A30%3A00",
         ),
-    ]
+    ],
 )
 def test_clean_key_name(key, expected):
     clean_key_name(key).should.equal(expected)
 
 
-@parameterized(
+@pytest.mark.parametrize(
+    "key,expected",
     [
         ("foo/bar/baz", "foo/bar/baz"),
         ("foo", "foo"),
@@ -115,7 +117,7 @@ def test_clean_key_name(key, expected):
             "foo/run_dt%3D2019-01-01%252012%253A30%253A00",
             "foo/run_dt%253D2019-01-01%25252012%25253A30%25253A00",
         ),
-    ]
+    ],
 )
 def test_undo_clean_key_name(key, expected):
     undo_clean_key_name(key).should.equal(expected)

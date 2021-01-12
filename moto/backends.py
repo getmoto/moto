@@ -76,6 +76,7 @@ BACKENDS = {
         "kinesisvideoarchivedmedia",
         "kinesisvideoarchivedmedia_backends",
     ),
+    "forecast": ("forecast", "forecast_backends"),
 }
 
 

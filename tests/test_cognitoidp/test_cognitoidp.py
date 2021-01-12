@@ -17,7 +17,7 @@ import boto3
 import sure  # noqa
 from botocore.exceptions import ClientError
 from jose import jws, jwk, jwt
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_cognitoidp, settings
 from moto.cognitoidp.utils import create_id
@@ -603,14 +603,14 @@ def test_update_identity_provider_no_user_pool():
 
     new_value = str(uuid.uuid4())
 
-    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+    with pytest.raises(conn.exceptions.ResourceNotFoundException) as cm:
         conn.update_identity_provider(
             UserPoolId="foo", ProviderName="bar", ProviderDetails={"thing": new_value}
         )
 
-    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("UpdateIdentityProvider")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -623,16 +623,16 @@ def test_update_identity_provider_no_identity_provider():
     new_value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
-    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+    with pytest.raises(conn.exceptions.ResourceNotFoundException) as cm:
         conn.update_identity_provider(
             UserPoolId=user_pool_id,
             ProviderName="foo",
             ProviderDetails={"thing": new_value},
         )
 
-    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("UpdateIdentityProvider")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -699,11 +699,11 @@ def test_create_group_with_duplicate_name_raises_error():
 
     conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.operation_name.should.equal("CreateGroup")
-    cm.exception.response["Error"]["Code"].should.equal("GroupExistsException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("CreateGroup")
+    cm.value.response["Error"]["Code"].should.equal("GroupExistsException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -747,9 +747,9 @@ def test_delete_group():
     result = conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
     list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_cognitoidp
@@ -1198,7 +1198,7 @@ def test_admin_delete_user():
     caught.should.be.true
 
 
-def authentication_flow(conn):
+def authentication_flow(conn, auth_flow):
     username = str(uuid.uuid4())
     temporary_password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1220,7 +1220,7 @@ def authentication_flow(conn):
     result = conn.admin_initiate_auth(
         UserPoolId=user_pool_id,
         ClientId=client_id,
-        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthFlow=auth_flow,
         AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
     )
 
@@ -1255,7 +1255,8 @@ def authentication_flow(conn):
 def test_authentication_flow():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    authentication_flow(conn)
+    for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
+        authentication_flow(conn, auth_flow)
 
 
 def user_authentication_flow(conn):
@@ -1294,7 +1295,7 @@ def user_authentication_flow(conn):
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": username,
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": secret_hash,
         },
     )
@@ -1341,7 +1342,7 @@ def user_authentication_flow(conn):
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": username,
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": secret_hash,
         },
     )
@@ -1397,49 +1398,54 @@ def test_token_legitimacy():
     with open(os.path.join(os.path.dirname(__file__), path)) as f:
         json_web_key = json.loads(f.read())["keys"][0]
 
-    outputs = authentication_flow(conn)
-    id_token = outputs["id_token"]
-    access_token = outputs["access_token"]
-    client_id = outputs["client_id"]
-    issuer = "https://cognito-idp.us-west-2.amazonaws.com/{}".format(
-        outputs["user_pool_id"]
-    )
-    id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
-    id_claims["iss"].should.equal(issuer)
-    id_claims["aud"].should.equal(client_id)
-    id_claims["token_use"].should.equal("id")
-    for k, v in outputs["additional_fields"].items():
-        id_claims[k].should.equal(v)
-    access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
-    access_claims["iss"].should.equal(issuer)
-    access_claims["aud"].should.equal(client_id)
-    access_claims["token_use"].should.equal("access")
+    for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
+        outputs = authentication_flow(conn, auth_flow)
+        id_token = outputs["id_token"]
+        access_token = outputs["access_token"]
+        client_id = outputs["client_id"]
+        issuer = "https://cognito-idp.us-west-2.amazonaws.com/{}".format(
+            outputs["user_pool_id"]
+        )
+        id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
+        id_claims["iss"].should.equal(issuer)
+        id_claims["aud"].should.equal(client_id)
+        id_claims["token_use"].should.equal("id")
+        for k, v in outputs["additional_fields"].items():
+            id_claims[k].should.equal(v)
+        access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
+        access_claims["iss"].should.equal(issuer)
+        access_claims["aud"].should.equal(client_id)
+        access_claims["token_use"].should.equal("access")
 
 
 @mock_cognitoidp
 def test_change_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    outputs = authentication_flow(conn)
+    for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
+        outputs = authentication_flow(conn, auth_flow)
 
-    # Take this opportunity to test change_password, which requires an access token.
-    newer_password = str(uuid.uuid4())
-    conn.change_password(
-        AccessToken=outputs["access_token"],
-        PreviousPassword=outputs["password"],
-        ProposedPassword=newer_password,
-    )
+        # Take this opportunity to test change_password, which requires an access token.
+        newer_password = str(uuid.uuid4())
+        conn.change_password(
+            AccessToken=outputs["access_token"],
+            PreviousPassword=outputs["password"],
+            ProposedPassword=newer_password,
+        )
 
-    # Log in again, which should succeed without a challenge because the user is no
-    # longer in the force-new-password state.
-    result = conn.admin_initiate_auth(
-        UserPoolId=outputs["user_pool_id"],
-        ClientId=outputs["client_id"],
-        AuthFlow="ADMIN_NO_SRP_AUTH",
-        AuthParameters={"USERNAME": outputs["username"], "PASSWORD": newer_password},
-    )
+        # Log in again, which should succeed without a challenge because the user is no
+        # longer in the force-new-password state.
+        result = conn.admin_initiate_auth(
+            UserPoolId=outputs["user_pool_id"],
+            ClientId=outputs["client_id"],
+            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthParameters={
+                "USERNAME": outputs["username"],
+                "PASSWORD": newer_password,
+            },
+        )
 
-    result["AuthenticationResult"].should_not.be.none
+        result["AuthenticationResult"].should_not.be.none
 
 
 @mock_cognitoidp
@@ -1452,26 +1458,30 @@ def test_change_password__using_custom_user_agent_header():
     my_config = Config(user_agent_extra="more/info", signature_version="v4")
     conn = boto3.client("cognito-idp", "us-west-2", config=my_config)
 
-    outputs = authentication_flow(conn)
+    for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
+        outputs = authentication_flow(conn, auth_flow)
 
-    # Take this opportunity to test change_password, which requires an access token.
-    newer_password = str(uuid.uuid4())
-    conn.change_password(
-        AccessToken=outputs["access_token"],
-        PreviousPassword=outputs["password"],
-        ProposedPassword=newer_password,
-    )
+        # Take this opportunity to test change_password, which requires an access token.
+        newer_password = str(uuid.uuid4())
+        conn.change_password(
+            AccessToken=outputs["access_token"],
+            PreviousPassword=outputs["password"],
+            ProposedPassword=newer_password,
+        )
 
-    # Log in again, which should succeed without a challenge because the user is no
-    # longer in the force-new-password state.
-    result = conn.admin_initiate_auth(
-        UserPoolId=outputs["user_pool_id"],
-        ClientId=outputs["client_id"],
-        AuthFlow="ADMIN_NO_SRP_AUTH",
-        AuthParameters={"USERNAME": outputs["username"], "PASSWORD": newer_password},
-    )
+        # Log in again, which should succeed without a challenge because the user is no
+        # longer in the force-new-password state.
+        result = conn.admin_initiate_auth(
+            UserPoolId=outputs["user_pool_id"],
+            ClientId=outputs["client_id"],
+            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthParameters={
+                "USERNAME": outputs["username"],
+                "PASSWORD": newer_password,
+            },
+        )
 
-    result["AuthenticationResult"].should_not.be.none
+        result["AuthenticationResult"].should_not.be.none
 
 
 @mock_cognitoidp
@@ -1565,17 +1575,17 @@ def test_resource_server():
     res["ResourceServer"]["Name"].should.equal(name)
     res["ResourceServer"]["Scopes"].should.equal(scopes)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_resource_server(
             UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
         )
 
-    ex.exception.operation_name.should.equal("CreateResourceServer")
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.operation_name.should.equal("CreateResourceServer")
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.value.response["Error"]["Message"].should.equal(
         "%s already exists in user pool %s." % (identifier, user_pool_id)
     )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -1638,7 +1648,7 @@ def test_initiate_auth_USER_SRP_AUTH():
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": username,
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": secret_hash,
         },
     )
@@ -1688,7 +1698,7 @@ def test_initiate_auth_for_unconfirmed_user():
             AuthFlow="USER_SRP_AUTH",
             AuthParameters={
                 "USERNAME": username,
-                "SRP_A": str(uuid.uuid4()),
+                "SRP_A": uuid.uuid4().hex,
                 "SECRET_HASH": secret_hash,
             },
         )
@@ -1724,7 +1734,7 @@ def test_initiate_auth_with_invalid_secret_hash():
             AuthFlow="USER_SRP_AUTH",
             AuthParameters={
                 "USERNAME": username,
-                "SRP_A": str(uuid.uuid4()),
+                "SRP_A": uuid.uuid4().hex,
                 "SECRET_HASH": invalid_secret_hash,
             },
         )
@@ -1737,36 +1747,42 @@ def test_initiate_auth_with_invalid_secret_hash():
 @mock_cognitoidp
 def test_setting_mfa():
     conn = boto3.client("cognito-idp", "us-west-2")
-    result = authentication_flow(conn)
-    conn.associate_software_token(AccessToken=result["access_token"])
-    conn.verify_software_token(AccessToken=result["access_token"], UserCode="123456")
-    conn.set_user_mfa_preference(
-        AccessToken=result["access_token"],
-        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
-    )
-    result = conn.admin_get_user(
-        UserPoolId=result["user_pool_id"], Username=result["username"]
-    )
 
-    result["UserMFASettingList"].should.have.length_of(1)
+    for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
+        result = authentication_flow(conn, auth_flow)
+        conn.associate_software_token(AccessToken=result["access_token"])
+        conn.verify_software_token(
+            AccessToken=result["access_token"], UserCode="123456"
+        )
+        conn.set_user_mfa_preference(
+            AccessToken=result["access_token"],
+            SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+        )
+        result = conn.admin_get_user(
+            UserPoolId=result["user_pool_id"], Username=result["username"]
+        )
+
+        result["UserMFASettingList"].should.have.length_of(1)
 
 
 @mock_cognitoidp
 def test_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
-    result = authentication_flow(conn)
-    conn.associate_software_token(AccessToken=result["access_token"])
 
-    caught = False
-    try:
-        conn.set_user_mfa_preference(
-            AccessToken=result["access_token"],
-            SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
-        )
-    except conn.exceptions.InvalidParameterException:
-        caught = True
+    for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
+        result = authentication_flow(conn, auth_flow)
+        conn.associate_software_token(AccessToken=result["access_token"])
 
-    caught.should.be.true
+        caught = False
+        try:
+            conn.set_user_mfa_preference(
+                AccessToken=result["access_token"],
+                SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+            )
+        except conn.exceptions.InvalidParameterException:
+            caught = True
+
+        caught.should.be.true
 
 
 @mock_cognitoidp
@@ -1782,7 +1798,7 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
         AuthFlow="USER_SRP_AUTH",
         AuthParameters={
             "USERNAME": result["username"],
-            "SRP_A": str(uuid.uuid4()),
+            "SRP_A": uuid.uuid4().hex,
             "SECRET_HASH": valid_secret_hash,
         },
     )
@@ -1838,6 +1854,31 @@ def test_admin_set_user_password():
     result["UserAttributes"][0]["Name"].should.equal("thing")
     result["UserAttributes"][0]["Value"].should.equal(value)
     result["UserStatus"].should.equal("CONFIRMED")
+
+
+@mock_cognitoidp
+def test_change_password_with_invalid_token_raises_error():
+    client = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        client.change_password(
+            AccessToken=str(uuid.uuid4()),
+            PreviousPassword="previous_password",
+            ProposedPassword="newer_password",
+        )
+    ex.value.response["Error"]["Code"].should.equal("NotAuthorizedException")
+
+
+@mock_cognitoidp
+def test_confirm_forgot_password_with_non_existent_client_id_raises_error():
+    client = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        client.confirm_forgot_password(
+            ClientId="non-existent-client-id",
+            Username="not-existent-username",
+            ConfirmationCode=str(uuid.uuid4()),
+            Password=str(uuid.uuid4()),
+        )
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,

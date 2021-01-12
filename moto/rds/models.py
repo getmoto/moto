@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-import boto.rds
+from boto3 import Session
 from jinja2 import Template
 
 from moto.core import BaseBackend, CloudFormationModel
@@ -335,6 +335,10 @@ class RDSBackend(BaseBackend):
         return rds2_backends[self.region]
 
 
-rds_backends = dict(
-    (region.name, RDSBackend(region.name)) for region in boto.rds.regions()
-)
+rds_backends = {}
+for region in Session().get_available_regions("rds"):
+    rds_backends[region] = RDSBackend(region)
+for region in Session().get_available_regions("rds", partition_name="aws-us-gov"):
+    rds_backends[region] = RDSBackend(region)
+for region in Session().get_available_regions("rds", partition_name="aws-cn"):
+    rds_backends[region] = RDSBackend(region)

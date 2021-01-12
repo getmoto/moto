@@ -21,19 +21,20 @@ class GlueResponse(BaseResponse):
         return json.loads(self.body)
 
     def create_database(self):
-        database_name = self.parameters["DatabaseInput"]["Name"]
-        self.glue_backend.create_database(database_name)
+        database_input = self.parameters.get("DatabaseInput")
+        database_name = database_input.get("Name")
+        self.glue_backend.create_database(database_name, database_input)
         return ""
 
     def get_database(self):
         database_name = self.parameters.get("Name")
         database = self.glue_backend.get_database(database_name)
-        return json.dumps({"Database": {"Name": database.name}})
+        return json.dumps({"Database": database.as_dict()})
 
     def get_databases(self):
         database_list = self.glue_backend.get_databases()
         return json.dumps(
-            {"DatabaseList": [{"Name": database.name} for database in database_list]}
+            {"DatabaseList": [database.as_dict() for database in database_list]}
         )
 
     def create_table(self):
@@ -207,6 +208,35 @@ class GlueResponse(BaseResponse):
         table.update_partition(part_to_update, part_input)
 
         return ""
+
+    def batch_update_partition(self):
+        database_name = self.parameters.get("DatabaseName")
+        table_name = self.parameters.get("TableName")
+        table = self.glue_backend.get_table(database_name, table_name)
+
+        errors_output = []
+        for entry in self.parameters.get("Entries"):
+            part_to_update = entry["PartitionValueList"]
+            part_input = entry["PartitionInput"]
+
+            try:
+                table.update_partition(part_to_update, part_input)
+            except PartitionNotFoundException:
+                errors_output.append(
+                    {
+                        "PartitionValueList": part_to_update,
+                        "ErrorDetail": {
+                            "ErrorCode": "EntityNotFoundException",
+                            "ErrorMessage": "Partition not found.",
+                        },
+                    }
+                )
+
+        out = {}
+        if errors_output:
+            out["Errors"] = errors_output
+
+        return json.dumps(out)
 
     def delete_partition(self):
         database_name = self.parameters.get("DatabaseName")

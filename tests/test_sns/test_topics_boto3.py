@@ -538,7 +538,7 @@ def test_topic_kms_master_key_id_attribute():
     resp["Attributes"]["KmsMasterKeyId"].should.equal("test-key")
 
     resp = client.create_topic(
-        Name="test-sns-with-key-attr", Attributes={"KmsMasterKeyId": "key-id",}
+        Name="test-sns-with-key-attr", Attributes={"KmsMasterKeyId": "key-id",},
     )
     topic_arn = resp["TopicArn"]
     resp = client.get_topic_attributes(TopicArn=topic_arn)

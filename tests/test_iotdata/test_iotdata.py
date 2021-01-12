@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import json
 import boto3
 import sure  # noqa
-from nose.tools import assert_raises
+import pytest
 from botocore.exceptions import ClientError
 from moto import mock_iotdata, mock_iot
 
@@ -17,7 +17,7 @@ def test_basic():
     raw_payload = b'{"state": {"desired": {"led": "on"}}}'
     iot_client.create_thing(thingName=name)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.get_thing_shadow(thingName=name)
 
     res = client.update_thing_shadow(thingName=name, payload=raw_payload)
@@ -42,7 +42,7 @@ def test_basic():
     payload.should.have.key("timestamp")
 
     client.delete_thing_shadow(thingName=name)
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.get_thing_shadow(thingName=name)
 
 
@@ -99,10 +99,10 @@ def test_update():
     payload.should.have.key("timestamp")
 
     raw_payload = b'{"state": {"desired": {"led": "on"}}, "version": 1}'
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.update_thing_shadow(thingName=name, payload=raw_payload)
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
-    ex.exception.response["Error"]["Message"].should.equal("Version conflict")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    ex.value.response["Error"]["Message"].should.equal("Version conflict")
 
 
 @mock_iotdata

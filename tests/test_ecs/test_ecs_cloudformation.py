@@ -269,6 +269,5 @@ def test_create_task_definition_through_cloudformation():
         template["Resources"]["testTaskDefinition"]["Properties"], pascal_to_camelcase
     )
     task_definition["volumes"].should.equal(expected_properties["volumes"])
-    task_definition["containerDefinitions"].should.equal(
-        expected_properties["containerDefinitions"]
-    )
+    for key, value in expected_properties["containerDefinitions"][0].items():
+        task_definition["containerDefinitions"][0][key].should.equal(value)

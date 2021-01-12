@@ -136,6 +136,7 @@ class FakeSecret:
             "DeletedDate": self.deleted_date,
             "Tags": self.tags,
             "VersionIdsToStages": version_id_to_stages,
+            "SecretVersionsToStages": version_id_to_stages,
         }
 
     def _form_version_ids_to_stages(self):
@@ -342,13 +343,12 @@ class SecretsManagerBackend(BaseBackend):
 
     def put_secret_value(self, secret_id, secret_string, secret_binary, version_stages):
 
-        if secret_id in self.secrets.keys():
+        if not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+        else:
             secret = self.secrets[secret_id]
             tags = secret.tags
             description = secret.description
-        else:
-            tags = []
-            description = ""
 
         secret = self._add_secret(
             secret_id,

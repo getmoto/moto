@@ -20,6 +20,7 @@ from moto.dynamodb2.exceptions import (
     ItemSizeToUpdateTooLarge,
     ConditionalCheckFailed,
     TransactionCanceledException,
+    EmptyKeyAttributeException,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -107,9 +108,19 @@ class Item(BaseModel):
             included = self.attrs
         return {"Item": included}
 
+    def validate_no_empty_key_values(self, attribute_updates, key_attributes):
+        for attribute_name, update_action in attribute_updates.items():
+            action = update_action.get("Action") or "PUT"  # PUT is default
+            new_value = next(iter(update_action["Value"].values()))
+            if action == "PUT" and new_value == "" and attribute_name in key_attributes:
+                raise EmptyKeyAttributeException
+
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
-            action = update_action["Action"]
+            # Use default Action value, if no explicit Action is passed.
+            # Default value is 'Put', according to
+            # Boto3 DynamoDB.Client.update_item documentation.
+            action = update_action.get("Action", "PUT")
             if action == "DELETE" and "Value" not in update_action:
                 if attribute_name in self.attrs:
                     del self.attrs[attribute_name]
@@ -117,10 +128,10 @@ class Item(BaseModel):
             new_value = list(update_action["Value"].values())[0]
             if action == "PUT":
                 # TODO deal with other types
-                if isinstance(new_value, list):
-                    self.attrs[attribute_name] = DynamoType({"L": new_value})
-                elif isinstance(new_value, set):
+                if set(update_action["Value"].keys()) == set(["SS"]):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
+                elif isinstance(new_value, list):
+                    self.attrs[attribute_name] = DynamoType({"L": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
                 elif set(update_action["Value"].keys()) == set(["N"]):
@@ -145,6 +156,10 @@ class Item(BaseModel):
                     existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
                     new_set = set(existing.value).union(set(new_value))
                     self.attrs[attribute_name] = DynamoType({"SS": list(new_set)})
+                elif set(update_action["Value"].keys()) == {"L"}:
+                    existing = self.attrs.get(attribute_name, DynamoType({"L": []}))
+                    new_list = existing.value + new_value
+                    self.attrs[attribute_name] = DynamoType({"L": new_list})
                 else:
                     # TODO: implement other data types
                     raise NotImplementedError(
@@ -245,7 +260,7 @@ class StreamShard(BaseModel):
         if old is None:
             event_name = "INSERT"
         elif new is None:
-            event_name = "DELETE"
+            event_name = "REMOVE"
         else:
             event_name = "MODIFY"
         seq = len(self.items) + self.starting_sequence_number
@@ -281,11 +296,19 @@ class SecondaryIndex(BaseModel):
         :return:
         """
         if self.projection:
-            if self.projection.get("ProjectionType", None) == "KEYS_ONLY":
-                allowed_attributes = ",".join(
-                    self.table_key_attrs + [key["AttributeName"] for key in self.schema]
+            projection_type = self.projection.get("ProjectionType", None)
+            key_attributes = self.table_key_attrs + [
+                key["AttributeName"] for key in self.schema
+            ]
+
+            if projection_type == "KEYS_ONLY":
+                item.filter(",".join(key_attributes))
+            elif projection_type == "INCLUDE":
+                allowed_attributes = key_attributes + self.projection.get(
+                    "NonKeyAttributes", []
                 )
-                item.filter(allowed_attributes)
+                item.filter(",".join(allowed_attributes))
+            # ALL is handled implicitly by not filtering
         return item
 
 
@@ -430,6 +453,18 @@ class Table(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @property
+    def key_attributes(self):
+        # A set of all the hash or range attributes for all indexes
+        def keys_from_index(idx):
+            schema = idx.schema
+            return [attr["AttributeName"] for attr in schema]
+
+        fieldnames = copy.copy(self.table_key_attrs)
+        for idx in self.indexes + self.global_indexes:
+            fieldnames += keys_from_index(idx)
+        return fieldnames
 
     @staticmethod
     def cloudformation_name_type():
@@ -1270,12 +1305,16 @@ class DynamoDBBackend(BaseBackend):
             table.put_item(data)
             item = table.get_item(hash_value, range_value)
 
+        if attribute_updates:
+            item.validate_no_empty_key_values(attribute_updates, table.key_attributes)
+
         if update_expression:
             validated_ast = UpdateExpressionValidator(
                 update_expression_ast,
                 expression_attribute_names=expression_attribute_names,
                 expression_attribute_values=expression_attribute_values,
                 item=item,
+                table=table,
             ).validate()
             try:
                 UpdateExpressionExecutor(

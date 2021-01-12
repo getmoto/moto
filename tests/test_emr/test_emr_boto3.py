@@ -5,11 +5,12 @@ from copy import deepcopy
 from datetime import datetime
 
 import boto3
+import json
 import pytz
 import six
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_emr
 
@@ -106,7 +107,15 @@ def test_describe_cluster():
     args["Instances"]["EmrManagedSlaveSecurityGroup"] = "slave-security-group"
     args["Instances"]["KeepJobFlowAliveWhenNoSteps"] = False
     args["Instances"]["ServiceAccessSecurityGroup"] = "service-access-security-group"
+    args["KerberosAttributes"] = {
+        "Realm": "MY-REALM.COM",
+        "KdcAdminPassword": "SuperSecretPassword2",
+        "CrossRealmTrustPrincipalPassword": "SuperSecretPassword3",
+        "ADDomainJoinUser": "Bob",
+        "ADDomainJoinPassword": "SuperSecretPassword4",
+    }
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
+    args["SecurityConfiguration"] = "my-security-configuration"
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
@@ -144,6 +153,7 @@ def test_describe_cluster():
         args["Instances"]["ServiceAccessSecurityGroup"]
     )
     cl["Id"].should.equal(cluster_id)
+    cl["KerberosAttributes"].should.equal(args["KerberosAttributes"])
     cl["LogUri"].should.equal(args["LogUri"])
     cl["MasterPublicDnsName"].should.be.a(six.string_types)
     cl["Name"].should.equal(args["Name"])
@@ -151,7 +161,8 @@ def test_describe_cluster():
     # cl['ReleaseLabel'].should.equal('emr-5.0.0')
     cl.shouldnt.have.key("RequestedAmiVersion")
     cl["RunningAmiVersion"].should.equal("1.0.0")
-    # cl['SecurityConfiguration'].should.be.a(six.string_types)
+    cl["SecurityConfiguration"].should.be.a(six.string_types)
+    cl["SecurityConfiguration"].should.equal(args["SecurityConfiguration"])
     cl["ServiceRole"].should.equal(args["ServiceRole"])
 
     status = cl["Status"]
@@ -395,13 +406,13 @@ def test_run_job_flow():
 @mock_emr
 def test_run_job_flow_with_invalid_params():
     client = boto3.client("emr", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         # cannot set both AmiVersion and ReleaseLabel
         args = deepcopy(run_job_flow_args)
         args["AmiVersion"] = "2.4"
         args["ReleaseLabel"] = "emr-5.0.0"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_emr
@@ -592,40 +603,40 @@ def _patch_cluster_id_placeholder_in_autoscaling_policy(
 def test_run_job_flow_with_custom_ami():
     client = boto3.client("emr", region_name="us-east-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         # CustomAmiId available in Amazon EMR 5.7.0 and later
         args = deepcopy(run_job_flow_args)
         args["CustomAmiId"] = "MyEmrCustomId"
         args["ReleaseLabel"] = "emr-5.6.0"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal("Custom AMI is not allowed")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal("Custom AMI is not allowed")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         args = deepcopy(run_job_flow_args)
         args["CustomAmiId"] = "MyEmrCustomId"
         args["AmiVersion"] = "3.8.1"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Custom AMI is not supported in this version of EMR"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         # AMI version and release label exception  raises before CustomAmi exception
         args = deepcopy(run_job_flow_args)
         args["CustomAmiId"] = "MyEmrCustomId"
         args["ReleaseLabel"] = "emr-5.6.0"
         args["AmiVersion"] = "3.8.1"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.contain(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(
         "Only one AMI version and release label may be specified."
     )
 
     args = deepcopy(run_job_flow_args)
     args["CustomAmiId"] = "MyEmrCustomAmi"
-    args["ReleaseLabel"] = "emr-5.7.0"
+    args["ReleaseLabel"] = "emr-5.31.0"
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
     resp = client.describe_cluster(ClusterId=cluster_id)
     resp["Cluster"]["CustomAmiId"].should.equal("MyEmrCustomAmi")
@@ -799,11 +810,12 @@ def test_instance_groups():
             x["AutoScalingPolicy"]["Status"]["State"].should.equal("ATTACHED")
             returned_policy = dict(x["AutoScalingPolicy"])
             del returned_policy["Status"]
-            for dimension in y["AutoScalingPolicy"]["Rules"]["Trigger"][
-                "CloudWatchAlarmDefinition"
-            ]["Dimensions"]:
-                dimension["Value"] = cluster_id
-            returned_policy.should.equal(y["AutoScalingPolicy"])
+            policy = json.loads(
+                json.dumps(y["AutoScalingPolicy"]).replace(
+                    "${emr.clusterId}", cluster_id
+                )
+            )
+            returned_policy.should.equal(policy)
         if "EbsConfiguration" in y:
             _do_assertion_ebs_configuration(x, y)
         # Configurations
@@ -983,3 +995,53 @@ def test_tags():
     client.remove_tags(ResourceId=cluster_id, TagKeys=[t["Key"] for t in input_tags])
     resp = client.describe_cluster(ClusterId=cluster_id)["Cluster"]
     resp["Tags"].should.equal([])
+
+
+@mock_emr
+def test_security_configurations():
+
+    client = boto3.client("emr", region_name="us-east-1")
+
+    security_configuration_name = "MySecurityConfiguration"
+
+    security_configuration = """
+{
+  "EncryptionConfiguration": {
+    "AtRestEncryptionConfiguration": {
+      "S3EncryptionConfiguration": {
+        "EncryptionMode": "SSE-S3"
+      }
+    },
+    "EnableInTransitEncryption": false,
+    "EnableAtRestEncryption": true
+  }
+}
+    """.strip()
+
+    resp = client.create_security_configuration(
+        Name=security_configuration_name, SecurityConfiguration=security_configuration
+    )
+
+    resp["Name"].should.equal(security_configuration_name)
+    resp["CreationDateTime"].should.be.a("datetime.datetime")
+
+    resp = client.describe_security_configuration(Name=security_configuration_name)
+    resp["Name"].should.equal(security_configuration_name)
+    resp["SecurityConfiguration"].should.equal(security_configuration)
+    resp["CreationDateTime"].should.be.a("datetime.datetime")
+
+    client.delete_security_configuration(Name=security_configuration_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_security_configuration(Name=security_configuration_name)
+    ex.value.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ex.value.response["Error"]["Message"].should.match(
+        r"Security configuration with name .* does not exist."
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_security_configuration(Name=security_configuration_name)
+    ex.value.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ex.value.response["Error"]["Message"].should.match(
+        r"Security configuration with name .* does not exist."
+    )
