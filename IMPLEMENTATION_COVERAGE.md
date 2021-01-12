@@ -5619,13 +5619,13 @@
 <summary>0% implemented</summary>
 
 - [ ] batch_update_schedule
-- [ ] create_channel
+- [x] create_channel
 - [ ] create_input
 - [ ] create_input_security_group
 - [ ] create_multiplex
 - [ ] create_multiplex_program
 - [ ] create_tags
-- [ ] delete_channel
+- [x] delete_channel
 - [ ] delete_input
 - [ ] delete_input_security_group
 - [ ] delete_multiplex
@@ -5633,7 +5633,7 @@
 - [ ] delete_reservation
 - [ ] delete_schedule
 - [ ] delete_tags
-- [ ] describe_channel
+- [x] describe_channel
 - [ ] describe_input
 - [ ] describe_input_device
 - [ ] describe_input_security_group
@@ -5642,7 +5642,7 @@
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] describe_schedule
-- [ ] list_channels
+- [x] list_channels
 - [ ] list_input_devices
 - [ ] list_input_security_groups
 - [ ] list_inputs
@@ -5652,9 +5652,9 @@
 - [ ] list_reservations
 - [ ] list_tags_for_resource
 - [ ] purchase_offering
-- [ ] start_channel
+- [x] start_channel
 - [ ] start_multiplex
-- [ ] stop_channel
+- [x] stop_channel
 - [ ] stop_multiplex
 - [ ] update_channel
 - [ ] update_channel_class

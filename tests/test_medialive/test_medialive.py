@@ -105,36 +105,6 @@ def test_list_channels_succeeds():
     response["Channels"][1]["ChannelClass"].should.equal("SINGLE_PIPELINE")
     response["Channels"][1]["PipelinesRunningCount"].should.equal(1)
 
-    #    {
-    #        'Arn': 'arn:aws:medialive:channel:3de9479667bd4f9ab1d7f4819cb426d8',
-    #        'ChannelClass': 'STANDARD',
-    #        'Destinations': [{'Id': 'destination.1'}, {'Id': 'destination.2'}],
-    #        'EgressEndpoints': [],
-    #        'Id': '3de9479667bd4f9ab1d7f4819cb426d8',
-    #        'InputAttachments': [{'InputId': 'an-attachment-id', 'InputSettings': {'AudioSelectors': [{'Name': 'EnglishLanguage', 'SelectorSettings': {}}], 'DeblockFilter': 'DISABLED', 'DenoiseFilter': 'DISABLED', 'FilterStrength': 1, 'InputFilter': 'AUTO', 'NetworkInputSettings': {'ServerValidation': 'CHECK_CRYPTOGRAPHY_AND_VALIDATE_NAME'}, 'SourceEndBehavior': 'CONTINUE'}}],
-    #        'InputSpecification': {},
-    #        'LogLevel': 'INFO',
-    #        'Name': 'test channel 1',
-    #        'PipelinesRunningCount': 2,
-    #        'RoleArn': 'arn:aws:iam::123456789012:role/TestMediaLiveChannelCreateRole',
-    #        'State': 'CREATING',
-    #        'Tags': {'ChannelID': 'test-channel-1', 'Customer': 'moto'}},
-    #    {
-    #        'Arn': 'arn:aws:medialive:channel:4a1da47c5c894bfe8beb3d678b414401',
-    #        'ChannelClass': 'SINGLE_PIPELINE',
-    #        'Destinations': [{'Id': 'destination.1'}, {'Id': 'destination.2'}],
-    #        'EgressEndpoints': [],
-    #        'Id': '4a1da47c5c894bfe8beb3d678b414401',
-    #        'InputAttachments': [{'InputId': 'an-attachment-id', 'InputSettings': {'AudioSelectors': [{'Name': 'EnglishLanguage', 'SelectorSettings': {}}], 'DeblockFilter': 'DISABLED', 'DenoiseFilter': 'DISABLED', 'FilterStrength': 1, 'InputFilter': 'AUTO', 'NetworkInputSettings': {'ServerValidation': 'CHECK_CRYPTOGRAPHY_AND_VALIDATE_NAME'}, 'SourceEndBehavior': 'CONTINUE'}}],
-    #        'InputSpecification': {},
-    #        'LogLevel': 'INFO',
-    #        'Name': 'test channel 2',
-    #        'PipelinesRunningCount': 1,
-    #        'RoleArn': 'arn:aws:iam::123456789012:role/TestMediaLiveChannelCreateRole',
-    #        'State': 'CREATING',
-    #        'Tags': {'ChannelID': 'test-channel-1', 'Customer': 'moto'}
-    #    }
-
 
 @mock_medialive
 def test_delete_channel_moves_channel_in_deleted_state():
@@ -146,7 +116,7 @@ def test_delete_channel_moves_channel_in_deleted_state():
     delete_response = client.delete_channel(ChannelId=create_response["Channel"]["Id"])
 
     delete_response["Name"].should.equal(channel_name)
-    delete_response["State"].should.equal("DELETED")
+    delete_response["State"].should.equal("DELETING")
 
 
 @mock_medialive
@@ -169,5 +139,40 @@ def test_describe_channel_succeeds():
         channel_config["InputAttachments"]
     )
     describe_response["Name"].should.equal(channel_name)
-    describe_response["State"].should.equal("CREATING")
+    describe_response["State"].should.equal("IDLE")
     describe_response["Tags"]["Customer"].should.equal("moto")
+
+
+@mock_medialive
+def test_start_channel_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    channel_name = "testchan1"
+    channel_config = _create_channel_config(channel_name)
+
+    create_response = client.create_channel(**channel_config)
+    start_response = client.start_channel(ChannelId=create_response["Channel"]["Id"])
+    start_response["Name"].should.equal(channel_name)
+    start_response["State"].should.equal("STARTING")
+
+    describe_response = client.describe_channel(
+        ChannelId=create_response["Channel"]["Id"]
+    )
+    describe_response["State"].should.equal("RUNNING")
+
+
+@mock_medialive
+def test_stop_channel_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    channel_name = "testchan2"
+    channel_config = _create_channel_config(channel_name)
+
+    create_response = client.create_channel(**channel_config)
+    start_response = client.start_channel(ChannelId=create_response["Channel"]["Id"])
+    stop_response = client.stop_channel(ChannelId=create_response["Channel"]["Id"])
+    stop_response["Name"].should.equal(channel_name)
+    stop_response["State"].should.equal("STOPPING")
+
+    describe_response = client.describe_channel(
+        ChannelId=create_response["Channel"]["Id"]
+    )
+    describe_response["State"].should.equal("IDLE")

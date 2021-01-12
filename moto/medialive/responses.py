@@ -63,3 +63,11 @@ class MediaLiveResponse(BaseResponse):
     def delete_channel(self):
         channel_id = self._get_param("channelId")
         return json.dumps(self.medialive_backend.delete_channel(channel_id=channel_id,))
+
+    def start_channel(self):
+        channel_id = self._get_param("channelId")
+        return json.dumps(self.medialive_backend.start_channel(channel_id=channel_id,))
+
+    def stop_channel(self):
+        channel_id = self._get_param("channelId")
+        return json.dumps(self.medialive_backend.stop_channel(channel_id=channel_id,))

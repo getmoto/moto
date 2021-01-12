@@ -108,11 +108,29 @@ class MediaLiveBackend(BaseBackend):
 
     def describe_channel(self, channel_id):
         channel = self._channels[channel_id]
+        # Resolve transient states before second call
+        # (to simulate AWS taking its sweet time with these things)
+        if channel.state in ["CREATING", "STOPPING"]:
+            channel.state = "IDLE"
+        elif channel.state == "STARTING":
+            channel.state = "RUNNING"
+        elif channel.state == "DELETING":
+            channel.state = "DELETED"
         return channel.to_dict()
 
     def delete_channel(self, channel_id):
         channel = self._channels[channel_id]
-        channel.state = "DELETED"
+        channel.state = "DELETING"
+        return channel.to_dict()
+
+    def start_channel(self, channel_id):
+        channel = self._channels[channel_id]
+        channel.state = "STARTING"
+        return channel.to_dict()
+
+    def stop_channel(self, channel_id):
+        channel = self._channels[channel_id]
+        channel.state = "STOPPING"
         return channel.to_dict()
 
 
