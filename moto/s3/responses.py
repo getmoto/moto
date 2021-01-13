@@ -975,7 +975,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             status_code, response_headers, response_content = response
 
-        if status_code == 200 and "range" in request.headers:
+        if (
+            status_code == 200
+            and "range" in request.headers
+            and request.headers["range"] != ""
+        ):
             try:
                 return self._handle_range_header(
                     request, response_headers, response_content

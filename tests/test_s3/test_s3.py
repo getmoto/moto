@@ -4937,3 +4937,16 @@ def test_request_partial_content_should_contain_actual_content_length():
         )
         e.response["Error"]["ActualObjectSize"].should.equal("9")
         e.response["Error"]["RangeRequested"].should.equal(requested_range)
+
+
+@mock_s3
+def test_request_partial_content_without_specifying_range_should_return_full_object():
+    bucket = "bucket"
+    object_key = "key"
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=bucket)
+    s3.Object(bucket, object_key).put(Body="some text that goes a long way")
+
+    file = s3.Object(bucket, object_key)
+    response = file.get(Range="")
+    response["ContentLength"].should.equal(30)
