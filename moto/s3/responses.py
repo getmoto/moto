@@ -29,6 +29,7 @@ from .exceptions import (
     S3ClientError,
     MissingBucket,
     MissingKey,
+    MissingVersion,
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
@@ -1171,8 +1172,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
         key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
-        if key is None:
+        if key is None and version_id is None:
             raise MissingKey(key_name)
+        elif key is None:
+            raise MissingVersion(version_id)
 
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)

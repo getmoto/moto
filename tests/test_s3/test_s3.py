@@ -4940,6 +4940,25 @@ def test_request_partial_content_should_contain_actual_content_length():
 
 
 @mock_s3
+def test_get_unknown_version_should_throw_specific_error():
+    bucket_name = "my_bucket"
+    object_key = "hello.txt"
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = s3.create_bucket(Bucket=bucket_name)
+    bucket.Versioning().enable()
+    content = "some text"
+    s3.Object(bucket_name, object_key).put(Body=content)
+
+    with pytest.raises(ClientError) as e:
+        client.get_object(Bucket=bucket_name, Key=object_key, VersionId="unknown")
+    e.value.response["Error"]["Code"].should.equal("InvalidArgument")
+    e.value.response["Error"]["Message"].should.equal("Invalid version id specified")
+    e.value.response["Error"]["ArgumentName"].should.equal("versionId")
+    e.value.response["Error"]["ArgumentValue"].should.equal("unknown")
+
+
+@mock_s3
 def test_request_partial_content_without_specifying_range_should_return_full_object():
     bucket = "bucket"
     object_key = "key"
