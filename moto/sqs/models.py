@@ -63,6 +63,8 @@ BINARY_LIST_TYPE_FIELD_INDEX = 4
 # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html
 ATTRIBUTE_NAME_PATTERN = re.compile("^([a-z]|[A-Z]|[0-9]|[_.\\-])+$")
 
+DEDUPLICATION_TIME_IN_SECONDS = 300
+
 
 class Message(BaseModel):
     def __init__(self, message_id, body):
@@ -478,6 +480,18 @@ class Queue(CloudFormationModel):
         ]
 
     def add_message(self, message):
+        if (
+            self.fifo_queue
+            and self.attributes.get("ContentBasedDeduplication") == "true"
+        ):
+            for m in self._messages:
+                if m.deduplication_id == message.deduplication_id:
+                    diff = message.sent_timestamp - m.sent_timestamp
+                    # if a duplicate message is received within the deduplication time then it should
+                    # not be added to the queue
+                    if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
+                        return
+
         self._messages.append(message)
         from moto.awslambda import lambda_backends
 
@@ -504,10 +518,8 @@ class Queue(CloudFormationModel):
             if result:
                 [backend.delete_message(self.name, m.receipt_handle) for m in messages]
             else:
-                [
-                    backend.change_message_visibility(self.name, m.receipt_handle, 0)
-                    for m in messages
-                ]
+                # Make messages visible again
+                [m.change_visibility(visibility_timeout=0) for m in messages]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -675,6 +687,13 @@ class SQSBackend(BaseBackend):
         message_id = get_random_message_id()
         message = Message(message_id, message_body)
 
+        # if content based deduplication is set then set sha256 hash of the message
+        # as the deduplication_id
+        if queue.attributes.get("ContentBasedDeduplication") == "true":
+            sha256 = hashlib.sha256()
+            sha256.update(message_body.encode("utf-8"))
+            message.deduplication_id = sha256.hexdigest()
+
         # Attributes, but not *message* attributes
         if deduplication_id is not None:
             message.deduplication_id = deduplication_id
@@ -797,8 +816,6 @@ class SQSBackend(BaseBackend):
                         # A previous call is still processing messages in this group, so we cannot deliver this one.
                         continue
 
-                queue.pending_messages.add(message)
-
                 if (
                     queue.dead_letter_queue is not None
                     and message.approximate_receive_count
@@ -807,6 +824,7 @@ class SQSBackend(BaseBackend):
                     messages_to_dlq.append(message)
                     continue
 
+                queue.pending_messages.add(message)
                 message.mark_received(visibility_timeout=visibility_timeout)
                 _filter_message_attributes(message, message_attribute_names)
                 result.append(message)

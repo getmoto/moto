@@ -64,6 +64,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         tags = self._get_param("tags")
         network_mode = self._get_param("networkMode")
         placement_constraints = self._get_param("placementConstraints")
+        requires_compatibilities = self._get_param("requiresCompatibilities")
+        cpu = self._get_param("cpu")
+        memory = self._get_param("memory")
         task_definition = self.ecs_backend.register_task_definition(
             family,
             container_definitions,
@@ -71,6 +74,9 @@ class EC2ContainerServiceResponse(BaseResponse):
             network_mode=network_mode,
             tags=tags,
             placement_constraints=placement_constraints,
+            requires_compatibilities=requires_compatibilities,
+            cpu=cpu,
+            memory=memory,
         )
         return json.dumps({"taskDefinition": task_definition.response_object})
 
@@ -166,6 +172,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         scheduling_strategy = self._get_param("schedulingStrategy")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
+        launch_type = self._get_param("launchType")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -175,6 +182,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             scheduling_strategy,
             tags,
             deployment_controller,
+            launch_type,
         )
         return json.dumps({"service": service.response_object})
 

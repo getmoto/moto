@@ -5773,7 +5773,7 @@ class CustomerGatewayBackend(object):
 
 
 class NatGateway(CloudFormationModel):
-    def __init__(self, backend, subnet_id, allocation_id):
+    def __init__(self, backend, subnet_id, allocation_id, tags=[]):
         # public properties
         self.id = random_nat_gateway_id()
         self.subnet_id = subnet_id
@@ -5791,6 +5791,7 @@ class NatGateway(CloudFormationModel):
 
         # associate allocation with ENI
         self._backend.associate_address(eni=self._eni, allocation_id=self.allocation_id)
+        self.tags = tags
 
     @property
     def vpc_id(self):
@@ -5867,8 +5868,8 @@ class NatGatewayBackend(object):
 
         return nat_gateways
 
-    def create_nat_gateway(self, subnet_id, allocation_id):
-        nat_gateway = NatGateway(self, subnet_id, allocation_id)
+    def create_nat_gateway(self, subnet_id, allocation_id, tags=[]):
+        nat_gateway = NatGateway(self, subnet_id, allocation_id, tags)
         self.nat_gateways[nat_gateway.id] = nat_gateway
         return nat_gateway
 

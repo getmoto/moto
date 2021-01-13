@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring
@@ -177,7 +178,7 @@ class VPCs(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
         tag_specifications = self._get_param("TagSpecifications")
-        private_dns_enabled = self._get_param("PrivateDNSEnabled")
+        private_dns_enabled = self._get_bool_param("PrivateDNSEnabled", if_none=True)
         security_group = self._get_param("SecurityGroup")
 
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
@@ -208,7 +209,7 @@ class VPCs(BaseResponse):
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
-        return template.render(vpc_end_points=vpc_end_points)
+        return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
 
 
 CREATE_VPC_RESPONSE = """
@@ -455,6 +456,7 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
                 <item>{{ subnetId }}</item>
             {% endfor %}
         </subnetIdSet>
+        <privateDnsEnabled>{{ 'true' if vpc_end_point.private_dns_enabled else 'false' }}</privateDnsEnabled>
         <dnsEntrySet>
         {% if vpc_end_point.dns_entries  %}
             {% for entry in vpc_end_point.dns_entries %}
@@ -510,7 +512,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                     <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
                 {% endif %}
                 <state>available</state>
-                <privateDnsEnabled>{{ vpc_end_point.private_dns_enabled }}</privateDnsEnabled>
+                <privateDnsEnabled>{{ 'true' if vpc_end_point.private_dns_enabled else 'false' }}</privateDnsEnabled>
                 <serviceName>{{ vpc_end_point.service_name }}</serviceName>
                 <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
                 <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>
@@ -560,7 +562,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </tagSet>
                 {% endif %}
-                <ownerId>123456789012</ownerId>
+                <ownerId>{{ account_id }}</ownerId>
                 <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
             </item>
         {% endfor %}

@@ -885,6 +885,11 @@ def test_describe_vpc_end_points():
     )
 
     vpc_endpoints = ec2.describe_vpc_endpoints()
+    assert (
+        vpc_endpoints.get("VpcEndpoints")[0].get("PrivateDnsEnabled")
+        is vpc_end_point.get("VpcEndpoint").get("PrivateDnsEnabled")
+        is True
+    )
     assert vpc_endpoints.get("VpcEndpoints")[0].get(
         "VpcEndpointId"
     ) == vpc_end_point.get("VpcEndpoint").get("VpcEndpointId")

@@ -5704,3 +5704,26 @@ def test_dynamodb_update_item_fails_on_string_sets():
         Key={"record_id": {"S": "testrecord"}},
         AttributeUpdates=attribute,
     )
+
+
+@moto.mock_dynamodb2
+def test_update_item_add_to_list_using_legacy_attribute_updates():
+    resource = boto3.resource("dynamodb", region_name="us-west-2")
+    resource.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = resource.Table("TestTable")
+    table.wait_until_exists()
+    table.put_item(Item={"id": "list_add", "attr": ["a", "b", "c"]},)
+
+    table.update_item(
+        TableName="TestTable",
+        Key={"id": "list_add"},
+        AttributeUpdates={"attr": {"Action": "ADD", "Value": ["d", "e"]}},
+    )
+
+    resp = table.get_item(Key={"id": "list_add"})
+    resp["Item"]["attr"].should.equal(["a", "b", "c", "d", "e"])

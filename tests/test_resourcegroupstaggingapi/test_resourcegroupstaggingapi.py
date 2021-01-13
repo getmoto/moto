@@ -7,6 +7,7 @@ from moto import mock_elbv2
 from moto import mock_kms
 from moto import mock_resourcegroupstaggingapi
 from moto import mock_s3
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
 @mock_ec2
@@ -15,7 +16,7 @@ def test_get_resources_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     instances = client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -88,7 +89,7 @@ def test_get_tag_keys_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -123,7 +124,7 @@ def test_get_tag_values_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -142,7 +143,7 @@ def test_get_tag_values_ec2():
         ],
     )
     client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -322,7 +323,7 @@ def test_multiple_tag_filters():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     resp = client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -343,7 +344,7 @@ def test_multiple_tag_filters():
     instance_1_id = resp["Instances"][0]["InstanceId"]
 
     resp = client.run_instances(
-        ImageId="ami-456",
+        ImageId=EXAMPLE_AMI_ID2,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
