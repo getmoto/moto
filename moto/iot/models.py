@@ -1342,7 +1342,7 @@ class IoTBackend(BaseBackend):
         topic = result.group(1).strip("'") if result else None
         self.rules[rule_name] = FakeRule(
             rule_name=rule_name,
-            created_at=int(datetime.now().timestamp()),
+            created_at=int(time.time()),
             topic_pattern=topic,
             sql=sql,
             region_name=self.region_name,
