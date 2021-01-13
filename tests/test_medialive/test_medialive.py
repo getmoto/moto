@@ -167,8 +167,10 @@ def test_stop_channel_succeeds():
     channel_config = _create_channel_config(channel_name)
 
     create_response = client.create_channel(**channel_config)
-    start_response = client.start_channel(ChannelId=create_response["Channel"]["Id"])
-    stop_response = client.stop_channel(ChannelId=create_response["Channel"]["Id"])
+    channel_id = create_response["Channel"]["Id"]
+    assert len(channel_id) > 1
+    start_response = client.start_channel(ChannelId=channel_id)
+    stop_response = client.stop_channel(ChannelId=channel_id)
     stop_response["Name"].should.equal(channel_name)
     stop_response["State"].should.equal("STOPPING")
 
@@ -176,3 +178,24 @@ def test_stop_channel_succeeds():
         ChannelId=create_response["Channel"]["Id"]
     )
     describe_response["State"].should.equal("IDLE")
+
+
+@mock_medialive
+def test_update_channel_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    channel_name = "Original Channel"
+    channel_config = _create_channel_config(channel_name)
+
+    create_response = client.create_channel(**channel_config)
+    channel_id = create_response["Channel"]["Id"]
+    assert len(channel_id) > 1
+
+    update_response = client.update_channel(
+        ChannelId=channel_id, Name="Updated Channel",
+    )
+    update_response["Channel"]["State"].should.equal("UPDATING")
+    update_response["Channel"]["Name"].should.equal("Updated Channel")
+
+    describe_response = client.describe_channel(ChannelId=channel_id,)
+    describe_response["State"].should.equal("IDLE")
+    describe_response["Name"].should.equal("Updated Channel")

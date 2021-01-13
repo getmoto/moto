@@ -14,10 +14,8 @@ class MediaLiveResponse(BaseResponse):
     def create_channel(self):
         cdi_input_specification = self._get_param("cdiInputSpecification")
         channel_class = self._get_param("channelClass")
-        # destinations = self._get_list_prefix("destinations.member")
         destinations = self._get_param("destinations")
         encoder_settings = self._get_param("encoderSettings")
-        # input_attachments = self._get_list_prefix("inputAttachments.member")
         input_attachments = self._get_param("inputAttachments")
         input_specification = self._get_param("inputSpecification")
         log_level = self._get_param("logLevel")
@@ -71,3 +69,26 @@ class MediaLiveResponse(BaseResponse):
     def stop_channel(self):
         channel_id = self._get_param("channelId")
         return json.dumps(self.medialive_backend.stop_channel(channel_id=channel_id,))
+
+    def update_channel(self):
+        channel_id = self._get_param("channelId")
+        cdi_input_specification = self._get_param("cdiInputSpecification")
+        destinations = self._get_list_prefix("destinations")
+        encoder_settings = self._get_param("encoderSettings")
+        input_attachments = self._get_list_prefix("inputAttachments")
+        input_specification = self._get_param("inputSpecification")
+        log_level = self._get_param("logLevel")
+        name = self._get_param("name")
+        role_arn = self._get_param("roleArn")
+        channel = self.medialive_backend.update_channel(
+            channel_id=channel_id,
+            cdi_input_specification=cdi_input_specification,
+            destinations=destinations,
+            encoder_settings=encoder_settings,
+            input_attachments=input_attachments,
+            input_specification=input_specification,
+            log_level=log_level,
+            name=name,
+            role_arn=role_arn,
+        )
+        return json.dumps(dict(channel=channel.to_dict()))

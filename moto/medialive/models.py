@@ -21,6 +21,7 @@ class Channel:
         self.role_arn = kwargs.get("role_arn")
         self.state = kwargs.get("state")
         self.tags = kwargs.get("tags")
+        self._previous_state = None
 
     def to_dict(self, exclude=None):
         data = {
@@ -47,6 +48,19 @@ class Channel:
             for key in exclude:
                 del data[key]
         return data
+
+    def _resolve_transient_states(self):
+        # Resolve transient states before second call
+        # (to simulate AWS taking its sweet time with these things)
+        if self.state in ["CREATING", "STOPPING"]:
+            self.state = "IDLE"
+        elif self.state == "STARTING":
+            self.state = "RUNNING"
+        elif self.state == "DELETING":
+            self.state = "DELETED"
+        elif self.state == "UPDATING":
+            self.state = self._previous_state
+            self._previous_state = None
 
 
 class MediaLiveBackend(BaseBackend):
@@ -108,14 +122,7 @@ class MediaLiveBackend(BaseBackend):
 
     def describe_channel(self, channel_id):
         channel = self._channels[channel_id]
-        # Resolve transient states before second call
-        # (to simulate AWS taking its sweet time with these things)
-        if channel.state in ["CREATING", "STOPPING"]:
-            channel.state = "IDLE"
-        elif channel.state == "STARTING":
-            channel.state = "RUNNING"
-        elif channel.state == "DELETING":
-            channel.state = "DELETED"
+        channel._resolve_transient_states()
         return channel.to_dict()
 
     def delete_channel(self, channel_id):
@@ -132,6 +139,34 @@ class MediaLiveBackend(BaseBackend):
         channel = self._channels[channel_id]
         channel.state = "STOPPING"
         return channel.to_dict()
+
+    def update_channel(
+        self,
+        channel_id,
+        cdi_input_specification,
+        destinations,
+        encoder_settings,
+        input_attachments,
+        input_specification,
+        log_level,
+        name,
+        role_arn,
+    ):
+        channel = self._channels[channel_id]
+        channel.cdi_input_specification = cdi_input_specification
+        channel.destinations = destinations
+        channel.encoder_settings = encoder_settings
+        channel.input_attachments = input_attachments
+        channel.input_specification = input_specification
+        channel.log_level = log_level
+        channel.name = name
+        channel.role_arn = role_arn
+
+        channel._resolve_transient_states()
+        channel._previous_state = channel.state
+        channel.state = "UPDATING"
+
+        return channel
 
 
 medialive_backends = {}
