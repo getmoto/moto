@@ -18,6 +18,7 @@ from moto.ecs.exceptions import (
     RevisionNotFoundException,
 )
 import pytest
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ecs
@@ -953,7 +954,7 @@ def test_register_container_instance():
     _ = ecs_client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -991,7 +992,7 @@ def test_deregister_container_instance():
     _ = ecs_client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1068,7 +1069,7 @@ def test_list_container_instances():
     test_instance_arns = []
     for i in range(0, instance_to_create):
         test_instance = ec2.create_instances(
-            ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
 
         instance_id_document = json.dumps(
@@ -1101,7 +1102,7 @@ def test_describe_container_instances():
     test_instance_arns = []
     for i in range(0, instance_to_create):
         test_instance = ec2.create_instances(
-            ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
 
         instance_id_document = json.dumps(
@@ -1166,7 +1167,7 @@ def test_update_container_instances_state():
     test_instance_arns = []
     for i in range(0, instance_to_create):
         test_instance = ec2.create_instances(
-            ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
 
         instance_id_document = json.dumps(
@@ -1228,7 +1229,7 @@ def test_update_container_instances_state_by_arn():
     test_instance_arns = []
     for i in range(0, instance_to_create):
         test_instance = ec2.create_instances(
-            ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
 
         instance_id_document = json.dumps(
@@ -1289,7 +1290,7 @@ def test_run_task():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1354,7 +1355,7 @@ def test_run_task_default_cluster():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1439,7 +1440,7 @@ def test_start_task():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1538,7 +1539,7 @@ def test_list_tasks():
     _ = client.create_cluster()
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1608,7 +1609,7 @@ def test_describe_tasks():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1708,7 +1709,7 @@ def test_stop_task():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1776,7 +1777,7 @@ def test_resource_reservation_and_release():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1851,7 +1852,7 @@ def test_resource_reservation_and_release_memory_reservation():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1924,7 +1925,7 @@ def test_task_definitions_unable_to_be_placed():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -1972,7 +1973,7 @@ def test_task_definitions_with_port_clash():
     _ = client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -2040,7 +2041,7 @@ def test_attributes():
 
     instances = []
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
     instances.append(test_instance)
 
@@ -2056,7 +2057,7 @@ def test_attributes():
     full_arn1 = response["containerInstance"]["containerInstanceArn"]
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
     instances.append(test_instance)
 
@@ -2201,7 +2202,7 @@ def test_default_container_instance_attributes():
     _ = ecs_client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -2245,7 +2246,7 @@ def test_describe_container_instances_with_attributes():
     _ = ecs_client.create_cluster(clusterName=test_cluster_name)
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(
@@ -3066,7 +3067,7 @@ def test_list_tasks_with_filters():
     _ = ecs.create_cluster(clusterName="test_cluster_2")
 
     test_instance = ec2.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
 
     instance_id_document = json.dumps(

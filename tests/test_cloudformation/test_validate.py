@@ -19,6 +19,7 @@ from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
 from boto.cloudformation.stack import Output
 from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
+from tests import EXAMPLE_AMI_ID
 
 json_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -27,7 +28,7 @@ json_template = {
         "EC2Instance1": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
-                "ImageId": "ami-d3adb33f",
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "dummy",
                 "InstanceType": "t2.micro",
                 "Tags": [

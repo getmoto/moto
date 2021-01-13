@@ -12,6 +12,7 @@ import sure  # noqa
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_ec2, mock_ec2_deprecated
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ec2_deprecated
@@ -661,7 +662,9 @@ def test_run_instances_should_attach_to_default_subnet():
     client = boto3.client("ec2", region_name="us-west-1")
     ec2.create_security_group(GroupName="sg01", Description="Test security group sg01")
     # run_instances
-    instances = client.run_instances(MinCount=1, MaxCount=1, SecurityGroups=["sg01"],)
+    instances = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=["sg01"],
+    )
     # Assert subnet is created appropriately
     subnets = client.describe_subnets()["Subnets"]
     default_subnet_id = subnets[0]["SubnetId"]

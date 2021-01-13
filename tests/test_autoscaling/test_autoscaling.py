@@ -26,6 +26,7 @@ from .utils import (
     setup_networking_deprecated,
     setup_instance_with_networking,
 )
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_autoscaling_deprecated
@@ -37,7 +38,7 @@ def test_create_autoscaling_group():
 
     conn = boto.ec2.autoscale.connect_to_region("us-east-1")
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -103,7 +104,7 @@ def test_create_autoscaling_groups_defaults():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -200,7 +201,7 @@ def test_autoscaling_group_describe_filter():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -228,7 +229,7 @@ def test_autoscaling_update():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -260,7 +261,7 @@ def test_autoscaling_tags_update():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -308,7 +309,7 @@ def test_autoscaling_group_delete():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -333,7 +334,7 @@ def test_autoscaling_group_describe_instances():
     mocked_networking = setup_networking_deprecated()
     conn = boto.ec2.autoscale.connect_to_region("us-east-1")
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -367,7 +368,7 @@ def test_set_desired_capacity_up():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -401,7 +402,7 @@ def test_set_desired_capacity_down():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -435,7 +436,7 @@ def test_set_desired_capacity_the_same():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
 
@@ -476,7 +477,7 @@ def test_autoscaling_group_with_elb():
 
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="t2.medium"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="t2.medium"
     )
     conn.create_launch_configuration(config)
     group = AutoScalingGroup(
@@ -727,7 +728,7 @@ def test_create_autoscaling_group_boto3():
 @mock_autoscaling
 def test_create_autoscaling_group_from_instance():
     autoscaling_group_name = "test_asg"
-    image_id = "ami-0cc293023f983ed53"
+    image_id = EXAMPLE_AMI_ID
     instance_type = "t2.micro"
 
     mocked_instance_with_networking = setup_instance_with_networking(
@@ -806,10 +807,7 @@ def test_create_autoscaling_group_from_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     response = client.create_auto_scaling_group(
@@ -835,10 +833,7 @@ def test_create_autoscaling_group_no_template_ref():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
 
@@ -867,10 +862,7 @@ def test_create_autoscaling_group_multiple_template_ref():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
 
@@ -924,10 +916,7 @@ def test_create_autoscaling_group_boto3_multiple_launch_configurations():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
@@ -997,10 +986,7 @@ def test_describe_autoscaling_groups_boto3_launch_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_auto_scaling_group(
@@ -1070,10 +1056,7 @@ def test_describe_autoscaling_instances_boto3_launch_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_auto_scaling_group(
@@ -1180,10 +1163,7 @@ def test_update_autoscaling_group_boto3_launch_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template_new",

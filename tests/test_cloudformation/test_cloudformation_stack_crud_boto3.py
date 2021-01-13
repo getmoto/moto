@@ -14,6 +14,7 @@ import pytest
 from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
 from moto.core import ACCOUNT_ID
 from .test_cloudformation_stack_crud import dummy_template_json2
+from tests import EXAMPLE_AMI_ID
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -22,7 +23,7 @@ dummy_template = {
         "EC2Instance1": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
-                "ImageId": "ami-d3adb33f",
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "dummy",
                 "InstanceType": "t2.micro",
                 "Tags": [
@@ -112,7 +113,7 @@ dummy_update_template = {
     "Resources": {
         "Instance": {
             "Type": "AWS::EC2::Instance",
-            "Properties": {"ImageId": "ami-08111162"},
+            "Properties": {"ImageId": EXAMPLE_AMI_ID},
         }
     },
 }
@@ -123,7 +124,7 @@ dummy_output_template = {
     "Resources": {
         "Instance": {
             "Type": "AWS::EC2::Instance",
-            "Properties": {"ImageId": "ami-08111162"},
+            "Properties": {"ImageId": EXAMPLE_AMI_ID},
         }
     },
     "Outputs": {
@@ -177,7 +178,7 @@ dummy_template_special_chars_in_description = {
         "EC2Instance1": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
-                "ImageId": "ami-d3adb33f",
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "dummy",
                 "InstanceType": "t2.micro",
                 "Tags": [

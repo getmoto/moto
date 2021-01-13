@@ -12,6 +12,7 @@ from moto import mock_ec2, mock_ec2_deprecated
 from moto.ec2 import ec2_backends
 from moto.ec2.models import OWNER_ID
 from moto.kms import mock_kms
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ec2_deprecated
@@ -54,7 +55,7 @@ def test_create_and_delete_volume():
 @mock_ec2_deprecated
 def test_delete_attached_volume():
     conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     # create an instance
     instance = reservation.instances[0]
     # create a volume
@@ -143,7 +144,7 @@ def test_filter_volume_by_id():
 def test_volume_filters():
     conn = boto.ec2.connect_to_region("us-east-1")
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     instance.update()
@@ -250,7 +251,7 @@ def test_volume_filters():
 @mock_ec2_deprecated
 def test_volume_attach_and_detach():
     conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     volume = conn.create_volume(80, "us-east-1a")
 
@@ -780,7 +781,7 @@ def test_modify_attribute_blockDeviceMapping():
     """
     conn = boto.ec2.connect_to_region("us-east-1")
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
 
     instance = reservation.instances[0]
 
