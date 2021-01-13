@@ -249,6 +249,11 @@ class MediaLiveBackend(BaseBackend):
         self._inputs[input_id] = a_input
         return a_input
 
+    def describe_input(self, input_id):
+        a_input = self._inputs[input_id]
+        a_input._resolve_transient_states()
+        return a_input.to_dict()
+
 
 medialive_backends = {}
 for region in Session().get_available_regions("medialive"):

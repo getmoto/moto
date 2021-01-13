@@ -5620,7 +5620,7 @@
 
 - [ ] batch_update_schedule
 - [x] create_channel
-- [ ] create_input
+- [x] create_input
 - [ ] create_input_security_group
 - [ ] create_multiplex
 - [ ] create_multiplex_program

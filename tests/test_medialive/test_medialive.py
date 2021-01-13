@@ -268,3 +268,22 @@ def test_create_input_succeeds():
     r_input["State"].should.equal("CREATING")
     r_input["Tags"].should.equal(input_config["Tags"])
     r_input["Type"].should.equal(input_config["Type"])
+
+
+@mock_medialive
+def test_describe_input_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    input_name = "Input Two"
+    input_config = _create_input_config(input_name)
+
+    create_response = client.create_input(**input_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_response["Input"]["State"].should.equal("CREATING")
+
+    describe_response = client.describe_input(InputId=create_response["Input"]["Id"])
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    describe_response["Name"].should.equal(input_name)
+    describe_response["State"].should.equal("DETACHED")
+    describe_response["MediaConnectFlows"].should.equal(
+        input_config["MediaConnectFlows"]
+    )

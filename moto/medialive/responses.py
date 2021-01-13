@@ -119,3 +119,7 @@ class MediaLiveResponse(BaseResponse):
             vpc=vpc,
         )
         return json.dumps({"input": a_input.to_dict()})
+
+    def describe_input(self):
+        input_id = self._get_param("inputId")
+        return json.dumps(self.medialive_backend.describe_input(input_id=input_id,))
