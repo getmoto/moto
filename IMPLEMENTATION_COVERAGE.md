@@ -5616,7 +5616,7 @@
 
 ## medialive
 <details>
-<summary>0% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] batch_update_schedule
 - [x] create_channel
@@ -5656,7 +5656,7 @@
 - [ ] start_multiplex
 - [x] stop_channel
 - [ ] stop_multiplex
-- [ ] update_channel
+- [x] update_channel
 - [ ] update_channel_class
 - [ ] update_input
 - [ ] update_input_device

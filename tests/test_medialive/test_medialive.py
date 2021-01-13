@@ -3,19 +3,61 @@ from __future__ import unicode_literals
 import boto3
 import sure  # noqa
 from moto import mock_medialive
+from uuid import uuid4
 
 region = "eu-west-1"
+
+
+def _create_input_config(name, **kwargs):
+    role_arn = kwargs.get(
+        "role_arn", "arn:aws:iam::123456789012:role/TestMediaLiveInputCreateRole"
+    )
+    input_type = kwargs.get("type", "RTP_PUSH")
+    request_id = kwargs.get("request_id", uuid4().hex)
+    destinations = kwargs.get("destinations", [])
+    input_devices = kwargs.get("input_devices", [{"Id": "1234-56"}])
+    input_security_groups = ["123456"]
+    media_connect_flows = kwargs.get("media_connect_flows", [{"FlowArn": "flow:1"}])
+    sources = kwargs.get(
+        "sources",
+        [
+            {
+                "PasswordParam": "pwd431$%!",
+                "Url": "scheme://url:1234/",
+                "Username": "userX",
+            }
+        ],
+    )
+    tags = kwargs.get("tags", {"Customer": "moto"})
+    vpc_config = kwargs.get(
+        "vpc", {"SubnetIds": ["subnet-1"], "SecurityGroupIds": ["sg-0001"]}
+    )
+    input_config = dict(
+        Name=name,
+        Destinations=destinations,
+        InputDevices=input_devices,
+        InputSecurityGroups=input_security_groups,
+        MediaConnectFlows=media_connect_flows,
+        RoleArn=role_arn,
+        RequestId=request_id,
+        Sources=sources,
+        Type=input_type,
+        Tags=tags,
+        Vpc=vpc_config,
+    )
+    return input_config
 
 
 def _create_channel_config(name, **kwargs):
     role_arn = kwargs.get(
         "role_arn", "arn:aws:iam::123456789012:role/TestMediaLiveChannelCreateRole"
     )
+    input_id = kwargs.get("input_id", "an-attachment-id")
     input_settings = kwargs.get(
         "input_settings",
         [
             {
-                "InputId": "an-attachment-id",
+                "InputId": input_id,
                 "InputSettings": {
                     "DenoiseFilter": "DISABLED",
                     "AudioSelectors": [
@@ -199,3 +241,30 @@ def test_update_channel_succeeds():
     describe_response = client.describe_channel(ChannelId=channel_id,)
     describe_response["State"].should.equal("IDLE")
     describe_response["Name"].should.equal("Updated Channel")
+
+
+@mock_medialive
+def test_create_input_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    input_name = "Input One"
+    input_config = _create_input_config(input_name)
+
+    create_response = client.create_input(**input_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    r_input = create_response["Input"]
+    input_id = r_input["Id"]
+    assert len(input_id) > 1
+    r_input["Arn"].should.equal("arn:aws:medialive:input:{}".format(r_input["Id"]))
+    r_input["Name"].should.equal(input_name)
+    r_input["AttachedChannels"].should.equal([])
+    r_input["Destinations"].should.equal(input_config["Destinations"])
+    r_input["InputClass"].should.equal("STANDARD")
+    r_input["InputDevices"].should.equal(input_config["InputDevices"])
+    r_input["InputSourceType"].should.equal("STATIC")
+    r_input["MediaConnectFlows"].should.equal(input_config["MediaConnectFlows"])
+    r_input["RoleArn"].should.equal(input_config["RoleArn"])
+    r_input["SecurityGroups"].should.equal([])
+    r_input["Sources"].should.equal(input_config["Sources"])
+    r_input["State"].should.equal("CREATING")
+    r_input["Tags"].should.equal(input_config["Tags"])
+    r_input["Type"].should.equal(input_config["Type"])

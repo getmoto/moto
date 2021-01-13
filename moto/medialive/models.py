@@ -4,6 +4,53 @@ from boto3 import Session
 from moto.core import BaseBackend
 
 
+class Input:
+    def __init__(self, *args, **kwargs):
+        self.arn = kwargs.get("arn")
+        self.attached_channels = kwargs.get("attached_channels", [])
+        self.destinations = kwargs.get("destinations", [])
+        self.input_id = kwargs.get("input_id")
+        self.input_class = kwargs.get("input_class", "STANDARD")
+        self.input_devices = kwargs.get("input_devices", [])
+        self.input_source_type = kwargs.get("input_source_type", "STATIC")
+        self.media_connect_flows = kwargs.get("media_connect_flows", [])
+        self.name = kwargs.get("name")
+        self.role_arn = kwargs.get("role_arn")
+        self.security_groups = kwargs.get("security_groups", [])
+        self.sources = kwargs.get("sources", [])
+        self.state = kwargs.get("state")
+        self.tags = kwargs.get("tags")
+        self.input_type = kwargs.get("input_type")
+
+    def to_dict(self):
+        data = {
+            "arn": self.arn,
+            "attachedChannels": self.attached_channels,
+            "destinations": self.destinations,
+            "id": self.input_id,
+            "inputClass": self.input_class,
+            "inputDevices": self.input_devices,
+            "inputSourceType": self.input_source_type,
+            "mediaConnectFlows": self.media_connect_flows,
+            "name": self.name,
+            "roleArn": self.role_arn,
+            "securityGroups": self.security_groups,
+            "sources": self.sources,
+            "state": self.state,
+            "tags": self.tags,
+            "type": self.input_type,
+        }
+        return data
+
+    def _resolve_transient_states(self):
+        # Resolve transient states before second call
+        # (to simulate AWS taking its sweet time with these things)
+        if self.state in ["CREATING"]:
+            self.state = "DETACHED"  # or ATTACHED
+        elif self.state == "DELETING":
+            self.state = "DELETED"
+
+
 class Channel:
     def __init__(self, *args, **kwargs):
         self.arn = kwargs.get("arn")
@@ -68,6 +115,7 @@ class MediaLiveBackend(BaseBackend):
         super(MediaLiveBackend, self).__init__()
         self.region_name = region_name
         self._channels = {}
+        self._inputs = {}
 
     def reset(self):
         region_name = self.region_name
@@ -167,6 +215,39 @@ class MediaLiveBackend(BaseBackend):
         channel.state = "UPDATING"
 
         return channel
+
+    def create_input(
+        self,
+        destinations,
+        input_devices,
+        input_security_groups,
+        media_connect_flows,
+        name,
+        request_id,
+        role_arn,
+        sources,
+        tags,
+        type,
+        vpc,
+    ):
+        input_id = uuid4().hex
+        arn = "arn:aws:medialive:input:{}".format(input_id)
+        a_input = Input(
+            arn=arn,
+            input_id=input_id,
+            destinations=destinations,
+            input_devices=input_devices,
+            input_security_groups=input_security_groups,
+            media_connect_flows=media_connect_flows,
+            name=name,
+            role_arn=role_arn,
+            sources=sources,
+            tags=tags,
+            input_type=type,
+            state="CREATING",
+        )
+        self._inputs[input_id] = a_input
+        return a_input
 
 
 medialive_backends = {}
