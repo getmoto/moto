@@ -3700,15 +3700,13 @@ def test_boto3_list_object_versions():
     len(response["Versions"]).should.equal(2)
     keys = set([item["Key"] for item in response["Versions"]])
     keys.should.equal({key})
-    
+
     # the first item in the list should be the latest
-    response['Versions'][0]['IsLatest'].should.equal(True)
+    response["Versions"][0]["IsLatest"].should.equal(True)
 
     # Test latest object version is returned
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response["Body"].read().should.equal(items[-1])
-
-    
 
 
 @mock_s3
