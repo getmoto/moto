@@ -458,6 +458,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 else:
                     delete_marker_list.append(version)
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
+            key_list.sort(key=lambda r: (r.name, -r.last_modified.timestamp()))
             return (
                 200,
                 {},
