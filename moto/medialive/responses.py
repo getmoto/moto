@@ -134,21 +134,20 @@ class MediaLiveResponse(BaseResponse):
         return json.dumps(dict(inputs=inputs, nextToken=next_token))
 
     def delete_input(self):
-        input_id = self._get_param("InputId")
+        input_id = self._get_param("inputId")
         self.medialive_backend.delete_input(input_id=input_id,)
-        # TODO: adjust response
-        return json.dumps(dict())
+        return json.dumps({})
 
     def update_input(self):
-        destinations = self._get_list_prefix("Destinations.member")
-        input_devices = self._get_list_prefix("InputDevices.member")
-        input_id = self._get_param("InputId")
-        input_security_groups = self._get_list_prefix("InputSecurityGroups.member")
-        media_connect_flows = self._get_list_prefix("MediaConnectFlows.member")
-        name = self._get_param("Name")
-        role_arn = self._get_param("RoleArn")
-        sources = self._get_list_prefix("Sources.member")
-        input = self.medialive_backend.update_input(
+        destinations = self._get_param("destinations")
+        input_devices = self._get_param("inputDevices")
+        input_id = self._get_param("inputId")
+        input_security_groups = self._get_param("inputSecurityGroups")
+        media_connect_flows = self._get_param("mediaConnectFlows")
+        name = self._get_param("name")
+        role_arn = self._get_param("roleArn")
+        sources = self._get_param("sources")
+        a_input = self.medialive_backend.update_input(
             destinations=destinations,
             input_devices=input_devices,
             input_id=input_id,
@@ -158,5 +157,4 @@ class MediaLiveResponse(BaseResponse):
             role_arn=role_arn,
             sources=sources,
         )
-        # TODO: adjust response
-        return json.dumps(dict(input=input))
+        return json.dumps(dict(input=a_input.to_dict()))

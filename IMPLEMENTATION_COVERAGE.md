@@ -5616,7 +5616,7 @@
 
 ## medialive
 <details>
-<summary>15% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] batch_update_schedule
 - [x] create_channel
@@ -5626,7 +5626,7 @@
 - [ ] create_multiplex_program
 - [ ] create_tags
 - [x] delete_channel
-- [ ] delete_input
+- [x] delete_input
 - [ ] delete_input_security_group
 - [ ] delete_multiplex
 - [ ] delete_multiplex_program
@@ -5658,7 +5658,7 @@
 - [ ] stop_multiplex
 - [x] update_channel
 - [ ] update_channel_class
-- [ ] update_input
+- [x] update_input
 - [ ] update_input_device
 - [ ] update_input_security_group
 - [ ] update_multiplex

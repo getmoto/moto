@@ -302,3 +302,31 @@ def test_list_inputs_succeeds():
 
     response["Inputs"][0]["Name"].should.equal("Input One")
     response["Inputs"][1]["Name"].should.equal("Input Two")
+
+
+@mock_medialive
+def test_delete_input_moves_input_in_deleted_state():
+    client = boto3.client("medialive", region_name=region)
+    input_name = "test input X"
+    input_config = _create_input_config(input_name)
+
+    create_response = client.create_input(**input_config)
+    delete_response = client.delete_input(InputId=create_response["Input"]["Id"])
+    delete_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    describe_response = client.describe_input(InputId=create_response["Input"]["Id"])
+    describe_response["Name"].should.equal(input_name)
+    describe_response["State"].should.equal("DELETED")
+
+
+@mock_medialive
+def test_update_input_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    input_name = "test input X"
+    input_config = _create_input_config(input_name)
+
+    create_response = client.create_input(**input_config)
+    update_response = client.update_input(
+        InputId=create_response["Input"]["Id"], Name="test input U",
+    )
+    update_response["Input"]["Name"].should.equal("test input U")

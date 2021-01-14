@@ -18,6 +18,7 @@ class Input:
         self.role_arn = kwargs.get("role_arn")
         self.security_groups = kwargs.get("security_groups", [])
         self.sources = kwargs.get("sources", [])
+        # Possible states: 'CREATING'|'DETACHED'|'ATTACHED'|'DELETING'|'DELETED'
         self.state = kwargs.get("state")
         self.tags = kwargs.get("tags")
         self.input_type = kwargs.get("input_type")
@@ -263,8 +264,8 @@ class MediaLiveBackend(BaseBackend):
 
     def delete_input(self, input_id):
         a_input = self._inputs[input_id]
-        # implement here
-        return
+        a_input.state = "DELETING"
+        return a_input.to_dict()
 
     def update_input(
         self,
@@ -278,8 +279,14 @@ class MediaLiveBackend(BaseBackend):
         sources,
     ):
         a_input = self._inputs[input_id]
-        # implement here
-        return input
+        a_input.destinations = destinations
+        a_input.input_devices = input_devices
+        a_input.security_groups = input_security_groups
+        a_input.media_connect_flows = media_connect_flows
+        a_input.name = name
+        a_input.role_arn = role_arn
+        a_input.sources = sources
+        return a_input
 
 
 medialive_backends = {}
