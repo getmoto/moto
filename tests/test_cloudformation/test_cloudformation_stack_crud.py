@@ -568,10 +568,16 @@ def test_describe_stack_events_shows_create_update_and_delete():
     except StopIteration:
         assert False, "Too many stack events"
 
-    with pytest.raises(BotoServerError):
-        conn.describe_stack_events("non_existing_stack")
-
     list(stack_events_to_look_for).should.be.empty
+
+    with pytest.raises(BotoServerError) as exp:
+        conn.describe_stack_events("non_existing_stack")
+    err = exp.value
+    err.message.should.equal("Stack with id non_existing_stack does not exist")
+    err.body.should.match(r"Stack with id non_existing_stack does not exist")
+    err.error_code.should.equal("ValidationError")
+    err.reason.should.equal("Bad Request")
+    err.status.should.equal(400)
 
 
 @mock_cloudformation_deprecated

@@ -318,10 +318,16 @@ def test_boto3_describe_stack_set_operation():
 
     response["StackSetOperation"]["Status"].should.equal("STOPPED")
     response["StackSetOperation"]["Action"].should.equal("CREATE")
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exp:
         cf_conn.describe_stack_set_operation(
             StackSetName="test_stack_set", OperationId='non_existing_operation'
         )
+    exp_err = exp.value.response.get("Error")
+    exp_metadata = exp.value.response.get("ResponseMetadata")
+
+    exp_err.get("Code").should.match(r"ValidationError")
+    exp_err.get("Message").should.match(r"Stack with id non_existing_operation does not exist")
+    exp_metadata.get("HTTPStatusCode").should.equal(400)
 
 @mock_cloudformation
 def test_boto3_list_stack_set_operation_results():
@@ -1321,12 +1327,18 @@ def test_stack_events():
     except StopIteration:
         assert False, "Too many stack events"
 
-    with pytest.raises(ClientError):
+    list(stack_events_to_look_for).should.be.empty
+
+    with pytest.raises(ClientError) as exp:
         stack = cf.Stack('non_existing_stack')
         events = list(stack.events.all())
 
-    list(stack_events_to_look_for).should.be.empty
+    exp_err = exp.value.response.get("Error")
+    exp_metadata = exp.value.response.get("ResponseMetadata")
 
+    exp_err.get("Code").should.match(r"ValidationError")
+    exp_err.get("Message").should.match(r"Stack with id non_existing_stack does not exist")
+    exp_metadata.get("HTTPStatusCode").should.equal(400)
 
 @mock_cloudformation
 def test_list_exports():
