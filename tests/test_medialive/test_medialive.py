@@ -287,3 +287,18 @@ def test_describe_input_succeeds():
     describe_response["MediaConnectFlows"].should.equal(
         input_config["MediaConnectFlows"]
     )
+
+
+@mock_medialive
+def test_list_inputs_succeeds():
+    client = boto3.client("medialive", region_name=region)
+    input_config1 = _create_input_config("Input One")
+    create_response = client.create_input(**input_config1)
+    input_config2 = _create_input_config("Input Two")
+    create_response = client.create_input(**input_config2)
+
+    response = client.list_inputs()
+    len(response["Inputs"]).should.equal(2)
+
+    response["Inputs"][0]["Name"].should.equal("Input One")
+    response["Inputs"][1]["Name"].should.equal("Input Two")

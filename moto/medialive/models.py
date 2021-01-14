@@ -254,6 +254,33 @@ class MediaLiveBackend(BaseBackend):
         a_input._resolve_transient_states()
         return a_input.to_dict()
 
+    def list_inputs(self, max_results, next_token):
+        inputs = list(self._inputs.values())
+        if max_results is not None:
+            inputs = inputs[:max_results]
+        response_inputs = [i.to_dict() for i in inputs]
+        return response_inputs, next_token
+
+    def delete_input(self, input_id):
+        a_input = self._inputs[input_id]
+        # implement here
+        return
+
+    def update_input(
+        self,
+        destinations,
+        input_devices,
+        input_id,
+        input_security_groups,
+        media_connect_flows,
+        name,
+        role_arn,
+        sources,
+    ):
+        a_input = self._inputs[input_id]
+        # implement here
+        return input
+
 
 medialive_backends = {}
 for region in Session().get_available_regions("medialive"):

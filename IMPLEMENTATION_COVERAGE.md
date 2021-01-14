@@ -5634,7 +5634,7 @@
 - [ ] delete_schedule
 - [ ] delete_tags
 - [x] describe_channel
-- [ ] describe_input
+- [x] describe_input
 - [ ] describe_input_device
 - [ ] describe_input_security_group
 - [ ] describe_multiplex
@@ -5645,7 +5645,7 @@
 - [x] list_channels
 - [ ] list_input_devices
 - [ ] list_input_security_groups
-- [ ] list_inputs
+- [x] list_inputs
 - [ ] list_multiplex_programs
 - [ ] list_multiplexes
 - [ ] list_offerings
