@@ -26,9 +26,7 @@ format:
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	echo "ServerMode: $(TEST_SERVER_MODE)"
-	echo "Exclude: $(TEST_EXCLUDE)"
-	@pytest -sv --cov=moto --cov-report html ./tests/test_awslambda $(TEST_EXCLUDE)
+	pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
 
 test: lint test-only
 
