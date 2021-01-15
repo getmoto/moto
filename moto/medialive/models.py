@@ -1,10 +1,14 @@
 from __future__ import unicode_literals
+
+from collections import OrderedDict
 from uuid import uuid4
+
 from boto3 import Session
-from moto.core import BaseBackend
+
+from moto.core import BaseBackend, BaseModel
 
 
-class Input:
+class Input(BaseModel):
     def __init__(self, *args, **kwargs):
         self.arn = kwargs.get("arn")
         self.attached_channels = kwargs.get("attached_channels", [])
@@ -52,7 +56,7 @@ class Input:
             self.state = "DELETED"
 
 
-class Channel:
+class Channel(BaseModel):
     def __init__(self, *args, **kwargs):
         self.arn = kwargs.get("arn")
         self.cdi_input_specification = kwargs.get("cdi_input_specification")
@@ -115,8 +119,8 @@ class MediaLiveBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaLiveBackend, self).__init__()
         self.region_name = region_name
-        self._channels = {}
-        self._inputs = {}
+        self._channels = OrderedDict()
+        self._inputs = OrderedDict()
 
     def reset(self):
         region_name = self.region_name

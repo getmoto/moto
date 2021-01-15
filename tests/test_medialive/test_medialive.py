@@ -5,12 +5,15 @@ import sure  # noqa
 from moto import mock_medialive
 from uuid import uuid4
 
+from moto.core import ACCOUNT_ID
+
 region = "eu-west-1"
 
 
 def _create_input_config(name, **kwargs):
     role_arn = kwargs.get(
-        "role_arn", "arn:aws:iam::123456789012:role/TestMediaLiveInputCreateRole"
+        "role_arn",
+        "arn:aws:iam::{}:role/TestMediaLiveInputCreateRole".format(ACCOUNT_ID),
     )
     input_type = kwargs.get("type", "RTP_PUSH")
     request_id = kwargs.get("request_id", uuid4().hex)
@@ -50,7 +53,8 @@ def _create_input_config(name, **kwargs):
 
 def _create_channel_config(name, **kwargs):
     role_arn = kwargs.get(
-        "role_arn", "arn:aws:iam::123456789012:role/TestMediaLiveChannelCreateRole"
+        "role_arn",
+        "arn:aws:iam::{}:role/TestMediaLiveChannelCreateRole".format(ACCOUNT_ID),
     )
     input_id = kwargs.get("input_id", "an-attachment-id")
     input_settings = kwargs.get(
