@@ -8,11 +8,11 @@ import re
 from freezegun import freeze_time
 import sure  # noqa
 
-import responses
 from botocore.exceptions import ClientError
 import pytest
 from moto import mock_sns, mock_sqs, settings
 from moto.core import ACCOUNT_ID
+from moto.core.models import responses_mock
 from moto.sns import sns_backend
 
 MESSAGE_FROM_SQS_TEMPLATE = (
@@ -332,7 +332,7 @@ def test_publish_to_http():
         json.loads.when.called_with(request.body.decode()).should_not.throw(Exception)
         return 200, {}, ""
 
-    responses.add_callback(
+    responses_mock.add_callback(
         method="POST", url="http://example.com/foobar", callback=callback
     )
 

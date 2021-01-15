@@ -8,9 +8,9 @@ import requests
 import sure  # noqa
 from botocore.exceptions import ClientError
 
-import responses
 from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import ACCOUNT_ID
+from moto.core.models import responses_mock
 import pytest
 
 
@@ -1786,8 +1786,8 @@ def test_get_model_with_invalid_name():
 
 @mock_apigateway
 def test_http_proxying_integration():
-    responses.add(
-        responses.GET, "http://httpbin.org/robots.txt", body="a fake response"
+    responses_mock.add(
+        responses_mock.GET, "http://httpbin.org/robots.txt", body="a fake response"
     )
 
     region_name = "us-west-2"
