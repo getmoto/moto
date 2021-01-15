@@ -125,6 +125,9 @@ def test_invoke_requestresponse_function():
         LogType="Tail",
     )
 
+    if "FunctionError" in success_result:
+        assert False, success_result["Payload"].read().decode("utf-8")
+
     success_result["StatusCode"].should.equal(200)
     logs = base64.b64decode(success_result["LogResult"]).decode("utf-8")
 
