@@ -6,7 +6,11 @@ import sys
 import six
 from botocore.awsrequest import AWSPreparedRequest
 
-from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
+from moto.core.utils import (
+    str_to_rfc_1123_datetime,
+    py2_strip_unicode_keys,
+    unix_time_millis,
+)
 from six.moves.urllib.parse import parse_qs, urlparse, unquote, parse_qsl
 
 import xmltodict
@@ -458,6 +462,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 else:
                     delete_marker_list.append(version)
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
+
+            key_list.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
             return (
                 200,
                 {},
