@@ -2523,6 +2523,16 @@ def test_create_open_id_connect_provider():
     )
 
 
+@pytest.mark.parametrize("url", ["example.org", "example"])
+@mock_iam
+def test_create_open_id_connect_provider_invalid_url(url):
+    client = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(Url=url, ThumbprintList=[])
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("Invalid Open ID Connect Provider URL")
+
+
 @mock_iam
 def test_create_open_id_connect_provider_errors():
     client = boto3.client("iam", region_name="us-east-1")
@@ -2532,35 +2542,57 @@ def test_create_open_id_connect_provider_errors():
         Url="https://example.com", ThumbprintList=[]
     ).should.throw(ClientError, "Unknown")
 
-    client.create_open_id_connect_provider.when.called_with(
-        Url="example.org", ThumbprintList=[]
-    ).should.throw(ClientError, "Invalid Open ID Connect Provider URL")
 
-    client.create_open_id_connect_provider.when.called_with(
-        Url="example", ThumbprintList=[]
-    ).should.throw(ClientError, "Invalid Open ID Connect Provider URL")
+@mock_iam
+def test_create_open_id_connect_provider_too_many_entries():
+    client = boto3.client("iam", region_name="us-east-1")
 
-    client.create_open_id_connect_provider.when.called_with(
-        Url="http://example.org",
-        ThumbprintList=["a" * 40, "b" * 40, "c" * 40, "d" * 40, "e" * 40, "f" * 40,],
-    ).should.throw(ClientError, "Thumbprint list must contain fewer than 5 entries.")
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(
+            Url="http://example.org",
+            ThumbprintList=[
+                "a" * 40,
+                "b" * 40,
+                "c" * 40,
+                "d" * 40,
+                "e" * 40,
+                "f" * 40,
+            ],
+        )
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("Thumbprint list must contain fewer than 5 entries.")
+
+
+@mock_iam
+def test_create_open_id_connect_provider_quota_error():
+    client = boto3.client("iam", region_name="us-east-1")
 
     too_many_client_ids = ["{}".format(i) for i in range(101)]
-    client.create_open_id_connect_provider.when.called_with(
-        Url="http://example.org", ThumbprintList=[], ClientIDList=too_many_client_ids,
-    ).should.throw(
-        ClientError, "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100",
-    )
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(
+            Url="http://example.org",
+            ThumbprintList=[],
+            ClientIDList=too_many_client_ids,
+        )
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100")
+
+
+@mock_iam
+def test_create_open_id_connect_provider_multiple_errors():
+    client = boto3.client("iam", region_name="us-east-1")
 
     too_long_url = "b" * 256
     too_long_thumbprint = "b" * 41
     too_long_client_id = "b" * 256
-    client.create_open_id_connect_provider.when.called_with(
-        Url=too_long_url,
-        ThumbprintList=[too_long_thumbprint],
-        ClientIDList=[too_long_client_id],
-    ).should.throw(
-        ClientError,
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(
+            Url=too_long_url,
+            ThumbprintList=[too_long_thumbprint],
+            ClientIDList=[too_long_client_id],
+        )
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain(
         "3 validation errors detected: "
         'Value "{0}" at "clientIDList" failed to satisfy constraint: '
         "Member must satisfy constraint: "
