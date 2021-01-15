@@ -2593,13 +2593,13 @@ def test_create_open_id_connect_provider_multiple_errors():
         )
     msg = e.value.response["Error"]["Message"]
     msg.should.contain("3 validation errors detected:")
-    msg.should.contain("\"clientIDList\" failed to satisfy constraint:")
+    msg.should.contain('"clientIDList" failed to satisfy constraint:')
     msg.should.contain("Member must have length less than or equal to 255")
     msg.should.contain("Member must have length greater than or equal to 1")
-    msg.should.contain("\"thumbprintList\" failed to satisfy constraint:")
+    msg.should.contain('"thumbprintList" failed to satisfy constraint:')
     msg.should.contain("Member must have length less than or equal to 40")
     msg.should.contain("Member must have length greater than or equal to 40")
-    msg.should.contain("\"url\" failed to satisfy constraint:")
+    msg.should.contain('"url" failed to satisfy constraint:')
     msg.should.contain("Member must have length less than or equal to 255")
 
 
