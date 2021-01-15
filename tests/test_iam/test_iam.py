@@ -2592,21 +2592,15 @@ def test_create_open_id_connect_provider_multiple_errors():
             ClientIDList=[too_long_client_id],
         )
     msg = e.value.response["Error"]["Message"]
-    msg.should.contain(
-        "3 validation errors detected: "
-        'Value "{0}" at "clientIDList" failed to satisfy constraint: '
-        "Member must satisfy constraint: "
-        "[Member must have length less than or equal to 255, "
-        "Member must have length greater than or equal to 1]; "
-        'Value "{1}" at "thumbprintList" failed to satisfy constraint: '
-        "Member must satisfy constraint: "
-        "[Member must have length less than or equal to 40, "
-        "Member must have length greater than or equal to 40]; "
-        'Value "{2}" at "url" failed to satisfy constraint: '
-        "Member must have length less than or equal to 255".format(
-            [too_long_client_id], [too_long_thumbprint], too_long_url
-        ),
-    )
+    msg.should.contain("3 validation errors detected:")
+    msg.should.contain("\"clientIDList\" failed to satisfy constraint:")
+    msg.should.contain("Member must have length less than or equal to 255")
+    msg.should.contain("Member must have length greater than or equal to 1")
+    msg.should.contain("\"thumbprintList\" failed to satisfy constraint:")
+    msg.should.contain("Member must have length less than or equal to 40")
+    msg.should.contain("Member must have length greater than or equal to 40")
+    msg.should.contain("\"url\" failed to satisfy constraint:")
+    msg.should.contain("Member must have length less than or equal to 255")
 
 
 @mock_iam
