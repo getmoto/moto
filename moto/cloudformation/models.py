@@ -616,9 +616,13 @@ class CloudFormationBackend(BaseBackend):
         new_stack.initialize_resources()
 
         self._validate_export_uniqueness(new_stack)
+        # Note: disable setting the exports here - done instead after the deployment loop has finished
+        # self.set_exports(new_stack)
+        return new_stack
+
+    def set_exports(self, new_stack):
         for export in new_stack.exports:
             self.exports[export.name] = export
-        return new_stack
 
     def create_change_set(
         self,
