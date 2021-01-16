@@ -1456,13 +1456,11 @@ def test_iam_cloudformation_create_role():
     role_name = role["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    iam_client.get_role(RoleName=role_name)
+    iam_client.list_roles()["Roles"].should.have.length_of(1)
 
     cf_client.delete_stack(StackName=stack_name)
 
-    with pytest.raises(ClientError) as e:
-        iam_client.get_role(RoleName=role_name)
-    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    iam_client.list_roles()["Roles"].should.have.length_of(0)
 
 
 @mock_iam
@@ -1492,10 +1490,8 @@ def test_iam_cloudformation_create_role_and_instance_profile():
     profile["PhysicalResourceId"].should.contain("RootInstanceProfile")
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    iam_client.get_role(RoleName=role_name)
+    iam_client.list_roles()["Roles"].should.have.length_of(1)
 
     cf_client.delete_stack(StackName=stack_name)
 
-    with pytest.raises(ClientError) as e:
-        iam_client.get_role(RoleName=role_name)
-    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    iam_client.list_roles()["Roles"].should.have.length_of(0)
