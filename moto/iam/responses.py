@@ -324,7 +324,7 @@ class IamResponse(BaseResponse):
         tags = self._get_multi_param("Tags.member")
 
         profile = iam_backend.create_instance_profile(
-            profile_name, path, role_ids=[], tags=tags
+            profile_name, path, role_names=[], tags=tags
         )
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
