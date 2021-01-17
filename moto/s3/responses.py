@@ -1261,6 +1261,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 200, response_headers, response
 
         storage_class = request.headers.get("x-amz-storage-class", "STANDARD")
+        encryption = request.headers.get("x-amz-server-side-encryption", None)
+        kms_key_id = request.headers.get(
+            "x-amz-server-side-encryption-aws-kms-key-id", None
+        )
+        bucket_key_enabled = request.headers.get(
+            "x-amz-server-side-encryption-bucket-key-enabled", None
+        )
+        if bucket_key_enabled is not None:
+            bucket_key_enabled = str(bucket_key_enabled).lower()
+
         acl = self._acl_from_headers(request.headers)
         if acl is None:
             acl = self.backend.get_bucket(bucket_name).acl
@@ -1343,7 +1353,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # Initial data
             new_key = self.backend.set_object(
-                bucket_name, key_name, body, storage=storage_class
+                bucket_name,
+                key_name,
+                body,
+                storage=storage_class,
+                encryption=encryption,
+                kms_key_id=kms_key_id,
+                bucket_key_enabled=bucket_key_enabled,
             )
             request.streaming = True
             metadata = metadata_from_headers(request.headers)
