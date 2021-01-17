@@ -396,7 +396,7 @@ def test_create_function_from_aws_bucket():
             },
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "State": "Active",
-            "Layers": []
+            "Layers": [],
         }
     )
 
@@ -441,7 +441,7 @@ def test_create_function_from_zipfile():
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "State": "Active",
-            "Layers": []
+            "Layers": [],
         }
     )
 
@@ -786,7 +786,7 @@ def test_list_create_list_get_delete_list():
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
-            "Layers": []
+            "Layers": [],
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
@@ -989,7 +989,7 @@ def test_get_function_created_with_zipfile():
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
-            "Layers": []
+            "Layers": [],
         }
     )
 
@@ -1680,7 +1680,7 @@ def test_update_function_zip():
             "Version": "2",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
-            "Layers": []
+            "Layers": [],
         }
     )
 
@@ -1747,7 +1747,7 @@ def test_update_function_s3():
             "Version": "2",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
-            "Layers": []
+            "Layers": [],
         }
     )
 

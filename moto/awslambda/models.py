@@ -287,7 +287,9 @@ class Layer(object):
         return {
             "LayerName": self.name,
             "LayerArn": self.layer_arn,
-            "LatestMatchingVersion": self.layer_versions[str(self._latest_version)].get_layer_version()
+            "LatestMatchingVersion": self.layer_versions[
+                str(self._latest_version)
+            ].get_layer_version(),
         }
 
 
@@ -1022,9 +1024,7 @@ class LayerStorage(object):
         self._layers[layer_version.name].attach_version(layer_version)
 
     def list_layers(self):
-        return [
-            layer.to_dict() for layer in self._layers.values()
-        ]
+        return [layer.to_dict() for layer in self._layers.values()]
 
     def get_layer_versions(self, layer_name):
         if layer_name in self._layers:

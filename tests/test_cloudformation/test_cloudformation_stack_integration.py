@@ -1851,9 +1851,7 @@ def lambda_handler(event, context):
             "lambdaTest": {
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
-                    "Content": {
-                        "S3Bucket": bucket_name, "S3Key": "test.zip",
-                    },
+                    "Content": {"S3Bucket": bucket_name, "S3Key": "test.zip",},
                     "LayerName": "testLayer",
                     "Description": "Test Layer",
                     "CompatibleRuntimes": ["python2.7", "python3.6"],
@@ -1873,13 +1871,17 @@ def lambda_handler(event, context):
     result = lambda_conn.list_layer_versions(LayerName=layer_name)
     result["LayerVersions"][0].pop("CreatedDate")
     result["LayerVersions"].should.equal(
-        [{
-            "Version": 1,
-            "LayerVersionArn": "arn:aws:lambda:{}:{}:layer:{}:1".format(region, ACCOUNT_ID, layer_name),
-            "CompatibleRuntimes": ["python2.7", "python3.6"],
-            "Description": "Test Layer",
-            "LicenseInfo": "MIT",
-        }]
+        [
+            {
+                "Version": 1,
+                "LayerVersionArn": "arn:aws:lambda:{}:{}:layer:{}:1".format(
+                    region, ACCOUNT_ID, layer_name
+                ),
+                "CompatibleRuntimes": ["python2.7", "python3.6"],
+                "Description": "Test Layer",
+                "LicenseInfo": "MIT",
+            }
+        ]
     )
 
 
