@@ -347,8 +347,9 @@ def parse_and_update_resource(logical_id, resource_json, resources_map, region_n
         return None
 
 
-def parse_and_delete_resource(resource_name, resource_json, resources_map, region_name):
-    resource_class, resource_json, _ = parse_resource(resource_json, resources_map)
+def parse_and_delete_resource(resource_name, resource_json, region_name):
+    resource_type = resource_json["Type"]
+    resource_class = resource_class_from_type(resource_type)
     if not hasattr(
         resource_class.delete_from_cloudformation_json, "__isabstractmethod__"
     ):
@@ -663,9 +664,7 @@ class ResourceMap(collections_abc.Mapping):
                 ].physical_resource_id
             else:
                 resource_name = None
-            parse_and_delete_resource(
-                resource_name, resource_json, self, self._region_name
-            )
+            parse_and_delete_resource(resource_name, resource_json, self._region_name)
             self._parsed_resources.pop(logical_name)
 
         self._template = template
@@ -726,7 +725,7 @@ class ResourceMap(collections_abc.Mapping):
                             ]
 
                             parse_and_delete_resource(
-                                resource_name, resource_json, self, self._region_name,
+                                resource_name, resource_json, self._region_name,
                             )
 
                         self._parsed_resources.pop(parsed_resource.logical_resource_id)
