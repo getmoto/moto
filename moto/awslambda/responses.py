@@ -64,6 +64,11 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def list_layers(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._list_layers(request, headers)
+
     def layers_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -437,6 +442,10 @@ class LambdaResponse(BaseResponse):
         )
 
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
+
+    def _list_layers(self, request, headers):
+        layers = self.lambda_backend.list_layers()
+        return (200, {}, json.dumps({"Layers": layers}))
 
     def _get_layer_versions(self, request, full_url, headers):
         layer_name = self.path.rsplit("/", 2)[-2]

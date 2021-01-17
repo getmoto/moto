@@ -251,7 +251,7 @@ class LayerVersion(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         optional_properties = (
             "Description",
-            "CompatibleRuntime",
+            "CompatibleRuntimes",
             "LicenseInfo",
         )
 
@@ -275,13 +275,20 @@ class Layer(object):
         self.name = name
 
         self.layer_arn = make_layer_arn(region, ACCOUNT_ID, self.name)
-        self._max_version = 0
+        self._latest_version = 0
         self.layer_versions = {}
 
     def attach_version(self, layer_version):
-        self._max_version += 1
-        layer_version.attach(self, self._max_version)
-        self.layer_versions[str(self._max_version)] = layer_version
+        self._latest_version += 1
+        layer_version.attach(self, self._latest_version)
+        self.layer_versions[str(self._latest_version)] = layer_version
+
+    def to_dict(self):
+        return {
+            "LayerName": self.name,
+            "LayerArn": self.layer_arn,
+            "LatestMatchingVersion": self.layer_versions[str(self._latest_version)].get_layer_version()
+        }
 
 
 class LambdaFunction(CloudFormationModel, DockerModel):
@@ -1014,8 +1021,12 @@ class LayerStorage(object):
             )
         self._layers[layer_version.name].attach_version(layer_version)
 
+    def list_layers(self):
+        return [
+            layer.to_dict() for layer in self._layers.values()
+        ]
+
     def get_layer_versions(self, layer_name):
-        __import__('pdb').set_trace()
         if layer_name in self._layers:
             return list(iter(self._layers[layer_name].layer_versions.values()))
         return []
@@ -1113,6 +1124,9 @@ class LambdaBackend(BaseBackend):
         layer_version = LayerVersion(spec, self.region_name)
         self._layers.put_layer_version(layer_version)
         return layer_version
+
+    def list_layers(self):
+        return self._layers.list_layers()
 
     def get_layer_versions(self, layer_name):
         return self._layers.get_layer_versions(layer_name)

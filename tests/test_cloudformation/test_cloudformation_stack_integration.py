@@ -1871,7 +1871,7 @@ def lambda_handler(event, context):
     result = lambda_conn.list_layers()
     layer_name = result["Layers"][0]["LayerName"]
     result = lambda_conn.list_layer_versions(LayerName=layer_name)
-    result["LayerVersions"][0].pop("CreateDate")
+    result["LayerVersions"][0].pop("CreatedDate")
     result["LayerVersions"].should.equal(
         [{
             "Version": 1,
