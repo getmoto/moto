@@ -15,5 +15,5 @@ url_paths = {
     "{0}/prod/channels/(?P<channelid>[^/.]+)/start": response.dispatch,
     "{0}/prod/channels/(?P<channelid>[^/.]+)/stop": response.dispatch,
     "{0}/prod/inputs": response.dispatch,
-    "{0}/prod/channels/(?P<inputid>[^/.]+)": response.dispatch,
+    "{0}/prod/inputs/(?P<inputid>[^/.]+)": response.dispatch,
 }
