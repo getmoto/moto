@@ -5616,25 +5616,25 @@
 
 ## medialive
 <details>
-<summary>0% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] batch_update_schedule
-- [ ] create_channel
-- [ ] create_input
+- [x] create_channel
+- [x] create_input
 - [ ] create_input_security_group
 - [ ] create_multiplex
 - [ ] create_multiplex_program
 - [ ] create_tags
-- [ ] delete_channel
-- [ ] delete_input
+- [x] delete_channel
+- [x] delete_input
 - [ ] delete_input_security_group
 - [ ] delete_multiplex
 - [ ] delete_multiplex_program
 - [ ] delete_reservation
 - [ ] delete_schedule
 - [ ] delete_tags
-- [ ] describe_channel
-- [ ] describe_input
+- [x] describe_channel
+- [x] describe_input
 - [ ] describe_input_device
 - [ ] describe_input_security_group
 - [ ] describe_multiplex
@@ -5642,23 +5642,23 @@
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] describe_schedule
-- [ ] list_channels
+- [x] list_channels
 - [ ] list_input_devices
 - [ ] list_input_security_groups
-- [ ] list_inputs
+- [x] list_inputs
 - [ ] list_multiplex_programs
 - [ ] list_multiplexes
 - [ ] list_offerings
 - [ ] list_reservations
 - [ ] list_tags_for_resource
 - [ ] purchase_offering
-- [ ] start_channel
+- [x] start_channel
 - [ ] start_multiplex
-- [ ] stop_channel
+- [x] stop_channel
 - [ ] stop_multiplex
-- [ ] update_channel
+- [x] update_channel
 - [ ] update_channel_class
-- [ ] update_input
+- [x] update_input
 - [ ] update_input_device
 - [ ] update_input_security_group
 - [ ] update_multiplex
