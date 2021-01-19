@@ -90,6 +90,10 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+    - name: Install Linux dependencies
+      if: ${{ matrix.python-version == 3.8 }}
+      run: |
+        sudo apt-get install libxslt-dev libxml2-dev -y
     - name: Install project dependencies
       run: |
         python -m pip install --upgrade pip
@@ -125,6 +129,10 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+    - name: Install Linux dependencies
+      if: ${{ matrix.python-version == 3.8 }}
+      run: |
+        sudo apt-get install libxslt-dev libxml2-dev -y
     - name: Install project dependencies
       run: |
         python -m pip install --upgrade pip
