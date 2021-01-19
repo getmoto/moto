@@ -28,6 +28,10 @@ jobs:
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+      - name: Install Linux dependencies
+        if: ${{ matrix.python-version == 3.8 && steps.cache-primes.outputs.cache-hit != 'true' }}
+        run: |
+          sudo apt-get install libxslt-dev libxml2-dev -y
       - name: Install project dependencies
         if: steps.cache-primes.outputs.cache-hit != 'true'
         run: |
@@ -73,10 +77,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install Linux dependencies
-      if: ${{ matrix.python-version == 3.8 }}
-      run: |
-        sudo apt-get install libxslt-dev libxml2-dev -y
     - name: Get pip cache dir
       id: pip-cache
       run: |
