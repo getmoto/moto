@@ -7,8 +7,37 @@ on:
   pull_request:
 
 jobs:
+  deps:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 2.7, 3.6, 3.7, 3.8 ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+      - name: Install project dependencies
+        if: steps.cache-primes.outputs.cache-hit != 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+
   lint:
     runs-on: ubuntu-latest
+    needs: deps
     strategy:
       matrix:
         python-version: [3.7]
@@ -18,10 +47,15 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Get pip cache dir
+      id: pip-cache
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
     - name: Lint with flake8
       run:
         make lint
@@ -43,10 +77,15 @@ jobs:
       if: ${{ matrix.python-version == 3.8 }}
       run: |
         sudo apt-get install libxslt-dev libxml2-dev -y
-    - name: Install project dependencies
+    - name: Get pip cache dir
+      id: pip-cache
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
     - name: Test with pytest
       run: |
         echo "test stuff"
@@ -73,10 +112,15 @@ jobs:
         python setup.py sdist
         docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
         python wait_for.py
-    - name: Install project dependencies
+    - name: Get pip cache dir
+      id: pip-cache
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -r requirements-dev.txt
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
     - name: Test ServerMode
       env:
         TEST_SERVER_MODE: ${{ true }}
