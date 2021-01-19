@@ -61,6 +61,12 @@ def is_master_branch():
     return tag_branch in [b"master\n"]
 
 
+def is_poc_branch():
+    cmd = "git rev-parse --abbrev-ref HEAD"
+    tag_branch = subprocess.check_output(cmd, shell=True)
+    return tag_branch in [b"poc/githubactions\n"]
+
+
 def git_tag_name():
     cmd = "git describe --tags"
     tag_branch = subprocess.check_output(cmd, shell=True)
@@ -119,7 +125,7 @@ def release_version_correct():
     - prerelease verion for master is correct.
     - release version is correct for tags.
     """
-    if is_master_branch():
+    if is_master_branch() or is_poc_branch():
         # update for a pre release version.
         initpy = os.path.abspath("moto/__init__.py")
 
