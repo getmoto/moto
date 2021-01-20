@@ -173,6 +173,7 @@ jobs:
           python update_version_from_git.py
       - name: Build project
         run: |
+          pip install wheel
           python setup.py sdist bdist_wheel
       - name: Publish to Test PyPI
         uses: pypa/gh-action-pypi-publish@master
