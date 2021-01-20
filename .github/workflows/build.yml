@@ -1,9 +1,9 @@
-name: Python package
+name: TestNDeploy
 
 on:
   push:
     branches:
-      - poc/githubactions
+      - master
   pull_request:
 
 jobs:
@@ -106,7 +106,13 @@ jobs:
         pip install -r requirements-dev.txt
     - name: Test with pytest
       run: |
-        echo make test-only
+        make test-only
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        flag-name: run-${{ matrix.python-version }}
+        parallel: true
 
   testserver:
     name: Unit tests in Server Mode
@@ -148,35 +154,37 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        echo make test-only
+        make test-only
+
+  coveralls:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Aggregate
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          parallel-finished: true
 
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [test, testserver]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/poc/githubactions' }}
+    needs: [coveralls, testserver]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     strategy:
       matrix:
         python-version: [3.8]
     steps:
       - uses: actions/checkout@v2
-      - name: Test env
-        run: |
-          pwd
-          ls -la
-          git --version
-          git status
-          git fetch --unshallow
-          git describe --tags
       - name: Update project version
         run: |
+          git fetch --unshallow
           python update_version_from_git.py
       - name: Build project
         run: |
           pip install wheel
           python setup.py sdist bdist_wheel
-      - name: Publish to Test PyPI
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@master
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}
