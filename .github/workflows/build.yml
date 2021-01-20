@@ -166,6 +166,7 @@ jobs:
           ls -la
           git --version
           git status
+          git fetch --unshallow
           git describe --tags
       - name: Update project version
         run: |
