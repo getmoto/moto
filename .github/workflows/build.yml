@@ -3,7 +3,7 @@ name: Python package
 on:
   push:
     branches:
-      - master
+      - poc/githubactions
   pull_request:
 
 jobs:
