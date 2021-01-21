@@ -105,7 +105,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
         pip install coveralls
-        pip install coverage --update
+        pip install coverage --upgrade
     - name: Test with pytest
       run: |
         make test-only
