@@ -26,7 +26,7 @@ format:
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
+	pytest -sv --cov=moto --cov-report html ./tests/test_awslambda $(TEST_EXCLUDE)
 
 test: lint test-only
 
