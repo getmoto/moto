@@ -32,6 +32,7 @@ test-coverage:
 	rm -f .coverage
 	rm -rf cover
 	coverage run --source moto --module pytest -sv ./tests/test_awslambda $(TEST_EXCLUDE)
+	coverage json
 
 test: lint test-only
 
