@@ -115,7 +115,7 @@ jobs:
         COVERALLS_PARALLEL: true
         COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       name: Submit to coveralls
-      run: coveralls
+      run: coveralls --service=github
 
   testserver:
     name: Unit tests in Server Mode
