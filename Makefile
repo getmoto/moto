@@ -28,6 +28,11 @@ test-only:
 	rm -rf cover
 	pytest -sv --cov=moto --cov-report html ./tests/test_awslambda $(TEST_EXCLUDE)
 
+test-coverage:
+	rm -f .coverage
+	rm -rf cover
+	coverage run --source moto --module pytest -sv ./tests/test_awslambda $(TEST_EXCLUDE)
+
 test: lint test-only
 
 test_server:

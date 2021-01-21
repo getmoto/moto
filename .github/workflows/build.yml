@@ -105,21 +105,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-        pip install coveralls
-        pip install coverage --upgrade
+        pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
     - name: Test with pytest
       run: |
-        make test-only
+        make test-coverage
     # Can't use official coveralls-app because of this:
     # https://github.com/coverallsapp/github-action/issues/30
-    - name: Coveralls
-      uses: AndreMiras/coveralls-python-action@develop
-      if: ${{ matrix.python-version != 2.7 }}
-      with:
-        flag-name: run-${{ matrix.python-version }}
-        base-path: moto
-        parallel: true
-        debug: true
+    - env:
+        COVERALLS_PARALLEL: true
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      name: Submit to coveralls
+      run: coveralls
 
   testserver:
     name: Unit tests in Server Mode
@@ -168,8 +164,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Aggregate
-        uses: AndreMiras/coveralls-python-action@develop
+        uses: coverallsapp/github-action@master
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
 
   deploy:
