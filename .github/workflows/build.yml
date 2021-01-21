@@ -117,7 +117,9 @@ jobs:
       if: ${{ matrix.python-version != 2.7 }}
       with:
         flag-name: run-${{ matrix.python-version }}
+        base-path: moto
         parallel: true
+        debug: true
 
   testserver:
     name: Unit tests in Server Mode
