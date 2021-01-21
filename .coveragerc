@@ -7,6 +7,5 @@ exclude_lines =
     def __repr__
 
 [run]
-relative_files = True
 include = moto/*
 omit = moto/packages/*
