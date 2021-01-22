@@ -112,7 +112,7 @@ jobs:
     # Can't use official coveralls-app because of this:
     # https://github.com/coverallsapp/github-action/issues/30
     - env:
-        GITHUB_TOKEN: ${{ secrets.COVERALLSIO }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       name: Submit to coveralls
       if: ${{ matrix.python-version == 3.7 }}
       run: |
