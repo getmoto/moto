@@ -117,7 +117,7 @@ jobs:
       name: Submit to coveralls
       run: |
         pip install -U coveralls
-        coveralls --service=github
+        coveralls
 
   testserver:
     name: Unit tests in Server Mode
