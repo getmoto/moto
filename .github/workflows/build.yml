@@ -112,9 +112,9 @@ jobs:
     # Can't use official coveralls-app because of this:
     # https://github.com/coverallsapp/github-action/issues/30
     - env:
-        COVERALLS_PARALLEL: true
         GITHUB_TOKEN: ${{ secrets.COVERALLSIO }}
       name: Submit to coveralls
+      if: ${{ matrix.python-version == 3.7 }}
       run: |
         pip install -U coveralls
         coveralls
@@ -163,6 +163,7 @@ jobs:
 
   coveralls:
     needs: test
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Aggregate
