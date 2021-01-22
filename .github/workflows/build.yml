@@ -113,8 +113,6 @@ jobs:
     # https://github.com/coverallsapp/github-action/issues/30
     - env:
         COVERALLS_PARALLEL: true
-        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       name: Submit to coveralls
       run: |
         pip install -U coveralls
