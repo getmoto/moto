@@ -876,3 +876,27 @@ def test_ami_snapshots_have_correct_owner():
 
         for snapshot in snapshots_rseponse["Snapshots"]:
             assert owner_id == snapshot["OwnerId"]
+
+
+@mock_ec2
+def test_ami_filter_by_empty_tag():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    image_id = client.create_image(
+        InstanceId=instance.instance_id, Name="test-image", Description="test ami",
+    )["ImageId"]
+    ec2.create_tags(
+        Resources=[image_id], Tags=[{"Key": "empty", "Value": ""}],
+    )
+
+    resp = client.describe_images(Filters=[{"Name": "tag-key", "Values": ["empty"]}])
+    assert len(resp["Images"]) == 1
+    assert resp["Images"][0]["ImageId"] == image_id
+
+    resp2 = client.describe_images(Filters=[{"Name": "tag:empty", "Values": [""]}])
+    assert len(resp["Images"]) == 1
+    assert resp["Images"][0]["ImageId"] == image_id
+
+    assert resp["Images"] == resp2["Images"]
