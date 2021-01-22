@@ -109,6 +109,7 @@ from .exceptions import (
     IncorrectStateIamProfileAssociationError,
     InvalidAssociationIDIamProfileAssociationError,
     InvalidVpcEndPointIdError,
+    InvalidTaggableResourceType,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -1522,10 +1523,26 @@ class AmiBackend(object):
             ami_id = ami["ami_id"]
             self.amis[ami_id] = Ami(self, **ami)
 
-    def create_image(self, instance_id, name=None, description=None, context=None):
+    def create_image(
+        self,
+        instance_id,
+        name=None,
+        description=None,
+        context=None,
+        tag_specifications=None,
+    ):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
+        tags = []
+        for tag_specification in tag_specifications:
+            resource_type = tag_specification["ResourceType"]
+            if resource_type == "image":
+                tags += tag_specification["Tag"]
+            elif resource_type == "snapshot":
+                raise NotImplementedError()
+            else:
+                raise InvalidTaggableResourceType(resource_type)
 
         ami = Ami(
             self,
@@ -1536,6 +1553,8 @@ class AmiBackend(object):
             description=description,
             owner_id=OWNER_ID,
         )
+        for tag in tags:
+            ami.add_tag(tag["Key"], tag["Value"])
         self.amis[ami_id] = ami
         return ami
 

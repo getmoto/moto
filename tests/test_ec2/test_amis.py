@@ -876,3 +876,48 @@ def test_ami_snapshots_have_correct_owner():
 
         for snapshot in snapshots_rseponse["Snapshots"]:
             assert owner_id == snapshot["OwnerId"]
+
+
+@mock_ec2
+def test_create_image_with_tag_specification():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+    tag_specifications = [
+        {
+            "ResourceType": "image",
+            "Tags": [
+                {
+                    "Key": "Base_AMI_Name",
+                    "Value": "Deep Learning Base AMI (Amazon Linux 2) Version 31.0",
+                },
+                {"Key": "OS_Version", "Value": "AWS Linux 2",},
+            ],
+        },
+    ]
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    image_id = client.create_image(
+        InstanceId=instance.instance_id,
+        Name="test-image",
+        Description="test ami",
+        TagSpecifications=tag_specifications,
+    )["ImageId"]
+
+    image = client.describe_images(ImageIds=[image_id])["Images"][0]
+    image["Tags"].should.equal(tag_specifications[0]["Tags"])
+
+    with pytest.raises(ClientError) as ex:
+        client.create_image(
+            InstanceId=instance.instance_id,
+            Name="test-image",
+            Description="test ami",
+            TagSpecifications=[
+                {
+                    "ResourceType": "invalid-resource-type",
+                    "Tags": [{"Key": "key", "Value": "value"}],
+                }
+            ],
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["Error"]["Message"].should.equal(
+        "'invalid-resource-type' is not a valid taggable resource type for this operation."
+    )
