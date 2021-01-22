@@ -117,7 +117,7 @@ jobs:
       if: ${{ matrix.python-version == 3.7 }}
       run: |
         pip install -U coveralls
-        coveralls
+        coveralls --service=github
 
   testserver:
     name: Unit tests in Server Mode
