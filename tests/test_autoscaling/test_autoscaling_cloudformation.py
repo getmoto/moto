@@ -81,7 +81,9 @@ def test_autoscaling_group_from_launch_config():
     client = boto3.client("autoscaling", region_name="us-east-1")
 
     client.create_launch_configuration(
-        LaunchConfigurationName="test_launch_configuration", InstanceType="t2.micro",
+        LaunchConfigurationName="test_launch_configuration",
+        InstanceType="t2.micro",
+        ImageId=EXAMPLE_AMI_ID,
     )
     stack_name = "test-auto-scaling-group"
 
@@ -123,6 +125,7 @@ Outputs:
     client.create_launch_configuration(
         LaunchConfigurationName="test_launch_configuration_new",
         InstanceType="t2.micro",
+        ImageId=EXAMPLE_AMI_ID,
     )
 
     cf_template = """

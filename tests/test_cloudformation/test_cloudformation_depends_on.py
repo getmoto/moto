@@ -1,6 +1,7 @@
 import boto3
 from moto import mock_cloudformation, mock_ecs, mock_autoscaling, mock_s3
 import json
+from tests import EXAMPLE_AMI_ID
 
 depends_on_template_list = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -23,7 +24,11 @@ depends_on_template_list = {
         },
         "LaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Properties": {"LaunchConfigurationName": "test-launch-config",},
+            "Properties": {
+                "LaunchConfigurationName": "test-launch-config",
+                "ImageId": EXAMPLE_AMI_ID,
+                "InstanceType": "t2.medium",
+            },
         },
     },
 }
@@ -45,7 +50,11 @@ depends_on_template_string = {
         },
         "LaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Properties": {"LaunchConfigurationName": "test-launch-config",},
+            "Properties": {
+                "LaunchConfigurationName": "test-launch-config",
+                "ImageId": EXAMPLE_AMI_ID,
+                "InstanceType": "t2.medium",
+            },
         },
     },
 }
