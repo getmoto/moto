@@ -99,6 +99,9 @@ class FakeKey(BaseModel):
         max_buffer_size=DEFAULT_KEY_BUFFER_SIZE,
         multipart=None,
         bucket_name=None,
+        encryption=None,
+        kms_key_id=None,
+        bucket_key_enabled=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -117,6 +120,10 @@ class FakeKey(BaseModel):
         self._max_buffer_size = max_buffer_size
         self.value = value
         self.lock = threading.Lock()
+
+        self.encryption = encryption
+        self.kms_key_id = kms_key_id
+        self.bucket_key_enabled = bucket_key_enabled
 
     @property
     def version_id(self):
@@ -229,6 +236,14 @@ class FakeKey(BaseModel):
             "last-modified": self.last_modified_RFC1123,
             "content-length": str(self.size),
         }
+        if self.encryption is not None:
+            res["x-amz-server-side-encryption"] = self.encryption
+            if self.encryption == "aws:kms" and self.kms_key_id is not None:
+                res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
+        if self.bucket_key_enabled is not None:
+            res[
+                "x-amz-server-side-encryption-bucket-key-enabled"
+            ] = self.bucket_key_enabled
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
@@ -1404,7 +1419,16 @@ class S3Backend(BaseBackend):
         return self.account_public_access_block
 
     def set_object(
-        self, bucket_name, key_name, value, storage=None, etag=None, multipart=None
+        self,
+        bucket_name,
+        key_name,
+        value,
+        storage=None,
+        etag=None,
+        multipart=None,
+        encryption=None,
+        kms_key_id=None,
+        bucket_key_enabled=None,
     ):
         key_name = clean_key_name(key_name)
         if storage is not None and storage not in STORAGE_CLASS:
@@ -1420,6 +1444,9 @@ class S3Backend(BaseBackend):
             is_versioned=bucket.is_versioned,
             version_id=str(uuid.uuid4()) if bucket.is_versioned else None,
             multipart=multipart,
+            encryption=encryption,
+            kms_key_id=kms_key_id,
+            bucket_key_enabled=bucket_key_enabled,
         )
 
         keys = [

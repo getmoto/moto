@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 import json
+import io
+import zipfile
 
 from decimal import Decimal
 
@@ -1817,6 +1819,71 @@ def lambda_handler(event, context):
     result = conn.get_function(FunctionName=function_name)
 
     result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(10)
+
+
+def _make_zipfile(func_str):
+    zip_output = io.BytesIO()
+    zip_file = zipfile.ZipFile(zip_output, "w", zipfile.ZIP_DEFLATED)
+    zip_file.writestr("lambda_function.py", func_str)
+    zip_file.close()
+    zip_output.seek(0)
+    return zip_output.read()
+
+
+@mock_cloudformation
+@mock_s3
+@mock_lambda
+def test_lambda_layer():
+    # switch this to python as backend lambda only supports python execution.
+    layer_code = """
+def lambda_handler(event, context):
+    return (event, context)
+"""
+    region = "us-east-1"
+    bucket_name = "test_bucket"
+    s3_conn = boto3.client("s3", region)
+    s3_conn.create_bucket(Bucket=bucket_name)
+
+    zip_content = _make_zipfile(layer_code)
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "lambdaTest": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": {"S3Bucket": bucket_name, "S3Key": "test.zip",},
+                    "LayerName": "testLayer",
+                    "Description": "Test Layer",
+                    "CompatibleRuntimes": ["python2.7", "python3.6"],
+                    "LicenseInfo": "MIT",
+                },
+            },
+        },
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto3.client("cloudformation", region)
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=template_json)
+
+    lambda_conn = boto3.client("lambda", region)
+    result = lambda_conn.list_layers()
+    layer_name = result["Layers"][0]["LayerName"]
+    result = lambda_conn.list_layer_versions(LayerName=layer_name)
+    result["LayerVersions"][0].pop("CreatedDate")
+    result["LayerVersions"].should.equal(
+        [
+            {
+                "Version": 1,
+                "LayerVersionArn": "arn:aws:lambda:{}:{}:layer:{}:1".format(
+                    region, ACCOUNT_ID, layer_name
+                ),
+                "CompatibleRuntimes": ["python2.7", "python3.6"],
+                "Description": "Test Layer",
+                "LicenseInfo": "MIT",
+            }
+        ]
+    )
 
 
 @mock_cloudformation
