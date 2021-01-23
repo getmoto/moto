@@ -114,10 +114,10 @@ jobs:
         make test-only
     # Only need to configure coverage once
     # Pytest-cov explicitly fails in Py2 for XRay tests
-    - name: Test with pytest + coverage
-        if: ${{ matrix.python-version == 3.7 }}
-        run: |
-          make test-coverage
+    - name: Test with pytest/coverage
+      if: ${{ matrix.python-version == 3.7 }}
+      run: |
+        make test-coverage
     - name: "Upload coverage to Codecov"
       if: ${{ matrix.python-version == 3.7 }}
       uses: codecov/codecov-action@v1
