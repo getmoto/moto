@@ -1,0 +1,190 @@
+name: TestNDeploy
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  # Install and cache dependencies
+  cache:
+    name: Caching
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 2.7, 3.6, 3.7, 3.8 ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Get pip cache dir
+        id: pip-cache-dir
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+      - name: pip cache
+        id: pip-cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache-dir.outputs.dir }}
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+      - name: Install Linux dependencies
+        if: ${{ matrix.python-version == 3.8 && steps.pip-cache.outputs.cache-hit != 'true' }}
+        run: |
+          sudo apt-get install libxslt-dev libxml2-dev -y
+      - name: Install project dependencies
+        if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    needs: cache
+    strategy:
+      matrix:
+        python-version: [3.7]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    # Retrieve the previously cached dependencies
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+    # Still need to properly install the dependencies - it will only skip the download part
+    - name: Install project dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+    - name: Lint with flake8
+      run:
+        make lint
+
+  test:
+    name: Unit test
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [2.7, 3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+    - name: Install Linux dependencies
+      if: ${{ matrix.python-version == 3.8 }}
+      run: |
+        sudo apt-get install libxslt-dev libxml2-dev -y
+    - name: Install project dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        pip install pytest-cov
+    - name: Test with pytest
+      if: ${{ matrix.python-version != 3.7 }}
+      run: |
+        make test-only
+    # Only need to configure coverage once
+    # Pytest-cov explicitly fails in Py2 for XRay tests
+    - name: Test with pytest/coverage
+      if: ${{ matrix.python-version == 3.7 }}
+      run: |
+        make test-coverage
+    - name: "Upload coverage to Codecov"
+      if: ${{ matrix.python-version == 3.7 }}
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+
+  testserver:
+    name: Unit tests in Server Mode
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        python-version: [2.7, 3.6, 3.7, 3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Start MotoServer
+      run: |
+        python setup.py sdist
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
+        python wait_for.py
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+    - name: Install Linux dependencies
+      if: ${{ matrix.python-version == 3.8 }}
+      run: |
+        sudo apt-get install libxslt-dev libxml2-dev -y
+    - name: Install project dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+    - name: Test ServerMode
+      env:
+        TEST_SERVER_MODE: ${{ true }}
+      run: |
+        make test-only
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [test, testserver]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    strategy:
+      matrix:
+        python-version: [3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Update project version
+        run: |
+          git fetch --unshallow
+          python update_version_from_git.py
+      - name: Build project
+        run: |
+          pip install wheel
+          python setup.py sdist bdist_wheel
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
