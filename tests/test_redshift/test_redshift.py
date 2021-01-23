@@ -1487,3 +1487,98 @@ def test_resize_cluster():
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
     ex.value.response["Error"]["Message"].should.contain("Invalid cluster type")
+
+
+@mock_redshift
+def test_get_cluster_credentials_non_existent_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_cluster_credentials(ClusterIdentifier="non-existent")
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
+
+
+@mock_redshift
+def test_get_cluster_credentials_non_existent_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_cluster_credentials(
+            ClusterIdentifier="non-existent", DbUser="some_user"
+        )
+    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
+    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
+
+
+@mock_redshift
+def test_get_cluster_credentials_invalid_duration():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    cluster_identifier = "my_cluster"
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        DBName="test",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        NodeType="ds2.xlarge",
+    )
+
+    db_user = "some_user"
+    with pytest.raises(ClientError) as ex:
+        client.get_cluster_credentials(
+            ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=899
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["Error"]["Message"].should.contain(
+        "Token duration must be between 900 and 3600 seconds"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_cluster_credentials(
+            ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3601
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["Error"]["Message"].should.contain(
+        "Token duration must be between 900 and 3600 seconds"
+    )
+
+
+@mock_redshift
+def test_get_cluster_credentials():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    cluster_identifier = "my_cluster"
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        DBName="test",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        NodeType="ds2.xlarge",
+    )
+
+    expected_expiration = (
+        datetime.datetime.now() + datetime.timedelta(0, 900)
+    ).timestamp()
+    db_user = "some_user"
+    response = client.get_cluster_credentials(
+        ClusterIdentifier=cluster_identifier, DbUser=db_user,
+    )
+    response["DbUser"].should.equal(f"IAM:{db_user}")
+    assert response["Expiration"].timestamp() == pytest.approx(expected_expiration)
+    response["DbPassword"].should.have.length_of(32)
+
+    response = client.get_cluster_credentials(
+        ClusterIdentifier=cluster_identifier, DbUser=db_user, AutoCreate=True
+    )
+    response["DbUser"].should.equal(f"IAMA:{db_user}")
+
+    expected_expiration = (
+        datetime.datetime.now() + datetime.timedelta(0, 3000)
+    ).timestamp()
+    response = client.get_cluster_credentials(
+        ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3000,
+    )
+    assert response["Expiration"].timestamp() == pytest.approx(expected_expiration)

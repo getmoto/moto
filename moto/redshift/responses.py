@@ -694,3 +694,24 @@ class RedshiftResponse(BaseResponse):
                 }
             }
         )
+
+    def get_cluster_credentials(self):
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        db_user = self._get_param("DbUser")
+        auto_create = self._get_param("AutoCreate", False)
+        duration_seconds = self._get_param("DurationSeconds", 900)
+
+        cluster_credentials = self.redshift_backend.get_cluster_credentials(
+            cluster_identifier, db_user, auto_create, duration_seconds
+        )
+
+        return self.get_response(
+            {
+                "GetClusterCredentialsResponse": {
+                    "GetClusterCredentialsResult": cluster_credentials,
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )

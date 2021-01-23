@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 import copy
+import random
+import string
 import datetime
 
 from boto3 import Session
@@ -940,6 +942,37 @@ class RedshiftBackend(BaseBackend):
     def delete_tags(self, resource_name, tag_keys):
         resource = self._get_resource_from_arn(resource_name)
         resource.delete_tags(tag_keys)
+
+    @staticmethod
+    def _generate_random_alphanum():
+        printable = list(string.ascii_letters + string.digits + string.punctuation)
+        random.shuffle(printable)
+
+        random_alphanum = random.choices(printable, k=32)
+        random_alphanum = "".join(random_alphanum)
+        return random_alphanum
+
+    def get_cluster_credentials(
+        self, cluster_identifier, db_user, auto_create, duration_seconds
+    ):
+        duration_seconds = int(duration_seconds)
+        try:
+            assert duration_seconds >= 900 and duration_seconds <= 3600
+        except AssertionError:
+            raise InvalidParameterValueError(
+                "Token duration must be between 900 and 3600 seconds"
+            )
+        expiration = datetime.datetime.now() + datetime.timedelta(0, duration_seconds)
+        if cluster_identifier in self.clusters:
+            user_prefix = "IAM:" if auto_create is False else "IAMA:"
+            db_user = user_prefix + db_user
+            return {
+                "DbUser": db_user,
+                "DbPassword": self._generate_random_alphanum(),
+                "Expiration": expiration,
+            }
+        else:
+            raise ClusterNotFoundError(cluster_identifier)
 
 
 redshift_backends = {}
