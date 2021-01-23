@@ -84,6 +84,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -108,7 +110,7 @@ jobs:
         pip install pytest-cov
     - name: Test with pytest
       run: |
-        make test-coverage
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ matrix.python-version == 3.7 }}
       uses: codecov/codecov-action@v1
@@ -156,17 +158,6 @@ jobs:
         TEST_SERVER_MODE: ${{ true }}
       run: |
         make test-only
-
-  coveralls:
-    needs: test
-    if: ${{ false }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Aggregate
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
 
   deploy:
     name: Deploy
