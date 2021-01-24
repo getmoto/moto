@@ -210,6 +210,16 @@ class EventBus(CloudFormationModel):
 
 
 class Archive(CloudFormationModel):
+    # https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_ListArchives.html#API_ListArchives_RequestParameters
+    VALID_STATES = [
+        "ENABLED",
+        "DISABLED",
+        "CREATING",
+        "UPDATING",
+        "CREATE_FAILED",
+        "UPDATE_FAILED",
+    ]
+
     def __init__(
         self, region_name, name, source_arn, description, event_pattern, retention
     ):
@@ -231,19 +241,26 @@ class Archive(CloudFormationModel):
             region=self.region, account_id=ACCOUNT_ID, name=self.name
         )
 
-    def describe(self):
+    def describe_short(self):
         return {
-            "ArchiveArn": self.arn,
             "ArchiveName": self.name,
             "EventSourceArn": self.source_arn,
-            "Description": self.description,
-            "EventPattern": self.event_pattern,
             "State": self.state,
             "RetentionDays": self.retention,
             "SizeBytes": sys.getsizeof(self.events) if len(self.events) > 0 else 0,
             "EventCount": len(self.events),
             "CreationTime": self.creation_time,
         }
+
+    def describe(self):
+        result = {
+            "ArchiveArn": self.arn,
+            "Description": self.description,
+            "EventPattern": self.event_pattern,
+        }
+        result.update(self.describe_short())
+
+        return result
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -668,7 +685,7 @@ class EventsBackend(BaseBackend):
 
     def _is_event_value_an_array(self, pattern):
         # the values of a key in the event pattern have to be either a dict or an array
-        for key, value in pattern.items():
+        for value in pattern.values():
             if isinstance(value, dict):
                 if not self._is_event_value_an_array(value):
                     return False
@@ -684,6 +701,35 @@ class EventsBackend(BaseBackend):
             raise ResourceNotFoundException("Archive {} does not exist.".format(name))
 
         return archive.describe()
+
+    def list_archives(self, name_prefix, source_arn, state):
+        if [name_prefix, source_arn, state].count(None) < 2:
+            raise ValidationException(
+                "At most one filter is allowed for ListArchives. "
+                "Use either : State, EventSourceArn, or NamePrefix."
+            )
+
+        if state and state not in Archive.VALID_STATES:
+            raise ValidationException(
+                "1 validation error detected: Value '{0}' at 'state' failed to satisfy constraint: "
+                "Member must satisfy enum value set: "
+                "[{1}]".format(state, ", ".join(Archive.VALID_STATES))
+            )
+
+        if [name_prefix, source_arn, state].count(None) == 3:
+            return [archive.describe_short() for archive in self.archives.values()]
+
+        result = []
+
+        for archive in self.archives.values():
+            if name_prefix and archive.name.startswith(name_prefix):
+                result.append(archive.describe_short())
+            elif source_arn and archive.source_arn == source_arn:
+                result.append(archive.describe_short())
+            elif state and archive.state == state:
+                result.append(archive.describe_short())
+
+        return result
 
 
 events_backends = {}

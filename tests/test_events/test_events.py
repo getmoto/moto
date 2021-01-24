@@ -945,7 +945,7 @@ def test_describe_archive():
 
     # then
     response["ArchiveArn"].should.equal(
-        "arn:aws:events:eu-central-1:{0}:archive/{1}}".format(ACCOUNT_ID, name)
+        "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, name)
     )
     response["ArchiveName"].should.equal(name)
     response["CreationTime"].should.be.a(datetime)
@@ -975,4 +975,138 @@ def test_describe_archive_error_unknown_archive():
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
     ex.response["Error"]["Message"].should.equal(
         "Archive {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_list_archives():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    event_pattern = json.dumps({"key": ["value"]})
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn=source_arn,
+        Description="test archive",
+        EventPattern=event_pattern,
+    )
+
+    # when
+    archives = client.list_archives()["Archives"]
+
+    # then
+    archives.should.have.length_of(1)
+    archive = archives[0]
+    archive["ArchiveName"].should.equal(name)
+    archive["CreationTime"].should.be.a(datetime)
+    archive["EventCount"].should.equal(0)
+    archive["EventSourceArn"].should.equal(source_arn)
+    archive["RetentionDays"].should.equal(0)
+    archive["SizeBytes"].should.equal(0)
+    archive["State"].should.equal("ENABLED")
+
+    archive.should_not.have.key("ArchiveArn")
+    archive.should_not.have.key("Description")
+    archive.should_not.have.key("EventPattern")
+
+
+@mock_events
+def test_list_archives_with_name_prefix():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    client.create_archive(
+        ArchiveName="test", EventSourceArn=source_arn,
+    )
+    client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=source_arn,
+    )
+
+    # when
+    archives = client.list_archives(NamePrefix="test-")["Archives"]
+
+    # then
+    archives.should.have.length_of(1)
+    archives[0]["ArchiveName"].should.equal("test-archive")
+
+
+@mock_events
+def test_list_archives_with_source_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    source_arn_2 = client.create_event_bus(Name="test-bus")["EventBusArn"]
+    client.create_archive(
+        ArchiveName="test", EventSourceArn=source_arn,
+    )
+    client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=source_arn_2,
+    )
+
+    # when
+    archives = client.list_archives(EventSourceArn=source_arn)["Archives"]
+
+    # then
+    archives.should.have.length_of(1)
+    archives[0]["ArchiveName"].should.equal("test")
+
+
+@mock_events
+def test_list_archives_with_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    client.create_archive(
+        ArchiveName="test", EventSourceArn=source_arn,
+    )
+    client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=source_arn,
+    )
+
+    # when
+    archives = client.list_archives(State="FAILED")["Archives"]
+
+    # then
+    archives.should.have.length_of(0)
+
+
+@mock_events
+def test_list_archives_error_multiple_filters():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_archives(NamePrefix="test", State="ENABLED")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListArchives")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "At most one filter is allowed for ListArchives. "
+        "Use either : State, EventSourceArn, or NamePrefix."
+    )
+
+
+@mock_events
+def test_list_archives_error_invalid_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_archives(State="invalid")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListArchives")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: Value 'invalid' at 'state' failed to satisfy constraint: "
+        "Member must satisfy enum value set: "
+        "[ENABLED, DISABLED, CREATING, UPDATING, CREATE_FAILED, UPDATE_FAILED]"
     )

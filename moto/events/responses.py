@@ -361,3 +361,12 @@ class EventsHandler(BaseResponse):
         result = self.events_backend.describe_archive(name)
 
         return json.dumps(result), self.response_headers
+
+    def list_archives(self):
+        name_prefix = self._get_param("NamePrefix")
+        source_arn = self._get_param("EventSourceArn")
+        state = self._get_param("State")
+
+        result = self.events_backend.list_archives(name_prefix, source_arn, state)
+
+        return json.dumps({"Archives": result}), self.response_headers
