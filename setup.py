@@ -86,7 +86,7 @@ _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
 _dep_idna = "idna<3,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
-_dep_sshpubkeys_py2 = "sshpubkeys>=3.1.0,<4.0; python_version<'3'"
+_dep_sshpubkeys_py2 = "sshpubkeys==3.1.0; python_version<'3'"
 _dep_sshpubkeys_py3 = "sshpubkeys>=3.1.0; python_version>'3'"
 
 all_extra_deps = [
