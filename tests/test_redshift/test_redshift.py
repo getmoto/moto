@@ -1566,14 +1566,14 @@ def test_get_cluster_credentials():
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user,
     )
-    response["DbUser"].should.equal(f"IAM:{db_user}")
+    response["DbUser"].should.equal("IAM:%s" % db_user)
     assert response["Expiration"].timestamp() == pytest.approx(expected_expiration)
     response["DbPassword"].should.have.length_of(32)
 
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user, AutoCreate=True
     )
-    response["DbUser"].should.equal(f"IAMA:{db_user}")
+    response["DbUser"].should.equal("IAMA:%s" % db_user)
 
     expected_expiration = (
         datetime.datetime.now() + datetime.timedelta(0, 3000)
