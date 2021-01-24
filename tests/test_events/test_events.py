@@ -924,3 +924,55 @@ def test_create_archive_error_duplicate():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceAlreadyExistsException")
     ex.response["Error"]["Message"].should.equal("Archive test-archive already exists.")
+
+
+@mock_events
+def test_describe_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    event_pattern = json.dumps({"key": ["value"]})
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn=source_arn,
+        Description="test archive",
+        EventPattern=event_pattern,
+    )
+
+    # when
+    response = client.describe_archive(ArchiveName=name)
+
+    # then
+    response["ArchiveArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:archive/{1}}".format(ACCOUNT_ID, name)
+    )
+    response["ArchiveName"].should.equal(name)
+    response["CreationTime"].should.be.a(datetime)
+    response["Description"].should.equal("test archive")
+    response["EventCount"].should.equal(0)
+    response["EventPattern"].should.equal(event_pattern)
+    response["EventSourceArn"].should.equal(source_arn)
+    response["RetentionDays"].should.equal(0)
+    response["SizeBytes"].should.equal(0)
+    response["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_describe_archive_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_archive(ArchiveName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Archive {} does not exist.".format(name)
+    )

@@ -354,3 +354,10 @@ class EventsHandler(BaseResponse):
             ),
             self.response_headers,
         )
+
+    def describe_archive(self):
+        name = self._get_param("ArchiveName")
+
+        result = self.events_backend.describe_archive(name)
+
+        return json.dumps(result), self.response_headers

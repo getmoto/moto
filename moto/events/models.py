@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import sys
 from datetime import datetime
 
 from boto3 import Session
@@ -11,7 +12,8 @@ from moto.core.utils import unix_time
 from moto.events.exceptions import (
     ValidationException,
     ResourceNotFoundException,
-    ResourceAlreadyExistsException, InvalidEventPatternException,
+    ResourceAlreadyExistsException,
+    InvalidEventPatternException,
 )
 from moto.utilities.tagging_service import TaggingService
 
@@ -221,11 +223,27 @@ class Archive(CloudFormationModel):
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "ENABLED"
 
+        self.events = []
+
     @property
     def arn(self):
         return "arn:aws:events:{region}:{account_id}:archive/{name}".format(
             region=self.region, account_id=ACCOUNT_ID, name=self.name
         )
+
+    def describe(self):
+        return {
+            "ArchiveArn": self.arn,
+            "ArchiveName": self.name,
+            "EventSourceArn": self.source_arn,
+            "Description": self.description,
+            "EventPattern": self.event_pattern,
+            "State": self.state,
+            "RetentionDays": self.retention,
+            "SizeBytes": sys.getsizeof(self.events) if len(self.events) > 0 else 0,
+            "EventCount": len(self.events),
+            "CreationTime": self.creation_time,
+        }
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -248,7 +266,7 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-            cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
@@ -659,6 +677,13 @@ class EventsBackend(BaseBackend):
 
         return True
 
+    def describe_archive(self, name):
+        archive = self.archives.get(name)
+
+        if not archive:
+            raise ResourceNotFoundException("Archive {} does not exist.".format(name))
+
+        return archive.describe()
 
 
 events_backends = {}
