@@ -249,7 +249,7 @@ class TaggedEC2Resource(BaseModel):
                 if tag["key"] == tagname:
                     return tag["value"]
 
-            return ""
+            return None
         elif filter_name == "tag-key":
             return [tag["key"] for tag in tags]
         elif filter_name == "tag-value":

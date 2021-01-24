@@ -921,3 +921,44 @@ def test_create_image_with_tag_specification():
     ex.value.response["Error"]["Message"].should.equal(
         "'invalid-resource-type' is not a valid taggable resource type for this operation."
     )
+
+
+@mock_ec2
+def test_ami_filter_by_empty_tag():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    fake_images = []
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    for i in range(10):
+        image = client.create_image(
+            InstanceId=instance.instance_id,
+            Name="MyAMI{}".format(i),
+            Description="Test",
+        )
+
+        ec2.create_tags(
+            Resources=[image["ImageId"]],
+            Tags=[
+                {
+                    "Key": "Base_AMI_Name",
+                    "Value": "Deep Learning Base AMI (Amazon Linux 2) Version 31.0",
+                },
+                {"Key": "OS_Version", "Value": "AWS Linux 2"},
+            ],
+        )
+        fake_images.append(image)
+    # Add release tags to some of the images in the middle
+    for image in fake_images[3:6]:
+        ec2.create_tags(
+            Resources=[image["ImageId"]], Tags=[{"Key": "RELEASE", "Value": ""}]
+        )
+    images_filter = [
+        {
+            "Name": "tag:Base_AMI_Name",
+            "Values": ["Deep Learning Base AMI (Amazon Linux 2) Version 31.0"],
+        },
+        {"Name": "tag:OS_Version", "Values": ["AWS Linux 2"]},
+        {"Name": "tag:RELEASE", "Values": [""]},
+    ]
+    assert len(client.describe_images(Filters=images_filter)["Images"]) == 3
