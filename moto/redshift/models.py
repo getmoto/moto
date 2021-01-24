@@ -948,7 +948,7 @@ class RedshiftBackend(BaseBackend):
         printable = list(string.ascii_letters + string.digits + string.punctuation)
         random.shuffle(printable)
 
-        random_alphanum = random.choices(printable, k=32)
+        random_alphanum = random.sample(printable, k=32)
         random_alphanum = "".join(random_alphanum)
         return random_alphanum
 

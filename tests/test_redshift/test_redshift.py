@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import time
 import datetime
 
 import boto
@@ -1559,15 +1560,17 @@ def test_get_cluster_credentials():
         NodeType="ds2.xlarge",
     )
 
-    expected_expiration = (
-        datetime.datetime.now() + datetime.timedelta(0, 900)
-    ).timestamp()
+    expected_expiration = time.mktime(
+        (datetime.datetime.now() + datetime.timedelta(0, 900)).timetuple()
+    )
     db_user = "some_user"
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user,
     )
     response["DbUser"].should.equal("IAM:%s" % db_user)
-    assert response["Expiration"].timestamp() == pytest.approx(expected_expiration)
+    assert time.mktime((response["Expiration"]).timetuple()) == pytest.approx(
+        expected_expiration
+    )
     response["DbPassword"].should.have.length_of(32)
 
     response = client.get_cluster_credentials(
@@ -1575,10 +1578,12 @@ def test_get_cluster_credentials():
     )
     response["DbUser"].should.equal("IAMA:%s" % db_user)
 
-    expected_expiration = (
-        datetime.datetime.now() + datetime.timedelta(0, 3000)
-    ).timestamp()
+    expected_expiration = time.mktime(
+        (datetime.datetime.now() + datetime.timedelta(0, 3000)).timetuple()
+    )
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3000,
     )
-    assert response["Expiration"].timestamp() == pytest.approx(expected_expiration)
+    assert time.mktime(response["Expiration"].timetuple()) == pytest.approx(
+        expected_expiration
+    )
