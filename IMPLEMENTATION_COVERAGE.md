@@ -6721,7 +6721,7 @@
 
 ## redshift
 <details>
-<summary>28% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] authorize_cluster_security_group_ingress
@@ -6789,7 +6789,7 @@
 - [X] disable_snapshot_copy
 - [ ] enable_logging
 - [X] enable_snapshot_copy
-- [ ] get_cluster_credentials
+- [X] get_cluster_credentials
 - [ ] get_reserved_node_exchange_offerings
 - [X] modify_cluster
 - [ ] modify_cluster_db_revision
