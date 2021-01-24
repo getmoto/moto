@@ -332,3 +332,25 @@ class EventsHandler(BaseResponse):
         result = self.events_backend.untag_resource(arn, tags)
 
         return json.dumps(result), self.response_headers
+
+    def create_archive(self):
+        name = self._get_param("ArchiveName")
+        source_arn = self._get_param("EventSourceArn")
+        description = self._get_param("Description")
+        event_pattern = self._get_param("EventPattern")
+        retention = self._get_param("RetentionDays")
+
+        archive = self.events_backend.create_archive(
+            name, source_arn, description, event_pattern, retention
+        )
+
+        return (
+            json.dumps(
+                {
+                    "ArchiveArn": archive.arn,
+                    "CreationTime": archive.creation_time,
+                    "State": archive.state,
+                }
+            ),
+            self.response_headers,
+        )
