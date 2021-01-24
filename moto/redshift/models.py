@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 
 import copy
-import random
-import string
 import datetime
 
 from boto3 import Session
@@ -10,6 +8,7 @@ from boto3 import Session
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.utilities.utils import random_string
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ClusterAlreadyExistsFaultError,
@@ -943,15 +942,6 @@ class RedshiftBackend(BaseBackend):
         resource = self._get_resource_from_arn(resource_name)
         resource.delete_tags(tag_keys)
 
-    @staticmethod
-    def _generate_random_alphanum():
-        printable = list(string.ascii_letters + string.digits + string.punctuation)
-        random.shuffle(printable)
-
-        random_alphanum = random.sample(printable, k=32)
-        random_alphanum = "".join(random_alphanum)
-        return random_alphanum
-
     def get_cluster_credentials(
         self, cluster_identifier, db_user, auto_create, duration_seconds
     ):
@@ -965,7 +955,7 @@ class RedshiftBackend(BaseBackend):
             db_user = user_prefix + db_user
             return {
                 "DbUser": db_user,
-                "DbPassword": self._generate_random_alphanum(),
+                "DbPassword": random_string(32),
                 "Expiration": expiration,
             }
         else:
