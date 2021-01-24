@@ -698,8 +698,8 @@ class RedshiftResponse(BaseResponse):
     def get_cluster_credentials(self):
         cluster_identifier = self._get_param("ClusterIdentifier")
         db_user = self._get_param("DbUser")
-        auto_create = self._get_param("AutoCreate", False)
-        duration_seconds = self._get_param("DurationSeconds", 900)
+        auto_create = self._get_bool_param("AutoCreate", False)
+        duration_seconds = self._get_int_param("DurationSeconds", 900)
 
         cluster_credentials = self.redshift_backend.get_cluster_credentials(
             cluster_identifier, db_user, auto_create, duration_seconds

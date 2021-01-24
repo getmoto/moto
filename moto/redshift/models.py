@@ -955,7 +955,6 @@ class RedshiftBackend(BaseBackend):
     def get_cluster_credentials(
         self, cluster_identifier, db_user, auto_create, duration_seconds
     ):
-        duration_seconds = int(duration_seconds)
         try:
             assert duration_seconds >= 900 and duration_seconds <= 3600
         except AssertionError:
