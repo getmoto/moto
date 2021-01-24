@@ -955,9 +955,7 @@ class RedshiftBackend(BaseBackend):
     def get_cluster_credentials(
         self, cluster_identifier, db_user, auto_create, duration_seconds
     ):
-        try:
-            assert duration_seconds >= 900 and duration_seconds <= 3600
-        except AssertionError:
+        if duration_seconds < 900 or duration_seconds > 3600:
             raise InvalidParameterValueError(
                 "Token duration must be between 900 and 3600 seconds"
             )
