@@ -1579,9 +1579,9 @@ def test_get_cluster_credentials():
     response["DbUser"].should.equal("IAMA:%s" % db_user)
 
     response = client.get_cluster_credentials(
-        ClusterIdentifier=cluster_identifier, DbUser='some_other_user', AutoCreate=False
+        ClusterIdentifier=cluster_identifier, DbUser="some_other_user", AutoCreate=False
     )
-    response["DbUser"].should.equal("IAM:%s" % 'some_other_user')
+    response["DbUser"].should.equal("IAM:%s" % "some_other_user")
 
     expected_expiration = time.mktime(
         (datetime.datetime.now() + datetime.timedelta(0, 3000)).timetuple()
