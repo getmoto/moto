@@ -24,7 +24,16 @@ install:
     else
       PYTHON_DOCKER_TAG=${TRAVIS_PYTHON_VERSION}-stretch
     fi
-    docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${PYTHON_DOCKER_TAG} /moto/travis_moto_server.sh &
+    docker run --rm -t \
+      --name motoserver \
+      -e MOTO_ENVIRONMENT=development \
+      -e TEST_SERVER_MODE=true \
+      -e AWS_SECRET_ACCESS_KEY=server_secret \
+      -e AWS_ACCESS_KEY_ID=server_key \
+      -v `pwd`:/moto \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -p 5000:5000 \
+      python:${PYTHON_DOCKER_TAG} /moto/travis_moto_server.sh &
   fi
   travis_retry pip install -r requirements-dev.txt
   travis_retry pip install docker>=2.5.1

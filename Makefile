@@ -26,12 +26,12 @@ format:
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	@pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
+	@MOTO_ENVIRONMENT=development pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
 
 test: lint test-only
 
 test_server:
-	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report html ./tests/
+	@TEST_SERVER_MODE=true @MOTO_ENVIRONMENT=development pytest -sv --cov=moto --cov-report html ./tests/
 
 aws_managed_policies:
 	scripts/update_managed_policies.py

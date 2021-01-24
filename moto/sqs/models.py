@@ -20,7 +20,7 @@ from moto.core.utils import (
     unix_time_millis,
     tags_from_cloudformation_tags_list,
 )
-from .utils import generate_receipt_handle
+from .utils import generate_receipt_handle, read_config
 from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
@@ -62,8 +62,6 @@ BINARY_LIST_TYPE_FIELD_INDEX = 4
 # Valid attribute name rules can found at
 # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html
 ATTRIBUTE_NAME_PATTERN = re.compile("^([a-z]|[A-Z]|[0-9]|[_.\\-])+$")
-
-DEDUPLICATION_TIME_IN_SECONDS = 300
 
 
 class Message(BaseModel):
@@ -231,9 +229,10 @@ class Queue(CloudFormationModel):
         "SendMessage",
     )
 
-    def __init__(self, name, region, **kwargs):
+    def __init__(self, name, region, config, **kwargs):
         self.name = name
         self.region = region
+        self.config = config
         self.tags = {}
         self.permissions = {}
 
@@ -489,7 +488,7 @@ class Queue(CloudFormationModel):
                     diff = message.sent_timestamp - m.sent_timestamp
                     # if a duplicate message is received within the deduplication time then it should
                     # not be added to the queue
-                    if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
+                    if diff / 1000 < int(self.config["DeduplicationTimeInSeconds"]):
                         return
 
         self._messages.append(message)
@@ -559,16 +558,18 @@ def _filter_message_attributes(message, input_message_attributes):
 
 
 class SQSBackend(BaseBackend):
-    def __init__(self, region_name):
+    def __init__(self, region_name, config):
         self.region_name = region_name
+        self.config = config
         self.queues = {}
         super(SQSBackend, self).__init__()
 
     def reset(self):
         region_name = self.region_name
+        config = self.config
         self._reset_model_refs()
         self.__dict__ = {}
-        self.__init__(region_name)
+        self.__init__(region_name, config)
 
     def create_queue(self, name, tags=None, **kwargs):
         queue = self.queues.get(name)
@@ -578,7 +579,9 @@ class SQSBackend(BaseBackend):
             except KeyError:
                 pass
 
-            new_queue = Queue(name, region=self.region_name, **kwargs)
+            new_queue = Queue(
+                name, region=self.region_name, config=self.config, **kwargs
+            )
 
             queue_attributes = queue.attributes
             new_queue_attributes = new_queue.attributes
@@ -593,7 +596,7 @@ class SQSBackend(BaseBackend):
                 kwargs.pop("region")
             except KeyError:
                 pass
-            queue = Queue(name, region=self.region_name, **kwargs)
+            queue = Queue(name, region=self.region_name, config=self.config, **kwargs)
             self.queues[name] = queue
 
         if tags:
@@ -1006,9 +1009,10 @@ class SQSBackend(BaseBackend):
 
 
 sqs_backends = {}
+config = read_config()
 for region in Session().get_available_regions("sqs"):
-    sqs_backends[region] = SQSBackend(region)
+    sqs_backends[region] = SQSBackend(region, config)
 for region in Session().get_available_regions("sqs", partition_name="aws-us-gov"):
-    sqs_backends[region] = SQSBackend(region)
+    sqs_backends[region] = SQSBackend(region, config)
 for region in Session().get_available_regions("sqs", partition_name="aws-cn"):
-    sqs_backends[region] = SQSBackend(region)
+    sqs_backends[region] = SQSBackend(region, config)
