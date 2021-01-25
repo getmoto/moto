@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 import json
@@ -234,6 +235,7 @@ class Archive(CloudFormationModel):
         self.state = "ENABLED"
 
         self.events = []
+        self.event_bus_name = source_arn.split("/")[-1]
 
     @property
     def arn(self):
@@ -273,6 +275,17 @@ class Archive(CloudFormationModel):
     def delete(self, region_name):
         event_backend = events_backends[region_name]
         event_backend.archives.pop(self.name)
+
+    def matches_pattern(self, event):
+        if not self.event_pattern:
+            return True
+
+        # only works on the first level of the event dict
+        # logic for nested dicts needs to be implemented
+        for pattern_key, pattern_value in json.loads(self.event_pattern).items():
+            event_value = event.get(pattern_key)
+            if event_value not in pattern_value:
+                return False
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -541,6 +554,22 @@ class EventsBackend(BaseBackend):
                     continue
 
                 entries.append({"EventId": str(uuid4())})
+
+                # add to correct archive
+                # if 'EventBusName' is not espically set, it will stored in the default
+                event_bus_name = event.get("EventBusName", "default")
+                archives = [
+                    archive
+                    for archive in self.archives.values()
+                    if archive.event_bus_name == event_bus_name
+                ]
+
+                for archive in archives:
+                    event_copy = copy.deepcopy(event)
+                    event_copy.pop("EventBusName", None)
+
+                    if archive.matches_pattern(event):
+                        archive.events.append(event_copy)
 
         # We dont really need to store the events yet
         return entries

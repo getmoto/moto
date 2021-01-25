@@ -1203,8 +1203,8 @@ def test_delete_archive():
     name = "test-archive"
     client.create_archive(
         ArchiveName=name,
-        EventSourceArn=(
-            "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+        EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
+            ACCOUNT_ID
         ),
     )
 
@@ -1234,3 +1234,40 @@ def test_delete_archive_error_unknown_archive():
     ex.response["Error"]["Message"].should.equal(
         "Archive {} does not exist.".format(name)
     )
+
+
+@mock_events
+def test_archive_actual_events():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    name_2 = "test-archive-2"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    event = {
+        "Source": "source",
+        "DetailType": "type",
+        "Detail": '{ "key1": "value1" }',
+    }
+    client.create_archive(ArchiveName=name, EventSourceArn=event_bus_arn)
+    client.create_archive(
+        ArchiveName=name_2,
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["test"]}),
+    )
+
+    # when
+    response = client.put_events(Entries=[event])
+
+    # then
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
+
+    response = client.describe_archive(ArchiveName=name)
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.equal(88)
+
+    response = client.describe_archive(ArchiveName=name_2)
+    response["EventCount"].should.equal(0)
+    response["SizeBytes"].should.equal(0)
