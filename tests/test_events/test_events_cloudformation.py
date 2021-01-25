@@ -1,3 +1,5 @@
+import copy
+
 import boto3
 import json
 from moto import mock_cloudformation, mock_events
@@ -47,3 +49,52 @@ def test_create_archive():
     response = events_client.describe_archive(ArchiveName=name)
 
     response["ArchiveArn"].should.equal(archive_arn)
+
+
+@mock_events
+@mock_cloudformation
+def test_update_archive():
+    # given
+    cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
+    name = "test-archive"
+    stack_name = "test-stack"
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "EventBridge Archive Test",
+        "Resources": {
+            "Archive": {
+                "Type": "AWS::Events::Archive",
+                "Properties": {
+                    "ArchiveName": name,
+                    "SourceArn": {
+                        "Fn::Sub": "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+                    },
+                },
+            },
+        },
+        "Outputs": {
+            "Arn": {
+                "Description": "Archive Arn",
+                "Value": {"Fn::GetAtt": ["Archive", "Arn"]},
+            }
+        },
+    }
+    cfn_client.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    template_update = copy.deepcopy(template)
+    template_update["Resources"]["Archive"]["Properties"][
+        "Description"
+    ] = "test archive"
+
+    # when
+    cfn_client.update_stack(
+        StackName=stack_name, TemplateBody=json.dumps(template_update)
+    )
+
+    # then
+    archive_arn = "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, name)
+    events_client = boto3.client("events", region_name="eu-central-1")
+    response = events_client.describe_archive(ArchiveName=name)
+
+    response["ArchiveArn"].should.equal(archive_arn)
+    response["Description"].should.equal("test archive")

@@ -262,6 +262,14 @@ class Archive(CloudFormationModel):
 
         return result
 
+    def update(self, description, event_pattern, retention):
+        if description:
+            self.description = description
+        if event_pattern:
+            self.event_pattern = event_pattern
+        if retention:
+            self.retention = retention
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -297,6 +305,26 @@ class Archive(CloudFormationModel):
         return event_backend.create_archive(
             name, source_arn, description, event_pattern, retention
         )
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        if new_resource_name == original_resource.name:
+            properties = cloudformation_json["Properties"]
+
+            original_resource.update(
+                properties.get("Description"),
+                properties.get("EventPattern"),
+                properties.get("Retention"),
+            )
+
+            return original_resource
+        else:
+            original_resource.delete(region_name)
+            return cls.create_from_cloudformation_json(
+                new_resource_name, cloudformation_json, region_name
+            )
 
 
 class EventsBackend(BaseBackend):
@@ -730,6 +758,23 @@ class EventsBackend(BaseBackend):
                 result.append(archive.describe_short())
 
         return result
+
+    def update_archive(self, name, description, event_pattern, retention):
+        archive = self.archives.get(name)
+
+        if not archive:
+            raise ResourceNotFoundException("Archive {} does not exist.".format(name))
+
+        if event_pattern:
+            self._validate_event_pattern(event_pattern)
+
+        archive.update(description, event_pattern, retention)
+
+        return {
+            "ArchiveArn": archive.arn,
+            "CreationTime": archive.creation_time,
+            "State": archive.state,
+        }
 
 
 events_backends = {}

@@ -1110,3 +1110,87 @@ def test_list_archives_error_invalid_state():
         "Member must satisfy enum value set: "
         "[ENABLED, DISABLED, CREATING, UPDATING, CREATE_FAILED, UPDATE_FAILED]"
     )
+
+
+@mock_events
+def test_update_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    event_pattern = json.dumps({"key": ["value"]})
+    archive_arn = client.create_archive(ArchiveName=name, EventSourceArn=source_arn)[
+        "ArchiveArn"
+    ]
+
+    # when
+    response = client.update_archive(
+        ArchiveName=name,
+        Description="test archive",
+        EventPattern=event_pattern,
+        RetentionDays=14,
+    )
+
+    # then
+    response["ArchiveArn"].should.equal(archive_arn)
+    response["State"].should.equal("ENABLED")
+    creation_time = response["CreationTime"]
+    creation_time.should.be.a(datetime)
+
+    response = client.describe_archive(ArchiveName=name)
+    response["ArchiveArn"].should.equal(archive_arn)
+    response["ArchiveName"].should.equal(name)
+    response["CreationTime"].should.equal(creation_time)
+    response["Description"].should.equal("test archive")
+    response["EventCount"].should.equal(0)
+    response["EventPattern"].should.equal(event_pattern)
+    response["EventSourceArn"].should.equal(source_arn)
+    response["RetentionDays"].should.equal(14)
+    response["SizeBytes"].should.equal(0)
+    response["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_update_archive_error_invalid_event_pattern():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
+            ACCOUNT_ID
+        ),
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.update_archive(
+            ArchiveName=name, EventPattern="invalid",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UpdateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
+    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+
+
+@mock_events
+def test_update_archive_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.update_archive(ArchiveName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UpdateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Archive {} does not exist.".format(name)
+    )
