@@ -127,10 +127,7 @@ def test_invoke_requestresponse_function(invocation_type):
 
     in_data = {"msg": "So long and thanks for all the fish"}
     success_result = conn.invoke(
-        FunctionName="testFunction",
-        Payload=json.dumps(in_data),
-        LogType="Tail",
-        **kw,
+        FunctionName="testFunction", Payload=json.dumps(in_data), LogType="Tail", **kw
     )
 
     if "FunctionError" in success_result:
@@ -148,9 +145,7 @@ def test_invoke_requestresponse_function(invocation_type):
 
     # Logs should not be returned by default, only when the LogType-param is supplied
     success_result = conn.invoke(
-        FunctionName="testFunction",
-        Payload=json.dumps(in_data),
-        **kw,
+        FunctionName="testFunction", Payload=json.dumps(in_data), **kw
     )
 
     success_result["StatusCode"].should.equal(200)
