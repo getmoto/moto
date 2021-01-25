@@ -1194,3 +1194,43 @@ def test_update_archive_error_unknown_archive():
     ex.response["Error"]["Message"].should.equal(
         "Archive {} does not exist.".format(name)
     )
+
+
+@mock_events
+def test_delete_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn=(
+            "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+        ),
+    )
+
+    # when
+    client.delete_archive(ArchiveName=name)
+
+    # then
+    response = client.list_archives(NamePrefix="test")["Archives"]
+    response.should.have.length_of(0)
+
+
+@mock_events
+def test_delete_archive_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_archive(ArchiveName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Archive {} does not exist.".format(name)
+    )

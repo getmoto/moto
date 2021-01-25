@@ -382,3 +382,10 @@ class EventsHandler(BaseResponse):
         )
 
         return json.dumps(result), self.response_headers
+
+    def delete_archive(self):
+        name = self._get_param("ArchiveName")
+
+        self.events_backend.delete_archive(name)
+
+        return "", self.response_headers

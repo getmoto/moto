@@ -270,6 +270,10 @@ class Archive(CloudFormationModel):
         if retention:
             self.retention = retention
 
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
+        event_backend.archives.pop(self.name)
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -296,14 +300,13 @@ class Archive(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
 
-        name = resource_name
         source_arn = properties.get("SourceArn")
         description = properties.get("Description")
         event_pattern = properties.get("EventPattern")
         retention = properties.get("RetentionDays")
 
         return event_backend.create_archive(
-            name, source_arn, description, event_pattern, retention
+            resource_name, source_arn, description, event_pattern, retention
         )
 
     @classmethod
@@ -325,6 +328,13 @@ class Archive(CloudFormationModel):
             return cls.create_from_cloudformation_json(
                 new_resource_name, cloudformation_json, region_name
             )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        event_backend = events_backends[region_name]
+        event_backend.delete_event_bus(resource_name)
 
 
 class EventsBackend(BaseBackend):
@@ -775,6 +785,14 @@ class EventsBackend(BaseBackend):
             "CreationTime": archive.creation_time,
             "State": archive.state,
         }
+
+    def delete_archive(self, name):
+        archive = self.archives.get(name)
+
+        if not archive:
+            raise ResourceNotFoundException("Archive {} does not exist.".format(name))
+
+        archive.delete(self.region_name)
 
 
 events_backends = {}

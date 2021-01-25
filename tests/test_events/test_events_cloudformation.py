@@ -72,12 +72,6 @@ def test_update_archive():
                 },
             },
         },
-        "Outputs": {
-            "Arn": {
-                "Description": "Archive Arn",
-                "Value": {"Fn::GetAtt": ["Archive", "Arn"]},
-            }
-        },
     }
     cfn_client.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
 
@@ -92,9 +86,43 @@ def test_update_archive():
     )
 
     # then
-    archive_arn = "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, name)
     events_client = boto3.client("events", region_name="eu-central-1")
     response = events_client.describe_archive(ArchiveName=name)
 
-    response["ArchiveArn"].should.equal(archive_arn)
+    response["ArchiveArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, name)
+    )
     response["Description"].should.equal("test archive")
+
+
+@mock_events
+@mock_cloudformation
+def test_delete_archive():
+    # given
+    cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
+    name = "test-archive"
+    stack_name = "test-stack"
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "EventBridge Archive Test",
+        "Resources": {
+            "Archive": {
+                "Type": "AWS::Events::Archive",
+                "Properties": {
+                    "ArchiveName": name,
+                    "SourceArn": {
+                        "Fn::Sub": "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+                    },
+                },
+            },
+        },
+    }
+    cfn_client.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    # when
+    cfn_client.delete_stack(StackName=stack_name)
+
+    # then
+    events_client = boto3.client("events", region_name="eu-central-1")
+    response = events_client.list_archives(NamePrefix="test")["Archives"]
+    response.should.have.length_of(0)
