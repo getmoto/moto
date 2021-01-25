@@ -621,7 +621,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         # Get the invocation type:
         res, errored, logs = self._invoke_lambda(code=self.code, event=body)
-        if request_headers.get("x-amz-invocation-type") == "RequestResponse":
+        inv_type = request_headers.get("x-amz-invocation-type", "RequestResponse")
+        if inv_type == "RequestResponse":
             encoded = base64.b64encode(logs.encode("utf-8"))
             response_headers["x-amz-log-result"] = encoded.decode("utf-8")
             result = res.encode("utf-8")
