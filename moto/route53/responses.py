@@ -274,20 +274,6 @@ CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="htt
 </ChangeTagsForResourceResponse>
 """
 
-self.name = kwargs.get("Name")
-self.type_ = kwargs.get("Type")
-self.ttl = kwargs.get("TTL")
-self.records = kwargs.get("ResourceRecords", [])
-self.set_identifier = kwargs.get("SetIdentifier")
-self.weight = kwargs.get("Weight")
-self.region = kwargs.get("Region")
-self.health_check = kwargs.get("HealthCheckId")
-self.hosted_zone_name = kwargs.get("HostedZoneName")
-self.hosted_zone_id = kwargs.get("HostedZoneId")
-self.alias_target = kwargs.get("AliasTarget")
-self.failover = kwargs.get("Failover")
-self.geo_location = kwargs.get("GeoLocation")
-
 LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
