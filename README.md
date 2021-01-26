@@ -3,7 +3,7 @@
 [![Join the chat at https://gitter.im/awsmoto/Lobby](https://badges.gitter.im/awsmoto/Lobby.svg)](https://gitter.im/awsmoto/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![Build Status](https://github.com/spulec/moto/workflows/TestNDeploy/badge.svg)](https://github.com/spulec/moto/actions)
-[![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.svg?branch=master)](https://coveralls.io/r/spulec/moto)
+[![Coverage Status](https://codecov.io/gh/spulec/moto/branch/master/graph/badge.svg)](https://codecov.io/gh/spulec/moto)
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
 ![PyPI](https://img.shields.io/pypi/v/moto.svg)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
