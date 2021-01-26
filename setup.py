@@ -8,8 +8,6 @@ import setuptools
 from setuptools import setup, find_packages
 import sys
 
-PY2 = sys.version_info[0] == 2
-
 # Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -52,29 +50,25 @@ install_requires = [
 #
 #   https://github.com/mpenkov/moto/commit/00134d2df37bb4dcd5f447ef951d383bfec0903c
 #
-if PY2:
-    install_requires += [
-        #
-        # This is an indirect dependency. Version 5.0.0 claims to be for
-        # Py2.6+, but it really isn't.
-        #
-        # https://github.com/jaraco/configparser/issues/51
-        #
-        "configparser<5.0",
-        "Jinja2<3.0.0,>=2.10.1",
-        "mock<=3.0.5",
-        "more-itertools==5.0.0",
-        "setuptools==44.0.0",
-        "zipp==0.6.0",
-    ]
-else:
-    install_requires += [
-        "Jinja2>=2.10.1",
-        "mock<=4.0.2",
-        "more-itertools",
-        "setuptools",
-        "zipp",
-    ]
+install_requires += [
+    #
+    # This is an indirect dependency. Version 5.0.0 claims to be for
+    # Py2.6+, but it really isn't.
+    #
+    # https://github.com/jaraco/configparser/issues/51
+    #
+    "configparser<5.0; python_version < '3'",
+    "Jinja2>=2.10.1",
+    "Jinja2<3.0.0; python_version < '3'",
+    "mock<=4.0.2",
+    "mock<=3.0.5; python_version < '3'",
+    "more-itertools",
+    "more-itertools==5.0.0; python_version < '3'",
+    "setuptools",
+    "setuptools==44.0.0; python_version < '3'",
+    "zipp",
+    "zipp==0.6.0; python_version < '3'",
+]
 
 _dep_PyYAML = "PyYAML>=5.1"
 _dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
