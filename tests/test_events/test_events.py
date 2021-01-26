@@ -1065,7 +1065,7 @@ def test_list_archives_with_state():
     )
 
     # when
-    archives = client.list_archives(State="FAILED")["Archives"]
+    archives = client.list_archives(State="DISABLED")["Archives"]
 
     # then
     archives.should.have.length_of(0)
