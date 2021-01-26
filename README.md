@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/awsmoto/Lobby](https://badges.gitter.im/awsmoto/Lobby.svg)](https://gitter.im/awsmoto/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Build Status](https://travis-ci.org/spulec/moto.svg?branch=master)](https://travis-ci.org/spulec/moto)
+[![Build Status](https://github.com/spulec/moto/workflows/TestNDeploy/badge.svg)](https://github.com/spulec/moto/actions)
 [![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.svg?branch=master)](https://coveralls.io/r/spulec/moto)
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
 ![PyPI](https://img.shields.io/pypi/v/moto.svg)
@@ -441,8 +441,8 @@ As a result, you need to add that entry to your host file for your tests to func
 
 ## Releases
 
-Releases are done from travisci. Fairly closely following this:
-https://docs.travis-ci.com/user/deployment/pypi/
+Releases are done from Gitlab Actions. Fairly closely following this:
+https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 
 - Commits to `master` branch do a dev deploy to pypi.
 - Commits to a tag do a real deploy to pypi.
