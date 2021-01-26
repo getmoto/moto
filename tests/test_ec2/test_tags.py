@@ -32,7 +32,7 @@ def test_add_tag():
     instance.add_tag("a key", "some value")
     chain = itertools.chain.from_iterable
     existing_instances = list(
-        chain([res.instances for res in conn.get_all_instances()])
+        chain([res.instances for res in conn.get_all_reservations()])
     )
     existing_instances.should.have.length_of(1)
     existing_instance = existing_instances[0]
@@ -310,7 +310,7 @@ def test_retrieved_instances_must_contain_their_tags():
     reservation.instances.should.have.length_of(1)
     instance = reservation.instances[0]
 
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     reservations.should.have.length_of(1)
     reservations[0].id.should.equal(reservation.id)
     instances = reservations[0].instances
@@ -318,7 +318,7 @@ def test_retrieved_instances_must_contain_their_tags():
     instances[0].id.should.equal(instance.id)
 
     conn.create_tags([instance.id], tags_to_be_set)
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     instance = reservations[0].instances[0]
     retrieved_tags = instance.tags
 
@@ -388,13 +388,13 @@ def test_filter_instances_by_wildcard_tags():
     instance_b = reservation_b.instances[0]
     instance_b.add_tag("Key1", "Value2")
 
-    reservations = conn.get_all_instances(filters={"tag:Key1": "Value*"})
+    reservations = conn.get_all_reservations(filters={"tag:Key1": "Value*"})
     reservations.should.have.length_of(2)
 
-    reservations = conn.get_all_instances(filters={"tag-key": "Key*"})
+    reservations = conn.get_all_reservations(filters={"tag-key": "Key*"})
     reservations.should.have.length_of(2)
 
-    reservations = conn.get_all_instances(filters={"tag-value": "Value*"})
+    reservations = conn.get_all_reservations(filters={"tag-value": "Value*"})
     reservations.should.have.length_of(2)
 
 

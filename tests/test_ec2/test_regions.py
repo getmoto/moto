@@ -37,7 +37,7 @@ def test_add_servers_to_a_single_region():
     add_servers_to_region(EXAMPLE_AMI_ID2, 1, region)
 
     conn = boto.ec2.connect_to_region(region)
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     len(reservations).should.equal(2)
 
     image_ids = [r.instances[0].image_id for r in reservations]
@@ -53,8 +53,8 @@ def test_add_servers_to_multiple_regions():
 
     us_conn = boto.ec2.connect_to_region(region1)
     ap_conn = boto.ec2.connect_to_region(region2)
-    us_reservations = us_conn.get_all_instances()
-    ap_reservations = ap_conn.get_all_instances()
+    us_reservations = us_conn.get_all_reservations()
+    ap_reservations = ap_conn.get_all_reservations()
 
     len(us_reservations).should.equal(1)
     len(ap_reservations).should.equal(1)
