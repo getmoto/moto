@@ -389,6 +389,8 @@ class SNSBackend(BaseBackend):
 
     def create_topic(self, name, attributes=None, tags=None):
 
+        if attributes is None:
+            attributes = {}
         if (
             attributes.get("FifoTopic")
             and attributes.get("FifoTopic").lower() == "true"
