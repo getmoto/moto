@@ -282,6 +282,8 @@ LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
            <Name>{{ rset.name }}</Name>
            <Type>{{ rset.type_ }}</Type>
            <TTL>{{ rset.ttl }}</TTL>
+           <Identifier>{{ rset.set_identifier }}</Identifier>
+           <Weight>{{ rset.weight }}</Weight>
            <ResourceRecords>
                 {% for resource_record in rset.records %}
                     <ResourceRecord>
