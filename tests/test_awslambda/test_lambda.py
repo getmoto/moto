@@ -103,8 +103,9 @@ def test_list_functions():
 
 
 @pytest.mark.network
+@pytest.mark.parametrize("invocation_type", [None, "RequestResponse"])
 @mock_lambda
-def test_invoke_requestresponse_function():
+def test_invoke_requestresponse_function(invocation_type):
     conn = boto3.client("lambda", _lambda_region)
     conn.create_function(
         FunctionName="testFunction",
@@ -118,12 +119,15 @@ def test_invoke_requestresponse_function():
         Publish=True,
     )
 
+    # Only add invocation-type keyword-argument when provided, otherwise the request
+    # fails to be validated
+    kw = {}
+    if invocation_type:
+        kw["InvocationType"] = invocation_type
+
     in_data = {"msg": "So long and thanks for all the fish"}
     success_result = conn.invoke(
-        FunctionName="testFunction",
-        InvocationType="RequestResponse",
-        Payload=json.dumps(in_data),
-        LogType="Tail",
+        FunctionName="testFunction", Payload=json.dumps(in_data), LogType="Tail", **kw
     )
 
     if "FunctionError" in success_result:
@@ -141,9 +145,7 @@ def test_invoke_requestresponse_function():
 
     # Logs should not be returned by default, only when the LogType-param is supplied
     success_result = conn.invoke(
-        FunctionName="testFunction",
-        InvocationType="RequestResponse",
-        Payload=json.dumps(in_data),
+        FunctionName="testFunction", Payload=json.dumps(in_data), **kw
     )
 
     success_result["StatusCode"].should.equal(200)
