@@ -3,7 +3,7 @@ import boto3
 import six
 import json
 
-import sure  # noqa
+# import sure  # noqa
 
 from botocore.exceptions import ClientError
 from moto import mock_sns
@@ -520,6 +520,43 @@ def test_untag_resource_error():
     conn.untag_resource.when.called_with(
         ResourceArn="not-existing-topic", TagKeys=["tag_key_1"]
     ).should.throw(ClientError, "Resource does not exist")
+
+
+@mock_sns
+def test_create_fifo_topic():
+    conn = boto3.client("sns", region_name="us-east-1")
+    response = conn.create_topic(
+        Name="test_topic.fifo", Attributes={"FifoTopic": "true"}
+    )
+
+    assert "TopicArn" in response
+
+    try:
+        conn.create_topic(Name="test_topic", Attributes={"FifoTopic": "true"})
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        err.response["Error"]["Message"].should.equal(
+            "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, "
+            "numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
+        )
+
+    try:
+        conn.create_topic(Name="test_topic.fifo")
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        err.response["Error"]["Message"].should.equal(
+            "Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, "
+            "and hyphens, and must be between 1 and 256 characters long."
+        )
+
+    try:
+        conn.create_topic(Name="topic.name.fifo", Attributes={"FifoTopic": "true"})
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        err.response["Error"]["Message"].should.equal(
+            "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, "
+            "numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
+        )
 
 
 @mock_sns
