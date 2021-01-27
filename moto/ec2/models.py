@@ -1000,6 +1000,11 @@ class InstanceBackend(object):
 
         return new_reservation
 
+    def run_instances(self):
+        # Logic resides in add_instances
+        # Fake method here to make implementation coverage script aware that this method is implemented
+        pass
+
     def start_instances(self, instance_ids):
         started_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
