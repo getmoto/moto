@@ -13,6 +13,7 @@ import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
 import boto.iam
+import boto.rds
 import boto.redshift
 import boto.sns
 import boto.sqs
@@ -516,7 +517,11 @@ def test_autoscaling_group_with_elb():
             },
             "my-launch-config": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
+                "Properties": {
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
+                    "UserData": "some user data",
+                },
             },
             "my-elb": {
                 "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
@@ -612,7 +617,11 @@ def test_autoscaling_group_update():
             },
             "my-launch-config": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
+                "Properties": {
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
+                    "UserData": "some user data",
+                },
             },
         },
     }
@@ -848,6 +857,7 @@ def test_iam_roles():
                 "Properties": {
                     "IamInstanceProfile": {"Ref": "my-instance-profile-with-path"},
                     "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
                 },
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
             },
@@ -2646,7 +2656,11 @@ def test_autoscaling_propagate_tags():
             },
             "LaunchConfig": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"LaunchConfigurationName": "test-launch-config"},
+                "Properties": {
+                    "LaunchConfigurationName": "test-launch-config",
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
+                },
             },
         },
     }
