@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from botocore.exceptions import ClientError
 
 import pytest
+from unittest import SkipTest
 
 import base64
 import ipaddress
@@ -16,7 +17,7 @@ from boto.exception import EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_ec2
+from moto import mock_ec2_deprecated, mock_ec2, settings
 from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 
@@ -1664,3 +1665,15 @@ def test_describe_instance_attribute():
             invalid_instance_attribute=invalid_instance_attribute
         )
         ex.value.response["Error"]["Message"].should.equal(message)
+
+
+@mock_ec2
+def test_warn_on_invalid_ami():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't capture warnings in server mode.")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match=r"Could not find AMI with image-id:invalid-ami.+",
+    ):
+        ec2.create_instances(ImageId="invalid-ami", MinCount=1, MaxCount=1)

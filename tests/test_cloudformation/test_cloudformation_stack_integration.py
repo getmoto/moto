@@ -1179,11 +1179,11 @@ def test_cloudformation_mapping():
         "AWSTemplateFormatVersion": "2010-09-09",
         "Mappings": {
             "RegionMap": {
-                "us-east-1": {"32": "ami-6411e20d", "64": "ami-7a11e213"},
-                "us-west-1": {"32": "ami-c9c7978c", "64": "ami-cfc7978a"},
-                "eu-west-1": {"32": "ami-37c2f643", "64": "ami-31c2f645"},
-                "ap-southeast-1": {"32": "ami-66f28c34", "64": "ami-60f28c32"},
-                "ap-northeast-1": {"32": "ami-9c03a89d", "64": "ami-a003a8a1"},
+                "us-east-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "us-west-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "eu-west-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "ap-southeast-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "ap-northeast-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
             }
         },
         "Resources": {
@@ -1195,7 +1195,6 @@ def test_cloudformation_mapping():
                     },
                     "InstanceType": "m1.small",
                 },
-                "Type": "AWS::EC2::Instance",
             }
         },
     }
@@ -1207,14 +1206,14 @@ def test_cloudformation_mapping():
     ec2_conn = boto.ec2.connect_to_region("us-east-1")
     reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-6411e20d")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack1", template_body=dummy_template_json)
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-c9c7978c")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
 
 @mock_cloudformation_deprecated()

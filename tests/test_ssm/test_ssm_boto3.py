@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ec2, mock_ssm
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ssm
@@ -1677,7 +1678,7 @@ def test_get_command_invocations_by_instance_tag():
     ]
     num_instances = 3
     resp = ec2.run_instances(
-        ImageId="ami-1234abcd",
+        ImageId=EXAMPLE_AMI_ID,
         MaxCount=num_instances,
         MinCount=num_instances,
         TagSpecifications=tag_specifications,
