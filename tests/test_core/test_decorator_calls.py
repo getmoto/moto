@@ -21,38 +21,38 @@ def test_basic_connect():
 @mock_ec2_deprecated
 def test_basic_decorator():
     conn = boto.connect_ec2("the_key", "the_secret")
-    list(conn.get_all_instances()).should.equal([])
+    list(conn.get_all_reservations()).should.equal([])
 
 
 @pytest.mark.network
 def test_context_manager():
     conn = boto.connect_ec2("the_key", "the_secret")
     with pytest.raises(EC2ResponseError):
-        conn.get_all_instances()
+        conn.get_all_reservations()
 
     with mock_ec2_deprecated():
         conn = boto.connect_ec2("the_key", "the_secret")
-        list(conn.get_all_instances()).should.equal([])
+        list(conn.get_all_reservations()).should.equal([])
 
     with pytest.raises(EC2ResponseError):
         conn = boto.connect_ec2("the_key", "the_secret")
-        conn.get_all_instances()
+        conn.get_all_reservations()
 
 
 @pytest.mark.network
 def test_decorator_start_and_stop():
     conn = boto.connect_ec2("the_key", "the_secret")
     with pytest.raises(EC2ResponseError):
-        conn.get_all_instances()
+        conn.get_all_reservations()
 
     mock = mock_ec2_deprecated()
     mock.start()
     conn = boto.connect_ec2("the_key", "the_secret")
-    list(conn.get_all_instances()).should.equal([])
+    list(conn.get_all_reservations()).should.equal([])
     mock.stop()
 
     with pytest.raises(EC2ResponseError):
-        conn.get_all_instances()
+        conn.get_all_reservations()
 
 
 @mock_ec2_deprecated
@@ -69,11 +69,11 @@ def test_decorater_wrapped_gets_set():
 class Tester(object):
     def test_the_class(self):
         conn = boto.connect_ec2()
-        list(conn.get_all_instances()).should.have.length_of(0)
+        list(conn.get_all_reservations()).should.have.length_of(0)
 
     def test_still_the_same(self):
         conn = boto.connect_ec2()
-        list(conn.get_all_instances()).should.have.length_of(0)
+        list(conn.get_all_reservations()).should.have.length_of(0)
 
 
 @mock_s3_deprecated

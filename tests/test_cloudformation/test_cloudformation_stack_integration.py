@@ -222,7 +222,7 @@ def test_stack_ec2_integration():
     conn.create_stack("ec2_stack", template_body=ec2_template_json)
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     stack = conn.describe_stacks()[0]
@@ -269,7 +269,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     load_balancer = elb_conn.get_all_load_balancers()[0]
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
@@ -465,7 +465,7 @@ def test_stack_security_groups():
         filters={"description": ["My other group"]}
     )[0]
 
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     ec2_instance.groups[0].id.should.equal(instance_group.id)
@@ -692,7 +692,7 @@ def test_vpc_single_instance_in_subnet():
     subnet.vpc_id.should.equal(vpc.id)
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     instance = reservation.instances[0]
     instance.tags["Foo"].should.equal("Bar")
     # Check that the EIP is attached the the EC2 instance
@@ -1011,7 +1011,7 @@ def test_single_instance_with_ebs_volume():
     )
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     volumes = ec2_conn.get_all_volumes()
@@ -1157,7 +1157,7 @@ def test_conditional_if_handling():
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack1", template_body=dummy_template_json)
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
     ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID2)
     ec2_instance.terminate()
@@ -1167,7 +1167,7 @@ def test_conditional_if_handling():
         "test_stack1", template_body=dummy_template_json, parameters=[("ENV", "prd")]
     )
     ec2_conn = boto.ec2.connect_to_region("us-west-2")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
     ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
@@ -1205,14 +1205,14 @@ def test_cloudformation_mapping():
     conn = boto.cloudformation.connect_to_region("us-east-1")
     conn.create_stack("test_stack1", template_body=dummy_template_json)
     ec2_conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
     ec2_instance.image_id.should.equal("ami-6411e20d")
 
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack1", template_body=dummy_template_json)
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
     ec2_instance.image_id.should.equal("ami-c9c7978c")
 

@@ -362,7 +362,7 @@ def test_autoscaling_group_describe_instances():
     autoscale_instance_ids = [instance.instance_id for instance in instances]
 
     ec2_conn = boto.ec2.connect_to_region("us-east-1")
-    reservations = ec2_conn.get_all_instances()
+    reservations = ec2_conn.get_all_reservations()
     instances = reservations[0].instances
     instances.should.have.length_of(2)
     instance_ids = [instance.id for instance in instances]
