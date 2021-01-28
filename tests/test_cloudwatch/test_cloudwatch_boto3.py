@@ -2,7 +2,7 @@
 
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from freezegun import freeze_time
 import pytest
 from uuid import uuid4
@@ -678,6 +678,7 @@ def test_get_metric_data_partially_within_timeframe():
             }
         ],
     )
+
     cloudwatch.put_metric_data(
         Namespace=namespace1,
         MetricData=[
@@ -689,29 +690,36 @@ def test_get_metric_data_partially_within_timeframe():
             }
         ],
     )
-    # get_metric_data
-    response = cloudwatch.get_metric_data(
-        MetricDataQueries=[
-            {
-                "Id": "result",
-                "MetricStat": {
-                    "Metric": {"Namespace": namespace1, "MetricName": "metric1"},
-                    "Period": 60,
-                    "Stat": "Sum",
-                },
-            }
-        ],
-        StartTime=yesterday - timedelta(seconds=60),
-        EndTime=utc_now + timedelta(seconds=60),
-    )
+
+    def get_data(ScanBy="TimestampAscending"):
+        # get_metric_data
+        response = cloudwatch.get_metric_data(
+            MetricDataQueries=[
+                {
+                    "Id": "result",
+                    "MetricStat": {
+                        "Metric": {"Namespace": namespace1, "MetricName": "metric1"},
+                        "Period": 60,
+                        "Stat": "Sum",
+                    },
+                }
+            ],
+            StartTime=yesterday - timedelta(seconds=60),
+            EndTime=utc_now + timedelta(seconds=60),
+            ScanBy=ScanBy,
+        )
+        return response
+    
+    response = get_data()
     #
     # Assert Last week's data is not returned
     len(response["MetricDataResults"]).should.equal(1)
     sum_ = response["MetricDataResults"][0]
     sum_["Label"].should.equal("metric1 Sum")
     sum_["StatusCode"].should.equal("Complete")
-    sum_["Values"].should.equal([30.0])
-
+    sum_["Values"].should.equal([20.0, 10.0])
+    response = get_data(ScanBy="TimestampDescending")
+    response["MetricDataResults"][0]["Values"].should.equal([10.0, 20.0])
 
 @mock_cloudwatch
 def test_get_metric_data_outside_timeframe():

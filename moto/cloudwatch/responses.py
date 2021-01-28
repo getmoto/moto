@@ -128,9 +128,11 @@ class CloudWatchResponse(BaseResponse):
     def get_metric_data(self):
         start = dtparse(self._get_param("StartTime"))
         end = dtparse(self._get_param("EndTime"))
+        scan_by = self._get_param("ScanBy")
+
         queries = self._get_list_prefix("MetricDataQueries.member")
         results = self.cloudwatch_backend.get_metric_data(
-            start_time=start, end_time=end, queries=queries
+            start_time=start, end_time=end, queries=queries, scan_by=scan_by
         )
 
         template = self.response_template(GET_METRIC_DATA_TEMPLATE)
