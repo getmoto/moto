@@ -388,12 +388,10 @@ class CloudWatchBackend(BaseBackend):
                 )
             )
 
-    def get_metric_data(self, queries, start_time, end_time, scan_by='TimestampAscending'):
+    def get_metric_data(
+        self, queries, start_time, end_time, scan_by="TimestampAscending"
+    ):
 
-        for md in self.metric_data:
-            print(md.name)
-            print(md.value)
-            print(md.timestamp)
         period_data = [
             md for md in self.metric_data if start_time <= md.timestamp <= end_time
         ]
@@ -410,7 +408,9 @@ class CloudWatchBackend(BaseBackend):
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
                 period_md = [
-                    period_md for period_md in period_data if period_start_time <= period_md.timestamp < period_end_time
+                    period_md
+                    for period_md in period_data
+                    if period_start_time <= period_md.timestamp < period_end_time
                 ]
 
                 query_period_data = [
@@ -420,8 +420,7 @@ class CloudWatchBackend(BaseBackend):
                 ]
 
                 metric_values = [m.value for m in query_period_data]
-            
-                
+
                 if len(metric_values) > 0:
                     if stat == "Average":
                         result_vals.append(sum(metric_values) / len(metric_values))
@@ -431,7 +430,9 @@ class CloudWatchBackend(BaseBackend):
                         result_vals.append(max(metric_values))
                     elif stat == "Sum":
                         result_vals.append(sum(metric_values))
-                    timestamps.append(iso_8601_datetime_without_milliseconds(period_start_time))
+                    timestamps.append(
+                        iso_8601_datetime_without_milliseconds(period_start_time)
+                    )
                 period_start_time += delta
             if scan_by == "TimestampDescending" and len(timestamps) > 0:
                 timestamps.reverse()

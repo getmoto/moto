@@ -709,7 +709,7 @@ def test_get_metric_data_partially_within_timeframe():
             ScanBy=ScanBy,
         )
         return response
-    
+
     response = get_data()
     #
     # Assert Last week's data is not returned
@@ -720,6 +720,7 @@ def test_get_metric_data_partially_within_timeframe():
     sum_["Values"].should.equal([20.0, 10.0])
     response = get_data(ScanBy="TimestampDescending")
     response["MetricDataResults"][0]["Values"].should.equal([10.0, 20.0])
+
 
 @mock_cloudwatch
 def test_get_metric_data_outside_timeframe():
