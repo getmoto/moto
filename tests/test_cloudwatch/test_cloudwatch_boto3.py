@@ -2,7 +2,7 @@
 
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from freezegun import freeze_time
 import pytest
 from uuid import uuid4
