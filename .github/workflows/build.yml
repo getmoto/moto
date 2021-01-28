@@ -1,10 +1,6 @@
 name: TestNDeploy
 
-on:
-  push:
-    branches:
-      - master
-  pull_request:
+on: [push, pull_request]
 
 jobs:
   # Install and cache dependencies
@@ -119,7 +115,7 @@ jobs:
       run: |
         make test-coverage
     - name: "Upload coverage to Codecov"
-      if: ${{ matrix.python-version == 3.7 }}
+      if: ${{ matrix.python-version == 3.7 && github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
@@ -170,7 +166,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: [test, testserver]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'spulec/moto' }}
     strategy:
       matrix:
         python-version: [3.8]
