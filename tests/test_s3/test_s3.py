@@ -873,12 +873,12 @@ def test_list_versions():
     versions.should.have.length_of(2)
 
     versions[0].name.should.equal("the-key")
-    versions[0].version_id.should.equal(key_versions[0])
-    versions[0].get_contents_as_string().should.equal(b"Version 1")
+    versions[0].version_id.should.equal(key_versions[1])
+    versions[0].get_contents_as_string().should.equal(b"Version 2")
 
     versions[1].name.should.equal("the-key")
-    versions[1].version_id.should.equal(key_versions[1])
-    versions[1].get_contents_as_string().should.equal(b"Version 2")
+    versions[1].version_id.should.equal(key_versions[0])
+    versions[1].get_contents_as_string().should.equal(b"Version 1")
 
     key = Key(bucket, "the2-key")
     key.set_contents_from_string("Version 1")
@@ -3700,6 +3700,10 @@ def test_boto3_list_object_versions():
     len(response["Versions"]).should.equal(2)
     keys = set([item["Key"] for item in response["Versions"]])
     keys.should.equal({key})
+
+    # the first item in the list should be the latest
+    response["Versions"][0]["IsLatest"].should.equal(True)
+
     # Test latest object version is returned
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response["Body"].read().should.equal(items[-1])
@@ -4969,3 +4973,29 @@ def test_request_partial_content_without_specifying_range_should_return_full_obj
     file = s3.Object(bucket, object_key)
     response = file.get(Range="")
     response["ContentLength"].should.equal(30)
+
+
+@mock_s3
+def test_object_headers():
+    bucket = "my-bucket"
+    s3 = boto3.client("s3")
+    s3.create_bucket(Bucket=bucket)
+
+    res = s3.put_object(
+        Bucket=bucket,
+        Body=b"test",
+        Key="file.txt",
+        ServerSideEncryption="aws:kms",
+        SSEKMSKeyId="test",
+        BucketKeyEnabled=True,
+    )
+    res.should.have.key("ETag")
+    res.should.have.key("ServerSideEncryption")
+    res.should.have.key("SSEKMSKeyId")
+    res.should.have.key("BucketKeyEnabled")
+
+    res = s3.get_object(Bucket=bucket, Key="file.txt")
+    res.should.have.key("ETag")
+    res.should.have.key("ServerSideEncryption")
+    res.should.have.key("SSEKMSKeyId")
+    res.should.have.key("BucketKeyEnabled")

@@ -38,7 +38,7 @@ def test_add_servers():
     add_servers(EXAMPLE_AMI_ID, 2)
 
     conn = boto.connect_ec2()
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     assert len(reservations) == 2
     instance1 = reservations[0].instances[0]
     assert instance1.image_id == EXAMPLE_AMI_ID
@@ -66,7 +66,7 @@ def test_instance_launch_and_terminate():
     instance = reservation.instances[0]
     instance.state.should.equal("pending")
 
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     reservations.should.have.length_of(1)
     reservations[0].id.should.equal(reservation.id)
     instances = reservations[0].instances
@@ -97,7 +97,7 @@ def test_instance_launch_and_terminate():
 
     conn.terminate_instances([instance.id])
 
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     instance = reservations[0].instances[0]
     instance.state.should.equal("terminated")
 
@@ -251,7 +251,7 @@ def test_instance_attach_volume():
     vol3.attach(instance.id, "/dev/sdc1")
     vol3.update()
 
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     instance = reservations[0].instances[0]
 
     instance.block_device_mapping.should.have.length_of(3)
@@ -274,22 +274,22 @@ def test_get_instances_by_id():
     reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
     instance1, instance2 = reservation.instances
 
-    reservations = conn.get_all_instances(instance_ids=[instance1.id])
+    reservations = conn.get_all_reservations(instance_ids=[instance1.id])
     reservations.should.have.length_of(1)
     reservation = reservations[0]
     reservation.instances.should.have.length_of(1)
     reservation.instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(instance_ids=[instance1.id, instance2.id])
+    reservations = conn.get_all_reservations(instance_ids=[instance1.id, instance2.id])
     reservations.should.have.length_of(1)
     reservation = reservations[0]
     reservation.instances.should.have.length_of(2)
     instance_ids = [instance.id for instance in reservation.instances]
     instance_ids.should.equal([instance1.id, instance2.id])
 
-    # Call get_all_instances with a bad id should raise an error
+    # Call get_all_reservations with a bad id should raise an error
     with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_instances(instance_ids=[instance1.id, "i-1234abcd"])
+        conn.get_all_reservations(instance_ids=[instance1.id, "i-1234abcd"])
     cm.value.code.should.equal("InvalidInstanceID.NotFound")
     cm.value.status.should.equal(400)
     cm.value.request_id.should_not.be.none
@@ -346,30 +346,30 @@ def test_get_instances_filtering_by_state():
 
     conn.terminate_instances([instance1.id])
 
-    reservations = conn.get_all_instances(filters={"instance-state-name": "running"})
+    reservations = conn.get_all_reservations(filters={"instance-state-name": "running"})
     reservations.should.have.length_of(1)
     # Since we terminated instance1, only instance2 and instance3 should be
     # returned
     instance_ids = [instance.id for instance in reservations[0].instances]
     set(instance_ids).should.equal(set([instance2.id, instance3.id]))
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         [instance2.id], filters={"instance-state-name": "running"}
     )
     reservations.should.have.length_of(1)
     instance_ids = [instance.id for instance in reservations[0].instances]
     instance_ids.should.equal([instance2.id])
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         [instance2.id], filters={"instance-state-name": "terminated"}
     )
     list(reservations).should.equal([])
 
-    # get_all_instances should still return all 3
-    reservations = conn.get_all_instances()
+    # get_all_reservations should still return all 3
+    reservations = conn.get_all_reservations()
     reservations[0].instances.should.have.length_of(3)
 
-    conn.get_all_instances.when.called_with(
+    conn.get_all_reservations.when.called_with(
         filters={"not-implemented-filter": "foobar"}
     ).should.throw(NotImplementedError)
 
@@ -380,18 +380,18 @@ def test_get_instances_filtering_by_instance_id():
     reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
 
-    reservations = conn.get_all_instances(filters={"instance-id": instance1.id})
-    # get_all_instances should return just instance1
+    reservations = conn.get_all_reservations(filters={"instance-id": instance1.id})
+    # get_all_reservations should return just instance1
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"instance-id": [instance1.id, instance2.id]}
     )
-    # get_all_instances should return two
+    # get_all_reservations should return two
     reservations[0].instances.should.have.length_of(2)
 
-    reservations = conn.get_all_instances(filters={"instance-id": "non-existing-id"})
+    reservations = conn.get_all_reservations(filters={"instance-id": "non-existing-id"})
     reservations.should.have.length_of(0)
 
 
@@ -405,21 +405,21 @@ def test_get_instances_filtering_by_instance_type():
     reservation3 = conn.run_instances(EXAMPLE_AMI_ID, instance_type="t1.micro")
     instance3 = reservation3.instances[0]
 
-    reservations = conn.get_all_instances(filters={"instance-type": "m1.small"})
-    # get_all_instances should return instance1,2
+    reservations = conn.get_all_reservations(filters={"instance-type": "m1.small"})
+    # get_all_reservations should return instance1,2
     reservations.should.have.length_of(2)
     reservations[0].instances.should.have.length_of(1)
     reservations[1].instances.should.have.length_of(1)
     instance_ids = [reservations[0].instances[0].id, reservations[1].instances[0].id]
     set(instance_ids).should.equal(set([instance1.id, instance2.id]))
 
-    reservations = conn.get_all_instances(filters={"instance-type": "t1.micro"})
-    # get_all_instances should return one
+    reservations = conn.get_all_reservations(filters={"instance-type": "t1.micro"})
+    # get_all_reservations should return one
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance3.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"instance-type": ["t1.micro", "m1.small"]}
     )
     reservations.should.have.length_of(3)
@@ -433,7 +433,7 @@ def test_get_instances_filtering_by_instance_type():
     ]
     set(instance_ids).should.equal(set([instance1.id, instance2.id, instance3.id]))
 
-    reservations = conn.get_all_instances(filters={"instance-type": "bogus"})
+    reservations = conn.get_all_reservations(filters={"instance-type": "bogus"})
     # bogus instance-type should return none
     reservations.should.have.length_of(0)
 
@@ -446,17 +446,17 @@ def test_get_instances_filtering_by_reason_code():
     instance1.stop()
     instance2.terminate()
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"state-reason-code": "Client.UserInitiatedShutdown"}
     )
-    # get_all_instances should return instance1 and instance2
+    # get_all_reservations should return instance1 and instance2
     reservations[0].instances.should.have.length_of(2)
     set([instance1.id, instance2.id]).should.equal(
         set([i.id for i in reservations[0].instances])
     )
 
-    reservations = conn.get_all_instances(filters={"state-reason-code": ""})
-    # get_all_instances should return instance 3
+    reservations = conn.get_all_reservations(filters={"state-reason-code": ""})
+    # get_all_reservations should return instance 3
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance3.id)
 
@@ -470,10 +470,10 @@ def test_get_instances_filtering_by_source_dest_check():
         instance1.id, attribute="sourceDestCheck", value=False
     )
 
-    source_dest_check_false = conn.get_all_instances(
+    source_dest_check_false = conn.get_all_reservations(
         filters={"source-dest-check": "false"}
     )
-    source_dest_check_true = conn.get_all_instances(
+    source_dest_check_true = conn.get_all_reservations(
         filters={"source-dest-check": "true"}
     )
 
@@ -497,14 +497,14 @@ def test_get_instances_filtering_by_vpc_id():
     reservation2 = conn.run_instances(EXAMPLE_AMI_ID, min_count=1, subnet_id=subnet2.id)
     instance2 = reservation2.instances[0]
 
-    reservations1 = conn.get_all_instances(filters={"vpc-id": vpc1.id})
+    reservations1 = conn.get_all_reservations(filters={"vpc-id": vpc1.id})
     reservations1.should.have.length_of(1)
     reservations1[0].instances.should.have.length_of(1)
     reservations1[0].instances[0].id.should.equal(instance1.id)
     reservations1[0].instances[0].vpc_id.should.equal(vpc1.id)
     reservations1[0].instances[0].subnet_id.should.equal(subnet1.id)
 
-    reservations2 = conn.get_all_instances(filters={"vpc-id": vpc2.id})
+    reservations2 = conn.get_all_reservations(filters={"vpc-id": vpc2.id})
     reservations2.should.have.length_of(1)
     reservations2[0].instances.should.have.length_of(1)
     reservations2[0].instances[0].id.should.equal(instance2.id)
@@ -518,8 +518,8 @@ def test_get_instances_filtering_by_architecture():
     reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=1)
     instance = reservation.instances
 
-    reservations = conn.get_all_instances(filters={"architecture": "x86_64"})
-    # get_all_instances should return the instance
+    reservations = conn.get_all_reservations(filters={"architecture": "x86_64"})
+    # get_all_reservations should return the instance
     reservations[0].instances.should.have.length_of(1)
 
 
@@ -617,35 +617,35 @@ def test_get_instances_filtering_by_tag():
     instance2.add_tag("tag2", "wrong value")
     instance3.add_tag("tag2", "value2")
 
-    reservations = conn.get_all_instances(filters={"tag:tag0": "value0"})
-    # get_all_instances should return no instances
+    reservations = conn.get_all_reservations(filters={"tag:tag0": "value0"})
+    # get_all_reservations should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={"tag:tag1": "value1"})
-    # get_all_instances should return both instances with this tag value
+    reservations = conn.get_all_reservations(filters={"tag:tag1": "value1"})
+    # get_all_reservations should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"tag:tag1": "value1", "tag:tag2": "value2"}
     )
-    # get_all_instances should return the instance with both tag values
+    # get_all_reservations should return the instance with both tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"tag:tag1": "value1", "tag:tag2": "value2"}
     )
-    # get_all_instances should return the instance with both tag values
+    # get_all_reservations should return the instance with both tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(filters={"tag:tag2": ["value2", "bogus"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(filters={"tag:tag2": ["value2", "bogus"]})
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
@@ -664,19 +664,21 @@ def test_get_instances_filtering_by_tag_value():
     instance2.add_tag("tag2", "wrong value")
     instance3.add_tag("tag2", "value2")
 
-    reservations = conn.get_all_instances(filters={"tag-value": "value0"})
-    # get_all_instances should return no instances
+    reservations = conn.get_all_reservations(filters={"tag-value": "value0"})
+    # get_all_reservations should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={"tag-value": "value1"})
-    # get_all_instances should return both instances with this tag value
+    reservations = conn.get_all_reservations(filters={"tag-value": "value1"})
+    # get_all_reservations should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(filters={"tag-value": ["value2", "value1"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(
+        filters={"tag-value": ["value2", "value1"]}
+    )
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(3)
@@ -684,8 +686,8 @@ def test_get_instances_filtering_by_tag_value():
     reservations[0].instances[1].id.should.equal(instance2.id)
     reservations[0].instances[2].id.should.equal(instance3.id)
 
-    reservations = conn.get_all_instances(filters={"tag-value": ["value2", "bogus"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(filters={"tag-value": ["value2", "bogus"]})
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
@@ -704,19 +706,19 @@ def test_get_instances_filtering_by_tag_name():
     instance2.add_tag("tag2X")
     instance3.add_tag("tag3")
 
-    reservations = conn.get_all_instances(filters={"tag-key": "tagX"})
-    # get_all_instances should return no instances
+    reservations = conn.get_all_reservations(filters={"tag-key": "tagX"})
+    # get_all_reservations should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={"tag-key": "tag1"})
-    # get_all_instances should return both instances with this tag value
+    reservations = conn.get_all_reservations(filters={"tag-key": "tag1"})
+    # get_all_reservations should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(filters={"tag-key": ["tag1", "tag3"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(filters={"tag-key": ["tag1", "tag3"]})
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(3)

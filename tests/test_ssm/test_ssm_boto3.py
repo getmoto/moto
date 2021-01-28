@@ -831,9 +831,8 @@ def test_describe_parameters_with_parameter_filters_path():
 
 
 @mock_ssm
-def test_describe_parameters_invalid_parameter_filters():
+def test_describe_parameters_needs_param():
     client = boto3.client("ssm", region_name="us-east-1")
-
     client.describe_parameters.when.called_with(
         Filters=[{"Key": "Name", "Values": ["test"]}],
         ParameterFilters=[{"Key": "Name", "Values": ["test"]}],
@@ -842,145 +841,119 @@ def test_describe_parameters_invalid_parameter_filters():
         "You can use either Filters or ParameterFilters in a single request.",
     )
 
-    client.describe_parameters.when.called_with(ParameterFilters=[{}]).should.throw(
-        ParamValidationError,
-        'Parameter validation failed:\nMissing required parameter in ParameterFilters[0]: "Key"',
-    )
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "key"}]
-    ).should.throw(
-        ClientError,
-        '1 validation error detected: Value "key" at "parameterFilters.1.member.key" failed to satisfy constraint: '
-        "Member must satisfy regular expression pattern: tag:.+|Name|Type|KeyId|Path|Label|Tier",
-    )
-
-    long_key = "tag:" + "t" * 129
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": long_key}]
-    ).should.throw(
-        ClientError,
-        '1 validation error detected: Value "{value}" at "parameterFilters.1.member.key" failed to satisfy constraint: '
-        "Member must have length less than or equal to 132".format(value=long_key),
-    )
-
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Name", "Option": "over 10 chars"}]
-    ).should.throw(
-        ClientError,
-        '1 validation error detected: Value "over 10 chars" at "parameterFilters.1.member.option" failed to satisfy constraint: '
-        "Member must have length less than or equal to 10",
-    )
-
-    many_values = ["test"] * 51
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Name", "Values": many_values}]
-    ).should.throw(
-        ClientError,
-        '1 validation error detected: Value "{value}" at "parameterFilters.1.member.values" failed to satisfy constraint: '
-        "Member must have length less than or equal to 50".format(value=many_values),
-    )
-
-    long_value = ["t" * 1025]
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Name", "Values": long_value}]
-    ).should.throw(
-        ClientError,
-        '1 validation error detected: Value "{value}" at "parameterFilters.1.member.values" failed to satisfy constraint: '
-        "[Member must have length less than or equal to 1024, Member must have length greater than or equal to 1]".format(
-            value=long_value
+@pytest.mark.parametrize(
+    "filters,error_msg",
+    [
+        (
+            [{"Key": "key"}],
+            "Member must satisfy regular expression pattern: tag:.+|Name|Type|KeyId|Path|Label|Tier",
         ),
-    )
+        (
+            [{"Key": "tag:" + "t" * 129}],
+            "Member must have length less than or equal to 132",
+        ),
+        (
+            [{"Key": "Name", "Option": "over 10 chars"}],
+            "Member must have length less than or equal to 10",
+        ),
+        (
+            [{"Key": "Name", "Values": ["test"] * 51}],
+            "Member must have length less than or equal to 50",
+        ),
+        (
+            [{"Key": "Name", "Values": ["t" * 1025]}],
+            "Member must have length less than or equal to 1024, Member must have length greater than or equal to 1",
+        ),
+        (
+            [{"Key": "Name", "Option": "over 10 chars"}, {"Key": "key"}],
+            "2 validation errors detected:",
+        ),
+        (
+            [{"Key": "Label"}],
+            "The following filter key is not valid: Label. Valid filter keys include: [Path, Name, Type, KeyId, Tier]",
+        ),
+        (
+            [{"Key": "Name"}],
+            "The following filter values are missing : null for filter key Name",
+        ),
+        (
+            [
+                {"Key": "Name", "Values": ["test"]},
+                {"Key": "Name", "Values": ["test test"]},
+            ],
+            "The following filter is duplicated in the request: Name. A request can contain only one occurrence of a specific filter.",
+        ),
+        (
+            [{"Key": "Path", "Values": ["/aws", "/ssm"]}],
+            'Filters for common parameters can\'t be prefixed with "aws" or "ssm" (case-insensitive).',
+        ),
+        (
+            [{"Key": "Path", "Option": "Equals", "Values": ["test"]}],
+            "The following filter option is not valid: Equals. Valid options include: [Recursive, OneLevel]",
+        ),
+        (
+            [{"Key": "Tier", "Values": ["test"]}],
+            "The following filter value is not valid: test. Valid values include: [Standard, Advanced, Intelligent-Tiering]",
+        ),
+        (
+            [{"Key": "Type", "Values": ["test"]}],
+            "The following filter value is not valid: test. Valid values include: [String, StringList, SecureString]",
+        ),
+        (
+            [{"Key": "Name", "Option": "option", "Values": ["test"]}],
+            "The following filter option is not valid: option. Valid options include: [BeginsWith, Equals].",
+        ),
+    ],
+)
+@mock_ssm
+def test_describe_parameters_invalid_parameter_filters(filters, error_msg):
+    client = boto3.client("ssm", region_name="us-east-1")
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Name", "Option": "over 10 chars"}, {"Key": "key"}]
-    ).should.throw(
-        ClientError,
-        "2 validation errors detected: "
-        'Value "over 10 chars" at "parameterFilters.1.member.option" failed to satisfy constraint: '
-        "Member must have length less than or equal to 10; "
-        'Value "key" at "parameterFilters.2.member.key" failed to satisfy constraint: '
-        "Member must satisfy regular expression pattern: tag:.+|Name|Type|KeyId|Path|Label|Tier",
-    )
+    with pytest.raises(ClientError) as e:
+        client.describe_parameters(ParameterFilters=filters)
+    e.value.response["Error"]["Message"].should.contain(error_msg)
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Label"}]
-    ).should.throw(
-        ClientError,
-        "The following filter key is not valid: Label. Valid filter keys include: [Path, Name, Type, KeyId, Tier].",
-    )
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Name"}]
-    ).should.throw(
-        ClientError,
-        "The following filter values are missing : null for filter key Name.",
-    )
+@pytest.mark.parametrize("value", ["/###", "//", "test"])
+@mock_ssm
+def test_describe_parameters_invalid_path(value):
+    client = boto3.client("ssm", region_name="us-east-1")
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Name", "Values": []}]
-    ).should.throw(
-        ParamValidationError,
-        "Invalid length for parameter ParameterFilters[0].Values, value: 0, valid range: 1-inf",
-    )
-
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[
-            {"Key": "Name", "Values": ["test"]},
-            {"Key": "Name", "Values": ["test test"]},
-        ]
-    ).should.throw(
-        ClientError,
-        "The following filter is duplicated in the request: Name. A request can contain only one occurrence of a specific filter.",
-    )
-
-    for value in ["/###", "//", "test"]:
-        client.describe_parameters.when.called_with(
+    with pytest.raises(ClientError) as e:
+        client.describe_parameters(
             ParameterFilters=[{"Key": "Path", "Values": [value]}]
-        ).should.throw(
-            ClientError,
-            'The parameter doesn\'t meet the parameter name requirements. The parameter name must begin with a forward slash "/". '
-            'It can\'t be prefixed with "aws" or "ssm" (case-insensitive). '
-            "It must use only letters, numbers, or the following symbols: . (period), - (hyphen), _ (underscore). "
-            'Special characters are not allowed. All sub-paths, if specified, must use the forward slash symbol "/". '
-            "Valid example: /get/parameters2-/by1./path0_.",
         )
-
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Path", "Values": ["/aws", "/ssm"]}]
-    ).should.throw(
-        ClientError,
-        'Filters for common parameters can\'t be prefixed with "aws" or "ssm" (case-insensitive). '
-        "When using global parameters, please specify within a global namespace.",
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("The parameter doesn't meet the parameter name requirements")
+    msg.should.contain('The parameter name must begin with a forward slash "/".')
+    msg.should.contain('It can\'t be prefixed with "aws" or "ssm" (case-insensitive).')
+    msg.should.contain(
+        "It must use only letters, numbers, or the following symbols: . (period), - (hyphen), _ (underscore)."
     )
-
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Path", "Option": "Equals", "Values": ["test"]}]
-    ).should.throw(
-        ClientError,
-        "The following filter option is not valid: Equals. Valid options include: [Recursive, OneLevel].",
+    msg.should.contain(
+        'Special characters are not allowed. All sub-paths, if specified, must use the forward slash symbol "/".'
     )
+    msg.should.contain("Valid example: /get/parameters2-/by1./path0_.")
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Tier", "Values": ["test"]}]
-    ).should.throw(
-        ClientError,
-        "The following filter value is not valid: test. Valid values include: [Standard, Advanced, Intelligent-Tiering]",
-    )
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Type", "Values": ["test"]}]
-    ).should.throw(
-        ClientError,
-        "The following filter value is not valid: test. Valid values include: [String, StringList, SecureString]",
-    )
+@pytest.mark.parametrize(
+    "filters,error_msg",
+    [
+        ([{}], 'Missing required parameter in ParameterFilters[0]: "Key"',),
+        (
+            [{"Key": "Name", "Values": []}],
+            "Invalid length for parameter ParameterFilters[0].Values, value: 0, valid range: 1-inf",
+        ),
+    ],
+)
+@mock_ssm
+def test_describe_parameters_parameter_validation(filters, error_msg):
+    client = boto3.client("ssm", region_name="us-east-1")
 
-    client.describe_parameters.when.called_with(
-        ParameterFilters=[{"Key": "Name", "Option": "option", "Values": ["test"]}]
-    ).should.throw(
-        ClientError,
-        "The following filter option is not valid: option. Valid options include: [BeginsWith, Equals].",
-    )
+    with pytest.raises(ParamValidationError) as e:
+        client.describe_parameters(ParameterFilters=filters)
+    e.value.kwargs["report"].should.contain(error_msg)
 
 
 @mock_ssm

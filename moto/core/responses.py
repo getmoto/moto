@@ -324,7 +324,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         def _convert(elem, is_last):
             if not re.match("^{.*}$", elem):
                 return elem
-            name = elem.replace("{", "").replace("}", "").replace("+", "")
+            name = (
+                elem.replace("{", "")
+                .replace("}", "")
+                .replace("+", "")
+                .replace("-", "_")
+            )
             if is_last:
                 return "(?P<%s>[^/]*)" % name
             return "(?P<%s>.*)" % name

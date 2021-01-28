@@ -10,6 +10,7 @@ from moto import mock_autoscaling_deprecated
 from moto import mock_autoscaling
 from moto.core import ACCOUNT_ID
 from tests.helpers import requires_boto_gte
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_autoscaling_deprecated
@@ -207,7 +208,11 @@ def test_launch_configuration_describe_filter():
 def test_launch_configuration_describe_paginated():
     conn = boto3.client("autoscaling", region_name="us-east-1")
     for i in range(51):
-        conn.create_launch_configuration(LaunchConfigurationName="TestLC%d" % i)
+        conn.create_launch_configuration(
+            LaunchConfigurationName="TestLC%d" % i,
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="t2.medium",
+        )
 
     response = conn.describe_launch_configurations()
     lcs = response["LaunchConfigurations"]

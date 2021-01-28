@@ -255,6 +255,7 @@ def test_boto3_filter_stacks():
     conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
     conn.create_stack(StackName="test_stack2", TemplateBody=dummy_template_json)
     conn.update_stack(StackName="test_stack", TemplateBody=dummy_template_json2)
+
     stacks = conn.list_stacks(StackStatusFilter=["CREATE_COMPLETE"])
     stacks.get("StackSummaries").should.have.length_of(1)
     stacks = conn.list_stacks(StackStatusFilter=["UPDATE_COMPLETE"])
@@ -318,6 +319,18 @@ def test_boto3_describe_stack_set_operation():
 
     response["StackSetOperation"]["Status"].should.equal("STOPPED")
     response["StackSetOperation"]["Action"].should.equal("CREATE")
+    with pytest.raises(ClientError) as exp:
+        cf_conn.describe_stack_set_operation(
+            StackSetName="test_stack_set", OperationId="non_existing_operation"
+        )
+    exp_err = exp.value.response.get("Error")
+    exp_metadata = exp.value.response.get("ResponseMetadata")
+
+    exp_err.get("Code").should.match(r"ValidationError")
+    exp_err.get("Message").should.match(
+        r"Stack with id non_existing_operation does not exist"
+    )
+    exp_metadata.get("HTTPStatusCode").should.equal(400)
 
 
 @mock_cloudformation
@@ -1136,6 +1149,16 @@ def test_delete_change_set():
     cf_conn.delete_change_set(ChangeSetName="NewChangeSet", StackName="NewStack")
     cf_conn.list_change_sets(StackName="NewStack")["Summaries"].should.have.length_of(0)
 
+    # Testing deletion by arn
+    result = cf_conn.create_change_set(
+        StackName="NewStack",
+        TemplateBody=dummy_template_json,
+        ChangeSetName="NewChangeSet1",
+        ChangeSetType="CREATE",
+    )
+    cf_conn.delete_change_set(ChangeSetName=result.get("Id"), StackName="NewStack")
+    cf_conn.list_change_sets(StackName="NewStack")["Summaries"].should.have.length_of(0)
+
 
 @mock_cloudformation
 @mock_ec2
@@ -1308,6 +1331,19 @@ def test_stack_events():
         assert False, "Too many stack events"
 
     list(stack_events_to_look_for).should.be.empty
+
+    with pytest.raises(ClientError) as exp:
+        stack = cf.Stack("non_existing_stack")
+        events = list(stack.events.all())
+
+    exp_err = exp.value.response.get("Error")
+    exp_metadata = exp.value.response.get("ResponseMetadata")
+
+    exp_err.get("Code").should.match(r"ValidationError")
+    exp_err.get("Message").should.match(
+        r"Stack with id non_existing_stack does not exist"
+    )
+    exp_metadata.get("HTTPStatusCode").should.equal(400)
 
 
 @mock_cloudformation

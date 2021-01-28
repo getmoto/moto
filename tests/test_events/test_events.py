@@ -1,6 +1,7 @@
 import json
 import random
 import unittest
+from datetime import datetime
 
 import boto3
 import sure  # noqa
@@ -748,3 +749,525 @@ def test_list_tags_for_resource_error_unknown_arn():
     ex.response["Error"]["Message"].should.equal(
         "Rule unknown does not exist on EventBus default."
     )
+
+
+@mock_events
+def test_create_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.create_archive(
+        ArchiveName="test-archive",
+        EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
+            ACCOUNT_ID
+        ),
+    )
+
+    # then
+    response["ArchiveArn"].should.equal(
+        "arn:aws:events:eu-central-1:{}:archive/test-archive".format(ACCOUNT_ID)
+    )
+    response["CreationTime"].should.be.a(datetime)
+    response["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_create_archive_custom_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = client.create_event_bus(Name="test-bus")["EventBusArn"]
+
+    # when
+    response = client.create_archive(
+        ArchiveName="test-archive",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps(
+            {
+                "key_1": {
+                    "key_2": {"key_3": ["value_1", "value_2"], "key_4": ["value_3"]}
+                }
+            }
+        ),
+    )
+
+    # then
+    response["ArchiveArn"].should.equal(
+        "arn:aws:events:eu-central-1:{}:archive/test-archive".format(ACCOUNT_ID)
+    )
+    response["CreationTime"].should.be.a(datetime)
+    response["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_create_archive_error_long_name():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "a" * 49
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.create_archive(
+            ArchiveName=name,
+            EventSourceArn=(
+                "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+            ),
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CreateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        " 1 validation error detected: "
+        "Value '{}' at 'archiveName' failed to satisfy constraint: "
+        "Member must have length less than or equal to 48".format(name)
+    )
+
+
+@mock_events
+def test_create_archive_error_invalid_event_pattern():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.create_archive(
+            ArchiveName="test-archive",
+            EventSourceArn=(
+                "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+            ),
+            EventPattern="invalid",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CreateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
+    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+
+
+@mock_events
+def test_create_archive_error_invalid_event_pattern_not_an_array():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.create_archive(
+            ArchiveName="test-archive",
+            EventSourceArn=(
+                "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+            ),
+            EventPattern=json.dumps(
+                {
+                    "key_1": {
+                        "key_2": {"key_3": ["value_1"]},
+                        "key_4": {"key_5": ["value_2"], "key_6": "value_3"},
+                    }
+                }
+            ),
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CreateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
+    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+
+
+@mock_events
+def test_create_archive_error_unknown_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.create_archive(
+            ArchiveName="test-archive",
+            EventSourceArn=(
+                "arn:aws:events:eu-central-1:{}:event-bus/{}".format(
+                    ACCOUNT_ID, event_bus_name
+                )
+            ),
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CreateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Event bus {} does not exist.".format(event_bus_name)
+    )
+
+
+@mock_events
+def test_create_archive_error_duplicate():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    client.create_archive(ArchiveName=name, EventSourceArn=source_arn)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.create_archive(ArchiveName=name, EventSourceArn=source_arn)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CreateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceAlreadyExistsException")
+    ex.response["Error"]["Message"].should.equal("Archive test-archive already exists.")
+
+
+@mock_events
+def test_describe_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    event_pattern = json.dumps({"key": ["value"]})
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn=source_arn,
+        Description="test archive",
+        EventPattern=event_pattern,
+    )
+
+    # when
+    response = client.describe_archive(ArchiveName=name)
+
+    # then
+    response["ArchiveArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, name)
+    )
+    response["ArchiveName"].should.equal(name)
+    response["CreationTime"].should.be.a(datetime)
+    response["Description"].should.equal("test archive")
+    response["EventCount"].should.equal(0)
+    response["EventPattern"].should.equal(event_pattern)
+    response["EventSourceArn"].should.equal(source_arn)
+    response["RetentionDays"].should.equal(0)
+    response["SizeBytes"].should.equal(0)
+    response["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_describe_archive_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_archive(ArchiveName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Archive {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_list_archives():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    event_pattern = json.dumps({"key": ["value"]})
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn=source_arn,
+        Description="test archive",
+        EventPattern=event_pattern,
+    )
+
+    # when
+    archives = client.list_archives()["Archives"]
+
+    # then
+    archives.should.have.length_of(1)
+    archive = archives[0]
+    archive["ArchiveName"].should.equal(name)
+    archive["CreationTime"].should.be.a(datetime)
+    archive["EventCount"].should.equal(0)
+    archive["EventSourceArn"].should.equal(source_arn)
+    archive["RetentionDays"].should.equal(0)
+    archive["SizeBytes"].should.equal(0)
+    archive["State"].should.equal("ENABLED")
+
+    archive.should_not.have.key("ArchiveArn")
+    archive.should_not.have.key("Description")
+    archive.should_not.have.key("EventPattern")
+
+
+@mock_events
+def test_list_archives_with_name_prefix():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    client.create_archive(
+        ArchiveName="test", EventSourceArn=source_arn,
+    )
+    client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=source_arn,
+    )
+
+    # when
+    archives = client.list_archives(NamePrefix="test-")["Archives"]
+
+    # then
+    archives.should.have.length_of(1)
+    archives[0]["ArchiveName"].should.equal("test-archive")
+
+
+@mock_events
+def test_list_archives_with_source_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    source_arn_2 = client.create_event_bus(Name="test-bus")["EventBusArn"]
+    client.create_archive(
+        ArchiveName="test", EventSourceArn=source_arn,
+    )
+    client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=source_arn_2,
+    )
+
+    # when
+    archives = client.list_archives(EventSourceArn=source_arn)["Archives"]
+
+    # then
+    archives.should.have.length_of(1)
+    archives[0]["ArchiveName"].should.equal("test")
+
+
+@mock_events
+def test_list_archives_with_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    client.create_archive(
+        ArchiveName="test", EventSourceArn=source_arn,
+    )
+    client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=source_arn,
+    )
+
+    # when
+    archives = client.list_archives(State="DISABLED")["Archives"]
+
+    # then
+    archives.should.have.length_of(0)
+
+
+@mock_events
+def test_list_archives_error_multiple_filters():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_archives(NamePrefix="test", State="ENABLED")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListArchives")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "At most one filter is allowed for ListArchives. "
+        "Use either : State, EventSourceArn, or NamePrefix."
+    )
+
+
+@mock_events
+def test_list_archives_error_invalid_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_archives(State="invalid")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListArchives")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: Value 'invalid' at 'state' failed to satisfy constraint: "
+        "Member must satisfy enum value set: "
+        "[ENABLED, DISABLED, CREATING, UPDATING, CREATE_FAILED, UPDATE_FAILED]"
+    )
+
+
+@mock_events
+def test_update_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
+    event_pattern = json.dumps({"key": ["value"]})
+    archive_arn = client.create_archive(ArchiveName=name, EventSourceArn=source_arn)[
+        "ArchiveArn"
+    ]
+
+    # when
+    response = client.update_archive(
+        ArchiveName=name,
+        Description="test archive",
+        EventPattern=event_pattern,
+        RetentionDays=14,
+    )
+
+    # then
+    response["ArchiveArn"].should.equal(archive_arn)
+    response["State"].should.equal("ENABLED")
+    creation_time = response["CreationTime"]
+    creation_time.should.be.a(datetime)
+
+    response = client.describe_archive(ArchiveName=name)
+    response["ArchiveArn"].should.equal(archive_arn)
+    response["ArchiveName"].should.equal(name)
+    response["CreationTime"].should.equal(creation_time)
+    response["Description"].should.equal("test archive")
+    response["EventCount"].should.equal(0)
+    response["EventPattern"].should.equal(event_pattern)
+    response["EventSourceArn"].should.equal(source_arn)
+    response["RetentionDays"].should.equal(14)
+    response["SizeBytes"].should.equal(0)
+    response["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_update_archive_error_invalid_event_pattern():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
+            ACCOUNT_ID
+        ),
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.update_archive(
+            ArchiveName=name, EventPattern="invalid",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UpdateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
+    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+
+
+@mock_events
+def test_update_archive_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.update_archive(ArchiveName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UpdateArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Archive {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_delete_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    client.create_archive(
+        ArchiveName=name,
+        EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
+            ACCOUNT_ID
+        ),
+    )
+
+    # when
+    client.delete_archive(ArchiveName=name)
+
+    # then
+    response = client.list_archives(NamePrefix="test")["Archives"]
+    response.should.have.length_of(0)
+
+
+@mock_events
+def test_delete_archive_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_archive(ArchiveName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteArchive")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Archive {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_archive_actual_events():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-archive"
+    name_2 = "test-archive-2"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    event = {
+        "Source": "source",
+        "DetailType": "type",
+        "Detail": '{ "key1": "value1" }',
+    }
+    client.create_archive(ArchiveName=name, EventSourceArn=event_bus_arn)
+    client.create_archive(
+        ArchiveName=name_2,
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["test"]}),
+    )
+
+    # when
+    response = client.put_events(Entries=[event])
+
+    # then
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
+
+    response = client.describe_archive(ArchiveName=name)
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.be.greater_than(0)
+
+    response = client.describe_archive(ArchiveName=name_2)
+    response["EventCount"].should.equal(0)
+    response["SizeBytes"].should.equal(0)

@@ -615,3 +615,13 @@ class InvalidVpcEndPointIdError(EC2ClientError):
             "InvalidVpcEndPointId.NotFound",
             "The VpcEndPoint ID '{0}' does not exist".format(vpc_end_point_id),
         )
+
+
+class InvalidTaggableResourceType(EC2ClientError):
+    def __init__(self, resource_type):
+        super(InvalidTaggableResourceType, self).__init__(
+            "InvalidParameterValue",
+            "'{}' is not a valid taggable resource type for this operation.".format(
+                resource_type
+            ),
+        )
