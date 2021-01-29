@@ -8,7 +8,7 @@ import sure  # noqa
 import datetime
 import uuid
 
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ec2, mock_ssm
@@ -935,25 +935,6 @@ def test_describe_parameters_invalid_path(value):
         'Special characters are not allowed. All sub-paths, if specified, must use the forward slash symbol "/".'
     )
     msg.should.contain("Valid example: /get/parameters2-/by1./path0_.")
-
-
-@pytest.mark.parametrize(
-    "filters,error_msg",
-    [
-        ([{}], 'Missing required parameter in ParameterFilters[0]: "Key"',),
-        (
-            [{"Key": "Name", "Values": []}],
-            "Invalid length for parameter ParameterFilters[0].Values, value: 0, valid range: 1-inf",
-        ),
-    ],
-)
-@mock_ssm
-def test_describe_parameters_parameter_validation(filters, error_msg):
-    client = boto3.client("ssm", region_name="us-east-1")
-
-    with pytest.raises(ParamValidationError) as e:
-        client.describe_parameters(ParameterFilters=filters)
-    e.value.kwargs["report"].should.contain(error_msg)
 
 
 @mock_ssm
