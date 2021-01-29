@@ -593,7 +593,7 @@ class SNSBackend(BaseBackend):
         try:
             return self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
+            raise SNSNotFoundError("Endpoint does not exist")
 
     def set_endpoint_attributes(self, arn, attributes):
         endpoint = self.get_endpoint(arn)
