@@ -6,6 +6,7 @@ from boto.sqs.message import Message
 from boto.ec2 import EC2Connection
 
 from moto import mock_sqs_deprecated, mock_ec2_deprecated
+from tests import EXAMPLE_AMI_ID
 
 
 class TestNestedDecorators(unittest.TestCase):
@@ -25,4 +26,4 @@ class TestNestedDecorators(unittest.TestCase):
         self.setup_sqs_queue()
 
         conn = EC2Connection()
-        conn.run_instances("ami-123456")
+        conn.run_instances(EXAMPLE_AMI_ID)

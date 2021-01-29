@@ -50,7 +50,7 @@ Resources:
   EC2Instance1:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-d3adb33f
+      ImageId: ami-03cf127a
       KeyName: dummy
       InstanceType: t2.micro
       Tags:
@@ -67,7 +67,7 @@ Resources:
   EC2Instance1:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-d3adb33f
+      ImageId: ami-03cf127a
       KeyName: !Join [ ":", [ du, m, my ] ]
       InstanceType: t2.micro
       Tags:
@@ -90,7 +90,7 @@ Resources:
   EC2Instance1:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-d3adb33f
+      ImageId: ami-03cf127a
       KeyName: dummy
       InstanceType: t2.micro
       Tags:

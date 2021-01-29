@@ -3,6 +3,7 @@ import json
 
 
 from moto import mock_ssm, mock_cloudformation
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ssm
@@ -15,7 +16,7 @@ def test_get_command_invocations_from_stack():
             "EC2Instance1": {
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
-                    "ImageId": "ami-test-image-id",
+                    "ImageId": EXAMPLE_AMI_ID,
                     "KeyName": "test",
                     "InstanceType": "t2.micro",
                     "Tags": [

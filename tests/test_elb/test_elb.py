@@ -16,6 +16,7 @@ import sure  # noqa
 
 from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 from moto.core import ACCOUNT_ID
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_elb_deprecated
@@ -378,7 +379,7 @@ def test_create_health_check_boto3():
 @mock_elb_deprecated
 def test_register_instances():
     ec2_conn = boto.connect_ec2()
-    reservation = ec2_conn.run_instances("ami-1234abcd", 2)
+    reservation = ec2_conn.run_instances(EXAMPLE_AMI_ID, 2)
     instance_id1 = reservation.instances[0].id
     instance_id2 = reservation.instances[1].id
 
@@ -397,7 +398,7 @@ def test_register_instances():
 @mock_elb
 def test_register_instances_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
-    response = ec2.create_instances(ImageId="ami-1234abcd", MinCount=2, MaxCount=2)
+    response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
     instance_id1 = response[0].id
     instance_id2 = response[1].id
 
@@ -420,7 +421,7 @@ def test_register_instances_boto3():
 @mock_elb_deprecated
 def test_deregister_instances():
     ec2_conn = boto.connect_ec2()
-    reservation = ec2_conn.run_instances("ami-1234abcd", 2)
+    reservation = ec2_conn.run_instances(EXAMPLE_AMI_ID, 2)
     instance_id1 = reservation.instances[0].id
     instance_id2 = reservation.instances[1].id
 
@@ -442,7 +443,7 @@ def test_deregister_instances():
 @mock_elb
 def test_deregister_instances_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
-    response = ec2.create_instances(ImageId="ami-1234abcd", MinCount=2, MaxCount=2)
+    response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
     instance_id1 = response[0].id
     instance_id2 = response[1].id
 
@@ -679,7 +680,7 @@ def test_set_policies_of_backend_server():
 @mock_elb_deprecated
 def test_describe_instance_health():
     ec2_conn = boto.connect_ec2()
-    reservation = ec2_conn.run_instances("ami-1234abcd", 2)
+    reservation = ec2_conn.run_instances(EXAMPLE_AMI_ID, 2)
     instance_id1 = reservation.instances[0].id
     instance_id2 = reservation.instances[1].id
 
@@ -710,7 +711,9 @@ def test_describe_instance_health():
 def test_describe_instance_health_boto3():
     elb = boto3.client("elb", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
-    instances = ec2.run_instances(MinCount=2, MaxCount=2)["Instances"]
+    instances = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)[
+        "Instances"
+    ]
     lb_name = "my_load_balancer"
     elb.create_load_balancer(
         Listeners=[{"InstancePort": 80, "LoadBalancerPort": 8080, "Protocol": "HTTP"}],
