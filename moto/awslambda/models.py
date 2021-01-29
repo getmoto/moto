@@ -20,7 +20,6 @@ import uuid
 import tarfile
 import calendar
 import threading
-import traceback
 import weakref
 import requests.exceptions
 
@@ -608,7 +607,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             # Docker itself is probably not running - there will be no Lambda-logs to handle
             return "error running docker: {}".format(e), True, ""
         except BaseException as e:
-            traceback.print_exc()
             logs = os.linesep.join(
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
