@@ -1140,8 +1140,9 @@ def test_enable_virtual_mfa_device():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
     serial_number = response["VirtualMFADevice"]["SerialNumber"]
+    tags = [{"Key": "key", "Value": "value"}]
 
-    client.create_user(UserName="test-user")
+    client.create_user(UserName="test-user", Tags=tags)
     client.enable_mfa_device(
         UserName="test-user",
         SerialNumber=serial_number,
@@ -1165,6 +1166,7 @@ def test_enable_virtual_mfa_device():
         "arn:aws:iam::{}:user/test-user".format(ACCOUNT_ID)
     )
     device["User"]["CreateDate"].should.be.a(datetime)
+    device["User"]["Tags"].should.equal(tags)
     device["EnableDate"].should.be.a(datetime)
     response["IsTruncated"].should_not.be.ok
 
@@ -4054,15 +4056,15 @@ def test_tag_user():
     # given
     client = boto3.client("iam", region_name="eu-central-1")
     name = "test-user"
+    tags = [{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value-2"}]
     client.create_user(UserName=name)
 
     # when
-    client.tag_user(
-        UserName=name,
-        Tags=[{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value-2"},],
-    )
+    client.tag_user(UserName=name, Tags=tags)
 
     # then
+    response = client.list_user_tags(UserName=name)
+    response["Tags"].should.equal(tags)
 
 
 @mock_iam
@@ -4078,6 +4080,44 @@ def test_tag_user_error_unknown_user_name():
     # then
     ex = e.value
     ex.operation_name.should.equal("TagUser")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NoSuchEntity")
+    ex.response["Error"]["Message"].should.equal(
+        "The user with name {} cannot be found.".format(name)
+    )
+
+
+@mock_iam
+def test_untag_user():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "test-user"
+    client.create_user(
+        UserName=name,
+        Tags=[{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value"}],
+    )
+
+    # when
+    client.untag_user(UserName=name, TagKeys=["key-2"])
+
+    # then
+    response = client.list_user_tags(UserName=name)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+
+@mock_iam
+def test_untag_user_error_unknown_user_name():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.untag_user(UserName=name, TagKeys=["key"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UntagUser")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
     ex.response["Error"]["Code"].should.contain("NoSuchEntity")
     ex.response["Error"]["Message"].should.equal(

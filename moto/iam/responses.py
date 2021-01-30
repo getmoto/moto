@@ -998,6 +998,15 @@ class IamResponse(BaseResponse):
         template = self.response_template(TAG_USER_TEMPLATE)
         return template.render()
 
+    def untag_user(self):
+        name = self._get_param("UserName")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        iam_backend.untag_user(name, tag_keys)
+
+        template = self.response_template(UNTAG_USER_TEMPLATE)
+        return template.render()
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -2048,13 +2057,23 @@ LIST_VIRTUAL_MFA_DEVICES_TEMPLATE = """<ListVirtualMFADevicesResponse xmlns="htt
       {% if device.enable_date %}
       <EnableDate>{{ device.enabled_iso_8601 }}</EnableDate>
       {% endif %}
-      {% if device.user %}
+      {% if device.user_attribute %}
       <User>
-        <Path>{{ device.user.path }}</Path>
-        <UserName>{{ device.user.name }}</UserName>
-        <UserId>{{ device.user.id }}</UserId>
-        <CreateDate>{{ device.user.created_iso_8601 }}</CreateDate>
-        <Arn>{{ device.user.arn }}</Arn>
+        <Path>{{ device.user_attribute.Path }}</Path>
+        <UserName>{{ device.user_attribute.UserName }}</UserName>
+        <UserId>{{ device.user_attribute.UserId }}</UserId>
+        <CreateDate>{{ device.user_attribute.CreateDate }}</CreateDate>
+        <Arn>{{ device.user_attribute.Arn }}</Arn>
+        {% if device.user_attribute.Tags %}
+        <Tags>
+          {% for tag in device.user_attribute.Tags %}
+          <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+          </member>
+          {% endfor %}
+        </Tags>
+        {% endif %}
       </User>
       {% endif %}
     </member>
@@ -2530,3 +2549,10 @@ TAG_USER_TEMPLATE = """<TagUserResponse xmlns="https://iam.amazonaws.com/doc/201
     <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
   </ResponseMetadata>
 </TagUserResponse>"""
+
+
+UNTAG_USER_TEMPLATE = """<UntagUserResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagUserResponse>"""

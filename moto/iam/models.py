@@ -1135,7 +1135,8 @@ class User(CloudFormationModel):
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        return iam_backend.create_user(resource_physical_name, path)
+        user, _ = iam_backend.create_user(resource_physical_name, path)
+        return user
 
     @classmethod
     def update_from_cloudformation_json(
@@ -1981,16 +1982,15 @@ class IAMBackend(BaseBackend):
             )
 
         user = User(user_name, path)
-        self.tagger.tag_resource(user.arn, tags)
+        self.tagger.tag_resource(user.arn, tags or [])
         self.users[user_name] = user
         return user, self.tagger.list_tags_for_resource(user.arn)
 
-    def get_user(self, user_name):
-        user = None
-        try:
-            user = self.users[user_name]
-        except KeyError:
-            raise IAMNotFoundException("User {0} not found".format(user_name))
+    def get_user(self, name):
+        user = self.users.get(name)
+
+        if not user:
+            raise NoSuchEntity("The user with name {} cannot be found.".format(name))
 
         return user
 
@@ -2207,7 +2207,7 @@ class IAMBackend(BaseBackend):
         try:  # User may have been deleted before their access key...
             user = self.get_user(key.user_name)
             user.delete_access_key(key.access_key_id)
-        except IAMNotFoundException:
+        except NoSuchEntity:
             pass
         del self.access_keys[name]
 
@@ -2253,7 +2253,7 @@ class IAMBackend(BaseBackend):
                 "CreateDate": user.created_iso_8601,
                 "PasswordLastUsed": None,  # not supported
                 "PermissionsBoundary": {},  # ToDo: add put_user_permissions_boundary() functionality
-                "Tags": {},  # ToDo: add tag_user() functionality
+                "Tags": self.tagger.list_tags_for_resource(user.arn)["Tags"],
             }
 
         user.enable_mfa_device(
@@ -2358,6 +2358,7 @@ class IAMBackend(BaseBackend):
                 code="DeleteConflict",
                 message="Cannot delete entity, must delete policies first.",
             )
+        self.tagger.delete_all_tags_for_resource(user.arn)
         del self.users[user_name]
 
     def report_generated(self):
@@ -2578,12 +2579,14 @@ class IAMBackend(BaseBackend):
         del self.inline_policies[policy_id]
 
     def tag_user(self, name, tags):
-        user = self.users.get(name)
-
-        if not user:
-            raise NoSuchEntity("The user with name {} cannot be found.".format(name))
+        user = self.get_user(name)
 
         self.tagger.tag_resource(user.arn, tags)
+
+    def untag_user(self, name, tag_keys):
+        user = self.get_user(name)
+
+        self.tagger.untag_resource_using_names(user.arn, tag_keys)
 
 
 iam_backend = IAMBackend()
