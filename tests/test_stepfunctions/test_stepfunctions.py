@@ -6,7 +6,7 @@ import os
 import sure  # noqa
 import sys
 from datetime import datetime
-from dateutil.tz import tzlocal
+from dateutil.tz import tzutc
 from botocore.exceptions import ClientError
 import pytest
 
@@ -870,7 +870,7 @@ def test_state_machine_get_execution_history_throws_error_with_unknown_execution
 def test_state_machine_get_execution_history_contains_expected_success_events_when_started():
     expected_events = [
         {
-            "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal()),
+            "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc()),
             "type": "ExecutionStarted",
             "id": 1,
             "previousEventId": 0,
@@ -881,7 +881,7 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
             },
         },
         {
-            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzutc()),
             "type": "PassStateEntered",
             "id": 2,
             "previousEventId": 0,
@@ -892,7 +892,7 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
             },
         },
         {
-            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzutc()),
             "type": "PassStateExited",
             "id": 3,
             "previousEventId": 2,
@@ -903,7 +903,7 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
             },
         },
         {
-            "timestamp": datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzlocal()),
+            "timestamp": datetime(2020, 1, 1, 0, 0, 20, tzinfo=tzutc()),
             "type": "ExecutionSucceeded",
             "id": 4,
             "previousEventId": 3,
@@ -936,7 +936,7 @@ def test_state_machine_get_execution_history_contains_expected_failure_events_wh
         raise SkipTest("Cant pass environment variable in server mode")
     expected_events = [
         {
-            "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzlocal()),
+            "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc()),
             "type": "ExecutionStarted",
             "id": 1,
             "previousEventId": 0,
@@ -947,7 +947,7 @@ def test_state_machine_get_execution_history_contains_expected_failure_events_wh
             },
         },
         {
-            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzutc()),
             "type": "FailStateEntered",
             "id": 2,
             "previousEventId": 0,
@@ -958,7 +958,7 @@ def test_state_machine_get_execution_history_contains_expected_failure_events_wh
             },
         },
         {
-            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzlocal()),
+            "timestamp": datetime(2020, 1, 1, 0, 0, 10, tzinfo=tzutc()),
             "type": "ExecutionFailed",
             "id": 3,
             "previousEventId": 2,

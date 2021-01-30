@@ -5683,3 +5683,47 @@ def test_transact_get_items_should_return_empty_map_for_non_existent_item():
     items.should.have.length_of(2)
     items[0].should.equal({"Item": item})
     items[1].should.equal({})
+
+
+@mock_dynamodb2
+def test_dynamodb_update_item_fails_on_string_sets():
+    dynamodb = boto3.resource("dynamodb", region_name="eu-west-1")
+    client = boto3.client("dynamodb", region_name="eu-west-1")
+
+    table = dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "record_id", "KeyType": "HASH"},],
+        AttributeDefinitions=[{"AttributeName": "record_id", "AttributeType": "S"},],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table.meta.client.get_waiter("table_exists").wait(TableName="test")
+    attribute = {"test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT"}}
+
+    client.update_item(
+        TableName="test",
+        Key={"record_id": {"S": "testrecord"}},
+        AttributeUpdates=attribute,
+    )
+
+
+@moto.mock_dynamodb2
+def test_update_item_add_to_list_using_legacy_attribute_updates():
+    resource = boto3.resource("dynamodb", region_name="us-west-2")
+    resource.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = resource.Table("TestTable")
+    table.wait_until_exists()
+    table.put_item(Item={"id": "list_add", "attr": ["a", "b", "c"]},)
+
+    table.update_item(
+        TableName="TestTable",
+        Key={"id": "list_add"},
+        AttributeUpdates={"attr": {"Action": "ADD", "Value": ["d", "e"]}},
+    )
+
+    resp = table.get_item(Key={"id": "list_add"})
+    resp["Item"]["attr"].should.equal(["a", "b", "c", "d", "e"])

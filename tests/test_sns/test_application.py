@@ -189,7 +189,7 @@ def test_get_endpoint_attributes():
         platform_application_arn=application_arn,
         token="some_unique_id",
         custom_user_data="some user data",
-        attributes={"Enabled": False, "CustomUserData": "some data"},
+        attributes={"CustomUserData": "some data"},
     )
     endpoint_arn = endpoint["CreatePlatformEndpointResponse"][
         "CreatePlatformEndpointResult"
@@ -199,7 +199,7 @@ def test_get_endpoint_attributes():
         "GetEndpointAttributesResponse"
     ]["GetEndpointAttributesResult"]["Attributes"]
     attributes.should.equal(
-        {"Token": "some_unique_id", "Enabled": "False", "CustomUserData": "some data"}
+        {"Token": "some_unique_id", "Enabled": "true", "CustomUserData": "some data"}
     )
 
 
@@ -236,7 +236,7 @@ def test_set_endpoint_attributes():
         "GetEndpointAttributesResponse"
     ]["GetEndpointAttributesResult"]["Attributes"]
     attributes.should.equal(
-        {"Token": "some_unique_id", "Enabled": "False", "CustomUserData": "other data"}
+        {"Token": "some_unique_id", "Enabled": "false", "CustomUserData": "other data"}
     )
 
 

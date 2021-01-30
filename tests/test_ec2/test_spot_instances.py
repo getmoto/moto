@@ -12,6 +12,7 @@ import sure  # noqa
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2.models import ec2_backends
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ec2
@@ -41,7 +42,7 @@ def test_request_spot_instances():
             LaunchGroup="the-group",
             AvailabilityZoneGroup="my-group",
             LaunchSpecification={
-                "ImageId": "ami-abcd1234",
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "test",
                 "SecurityGroups": ["group1", "group2"],
                 "UserData": "some test data",
@@ -69,7 +70,7 @@ def test_request_spot_instances():
         LaunchGroup="the-group",
         AvailabilityZoneGroup="my-group",
         LaunchSpecification={
-            "ImageId": "ami-abcd1234",
+            "ImageId": EXAMPLE_AMI_ID,
             "KeyName": "test",
             "SecurityGroups": ["group1", "group2"],
             "UserData": "some test data",
@@ -100,7 +101,7 @@ def test_request_spot_instances():
     ]
     set(security_group_names).should.equal(set(["group1", "group2"]))
 
-    launch_spec["ImageId"].should.equal("ami-abcd1234")
+    launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
     launch_spec["KeyName"].should.equal("test")
     launch_spec["InstanceType"].should.equal("m1.small")
     launch_spec["KernelId"].should.equal("test-kernel")
@@ -116,7 +117,7 @@ def test_request_spot_instances_default_arguments():
     conn = boto3.client("ec2", "us-east-1")
 
     request = conn.request_spot_instances(
-        SpotPrice="0.5", LaunchSpecification={"ImageId": "ami-abcd1234"}
+        SpotPrice="0.5", LaunchSpecification={"ImageId": EXAMPLE_AMI_ID}
     )
 
     requests = conn.describe_spot_instance_requests()["SpotInstanceRequests"]
@@ -138,7 +139,7 @@ def test_request_spot_instances_default_arguments():
     ]
     security_group_names.should.equal(["default"])
 
-    launch_spec["ImageId"].should.equal("ami-abcd1234")
+    launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
     request.shouldnt.contain("KeyName")
     launch_spec["InstanceType"].should.equal("m1.small")
     request.shouldnt.contain("KernelId")
@@ -150,7 +151,7 @@ def test_request_spot_instances_default_arguments():
 def test_cancel_spot_instance_request():
     conn = boto.connect_ec2()
 
-    conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
+    conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
 
     requests = conn.get_all_spot_instance_requests()
     requests.should.have.length_of(1)
@@ -176,7 +177,7 @@ def test_request_spot_instances_fulfilled():
     """
     conn = boto.ec2.connect_to_region("us-east-1")
 
-    request = conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
+    request = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
 
     requests = conn.get_all_spot_instance_requests()
     requests.should.have.length_of(1)
@@ -201,7 +202,7 @@ def test_tag_spot_instance_request():
     """
     conn = boto.connect_ec2()
 
-    request = conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
+    request = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
     request[0].add_tag("tag1", "value1")
     request[0].add_tag("tag2", "value2")
 
@@ -220,9 +221,9 @@ def test_get_all_spot_instance_requests_filtering():
     """
     conn = boto.connect_ec2()
 
-    request1 = conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
-    request2 = conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
-    conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
+    request1 = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
+    request2 = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
+    conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
     request1[0].add_tag("tag1", "value1")
     request1[0].add_tag("tag2", "value2")
     request2[0].add_tag("tag1", "value1")
@@ -246,7 +247,7 @@ def test_get_all_spot_instance_requests_filtering():
 @mock_ec2_deprecated
 def test_request_spot_instances_setting_instance_id():
     conn = boto.ec2.connect_to_region("us-east-1")
-    request = conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
+    request = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
 
     if not settings.TEST_SERVER_MODE:
         req = ec2_backends["us-east-1"].spot_instance_requests[request[0].id]

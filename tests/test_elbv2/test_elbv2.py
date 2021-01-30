@@ -10,6 +10,7 @@ import sure  # noqa
 from moto import mock_elbv2, mock_ec2, mock_acm
 from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_elbv2
@@ -643,7 +644,7 @@ def test_register_targets():
     )
     response.get("TargetHealthDescriptions").should.have.length_of(0)
 
-    response = ec2.create_instances(ImageId="ami-1234abcd", MinCount=2, MaxCount=2)
+    response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
     instance_id1 = response[0].id
     instance_id2 = response[1].id
 
@@ -719,7 +720,7 @@ def test_stopped_instance_target():
     )
     response.get("TargetHealthDescriptions").should.have.length_of(0)
 
-    response = ec2.create_instances(ImageId="ami-1234abcd", MinCount=1, MaxCount=1)
+    response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = response[0]
 
     target_dict = {"Id": instance.id, "Port": 500}
@@ -804,7 +805,7 @@ def test_terminated_instance_target():
     )
     response.get("TargetHealthDescriptions").should.have.length_of(0)
 
-    response = ec2.create_instances(ImageId="ami-1234abcd", MinCount=1, MaxCount=1)
+    response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = response[0]
 
     target_dict = {"Id": instance.id, "Port": 500}

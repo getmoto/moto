@@ -10,7 +10,7 @@ from .utils import (
     networkid_from_managedblockchain_url,
     proposalid_from_managedblockchain_url,
     invitationid_from_managedblockchain_url,
-    memberid_from_managedblockchain_url,
+    memberid_from_managedblockchain_request,
     nodeid_from_managedblockchain_url,
 )
 
@@ -297,7 +297,7 @@ class ManagedBlockchainResponse(BaseResponse):
         else:
             body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
-        member_id = memberid_from_managedblockchain_url(full_url)
+        member_id = memberid_from_managedblockchain_request(full_url, body)
         if method == "GET":
             return self._memberid_response_get(network_id, member_id, headers)
         elif method == "PATCH":
@@ -343,7 +343,7 @@ class ManagedBlockchainResponse(BaseResponse):
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         network_id = networkid_from_managedblockchain_url(full_url)
-        member_id = memberid_from_managedblockchain_url(full_url)
+        member_id = memberid_from_managedblockchain_request(full_url, body)
         if method == "GET":
             status = None
             if "status" in querystring:
@@ -394,7 +394,7 @@ class ManagedBlockchainResponse(BaseResponse):
         else:
             body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
-        member_id = memberid_from_managedblockchain_url(full_url)
+        member_id = memberid_from_managedblockchain_request(full_url, body)
         node_id = nodeid_from_managedblockchain_url(full_url)
         if method == "GET":
             return self._nodeid_response_get(network_id, member_id, node_id, headers)

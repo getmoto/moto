@@ -11,6 +11,7 @@ import six
 import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
+from tests import EXAMPLE_AMI_ID
 
 import logging
 
@@ -95,7 +96,7 @@ def test_eip_associate_classic():
     """Associate/Disassociate EIP to classic instance"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     eip = conn.allocate_address()
@@ -146,7 +147,7 @@ def test_eip_associate_vpc():
     """Associate/Disassociate EIP to VPC instance"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     eip = conn.allocate_address(domain="vpc")
@@ -194,7 +195,7 @@ def test_eip_boto3_vpc_association():
     instance = service.create_instances(
         **{
             "InstanceType": "t2.micro",
-            "ImageId": "ami-test",
+            "ImageId": EXAMPLE_AMI_ID,
             "MinCount": 1,
             "MaxCount": 1,
             "SubnetId": subnet_res["Subnet"]["SubnetId"],
@@ -265,7 +266,7 @@ def test_eip_reassociate():
     """reassociate EIP"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    reservation = conn.run_instances("ami-1234abcd", min_count=2)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
     instance1, instance2 = reservation.instances
 
     eip = conn.allocate_address()
@@ -330,7 +331,7 @@ def test_eip_associate_invalid_args():
     """Associate EIP, invalid args """
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     eip = conn.allocate_address()
@@ -457,7 +458,7 @@ def test_eip_filters():
         instance = service.create_instances(
             **{
                 "InstanceType": "t2.micro",
-                "ImageId": "ami-test",
+                "ImageId": EXAMPLE_AMI_ID,
                 "MinCount": 1,
                 "MaxCount": 1,
                 "SubnetId": subnet_res["Subnet"]["SubnetId"],
@@ -581,3 +582,18 @@ def test_eip_tags():
     )
     # Expected total is 2, one with and one without tags
     len(addresses).should.equal(2)
+
+
+@mock_ec2
+def test_describe_addresses_tags():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    alloc_tags = client.allocate_address(Domain="vpc")
+    client.create_tags(
+        Resources=[alloc_tags["AllocationId"]],
+        Tags=[{"Key": "ManagedBy", "Value": "MyCode"}],
+    )
+    addresses_with_tags = client.describe_addresses()
+    assert addresses_with_tags.get("Addresses")[0].get("Tags") == [
+        {"Key": "ManagedBy", "Value": "MyCode"}
+    ]

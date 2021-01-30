@@ -794,7 +794,7 @@ class BatchBackend(BaseBackend):
 
             for instance_type in needed_instance_types:
                 reservation = self.ec2_backend.add_instances(
-                    image_id="ami-ecs-optimised",  # Todo import AMIs
+                    image_id="ami-03cf127a",  # Todo import AMIs
                     count=1,
                     user_data=None,
                     security_group_names=[],

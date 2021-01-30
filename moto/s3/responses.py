@@ -6,7 +6,11 @@ import sys
 import six
 from botocore.awsrequest import AWSPreparedRequest
 
-from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
+from moto.core.utils import (
+    str_to_rfc_1123_datetime,
+    py2_strip_unicode_keys,
+    unix_time_millis,
+)
 from six.moves.urllib.parse import parse_qs, urlparse, unquote, parse_qsl
 
 import xmltodict
@@ -25,9 +29,11 @@ from moto.s3bucket_path.utils import (
 from .exceptions import (
     BucketAlreadyExists,
     DuplicateTagKeys,
+    InvalidContinuationToken,
     S3ClientError,
     MissingBucket,
     MissingKey,
+    MissingVersion,
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
@@ -456,6 +462,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 else:
                     delete_marker_list.append(version)
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
+
+            key_list.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
             return (
                 200,
                 {},
@@ -529,6 +537,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         template = self.response_template(S3_BUCKET_GET_RESPONSE_V2)
         bucket = self.backend.get_bucket(bucket_name)
 
+        continuation_token = querystring.get("continuation-token", [None])[0]
+        if continuation_token is not None and continuation_token == "":
+            raise InvalidContinuationToken()
+
         prefix = querystring.get("prefix", [None])[0]
         if prefix and isinstance(prefix, six.binary_type):
             prefix = prefix.decode("utf-8")
@@ -539,7 +551,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         fetch_owner = querystring.get("fetch-owner", [False])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
-        continuation_token = querystring.get("continuation-token", [None])[0]
         start_after = querystring.get("start-after", [None])[0]
 
         # sort the combination of folders and keys into lexicographical order
@@ -971,7 +982,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             status_code, response_headers, response_content = response
 
-        if status_code == 200 and "range" in request.headers:
+        if (
+            status_code == 200
+            and "range" in request.headers
+            and request.headers["range"] != ""
+        ):
             try:
                 return self._handle_range_header(
                     request, response_headers, response_content
@@ -1163,8 +1178,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
         key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
-        if key is None:
+        if key is None and version_id is None:
             raise MissingKey(key_name)
+        elif key is None:
+            raise MissingVersion(version_id)
 
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
@@ -1244,6 +1261,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 200, response_headers, response
 
         storage_class = request.headers.get("x-amz-storage-class", "STANDARD")
+        encryption = request.headers.get("x-amz-server-side-encryption", None)
+        kms_key_id = request.headers.get(
+            "x-amz-server-side-encryption-aws-kms-key-id", None
+        )
+        bucket_key_enabled = request.headers.get(
+            "x-amz-server-side-encryption-bucket-key-enabled", None
+        )
+        if bucket_key_enabled is not None:
+            bucket_key_enabled = str(bucket_key_enabled).lower()
+
         acl = self._acl_from_headers(request.headers)
         if acl is None:
             acl = self.backend.get_bucket(bucket_name).acl
@@ -1326,7 +1353,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # Initial data
             new_key = self.backend.set_object(
-                bucket_name, key_name, body, storage=storage_class
+                bucket_name,
+                key_name,
+                body,
+                storage=storage_class,
+                encryption=encryption,
+                kms_key_id=kms_key_id,
+                bucket_key_enabled=bucket_key_enabled,
             )
             request.streaming = True
             metadata = metadata_from_headers(request.headers)

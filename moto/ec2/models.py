@@ -108,6 +108,8 @@ from .exceptions import (
     InvalidParameterDependency,
     IncorrectStateIamProfileAssociationError,
     InvalidAssociationIDIamProfileAssociationError,
+    InvalidVpcEndPointIdError,
+    InvalidTaggableResourceType,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -226,7 +228,9 @@ class StateReason(object):
 
 class TaggedEC2Resource(BaseModel):
     def get_tags(self, *args, **kwargs):
-        tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
+        tags = []
+        if self.id:
+            tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
         return tags
 
     def add_tag(self, key, value):
@@ -245,7 +249,7 @@ class TaggedEC2Resource(BaseModel):
                 if tag["key"] == tagname:
                     return tag["value"]
 
-            return ""
+            return None
         elif filter_name == "tag-key":
             return [tag["key"] for tag in tags]
         elif filter_name == "tag-value":
@@ -996,6 +1000,11 @@ class InstanceBackend(object):
 
         return new_reservation
 
+    def run_instances(self):
+        # Logic resides in add_instances
+        # Fake method here to make implementation coverage script aware that this method is implemented
+        pass
+
     def start_instances(self, instance_ids):
         started_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
@@ -1519,10 +1528,26 @@ class AmiBackend(object):
             ami_id = ami["ami_id"]
             self.amis[ami_id] = Ami(self, **ami)
 
-    def create_image(self, instance_id, name=None, description=None, context=None):
+    def create_image(
+        self,
+        instance_id,
+        name=None,
+        description=None,
+        context=None,
+        tag_specifications=None,
+    ):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
+        tags = []
+        for tag_specification in tag_specifications:
+            resource_type = tag_specification["ResourceType"]
+            if resource_type == "image":
+                tags += tag_specification["Tag"]
+            elif resource_type == "snapshot":
+                raise NotImplementedError()
+            else:
+                raise InvalidTaggableResourceType(resource_type)
 
         ami = Ami(
             self,
@@ -1533,6 +1558,8 @@ class AmiBackend(object):
             description=description,
             owner_id=OWNER_ID,
         )
+        for tag in tags:
+            ami.add_tag(tag["Key"], tag["Value"])
         self.amis[ami_id] = ami
         return ami
 
@@ -2228,7 +2255,9 @@ class SecurityGroupBackend(object):
                 ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr["CidrIp"]):
+                if (type(cidr) is dict and not is_valid_cidr(cidr["CidrIp"])) or (
+                    type(cidr) is str and not is_valid_cidr(cidr)
+                ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2429,6 +2458,7 @@ class SecurityGroupIngress(CloudFormationModel):
         group_id = properties.get("GroupId")
         ip_protocol = properties.get("IpProtocol")
         cidr_ip = properties.get("CidrIp")
+        cidr_desc = properties.get("Description")
         cidr_ipv6 = properties.get("CidrIpv6")
         from_port = properties.get("FromPort")
         source_security_group_id = properties.get("SourceSecurityGroupId")
@@ -2455,7 +2485,7 @@ class SecurityGroupIngress(CloudFormationModel):
         else:
             source_security_group_names = None
         if cidr_ip:
-            ip_ranges = [cidr_ip]
+            ip_ranges = [{"CidrIp": cidr_ip, "Description": cidr_desc}]
         else:
             ip_ranges = []
 
@@ -3219,6 +3249,25 @@ class VPCBackend(object):
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
 
         return vpc_end_point
+
+    def get_vpc_end_point(self, vpc_end_point_ids, filters=None):
+        vpc_end_points = self.vpc_end_points.values()
+
+        if vpc_end_point_ids:
+            vpc_end_points = [
+                vpc_end_point
+                for vpc_end_point in vpc_end_points
+                if vpc_end_point.id in vpc_end_point_ids
+            ]
+            if len(vpc_end_points) != len(vpc_end_point_ids):
+                invalid_id = list(
+                    set(vpc_end_point_ids).difference(
+                        set([vpc_end_point.id for vpc_end_point in vpc_end_points])
+                    )
+                )[0]
+                raise InvalidVpcEndPointIdError(invalid_id)
+
+        return generic_filter(filters, vpc_end_points)
 
     def get_vpc_end_point_services(self):
         vpc_end_point_services = self.vpc_end_points.values()
@@ -5751,7 +5800,7 @@ class CustomerGatewayBackend(object):
 
 
 class NatGateway(CloudFormationModel):
-    def __init__(self, backend, subnet_id, allocation_id):
+    def __init__(self, backend, subnet_id, allocation_id, tags=[]):
         # public properties
         self.id = random_nat_gateway_id()
         self.subnet_id = subnet_id
@@ -5769,6 +5818,7 @@ class NatGateway(CloudFormationModel):
 
         # associate allocation with ENI
         self._backend.associate_address(eni=self._eni, allocation_id=self.allocation_id)
+        self.tags = tags
 
     @property
     def vpc_id(self):
@@ -5845,8 +5895,8 @@ class NatGatewayBackend(object):
 
         return nat_gateways
 
-    def create_nat_gateway(self, subnet_id, allocation_id):
-        nat_gateway = NatGateway(self, subnet_id, allocation_id)
+    def create_nat_gateway(self, subnet_id, allocation_id, tags=[]):
+        nat_gateway = NatGateway(self, subnet_id, allocation_id, tags)
         self.nat_gateways[nat_gateway.id] = nat_gateway
         return nat_gateway
 

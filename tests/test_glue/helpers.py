@@ -2,11 +2,22 @@ from __future__ import unicode_literals
 
 import copy
 
-from .fixtures.datacatalog import TABLE_INPUT, PARTITION_INPUT
+from .fixtures.datacatalog import TABLE_INPUT, PARTITION_INPUT, DATABASE_INPUT
 
 
-def create_database(client, database_name):
-    return client.create_database(DatabaseInput={"Name": database_name})
+def create_database_input(database_name):
+    database_input = copy.deepcopy(DATABASE_INPUT)
+    database_input["Name"] = database_name
+    database_input["LocationUri"] = "s3://my-bucket/{database_name}".format(
+        database_name=database_name
+    )
+    return database_input
+
+
+def create_database(client, database_name, database_input=None):
+    if database_input is None:
+        database_input = create_database_input(database_name)
+    return client.create_database(DatabaseInput=database_input)
 
 
 def get_database(client, database_name):

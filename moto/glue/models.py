@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import time
+from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
 from moto.compat import OrderedDict
@@ -20,11 +21,11 @@ class GlueBackend(BaseBackend):
     def __init__(self):
         self.databases = OrderedDict()
 
-    def create_database(self, database_name):
+    def create_database(self, database_name, database_input):
         if database_name in self.databases:
             raise DatabaseAlreadyExistsException()
 
-        database = FakeDatabase(database_name)
+        database = FakeDatabase(database_name, database_input)
         self.databases[database_name] = database
         return database
 
@@ -68,9 +69,25 @@ class GlueBackend(BaseBackend):
 
 
 class FakeDatabase(BaseModel):
-    def __init__(self, database_name):
+    def __init__(self, database_name, database_input):
         self.name = database_name
+        self.input = database_input
+        self.created_time = datetime.utcnow()
         self.tables = OrderedDict()
+
+    def as_dict(self):
+        return {
+            "Name": self.name,
+            "Description": self.input.get("Description"),
+            "LocationUri": self.input.get("LocationUri"),
+            "Parameters": self.input.get("Parameters"),
+            "CreateTime": self.created_time.isoformat(),
+            "CreateTableDefaultPermissions": self.input.get(
+                "CreateTableDefaultPermissions"
+            ),
+            "TargetDatabase": self.input.get("TargetDatabase"),
+            "CatalogId": self.input.get("CatalogId"),
+        }
 
 
 class FakeTable(BaseModel):

@@ -45,7 +45,7 @@ class CognitoIdentityBackend(BaseBackend):
         identity_pool = self.identity_pools.get(identity_pool_id, None)
 
         if not identity_pool:
-            raise ResourceNotFoundError(identity_pool)
+            raise ResourceNotFoundError(identity_pool_id)
 
         response = json.dumps(
             {

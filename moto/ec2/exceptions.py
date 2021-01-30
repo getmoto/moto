@@ -607,3 +607,21 @@ class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
             "InvalidAssociationID.NotFound",
             "An invalid association-id of '{0}' was given".format(association_id),
         )
+
+
+class InvalidVpcEndPointIdError(EC2ClientError):
+    def __init__(self, vpc_end_point_id):
+        super(InvalidVpcEndPointIdError, self).__init__(
+            "InvalidVpcEndPointId.NotFound",
+            "The VpcEndPoint ID '{0}' does not exist".format(vpc_end_point_id),
+        )
+
+
+class InvalidTaggableResourceType(EC2ClientError):
+    def __init__(self, resource_type):
+        super(InvalidTaggableResourceType, self).__init__(
+            "InvalidParameterValue",
+            "'{}' is not a valid taggable resource type for this operation.".format(
+                resource_type
+            ),
+        )

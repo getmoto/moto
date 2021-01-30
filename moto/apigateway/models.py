@@ -41,6 +41,7 @@ from .exceptions import (
     RestAPINotFound,
     ModelNotFound,
 )
+from ..core.models import responses_mock
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
@@ -565,7 +566,7 @@ class RestAPI(BaseModel):
         )
 
         for url in [stage_url_lower, stage_url_upper]:
-            responses._default_mock._matches.insert(
+            responses_mock._matches.insert(
                 0,
                 responses.CallbackResponse(
                     url=url,

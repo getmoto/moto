@@ -873,12 +873,12 @@ def test_list_versions():
     versions.should.have.length_of(2)
 
     versions[0].name.should.equal("the-key")
-    versions[0].version_id.should.equal(key_versions[0])
-    versions[0].get_contents_as_string().should.equal(b"Version 1")
+    versions[0].version_id.should.equal(key_versions[1])
+    versions[0].get_contents_as_string().should.equal(b"Version 2")
 
     versions[1].name.should.equal("the-key")
-    versions[1].version_id.should.equal(key_versions[1])
-    versions[1].get_contents_as_string().should.equal(b"Version 2")
+    versions[1].version_id.should.equal(key_versions[0])
+    versions[1].get_contents_as_string().should.equal(b"Version 1")
 
     key = Key(bucket, "the2-key")
     key.set_contents_from_string("Version 1")
@@ -1807,6 +1807,32 @@ def test_boto3_list_objects_v2_common_prefix_pagination():
             prefixes.extend(i["Prefix"] for i in resp["CommonPrefixes"])
 
     assert prefixes == [k[: k.rindex("/") + 1] for k in keys]
+
+
+@mock_s3
+def test_boto3_list_objects_v2_common_invalid_continuation_token():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    max_keys = 1
+    keys = ["test/{i}/{i}".format(i=i) for i in range(3)]
+    for key in keys:
+        s3.put_object(Bucket="mybucket", Key=key, Body=b"v")
+
+    args = {
+        "Bucket": "mybucket",
+        "Delimiter": "/",
+        "Prefix": "test/",
+        "MaxKeys": max_keys,
+        "ContinuationToken": "",
+    }
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        s3.list_objects_v2(**args)
+    exc.value.response["Error"]["Code"].should.equal("InvalidArgument")
+    exc.value.response["Error"]["Message"].should.equal(
+        "The continuation token provided is incorrect"
+    )
 
 
 @mock_s3
@@ -3674,6 +3700,10 @@ def test_boto3_list_object_versions():
     len(response["Versions"]).should.equal(2)
     keys = set([item["Key"] for item in response["Versions"]])
     keys.should.equal({key})
+
+    # the first item in the list should be the latest
+    response["Versions"][0]["IsLatest"].should.equal(True)
+
     # Test latest object version is returned
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response["Body"].read().should.equal(items[-1])
@@ -4911,3 +4941,61 @@ def test_request_partial_content_should_contain_actual_content_length():
         )
         e.response["Error"]["ActualObjectSize"].should.equal("9")
         e.response["Error"]["RangeRequested"].should.equal(requested_range)
+
+
+@mock_s3
+def test_get_unknown_version_should_throw_specific_error():
+    bucket_name = "my_bucket"
+    object_key = "hello.txt"
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = s3.create_bucket(Bucket=bucket_name)
+    bucket.Versioning().enable()
+    content = "some text"
+    s3.Object(bucket_name, object_key).put(Body=content)
+
+    with pytest.raises(ClientError) as e:
+        client.get_object(Bucket=bucket_name, Key=object_key, VersionId="unknown")
+    e.value.response["Error"]["Code"].should.equal("InvalidArgument")
+    e.value.response["Error"]["Message"].should.equal("Invalid version id specified")
+    e.value.response["Error"]["ArgumentName"].should.equal("versionId")
+    e.value.response["Error"]["ArgumentValue"].should.equal("unknown")
+
+
+@mock_s3
+def test_request_partial_content_without_specifying_range_should_return_full_object():
+    bucket = "bucket"
+    object_key = "key"
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=bucket)
+    s3.Object(bucket, object_key).put(Body="some text that goes a long way")
+
+    file = s3.Object(bucket, object_key)
+    response = file.get(Range="")
+    response["ContentLength"].should.equal(30)
+
+
+@mock_s3
+def test_object_headers():
+    bucket = "my-bucket"
+    s3 = boto3.client("s3")
+    s3.create_bucket(Bucket=bucket)
+
+    res = s3.put_object(
+        Bucket=bucket,
+        Body=b"test",
+        Key="file.txt",
+        ServerSideEncryption="aws:kms",
+        SSEKMSKeyId="test",
+        BucketKeyEnabled=True,
+    )
+    res.should.have.key("ETag")
+    res.should.have.key("ServerSideEncryption")
+    res.should.have.key("SSEKMSKeyId")
+    res.should.have.key("BucketKeyEnabled")
+
+    res = s3.get_object(Bucket=bucket, Key="file.txt")
+    res.should.have.key("ETag")
+    res.should.have.key("ServerSideEncryption")
+    res.should.have.key("SSEKMSKeyId")
+    res.should.have.key("BucketKeyEnabled")

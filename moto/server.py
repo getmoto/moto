@@ -4,6 +4,7 @@ import argparse
 import io
 import json
 import re
+import signal
 import sys
 from threading import Lock
 
@@ -245,6 +246,11 @@ def create_backend_app(service):
     return backend_app
 
 
+def signal_handler(signum, frame):
+    print("Received signal %d" % signum)
+    sys.exit(0)
+
+
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
 
@@ -283,6 +289,9 @@ def main(argv=sys.argv[1:]):
     )
 
     args = parser.parse_args(argv)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

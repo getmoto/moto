@@ -8,6 +8,7 @@ from boto3 import Session
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
 
 from moto.ec2 import ec2_backends
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
 def test_use_boto_regions():
@@ -32,35 +33,34 @@ def add_servers_to_region(ami_id, count, region):
 @mock_ec2_deprecated
 def test_add_servers_to_a_single_region():
     region = "ap-northeast-1"
-    add_servers_to_region("ami-1234abcd", 1, region)
-    add_servers_to_region("ami-5678efgh", 1, region)
+    add_servers_to_region(EXAMPLE_AMI_ID, 1, region)
+    add_servers_to_region(EXAMPLE_AMI_ID2, 1, region)
 
     conn = boto.ec2.connect_to_region(region)
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     len(reservations).should.equal(2)
-    reservations.sort(key=lambda x: x.instances[0].image_id)
 
-    reservations[0].instances[0].image_id.should.equal("ami-1234abcd")
-    reservations[1].instances[0].image_id.should.equal("ami-5678efgh")
+    image_ids = [r.instances[0].image_id for r in reservations]
+    image_ids.should.equal([EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2])
 
 
 @mock_ec2_deprecated
 def test_add_servers_to_multiple_regions():
     region1 = "us-east-1"
     region2 = "ap-northeast-1"
-    add_servers_to_region("ami-1234abcd", 1, region1)
-    add_servers_to_region("ami-5678efgh", 1, region2)
+    add_servers_to_region(EXAMPLE_AMI_ID, 1, region1)
+    add_servers_to_region(EXAMPLE_AMI_ID2, 1, region2)
 
     us_conn = boto.ec2.connect_to_region(region1)
     ap_conn = boto.ec2.connect_to_region(region2)
-    us_reservations = us_conn.get_all_instances()
-    ap_reservations = ap_conn.get_all_instances()
+    us_reservations = us_conn.get_all_reservations()
+    ap_reservations = ap_conn.get_all_reservations()
 
     len(us_reservations).should.equal(1)
     len(ap_reservations).should.equal(1)
 
-    us_reservations[0].instances[0].image_id.should.equal("ami-1234abcd")
-    ap_reservations[0].instances[0].image_id.should.equal("ami-5678efgh")
+    us_reservations[0].instances[0].image_id.should.equal(EXAMPLE_AMI_ID)
+    ap_reservations[0].instances[0].image_id.should.equal(EXAMPLE_AMI_ID2)
 
 
 @mock_autoscaling_deprecated
@@ -77,7 +77,7 @@ def test_create_autoscaling_group():
 
     us_conn = boto.ec2.autoscale.connect_to_region("us-east-1")
     config = boto.ec2.autoscale.LaunchConfiguration(
-        name="us_tester", image_id="ami-abcd1234", instance_type="m1.small"
+        name="us_tester", image_id=EXAMPLE_AMI_ID, instance_type="m1.small"
     )
     x = us_conn.create_launch_configuration(config)
 
@@ -104,7 +104,7 @@ def test_create_autoscaling_group():
 
     ap_conn = boto.ec2.autoscale.connect_to_region("ap-northeast-1")
     config = boto.ec2.autoscale.LaunchConfiguration(
-        name="ap_tester", image_id="ami-efgh5678", instance_type="m1.small"
+        name="ap_tester", image_id=EXAMPLE_AMI_ID, instance_type="m1.small"
     )
     ap_conn.create_launch_configuration(config)
 

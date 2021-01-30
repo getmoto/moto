@@ -8,6 +8,7 @@ from boto3 import Session
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.utilities.utils import random_string
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ClusterAlreadyExistsFaultError,
@@ -940,6 +941,25 @@ class RedshiftBackend(BaseBackend):
     def delete_tags(self, resource_name, tag_keys):
         resource = self._get_resource_from_arn(resource_name)
         resource.delete_tags(tag_keys)
+
+    def get_cluster_credentials(
+        self, cluster_identifier, db_user, auto_create, duration_seconds
+    ):
+        if duration_seconds < 900 or duration_seconds > 3600:
+            raise InvalidParameterValueError(
+                "Token duration must be between 900 and 3600 seconds"
+            )
+        expiration = datetime.datetime.now() + datetime.timedelta(0, duration_seconds)
+        if cluster_identifier in self.clusters:
+            user_prefix = "IAM:" if auto_create is False else "IAMA:"
+            db_user = user_prefix + db_user
+            return {
+                "DbUser": db_user,
+                "DbPassword": random_string(32),
+                "Expiration": expiration,
+            }
+        else:
+            raise ClusterNotFoundError(cluster_identifier)
 
 
 redshift_backends = {}
