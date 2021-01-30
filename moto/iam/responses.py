@@ -471,9 +471,9 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         path = self._get_param("Path")
         tags = self._get_multi_param("Tags.member")
-        user = iam_backend.create_user(user_name, path, tags)
+        user, user_tags = iam_backend.create_user(user_name, path, tags)
         template = self.response_template(USER_TEMPLATE)
-        return template.render(action="Create", user=user)
+        return template.render(action="Create", user=user, tags=user_tags["Tags"])
 
     def get_user(self):
         user_name = self._get_param("UserName")
@@ -572,7 +572,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         tags = iam_backend.list_user_tags(user_name)
         template = self.response_template(LIST_USER_TAGS_TEMPLATE)
-        return template.render(user_tags=tags or [])
+        return template.render(user_tags=tags["Tags"])
 
     def put_user_policy(self):
         user_name = self._get_param("UserName")
@@ -988,6 +988,15 @@ class IamResponse(BaseResponse):
 
         template = self.response_template(GET_ACCOUNT_SUMMARY_TEMPLATE)
         return template.render(summary_map=account_summary.summary_map)
+
+    def tag_user(self):
+        name = self._get_param("UserName")
+        tags = self._get_multi_param("Tags.member")
+
+        iam_backend.tag_user(name, tags)
+
+        template = self.response_template(TAG_USER_TEMPLATE)
+        return template.render()
 
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
@@ -1684,9 +1693,9 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
          <UserId>{{ user.id }}</UserId>
          <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
          <Arn>{{ user.arn }}</Arn>
-         {% if user.tags %}
+         {% if tags %}
          <Tags>
-            {% for tag in user.tags %}
+            {% for tag in tags %}
             <member>
                 <Key>{{ tag['Key'] }}</Key>
                 <Value>{{ tag['Value'] }}</Value>
@@ -2514,3 +2523,10 @@ GET_ACCOUNT_SUMMARY_TEMPLATE = """<GetAccountSummaryResponse xmlns="https://iam.
     <RequestId>85cb9b90-ac28-11e4-a88d-97964EXAMPLE</RequestId>
   </ResponseMetadata>
 </GetAccountSummaryResponse>"""
+
+
+TAG_USER_TEMPLATE = """<TagUserResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagUserResponse>"""

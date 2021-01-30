@@ -2924,7 +2924,7 @@ def test_list_user_tags():
         ],
     )
     response = conn.list_user_tags(UserName="kenny-bania")
-    response["Tags"].should.equal([])
+    response["Tags"].should.have.length_of(0)
     response["IsTruncated"].should_not.be.ok
 
     response = conn.list_user_tags(UserName="jackie-chiles")
@@ -4047,3 +4047,39 @@ def test_create_user_with_tags():
 
     resp = conn.create_user(UserName="test-create-user-no-tags")
     assert "Tags" not in resp["User"]
+
+
+@mock_iam
+def test_tag_user():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "test-user"
+    client.create_user(UserName=name)
+
+    # when
+    client.tag_user(
+        UserName=name,
+        Tags=[{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value-2"},],
+    )
+
+    # then
+
+
+@mock_iam
+def test_tag_user_error_unknown_user_name():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.tag_user(UserName=name, Tags=[{"Key": "key", "Value": "value"}])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("TagUser")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NoSuchEntity")
+    ex.response["Error"]["Message"].should.equal(
+        "The user with name {} cannot be found.".format(name)
+    )

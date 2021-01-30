@@ -45,6 +45,7 @@ from .utils import (
     random_resource_id,
     random_policy_id,
 )
+from ..utilities.tagging_service import TaggingService
 
 
 class MFADevice(object):
@@ -924,7 +925,7 @@ class Group(BaseModel):
 
 
 class User(CloudFormationModel):
-    def __init__(self, name, path=None, tags=None):
+    def __init__(self, name, path=None):
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
@@ -937,7 +938,6 @@ class User(CloudFormationModel):
         self.password = None
         self.password_reset_required = False
         self.signing_certificates = {}
-        self.tags = tags
 
     @property
     def arn(self):
@@ -1415,6 +1415,8 @@ class IAMBackend(BaseBackend):
         self.account_summary = AccountSummary(self)
         self.inline_policies = {}
         self.access_keys = {}
+
+        self.tagger = TaggingService()
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -1978,9 +1980,10 @@ class IAMBackend(BaseBackend):
                 "EntityAlreadyExists", "User {0} already exists".format(user_name)
             )
 
-        user = User(user_name, path, tags)
+        user = User(user_name, path)
+        self.tagger.tag_resource(user.arn, tags)
         self.users[user_name] = user
-        return user
+        return user, self.tagger.list_tags_for_resource(user.arn)
 
     def get_user(self, user_name):
         user = None
@@ -2147,7 +2150,7 @@ class IAMBackend(BaseBackend):
 
     def list_user_tags(self, user_name):
         user = self.get_user(user_name)
-        return user.tags
+        return self.tagger.list_tags_for_resource(user.arn)
 
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)
@@ -2573,6 +2576,14 @@ class IAMBackend(BaseBackend):
         inline_policy = self.get_inline_policy(policy_id)
         inline_policy.unapply_policy(self)
         del self.inline_policies[policy_id]
+
+    def tag_user(self, name, tags):
+        user = self.users.get(name)
+
+        if not user:
+            raise NoSuchEntity("The user with name {} cannot be found.".format(name))
+
+        self.tagger.tag_resource(user.arn, tags)
 
 
 iam_backend = IAMBackend()
