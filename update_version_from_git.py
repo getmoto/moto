@@ -78,21 +78,21 @@ def get_git_version_info() -> Tuple[Version, int, str]:
     return Version(ver), int(commits_since), githash
 
 
-def prerelease_version():
+def prerelease_version() -> Version:
     """return what the prerelease version should be.
     https://packaging.python.org/tutorials/distributing-packages/#pre-release-versioning
     0.0.2.dev22
     """
     ver, commits_since, githash = get_git_version_info()
     initpy_ver = get_version()
-
+    assert initpy_ver.dev == 0, "moto/__init__.py version should be like 0.0.2.dev"
     assert initpy_ver > ver, (
         "the moto/__init__.py version ({}) should be newer than the last tagged release ({})."
         .format(initpy_ver, ver)
     )
-    return "{initpy_ver}.{commits_since}".format(
-        initpy_ver=initpy_ver, commits_since=commits_since
-    )
+    # Parsing it converts `.dev` to `.dev0`, so skip the 0
+    dev_ver = Version(str(initpy_ver)[:-1] + str(commits_since))
+    return dev_ver
 
 
 def read(*parts):
@@ -134,9 +134,6 @@ def release_version_correct():
                 new_version=new_version
             )
         )
-        assert (
-            len(new_version.split(".")) >= 4
-        ), "moto/__init__.py version should be like 0.0.2.dev"
         migrate_version(initpy, new_version)
     else:
         assert False, "No non-master deployments yet"
