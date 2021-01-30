@@ -3,7 +3,6 @@ import boto3
 from moto import mock_applicationautoscaling, mock_ecs
 from moto.applicationautoscaling import models
 from moto.applicationautoscaling.exceptions import AWSValidationException
-from botocore.exceptions import ParamValidationError
 import pytest
 import sure  # noqa
 from botocore.exceptions import ClientError
@@ -19,27 +18,6 @@ DEFAULT_SCALABLE_DIMENSION = "ecs:service:DesiredCount"
 DEFAULT_MIN_CAPACITY = 1
 DEFAULT_MAX_CAPACITY = 1
 DEFAULT_ROLE_ARN = "test:arn"
-
-
-@mock_applicationautoscaling
-def test_describe_scalable_targets_no_params_should_raise_param_validation_errors():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    with pytest.raises(ParamValidationError):
-        client.describe_scalable_targets()
-
-
-@mock_applicationautoscaling
-def test_register_scalable_target_no_params_should_raise_param_validation_errors():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    with pytest.raises(ParamValidationError):
-        client.register_scalable_target()
-
-
-@mock_applicationautoscaling
-def test_register_scalable_target_with_none_service_namespace_should_raise_param_validation_errors():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    with pytest.raises(ParamValidationError):
-        register_scalable_target(client, ServiceNamespace=None)
 
 
 @mock_applicationautoscaling

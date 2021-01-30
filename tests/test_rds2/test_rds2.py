@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 import boto3
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
@@ -786,16 +786,8 @@ def test_modify_non_existent_option_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.modify_option_group.when.called_with(
         OptionGroupName="non-existent",
-        OptionsToInclude=[
-            (
-                "OptionName",
-                "Port",
-                "DBSecurityGroupMemberships",
-                "VpcSecurityGroupMemberships",
-                "OptionSettings",
-            )
-        ],
-    ).should.throw(ParamValidationError)
+        OptionsToInclude=[{"OptionName": "test-option"}],
+    ).should.throw(ClientError, "Specified OptionGroupName: non-existent not found.")
 
 
 @mock_rds2

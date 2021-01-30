@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import os
 import boto3
 import botocore
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 import pytest
 import sure  # noqa
 
@@ -1878,21 +1878,6 @@ def test_fixed_response_action_listener_rule_validates_status_code():
     )
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
-    missing_status_code_action = {
-        "Type": "fixed-response",
-        "FixedResponseConfig": {
-            "ContentType": "text/plain",
-            "MessageBody": "This page does not exist",
-        },
-    }
-    with pytest.raises(ParamValidationError):
-        conn.create_listener(
-            LoadBalancerArn=load_balancer_arn,
-            Protocol="HTTP",
-            Port=80,
-            DefaultActions=[missing_status_code_action],
-        )
-
     invalid_status_code_action = {
         "Type": "fixed-response",
         "FixedResponseConfig": {
@@ -1902,67 +1887,17 @@ def test_fixed_response_action_listener_rule_validates_status_code():
         },
     }
 
-    @mock_elbv2
-    @mock_ec2
-    def test_fixed_response_action_listener_rule_validates_status_code():
-        conn = boto3.client("elbv2", region_name="us-east-1")
-        ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-        security_group = ec2.create_security_group(
-            GroupName="a-security-group", Description="First One"
-        )
-        vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-        subnet1 = ec2.create_subnet(
-            VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-        )
-        subnet2 = ec2.create_subnet(
-            VpcId=vpc.id, CidrBlock="172.28.7.128/26", AvailabilityZone="us-east-1b"
+    with pytest.raises(ClientError) as invalid_status_code_exception:
+        conn.create_listener(
+            LoadBalancerArn=load_balancer_arn,
+            Protocol="HTTP",
+            Port=80,
+            DefaultActions=[invalid_status_code_action],
         )
 
-        response = conn.create_load_balancer(
-            Name="my-lb",
-            Subnets=[subnet1.id, subnet2.id],
-            SecurityGroups=[security_group.id],
-            Scheme="internal",
-            Tags=[{"Key": "key_name", "Value": "a_value"}],
-        )
-        load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
-
-        missing_status_code_action = {
-            "Type": "fixed-response",
-            "FixedResponseConfig": {
-                "ContentType": "text/plain",
-                "MessageBody": "This page does not exist",
-            },
-        }
-        with pytest.raises(ParamValidationError):
-            conn.create_listener(
-                LoadBalancerArn=load_balancer_arn,
-                Protocol="HTTP",
-                Port=80,
-                DefaultActions=[missing_status_code_action],
-            )
-
-        invalid_status_code_action = {
-            "Type": "fixed-response",
-            "FixedResponseConfig": {
-                "ContentType": "text/plain",
-                "MessageBody": "This page does not exist",
-                "StatusCode": "100",
-            },
-        }
-
-        with pytest.raises(ClientError) as invalid_status_code_exception:
-            conn.create_listener(
-                LoadBalancerArn=load_balancer_arn,
-                Protocol="HTTP",
-                Port=80,
-                DefaultActions=[invalid_status_code_action],
-            )
-
-        invalid_status_code_exception.value.response["Error"]["Code"].should.equal(
-            "ValidationError"
-        )
+    invalid_status_code_exception.value.response["Error"]["Code"].should.equal(
+        "ValidationError"
+    )
 
 
 @mock_elbv2

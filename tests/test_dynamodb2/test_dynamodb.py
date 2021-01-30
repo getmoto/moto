@@ -11,7 +11,7 @@ import sure  # noqa
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from tests.helpers import requires_boto_gte
 
 import moto.dynamodb2.comparisons
@@ -4156,35 +4156,6 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation_and_pro
     table.get_item(Key={"Id": "item-id"})["Item"].should.equal(
         {"Id": "item-id", "event_history": ["other_value", "some_value"]}
     )
-
-
-@mock_dynamodb2
-def test_update_catches_invalid_list_append_operation():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-
-    client.create_table(
-        AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
-        TableName="TestTable",
-        KeySchema=[{"AttributeName": "SHA256", "KeyType": "HASH"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    client.put_item(
-        TableName="TestTable",
-        Item={"SHA256": {"S": "sha-of-file"}, "crontab": {"L": [{"S": "bar1"}]}},
-    )
-
-    # Update item using invalid list_append expression
-    with pytest.raises(ParamValidationError) as ex:
-        client.update_item(
-            TableName="TestTable",
-            Key={"SHA256": {"S": "sha-of-file"}},
-            UpdateExpression="SET crontab = list_append(crontab, :i)",
-            ExpressionAttributeValues={":i": [{"S": "bar2"}]},
-        )
-
-    # Verify correct error is returned
-    str(ex.value).should.match("Parameter validation failed:")
-    str(ex.value).should.match("Invalid type for parameter ExpressionAttributeValues.")
 
 
 def _create_user_table():

@@ -395,7 +395,6 @@ def test_generate_data_key_decrypt():
         dict(KeySpec="AES_257"),
         dict(KeySpec="AES_128", NumberOfBytes=16),
         dict(NumberOfBytes=2048),
-        dict(NumberOfBytes=0),
         dict(),
     ],
 )
@@ -404,9 +403,7 @@ def test_generate_data_key_invalid_size_params(kwargs):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-size")
 
-    with pytest.raises(
-        (botocore.exceptions.ClientError, botocore.exceptions.ParamValidationError)
-    ) as err:
+    with pytest.raises(botocore.exceptions.ClientError):
         client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
 
 
@@ -538,13 +535,7 @@ def test_generate_random(number_of_bytes):
 
 @pytest.mark.parametrize(
     "number_of_bytes,error_type",
-    [
-        (2048, botocore.exceptions.ClientError),
-        (1025, botocore.exceptions.ClientError),
-        (0, botocore.exceptions.ParamValidationError),
-        (-1, botocore.exceptions.ParamValidationError),
-        (-1024, botocore.exceptions.ParamValidationError),
-    ],
+    [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError),],
 )
 @mock_kms
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):

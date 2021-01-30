@@ -10,7 +10,7 @@ import boto.vpc
 import pytest
 import sure  # noqa
 from boto.exception import EC2ResponseError
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_ec2_deprecated
 from tests import EXAMPLE_AMI_ID
 
@@ -201,11 +201,6 @@ def test_modify_subnet_attribute_validation():
     subnet = ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
     )
-
-    with pytest.raises(ParamValidationError):
-        client.modify_subnet_attribute(
-            SubnetId=subnet.id, MapPublicIpOnLaunch={"Value": "invalid"}
-        )
 
 
 @mock_ec2_deprecated
