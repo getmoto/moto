@@ -827,6 +827,8 @@ class SQSBackend(BaseBackend):
                 queue.pending_messages.add(message)
                 message.mark_received(visibility_timeout=visibility_timeout)
                 _filter_message_attributes(message, message_attribute_names)
+                if not self.is_message_valid_based_on_retenention_period(queue_name):
+                    break
                 result.append(message)
                 if len(result) >= count:
                     break
@@ -1003,6 +1005,12 @@ class SQSBackend(BaseBackend):
 
     def list_queue_tags(self, queue_name):
         return self.get_queue(queue_name)
+
+    def is_message_valid_based_on_retenention_period(self, queue_name):
+        message_attributes = self.get_queue_attributes(queue_name, [])
+        if message_attributes.get("MessageRetentionPeriod") + message_attributes.get("CreatedTimestamp") <= unix_time():
+            return False
+        return True
 
 
 sqs_backends = {}

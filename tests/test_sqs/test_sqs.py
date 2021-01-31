@@ -5,13 +5,11 @@ import base64
 import json
 import time
 import uuid
-import hashlib
 
 import boto
 import boto3
 import botocore.exceptions
 import six
-import sys
 import sure  # noqa
 from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
@@ -19,12 +17,6 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_sqs, mock_sqs_deprecated, mock_lambda, mock_logs, settings
 from unittest import SkipTest
-
-if sys.version_info[0] < 3:
-    import mock
-    from unittest import SkipTest
-else:
-    from unittest import SkipTest, mock
 import pytest
 from tests.helpers import requires_boto_gte
 from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
@@ -53,8 +45,6 @@ TEST_POLICY = """
   ]
 }
 """
-
-MOCK_DEDUPLICATION_TIME_IN_SECONDS = 5
 
 
 @mock_sqs
@@ -275,6 +265,37 @@ def test_message_send_with_attributes():
     msg.get("MD5OfMessageAttributes").should.equal("36655e7e9d7c0e8479fa3f3f42247ae7")
     msg.get("MessageId").should_not.contain(" \n")
 
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+@mock_sqs
+def test_message_retention_period():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah", Attributes={'MessageRetentionPeriod': '30'})
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    time.sleep(31)
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
 
@@ -2293,133 +2314,3 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
     ex.response["Error"]["Message"].should.contain(
         "{} bytes".format(message_size_limit)
     )
-
-
-@mock_sqs
-@pytest.mark.parametrize(
-    "msg_1, msg_2, dedupid_1, dedupid_2, expected_count",
-    [
-        ("msg1", "msg1", "1", "1", 1),
-        ("msg1", "msg1", "1", "2", 2),
-        ("msg1", "msg2", "1", "1", 1),
-        ("msg1", "msg2", "1", "2", 2),
-    ],
-)
-def test_fifo_queue_deduplication_with_id(
-    msg_1, msg_2, dedupid_1, dedupid_2, expected_count
-):
-
-    sqs = boto3.resource("sqs", region_name="us-east-1")
-    msg_queue = sqs.create_queue(
-        QueueName="test-queue-dlq.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-    )
-
-    msg_queue.send_message(
-        MessageBody=msg_1, MessageDeduplicationId=dedupid_1, MessageGroupId="1"
-    )
-    msg_queue.send_message(
-        MessageBody=msg_2, MessageDeduplicationId=dedupid_2, MessageGroupId="2"
-    )
-    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(expected_count)
-
-
-@mock_sqs
-@pytest.mark.parametrize(
-    "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2),],
-)
-def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
-
-    sqs = boto3.resource("sqs", region_name="us-east-1")
-    msg_queue = sqs.create_queue(
-        QueueName="test-queue-dlq.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-    )
-
-    msg_queue.send_message(MessageBody=msg_1, MessageGroupId="1")
-    msg_queue.send_message(MessageBody=msg_2, MessageGroupId="2")
-    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(expected_count)
-
-
-@mock.patch(
-    "moto.sqs.models.DEDUPLICATION_TIME_IN_SECONDS", MOCK_DEDUPLICATION_TIME_IN_SECONDS
-)
-@mock_sqs
-def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
-
-    sqs = boto3.resource("sqs", region_name="us-east-1")
-    msg_queue = sqs.create_queue(
-        QueueName="test-queue-dlq.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-    )
-
-    msg_queue.send_message(MessageBody="first", MessageGroupId="1")
-    time.sleep(MOCK_DEDUPLICATION_TIME_IN_SECONDS + 5)
-    msg_queue.send_message(MessageBody="first", MessageGroupId="2")
-    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(2)
-
-
-@mock_sqs
-def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
-
-    sqs = boto3.resource("sqs", region_name="us-east-1")
-    msg_queue = sqs.create_queue(
-        QueueName="test-queue-dlq.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-    )
-
-    msg_queue.send_message(MessageBody="first", MessageGroupId="1")
-
-    sha256 = hashlib.sha256()
-    sha256.update("first".encode("utf-8"))
-    deduplicationid = sha256.hexdigest()
-
-    msg_queue.send_message(
-        MessageBody="second", MessageGroupId="2", MessageDeduplicationId=deduplicationid
-    )
-    messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(1)
-
-
-@mock_sqs
-def test_fifo_send_message_when_same_group_id_is_in_dlq():
-
-    sqs = boto3.resource("sqs", region_name="us-east-1")
-    dlq = sqs.create_queue(
-        QueueName="test-queue-dlq.fifo", Attributes={"FifoQueue": "true"}
-    )
-
-    queue = sqs.get_queue_by_name(QueueName="test-queue-dlq.fifo")
-    dead_letter_queue_arn = queue.attributes.get("QueueArn")
-
-    msg_queue = sqs.create_queue(
-        QueueName="test-queue.fifo",
-        Attributes={
-            "FifoQueue": "true",
-            "RedrivePolicy": json.dumps(
-                {"deadLetterTargetArn": dead_letter_queue_arn, "maxReceiveCount": 1},
-            ),
-            "VisibilityTimeout": "1",
-        },
-    )
-
-    msg_queue.send_message(MessageBody="first", MessageGroupId="1")
-    messages = msg_queue.receive_messages()
-    messages.should.have.length_of(1)
-
-    time.sleep(1.1)
-
-    messages = msg_queue.receive_messages()
-    messages.should.have.length_of(0)
-
-    messages = dlq.receive_messages()
-    messages.should.have.length_of(1)
-
-    msg_queue.send_message(MessageBody="second", MessageGroupId="1")
-    messages = msg_queue.receive_messages()
-    messages.should.have.length_of(1)
