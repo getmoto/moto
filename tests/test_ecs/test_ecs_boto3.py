@@ -891,6 +891,53 @@ def test_delete_service():
 
 
 @mock_ecs
+def test_delete_service_force():
+    client = boto3.client("ecs", region_name="us-east-1")
+    _ = client.create_cluster(clusterName="test_ecs_cluster")
+    _ = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    _ = client.create_service(
+        cluster="test_ecs_cluster",
+        serviceName="test_ecs_service",
+        taskDefinition="test_ecs_task",
+        desiredCount=2,
+    )
+    response = client.delete_service(
+        cluster="test_ecs_cluster", service="test_ecs_service", force=True
+    )
+    response["service"]["clusterArn"].should.equal(
+        "arn:aws:ecs:us-east-1:012345678910:cluster/test_ecs_cluster"
+    )
+    len(response["service"]["events"]).should.equal(0)
+    len(response["service"]["loadBalancers"]).should.equal(0)
+    response["service"]["pendingCount"].should.equal(0)
+    response["service"]["runningCount"].should.equal(0)
+    response["service"]["serviceArn"].should.equal(
+        "arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service"
+    )
+    response["service"]["serviceName"].should.equal("test_ecs_service")
+    response["service"]["status"].should.equal("ACTIVE")
+    response["service"]["schedulingStrategy"].should.equal("REPLICA")
+    response["service"]["taskDefinition"].should.equal(
+        "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1"
+    )
+
+
+@mock_ecs
 def test_delete_service_exceptions():
     client = boto3.client("ecs", region_name="us-east-1")
 

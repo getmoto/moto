@@ -226,7 +226,8 @@ class EC2ContainerServiceResponse(BaseResponse):
     def delete_service(self):
         service_name = self._get_param("service")
         cluster_name = self._get_param("cluster", "default")
-        service = self.ecs_backend.delete_service(cluster_name, service_name)
+        force = self._get_param("force", False)
+        service = self.ecs_backend.delete_service(cluster_name, service_name, force)
         return json.dumps({"service": service.response_object})
 
     def register_container_instance(self):

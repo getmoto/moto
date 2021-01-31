@@ -1147,14 +1147,14 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise ServiceNotFoundException
 
-    def delete_service(self, cluster_name, service_name):
+    def delete_service(self, cluster_name, service_name, force):
         cluster_service_pair = "{0}:{1}".format(cluster_name, service_name)
         if cluster_name not in self.clusters:
             raise ClusterNotFoundException
 
         if cluster_service_pair in self.services:
             service = self.services[cluster_service_pair]
-            if service.desired_count > 0:
+            if service.desired_count > 0 and not force:
                 raise InvalidParameterException(
                     "The service cannot be stopped while it is scaled above 0."
                 )
