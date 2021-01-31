@@ -254,6 +254,7 @@ def test_multipart_etag():
     # we should get both parts as the key contents
     bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
 
+
 @mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_version():
@@ -269,6 +270,7 @@ def test_multipart_version():
     multipart.upload_part_from_file(BytesIO(part2), 2)
     resp = multipart.complete_upload()
     resp.version_id.should_not.be.none
+
 
 @mock_s3_deprecated
 @reduced_min_part_size
