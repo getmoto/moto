@@ -4822,29 +4822,6 @@ def test_encryption():
 
 
 @mock_s3
-def test_presigned_url_restrict_parameters():
-    # Only specific params can be set
-    # Ensure error is thrown when adding custom metadata this way
-    bucket = str(uuid.uuid4())
-    key = "file.txt"
-    conn = boto3.resource("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket=bucket)
-    s3 = boto3.client("s3", region_name="us-east-1")
-
-    # Create a pre-signed url with some metadata.
-    with pytest.raises(botocore.exceptions.ParamValidationError) as err:
-        s3.generate_presigned_url(
-            ClientMethod="put_object",
-            Params={"Bucket": bucket, "Key": key, "Unknown": "metadata"},
-        )
-    assert str(err.value).should.match(
-        r'Parameter validation failed:\nUnknown parameter in input: "Unknown", must be one of:.*'
-    )
-
-    s3.delete_bucket(Bucket=bucket)
-
-
-@mock_s3
 def test_presigned_put_url_with_approved_headers():
     bucket = str(uuid.uuid4())
     key = "file.txt"

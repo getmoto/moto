@@ -218,6 +218,7 @@ def test_things():
     thing_type = client.create_thing_type(thingTypeName=type_name)
     thing_type.should.have.key("thingTypeName").which.should.equal(type_name)
     thing_type.should.have.key("thingTypeArn")
+    thing_type["thingTypeArn"].should.contain(type_name)
 
     res = client.list_thing_types()
     res.should.have.key("thingTypes").which.should.have.length_of(1)
@@ -228,6 +229,8 @@ def test_things():
     thing_type.should.have.key("thingTypeName").which.should.equal(type_name)
     thing_type.should.have.key("thingTypeProperties")
     thing_type.should.have.key("thingTypeMetadata")
+    thing_type.should.have.key("thingTypeArn")
+    thing_type["thingTypeArn"].should.contain(type_name)
 
     # thing
     thing = client.create_thing(thingName=name, thingTypeName=type_name)
@@ -1285,6 +1288,7 @@ def test_thing_groups():
     thing_group = client.create_thing_group(thingGroupName=group_name)
     thing_group.should.have.key("thingGroupName").which.should.equal(group_name)
     thing_group.should.have.key("thingGroupArn")
+    thing_group["thingGroupArn"].should.contain(group_name)
 
     res = client.list_thing_groups()
     res.should.have.key("thingGroups").which.should.have.length_of(1)
@@ -1297,6 +1301,8 @@ def test_thing_groups():
     thing_group.should.have.key("thingGroupProperties")
     thing_group.should.have.key("thingGroupMetadata")
     thing_group.should.have.key("version")
+    thing_group.should.have.key("thingGroupArn")
+    thing_group["thingGroupArn"].should.contain(group_name)
 
     # delete thing group
     client.delete_thing_group(thingGroupName=group_name)

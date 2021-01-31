@@ -67,6 +67,7 @@ class FakeThingType(BaseModel):
             "thingTypeId": self.thing_type_id,
             "thingTypeProperties": self.thing_type_properties,
             "thingTypeMetadata": self.metadata,
+            "thingTypeArn": self.arn,
         }
 
 
@@ -125,6 +126,7 @@ class FakeThingGroup(BaseModel):
             "version": self.version,
             "thingGroupProperties": self.thing_group_properties,
             "thingGroupMetadata": self.metadata,
+            "thingGroupArn": self.arn,
         }
 
 
