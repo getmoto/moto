@@ -4056,7 +4056,10 @@ def test_tag_user():
     # given
     client = boto3.client("iam", region_name="eu-central-1")
     name = "test-user"
-    tags = [{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value-2"}]
+    tags = sorted(
+        [{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value-2"}],
+        key=lambda item: item["Key"],
+    )
     client.create_user(UserName=name)
 
     # when
@@ -4064,7 +4067,7 @@ def test_tag_user():
 
     # then
     response = client.list_user_tags(UserName=name)
-    response["Tags"].should.equal(tags)
+    sorted(response["Tags"], key=lambda item: item["Key"],).should.equal(tags)
 
 
 @mock_iam
