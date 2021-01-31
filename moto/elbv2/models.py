@@ -7,7 +7,11 @@ from botocore.exceptions import ParamValidationError
 from moto.compat import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
+from moto.core.utils import (
+    camelcase_to_underscores,
+    underscores_to_camelcase,
+    iso_8601_datetime_with_milliseconds,
+)
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
 from .utils import make_arn_for_target_group
@@ -380,7 +384,7 @@ class FakeLoadBalancer(CloudFormationModel):
         scheme="internet-facing",
     ):
         self.name = name
-        self.created_time = datetime.datetime.now()
+        self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
         self.scheme = scheme
         self.security_groups = security_groups
         self.subnets = subnets or []

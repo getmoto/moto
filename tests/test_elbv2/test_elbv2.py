@@ -51,6 +51,7 @@ def test_create_load_balancer():
             {"SubnetId": subnet2.id, "ZoneName": "us-east-1b"},
         ]
     )
+    lb.get("CreatedTime").tzinfo.should_not.be.none
 
     # Ensure the tags persisted
     response = conn.describe_tags(ResourceArns=[lb.get("LoadBalancerArn")])
