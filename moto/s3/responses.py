@@ -1753,8 +1753,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             headers = {}
             if key.version_id:
                 headers["x-amz-version-id"] = key.version_id
-            return 200, headers, template.render(
-                bucket_name=bucket_name, key_name=key.name, etag=key.etag
+            return (
+                200,
+                headers,
+                template.render(
+                    bucket_name=bucket_name, key_name=key.name, etag=key.etag
+                ),
             )
         elif "restore" in query:
             es = minidom.parseString(body).getElementsByTagName("Days")
