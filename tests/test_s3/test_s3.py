@@ -254,6 +254,21 @@ def test_multipart_etag():
     # we should get both parts as the key contents
     bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
 
+@mock_s3_deprecated
+@reduced_min_part_size
+def test_multipart_version():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3("the_key", "the_secret")
+    bucket = conn.create_bucket("mybucket")
+    bucket.configure_versioning(versioning=True)
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b"0" * REDUCED_PART_SIZE
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    # last part, can be less than 5 MB
+    part2 = b"1"
+    multipart.upload_part_from_file(BytesIO(part2), 2)
+    resp = multipart.complete_upload()
+    resp.version_id.should_not.be.none
 
 @mock_s3_deprecated
 @reduced_min_part_size

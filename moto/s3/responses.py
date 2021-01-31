@@ -1750,7 +1750,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             upload_id = query["uploadId"][0]
             key = self.backend.complete_multipart(bucket_name, upload_id, body)
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
-            return template.render(
+            headers = {}
+            if key.version_id:
+                headers["x-amz-version-id"] = key.version_id
+            return 200, headers, template.render(
                 bucket_name=bucket_name, key_name=key.name, etag=key.etag
             )
         elif "restore" in query:
@@ -2191,6 +2194,9 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <Location>http://{{ bucket_name }}.s3.amazonaws.com/{{ key_name }}</Location>
   <Bucket>{{ bucket_name }}</Bucket>
   <Key>{{ key_name }}</Key>
+  {% if version_id %}
+    <VersionId>{{ version_id }}</VersionId>
+  {% endif %}
   <ETag>{{ etag }}</ETag>
 </CompleteMultipartUploadResult>
 """
