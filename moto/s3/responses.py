@@ -2194,9 +2194,6 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <Location>http://{{ bucket_name }}.s3.amazonaws.com/{{ key_name }}</Location>
   <Bucket>{{ bucket_name }}</Bucket>
   <Key>{{ key_name }}</Key>
-  {% if version_id %}
-    <VersionId>{{ version_id }}</VersionId>
-  {% endif %}
   <ETag>{{ etag }}</ETag>
 </CompleteMultipartUploadResult>
 """
