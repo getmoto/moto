@@ -11,7 +11,7 @@ import re
 import sure  # noqa
 
 import boto3
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 
 from moto import mock_ecr
@@ -719,26 +719,6 @@ def test_batch_get_image_that_doesnt_exist():
     response["failures"][0]["failureReason"].should.equal("Requested image not found")
     response["failures"][0]["failureCode"].should.equal("ImageNotFound")
     response["failures"][0]["imageId"]["imageTag"].should.equal("v5")
-
-
-@mock_ecr
-def test_batch_get_image_no_tags():
-    client = boto3.client("ecr", region_name="us-east-1")
-    _ = client.create_repository(repositoryName="test_repository")
-
-    _ = client.put_image(
-        repositoryName="test_repository",
-        imageManifest=json.dumps(_create_image_manifest()),
-        imageTag="latest",
-    )
-
-    error_msg = re.compile(
-        r".*Missing required parameter in input: \"imageIds\".*", re.MULTILINE
-    )
-
-    client.batch_get_image.when.called_with(
-        repositoryName="test_repository"
-    ).should.throw(ParamValidationError, error_msg)
 
 
 @mock_ecr

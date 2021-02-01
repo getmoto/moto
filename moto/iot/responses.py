@@ -425,8 +425,19 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
         return json.dumps(dict())
 
+    def dispatch_attached_policies(self, request, full_url, headers):
+        # This endpoint requires specialized handling because it has
+        # a uri parameter containing forward slashes that is not
+        # correctly url encoded when we're running in server mode.
+        # https://github.com/pallets/flask/issues/900
+        self.setup_class(request, full_url, headers)
+        self.querystring["Action"] = ["ListAttachedPolicies"]
+        target = self.path.partition("/attached-policies/")[-1]
+        self.querystring["target"] = [unquote(target)] if "%" in target else [target]
+        return self.call_action()
+
     def list_attached_policies(self):
-        principal = unquote(self._get_param("target"))
+        principal = self._get_param("target")
         # marker = self._get_param("marker")
         # page_size = self._get_int_param("pageSize")
         policies = self.iot_backend.list_attached_policies(target=principal)

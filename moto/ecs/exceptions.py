@@ -45,7 +45,7 @@ class ClusterNotFoundException(JsonRESTError):
 
     def __init__(self):
         super(ClusterNotFoundException, self).__init__(
-            error_type="ClientException", message="Cluster not found",
+            error_type="ClusterNotFoundException", message="Cluster not found.",
         )
 
 

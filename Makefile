@@ -1,13 +1,10 @@
 SHELL := /bin/bash
 
 ifeq ($(TEST_SERVER_MODE), true)
-	# exclude test_iot and test_iotdata for now
-	# because authentication of iot is very complicated
-
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
 
-	TEST_EXCLUDE :=  -k 'not (test_iot or test_kinesisvideoarchivedmedia)'
+	TEST_EXCLUDE :=  -k 'not test_kinesisvideoarchivedmedia'
 else
 	TEST_EXCLUDE :=
 endif

@@ -9,7 +9,7 @@ from random import random, randint
 import pytz
 from boto3 import Session
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
 from moto.ec2 import ec2_backends
@@ -49,8 +49,8 @@ class BaseObject(BaseModel):
 class Cluster(BaseObject, CloudFormationModel):
     def __init__(self, cluster_name, region_name):
         self.active_services_count = 0
-        self.arn = "arn:aws:ecs:{0}:012345678910:cluster/{1}".format(
-            region_name, cluster_name
+        self.arn = "arn:aws:ecs:{0}:{1}:cluster/{2}".format(
+            region_name, ACCOUNT_ID, cluster_name
         )
         self.name = cluster_name
         self.pending_tasks_count = 0
@@ -132,8 +132,8 @@ class TaskDefinition(BaseObject, CloudFormationModel):
     ):
         self.family = family
         self.revision = revision
-        self.arn = "arn:aws:ecs:{0}:012345678910:task-definition/{1}:{2}".format(
-            region_name, family, revision
+        self.arn = "arn:aws:ecs:{0}:{1}:task-definition/{2}:{3}".format(
+            region_name, ACCOUNT_ID, family, revision
         )
 
         default_container_definition = {
@@ -266,8 +266,8 @@ class Task(BaseObject):
         started_by="",
     ):
         self.cluster_arn = cluster.arn
-        self.task_arn = "arn:aws:ecs:{0}:012345678910:task/{1}".format(
-            cluster.region_name, str(uuid.uuid4())
+        self.task_arn = "arn:aws:ecs:{0}:{1}:task/{2}".format(
+            cluster.region_name, ACCOUNT_ID, str(uuid.uuid4())
         )
         self.container_instance_arn = container_instance_arn
         self.last_status = "RUNNING"
@@ -299,8 +299,8 @@ class Service(BaseObject, CloudFormationModel):
         launch_type=None,
     ):
         self.cluster_arn = cluster.arn
-        self.arn = "arn:aws:ecs:{0}:012345678910:service/{1}".format(
-            cluster.region_name, service_name
+        self.arn = "arn:aws:ecs:{0}:{1}:service/{2}".format(
+            cluster.region_name, ACCOUNT_ID, service_name
         )
         self.name = service_name
         self.status = "ACTIVE"
@@ -476,8 +476,8 @@ class ContainerInstance(BaseObject):
                 "type": "STRINGSET",
             },
         ]
-        self.container_instance_arn = "arn:aws:ecs:{0}:012345678910:container-instance/{1}".format(
-            region_name, str(uuid.uuid4())
+        self.container_instance_arn = "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
+            region_name, ACCOUNT_ID, str(uuid.uuid4())
         )
         self.pending_tasks_count = 0
         self.remaining_resources = [
@@ -553,8 +553,8 @@ class ContainerInstance(BaseObject):
 class ClusterFailure(BaseObject):
     def __init__(self, reason, cluster_name, region_name):
         self.reason = reason
-        self.arn = "arn:aws:ecs:{0}:012345678910:cluster/{1}".format(
-            region_name, cluster_name
+        self.arn = "arn:aws:ecs:{0}:{1}:cluster/{2}".format(
+            region_name, ACCOUNT_ID, cluster_name
         )
 
     @property
@@ -568,8 +568,8 @@ class ClusterFailure(BaseObject):
 class ContainerInstanceFailure(BaseObject):
     def __init__(self, reason, container_instance_id, region_name):
         self.reason = reason
-        self.arn = "arn:aws:ecs:{0}:012345678910:container-instance/{1}".format(
-            region_name, container_instance_id
+        self.arn = "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
+            region_name, ACCOUNT_ID, container_instance_id
         )
 
     @property
@@ -623,8 +623,8 @@ class TaskSet(BaseObject):
 
         cluster_name = self.cluster.split("/")[-1]
         service_name = self.service.split("/")[-1]
-        self.task_set_arn = "arn:aws:ecs:{0}:012345678910:task-set/{1}/{2}/{3}".format(
-            region_name, cluster_name, service_name, self.id
+        self.task_set_arn = "arn:aws:ecs:{0}:{1}:task-set/{2}/{3}/{4}".format(
+            region_name, ACCOUNT_ID, cluster_name, service_name, self.id
         )
 
     @property
@@ -662,6 +662,16 @@ class EC2ContainerServiceBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def _get_cluster(self, name):
+        # short name or full ARN of the cluster
+        cluster_name = name.split("/")[-1]
+
+        cluster = self.clusters.get(cluster_name)
+        if not cluster:
+            raise ClusterNotFoundException
+
+        return cluster
 
     def describe_task_definition(self, task_definition_str):
         task_definition_name = task_definition_str.split("/")[-1]
@@ -709,11 +719,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         return list_clusters, failures
 
     def delete_cluster(self, cluster_str):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name in self.clusters:
-            return self.clusters.pop(cluster_name)
-        else:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
+
+        return self.clusters.pop(cluster.name)
 
     def register_task_definition(
         self,
@@ -783,24 +791,21 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise TaskDefinitionNotFoundException
 
     def run_task(self, cluster_str, task_definition_str, count, overrides, started_by):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name in self.clusters:
-            cluster = self.clusters[cluster_name]
-        else:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
+
         task_definition = self.describe_task_definition(task_definition_str)
-        if cluster_name not in self.tasks:
-            self.tasks[cluster_name] = {}
+        if cluster.name not in self.tasks:
+            self.tasks[cluster.name] = {}
         tasks = []
         container_instances = list(
-            self.container_instances.get(cluster_name, {}).keys()
+            self.container_instances.get(cluster.name, {}).keys()
         )
         if not container_instances:
-            raise Exception("No instances found in cluster {}".format(cluster_name))
+            raise Exception("No instances found in cluster {}".format(cluster.name))
         active_container_instances = [
             x
             for x in container_instances
-            if self.container_instances[cluster_name][x].status == "ACTIVE"
+            if self.container_instances[cluster.name][x].status == "ACTIVE"
         ]
         resource_requirements = self._calculate_task_resource_requirements(
             task_definition
@@ -808,7 +813,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         # TODO: return event about unable to place task if not able to place enough tasks to meet count
         placed_count = 0
         for container_instance in active_container_instances:
-            container_instance = self.container_instances[cluster_name][
+            container_instance = self.container_instances[cluster.name][
                 container_instance
             ]
             container_instance_arn = container_instance.container_instance_arn
@@ -830,7 +835,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         container_instance, resource_requirements
                     )
                     tasks.append(task)
-                    self.tasks[cluster_name][task.task_arn] = task
+                    self.tasks[cluster.name][task.task_arn] = task
                     placed_count += 1
                     if placed_count == count:
                         return tasks
@@ -914,14 +919,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         overrides,
         started_by,
     ):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name in self.clusters:
-            cluster = self.clusters[cluster_name]
-        else:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
+
         task_definition = self.describe_task_definition(task_definition_str)
-        if cluster_name not in self.tasks:
-            self.tasks[cluster_name] = {}
+        if cluster.name not in self.tasks:
+            self.tasks[cluster.name] = {}
         tasks = []
         if not container_instances:
             raise InvalidParameterException("Container Instances cannot be empty.")
@@ -931,7 +933,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             task_definition
         )
         for container_instance_id in container_instance_ids:
-            container_instance = self.container_instances[cluster_name][
+            container_instance = self.container_instances[cluster.name][
                 container_instance_id
             ]
             task = Task(
@@ -946,15 +948,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.update_container_instance_resources(
                 container_instance, resource_requirements
             )
-            self.tasks[cluster_name][task.task_arn] = task
+            self.tasks[cluster.name][task.task_arn] = task
         return tasks
 
     def describe_tasks(self, cluster_str, tasks):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name in self.clusters:
-            cluster = self.clusters[cluster_name]
-        else:
-            raise ClusterNotFoundException
+        self._get_cluster(cluster_str)
+
         if not tasks:
             raise InvalidParameterException("Tasks cannot be empty.")
         response = []
@@ -983,11 +982,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             for arn, task in tasks.items():
                 filtered_tasks.append(task)
         if cluster_str:
-            cluster_name = cluster_str.split("/")[-1]
-            if cluster_name not in self.clusters:
-                raise ClusterNotFoundException
+            cluster = self._get_cluster(cluster_str)
+
             filtered_tasks = list(
-                filter(lambda t: cluster_name in t.cluster_arn, filtered_tasks)
+                filter(lambda t: cluster.name in t.cluster_arn, filtered_tasks)
             )
 
         if container_instance:
@@ -1025,18 +1023,16 @@ class EC2ContainerServiceBackend(BaseBackend):
         return [t.task_arn for t in filtered_tasks]
 
     def stop_task(self, cluster_str, task_str, reason):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
 
         task_id = task_str.split("/")[-1]
-        tasks = self.tasks.get(cluster_name, None)
+        tasks = self.tasks.get(cluster.name, None)
         if not tasks:
-            raise Exception("Cluster {} has no registered tasks".format(cluster_name))
+            raise Exception("Cluster {} has no registered tasks".format(cluster.name))
         for task in tasks.keys():
             if task.endswith(task_id):
                 container_instance_arn = tasks[task].container_instance_arn
-                container_instance = self.container_instances[cluster_name][
+                container_instance = self.container_instances[cluster.name][
                     container_instance_arn.split("/")[-1]
                 ]
                 self.update_container_instance_resources(
@@ -1047,7 +1043,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 tasks[task].stopped_reason = reason
                 return tasks[task]
         raise Exception(
-            "Could not find task {} on cluster {}".format(task_str, cluster_name)
+            "Could not find task {} on cluster {}".format(task_str, cluster.name)
         )
 
     def create_service(
@@ -1062,11 +1058,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         deployment_controller=None,
         launch_type=None,
     ):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name in self.clusters:
-            cluster = self.clusters[cluster_name]
-        else:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
+
         if task_definition_str is not None:
             task_definition = self.describe_task_definition(task_definition_str)
         else:
@@ -1090,7 +1083,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             deployment_controller,
             launch_type,
         )
-        cluster_service_pair = "{0}:{1}".format(cluster_name, service_name)
+        cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
         self.services[cluster_service_pair] = service
 
         return service
@@ -1110,31 +1103,42 @@ class EC2ContainerServiceBackend(BaseBackend):
         return sorted(service_arns)
 
     def describe_services(self, cluster_str, service_names_or_arns):
-        cluster_name = cluster_str.split("/")[-1]
+        cluster = self._get_cluster(cluster_str)
+
         result = []
+        failures = []
         for existing_service_name, existing_service_obj in sorted(
             self.services.items()
         ):
             for requested_name_or_arn in service_names_or_arns:
                 cluster_service_pair = "{0}:{1}".format(
-                    cluster_name, requested_name_or_arn
+                    cluster.name, requested_name_or_arn
                 )
                 if (
                     cluster_service_pair == existing_service_name
                     or existing_service_obj.arn == requested_name_or_arn
                 ):
                     result.append(existing_service_obj)
+                else:
+                    service_name = requested_name_or_arn.split("/")[-1]
+                    failures.append(
+                        {
+                            "arn": "arn:aws:ecs:eu-central-1:{0}:service/{1}".format(
+                                ACCOUNT_ID, service_name
+                            ),
+                            "reason": "MISSING",
+                        }
+                    )
 
-        return result
+        return result, failures
 
     def update_service(
         self, cluster_str, service_str, task_definition_str, desired_count
     ):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
+
         service_name = service_str.split("/")[-1]
-        cluster_service_pair = "{0}:{1}".format(cluster_name, service_name)
+        cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
         if cluster_service_pair in self.services:
             if task_definition_str is not None:
                 self.describe_task_definition(task_definition_str)
@@ -1147,14 +1151,13 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise ServiceNotFoundException
 
-    def delete_service(self, cluster_name, service_name):
-        cluster_service_pair = "{0}:{1}".format(cluster_name, service_name)
-        if cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+    def delete_service(self, cluster_name, service_name, force):
+        cluster = self._get_cluster(cluster_name)
+        cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
 
         if cluster_service_pair in self.services:
             service = self.services[cluster_service_pair]
-            if service.desired_count > 0:
+            if service.desired_count > 0 and not force:
                 raise InvalidParameterException(
                     "The service cannot be stopped while it is scaled above 0."
                 )
@@ -1188,16 +1191,15 @@ class EC2ContainerServiceBackend(BaseBackend):
         return sorted(container_instances)
 
     def describe_container_instances(self, cluster_str, list_container_instance_ids):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
+
         if not list_container_instance_ids:
             raise InvalidParameterException("Container Instances cannot be empty.")
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
             container_instance_id = container_instance_id.split("/")[-1]
-            container_instance = self.container_instances[cluster_name].get(
+            container_instance = self.container_instances[cluster.name].get(
                 container_instance_id, None
             )
             if container_instance is not None:
@@ -1214,9 +1216,8 @@ class EC2ContainerServiceBackend(BaseBackend):
     def update_container_instances_state(
         self, cluster_str, list_container_instance_ids, status
     ):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_str)
+
         status = status.upper()
         if status not in ["ACTIVE", "DRAINING"]:
             raise InvalidParameterException(
@@ -1228,7 +1229,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             x.split("/")[-1] for x in list_container_instance_ids
         ]
         for container_instance_id in list_container_instance_ids:
-            container_instance = self.container_instances[cluster_name].get(
+            container_instance = self.container_instances[cluster.name].get(
                 container_instance_id, None
             )
             if container_instance is not None:
@@ -1267,12 +1268,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         container_instance.running_tasks_count += resource_multiplier * 1
 
     def deregister_container_instance(self, cluster_str, container_instance_str, force):
+        cluster = self._get_cluster(cluster_str)
+
         failures = []
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name not in self.clusters:
-            raise ClusterNotFoundException
         container_instance_id = container_instance_str.split("/")[-1]
-        container_instance = self.container_instances[cluster_name].get(
+        container_instance = self.container_instances[cluster.name].get(
             container_instance_id
         )
         if container_instance is None:
@@ -1287,26 +1287,24 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.container_instances["orphaned"][
                 container_instance_id
             ] = container_instance
-        del self.container_instances[cluster_name][container_instance_id]
+        del self.container_instances[cluster.name][container_instance_id]
         self._respond_to_cluster_state_update(cluster_str)
         return container_instance, failures
 
     def _respond_to_cluster_state_update(self, cluster_str):
-        cluster_name = cluster_str.split("/")[-1]
-        if cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+        self._get_cluster(cluster_str)
+
         pass
 
     def put_attributes(self, cluster_name, attributes=None):
-        if cluster_name is None or cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_name)
 
         if attributes is None:
             raise InvalidParameterException("attributes can not be empty")
 
         for attr in attributes:
             self._put_attribute(
-                cluster_name,
+                cluster.name,
                 attr["name"],
                 attr.get("value"),
                 attr.get("targetId"),
@@ -1385,8 +1383,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         return filter(lambda x: all(f(x) for f in filters), all_attrs)
 
     def delete_attributes(self, cluster_name, attributes=None):
-        if cluster_name is None or cluster_name not in self.clusters:
-            raise ClusterNotFoundException
+        cluster = self._get_cluster(cluster_name)
 
         if attributes is None:
             raise JsonRESTError(
@@ -1395,7 +1392,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         for attr in attributes:
             self._delete_attribute(
-                cluster_name,
+                cluster.name,
                 attr["name"],
                 attr.get("value"),
                 attr.get("targetId"),
@@ -1522,7 +1519,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     def create_task_set(
         self,
         service,
-        cluster,
+        cluster_str,
         task_definition,
         external_id=None,
         network_configuration=None,
@@ -1543,7 +1540,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         task_set = TaskSet(
             service,
-            cluster,
+            cluster_str,
             task_definition,
             self.region_name,
             external_id=external_id,
@@ -1558,16 +1555,14 @@ class EC2ContainerServiceBackend(BaseBackend):
             tags=tags,
         )
 
-        cluster_name = cluster.split("/")[-1]
         service_name = service.split("/")[-1]
 
-        service_obj = self.services.get("{0}:{1}".format(cluster_name, service_name))
+        cluster_obj = self._get_cluster(cluster_str)
+        service_obj = self.services.get(
+            "{0}:{1}".format(cluster_obj.name, service_name)
+        )
         if not service_obj:
             raise ServiceNotFoundException
-
-        cluster_obj = self.clusters.get(cluster_name)
-        if not cluster_obj:
-            raise ClusterNotFoundException
 
         task_set.task_definition = self.describe_task_definition(task_definition).arn
         task_set.service_arn = service_obj.arn
@@ -1578,21 +1573,18 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return task_set
 
-    def describe_task_sets(self, cluster, service, task_sets=None, include=None):
+    def describe_task_sets(self, cluster_str, service, task_sets=None, include=None):
         task_sets = task_sets or []
         include = include or []
 
-        cluster_name = cluster.split("/")[-1]
+        cluster_obj = self._get_cluster(cluster_str)
+
         service_name = service.split("/")[-1]
-        service_key = "{0}:{1}".format(cluster_name, service_name)
+        service_key = "{0}:{1}".format(cluster_obj.name, service_name)
 
         service_obj = self.services.get(service_key)
         if not service_obj:
             raise ServiceNotFoundException
-
-        cluster_obj = self.clusters.get(cluster_name)
-        if not cluster_obj:
-            raise ClusterNotFoundException
 
         task_set_results = []
         if task_sets:
@@ -1642,7 +1634,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             cluster_name, service_name, task_sets=[primary_task_set]
         )[0]
 
-        service_obj = self.describe_services(cluster, [service])[0]
+        services, _ = self.describe_services(cluster, [service])
+        service_obj = services[0]
         service_obj.load_balancers = task_set_obj.load_balancers
         service_obj.task_definition = task_set_obj.task_definition
 
