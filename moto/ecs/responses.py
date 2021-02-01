@@ -201,10 +201,12 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_services(self):
         cluster_str = self._get_param("cluster", "default")
         service_names = self._get_param("services")
-        services = self.ecs_backend.describe_services(cluster_str, service_names)
+        services, failures = self.ecs_backend.describe_services(
+            cluster_str, service_names
+        )
         resp = {
             "services": [service.response_object for service in services],
-            "failures": [],
+            "failures": failures,
         }
         if "TAGS" in self._get_param("include", []):
             for i, service in enumerate(services):
