@@ -415,10 +415,10 @@ def test_create_target_group_and_listeners():
     response.get("LoadBalancers").should.have.length_of(0)
 
     # And it deleted the remaining listener
-    response = conn.describe_listeners(
-        ListenerArns=[http_listener_arn, https_listener_arn]
-    )
-    response.get("Listeners").should.have.length_of(0)
+    with pytest.raises(ClientError):
+        conn.describe_listeners(
+            ListenerArns=[http_listener_arn, https_listener_arn]
+        )
 
     # But not the target groups
     response = conn.describe_target_groups()

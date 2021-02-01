@@ -827,9 +827,10 @@ Member must satisfy regular expression pattern: {}".format(
         for load_balancer in self.load_balancers.values():
             for listener_arn in listener_arns:
                 listener = load_balancer.listeners.get(listener_arn)
-                if not listener:
-                    raise ListenerNotFoundError()
-                matched.append(listener)
+                if listener:
+                    matched.append(listener)
+        if listener_arns and len(matched) == 0:
+            raise ListenerNotFoundError()
         return matched
 
     def delete_load_balancer(self, arn):
