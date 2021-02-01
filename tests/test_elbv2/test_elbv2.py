@@ -416,9 +416,7 @@ def test_create_target_group_and_listeners():
 
     # And it deleted the remaining listener
     with pytest.raises(ClientError):
-        conn.describe_listeners(
-            ListenerArns=[http_listener_arn, https_listener_arn]
-        )
+        conn.describe_listeners(ListenerArns=[http_listener_arn, https_listener_arn])
 
     # But not the target groups
     response = conn.describe_target_groups()
