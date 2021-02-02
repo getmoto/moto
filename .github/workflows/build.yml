@@ -115,10 +115,11 @@ jobs:
       run: |
         make test-coverage
     - name: "Upload coverage to Codecov"
-      if: ${{ matrix.python-version == 3.7 && github.repository == 'spulec/moto'}}
+      if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
+        flags: unittests,py{{ matrix.python-version }}
 
   testserver:
     name: Unit tests in Server Mode
@@ -161,6 +162,12 @@ jobs:
         TEST_SERVER_MODE: ${{ true }}
       run: |
         make test-only
+    - name: "Upload coverage to Codecov"
+      if: ${{ github.repository == 'spulec/moto'}}
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+        flags: servertests,py{{ matrix.python-version }}
 
   deploy:
     name: Deploy
