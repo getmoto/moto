@@ -257,6 +257,23 @@ def test_multipart_etag():
 
 @mock_s3_deprecated
 @reduced_min_part_size
+def test_multipart_version():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3("the_key", "the_secret")
+    bucket = conn.create_bucket("mybucket")
+    bucket.configure_versioning(versioning=True)
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b"0" * REDUCED_PART_SIZE
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    # last part, can be less than 5 MB
+    part2 = b"1"
+    multipart.upload_part_from_file(BytesIO(part2), 2)
+    resp = multipart.complete_upload()
+    resp.version_id.should_not.be.none
+
+
+@mock_s3_deprecated
+@reduced_min_part_size
 def test_multipart_invalid_order():
     # Create Bucket so that test can run
     conn = boto.connect_s3("the_key", "the_secret")
@@ -2567,6 +2584,54 @@ def test_boto3_multipart_etag():
     # we should get both parts as the key contents
     resp = s3.get_object(Bucket="mybucket", Key="the-key")
     resp["ETag"].should.equal(EXPECTED_ETAG)
+
+
+@mock_s3
+@reduced_min_part_size
+def test_boto3_multipart_version():
+    # Create Bucket so that test can run
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    s3.put_bucket_versioning(
+        Bucket="mybucket", VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    upload_id = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")["UploadId"]
+    part1 = b"0" * REDUCED_PART_SIZE
+    etags = []
+    etags.append(
+        s3.upload_part(
+            Bucket="mybucket",
+            Key="the-key",
+            PartNumber=1,
+            UploadId=upload_id,
+            Body=part1,
+        )["ETag"]
+    )
+    # last part, can be less than 5 MB
+    part2 = b"1"
+    etags.append(
+        s3.upload_part(
+            Bucket="mybucket",
+            Key="the-key",
+            PartNumber=2,
+            UploadId=upload_id,
+            Body=part2,
+        )["ETag"]
+    )
+    response = s3.complete_multipart_upload(
+        Bucket="mybucket",
+        Key="the-key",
+        UploadId=upload_id,
+        MultipartUpload={
+            "Parts": [
+                {"ETag": etag, "PartNumber": i} for i, etag in enumerate(etags, 1)
+            ]
+        },
+    )
+
+    response["VersionId"].should.should_not.be.none
 
 
 @mock_s3
