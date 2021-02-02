@@ -5,7 +5,7 @@ import datetime
 import sys
 import os
 from boto3 import Session
-from six.moves.urllib.request import urlopen
+from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.parse import urlparse, parse_qs
 from functools import wraps
@@ -5045,3 +5045,22 @@ def test_object_headers():
     res.should.have.key("ServerSideEncryption")
     res.should.have.key("SSEKMSKeyId")
     res.should.have.key("BucketKeyEnabled")
+
+
+if settings.TEST_SERVER_MODE:
+
+    @mock_s3
+    def test_upload_data_without_content_type():
+        bucket = "mybucket"
+        s3 = boto3.client("s3")
+        s3.create_bucket(Bucket=bucket)
+        data_input = b"some data 123 321"
+        req = Request(
+            url="http://localhost:5000/mybucket/test.txt", data=data_input, method="PUT"
+        )
+
+        with urlopen(req) as f:
+            assert f.status == 200  # PASSED
+        res = s3.get_object(Bucket=bucket, Key="test.txt")
+        data = res["Body"].read()
+        assert data == data_input
