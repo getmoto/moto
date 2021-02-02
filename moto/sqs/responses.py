@@ -4,10 +4,12 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amz_crc32, amzn_request_id
+from moto.utilities.utils import uri_validator
 from six.moves.urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
+    InvalidAddress,
     InvalidAttributeName,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
@@ -44,11 +46,14 @@ class SQSResponse(BaseResponse):
 
     def _get_queue_name(self):
         try:
-            queue_name = self.querystring.get("QueueUrl")[0].split("/")[-1]
+            queue_url = self.querystring.get("QueueUrl")[0]
         except TypeError:
             # Fallback to reading from the URL
-            queue_name = self.path.split("/")[-1]
-        return queue_name
+            queue_url = self.path
+        if uri_validator(queue_url):
+            return queue_url.split("/")[-1]
+        else:
+            raise InvalidAddress(queue_url)
 
     def _get_validated_visibility_timeout(self, timeout=None):
         """

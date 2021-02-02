@@ -2423,3 +2423,25 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
     msg_queue.send_message(MessageBody="second", MessageGroupId="1")
     messages = msg_queue.receive_messages()
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_receive_message_should_not_accept_invalid_urls():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    name = "test-queue"
+    q_response = conn.create_queue(QueueName=name)
+    working_url = q_response["QueueUrl"]  # https://queue.amazonaws.com/486285699788/test-queue
+
+    queue = sqs.Queue(name)
+    with pytest.raises(ClientError) as e:
+        queue.send_message(MessageBody="this is a test message")
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidAddress")
+    err["Message"].should.equal("The address test-queue is not valid for this endpoint.")
+
+    with pytest.raises(ClientError) as e:
+        conn.receive_message(QueueUrl=name)
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidAddress")
+    err["Message"].should.equal("The address test-queue is not valid for this endpoint.")
