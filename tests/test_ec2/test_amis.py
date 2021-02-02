@@ -6,7 +6,6 @@ import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 import sure  # noqa
 

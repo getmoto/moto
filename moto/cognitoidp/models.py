@@ -699,28 +699,7 @@ class CognitoIdpBackend(BaseBackend):
         if not client:
             raise ResourceNotFoundError(client_id)
 
-        if auth_flow == "ADMIN_NO_SRP_AUTH":
-            username = auth_parameters.get("USERNAME")
-            password = auth_parameters.get("PASSWORD")
-            user = user_pool.users.get(username)
-            if not user:
-                raise UserNotFoundError(username)
-
-            if user.password != password:
-                raise NotAuthorizedError(username)
-
-            if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
-                session = str(uuid.uuid4())
-                self.sessions[session] = user_pool
-
-                return {
-                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
-                    "ChallengeParameters": {},
-                    "Session": session,
-                }
-
-            return self._log_user_in(user_pool, client, username)
-        elif auth_flow == "ADMIN_USER_PASSWORD_AUTH":
+        if auth_flow in ("ADMIN_USER_PASSWORD_AUTH", "ADMIN_NO_SRP_AUTH"):
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
             user = user_pool.users.get(username)
