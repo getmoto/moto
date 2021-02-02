@@ -33,7 +33,7 @@ test-coverage:
 test: lint test-only
 
 test_server:
-	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report html ./tests/
+	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report xml ./tests/
 
 aws_managed_policies:
 	scripts/update_managed_policies.py
