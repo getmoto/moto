@@ -1837,9 +1837,9 @@ def test_api_key_value_min_length():
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_api_key(**payload)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateApiKey")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("BadRequestException")
@@ -1935,7 +1935,7 @@ def test_create_api_headers():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    apikey_value = "12345"
+    apikey_value = "01234567890123456789"
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
