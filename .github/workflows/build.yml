@@ -105,24 +105,20 @@ jobs:
         pip install -r requirements-dev.txt
         pip install pytest-cov
     - name: Test with pytest
-      if: ${{ matrix.python-version != 3.7 }}
+      if: ${{ matrix.python-version == 2.7 }}
       run: |
         make test-only
-    # Only need to configure coverage once
     # Pytest-cov explicitly fails in Py2 for XRay tests
     - name: Test with pytest/coverage
-      if: ${{ matrix.python-version == 3.7 }}
+      if: ${{ matrix.python-version != 2.7 }}
       run: |
         make test-coverage
-    - name: Add version to env
-      run: |
-        echo "version={{ matrix.python-version }}" >> $GITHUB_ENV
     - name: "Upload coverage to Codecov"
-      if: ${{ github.repository == 'spulec/moto'}}
+      if: ${{ matrix.python-version != 2.7 && github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
-        flags: unittests,py{{ env.version }}
+        flags: unittests
 
   testserver:
     name: Unit tests in Server Mode
@@ -161,19 +157,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
     - name: Test ServerMode
+      if: ${{ matrix.python-version == 2.7 }}
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
         make test-only
-    - name: Add version to env
+    - name: Test ServerMode/Coverage
+      if: ${{ matrix.python-version != 2.7 }}
+      env:
+        TEST_SERVER_MODE: ${{ true }}
       run: |
-        echo "version={{ matrix.python-version }}" >> $GITHUB_ENV
+        make test-coverage
     - name: "Upload coverage to Codecov"
-      if: ${{ github.repository == 'spulec/moto'}}
+      if: ${{ matrix.python-version != 2.7 && github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
-        flags: servertests,py{{ env.version }}
+        flags: servertests
 
   deploy:
     name: Deploy
