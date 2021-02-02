@@ -46,6 +46,14 @@ def test_describe_model():
 
 
 @mock_sagemaker
+def test_describe_model_not_found():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    with pytest.raises(ClientError) as err:
+        client.describe_model(ModelName="unknown")
+    assert err.value.response["Error"]["Message"].should.contain("Could not find model")
+
+
+@mock_sagemaker
 def test_create_model():
     client = boto3.client("sagemaker", region_name="us-east-1")
     vpc_config = VpcConfig(["sg-foobar"], ["subnet-xxx"])
