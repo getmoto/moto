@@ -1171,9 +1171,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 raise InvalidArgumentError("max-parts", 0, 2147483647)
 
             parts = self.backend.list_multipart(
-                bucket_name, upload_id, part_number_marker=part_number_marker, max_parts=max_parts)
+                bucket_name,
+                upload_id,
+                part_number_marker=part_number_marker,
+                max_parts=max_parts,
+            )
             next_part_number_marker = parts[-1].name + 1 if parts else 0
-            is_truncated = parts and self.backend.is_truncated(bucket_name, upload_id, next_part_number_marker)
+            is_truncated = parts and self.backend.is_truncated(
+                bucket_name, upload_id, next_part_number_marker
+            )
 
             template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
             return (

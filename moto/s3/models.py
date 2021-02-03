@@ -340,7 +340,8 @@ class FakeMultipart(BaseModel):
         return key
 
     def list_parts(self, part_number_marker, max_parts):
-        for part in self.parts.values():
+        for part_id in self.partlist:
+            part = self.parts[part_id]
             if part_number_marker <= part.name < part_number_marker + max_parts:
                 yield part
 
@@ -1610,9 +1611,13 @@ class S3Backend(BaseBackend):
             raise NoSuchUpload()
         del bucket.multiparts[multipart_id]
 
-    def list_multipart(self, bucket_name, multipart_id, part_number_marker=0, max_parts=1000):
+    def list_multipart(
+        self, bucket_name, multipart_id, part_number_marker=0, max_parts=1000
+    ):
         bucket = self.get_bucket(bucket_name)
-        return list(bucket.multiparts[multipart_id].list_parts(part_number_marker, max_parts))
+        return list(
+            bucket.multiparts[multipart_id].list_parts(part_number_marker, max_parts)
+        )
 
     def is_truncated(self, bucket_name, multipart_id, next_part_number_marker):
         bucket = self.get_bucket(bucket_name)
