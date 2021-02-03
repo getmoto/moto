@@ -50,7 +50,7 @@ class SQSResponse(BaseResponse):
                 return queue_url.split("/")[-1]
             else:
                 raise InvalidAddress(queue_url)
-        except TypeError as e:
+        except TypeError:
             # Fallback to reading from the URL for botocore
             return self.path.split("/")[-1]
 
