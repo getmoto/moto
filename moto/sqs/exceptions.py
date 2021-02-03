@@ -143,5 +143,6 @@ class InvalidAddress(RESTError):
 
     def __init__(self, address):
         super(InvalidAddress, self).__init__(
-            "InvalidAddress", "The address {} is not valid for this endpoint.".format(address)
+            "InvalidAddress",
+            "The address {} is not valid for this endpoint.".format(address),
         )

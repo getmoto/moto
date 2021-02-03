@@ -229,20 +229,15 @@ def test_get_queue_url_errors():
 @mock_sqs
 def test_get_nonexistent_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    with pytest.raises(ClientError) as err:
-        sqs.get_queue_by_name(QueueName="non-existing-queue")
-    ex = err.value
-    ex.operation_name.should.equal("GetQueueUrl")
-    ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified queue non-existing-queue does not exist for this wsdl version."
-    )
 
     with pytest.raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
     ex = err.value
     ex.operation_name.should.equal("GetQueueAttributes")
     ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified queue does not exist for this wsdl version."
+    )
 
 
 @mock_sqs
@@ -492,8 +487,10 @@ def test_get_queue_with_prefix():
 def test_delete_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "3"})
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(
+        QueueName="test-queue", Attributes={"VisibilityTimeout": "3"}
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     conn.list_queues()["QueueUrls"].should.have.length_of(1)
 
@@ -600,13 +597,15 @@ def test_get_queue_attributes_errors():
 def test_set_queue_attribute():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "3"})
+    q_resp = conn.create_queue(
+        QueueName="test-queue", Attributes={"VisibilityTimeout": "3"}
+    )
 
-    queue = sqs.Queue("test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
     queue.attributes["VisibilityTimeout"].should.equal("3")
 
     queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
-    queue = sqs.Queue("test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
     queue.attributes["VisibilityTimeout"].should.equal("45")
 
 
@@ -614,8 +613,8 @@ def test_set_queue_attribute():
 def test_send_receive_message_without_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -641,8 +640,8 @@ def test_send_receive_message_without_attributes():
 def test_send_receive_message_with_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -683,8 +682,8 @@ def test_send_receive_message_with_attributes():
 def test_send_receive_message_with_attributes_with_labels():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -742,8 +741,8 @@ def test_send_receive_message_with_attributes_with_labels():
 def test_send_receive_message_timestamps():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     response = queue.send_message(MessageBody="derp")
     assert response["ResponseMetadata"]["RequestId"]
@@ -1341,8 +1340,8 @@ def test_send_message_batch():
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
 
@@ -2431,17 +2430,23 @@ def test_receive_message_should_not_accept_invalid_urls():
     conn = boto3.client("sqs", region_name="us-east-1")
     name = "test-queue"
     q_response = conn.create_queue(QueueName=name)
-    working_url = q_response["QueueUrl"]  # https://queue.amazonaws.com/486285699788/test-queue
+    working_url = q_response[
+        "QueueUrl"
+    ]  # https://queue.amazonaws.com/486285699788/test-queue
 
     queue = sqs.Queue(name)
     with pytest.raises(ClientError) as e:
         queue.send_message(MessageBody="this is a test message")
     err = e.value.response["Error"]
     err["Code"].should.equal("InvalidAddress")
-    err["Message"].should.equal("The address test-queue is not valid for this endpoint.")
+    err["Message"].should.equal(
+        "The address test-queue is not valid for this endpoint."
+    )
 
     with pytest.raises(ClientError) as e:
         conn.receive_message(QueueUrl=name)
     err = e.value.response["Error"]
     err["Code"].should.equal("InvalidAddress")
-    err["Message"].should.equal("The address test-queue is not valid for this endpoint.")
+    err["Message"].should.equal(
+        "The address test-queue is not valid for this endpoint."
+    )
