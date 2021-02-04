@@ -629,7 +629,9 @@ class RestAPI(CloudFormationModel):
         desc = properties.get("Description", "")
         config = properties.get("EndpointConfiguration", None)
         backend = apigateway_backends[region_name]
-        return backend.create_rest_api(name=name, description=desc, endpoint_configuration=config)
+        return backend.create_rest_api(
+            name=name, description=desc, endpoint_configuration=config
+        )
 
     def add_child(self, path, parent_id=None):
         child_id = create_id()
