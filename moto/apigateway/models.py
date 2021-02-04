@@ -71,10 +71,9 @@ class Deployment(CloudFormationModel, dict):
         name = properties["StageName"]
         desc = properties.get("Description", "")
         backend = apigateway_backends[region_name]
-        d = backend.create_deployment(
+        return backend.create_deployment(
             function_id=rest_api_id, name=name, description=desc
         )
-        return d
 
 
 class IntegrationResponse(BaseModel, dict):
@@ -197,6 +196,7 @@ class Method(CloudFormationModel, dict):
 
 class Resource(CloudFormationModel):
     def __init__(self, id, region_name, api_id, path_part, parent_id):
+        super(Resource, self).__init__()
         self.id = id
         self.region_name = region_name
         self.api_id = api_id
@@ -245,10 +245,9 @@ class Resource(CloudFormationModel):
                 0
             ].id
             parent = root_id
-        res = backend.create_resource(
+        return backend.create_resource(
             function_id=api_id, parent_resource_id=parent, path_part=path
         )
-        return res
 
     def get_path(self):
         return self.get_parent_path() + self.path_part
@@ -567,6 +566,7 @@ class UsagePlanKey(BaseModel, dict):
 
 class RestAPI(CloudFormationModel):
     def __init__(self, id, region_name, name, description, **kwargs):
+        super(RestAPI, self).__init__()
         self.id = id
         self.region_name = region_name
         self.name = name
@@ -629,10 +629,7 @@ class RestAPI(CloudFormationModel):
         desc = properties.get("Description", "")
         config = properties.get("EndpointConfiguration", None)
         backend = apigateway_backends[region_name]
-        api = backend.create_rest_api(
-            name=name, description=desc, endpoint_configuration=config
-        )
-        return api
+        return backend.create_rest_api(name=name, description=desc, endpoint_configuration=config)
 
     def add_child(self, path, parent_id=None):
         child_id = create_id()
