@@ -103,17 +103,33 @@ class PriorityInUseError(ELBClientError):
 
 
 class InvalidConditionFieldError(ELBClientError):
+    accepted_condition_names = [
+        "path-pattern",
+        "host-header",
+        "http-header",
+        "query-string",
+        "http-request-method",
+        "source-ip",
+    ]
+
     def __init__(self, invalid_name):
         super(InvalidConditionFieldError, self).__init__(
             "ValidationError",
-            "Condition field '%s' must be one of '[path-pattern, host-header]"
-            % (invalid_name),
+            "Condition field '%s' must be one of '%s'"
+            % (invalid_name, str(InvalidConditionFieldError.accepted_condition_names)),
         )
 
 
 class InvalidConditionValueError(ELBClientError):
     def __init__(self, msg):
         super(InvalidConditionValueError, self).__init__("ValidationError", msg)
+
+
+class ActionMustBeSpecifiedError(ELBClientError):
+    def __init__(self):
+        super(ActionMustBeSpecifiedError, self).__init__(
+            "ValidationError", "An action must be specified"
+        )
 
 
 class InvalidActionTypeError(ELBClientError):

@@ -984,15 +984,23 @@ def test_create_rule_priority_in_use():
     )
     http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
 
+    actions = [{"Type": "redirect"}]
+
     priority = 100
     elbv2.create_rule(
-        ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[],
+        ListenerArn=http_listener_arn,
+        Priority=priority,
+        Conditions=[],
+        Actions=actions,
     )
 
     # test for PriorityInUse
     with pytest.raises(ClientError) as ex:
         elbv2.create_rule(
-            ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[],
+            ListenerArn=http_listener_arn,
+            Priority=priority,
+            Conditions=[],
+            Actions=actions,
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("PriorityInUse")
@@ -2107,3 +2115,99 @@ def test_fixed_response_action_listener_rule_validates_content_type():
     invalid_content_type_exception.value.response["Error"]["Code"].should.equal(
         "InvalidLoadBalancerAction"
     )
+
+
+@mock_ec2
+@mock_elbv2
+@pytest.mark.parametrize(
+    "field_name", ["http-request-method", "path-pattern", "host-header", "query-string"]
+)
+def test_create_alb_listener_rule_verify_field_names(field_name):
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    http_listener_arn, target_group_arn = create_lb(conn, ec2)
+    #
+    conn.create_rule(
+        Priority=10,
+        ListenerArn=http_listener_arn,
+        Conditions=[
+            {"Field": field_name, "HttpRequestMethodConfig": {"Values": ["POST"]}}
+        ],
+        Actions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+    )
+
+
+@mock_ec2
+@mock_elbv2
+@pytest.mark.parametrize("field_name", ["", " ", "unknown-field-name"])
+def test_create_alb_listener_rule_reject_bad_field_names(field_name):
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    http_listener_arn, target_group_arn = create_lb(conn, ec2)
+    #
+    with pytest.raises(ClientError) as ex:
+        conn.create_rule(
+            Priority=10,
+            ListenerArn=http_listener_arn,
+            Conditions=[
+                {"Field": field_name, "HttpRequestMethodConfig": {"Values": ["POST"]}}
+            ],
+            Actions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+        )
+    err = ex.value.response["Error"]
+    err["Message"].should.contain(
+        "Condition field '{}' must be one of".format(field_name)
+    )
+
+
+def create_lb(conn, ec2):
+    sec_group = ec2.create_security_group(
+        GroupName="a-security-group", Description="First One"
+    )
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
+    )
+    response = conn.create_load_balancer(
+        Name="my-lb",
+        Subnets=[subnet.id],
+        SecurityGroups=[sec_group.id],
+        Scheme="internal",
+    )
+    tg_response = conn.create_target_group(
+        Name="a-target", Protocol="HTTP", Port=80, VpcId=vpc.id,
+    )
+    target_group_arn = tg_response.get("TargetGroups")[0]["TargetGroupArn"]
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+    #
+    response = conn.create_listener(
+        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[],
+    )
+    http_listener_arn = response.get("Listeners")[0].get("ListenerArn")
+    return http_listener_arn, target_group_arn
+
+
+@mock_ec2
+@mock_elbv2
+def test_elb_rule_must_contain_actions():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    http_listener_arn, target_group_arn = create_lb(conn, ec2)
+    with pytest.raises(ClientError) as ex:
+        conn.create_rule(
+            Priority=10,
+            ListenerArn=http_listener_arn,
+            Conditions=[
+                {
+                    "Field": "http-request-method",
+                    "HttpRequestMethodConfig": {"Values": ["PUT"]},
+                }
+            ],
+            Actions=[],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal("An action must be specified")

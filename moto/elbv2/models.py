@@ -31,6 +31,7 @@ from .exceptions import (
     InvalidConditionFieldError,
     InvalidConditionValueError,
     InvalidActionTypeError,
+    ActionMustBeSpecifiedError,
     ActionTargetGroupNotFoundError,
     InvalidDescribeRulesRequest,
     ResourceInUseError,
@@ -678,7 +679,7 @@ class ELBv2Backend(BaseBackend):
         for condition in conditions:
             if "field" in condition:
                 field = condition["field"]
-                if field not in ["path-pattern", "host-header"]:
+                if field not in InvalidConditionFieldError.accepted_condition_names:
                     raise InvalidConditionFieldError(field)
 
                 values = condition["values"]
@@ -700,7 +701,7 @@ class ELBv2Backend(BaseBackend):
             if rule.priority == priority:
                 raise PriorityInUseError()
 
-        self._validate_actions(actions)
+        self._validate_actions(actions, at_least_one=True)
         arn = listener_arn.replace(":listener/", ":listener-rule/")
         arn += "/%s" % (get_random_hex(16))
 
@@ -712,7 +713,9 @@ class ELBv2Backend(BaseBackend):
         listener.register(arn, rule)
         return rule
 
-    def _validate_actions(self, actions):
+    def _validate_actions(self, actions, at_least_one=False):
+        if at_least_one and len(actions) == 0:
+            raise ActionMustBeSpecifiedError()
         # validate Actions
         target_group_arns = [
             target_group.arn for target_group in self.target_groups.values()
