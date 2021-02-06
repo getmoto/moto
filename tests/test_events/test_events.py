@@ -4,6 +4,7 @@ import unittest
 from datetime import datetime
 
 import boto3
+import pytz
 import sure  # noqa
 
 from botocore.exceptions import ClientError
@@ -1505,4 +1506,62 @@ def test_start_replay_error_duplicate():
     ex.response["Error"]["Code"].should.contain("ResourceAlreadyExistsException")
     ex.response["Error"]["Message"].should.equal(
         "Replay {} already exists.".format(name)
+    )
+
+
+@mock_events
+def test_describe_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    response = client.describe_replay(ReplayName=name)
+
+    # then
+    response["Description"].should.equal("test replay")
+    response["Destination"].should.equal({"Arn": event_bus_arn})
+    response["EventSourceArn"].should.equal(archive_arn)
+    response["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=pytz.utc))
+    response["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=pytz.utc))
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["ReplayName"].should.equal(name)
+    response["ReplayStartTime"].should.be.a(datetime)
+    response["ReplayEndTime"].should.be.a(datetime)
+    response["State"].should.equal("COMPLETED")
+
+
+@mock_events
+def test_describe_replay_error_unknown_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} does not exist.".format(name)
     )

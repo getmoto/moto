@@ -353,12 +353,27 @@ class Archive(CloudFormationModel):
 
 
 class Replay(BaseModel):
-    def __init__(self, region_name, name):
+    def __init__(
+        self,
+        region_name,
+        name,
+        description,
+        source_arn,
+        start_time,
+        end_time,
+        destination,
+    ):
         self.region = region_name
         self.name = name
+        self.description = description
+        self.source_arn = source_arn
+        self.event_start_time = start_time
+        self.event_end_time = end_time
+        self.destination = destination
 
-        self.start_time = unix_time(datetime.utcnow())
         self.state = "STARTING"
+        self.start_time = unix_time(datetime.utcnow())
+        self.end_time = None
 
     @property
     def arn(self):
@@ -366,26 +381,25 @@ class Replay(BaseModel):
             region=self.region, account_id=ACCOUNT_ID, name=self.name
         )
 
-    def describe_short(self):
-        return {
-            "ArchiveName": self.name,
-            "EventSourceArn": self.source_arn,
-            "State": self.state,
-            "RetentionDays": self.retention,
-            "SizeBytes": sys.getsizeof(self.events) if len(self.events) > 0 else 0,
-            "EventCount": len(self.events),
-            "CreationTime": self.creation_time,
-        }
-
     def describe(self):
-        result = {
-            "ArchiveArn": self.arn,
+        return {
+            "ReplayName": self.name,
+            "ReplayArn": self.arn,
             "Description": self.description,
-            "EventPattern": self.event_pattern,
+            "State": self.state,
+            "EventSourceArn": self.source_arn,
+            "Destination": self.destination,
+            "EventStartTime": self.event_start_time,
+            "EventEndTime": self.event_end_time,
+            "ReplayStartTime": self.start_time,
+            "ReplayEndTime": self.end_time,
         }
-        result.update(self.describe_short())
 
-        return result
+    def replay_events(self):
+        # implement replay functionality
+
+        self.state = "COMPLETED"
+        self.end_time = unix_time(datetime.utcnow())
 
 
 class EventsBackend(BaseBackend):
@@ -902,15 +916,33 @@ class EventsBackend(BaseBackend):
                 "Replay {} already exists.".format(name)
             )
 
-        replay = Replay(self.region_name, name)
+        replay = Replay(
+            self.region_name,
+            name,
+            description,
+            source_arn,
+            start_time,
+            end_time,
+            destination,
+        )
 
         self.replays[name] = replay
+
+        replay.replay_events()
 
         return {
             "ReplayArn": replay.arn,
             "ReplayStartTime": replay.start_time,
-            "State": replay.state,
+            "State": "STARTING",  # the replay will be done before returning the response
         }
+
+    def describe_replay(self, name):
+        replay = self.replays.get(name)
+
+        if not replay:
+            raise ResourceNotFoundException("Replay {} does not exist.".format(name))
+
+        return replay.describe()
 
 
 events_backends = {}

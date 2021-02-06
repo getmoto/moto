@@ -403,3 +403,10 @@ class EventsHandler(BaseResponse):
         )
 
         return json.dumps(result), self.response_headers
+
+    def describe_replay(self):
+        name = self._get_param("ReplayName")
+
+        result = self.events_backend.describe_replay(name)
+
+        return json.dumps(result), self.response_headers
