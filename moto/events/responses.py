@@ -389,3 +389,17 @@ class EventsHandler(BaseResponse):
         self.events_backend.delete_archive(name)
 
         return "", self.response_headers
+
+    def start_replay(self):
+        name = self._get_param("ReplayName")
+        description = self._get_param("Description")
+        source_arn = self._get_param("EventSourceArn")
+        start_time = self._get_param("EventStartTime")
+        end_time = self._get_param("EventEndTime")
+        destination = self._get_param("Destination")
+
+        result = self.events_backend.start_replay(
+            name, description, source_arn, start_time, end_time, destination
+        )
+
+        return json.dumps(result), self.response_headers

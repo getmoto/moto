@@ -8,7 +8,7 @@ from datetime import datetime
 from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
+from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
 from moto.core.utils import unix_time
 from moto.events.exceptions import (
     ValidationException,
@@ -352,6 +352,42 @@ class Archive(CloudFormationModel):
         event_backend.delete_archive(resource_name)
 
 
+class Replay(BaseModel):
+    def __init__(self, region_name, name):
+        self.region = region_name
+        self.name = name
+
+        self.start_time = unix_time(datetime.utcnow())
+        self.state = "STARTING"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{region}:{account_id}:replay/{name}".format(
+            region=self.region, account_id=ACCOUNT_ID, name=self.name
+        )
+
+    def describe_short(self):
+        return {
+            "ArchiveName": self.name,
+            "EventSourceArn": self.source_arn,
+            "State": self.state,
+            "RetentionDays": self.retention,
+            "SizeBytes": sys.getsizeof(self.events) if len(self.events) > 0 else 0,
+            "EventCount": len(self.events),
+            "CreationTime": self.creation_time,
+        }
+
+    def describe(self):
+        result = {
+            "ArchiveArn": self.arn,
+            "Description": self.description,
+            "EventPattern": self.event_pattern,
+        }
+        result.update(self.describe_short())
+
+        return result
+
+
 class EventsBackend(BaseBackend):
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
@@ -366,6 +402,7 @@ class EventsBackend(BaseBackend):
         self.event_buses = {}
         self.event_sources = {}
         self.archives = {}
+        self.replays = {}
         self.tagger = TaggingService()
 
         self._add_default_event_bus()
@@ -401,6 +438,17 @@ class EventsBackend(BaseBackend):
                 new_next_token = self._gen_next_token(end_index)
 
         return start_index, end_index, new_next_token
+
+    def _get_event_bus(self, name):
+        event_bus_name = name.split("/")[-1]
+
+        event_bus = self.event_buses.get(event_bus_name)
+        if not event_bus:
+            raise ResourceNotFoundException(
+                "Event bus {} does not exist.".format(event_bus_name)
+            )
+
+        return event_bus
 
     def delete_rule(self, name):
         self.rules_order.pop(self.rules_order.index(name))
@@ -639,12 +687,7 @@ class EventsBackend(BaseBackend):
         if not name:
             name = "default"
 
-        event_bus = self.event_buses.get(name)
-
-        if not event_bus:
-            raise JsonRESTError(
-                "ResourceNotFoundException", "Event bus {} does not exist.".format(name)
-            )
+        event_bus = self._get_event_bus(name)
 
         return event_bus
 
@@ -724,11 +767,7 @@ class EventsBackend(BaseBackend):
         if event_pattern:
             self._validate_event_pattern(event_pattern)
 
-        event_bus_name = source_arn.split("/")[-1]
-        if event_bus_name not in self.event_buses:
-            raise ResourceNotFoundException(
-                "Event bus {} does not exist.".format(event_bus_name)
-            )
+        self._get_event_bus(source_arn)
 
         if name in self.archives:
             raise ResourceAlreadyExistsException(
@@ -824,6 +863,54 @@ class EventsBackend(BaseBackend):
             raise ResourceNotFoundException("Archive {} does not exist.".format(name))
 
         archive.delete(self.region_name)
+
+    def start_replay(
+        self, name, description, source_arn, start_time, end_time, destination
+    ):
+        event_bus_arn = destination["Arn"]
+        event_bus_arn_pattern = r"^arn:aws:events:[a-zA-Z0-9-]+:\d{12}:event-bus/"
+        if not re.match(event_bus_arn_pattern, event_bus_arn):
+            raise ValidationException(
+                "Parameter Destination.Arn is not valid. "
+                "Reason: Must contain an event bus ARN."
+            )
+
+        self._get_event_bus(event_bus_arn)
+
+        archive_name = source_arn.split("/")[-1]
+        archive = self.archives.get(archive_name)
+        if not archive:
+            raise ValidationException(
+                "Parameter EventSourceArn is not valid. "
+                "Reason: Archive {} does not exist.".format(archive_name)
+            )
+
+        if event_bus_arn != archive.source_arn:
+            raise ValidationException(
+                "Parameter Destination.Arn is not valid. "
+                "Reason: Cross event bus replay is not permitted."
+            )
+
+        if start_time > end_time:
+            raise ValidationException(
+                "Parameter EventEndTime is not valid. "
+                "Reason: EventStartTime must be before EventEndTime."
+            )
+
+        if name in self.replays:
+            raise ResourceAlreadyExistsException(
+                "Replay {} already exists.".format(name)
+            )
+
+        replay = Replay(self.region_name, name)
+
+        self.replays[name] = replay
+
+        return {
+            "ReplayArn": replay.arn,
+            "ReplayStartTime": replay.start_time,
+            "State": replay.state,
+        }
 
 
 events_backends = {}
