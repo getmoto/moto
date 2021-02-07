@@ -410,3 +410,12 @@ class EventsHandler(BaseResponse):
         result = self.events_backend.describe_replay(name)
 
         return json.dumps(result), self.response_headers
+
+    def list_replays(self):
+        name_prefix = self._get_param("NamePrefix")
+        source_arn = self._get_param("EventSourceArn")
+        state = self._get_param("State")
+
+        result = self.events_backend.list_replays(name_prefix, source_arn, state)
+
+        return json.dumps({"Replays": result}), self.response_headers

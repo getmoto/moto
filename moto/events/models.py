@@ -353,6 +353,16 @@ class Archive(CloudFormationModel):
 
 
 class Replay(BaseModel):
+    # https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_ListReplays.html#API_ListReplays_RequestParameters
+    VALID_STATES = [
+        "STARTING",
+        "RUNNING",
+        "CANCELLING",
+        "COMPLETED",
+        "CANCELLED",
+        "FAILED",
+    ]
+
     def __init__(
         self,
         region_name,
@@ -381,19 +391,27 @@ class Replay(BaseModel):
             region=self.region, account_id=ACCOUNT_ID, name=self.name
         )
 
-    def describe(self):
+    def describe_short(self):
         return {
             "ReplayName": self.name,
-            "ReplayArn": self.arn,
-            "Description": self.description,
-            "State": self.state,
             "EventSourceArn": self.source_arn,
-            "Destination": self.destination,
+            "State": self.state,
             "EventStartTime": self.event_start_time,
             "EventEndTime": self.event_end_time,
             "ReplayStartTime": self.start_time,
             "ReplayEndTime": self.end_time,
         }
+
+    def describe(self):
+        result = {
+            "ReplayArn": self.arn,
+            "Description": self.description,
+            "Destination": self.destination,
+        }
+
+        result.update(self.describe_short())
+
+        return result
 
     def replay_events(self):
         # implement replay functionality
@@ -833,7 +851,8 @@ class EventsBackend(BaseBackend):
 
         if state and state not in Archive.VALID_STATES:
             raise ValidationException(
-                "1 validation error detected: Value '{0}' at 'state' failed to satisfy constraint: "
+                "1 validation error detected: "
+                "Value '{0}' at 'state' failed to satisfy constraint: "
                 "Member must satisfy enum value set: "
                 "[{1}]".format(state, ", ".join(Archive.VALID_STATES))
             )
@@ -943,6 +962,36 @@ class EventsBackend(BaseBackend):
             raise ResourceNotFoundException("Replay {} does not exist.".format(name))
 
         return replay.describe()
+
+    def list_replays(self, name_prefix, source_arn, state):
+        if [name_prefix, source_arn, state].count(None) < 2:
+            raise ValidationException(
+                "At most one filter is allowed for ListReplays. "
+                "Use either : State, EventSourceArn, or NamePrefix."
+            )
+
+        if state and state not in Archive.VALID_STATES:
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '{0}' at 'state' failed to satisfy constraint: "
+                "Member must satisfy enum value set: "
+                "[{1}]".format(state, ", ".join(Replay.VALID_STATES))
+            )
+
+        if [name_prefix, source_arn, state].count(None) == 3:
+            return [replay.describe_short() for replay in self.replays.values()]
+
+        result = []
+
+        for replay in self.replays.values():
+            if name_prefix and replay.name.startswith(name_prefix):
+                result.append(replay.describe_short())
+            elif source_arn and replay.source_arn == source_arn:
+                result.append(replay.describe_short())
+            elif state and replay.state == state:
+                result.append(replay.describe_short())
+
+        return result
 
 
 events_backends = {}
