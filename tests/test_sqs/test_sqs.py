@@ -56,6 +56,7 @@ TEST_POLICY = """
 
 MOCK_DEDUPLICATION_TIME_IN_SECONDS = 5
 
+
 @mock_sqs
 def test_create_fifo_queue_fail():
     sqs = boto3.client("sqs", region_name="us-east-1")
@@ -277,10 +278,13 @@ def test_message_send_with_attributes():
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
 
+
 @mock_sqs
 def test_message_retention_period():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(QueueName="blah", Attributes={'MessageRetentionPeriod': '30'})
+    queue = sqs.create_queue(
+        QueueName="blah", Attributes={"MessageRetentionPeriod": "3"}
+    )
     queue.send_message(
         MessageBody="derp",
         MessageAttributes={
@@ -304,7 +308,7 @@ def test_message_retention_period():
         },
     )
 
-    time.sleep(31)
+    time.sleep(4)
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
 
