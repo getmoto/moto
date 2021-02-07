@@ -4,6 +4,7 @@ import re
 import json
 import sys
 from datetime import datetime
+from enum import Enum, unique
 
 from boto3 import Session
 
@@ -15,6 +16,7 @@ from moto.events.exceptions import (
     ResourceNotFoundException,
     ResourceAlreadyExistsException,
     InvalidEventPatternException,
+    IllegalStatusException,
 )
 from moto.utilities.tagging_service import TaggingService
 
@@ -352,17 +354,18 @@ class Archive(CloudFormationModel):
         event_backend.delete_archive(resource_name)
 
 
-class Replay(BaseModel):
+@unique
+class ReplayState(Enum):
     # https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_ListReplays.html#API_ListReplays_RequestParameters
-    VALID_STATES = [
-        "STARTING",
-        "RUNNING",
-        "CANCELLING",
-        "COMPLETED",
-        "CANCELLED",
-        "FAILED",
-    ]
+    STARTING = "STARTING"
+    RUNNING = "RUNNING"
+    CANCELLING = "CANCELLING"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    FAILED = "FAILED"
 
+
+class Replay(BaseModel):
     def __init__(
         self,
         region_name,
@@ -381,7 +384,7 @@ class Replay(BaseModel):
         self.event_end_time = end_time
         self.destination = destination
 
-        self.state = "STARTING"
+        self.state = ReplayState.STARTING
         self.start_time = unix_time(datetime.utcnow())
         self.end_time = None
 
@@ -395,7 +398,7 @@ class Replay(BaseModel):
         return {
             "ReplayName": self.name,
             "EventSourceArn": self.source_arn,
-            "State": self.state,
+            "State": self.state.value,
             "EventStartTime": self.event_start_time,
             "EventEndTime": self.event_end_time,
             "ReplayStartTime": self.start_time,
@@ -416,7 +419,7 @@ class Replay(BaseModel):
     def replay_events(self):
         # implement replay functionality
 
-        self.state = "COMPLETED"
+        self.state = ReplayState.COMPLETED
         self.end_time = unix_time(datetime.utcnow())
 
 
@@ -481,6 +484,13 @@ class EventsBackend(BaseBackend):
             )
 
         return event_bus
+
+    def _get_replay(self, name):
+        replay = self.replays.get(name)
+        if not replay:
+            raise ResourceNotFoundException("Replay {} does not exist.".format(name))
+
+        return replay
 
     def delete_rule(self, name):
         self.rules_order.pop(self.rules_order.index(name))
@@ -952,14 +962,11 @@ class EventsBackend(BaseBackend):
         return {
             "ReplayArn": replay.arn,
             "ReplayStartTime": replay.start_time,
-            "State": "STARTING",  # the replay will be done before returning the response
+            "State": ReplayState.STARTING.value,  # the replay will be done before returning the response
         }
 
     def describe_replay(self, name):
-        replay = self.replays.get(name)
-
-        if not replay:
-            raise ResourceNotFoundException("Replay {} does not exist.".format(name))
+        replay = self._get_replay(name)
 
         return replay.describe()
 
@@ -970,12 +977,13 @@ class EventsBackend(BaseBackend):
                 "Use either : State, EventSourceArn, or NamePrefix."
             )
 
-        if state and state not in Archive.VALID_STATES:
+        valid_states = [item.value for item in ReplayState]
+        if state and state not in valid_states:
             raise ValidationException(
                 "1 validation error detected: "
                 "Value '{0}' at 'state' failed to satisfy constraint: "
                 "Member must satisfy enum value set: "
-                "[{1}]".format(state, ", ".join(Replay.VALID_STATES))
+                "[{1}]".format(state, ", ".join(valid_states))
             )
 
         if [name_prefix, source_arn, state].count(None) == 3:
@@ -992,6 +1000,25 @@ class EventsBackend(BaseBackend):
                 result.append(replay.describe_short())
 
         return result
+
+    def cancel_replay(self, name):
+        replay = self._get_replay(name)
+
+        # replays in the state 'COMPLETED' can't be canceled,
+        # but the implementation is done synchronously,
+        # so they are done right after the start
+        if replay.state not in [
+            ReplayState.STARTING,
+            ReplayState.RUNNING,
+            ReplayState.COMPLETED,
+        ]:
+            raise IllegalStatusException(
+                "Replay {} is not in a valid state for this operation.".format(name)
+            )
+
+        replay.state = ReplayState.CANCELLED
+
+        return {"ReplayArn": replay.arn, "State": ReplayState.CANCELLING.value}
 
 
 events_backends = {}

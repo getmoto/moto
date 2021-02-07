@@ -419,3 +419,10 @@ class EventsHandler(BaseResponse):
         result = self.events_backend.list_replays(name_prefix, source_arn, state)
 
         return json.dumps({"Replays": result}), self.response_headers
+
+    def cancel_replay(self):
+        name = self._get_param("ReplayName")
+
+        result = self.events_backend.cancel_replay(name)
+
+        return json.dumps(result), self.response_headers

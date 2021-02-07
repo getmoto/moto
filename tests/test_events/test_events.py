@@ -1740,3 +1740,91 @@ def test_list_replays_error_invalid_state():
         "Member must satisfy enum value set: "
         "[STARTING, RUNNING, CANCELLING, COMPLETED, CANCELLED, FAILED]"
     )
+
+
+@mock_events
+def test_cancel_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    response = client.cancel_replay(ReplayName=name)
+
+    # then
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["State"].should.equal("CANCELLING")
+
+    response = client.describe_replay(ReplayName=name)
+    response["State"].should.equal("CANCELLED")
+
+
+@mock_events
+def test_cancel_replay_error_unknown_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.cancel_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CancelReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_cancel_replay_error_illegal_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.cancel_replay(ReplayName=name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.cancel_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CancelReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("IllegalStatusException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} is not in a valid state for this operation.".format(name)
+    )
