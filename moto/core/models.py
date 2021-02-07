@@ -636,12 +636,12 @@ class BaseBackend(object):
 
         urls = {}
         for url_base in url_bases:
+            # The default URL_base will look like: http://service.[..].amazonaws.com/...
+            # This extension ensures support for the China regions
+            cn_url_base = re.sub(r"amazonaws.com$", "amazonaws.com.cn", url_base)
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
                 urls[url] = handler
-                # The default URL_base will look like: http://service.[..].amazonaws.com/...
-                # This extension ensures support for the China regions
-                cn_url_base = re.sub(r"amazonaws.com$", "amazonaws.com.cn", url_base)
                 cn_url = url_path.format(cn_url_base)
                 urls[cn_url] = handler
 
