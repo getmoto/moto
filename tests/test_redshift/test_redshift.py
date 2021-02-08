@@ -41,6 +41,7 @@ def test_create_cluster_boto3():
         datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
     )
     response["Cluster"]["EnhancedVpcRouting"].should.equal(False)
+    response["Cluster"]["KmsKeyId"].should.equal("")
 
 
 @mock_redshift
@@ -62,6 +63,31 @@ def test_create_cluster_with_enhanced_vpc_routing_enabled():
         datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
     )
     response["Cluster"]["EnhancedVpcRouting"].should.equal(True)
+
+
+@mock_redshift
+def test_create_and_describe_cluster_with_kms_key_id():
+    kms_key_id = (
+        "arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000"
+    )
+    client = boto3.client("redshift", region_name="us-east-1")
+    response = client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        KmsKeyId=kms_key_id,
+    )
+    response["Cluster"]["KmsKeyId"].should.equal(kms_key_id)
+
+    response = client.describe_clusters()
+    clusters = response.get("Clusters", [])
+    len(clusters).should.equal(1)
+
+    cluster = clusters[0]
+    cluster["KmsKeyId"].should.equal(kms_key_id)
 
 
 @mock_redshift
@@ -1263,7 +1289,9 @@ def test_enable_snapshot_copy():
     )
     with pytest.raises(ClientError) as ex:
         client.enable_snapshot_copy(
-            ClusterIdentifier="test", DestinationRegion="us-west-2", RetentionPeriod=3,
+            ClusterIdentifier="test",
+            DestinationRegion="us-west-2",
+            RetentionPeriod=3,
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
     ex.value.response["Error"]["Message"].should.contain(
@@ -1460,20 +1488,25 @@ def test_resize_cluster():
     resp["Cluster"]["NumberOfNodes"].should.equal(1)
 
     client.modify_cluster(
-        ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=2,
+        ClusterIdentifier="test",
+        ClusterType="multi-node",
+        NumberOfNodes=2,
     )
     resp = client.describe_clusters(ClusterIdentifier="test")
     resp["Clusters"][0]["NumberOfNodes"].should.equal(2)
 
     client.modify_cluster(
-        ClusterIdentifier="test", ClusterType="single-node",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
     )
     resp = client.describe_clusters(ClusterIdentifier="test")
     resp["Clusters"][0]["NumberOfNodes"].should.equal(1)
 
     with pytest.raises(ClientError) as ex:
         client.modify_cluster(
-            ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=1,
+            ClusterIdentifier="test",
+            ClusterType="multi-node",
+            NumberOfNodes=1,
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
     ex.value.response["Error"]["Message"].should.contain(
@@ -1565,7 +1598,8 @@ def test_get_cluster_credentials():
     )
     db_user = "some_user"
     response = client.get_cluster_credentials(
-        ClusterIdentifier=cluster_identifier, DbUser=db_user,
+        ClusterIdentifier=cluster_identifier,
+        DbUser=db_user,
     )
     response["DbUser"].should.equal("IAM:%s" % db_user)
     assert time.mktime((response["Expiration"]).timetuple()) == pytest.approx(
@@ -1587,7 +1621,9 @@ def test_get_cluster_credentials():
         (datetime.datetime.now() + datetime.timedelta(0, 3000)).timetuple()
     )
     response = client.get_cluster_credentials(
-        ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3000,
+        ClusterIdentifier=cluster_identifier,
+        DbUser=db_user,
+        DurationSeconds=3000,
     )
     assert time.mktime(response["Expiration"].timetuple()) == pytest.approx(
         expected_expiration
