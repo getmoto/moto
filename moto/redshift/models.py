@@ -97,6 +97,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         iam_roles_arn=None,
         enhanced_vpc_routing=None,
         restored_from_snapshot=False,
+        kms_key_id=None,
     ):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
@@ -159,6 +160,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
         self.iam_roles_arn = iam_roles_arn or []
         self.restored_from_snapshot = restored_from_snapshot
+        self.kms_key_id = kms_key_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -207,6 +209,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
             publicly_accessible=properties.get("PubliclyAccessible"),
             encrypted=properties.get("Encrypted"),
             region_name=region_name,
+            kms_key_id=properties.get("KmsKeyId"),
         )
         return cluster
 
@@ -300,6 +303,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
                 {"ApplyStatus": "in-sync", "IamRoleArn": iam_role_arn}
                 for iam_role_arn in self.iam_roles_arn
             ],
+            "KmsKeyId": self.kms_key_id,
         }
         if self.restored_from_snapshot:
             json_response["RestoreStatus"] = {

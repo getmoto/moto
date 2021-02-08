@@ -41,6 +41,7 @@ def test_create_cluster_boto3():
         datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
     )
     response["Cluster"]["EnhancedVpcRouting"].should.equal(False)
+    response["Cluster"]["KmsKeyId"].should.equal("")
 
 
 @mock_redshift
@@ -62,6 +63,31 @@ def test_create_cluster_with_enhanced_vpc_routing_enabled():
         datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
     )
     response["Cluster"]["EnhancedVpcRouting"].should.equal(True)
+
+
+@mock_redshift
+def test_create_and_describe_cluster_with_kms_key_id():
+    kms_key_id = (
+        "arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000"
+    )
+    client = boto3.client("redshift", region_name="us-east-1")
+    response = client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        KmsKeyId=kms_key_id,
+    )
+    response["Cluster"]["KmsKeyId"].should.equal(kms_key_id)
+
+    response = client.describe_clusters()
+    clusters = response.get("Clusters", [])
+    len(clusters).should.equal(1)
+
+    cluster = clusters[0]
+    cluster["KmsKeyId"].should.equal(kms_key_id)
 
 
 @mock_redshift
