@@ -147,6 +147,7 @@ class RedshiftResponse(BaseResponse):
             "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
             "iam_roles_arn": self._get_iam_roles(),
             "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting"),
+            "kms_key_id": self._get_param("KmsKeyId")
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster["ClusterStatus"] = "creating"
