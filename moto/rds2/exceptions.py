@@ -29,10 +29,10 @@ class DBInstanceNotFoundError(RDSClientError):
 
 
 class DBSnapshotNotFoundError(RDSClientError):
-    def __init__(self):
+    def __init__(self, snapshot_identifier):
         super(DBSnapshotNotFoundError, self).__init__(
             "DBSnapshotNotFound",
-            "DBSnapshotIdentifier does not refer to an existing DB snapshot.",
+            "DBSnapshot {} not found.".format(snapshot_identifier),
         )
 
 
@@ -106,4 +106,16 @@ class DBSnapshotAlreadyExistsError(RDSClientError):
             "Cannot create the snapshot because a snapshot with the identifier {} already exists.".format(
                 database_snapshot_identifier
             ),
+        )
+
+
+class InvalidParameterValue(RDSClientError):
+    def __init__(self, message):
+        super(InvalidParameterValue, self).__init__("InvalidParameterValue", message)
+
+
+class InvalidParameterCombination(RDSClientError):
+    def __init__(self, message):
+        super(InvalidParameterCombination, self).__init__(
+            "InvalidParameterCombination", message
         )
