@@ -515,3 +515,36 @@ def test_render_template():
     assert True == result["RenderedTemplate"].__contains__(
         "Your favorite animal is Lion"
     )
+
+
+@mock_ses
+def test_update_ses_template():
+    conn = boto3.client("ses", region_name="us-east-1")
+    template = {
+        "TemplateName": "MyTemplateToUpdate",
+        "SubjectPart": "Greetings, {{name}}!",
+        "TextPart": "Dear {{name}}," "\r\nYour favorite animal is {{favoriteanimal}}.",
+        "HtmlPart": "<h1>Hello {{name}},"
+        "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+    }
+
+    conn.update_template.when.called_with(**dict(Template=template)).should.throw(
+        ClientError
+    )
+    conn.create_template(Template=template)
+
+    template["SubjectPart"] = "Hi, {{name}}!"
+    template["TextPart"] = "Dear {{name}},\r\n Your favorite color is {{color}}"
+    template[
+        "HtmlPart"
+    ] = "<h1>Hello {{name}},</h1><p>Your favorite color is {{color}}</p>"
+    conn.update_template(Template=template)
+
+    result = conn.get_template(TemplateName=template["TemplateName"])
+    result["Template"]["SubjectPart"].should.equal("Hi, {{name}}!")
+    result["Template"]["TextPart"].should.equal(
+        "Dear {{name}},\n Your favorite color is {{color}}"
+    )
+    result["Template"]["HtmlPart"].should.equal(
+        "<h1>Hello {{name}},</h1><p>Your favorite color is {{color}}</p>"
+    )

@@ -188,6 +188,18 @@ class EmailResponse(BaseResponse):
         template = self.response_template(CREATE_TEMPLATE)
         return template.render()
 
+    def update_template(self):
+        template_data = self._get_dict_param("Template")
+        template_info = {}
+        template_info["text_part"] = template_data.get("._text_part", "")
+        template_info["html_part"] = template_data.get("._html_part", "")
+        template_info["template_name"] = template_data.get("._name", "")
+        template_info["subject_part"] = template_data.get("._subject_part", "")
+        template_info["Timestamp"] = datetime.utcnow()
+        ses_backend.update_template(template_info=template_info)
+        template = self.response_template(UPDATE_TEMPLATE)
+        return template.render()
+
     def get_template(self):
         template_name = self._get_param("TemplateName")
         template_data = ses_backend.get_template(template_name)
@@ -374,6 +386,13 @@ CREATE_TEMPLATE = """<CreateTemplateResponse xmlns="http://ses.amazonaws.com/doc
     <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
   </ResponseMetadata>
 </CreateTemplateResponse>"""
+
+UPDATE_TEMPLATE = """<UpdateTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <UpdateTemplateResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
+  </ResponseMetadata>
+</UpdateTemplateResponse>"""
 
 GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
     <GetTemplateResult>
