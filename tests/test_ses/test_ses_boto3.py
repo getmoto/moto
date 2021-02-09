@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import json
 
 import boto3
 from botocore.exceptions import ClientError
@@ -484,3 +485,33 @@ def test_create_ses_template():
 
     result = conn.list_templates()
     result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")
+
+
+@mock_ses
+def test_render_template():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        TemplateName="MyTestTemplate",
+        TemplateData=json.dumps({"name": "John", "favoriteanimal": "Lion"}),
+    )
+
+    conn.test_render_template.when.called_with(**kwargs).should.throw(ClientError)
+
+    conn.create_template(
+        Template={
+            "TemplateName": "MyTestTemplate",
+            "SubjectPart": "Greetings, {{name}}!",
+            "TextPart": "Dear {{name}},"
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "HtmlPart": "<h1>Hello {{name}},"
+            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+        }
+    )
+    result = conn.test_render_template(**kwargs)
+    assert True == result["RenderedTemplate"].__contains__("Subject: Greetings, John!")
+    assert True == result["RenderedTemplate"].__contains__("Dear John,")
+    assert True == result["RenderedTemplate"].__contains__("<h1>Hello John,</h1>")
+    assert True == result["RenderedTemplate"].__contains__(
+        "Your favorite animal is Lion"
+    )

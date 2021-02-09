@@ -179,10 +179,10 @@ class EmailResponse(BaseResponse):
     def create_template(self):
         template_data = self._get_dict_param("Template")
         template_info = {}
-        template_info["text_part"] = template_data.get("._text_part", '')
-        template_info["html_part"] = template_data.get("._html_part", '')
-        template_info["template_name"] = template_data.get("._name", '')
-        template_info["subject_part"] = template_data.get("._subject_part", '')
+        template_info["text_part"] = template_data.get("._text_part", "")
+        template_info["html_part"] = template_data.get("._html_part", "")
+        template_info["template_name"] = template_data.get("._name", "")
+        template_info["subject_part"] = template_data.get("._subject_part", "")
         template_info["Timestamp"] = datetime.utcnow()
         ses_backend.add_template(template_info=template_info)
         template = self.response_template(CREATE_TEMPLATE)
@@ -198,6 +198,12 @@ class EmailResponse(BaseResponse):
         email_templates = ses_backend.list_templates()
         template = self.response_template(LIST_TEMPLATES)
         return template.render(templates=email_templates)
+
+    def test_render_template(self):
+        render_info = self._get_dict_param("Template")
+        rendered_template = ses_backend.render_template(render_info)
+        template = self.response_template(RENDER_TEMPLATE)
+        return template.render(template=rendered_template)
 
     def create_receipt_rule_set(self):
         rule_set_name = self._get_param("RuleSetName")
@@ -383,6 +389,7 @@ GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-
     </ResponseMetadata>
 </GetTemplateResponse>"""
 
+
 LIST_TEMPLATES = """<ListTemplatesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
     <ListTemplatesResult>
         <TemplatesMetadata>
@@ -398,6 +405,19 @@ LIST_TEMPLATES = """<ListTemplatesResponse xmlns="http://ses.amazonaws.com/doc/2
         <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
     </ResponseMetadata>
 </ListTemplatesResponse>"""
+
+RENDER_TEMPLATE = """
+<TestRenderTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+    <TestRenderTemplateResult>
+      <RenderedTemplate>
+      {{template | e}}
+      </RenderedTemplate>
+    </TestRenderTemplateResult>
+    <ResponseMetadata>
+        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
+    </ResponseMetadata>
+</TestRenderTemplateResponse>
+"""
 
 CREATE_RECEIPT_RULE_SET = """<CreateReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <CreateReceiptRuleSetResult/>

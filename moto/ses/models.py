@@ -2,7 +2,12 @@ from __future__ import unicode_literals
 
 import datetime
 import email
+from email.mime.base import MIMEBase
 from email.utils import parseaddr
+from email.mime.multipart import MIMEMultipart
+from email.encoders import encode_7or8bit
+import json
+from json.decoder import JSONDecodeError
 
 from moto.core import BaseBackend, BaseModel
 from moto.sns.models import sns_backends
@@ -13,6 +18,7 @@ from .exceptions import (
     TemplateNameAlreadyExists,
     ValidationError,
     InvalidParameterValue,
+    InvalidRenderingParameterException,
     TemplateDoesNotExist,
     RuleSetNameAlreadyExists,
     RuleSetDoesNotExist,
@@ -292,9 +298,10 @@ class SESBackend(BaseBackend):
         template_name = template_info["template_name"]
         if not template_name:
             raise ValidationError(
-                "1 validation error detected: "\
-                "Value null at 'template.templateName'"\
-                "failed to satisfy constraint: Member must not be null")
+                "1 validation error detected: "
+                "Value null at 'template.templateName'"
+                "failed to satisfy constraint: Member must not be null"
+            )
 
         if self.templates.get(template_name, None):
             raise TemplateNameAlreadyExists("Duplicate Template Name.")
@@ -302,6 +309,7 @@ class SESBackend(BaseBackend):
         template_subject = template_info["subject_part"]
         if not template_subject:
             raise InvalidParameterValue("The subject must be specified.")
+        self.templates[template_name] = template_info
 
     def get_template(self, template_name):
         if not self.templates.get(template_name, None):
@@ -310,6 +318,50 @@ class SESBackend(BaseBackend):
 
     def list_templates(self):
         return list(self.templates.values())
+
+    def render_template(self, render_data):
+        template_name = render_data.get("name", "")
+        template = self.templates.get(template_name, None)
+        if not template:
+            raise TemplateDoesNotExist("Invalid Template Name.")
+
+        template_data = render_data.get("data")
+        try:
+            template_data = json.loads(template_data)
+        except JSONDecodeError:
+            raise InvalidRenderingParameterException(
+                "Template rendering data is invalid"
+            )
+
+        subject_part = template["subject_part"]
+        text_part = template["text_part"]
+        html_part = template["html_part"]
+
+        for key, value in template_data.items():
+            subject_part = str.replace(subject_part, "{{%s}}" % key, value)
+            text_part = str.replace(text_part, "{{%s}}" % key, value)
+            html_part = str.replace(html_part, "{{%s}}" % key, value)
+
+        email = MIMEMultipart("alternative")
+
+        mime_text = MIMEBase("text", "plain;charset=UTF-8")
+        mime_text.set_payload(text_part.encode("utf-8"))
+        encode_7or8bit(mime_text)
+        email.attach(mime_text)
+
+        mime_html = MIMEBase("text", "html;charset=UTF-8")
+        mime_html.set_payload(html_part.encode("utf-8"))
+        encode_7or8bit(mime_html)
+        email.attach(mime_html)
+
+        now = datetime.datetime.now().isoformat()
+
+        rendered_template = "Date: %s\r\nSubject: %s\r\n%s" % (
+            now,
+            subject_part,
+            email.as_string(),
+        )
+        return rendered_template
 
     def create_receipt_rule_set(self, rule_set_name):
         if self.receipt_rule_set.get(rule_set_name) is not None:
