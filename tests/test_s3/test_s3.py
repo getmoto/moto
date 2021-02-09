@@ -7,12 +7,12 @@ import os
 from boto3 import Session
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import urlparse, parse_qs
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
 import zlib
 import pickle
-import urllib.parse
 import uuid
 
 import json
@@ -4834,8 +4834,8 @@ def test_creating_presigned_post():
     assert resp.status_code == 303
     redirect = resp.headers["Location"]
     assert redirect.startswith(success_url)
-    parts = urllib.parse.urlparse(redirect)
-    args = urllib.parse.parse_qs(parts.query)
+    parts = urlparse(redirect)
+    args = parse_qs(parts.query)
     assert args["key"][0] == real_key
     assert args["bucket"][0] == bucket
 

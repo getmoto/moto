@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 import io
-import urllib.parse
+from six.moves.urllib.parse import urlparse, parse_qs
 import sure  # noqa
 
 from flask.testing import FlaskClient
@@ -100,17 +100,17 @@ def test_s3_server_post_to_bucket_redirect():
             "success_action_redirect": redirect_base,
         },
     )
-    real_key = f"asdf/the-key/{filename}"
+    real_key = "asdf/the-key/{}".format(filename)
     res.status_code.should.equal(303)
     redirect = res.headers["location"]
     assert redirect.startswith(redirect_base)
 
-    parts = urllib.parse.urlparse(redirect)
-    args = urllib.parse.parse_qs(parts.query)
+    parts = urlparse(redirect)
+    args = parse_qs(parts.query)
     assert args["key"][0] == real_key
     assert args["bucket"][0] == "tester"
 
-    res = test_client.get(f"/{real_key}", "http://tester.localhost:5000/")
+    res = test_client.get("/{}".format(real_key), "http://tester.localhost:5000/")
     res.status_code.should.equal(200)
     res.data.should.equal(filecontent.encode("utf8"))
 
