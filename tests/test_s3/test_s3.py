@@ -12,6 +12,7 @@ from gzip import GzipFile
 from io import BytesIO
 import zlib
 import pickle
+import urllib.parse
 import uuid
 
 import json
@@ -4814,9 +4815,11 @@ def test_creating_presigned_post():
         {"success_action_redirect": success_url},
     ]
     conditions.append(["content-length-range", 1, 30])
+
+    real_key = "{file_uid}.txt".format(file_uid=file_uid)
     data = s3.generate_presigned_post(
         Bucket=bucket,
-        Key="{file_uid}.txt".format(file_uid=file_uid),
+        Key=real_key,
         Fields={
             "content-type": "text/plain",
             "success_action_redirect": success_url,
@@ -4828,14 +4831,15 @@ def test_creating_presigned_post():
     resp = requests.post(
         data["url"], data=data["fields"], files={"file": fdata}, allow_redirects=False
     )
-    assert resp.headers["Location"] == success_url
     assert resp.status_code == 303
-    assert (
-        s3.get_object(Bucket=bucket, Key="{file_uid}.txt".format(file_uid=file_uid))[
-            "Body"
-        ].read()
-        == fdata
-    )
+    redirect = resp.headers["Location"]
+    assert redirect.startswith(success_url)
+    parts = urllib.parse.urlparse(redirect)
+    args = urllib.parse.parse_qs(parts.query)
+    assert args["key"][0] == real_key
+    assert args["bucket"][0] == bucket
+
+    assert s3.get_object(Bucket=bucket, Key=real_key)["Body"].read() == fdata
 
 
 @mock_s3

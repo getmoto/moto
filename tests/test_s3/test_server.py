@@ -1,6 +1,8 @@
 # coding=utf-8
 
 from __future__ import unicode_literals
+import io
+import urllib.parse
 import sure  # noqa
 
 from flask.testing import FlaskClient
@@ -78,6 +80,39 @@ def test_s3_server_post_to_bucket():
     res = test_client.get("/the-key", "http://tester.localhost:5000/")
     res.status_code.should.equal(200)
     res.data.should.equal(b"nothing")
+
+
+def test_s3_server_post_to_bucket_redirect():
+    test_client = authenticated_client()
+
+    res = test_client.put("/", "http://tester.localhost:5000/")
+    res.status_code.should.equal(200)
+
+    redirect_base = "https://redirect.com/success/"
+    filecontent = "nothing"
+    filename = "test_filename.txt"
+    res = test_client.post(
+        "/",
+        "https://tester.localhost:5000/",
+        data={
+            "key": "asdf/the-key/${filename}",
+            "file": (io.BytesIO(filecontent.encode("utf8")), filename),
+            "success_action_redirect": redirect_base,
+        },
+    )
+    real_key = f"asdf/the-key/{filename}"
+    res.status_code.should.equal(303)
+    redirect = res.headers["location"]
+    assert redirect.startswith(redirect_base)
+
+    parts = urllib.parse.urlparse(redirect)
+    args = urllib.parse.parse_qs(parts.query)
+    assert args["key"][0] == real_key
+    assert args["bucket"][0] == "tester"
+
+    res = test_client.get(f"/{real_key}", "http://tester.localhost:5000/")
+    res.status_code.should.equal(200)
+    res.data.should.equal(filecontent.encode("utf8"))
 
 
 def test_s3_server_post_without_content_length():
