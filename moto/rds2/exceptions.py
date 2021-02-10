@@ -24,7 +24,8 @@ class RDSClientError(BadRequest):
 class DBInstanceNotFoundError(RDSClientError):
     def __init__(self, database_identifier):
         super(DBInstanceNotFoundError, self).__init__(
-            "DBInstanceNotFound", "Database {0} not found.".format(database_identifier)
+            "DBInstanceNotFound",
+            "DBInstance {0} not found.".format(database_identifier),
         )
 
 
