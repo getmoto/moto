@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from botocore.exceptions import ClientError
 import boto3
+import pytest
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
 from moto.core import ACCOUNT_ID
@@ -472,14 +473,6 @@ def test_delete_database():
 
 
 @mock_rds2
-def test_delete_non_existent_database():
-    conn = boto3.client("rds2", region_name="us-west-2")
-    conn.delete_db_instance.when.called_with(
-        DBInstanceIdentifier="not-a-db"
-    ).should.throw(ClientError)
-
-
-@mock_rds2
 def test_create_db_snapshots():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_snapshot.when.called_with(
@@ -793,9 +786,12 @@ def test_modify_non_existent_option_group():
 @mock_rds2
 def test_delete_non_existent_database():
     conn = boto3.client("rds", region_name="us-west-2")
-    conn.delete_db_instance.when.called_with(
-        DBInstanceIdentifier="not-a-db"
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.delete_db_instance(DBInstanceIdentifier="non-existent")
+    ex.value.response["Error"]["Code"].should.equal("DBInstanceNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "DBInstance non-existent not found."
+    )
 
 
 @mock_rds2
