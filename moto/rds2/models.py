@@ -560,6 +560,7 @@ class Snapshot(BaseModel):
             """<DBSnapshot>
               <DBSnapshotIdentifier>{{ snapshot.snapshot_id }}</DBSnapshotIdentifier>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
+              <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
               <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
               <Engine>{{ database.engine }}</Engine>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
