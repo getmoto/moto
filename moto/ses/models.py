@@ -7,7 +7,7 @@ from email.utils import parseaddr
 from email.mime.multipart import MIMEMultipart
 from email.encoders import encode_7or8bit
 import json
-from json.decoder import JSONDecodeError
+from json import JSONDecodeError
 
 from moto.core import BaseBackend, BaseModel
 from moto.sns.models import sns_backends
