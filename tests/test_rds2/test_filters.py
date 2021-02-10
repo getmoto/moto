@@ -9,9 +9,12 @@ from moto import mock_rds2
 
 
 class TestDBInstanceFilters(object):
+
+    mock_rds = mock_rds2()
+
     @classmethod
     def setup_class(cls):
-        mock_rds2().start()
+        cls.mock_rds.start()
         client = boto3.client("rds", region_name="us-west-2")
         for i in range(10):
             identifier = "db-instance-{}".format(i)
@@ -25,7 +28,7 @@ class TestDBInstanceFilters(object):
 
     @classmethod
     def teardown_class(cls):
-        mock_rds2().stop()
+        cls.mock_rds.stop()
 
     def test_invalid_filter_name_raises_error(self):
         with pytest.raises(ClientError) as ex:
@@ -174,9 +177,12 @@ class TestDBInstanceFilters(object):
 
 
 class TestDBSnapshotFilters(object):
+
+    mock_rds = mock_rds2()
+
     @classmethod
     def setup_class(cls):
-        mock_rds2().start()
+        cls.mock_rds.start()
         client = boto3.client("rds", region_name="us-west-2")
         # We'll set up two instances (one postgres, one mysql)
         # with two snapshots each.
@@ -197,7 +203,7 @@ class TestDBSnapshotFilters(object):
 
     @classmethod
     def teardown_class(cls):
-        mock_rds2().stop()
+        cls.mock_rds.stop()
 
     def test_invalid_filter_name_raises_error(self):
         with pytest.raises(ClientError) as ex:
