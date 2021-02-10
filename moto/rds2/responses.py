@@ -5,6 +5,7 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 from .exceptions import DBParameterGroupNotFoundError
+from .utils import filters_from_querystring
 
 
 class RDS2Response(BaseResponse):
@@ -122,7 +123,10 @@ class RDS2Response(BaseResponse):
 
     def describe_db_instances(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
-        all_instances = list(self.backend.describe_databases(db_instance_identifier))
+        filters = filters_from_querystring(self.querystring)
+        all_instances = list(
+            self.backend.describe_databases(db_instance_identifier, filters=filters)
+        )
         marker = self._get_param("Marker")
         all_ids = [instance.db_instance_identifier for instance in all_instances]
         if marker:
@@ -178,8 +182,9 @@ class RDS2Response(BaseResponse):
     def describe_db_snapshots(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
+        filters = filters_from_querystring(self.querystring)
         snapshots = self.backend.describe_snapshots(
-            db_instance_identifier, db_snapshot_identifier
+            db_instance_identifier, db_snapshot_identifier, filters
         )
         template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)
         return template.render(snapshots=snapshots)

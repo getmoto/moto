@@ -25,10 +25,24 @@ from .exceptions import (
     InvalidDBInstanceStateError,
     SnapshotQuotaExceededError,
     DBSnapshotAlreadyExistsError,
+    InvalidParameterValue,
+    InvalidParameterCombination,
 )
+from .utils import FilterDef, apply_filter, merge_filters, validate_filters
 
 
 class Database(CloudFormationModel):
+
+    SUPPORTED_FILTERS = {
+        "db-cluster-id": FilterDef(None, "DB Cluster Identifiers"),
+        "db-instance-id": FilterDef(
+            ["db_instance_arn", "db_instance_identifier"], "DB Instance Identifiers"
+        ),
+        "dbi-resource-id": FilterDef(["dbi_resource_id"], "Dbi Resource Ids"),
+        "domain": FilterDef(None, ""),
+        "engine": FilterDef(["engine"], "Engine Names"),
+    }
+
     def __init__(self, **kwargs):
         self.status = "available"
         self.is_replica = False
@@ -517,6 +531,18 @@ class Database(CloudFormationModel):
 
 
 class Snapshot(BaseModel):
+
+    SUPPORTED_FILTERS = {
+        "db-instance-id": FilterDef(
+            ["database.db_instance_arn", "database.db_instance_identifier"],
+            "DB Instance Identifiers",
+        ),
+        "db-snapshot-id": FilterDef(["snapshot_id"], "DB Snapshot Identifiers"),
+        "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
+        "snapshot-type": FilterDef(None, "Snapshot Types"),
+        "engine": FilterDef(["database.engine"], "Engine Names"),
+    }
+
     def __init__(self, database, snapshot_id, tags):
         self.database = database
         self.snapshot_id = snapshot_id
@@ -534,6 +560,7 @@ class Snapshot(BaseModel):
             """<DBSnapshot>
               <DBSnapshotIdentifier>{{ snapshot.snapshot_id }}</DBSnapshotIdentifier>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
+              <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
               <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
               <Engine>{{ database.engine }}</Engine>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
@@ -839,7 +866,7 @@ class RDS2Backend(BaseBackend):
 
     def delete_snapshot(self, db_snapshot_identifier):
         if db_snapshot_identifier not in self.snapshots:
-            raise DBSnapshotNotFoundError()
+            raise DBSnapshotNotFoundError(db_snapshot_identifier)
 
         return self.snapshots.pop(db_snapshot_identifier)
 
@@ -858,28 +885,35 @@ class RDS2Backend(BaseBackend):
         primary.add_replica(replica)
         return replica
 
-    def describe_databases(self, db_instance_identifier=None):
+    def describe_databases(self, db_instance_identifier=None, filters=None):
+        databases = self.databases
         if db_instance_identifier:
-            if db_instance_identifier in self.databases:
-                return [self.databases[db_instance_identifier]]
-            else:
-                raise DBInstanceNotFoundError(db_instance_identifier)
-        return self.databases.values()
+            filters = merge_filters(
+                filters, {"db-instance-id": [db_instance_identifier]}
+            )
+        if filters:
+            databases = self._filter_resources(databases, filters, Database)
+        if db_instance_identifier and not databases:
+            raise DBInstanceNotFoundError(db_instance_identifier)
+        return list(databases.values())
 
-    def describe_snapshots(self, db_instance_identifier, db_snapshot_identifier):
+    def describe_snapshots(
+        self, db_instance_identifier, db_snapshot_identifier, filters=None
+    ):
+        snapshots = self.snapshots
         if db_instance_identifier:
-            db_instance_snapshots = []
-            for snapshot in self.snapshots.values():
-                if snapshot.database.db_instance_identifier == db_instance_identifier:
-                    db_instance_snapshots.append(snapshot)
-            return db_instance_snapshots
-
+            filters = merge_filters(
+                filters, {"db-instance-id": [db_instance_identifier]}
+            )
         if db_snapshot_identifier:
-            if db_snapshot_identifier in self.snapshots:
-                return [self.snapshots[db_snapshot_identifier]]
-            raise DBSnapshotNotFoundError()
-
-        return self.snapshots.values()
+            filters = merge_filters(
+                filters, {"db-snapshot-id": [db_snapshot_identifier]}
+            )
+        if filters:
+            snapshots = self._filter_resources(snapshots, filters, Snapshot)
+        if db_snapshot_identifier and not snapshots and not db_instance_identifier:
+            raise DBSnapshotNotFoundError(db_snapshot_identifier)
+        return list(snapshots.values())
 
     def modify_database(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
@@ -1321,6 +1355,18 @@ class RDS2Backend(BaseBackend):
             raise RDSClientError(
                 "InvalidParameterValue", "Invalid resource name: {0}".format(arn)
             )
+
+    @staticmethod
+    def _filter_resources(resources, filters, resource_class):
+        try:
+            filter_defs = resource_class.SUPPORTED_FILTERS
+            validate_filters(filters, filter_defs)
+            return apply_filter(resources, filters, filter_defs)
+        except KeyError as e:
+            # https://stackoverflow.com/questions/24998968/why-does-strkeyerror-add-extra-quotes
+            raise InvalidParameterValue(e.args[0])
+        except ValueError as e:
+            raise InvalidParameterCombination(str(e))
 
 
 class OptionGroup(object):
