@@ -1,13 +1,12 @@
 from __future__ import unicode_literals
 
-import datetime
+import json
 import email
+import datetime
 from email.mime.base import MIMEBase
 from email.utils import parseaddr
 from email.mime.multipart import MIMEMultipart
 from email.encoders import encode_7or8bit
-import json
-from json import JSONDecodeError
 
 from moto.core import BaseBackend, BaseModel
 from moto.sns.models import sns_backends
@@ -345,7 +344,7 @@ class SESBackend(BaseBackend):
         template_data = render_data.get("data")
         try:
             template_data = json.loads(template_data)
-        except JSONDecodeError:
+        except ValueError:
             raise InvalidRenderingParameterException(
                 "Template rendering data is invalid"
             )
