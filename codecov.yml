@@ -9,3 +9,5 @@ coverage:
       default:
         # New code must have a 90% coverage
         target: 90%
+  notify:
+    after_n_builds: 8
