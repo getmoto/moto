@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 from botocore.exceptions import ClientError
 import boto3
-import pytest
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
 from moto.core import ACCOUNT_ID
