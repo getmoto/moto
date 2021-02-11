@@ -341,10 +341,10 @@ GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.
             </item>
         {% endfor %}
       </SendDataPoints>
-      <ResponseMetadata>
-        <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173z49</RequestId>
-      </ResponseMetadata>
   </GetSendStatisticsResult>
+  <ResponseMetadata>
+    <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173z49</RequestId>
+  </ResponseMetadata>
 </GetSendStatisticsResponse>"""
 
 CREATE_CONFIGURATION_SET = """<CreateConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
