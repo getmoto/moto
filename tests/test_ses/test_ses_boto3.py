@@ -496,7 +496,9 @@ def test_render_template():
         TemplateData=json.dumps({"name": "John", "favoriteanimal": "Lion"}),
     )
 
-    conn.test_render_template.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.test_render_template(**kwargs)
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
 
     conn.create_template(
         Template={
@@ -509,12 +511,10 @@ def test_render_template():
         }
     )
     result = conn.test_render_template(**kwargs)
-    assert True == result["RenderedTemplate"].__contains__("Subject: Greetings, John!")
-    assert True == result["RenderedTemplate"].__contains__("Dear John,")
-    assert True == result["RenderedTemplate"].__contains__("<h1>Hello John,</h1>")
-    assert True == result["RenderedTemplate"].__contains__(
-        "Your favorite animal is Lion"
-    )
+    result["RenderedTemplate"].should.contain("Subject: Greetings, John!")
+    result["RenderedTemplate"].should.contain("Dear John,")
+    result["RenderedTemplate"].should.contain("<h1>Hello John,</h1>")
+    result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
 
 
 @mock_ses
@@ -528,9 +528,10 @@ def test_update_ses_template():
         "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
     }
 
-    conn.update_template.when.called_with(**dict(Template=template)).should.throw(
-        ClientError
-    )
+    with pytest.raises(ClientError) as ex:
+        conn.update_template(Template=template)
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+
     conn.create_template(Template=template)
 
     template["SubjectPart"] = "Hi, {{name}}!"

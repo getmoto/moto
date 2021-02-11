@@ -354,9 +354,9 @@ class SESBackend(BaseBackend):
         html_part = template["html_part"]
 
         for key, value in template_data.items():
-            subject_part = str.replace(subject_part, "{{%s}}" % key, value)
-            text_part = str.replace(text_part, "{{%s}}" % key, value)
-            html_part = str.replace(html_part, "{{%s}}" % key, value)
+            subject_part = str.replace(str(subject_part), "{{%s}}" % key, value)
+            text_part = str.replace(str(text_part), "{{%s}}" % key, value)
+            html_part = str.replace(str(html_part), "{{%s}}" % key, value)
 
         email = MIMEMultipart("alternative")
 
