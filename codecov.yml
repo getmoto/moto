@@ -1,6 +1,7 @@
 codecov:
   notify:
-    after_n_builds: 8
+    # Leave a GitHub comment after all Py3 builds have passed
+    after_n_builds: 6
 coverage:
   status:
     project:
