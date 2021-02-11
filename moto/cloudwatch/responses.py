@@ -455,11 +455,6 @@ PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.am
 </PutMetricDataResponse>"""
 
 GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
    <GetMetricDataResult>
        <MetricDataResults>
            {% for result in results %}
@@ -481,15 +476,14 @@ GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.am
             {% endfor %}
        </MetricDataResults>
    </GetMetricDataResult>
+   <ResponseMetadata>
+       <RequestId>
+            {{ request_id }}
+       </RequestId>
+   </ResponseMetadata>
 </GetMetricDataResponse>"""
 
 GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
-
   <GetMetricStatisticsResult>
       <Label>{{ label }}</Label>
       <Datapoints>
@@ -525,6 +519,11 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
         {% endfor %}
       </Datapoints>
     </GetMetricStatisticsResult>
+    <ResponseMetadata>
+      <RequestId>
+        {{ request_id }}
+      </RequestId>
+    </ResponseMetadata>
 </GetMetricStatisticsResponse>"""
 
 LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">

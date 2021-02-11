@@ -1108,7 +1108,8 @@ STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE = """<StopStackSetOperationResponse x
   <StopStackSetOperationResult/>
   <ResponseMetadata>
     <RequestId>2188554a-07c6-4396-b2c5-example</RequestId>
-  </ResponseMetadata>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </StopStackSetOperationResponse>
+  </ResponseMetadata>
+</StopStackSetOperationResponse>
 """
 
 DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = (
