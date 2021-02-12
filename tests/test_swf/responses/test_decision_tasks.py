@@ -69,9 +69,7 @@ def test_poll_for_decision_task_when_none():
 def test_poll_for_decision_task_on_non_existent_queue():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "non-existent-queue")
-    resp.should.equal(
-        {"previousStartedEventId": 0, "startedEventId": 0, "taskToken": ""}
-    )
+    resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
 
 
 @mock_swf_deprecated

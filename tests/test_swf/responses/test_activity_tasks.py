@@ -42,7 +42,7 @@ def test_poll_for_activity_task_when_none():
 def test_poll_for_activity_task_on_non_existent_queue():
     conn = setup_workflow()
     resp = conn.poll_for_activity_task("test-domain", "non-existent-queue")
-    resp.should.equal({"startedEventId": 0, "taskToken": ""})
+    resp.should.equal({"startedEventId": 0})
 
 
 # CountPendingActivityTasks endpoint
