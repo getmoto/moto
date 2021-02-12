@@ -35,7 +35,7 @@ def test_poll_for_activity_task_when_one():
 def test_poll_for_activity_task_when_none():
     conn = setup_workflow()
     resp = conn.poll_for_activity_task("test-domain", "activity-task-list")
-    resp.should.equal({"startedEventId": 0, "taskToken": ""})
+    resp.should.equal({"startedEventId": 0})
 
 
 @mock_swf_deprecated
