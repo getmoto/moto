@@ -127,7 +127,7 @@ class TestDBInstanceFilters(object):
             )
         ex.value.response["Error"]["Code"].should.equal("DBInstanceNotFound")
         ex.value.response["Error"]["Message"].should.equal(
-            "Database non-existent not found."
+            "DBInstance non-existent not found."
         )
 
     def test_valid_db_instance_identifier_with_exclusive_filter(self):
@@ -172,7 +172,7 @@ class TestDBInstanceFilters(object):
             )
         ex.value.response["Error"]["Code"].should.equal("DBInstanceNotFound")
         ex.value.response["Error"]["Message"].should.equal(
-            "Database db-instance-0 not found."
+            "DBInstance db-instance-0 not found."
         )
 
 
