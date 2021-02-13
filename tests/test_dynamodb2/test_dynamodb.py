@@ -839,78 +839,11 @@ def test_basic_projection_expression_using_get_item():
 
 
 @mock_dynamodb2
-def test_basic_projection_expressions_using_query():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    table.put_item(
-        Item={
-            "forum_name": "not-the-key",
-            "subject": "123",
-            "body": "some other test message",
-        }
-    )
-    # Test a query returning all items
-    results = table.query(
-        KeyConditionExpression=Key("forum_name").eq("the-key"),
-        ProjectionExpression="body, subject",
-    )
-
-    assert "body" in results["Items"][0]
-    assert results["Items"][0]["body"] == "some test message"
-    assert "subject" in results["Items"][0]
-
-    table.put_item(
-        Item={
-            "forum_name": "the-key",
-            "subject": "1234",
-            "body": "yet another test message",
-        }
-    )
-
-    results = table.query(
-        KeyConditionExpression=Key("forum_name").eq("the-key"),
-        ProjectionExpression="body",
-    )
-
-    assert "body" in results["Items"][0]
-    assert "subject" not in results["Items"][0]
-    assert results["Items"][0]["body"] == "some test message"
-    assert "body" in results["Items"][1]
-    assert "subject" not in results["Items"][1]
-    assert results["Items"][1]["body"] == "yet another test message"
-
-    # The projection expression should not remove data from storage
-    results = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))
-    assert "subject" in results["Items"][0]
-    assert "body" in results["Items"][1]
-    assert "forum_name" in results["Items"][1]
-
-
-@mock_dynamodb2
 def test_basic_projection_expressions_using_scan():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -957,10 +890,11 @@ def test_basic_projection_expressions_using_scan():
         FilterExpression=Key("forum_name").eq("the-key"), ProjectionExpression="body"
     )
 
-    assert "body" in results["Items"][0]
+    bodies = [item["body"] for item in results["Items"]]
+    bodies.should.contain("some test message")
+    bodies.should.contain("yet another test message")
     assert "subject" not in results["Items"][0]
     assert "forum_name" not in results["Items"][0]
-    assert "body" in results["Items"][1]
     assert "subject" not in results["Items"][1]
     assert "forum_name" not in results["Items"][1]
 
@@ -1149,65 +1083,6 @@ def test_nested_projection_expression_using_query():
             },
         }
     )
-
-
-@mock_dynamodb2
-def test_basic_projection_expressions_using_scan():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-    table.put_item(
-        Item={
-            "forum_name": "not-the-key",
-            "subject": "123",
-            "body": "some other test message",
-        }
-    )
-    # Test a scan returning all items
-    results = table.scan(
-        FilterExpression=Key("forum_name").eq("the-key"),
-        ProjectionExpression="body, subject",
-    )["Items"]
-
-    results.should.equal([{"body": "some test message", "subject": "123"}])
-
-    table.put_item(
-        Item={
-            "forum_name": "the-key",
-            "subject": "1234",
-            "body": "yet another test message",
-        }
-    )
-
-    results = table.scan(
-        FilterExpression=Key("forum_name").eq("the-key"), ProjectionExpression="body"
-    )["Items"]
-
-    assert {"body": "some test message"} in results
-    assert {"body": "yet another test message"} in results
-
-    # The projection expression should not remove data from storage
-    results = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))
-    assert "subject" in results["Items"][0]
-    assert "body" in results["Items"][1]
-    assert "forum_name" in results["Items"][1]
 
 
 @mock_dynamodb2

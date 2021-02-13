@@ -312,19 +312,6 @@ def test_put_key_policy_via_alias_should_not_update():
 
 
 @mock_kms_deprecated
-def test_put_key_policy():
-    conn = boto.kms.connect_to_region("us-west-2")
-
-    key = conn.create_key(
-        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
-    )
-    conn.put_key_policy(key["KeyMetadata"]["Arn"], "default", "new policy")
-
-    policy = conn.get_key_policy(key["KeyMetadata"]["KeyId"], "default")
-    policy["Policy"].should.equal("new policy")
-
-
-@mock_kms_deprecated
 def test_list_key_policies():
     conn = boto.kms.connect_to_region("us-west-2")
 

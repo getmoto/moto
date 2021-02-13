@@ -11,9 +11,9 @@ import sure  # noqa
 
 import pytest
 
-from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
+from moto import mock_cloudformation, mock_dynamodb2, mock_s3, mock_sqs, mock_ec2
 from moto.core import ACCOUNT_ID
-from .test_cloudformation_stack_crud import dummy_template_json2
+from .test_cloudformation_stack_crud import dummy_template_json2, dummy_template_json4
 from tests import EXAMPLE_AMI_ID
 
 dummy_template = {
@@ -1681,3 +1681,17 @@ def test_boto3_create_duplicate_stack():
         cf_conn.create_stack(
             StackName="test_stack", TemplateBody=dummy_template_json,
         )
+
+
+@mock_dynamodb2
+@mock_cloudformation
+def test_delete_stack_dynamo_template():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json4)
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(1)
+    conn.delete_stack(StackName="test_stack")
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(0)
+    conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json4)

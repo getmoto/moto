@@ -784,16 +784,6 @@ def test_ami_registration():
 
 
 @mock_ec2
-def test_ami_registration():
-    ec2 = boto3.client("ec2", region_name="us-east-1")
-    image_id = ec2.register_image(Name="test-register-image").get("ImageId", "")
-    images = ec2.describe_images(ImageIds=[image_id]).get("Images", [])
-    assert images[0]["Name"] == "test-register-image", "No image was registered."
-    assert images[0]["RootDeviceName"] == "/dev/sda1", "Wrong root device name."
-    assert images[0]["State"] == "available", "State should be available."
-
-
-@mock_ec2
 def test_ami_filter_wildcard():
     ec2_resource = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")

@@ -1009,6 +1009,7 @@ def test_iam_cloudformation_delete_users_access_key():
     user = iam_client.get_user(UserName=user_name)["User"]
     user["UserName"].should.equal(user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
+    access_keys["AccessKeyMetadata"][0]["AccessKeyId"].should.equal(access_key_id)
     access_keys["AccessKeyMetadata"][0]["UserName"].should.equal(user_name)
     access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
 

@@ -1323,7 +1323,7 @@ def test_enable_aws_service_access():
     service = response["EnabledServicePrincipals"][0]
     service["ServicePrincipal"].should.equal("config.amazonaws.com")
     date_enabled = service["DateEnabled"]
-    date_enabled["DateEnabled"].should.be.a(datetime)
+    date_enabled.should.be.a(datetime)
 
     # enabling the same service again should not result in any error or change
     # when
@@ -1338,7 +1338,7 @@ def test_enable_aws_service_access():
 
 
 @mock_organizations
-def test_enable_aws_service_access():
+def test_enable_aws_service_access_error():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
@@ -1354,7 +1354,7 @@ def test_enable_aws_service_access():
 
 
 @mock_organizations
-def test_enable_aws_service_access():
+def test_enable_multiple_aws_service_access():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
