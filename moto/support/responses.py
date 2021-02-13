@@ -17,8 +17,4 @@ class SupportResponse(BaseResponse):
             language=language,
         )
 
-        response = {"checks": []}
-        for item in checks:
-            response["checks"].append(item)
-
-        return json.dumps(dict(response))
+        return json.dumps({"checks": checks})
