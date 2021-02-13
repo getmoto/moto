@@ -15,7 +15,6 @@ from .exceptions import (
     NotFoundException,
 )
 
-
 MASTER_KEY_LEN = 32
 KEY_ID_LEN = 36
 IV_LEN = 12
@@ -159,3 +158,34 @@ def decrypt(master_keys, ciphertext_blob, encryption_context):
         raise InvalidCiphertextException()
 
     return plaintext, ciphertext.key_id
+
+
+def sign(master_keys, key_id, message, encryption_context):
+    """Sign a message using master key material.
+
+    NOTE: This is not necessarily what KMS does, but it retains the same properties.
+
+    NOTE: This function is NOT compatible with KMS APIs.
+    :param dict master_keys: Mapping of a KmsBackend's known master keys
+    :param str key_id: Key ID of moto master key
+    :param bytes message: Plaintext message to sign
+    :param dict[str, str] encryption_context: KMS-style encryption context
+    :returns: Moto-structured ciphertext blob encrypted under a moto master key in master_keys
+    :rtype: bytes
+    """
+    return ""
+
+
+def verify(master_keys, message, signature, encryption_context):
+    """Verify a signature using master key material.
+
+    NOTE: This is not necessarily what KMS does, but it retains the same properties.
+
+    NOTE: This function is NOT compatible with KMS APIs.
+    :param dict master_keys: Mapping of a KmsBackend's known master keys
+    :param bytes plaintext: Plaintext data to encrypt
+    :param dict[str, str] encryption_context: KMS-style encryption context
+    :returns: Moto-structured ciphertext blob encrypted under a moto master key in master_keys
+    :rtype: bytes
+    """
+    return True

@@ -18,7 +18,7 @@ from moto.kms.utils import (
     MASTER_KEY_LEN,
     encrypt,
     decrypt,
-    Ciphertext,
+    Ciphertext, sign, verify,
 )
 
 ENCRYPTION_CONTEXT_VECTORS = [
@@ -141,7 +141,7 @@ def test_decrypt_invalid_ciphertext_format():
         decrypt(master_keys=master_key_map, ciphertext_blob=b"", encryption_context={})
 
 
-def test_decrypt_unknwown_key_id():
+def test_decrypt_unknown_key_id():
     ciphertext_blob = (
         b"d25652e4-d2d2-49f7-929a-671ccda580c6"
         b"123456789012"
@@ -157,9 +157,9 @@ def test_decrypt_invalid_ciphertext():
     master_key = Key("nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
     ciphertext_blob = (
-        master_key.id.encode("utf-8") + b"123456789012"
-        b"1234567890123456"
-        b"some ciphertext"
+            master_key.id.encode("utf-8") + b"123456789012"
+                                            b"1234567890123456"
+                                            b"some ciphertext"
     )
 
     with pytest.raises(InvalidCiphertextException):
@@ -188,3 +188,28 @@ def test_decrypt_invalid_encryption_context():
             ciphertext_blob=ciphertext_blob,
             encryption_context={},
         )
+
+
+@pytest.mark.parametrize(
+    "encryption_context", [ec[0] for ec in ENCRYPTION_CONTEXT_VECTORS]
+)
+def test_sign_verify_cycle(encryption_context):
+    message = b"some message"
+    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key_map = {master_key.id: master_key}
+
+    signature = sign(
+        master_keys=master_key_map,
+        key_id=master_key.id,
+        message=message,
+        encryption_context=encryption_context,
+    )
+
+    verified = verify(
+        master_keys=master_key_map,
+        message=message,
+        signature=signature,
+        encryption_context=encryption_context
+    )
+
+    verified.should.be(True)

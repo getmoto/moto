@@ -54,14 +54,14 @@ def test_create_key():
     key["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048",)
+    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048", )
 
     sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(
         ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
     )
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048",)
+    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048", )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal(
@@ -100,7 +100,7 @@ def test_create_key():
 @mock_kms
 def test_describe_key():
     client = boto3.client("kms", region_name="us-east-1")
-    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT",)
+    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT", )
     key_id = response["KeyMetadata"]["KeyId"]
 
     response = client.describe_key(KeyId=key_id)
@@ -228,6 +228,36 @@ def test_kms_encrypt(plaintext):
 
     response = client.decrypt(CiphertextBlob=response["CiphertextBlob"])
     response["Plaintext"].should.equal(_get_encoded_value(plaintext))
+
+
+@pytest.mark.parametrize("message", PLAINTEXT_VECTORS)
+@mock_kms
+def test_kms_sign(message):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key")
+    for signing_algorithm in [
+        "RSASSA_PSS_SHA_256",
+        "RSASSA_PSS_SHA_384",
+        "RSASSA_PSS_SHA_512"
+    ]:
+        response = client.sign(KeyId=key["KeyMetadata"]["KeyId"],
+                               Message=message,
+                               MessageType='RAW',
+                               SigningAlgorithm=signing_algorithm)
+
+        response['KeyId'].should.equal(key["KeyMetadata"]["KeyId"])
+        response['SigningAlgorithm'].should.equal(signing_algorithm)
+
+        verification_response = client.verify(KeyId=key["KeyMetadata"]["KeyId"],
+                                              Message=message,
+                                              MessageType='RAW',
+                                              Signature=response['Signature'],
+                                              SignatureAlgorithm=signing_algorithm
+                                              )
+
+        verification_response['KeyId'].should.equal(key["KeyMetadata"]["KeyId"])
+        verification_response['SignatureValid'].should.be(True)
+        verification_response['SignatureAlgorithm'].should.be(signing_algorithm)
 
 
 @mock_kms
@@ -359,11 +389,11 @@ def test_list_resource_tags():
 @pytest.mark.parametrize(
     "kwargs,expected_key_length",
     (
-        (dict(KeySpec="AES_256"), 32),
-        (dict(KeySpec="AES_128"), 16),
-        (dict(NumberOfBytes=64), 64),
-        (dict(NumberOfBytes=1), 1),
-        (dict(NumberOfBytes=1024), 1024),
+            (dict(KeySpec="AES_256"), 32),
+            (dict(KeySpec="AES_128"), 16),
+            (dict(NumberOfBytes=64), 64),
+            (dict(NumberOfBytes=1), 1),
+            (dict(NumberOfBytes=1024), 1024),
     ),
 )
 @mock_kms
@@ -535,7 +565,7 @@ def test_generate_random(number_of_bytes):
 
 @pytest.mark.parametrize(
     "number_of_bytes,error_type",
-    [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError),],
+    [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError), ],
 )
 @mock_kms
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
