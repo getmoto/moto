@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from datetime import datetime
+from itertools import product
+
 from dateutil.tz import tzutc
 import base64
 import os
@@ -54,14 +56,14 @@ def test_create_key():
     key["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048", )
+    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048",)
 
     sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(
         ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
     )
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048", )
+    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048",)
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal(
@@ -98,27 +100,51 @@ def test_create_key():
 
 
 @mock_kms
-def test_get_public_key():
+@pytest.mark.parametrize(
+    "customer_master_key_spec, key_usage",
+    product(
+        [
+            "RSA_2048",
+            "RSA_3072",
+            "RSA_4096",
+            "ECC_NIST_P256",
+            "ECC_NIST_P384",
+            "ECC_NIST_P521",
+            "ECC_SECG_P256K1",
+        ],
+        ["ENCRYPT_DECRYPT", "SIGN_VERIFY"],
+    ),
+)
+def test_get_public_key(customer_master_key_spec, key_usage):
     client = boto3.client("kms", region_name="us-east-1")
-    for customer_master_key_spec in ['RSA_2048', 'RSA_3072', 'RSA_4096']:
-        key_response = client.create_key(Description="get_public_key",
-                                         KeyUsage="ENCRYPT_DECRYPT",
-                                         CustomerMasterKeySpec=customer_master_key_spec
-                                         )
-        key_id = key_response["KeyMetadata"]["KeyId"]
-        public_key_response = client.get_public_key(KeyId=key_id)
+    key_response = client.create_key(
+        Description="get_public_key",
+        KeyUsage=key_usage,
+        CustomerMasterKeySpec=customer_master_key_spec,
+    )
+    key_id = key_response["KeyMetadata"]["KeyId"]
+    public_key_response = client.get_public_key(KeyId=key_id)
 
-        public_key_response['KeyId'].should.equal(key_id)
-        public_key_response['KeyUsage'].should.equal(key_response['KeyUsage'])
-        public_key_response['CustomerMasterKeySpec'].should.equal(customer_master_key_spec)
-        public_key_response['EncryptionAlgorithms'].should.equal(key_response['EncryptionAlgorithms'])
-        public_key_response['SigningAlgorithms'].should.equal(key_response['SigningAlgorithms'])
+    public_key_response["KeyId"].should.equal(key_id)
+    public_key_response["KeyUsage"].should.equal(key_usage)
+    public_key_response["CustomerMasterKeySpec"].should.equal(customer_master_key_spec)
+    public_key_response.should.contain("PublicKey")
+    if key_usage == "ENCRYPT_DECRYPT":
+        public_key_response["EncryptionAlgorithms"].should.equal(
+            key_response["KeyMetadata"]["EncryptionAlgorithms"]
+        )
+        public_key_response.shouldnt.have.property("SigningAlgorithms")
+    elif key_usage == "SIGN_VERIFY":
+        public_key_response["SigningAlgorithms"].should.equal(
+            key_response["KeyMetadata"]["SigningAlgorithms"]
+        )
+        public_key_response.shouldnt.contain("EncryptionAlgorithms")
 
 
 @mock_kms
 def test_describe_key():
     client = boto3.client("kms", region_name="us-east-1")
-    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT", )
+    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT",)
     key_id = response["KeyMetadata"]["KeyId"]
 
     response = client.describe_key(KeyId=key_id)
@@ -414,11 +440,11 @@ def test_list_resource_tags():
 @pytest.mark.parametrize(
     "kwargs,expected_key_length",
     (
-            (dict(KeySpec="AES_256"), 32),
-            (dict(KeySpec="AES_128"), 16),
-            (dict(NumberOfBytes=64), 64),
-            (dict(NumberOfBytes=1), 1),
-            (dict(NumberOfBytes=1024), 1024),
+        (dict(KeySpec="AES_256"), 32),
+        (dict(KeySpec="AES_128"), 16),
+        (dict(NumberOfBytes=64), 64),
+        (dict(NumberOfBytes=1), 1),
+        (dict(NumberOfBytes=1024), 1024),
     ),
 )
 @mock_kms
@@ -596,7 +622,7 @@ def test_generate_random(number_of_bytes):
 
 @pytest.mark.parametrize(
     "number_of_bytes,error_type",
-    [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError), ],
+    [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError),],
 )
 @mock_kms
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):

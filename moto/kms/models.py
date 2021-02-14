@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from boto3 import Session
+from cryptography.hazmat.primitives import serialization
 
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
 from moto.core.utils import unix_time
@@ -159,6 +160,14 @@ class KmsBackend(BaseBackend):
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
         return key
+
+    def get_public_key(self, key_id):
+        key = self.keys[self.get_key_id(key_id)]
+        public_key = key.key_material.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        return key, public_key
 
     def update_key_description(self, key_id, description):
         key = self.keys[self.get_key_id(key_id)]

@@ -117,7 +117,7 @@ class KmsResponse(BaseResponse):
     def create_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html"""
         policy = self.parameters.get("Policy")
-        key_usage = self.parameters.get("KeyUsage")
+        key_usage = self.parameters.get("KeyUsage", "ENCRYPT_DECRYPT")
         customer_master_key_spec = self.parameters.get(
             "CustomerMasterKeySpec", "SYMMETRIC_DEFAULT"
         )
@@ -128,6 +128,21 @@ class KmsResponse(BaseResponse):
             policy, key_usage, customer_master_key_spec, description, tags, self.region
         )
         return json.dumps(key.to_dict())
+
+    def get_public_key(self):
+        key_id = self.parameters.get("KeyId")
+        self._validate_cmk_id(key_id)
+        key, public_key = self.kms_backend.get_public_key(key_id)
+        return json.dumps(
+            {
+                "CustomerMasterKeySpec": key.customer_master_key_spec,
+                "EncryptionAlgorithms": key.encryption_algorithms,
+                "KeyId": key.id,
+                "KeyUsage": key.key_usage,
+                "PublicKey": base64.b64encode(public_key).decode("UTF-8"),
+                "SigningAlgorithms": key.signing_algorithms,
+            }
+        )
 
     def update_key_description(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateKeyDescription.html"""

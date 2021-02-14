@@ -6191,7 +6191,7 @@
 - [X] get_key_policy
 - [X] get_key_rotation_status
 - [ ] get_parameters_for_import
-- [ ] get_public_key
+- [X] get_public_key
 - [ ] import_key_material
 - [ ] list_aliases
 - [ ] list_grants
@@ -6204,13 +6204,13 @@
 - [ ] retire_grant
 - [ ] revoke_grant
 - [X] schedule_key_deletion
-- [ ] sign
+- [X] sign
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_alias
 - [ ] update_custom_key_store
 - [X] update_key_description
-- [ ] verify
+- [X] verify
 </details>
 
 ## lakeformation
