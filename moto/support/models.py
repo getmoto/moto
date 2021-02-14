@@ -28,10 +28,10 @@ class SupportBackend(BaseBackend):
 support_backends = {}
 
 # Only currently supported in us-east-1
-support_backends["us-east-1"] = SupportBackend()
+support_backends["us-east-1"] = SupportBackend("us-east-1")
 for region in Session().get_available_regions("support"):
-    support_backends[region] = SupportBackend()
+    support_backends[region] = SupportBackend(region)
 for region in Session().get_available_regions("support", partition_name="aws-us-gov"):
-    support_backends[region] = SupportBackend()
+    support_backends[region] = SupportBackend(region)
 for region in Session().get_available_regions("support", partition_name="aws-cn"):
-    support_backends[region] = SupportBackend()
+    support_backends[region] = SupportBackend(region)
