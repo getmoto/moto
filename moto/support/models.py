@@ -1,7 +1,12 @@
 from __future__ import unicode_literals
 from boto3 import Session
+from pkg_resources import resource_filename
 from moto.core import BaseBackend
-import json
+from moto.utilities.utils import load_resource
+
+
+checks_json = "resources/describe_trusted_advisor_checks.json"
+ADVISOR_CHECKS = load_resource(resource_filename(__name__, checks_json))
 
 
 class SupportBackend(BaseBackend):
@@ -16,11 +21,7 @@ class SupportBackend(BaseBackend):
 
     def describe_trusted_advisor_checks(self, language):
         # The checks are a static response
-        trusted_advisor_checks_file = open(
-            "moto/support/resources/describe_trusted_advisor_checks.json"
-        )
-        json_file = json.load(trusted_advisor_checks_file)
-        checks = json_file["checks"]
+        checks = ADVISOR_CHECKS["checks"]
         return checks
 
 
