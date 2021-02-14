@@ -477,9 +477,10 @@ class KmsResponse(BaseResponse):
         signing_algorithm = self.parameters.get("SigningAlgorithm")
 
         self._validate_key_id(key_id)
+        signature = base64.b64decode(signature)
 
         verified = self.kms_backend.verify(
-            message=message,
+            message=message.encode("utf-8"),
             message_type=message_type,
             signature=signature,
             signing_algorithm=signing_algorithm,

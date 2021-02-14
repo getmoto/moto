@@ -6,6 +6,7 @@ import os
 import struct
 import uuid
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec, utils
@@ -16,6 +17,7 @@ from .exceptions import (
     AccessDeniedException,
     NotFoundException,
 )
+from ..core.exceptions import JsonRESTError
 
 MASTER_KEY_LEN = 32
 KEY_ID_LEN = 36
@@ -203,10 +205,10 @@ def decrypt(master_keys, ciphertext, encryption_context, encryption_algorithm, k
     NOTE: This function is NOT compatible with KMS APIs.
 
     :param dict master_keys: Mapping of a KmsBackend's known master keys
-    :param bytes ciphertext: moto-structured ciphertext blob encrypted under a moto master key in master_keys
+    :param Union[Ciphertext,bytes] ciphertext: moto-structured ciphertext blob encrypted under a moto master key in master_keys
     :param dict[str, str] encryption_context: KMS-style encryption context
     :param str encryption_algorithm: Specifies the encryption algorithm that will be used to decrypt the ciphertext.
-    :param str key_id: Specifies the customer master key (CMK) that AWS KMS uses to decrypt the ciphertext.
+    :param Optional[str] key_id: Specifies the customer master key (CMK) that AWS KMS uses to decrypt the ciphertext.
     :returns: plaintext bytes and moto key ID
     :rtype: bytes and str
     """
@@ -259,7 +261,7 @@ def sign(master_keys, key_id, message, message_type, signing_algorithm):
                 id_type="Alias" if is_alias else "keyId", key_id=key_id
             )
         )
-    print(len(message))
+    _check_for_activation(key)
     if message_type == "RAW":
         return key.key_material.sign(
             message,
@@ -285,9 +287,46 @@ def verify(master_keys, key_id, message, message_type, signature, signing_algori
     :param str key_id: Key ID of moto master key
     :param bytes message: The message which was signed
     :param str message_type: Either 'RAW' or 'DIGEST'
-    :param signature: The signature that the `sign` operation generated
-    :param signing_algorithm: The signing algorithm which was used to generate the signature.
+    :param bytes signature: The signature that the `sign` operation generated
+    :param str signing_algorithm: The signing algorithm which was used to generate the signature.
     :returns: True if the signature is valid, False otherwise.
     :rtype: bool
     """
-    return True
+    try:
+        key = master_keys[key_id]
+    except KeyError:
+        is_alias = key_id.startswith("alias/") or ":alias/" in key_id
+        raise NotFoundException(
+            "{id_type} {key_id} is not found.".format(
+                id_type="Alias" if is_alias else "keyId", key_id=key_id
+            )
+        )
+    _check_for_activation(key)
+    try:
+        if message_type == "RAW":
+            key.key_material.public_key().verify(
+                signature,
+                message,
+                signing_algorithms[signing_algorithm]["padding"],
+                signing_algorithms[signing_algorithm]["hash"],
+            )
+        else:
+            key.key_material.public_key().verify(
+                signature,
+                message,
+                signing_algorithms[signing_algorithm]["padding"],
+                signing_algorithms[signing_algorithm]["hash"],
+                utils.Prehashed(signing_algorithms[signing_algorithm]["hash"]),
+            )
+        return True
+    except InvalidSignature:
+        return False
+
+
+def _check_for_activation(key):
+    """Throw a DisabledException if the key is disabled."""
+    if not key.enabled:
+        raise JsonRESTError(
+            "DisabledException",
+            "The request was rejected because the specified key is disabled.",
+        )

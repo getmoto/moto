@@ -9,6 +9,7 @@ import os
 
 import boto3
 import botocore.exceptions
+import botocore.errorfactory
 import six
 import sure  # noqa
 from freezegun import freeze_time
@@ -264,7 +265,7 @@ def test_invalid_key_ids(key_id):
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
 @mock_kms
-def test_kms_encrypt(plaintext):
+def test_encrypt(plaintext):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="key")
     response = client.encrypt(KeyId=key["KeyMetadata"]["KeyId"], Plaintext=plaintext)
@@ -278,7 +279,7 @@ def test_kms_encrypt(plaintext):
 
 @pytest.mark.parametrize("message", PLAINTEXT_VECTORS)
 @mock_kms
-def test_kms_sign(message):
+def test_sign(message):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="key", CustomerMasterKeySpec="RSA_4096")
     # TODO: move this loop to test parameters
@@ -309,6 +310,36 @@ def test_kms_sign(message):
         verification_response["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
         verification_response["SignatureValid"].should.be(True)
         verification_response["SigningAlgorithm"].should.equal(signing_algorithm)
+
+
+@pytest.mark.parametrize("message", PLAINTEXT_VECTORS)
+@mock_kms
+def test_sign_missing_key(message):
+    client = boto3.client("kms", region_name="us-east-1")
+
+    with pytest.raises(client.exceptions.NotFoundException):
+        response = client.sign(
+            KeyId="this_key_doesnt_exist",
+            Message=message,
+            MessageType="RAW",
+            SigningAlgorithm="RSASSA_PKCS1_V1_5_SHA_384",
+        )
+
+
+@pytest.mark.parametrize("message", PLAINTEXT_VECTORS)
+@mock_kms
+def test_sign_disabled_key(message):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key", CustomerMasterKeySpec="RSA_4096")
+    client.disable_key(KeyId=key["KeyMetadata"]["KeyId"])
+
+    with pytest.raises(client.exceptions.DisabledException):
+        response = client.sign(
+            KeyId=key["KeyMetadata"]["KeyId"],
+            Message=message,
+            MessageType="RAW",
+            SigningAlgorithm="RSASSA_PKCS1_V1_5_SHA_384",
+        )
 
 
 @mock_kms
