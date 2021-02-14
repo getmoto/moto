@@ -609,12 +609,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         size,
         device_path,
+        volume_type,
         snapshot_id=None,
         encrypted=False,
         delete_on_termination=False,
     ):
         volume = self.ec2_backend.create_volume(
-            size, self.region_name, snapshot_id, encrypted
+            size, self.region_name, volume_type, snapshot_id, encrypted
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination
@@ -623,7 +624,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
-        volume = self.ec2_backend.create_volume(8, "us-east-1a")
+        volume = self.ec2_backend.create_volume(8, "us-east-1a", "standard")
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1", True)
 
     def teardown_defaults(self):
@@ -980,6 +981,7 @@ class InstanceBackend(object):
                     device_name = block_device["DeviceName"]
                     volume_size = block_device["Ebs"].get("VolumeSize")
                     snapshot_id = block_device["Ebs"].get("SnapshotId")
+                    volume_type = block_device["Ebs"].get("VolumeType")
                     encrypted = block_device["Ebs"].get("Encrypted", False)
                     delete_on_termination = block_device["Ebs"].get(
                         "DeleteOnTermination", False
@@ -987,6 +989,7 @@ class InstanceBackend(object):
                     new_instance.add_block_device(
                         volume_size,
                         device_name,
+                        volume_type,
                         snapshot_id,
                         encrypted,
                         delete_on_termination,
@@ -1474,7 +1477,7 @@ class Ami(TaggedEC2Resource):
             self.launch_permission_groups.add("all")
 
         # AWS auto-creates these, we should reflect the same.
-        volume = self.ec2_backend.create_volume(15, region_name)
+        volume = self.ec2_backend.create_volume(15, region_name, "standard")
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id
         )
@@ -2548,6 +2551,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         ec2_backend,
         volume_id,
         size,
+        volume_type,
         zone,
         snapshot_id=None,
         encrypted=False,
@@ -2562,6 +2566,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.encrypted = encrypted
         self.kms_key_id = kms_key_id
+        self.type = volume_type
 
     @staticmethod
     def cloudformation_name_type():
@@ -2620,6 +2625,8 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
             return str(self.encrypted).lower()
         elif filter_name == "availability-zone":
             return self.zone.name
+        elif filter_name == "volume-type":
+            return self.type
         else:
             return super(Volume, self).get_filter_value(filter_name, "DescribeVolumes")
 
@@ -2656,6 +2663,8 @@ class Snapshot(TaggedEC2Resource):
             return self.volume.id
         elif filter_name == "volume-size":
             return self.volume.size
+        elif filter_name == "volume-type":
+            return self.volume.type
         elif filter_name == "encrypted":
             return str(self.encrypted).lower()
         elif filter_name == "status":
@@ -2676,7 +2685,7 @@ class EBSBackend(object):
         super(EBSBackend, self).__init__()
 
     def create_volume(
-        self, size, zone_name, snapshot_id=None, encrypted=False, kms_key_id=None
+        self, size, zone_name, volume_type, snapshot_id=None, encrypted=False, kms_key_id=None
     ):
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -2690,7 +2699,7 @@ class EBSBackend(object):
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
-        volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted, kms_key_id)
+        volume = Volume(self, volume_id, size, volume_type, zone, snapshot_id, encrypted, kms_key_id)
         self.volumes[volume_id] = volume
         return volume
 

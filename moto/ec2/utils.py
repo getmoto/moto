@@ -380,6 +380,7 @@ filter_dict_attribute_mapping = {
     "private-dns-name": "private_dns",
     "owner-id": "owner_id",
     "subnet-id": "subnet_id",
+    "volume-type": "volume.type",
 }
 
 
