@@ -296,7 +296,7 @@ def test_message_retention_period():
     )
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     queue.send_message(
         MessageBody="derp",
@@ -308,9 +308,9 @@ def test_message_retention_period():
         },
     )
 
-    time.sleep(4)
+    time.sleep(5)
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 0
 
 
 @mock_sqs
@@ -1969,29 +1969,30 @@ def test_queue_with_dlq():
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        resp["Messages"][0]["Body"].should.equal("msg1")
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     with freeze_time("2015-01-01 13:01:00"):
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        resp["Messages"][0]["Body"].should.equal("msg1")
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     with freeze_time("2015-01-01 13:02:00"):
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        len(resp["Messages"]).should.equal(1)
+        assert len(resp["Messages"]) == 1
 
-    resp = sqs.receive_message(
-        QueueUrl=queue_url1, VisibilityTimeout=30, WaitTimeSeconds=0
-    )
-    resp["Messages"][0]["Body"].should.equal("msg1")
+    with freeze_time("2015-01-01 13:02:00"):
+        resp = sqs.receive_message(
+            QueueUrl=queue_url1, VisibilityTimeout=30, WaitTimeSeconds=0
+        )
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     # Might as well test list source queues
 
     resp = sqs.list_dead_letter_source_queues(QueueUrl=queue_url1)
-    resp["queueUrls"][0].should.equal(queue_url2)
+    assert resp["queueUrls"][0] == queue_url2
 
 
 @mock_sqs
