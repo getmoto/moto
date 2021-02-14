@@ -10,8 +10,18 @@ from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
+from .exceptions import InvalidCiphertextException
 
-from .utils import decrypt, encrypt, generate_key_id, generate_master_key
+from .utils import (
+    decrypt,
+    encrypt,
+    generate_key_id,
+    generate_master_key,
+    sign,
+    deserialize_ciphertext_blob,
+    serialize_ciphertext_blob,
+    verify,
+)
 
 
 class Key(CloudFormationModel):
@@ -29,10 +39,10 @@ class Key(CloudFormationModel):
         self.account_id = ACCOUNT_ID
         self.key_rotation_status = False
         self.deletion_date = None
-        self.key_material = generate_master_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+        self.key_material = generate_master_key(self.customer_master_key_spec)
 
     @property
     def physical_resource_id(self):
@@ -265,23 +275,39 @@ class KmsBackend(BaseBackend):
             )
             return unix_time(self.keys[key_id].deletion_date)
 
-    def encrypt(self, key_id, plaintext, encryption_context):
+    def encrypt(self, key_id, plaintext, encryption_context, encryption_algorithm):
         key_id = self.any_id_to_key_id(key_id)
 
-        ciphertext_blob = encrypt(
-            master_keys=self.keys,
-            key_id=key_id,
-            plaintext=plaintext,
-            encryption_context=encryption_context,
+        ciphertext_blob = self._serialize_ciphertext_blob(
+            encrypt(
+                master_keys=self.keys,
+                key_id=key_id,
+                plaintext=plaintext,
+                encryption_context=encryption_context,
+                encryption_algorithm=encryption_algorithm,
+            )
         )
         arn = self.keys[key_id].arn
         return ciphertext_blob, arn
 
-    def decrypt(self, ciphertext_blob, encryption_context):
+    def decrypt(
+        self, ciphertext_blob, encryption_context, encryption_algorithm, key_id
+    ):
+        if encryption_algorithm == "SYMMETRIC_DEFAULT":
+            try:
+                ciphertext = self._deserialize_ciphertext_blob(ciphertext_blob)
+            except Exception:
+                raise InvalidCiphertextException()
+            key_id = key_id or ciphertext.key_id
+        else:
+            ciphertext = ciphertext_blob
+        key_id = self.any_id_to_key_id(key_id)
         plaintext, key_id = decrypt(
             master_keys=self.keys,
-            ciphertext_blob=ciphertext_blob,
+            ciphertext=ciphertext,
             encryption_context=encryption_context,
+            encryption_algorithm=encryption_algorithm,
+            key_id=key_id,
         )
         arn = self.keys[key_id].arn
         return plaintext, arn
@@ -290,21 +316,53 @@ class KmsBackend(BaseBackend):
         self,
         ciphertext_blob,
         source_encryption_context,
+        source_key_id,
+        source_encryption_algorithm,
         destination_key_id,
         destination_encryption_context,
+        destination_encryption_algorithm,
     ):
+        if source_encryption_algorithm == "SYMMETRIC_DEFAULT":
+            ciphertext = self._deserialize_ciphertext_blob(ciphertext_blob)
+            source_key_id = source_key_id or ciphertext.key_id
+        source_key_id = self.any_id_to_key_id(source_key_id)
         destination_key_id = self.any_id_to_key_id(destination_key_id)
 
         plaintext, decrypting_arn = self.decrypt(
+            key_id=source_key_id,
             ciphertext_blob=ciphertext_blob,
             encryption_context=source_encryption_context,
+            encryption_algorithm=source_encryption_algorithm,
         )
+
         new_ciphertext_blob, encrypting_arn = self.encrypt(
             key_id=destination_key_id,
             plaintext=plaintext,
             encryption_context=destination_encryption_context,
+            encryption_algorithm=destination_encryption_algorithm,
         )
         return new_ciphertext_blob, decrypting_arn, encrypting_arn
+
+    def sign(self, key_id, message, message_type, signing_algorithm):
+        key_id = self.any_id_to_key_id(key_id)
+        return sign(
+            master_keys=self.keys,
+            key_id=key_id,
+            message=message,
+            message_type=message_type,
+            signing_algorithm=signing_algorithm,
+        )
+
+    def verify(self, key_id, message, message_type, signature, signing_algorithm):
+        key_id = self.any_id_to_key_id(key_id)
+        return verify(
+            master_keys=self.keys,
+            key_id=key_id,
+            message=message,
+            message_type=message_type,
+            signature=signature,
+            signing_algorithm=signing_algorithm,
+        )
 
     def generate_data_key(
         self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens
@@ -323,7 +381,10 @@ class KmsBackend(BaseBackend):
         plaintext = os.urandom(plaintext_len)
 
         ciphertext_blob, arn = self.encrypt(
-            key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
+            key_id=key_id,
+            plaintext=plaintext,
+            encryption_context=encryption_context,
+            encryption_algorithm="SYMMETRIC_DEFAULT",
         )
 
         return plaintext, ciphertext_blob, arn
@@ -353,6 +414,20 @@ class KmsBackend(BaseBackend):
             "NotFoundException",
             "The request was rejected because the specified entity or resource could not be found.",
         )
+
+    def _deserialize_ciphertext_blob(self, ciphertext_blob):
+        """Deserialize ciphertext blob into a Ciphertext object.
+
+        NOTE: This is just a simple binary format. It is not what KMS actually does.
+        """
+        return deserialize_ciphertext_blob(ciphertext_blob)
+
+    def _serialize_ciphertext_blob(self, ciphertext):
+        """Deserialize ciphertext blob into a Ciphertext object.
+
+        NOTE: This is just a simple binary format. It is not what KMS actually does.
+        """
+        return serialize_ciphertext_blob(ciphertext)
 
 
 kms_backends = {}

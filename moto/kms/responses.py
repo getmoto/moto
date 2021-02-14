@@ -118,7 +118,9 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html"""
         policy = self.parameters.get("Policy")
         key_usage = self.parameters.get("KeyUsage")
-        customer_master_key_spec = self.parameters.get("CustomerMasterKeySpec")
+        customer_master_key_spec = self.parameters.get(
+            "CustomerMasterKeySpec", "SYMMETRIC_DEFAULT"
+        )
         description = self.parameters.get("Description")
         tags = self.parameters.get("Tags")
 
@@ -339,6 +341,9 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Encrypt.html"""
         key_id = self.parameters.get("KeyId")
         encryption_context = self.parameters.get("EncryptionContext", {})
+        encryption_algorithm = self.parameters.get(
+            "EncryptionAlgorithm", "SYMMETRIC_DEFAULT"
+        )
         plaintext = self.parameters.get("Plaintext")
 
         self._validate_key_id(key_id)
@@ -347,7 +352,10 @@ class KmsResponse(BaseResponse):
             plaintext = plaintext.encode("utf-8")
 
         ciphertext_blob, arn = self.kms_backend.encrypt(
-            key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
+            key_id=key_id,
+            plaintext=plaintext,
+            encryption_context=encryption_context,
+            encryption_algorithm=encryption_algorithm,
         )
         ciphertext_blob_response = base64.b64encode(ciphertext_blob).decode("utf-8")
 
@@ -357,9 +365,16 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Decrypt.html"""
         ciphertext_blob = self.parameters.get("CiphertextBlob")
         encryption_context = self.parameters.get("EncryptionContext", {})
+        encryption_algorithm = self.parameters.get(
+            "EncryptionAlgorithm", "SYMMETRIC_DEFAULT"
+        )
+        key_id = self.parameters.get("KeyId", None)
 
         plaintext, arn = self.kms_backend.decrypt(
-            ciphertext_blob=ciphertext_blob, encryption_context=encryption_context
+            ciphertext_blob=ciphertext_blob,
+            encryption_context=encryption_context,
+            encryption_algorithm=encryption_algorithm,
+            key_id=key_id,
         )
 
         plaintext_response = base64.b64encode(plaintext).decode("utf-8")
@@ -369,12 +384,21 @@ class KmsResponse(BaseResponse):
     def re_encrypt(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ReEncrypt.html"""
         ciphertext_blob = self.parameters.get("CiphertextBlob")
+        source_key_id = self.parameters.get("SourceKeyId", None)
         source_encryption_context = self.parameters.get("SourceEncryptionContext", {})
-        destination_key_id = self.parameters.get("DestinationKeyId")
+        source_encryption_algorithm = self.parameters.get(
+            "SourceEncryptionAlgorithm", "SYMMETRIC_DEFAULT"
+        )
+        destination_key_id = self.parameters.get("DestinationKeyId", None)
         destination_encryption_context = self.parameters.get(
             "DestinationEncryptionContext", {}
         )
+        destination_encryption_algorithm = self.parameters.get(
+            "SourceEncryptionAlgorithm", "SYMMETRIC_DEFAULT"
+        )
 
+        if source_key_id:
+            self._validate_cmk_id(source_key_id)
         self._validate_cmk_id(destination_key_id)
 
         (
@@ -384,8 +408,11 @@ class KmsResponse(BaseResponse):
         ) = self.kms_backend.re_encrypt(
             ciphertext_blob=ciphertext_blob,
             source_encryption_context=source_encryption_context,
+            source_key_id=source_key_id,
+            source_encryption_algorithm=source_encryption_algorithm,
             destination_key_id=destination_key_id,
             destination_encryption_context=destination_encryption_context,
+            destination_encryption_algorithm=destination_encryption_algorithm,
         )
 
         response_ciphertext_blob = base64.b64encode(new_ciphertext_blob).decode("utf-8")
@@ -395,6 +422,59 @@ class KmsResponse(BaseResponse):
                 "CiphertextBlob": response_ciphertext_blob,
                 "KeyId": encrypting_arn,
                 "SourceKeyId": decrypting_arn,
+            }
+        )
+
+    def sign(self):
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_Sign.html"""
+        key_id = self.parameters.get("KeyId")
+        message = self.parameters.get("Message")
+        message_type = self.parameters.get("MessageType", "RAW")
+        signing_algorithm = self.parameters.get("SigningAlgorithm")
+
+        self._validate_key_id(key_id)
+
+        if isinstance(message, six.text_type):
+            message = message.encode("utf-8")
+
+        signature = self.kms_backend.sign(
+            key_id=key_id,
+            message=message,
+            message_type=message_type,
+            signing_algorithm=signing_algorithm,
+        )
+        signature_blob = base64.b64encode(signature).decode("utf-8")
+
+        return json.dumps(
+            {
+                "KeyId": key_id,
+                "Signature": signature_blob,
+                "SigningAlgorithm": signing_algorithm,
+            }
+        )
+
+    def verify(self):
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_Verify.html"""
+        key_id = self.parameters.get("KeyId")
+        message = self.parameters.get("Message")
+        message_type = self.parameters.get("MessageType", "RAW")
+        signature = self.parameters.get("Signature")
+        signing_algorithm = self.parameters.get("SigningAlgorithm")
+
+        self._validate_key_id(key_id)
+
+        verified = self.kms_backend.verify(
+            message=message,
+            message_type=message_type,
+            signature=signature,
+            signing_algorithm=signing_algorithm,
+            key_id=key_id,
+        )
+        return json.dumps(
+            {
+                "KeyId": key_id,
+                "SignatureValid": verified,
+                "SigningAlgorithm": signing_algorithm,
             }
         )
 
