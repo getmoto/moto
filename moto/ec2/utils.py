@@ -379,6 +379,7 @@ filter_dict_attribute_mapping = {
     "network-interface.private-dns-name": "private_dns",
     "private-dns-name": "private_dns",
     "owner-id": "owner_id",
+    "subnet-id": "subnet_id",
 }
 
 
