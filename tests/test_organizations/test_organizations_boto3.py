@@ -354,9 +354,6 @@ def test_list_children_exception():
 
 @mock_organizations
 def test_list_create_account_status():
-    """
-    ToDo: also check pagination response
-    """
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
     response = client.list_create_account_status()
