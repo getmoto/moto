@@ -30,15 +30,21 @@ Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
 
 signing_algorithms = {
     "RSASSA_PSS_SHA_256": {
-        "padding": padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=256),
+        "padding": padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()), salt_length=int(256 / 8)
+        ),
         "hash": hashes.SHA256(),
     },
     "RSASSA_PSS_SHA_384": {
-        "padding": padding.PSS(mgf=padding.MGF1(hashes.SHA384()), salt_length=384),
+        "padding": padding.PSS(
+            mgf=padding.MGF1(hashes.SHA384()), salt_length=int(384 / 8)
+        ),
         "hash": hashes.SHA256(),
     },
     "RSASSA_PSS_SHA_512": {
-        "padding": padding.PSS(mgf=padding.MGF1(hashes.SHA512()), salt_length=512),
+        "padding": padding.PSS(
+            mgf=padding.MGF1(hashes.SHA512()), salt_length=int(512 / 8)
+        ),
         "hash": hashes.SHA256(),
     },
     "RSASSA_PKCS1_V1_5_SHA_256": {
