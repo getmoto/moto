@@ -6416,7 +6416,7 @@
 
 ## organizations
 <details>
-<summary>70% implemented</summary>
+<summary>72% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -6450,7 +6450,7 @@
 - [X] list_accounts_for_parent
 - [X] list_aws_service_access_for_organization
 - [X] list_children
-- [ ] list_create_account_status
+- [X] list_create_account_status
 - [X] list_delegated_administrators
 - [X] list_delegated_services_for_account
 - [ ] list_handshakes_for_account
