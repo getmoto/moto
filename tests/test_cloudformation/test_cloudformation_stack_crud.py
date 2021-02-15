@@ -5,6 +5,7 @@ import json
 
 import boto
 import boto3
+import boto.dynamodb2
 import boto.iam
 import boto.s3
 import boto.s3.key
@@ -20,7 +21,7 @@ from moto import (
     mock_s3_deprecated,
     mock_route53_deprecated,
     mock_iam_deprecated,
-    mock_dynamodb2,
+    mock_dynamodb2_deprecated,
 )
 from moto.cloudformation import cloudformation_backends
 
@@ -213,18 +214,17 @@ def test_describe_stack_by_stack_id():
     stack_by_id.stack_name.should.equal("test_stack")
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 @mock_cloudformation_deprecated
 def test_delete_stack_dynamo_template():
     conn = boto.connect_cloudformation()
-    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    db_conn = boto.dynamodb2.connect_to_region("us-east-1")
+    #
     conn.create_stack("test_stack", template_body=dummy_template_json4)
-    table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(1)
+    db_conn.list_tables()["TableNames"].should.have.length_of(1)
+    #
     conn.delete_stack("test_stack")
-    table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(0)
-    conn.create_stack("test_stack", template_body=dummy_template_json4)
+    db_conn.list_tables()["TableNames"].should.have.length_of(0)
 
 
 @mock_cloudformation_deprecated
