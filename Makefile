@@ -1,13 +1,10 @@
 SHELL := /bin/bash
 
 ifeq ($(TEST_SERVER_MODE), true)
-	# exclude test_iot and test_iotdata for now
-	# because authentication of iot is very complicated
-
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
 
-	TEST_EXCLUDE :=  -k 'not (test_iot or test_kinesisvideoarchivedmedia)'
+	TEST_EXCLUDE :=  -k 'not test_kinesisvideoarchivedmedia'
 else
 	TEST_EXCLUDE :=
 endif
@@ -26,12 +23,17 @@ format:
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	@pytest -sv --cov=moto --cov-report html ./tests/ $(TEST_EXCLUDE)
+	pytest -sv ./tests/ $(TEST_EXCLUDE)
+
+test-coverage:
+	rm -f .coverage
+	rm -rf cover
+	pytest -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
 
 test: lint test-only
 
 test_server:
-	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report html ./tests/
+	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report xml ./tests/
 
 aws_managed_policies:
 	scripts/update_managed_policies.py

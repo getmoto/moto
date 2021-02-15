@@ -1140,8 +1140,9 @@ def test_enable_virtual_mfa_device():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
     serial_number = response["VirtualMFADevice"]["SerialNumber"]
+    tags = [{"Key": "key", "Value": "value"}]
 
-    client.create_user(UserName="test-user")
+    client.create_user(UserName="test-user", Tags=tags)
     client.enable_mfa_device(
         UserName="test-user",
         SerialNumber=serial_number,
@@ -1165,6 +1166,7 @@ def test_enable_virtual_mfa_device():
         "arn:aws:iam::{}:user/test-user".format(ACCOUNT_ID)
     )
     device["User"]["CreateDate"].should.be.a(datetime)
+    device["User"]["Tags"].should.equal(tags)
     device["EnableDate"].should.be.a(datetime)
     response["IsTruncated"].should_not.be.ok
 
@@ -2523,6 +2525,16 @@ def test_create_open_id_connect_provider():
     )
 
 
+@pytest.mark.parametrize("url", ["example.org", "example"])
+@mock_iam
+def test_create_open_id_connect_provider_invalid_url(url):
+    client = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(Url=url, ThumbprintList=[])
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("Invalid Open ID Connect Provider URL")
+
+
 @mock_iam
 def test_create_open_id_connect_provider_errors():
     client = boto3.client("iam", region_name="us-east-1")
@@ -2532,49 +2544,65 @@ def test_create_open_id_connect_provider_errors():
         Url="https://example.com", ThumbprintList=[]
     ).should.throw(ClientError, "Unknown")
 
-    client.create_open_id_connect_provider.when.called_with(
-        Url="example.org", ThumbprintList=[]
-    ).should.throw(ClientError, "Invalid Open ID Connect Provider URL")
 
-    client.create_open_id_connect_provider.when.called_with(
-        Url="example", ThumbprintList=[]
-    ).should.throw(ClientError, "Invalid Open ID Connect Provider URL")
+@mock_iam
+def test_create_open_id_connect_provider_too_many_entries():
+    client = boto3.client("iam", region_name="us-east-1")
 
-    client.create_open_id_connect_provider.when.called_with(
-        Url="http://example.org",
-        ThumbprintList=["a" * 40, "b" * 40, "c" * 40, "d" * 40, "e" * 40, "f" * 40,],
-    ).should.throw(ClientError, "Thumbprint list must contain fewer than 5 entries.")
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(
+            Url="http://example.org",
+            ThumbprintList=[
+                "a" * 40,
+                "b" * 40,
+                "c" * 40,
+                "d" * 40,
+                "e" * 40,
+                "f" * 40,
+            ],
+        )
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("Thumbprint list must contain fewer than 5 entries.")
+
+
+@mock_iam
+def test_create_open_id_connect_provider_quota_error():
+    client = boto3.client("iam", region_name="us-east-1")
 
     too_many_client_ids = ["{}".format(i) for i in range(101)]
-    client.create_open_id_connect_provider.when.called_with(
-        Url="http://example.org", ThumbprintList=[], ClientIDList=too_many_client_ids,
-    ).should.throw(
-        ClientError, "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100",
-    )
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(
+            Url="http://example.org",
+            ThumbprintList=[],
+            ClientIDList=too_many_client_ids,
+        )
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100")
+
+
+@mock_iam
+def test_create_open_id_connect_provider_multiple_errors():
+    client = boto3.client("iam", region_name="us-east-1")
 
     too_long_url = "b" * 256
     too_long_thumbprint = "b" * 41
     too_long_client_id = "b" * 256
-    client.create_open_id_connect_provider.when.called_with(
-        Url=too_long_url,
-        ThumbprintList=[too_long_thumbprint],
-        ClientIDList=[too_long_client_id],
-    ).should.throw(
-        ClientError,
-        "3 validation errors detected: "
-        'Value "{0}" at "clientIDList" failed to satisfy constraint: '
-        "Member must satisfy constraint: "
-        "[Member must have length less than or equal to 255, "
-        "Member must have length greater than or equal to 1]; "
-        'Value "{1}" at "thumbprintList" failed to satisfy constraint: '
-        "Member must satisfy constraint: "
-        "[Member must have length less than or equal to 40, "
-        "Member must have length greater than or equal to 40]; "
-        'Value "{2}" at "url" failed to satisfy constraint: '
-        "Member must have length less than or equal to 255".format(
-            [too_long_client_id], [too_long_thumbprint], too_long_url
-        ),
-    )
+    with pytest.raises(ClientError) as e:
+        client.create_open_id_connect_provider(
+            Url=too_long_url,
+            ThumbprintList=[too_long_thumbprint],
+            ClientIDList=[too_long_client_id],
+        )
+    msg = e.value.response["Error"]["Message"]
+    msg.should.contain("3 validation errors detected:")
+    msg.should.contain('"clientIDList" failed to satisfy constraint:')
+    msg.should.contain("Member must have length less than or equal to 255")
+    msg.should.contain("Member must have length greater than or equal to 1")
+    msg.should.contain('"thumbprintList" failed to satisfy constraint:')
+    msg.should.contain("Member must have length less than or equal to 40")
+    msg.should.contain("Member must have length greater than or equal to 40")
+    msg.should.contain('"url" failed to satisfy constraint:')
+    msg.should.contain("Member must have length less than or equal to 255")
 
 
 @mock_iam
@@ -2898,7 +2926,7 @@ def test_list_user_tags():
         ],
     )
     response = conn.list_user_tags(UserName="kenny-bania")
-    response["Tags"].should.equal([])
+    response["Tags"].should.have.length_of(0)
     response["IsTruncated"].should_not.be.ok
 
     response = conn.list_user_tags(UserName="jackie-chiles")
@@ -4021,3 +4049,80 @@ def test_create_user_with_tags():
 
     resp = conn.create_user(UserName="test-create-user-no-tags")
     assert "Tags" not in resp["User"]
+
+
+@mock_iam
+def test_tag_user():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "test-user"
+    tags = sorted(
+        [{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value-2"}],
+        key=lambda item: item["Key"],
+    )
+    client.create_user(UserName=name)
+
+    # when
+    client.tag_user(UserName=name, Tags=tags)
+
+    # then
+    response = client.list_user_tags(UserName=name)
+    sorted(response["Tags"], key=lambda item: item["Key"],).should.equal(tags)
+
+
+@mock_iam
+def test_tag_user_error_unknown_user_name():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.tag_user(UserName=name, Tags=[{"Key": "key", "Value": "value"}])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("TagUser")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NoSuchEntity")
+    ex.response["Error"]["Message"].should.equal(
+        "The user with name {} cannot be found.".format(name)
+    )
+
+
+@mock_iam
+def test_untag_user():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "test-user"
+    client.create_user(
+        UserName=name,
+        Tags=[{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value"}],
+    )
+
+    # when
+    client.untag_user(UserName=name, TagKeys=["key-2"])
+
+    # then
+    response = client.list_user_tags(UserName=name)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+
+@mock_iam
+def test_untag_user_error_unknown_user_name():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.untag_user(UserName=name, TagKeys=["key"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UntagUser")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NoSuchEntity")
+    ex.response["Error"]["Message"].should.equal(
+        "The user with name {} cannot be found.".format(name)
+    )

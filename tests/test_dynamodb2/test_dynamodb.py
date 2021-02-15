@@ -11,7 +11,7 @@ import sure  # noqa
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from tests.helpers import requires_boto_gte
 
 import moto.dynamodb2.comparisons
@@ -4158,35 +4158,6 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation_and_pro
     )
 
 
-@mock_dynamodb2
-def test_update_catches_invalid_list_append_operation():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-
-    client.create_table(
-        AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
-        TableName="TestTable",
-        KeySchema=[{"AttributeName": "SHA256", "KeyType": "HASH"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    client.put_item(
-        TableName="TestTable",
-        Item={"SHA256": {"S": "sha-of-file"}, "crontab": {"L": [{"S": "bar1"}]}},
-    )
-
-    # Update item using invalid list_append expression
-    with pytest.raises(ParamValidationError) as ex:
-        client.update_item(
-            TableName="TestTable",
-            Key={"SHA256": {"S": "sha-of-file"}},
-            UpdateExpression="SET crontab = list_append(crontab, :i)",
-            ExpressionAttributeValues={":i": [{"S": "bar2"}]},
-        )
-
-    # Verify correct error is returned
-    str(ex.value).should.match("Parameter validation failed:")
-    str(ex.value).should.match("Invalid type for parameter ExpressionAttributeValues.")
-
-
 def _create_user_table():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -5704,3 +5675,26 @@ def test_dynamodb_update_item_fails_on_string_sets():
         Key={"record_id": {"S": "testrecord"}},
         AttributeUpdates=attribute,
     )
+
+
+@moto.mock_dynamodb2
+def test_update_item_add_to_list_using_legacy_attribute_updates():
+    resource = boto3.resource("dynamodb", region_name="us-west-2")
+    resource.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = resource.Table("TestTable")
+    table.wait_until_exists()
+    table.put_item(Item={"id": "list_add", "attr": ["a", "b", "c"]},)
+
+    table.update_item(
+        TableName="TestTable",
+        Key={"id": "list_add"},
+        AttributeUpdates={"attr": {"Action": "ADD", "Value": ["d", "e"]}},
+    )
+
+    resp = table.get_item(Key={"id": "list_add"})
+    resp["Item"]["attr"].should.equal(["a", "b", "c", "d", "e"])

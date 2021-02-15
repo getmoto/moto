@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import boto
@@ -10,6 +9,7 @@ from botocore.exceptions import ClientError
 import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
+from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 
 
@@ -408,7 +408,7 @@ def test_routes_replace():
     # Various route targets
     igw = conn.create_internet_gateway()
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     # Create initial route

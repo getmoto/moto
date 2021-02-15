@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import time
@@ -10,12 +9,14 @@ from botocore.exceptions import ClientError
 import sure  # noqa
 
 from moto import mock_ec2, mock_iam, mock_cloudformation
+from tests import EXAMPLE_AMI_ID
 
 
 def quick_instance_creation():
-    image_id = "ami-1234abcd"
     conn_ec2 = boto3.resource("ec2", "us-east-1")
-    test_instance = conn_ec2.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)
+    test_instance = conn_ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )
     # We only need instance id for this tests
     return test_instance[0].id
 
@@ -323,7 +324,7 @@ def test_cloudformation():
                 "Properties": {
                     "IamInstanceProfile": {"Ref": "InstanceProfile"},
                     "KeyName": "mykey1",
-                    "ImageId": "ami-7a11e213",
+                    "ImageId": EXAMPLE_AMI_ID,
                 },
             },
         },

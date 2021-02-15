@@ -8,13 +8,14 @@ import sure  # noqa
 from moto import mock_autoscaling_deprecated
 
 from .utils import setup_networking_deprecated
+from tests import EXAMPLE_AMI_ID
 
 
 def setup_autoscale_group():
     mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
-        name="tester", image_id="ami-abcd1234", instance_type="m1.small"
+        name="tester", image_id=EXAMPLE_AMI_ID, instance_type="m1.small"
     )
     conn.create_launch_configuration(config)
 

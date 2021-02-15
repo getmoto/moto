@@ -147,6 +147,7 @@ class RedshiftResponse(BaseResponse):
             "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
             "iam_roles_arn": self._get_iam_roles(),
             "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting"),
+            "kms_key_id": self._get_param("KmsKeyId"),
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster["ClusterStatus"] = "creating"
@@ -688,6 +689,27 @@ class RedshiftResponse(BaseResponse):
                     "ModifySnapshotCopyRetentionPeriodResult": {
                         "Clusters": [cluster.to_json()]
                     },
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
+    def get_cluster_credentials(self):
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        db_user = self._get_param("DbUser")
+        auto_create = self._get_bool_param("AutoCreate", False)
+        duration_seconds = self._get_int_param("DurationSeconds", 900)
+
+        cluster_credentials = self.redshift_backend.get_cluster_credentials(
+            cluster_identifier, db_user, auto_create, duration_seconds
+        )
+
+        return self.get_response(
+            {
+                "GetClusterCredentialsResponse": {
+                    "GetClusterCredentialsResult": cluster_credentials,
                     "ResponseMetadata": {
                         "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
                     },

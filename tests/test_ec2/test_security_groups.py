@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import copy
 import json
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import boto3
@@ -714,15 +713,10 @@ def test_description_in_ip_permissions():
     )
 
     result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
+    group = result["SecurityGroups"][0]
 
-    assert (
-        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0]["Description"]
-        == "testDescription"
-    )
-    assert (
-        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0]["CidrIp"]
-        == "1.2.3.4/32"
-    )
+    assert group["IpPermissions"][0]["IpRanges"][0]["Description"] == "testDescription"
+    assert group["IpPermissions"][0]["IpRanges"][0]["CidrIp"] == "1.2.3.4/32"
 
     sg = conn.create_security_group(
         GroupName="sg2", Description="Test security group sg1", VpcId=vpc.id
@@ -741,17 +735,10 @@ def test_description_in_ip_permissions():
     )
 
     result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
+    group = result["SecurityGroups"][0]
 
-    assert (
-        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0].get(
-            "Description"
-        )
-        is None
-    )
-    assert (
-        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0]["CidrIp"]
-        == "1.2.3.4/32"
-    )
+    assert group["IpPermissions"][0]["IpRanges"][0].get("Description") is None
+    assert group["IpPermissions"][0]["IpRanges"][0]["CidrIp"] == "1.2.3.4/32"
 
 
 @mock_ec2

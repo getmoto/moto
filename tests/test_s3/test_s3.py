@@ -7,6 +7,7 @@ import os
 from boto3 import Session
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import urlparse, parse_qs
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
@@ -253,6 +254,23 @@ def test_multipart_etag():
     multipart.complete_upload()
     # we should get both parts as the key contents
     bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
+
+
+@mock_s3_deprecated
+@reduced_min_part_size
+def test_multipart_version():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3("the_key", "the_secret")
+    bucket = conn.create_bucket("mybucket")
+    bucket.configure_versioning(versioning=True)
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b"0" * REDUCED_PART_SIZE
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    # last part, can be less than 5 MB
+    part2 = b"1"
+    multipart.upload_part_from_file(BytesIO(part2), 2)
+    resp = multipart.complete_upload()
+    resp.version_id.should_not.be.none
 
 
 @mock_s3_deprecated
@@ -873,12 +891,12 @@ def test_list_versions():
     versions.should.have.length_of(2)
 
     versions[0].name.should.equal("the-key")
-    versions[0].version_id.should.equal(key_versions[0])
-    versions[0].get_contents_as_string().should.equal(b"Version 1")
+    versions[0].version_id.should.equal(key_versions[1])
+    versions[0].get_contents_as_string().should.equal(b"Version 2")
 
     versions[1].name.should.equal("the-key")
-    versions[1].version_id.should.equal(key_versions[1])
-    versions[1].get_contents_as_string().should.equal(b"Version 2")
+    versions[1].version_id.should.equal(key_versions[0])
+    versions[1].get_contents_as_string().should.equal(b"Version 1")
 
     key = Key(bucket, "the2-key")
     key.set_contents_from_string("Version 1")
@@ -2571,6 +2589,54 @@ def test_boto3_multipart_etag():
 
 @mock_s3
 @reduced_min_part_size
+def test_boto3_multipart_version():
+    # Create Bucket so that test can run
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    s3.put_bucket_versioning(
+        Bucket="mybucket", VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    upload_id = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")["UploadId"]
+    part1 = b"0" * REDUCED_PART_SIZE
+    etags = []
+    etags.append(
+        s3.upload_part(
+            Bucket="mybucket",
+            Key="the-key",
+            PartNumber=1,
+            UploadId=upload_id,
+            Body=part1,
+        )["ETag"]
+    )
+    # last part, can be less than 5 MB
+    part2 = b"1"
+    etags.append(
+        s3.upload_part(
+            Bucket="mybucket",
+            Key="the-key",
+            PartNumber=2,
+            UploadId=upload_id,
+            Body=part2,
+        )["ETag"]
+    )
+    response = s3.complete_multipart_upload(
+        Bucket="mybucket",
+        Key="the-key",
+        UploadId=upload_id,
+        MultipartUpload={
+            "Parts": [
+                {"ETag": etag, "PartNumber": i} for i, etag in enumerate(etags, 1)
+            ]
+        },
+    )
+
+    response["VersionId"].should.should_not.be.none
+
+
+@mock_s3
+@reduced_min_part_size
 def test_boto3_multipart_part_size():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
@@ -3700,6 +3766,10 @@ def test_boto3_list_object_versions():
     len(response["Versions"]).should.equal(2)
     keys = set([item["Key"] for item in response["Versions"]])
     keys.should.equal({key})
+
+    # the first item in the list should be the latest
+    response["Versions"][0]["IsLatest"].should.equal(True)
+
     # Test latest object version is returned
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response["Body"].read().should.equal(items[-1])
@@ -4745,9 +4815,11 @@ def test_creating_presigned_post():
         {"success_action_redirect": success_url},
     ]
     conditions.append(["content-length-range", 1, 30])
+
+    real_key = "{file_uid}.txt".format(file_uid=file_uid)
     data = s3.generate_presigned_post(
         Bucket=bucket,
-        Key="{file_uid}.txt".format(file_uid=file_uid),
+        Key=real_key,
         Fields={
             "content-type": "text/plain",
             "success_action_redirect": success_url,
@@ -4759,14 +4831,15 @@ def test_creating_presigned_post():
     resp = requests.post(
         data["url"], data=data["fields"], files={"file": fdata}, allow_redirects=False
     )
-    assert resp.headers["Location"] == success_url
     assert resp.status_code == 303
-    assert (
-        s3.get_object(Bucket=bucket, Key="{file_uid}.txt".format(file_uid=file_uid))[
-            "Body"
-        ].read()
-        == fdata
-    )
+    redirect = resp.headers["Location"]
+    assert redirect.startswith(success_url)
+    parts = urlparse(redirect)
+    args = parse_qs(parts.query)
+    assert args["key"][0] == real_key
+    assert args["bucket"][0] == bucket
+
+    assert s3.get_object(Bucket=bucket, Key=real_key)["Body"].read() == fdata
 
 
 @mock_s3
@@ -4800,29 +4873,6 @@ def test_encryption():
     conn.delete_bucket_encryption(Bucket="mybucket")
     with pytest.raises(ClientError) as exc:
         conn.get_bucket_encryption(Bucket="mybucket")
-
-
-@mock_s3
-def test_presigned_url_restrict_parameters():
-    # Only specific params can be set
-    # Ensure error is thrown when adding custom metadata this way
-    bucket = str(uuid.uuid4())
-    key = "file.txt"
-    conn = boto3.resource("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket=bucket)
-    s3 = boto3.client("s3", region_name="us-east-1")
-
-    # Create a pre-signed url with some metadata.
-    with pytest.raises(botocore.exceptions.ParamValidationError) as err:
-        s3.generate_presigned_url(
-            ClientMethod="put_object",
-            Params={"Bucket": bucket, "Key": key, "Unknown": "metadata"},
-        )
-    assert str(err.value).should.match(
-        r'Parameter validation failed:\nUnknown parameter in input: "Unknown", must be one of:.*'
-    )
-
-    s3.delete_bucket(Bucket=bucket)
 
 
 @mock_s3
@@ -4937,3 +4987,61 @@ def test_request_partial_content_should_contain_actual_content_length():
         )
         e.response["Error"]["ActualObjectSize"].should.equal("9")
         e.response["Error"]["RangeRequested"].should.equal(requested_range)
+
+
+@mock_s3
+def test_get_unknown_version_should_throw_specific_error():
+    bucket_name = "my_bucket"
+    object_key = "hello.txt"
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = s3.create_bucket(Bucket=bucket_name)
+    bucket.Versioning().enable()
+    content = "some text"
+    s3.Object(bucket_name, object_key).put(Body=content)
+
+    with pytest.raises(ClientError) as e:
+        client.get_object(Bucket=bucket_name, Key=object_key, VersionId="unknown")
+    e.value.response["Error"]["Code"].should.equal("InvalidArgument")
+    e.value.response["Error"]["Message"].should.equal("Invalid version id specified")
+    e.value.response["Error"]["ArgumentName"].should.equal("versionId")
+    e.value.response["Error"]["ArgumentValue"].should.equal("unknown")
+
+
+@mock_s3
+def test_request_partial_content_without_specifying_range_should_return_full_object():
+    bucket = "bucket"
+    object_key = "key"
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=bucket)
+    s3.Object(bucket, object_key).put(Body="some text that goes a long way")
+
+    file = s3.Object(bucket, object_key)
+    response = file.get(Range="")
+    response["ContentLength"].should.equal(30)
+
+
+@mock_s3
+def test_object_headers():
+    bucket = "my-bucket"
+    s3 = boto3.client("s3")
+    s3.create_bucket(Bucket=bucket)
+
+    res = s3.put_object(
+        Bucket=bucket,
+        Body=b"test",
+        Key="file.txt",
+        ServerSideEncryption="aws:kms",
+        SSEKMSKeyId="test",
+        BucketKeyEnabled=True,
+    )
+    res.should.have.key("ETag")
+    res.should.have.key("ServerSideEncryption")
+    res.should.have.key("SSEKMSKeyId")
+    res.should.have.key("BucketKeyEnabled")
+
+    res = s3.get_object(Bucket=bucket, Key="file.txt")
+    res.should.have.key("ETag")
+    res.should.have.key("ServerSideEncryption")
+    res.should.have.key("SSEKMSKeyId")
+    res.should.have.key("BucketKeyEnabled")

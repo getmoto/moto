@@ -388,39 +388,62 @@ class CloudWatchBackend(BaseBackend):
                 )
             )
 
-    def get_metric_data(self, queries, start_time, end_time):
+    def get_metric_data(
+        self, queries, start_time, end_time, scan_by="TimestampAscending"
+    ):
+
         period_data = [
             md for md in self.metric_data if start_time <= md.timestamp <= end_time
         ]
+
         results = []
         for query in queries:
+            period_start_time = start_time
             query_ns = query["metric_stat._metric._namespace"]
             query_name = query["metric_stat._metric._metric_name"]
-            query_data = [
-                md
-                for md in period_data
-                if md.namespace == query_ns and md.name == query_name
-            ]
-            metric_values = [m.value for m in query_data]
+            delta = timedelta(seconds=int(query["metric_stat._period"]))
             result_vals = []
+            timestamps = []
             stat = query["metric_stat._stat"]
-            if len(metric_values) > 0:
-                if stat == "Average":
-                    result_vals.append(sum(metric_values) / len(metric_values))
-                elif stat == "Minimum":
-                    result_vals.append(min(metric_values))
-                elif stat == "Maximum":
-                    result_vals.append(max(metric_values))
-                elif stat == "Sum":
-                    result_vals.append(sum(metric_values))
+            while period_start_time <= end_time:
+                period_end_time = period_start_time + delta
+                period_md = [
+                    period_md
+                    for period_md in period_data
+                    if period_start_time <= period_md.timestamp < period_end_time
+                ]
 
+                query_period_data = [
+                    md
+                    for md in period_md
+                    if md.namespace == query_ns and md.name == query_name
+                ]
+
+                metric_values = [m.value for m in query_period_data]
+
+                if len(metric_values) > 0:
+                    if stat == "Average":
+                        result_vals.append(sum(metric_values) / len(metric_values))
+                    elif stat == "Minimum":
+                        result_vals.append(min(metric_values))
+                    elif stat == "Maximum":
+                        result_vals.append(max(metric_values))
+                    elif stat == "Sum":
+                        result_vals.append(sum(metric_values))
+                    timestamps.append(
+                        iso_8601_datetime_without_milliseconds(period_start_time)
+                    )
+                period_start_time += delta
+            if scan_by == "TimestampDescending" and len(timestamps) > 0:
+                timestamps.reverse()
+                result_vals.reverse()
             label = query["metric_stat._metric._metric_name"] + " " + stat
             results.append(
                 {
                     "id": query["id"],
                     "label": label,
                     "vals": result_vals,
-                    "timestamps": [datetime.now() for _ in result_vals],
+                    "timestamps": timestamps,
                 }
             )
         return results

@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 from moto import mock_sns
 import sure  # noqa
 from moto.core import ACCOUNT_ID
+import pytest
 
 
 @mock_sns
@@ -204,6 +205,18 @@ def test_get_endpoint_attributes():
     attributes.should.equal(
         {"Token": "some_unique_id", "Enabled": "false", "CustomUserData": "some data"}
     )
+
+
+@mock_sns
+def test_get_non_existent_endpoint_attributes():
+    conn = boto3.client("sns", region_name="us-east-1")
+    endpoint_arn = "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/c1f76c42-192a-4e75-b04f-a9268ce2abf3"
+    with pytest.raises(conn.exceptions.NotFoundException) as excinfo:
+        conn.get_endpoint_attributes(EndpointArn=endpoint_arn)
+    error = excinfo.value.response["Error"]
+    error["Type"].should.equal("Sender")
+    error["Code"].should.equal("NotFound")
+    error["Message"].should.equal("Endpoint does not exist")
 
 
 @mock_sns

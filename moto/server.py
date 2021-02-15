@@ -4,6 +4,7 @@ import argparse
 import io
 import json
 import re
+import signal
 import sys
 from threading import Lock
 
@@ -32,6 +33,13 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
 UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+
+# Some services have v4 signing names that differ from the backend service name/id.
+SIGNING_ALIASES = {
+    "eventbridge": "events",
+    "execute-api": "iot",
+    "iotdata": "data.iot",
+}
 
 
 class DomainDispatcherApplication(object):
@@ -73,6 +81,7 @@ class DomainDispatcherApplication(object):
             try:
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
+                service = SIGNING_ALIASES.get(service.lower(), service)
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't
                 # infer a service-region. A reduced set of services still use
@@ -92,11 +101,6 @@ class DomainDispatcherApplication(object):
             else:
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
-
-        if service == "EventBridge":
-            # Go SDK uses 'EventBridge' in the SigV4 request instead of 'events'
-            # see https://github.com/spulec/moto/issues/3494
-            service = "events"
 
         if service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
@@ -245,6 +249,11 @@ def create_backend_app(service):
     return backend_app
 
 
+def signal_handler(signum, frame):
+    print("Received signal %d" % signum)
+    sys.exit(0)
+
+
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
 
@@ -283,6 +292,9 @@ def main(argv=sys.argv[1:]):
     )
 
     args = parser.parse_args(argv)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

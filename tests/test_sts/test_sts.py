@@ -741,3 +741,11 @@ def test_federation_token_with_too_long_policy():
     ex.value.response["Error"]["Message"].should.contain(
         str(MAX_FEDERATION_TOKEN_POLICY_LENGTH)
     )
+
+
+@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
+@mock_sts
+def test_sts_regions(region):
+    client = boto3.client("sts", region_name=region)
+    resp = client.get_caller_identity()
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)

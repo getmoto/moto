@@ -128,9 +128,11 @@ class CloudWatchResponse(BaseResponse):
     def get_metric_data(self):
         start = dtparse(self._get_param("StartTime"))
         end = dtparse(self._get_param("EndTime"))
+        scan_by = self._get_param("ScanBy")
+
         queries = self._get_list_prefix("MetricDataQueries.member")
         results = self.cloudwatch_backend.get_metric_data(
-            start_time=start, end_time=end, queries=queries
+            start_time=start, end_time=end, queries=queries, scan_by=scan_by
         )
 
         template = self.response_template(GET_METRIC_DATA_TEMPLATE)
@@ -453,11 +455,6 @@ PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.am
 </PutMetricDataResponse>"""
 
 GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
    <GetMetricDataResult>
        <MetricDataResults>
            {% for result in results %}
@@ -479,15 +476,14 @@ GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.am
             {% endfor %}
        </MetricDataResults>
    </GetMetricDataResult>
+   <ResponseMetadata>
+       <RequestId>
+            {{ request_id }}
+       </RequestId>
+   </ResponseMetadata>
 </GetMetricDataResponse>"""
 
 GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
-
   <GetMetricStatisticsResult>
       <Label>{{ label }}</Label>
       <Datapoints>
@@ -523,6 +519,11 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
         {% endfor %}
       </Datapoints>
     </GetMetricStatisticsResult>
+    <ResponseMetadata>
+      <RequestId>
+        {{ request_id }}
+      </RequestId>
+    </ResponseMetadata>
 </GetMetricStatisticsResponse>"""
 
 LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">

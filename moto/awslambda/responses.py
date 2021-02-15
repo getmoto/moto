@@ -64,6 +64,18 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def list_layers(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._list_layers(request, headers)
+
+    def layers_versions(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._get_layer_versions(request, full_url, headers)
+        if request.method == "POST":
+            return self._publish_layer_version(request, full_url, headers)
+
     def function(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -131,6 +143,8 @@ class LambdaResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self._put_configuration(request)
+        if request.method == "GET":
+            return self._get_function_configuration(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
@@ -300,6 +314,14 @@ class LambdaResponse(BaseResponse):
         else:
             return 404, {}, "{}"
 
+    @staticmethod
+    def _set_configuration_qualifier(configuration, qualifier):
+        if qualifier is None or qualifier == "$LATEST":
+            configuration["Version"] = "$LATEST"
+        if qualifier == "$LATEST":
+            configuration["FunctionArn"] += ":$LATEST"
+        return configuration
+
     def _get_function(self, request, full_url, headers):
         function_name = unquote(self.path.rsplit("/", 1)[-1])
         qualifier = self._get_param("Qualifier", None)
@@ -308,11 +330,24 @@ class LambdaResponse(BaseResponse):
 
         if fn:
             code = fn.get_code()
-            if qualifier is None or qualifier == "$LATEST":
-                code["Configuration"]["Version"] = "$LATEST"
-            if qualifier == "$LATEST":
-                code["Configuration"]["FunctionArn"] += ":$LATEST"
+            code["Configuration"] = self._set_configuration_qualifier(
+                code["Configuration"], qualifier
+            )
             return 200, {}, json.dumps(code)
+        else:
+            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
+
+    def _get_function_configuration(self, request, full_url, headers):
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        qualifier = self._get_param("Qualifier", None)
+
+        fn = self.lambda_backend.get_function(function_name, qualifier)
+
+        if fn:
+            configuration = self._set_configuration_qualifier(
+                fn.get_configuration(), qualifier
+            )
+            return 200, {}, json.dumps(configuration)
         else:
             return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
 
@@ -407,3 +442,26 @@ class LambdaResponse(BaseResponse):
         )
 
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
+
+    def _list_layers(self, request, headers):
+        layers = self.lambda_backend.list_layers()
+        return (200, {}, json.dumps({"Layers": layers}))
+
+    def _get_layer_versions(self, request, full_url, headers):
+        layer_name = self.path.rsplit("/", 2)[-2]
+        layer_versions = self.lambda_backend.get_layer_versions(layer_name)
+        return (
+            200,
+            {},
+            json.dumps(
+                {"LayerVersions": [lv.get_layer_version() for lv in layer_versions]}
+            ),
+        )
+
+    def _publish_layer_version(self, request, full_url, headers):
+        spec = self.json_body
+        if "LayerName" not in spec:
+            spec["LayerName"] = self.path.rsplit("/", 2)[-2]
+        layer_version = self.lambda_backend.publish_layer_version(spec)
+        config = layer_version.get_layer_version()
+        return 201, {}, json.dumps(config)

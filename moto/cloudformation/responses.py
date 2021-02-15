@@ -232,8 +232,6 @@ class CloudFormationResponse(BaseResponse):
             if stack_resource.logical_resource_id == logical_resource_id:
                 resource = stack_resource
                 break
-        else:
-            raise ValidationError(logical_resource_id)
 
         template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
@@ -266,9 +264,6 @@ class CloudFormationResponse(BaseResponse):
     def list_stack_resources(self):
         stack_name_or_id = self._get_param("StackName")
         resources = self.cloudformation_backend.list_stack_resources(stack_name_or_id)
-
-        if resources is None:
-            raise ValidationError(stack_name_or_id)
 
         template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
         return template.render(resources=resources)
@@ -1113,7 +1108,8 @@ STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE = """<StopStackSetOperationResponse x
   <StopStackSetOperationResult/>
   <ResponseMetadata>
     <RequestId>2188554a-07c6-4396-b2c5-example</RequestId>
-  </ResponseMetadata>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </StopStackSetOperationResponse>
+  </ResponseMetadata>
+</StopStackSetOperationResponse>
 """
 
 DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = (

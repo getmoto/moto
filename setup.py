@@ -8,8 +8,6 @@ import setuptools
 from setuptools import setup, find_packages
 import sys
 
-PY2 = sys.version_info[0] == 2
-
 # Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -34,7 +32,7 @@ def get_version():
 install_requires = [
     "boto3>=1.9.201",
     "botocore>=1.12.201",
-    "cryptography>=2.3.0",
+    "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
@@ -52,29 +50,25 @@ install_requires = [
 #
 #   https://github.com/mpenkov/moto/commit/00134d2df37bb4dcd5f447ef951d383bfec0903c
 #
-if PY2:
-    install_requires += [
-        #
-        # This is an indirect dependency. Version 5.0.0 claims to be for
-        # Py2.6+, but it really isn't.
-        #
-        # https://github.com/jaraco/configparser/issues/51
-        #
-        "configparser<5.0",
-        "Jinja2<3.0.0,>=2.10.1",
-        "mock<=3.0.5",
-        "more-itertools==5.0.0",
-        "setuptools==44.0.0",
-        "zipp==0.6.0",
-    ]
-else:
-    install_requires += [
-        "Jinja2>=2.10.1",
-        "mock",
-        "more-itertools",
-        "setuptools",
-        "zipp",
-    ]
+install_requires += [
+    #
+    # This is an indirect dependency. Version 5.0.0 claims to be for
+    # Py2.6+, but it really isn't.
+    #
+    # https://github.com/jaraco/configparser/issues/51
+    #
+    "configparser<5.0; python_version < '3'",
+    "Jinja2>=2.10.1",
+    "Jinja2<3.0.0; python_version < '3'",
+    "mock",
+    "mock<=3.0.5; python_version < '3'",
+    "more-itertools",
+    "more-itertools==5.0.0; python_version < '3'",
+    "setuptools",
+    "setuptools==44.0.0; python_version < '3'",
+    "zipp",
+    "zipp==0.6.0; python_version < '3'",
+]
 
 _dep_PyYAML = "PyYAML>=5.1"
 _dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
@@ -86,7 +80,7 @@ _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
 _dep_idna = "idna<3,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
-_dep_sshpubkeys_py2 = "sshpubkeys>=3.1.0,<4.0; python_version<'3'"
+_dep_sshpubkeys_py2 = "sshpubkeys==3.1.0; python_version<'3'"
 _dep_sshpubkeys_py3 = "sshpubkeys>=3.1.0; python_version>'3'"
 
 all_extra_deps = [

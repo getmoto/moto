@@ -3,6 +3,7 @@ import re
 import sure  # noqa
 
 import moto.server as server
+from tests import EXAMPLE_AMI_ID
 
 """
 Test the different server responses
@@ -14,7 +15,7 @@ def test_ec2_server_get():
     test_client = backend.test_client()
 
     res = test_client.get(
-        "/?Action=RunInstances&ImageId=ami-60a54009",
+        "/?Action=RunInstances&ImageId=" + EXAMPLE_AMI_ID,
         headers={"Host": "ec2.us-east-1.amazonaws.com"},
     )
 

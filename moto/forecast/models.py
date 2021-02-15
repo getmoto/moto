@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 
 from boto3 import Session
-from future.utils import iteritems
+from six import iteritems
 
 from moto.core import ACCOUNT_ID, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds

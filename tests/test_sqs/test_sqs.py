@@ -280,6 +280,40 @@ def test_message_send_with_attributes():
 
 
 @mock_sqs
+def test_message_retention_period():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName="blah", Attributes={"MessageRetentionPeriod": "3"}
+    )
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    messages = queue.receive_messages()
+    assert len(messages) == 1
+
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    time.sleep(5)
+    messages = queue.receive_messages()
+    assert len(messages) == 0
+
+
+@mock_sqs
 def test_message_with_invalid_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
@@ -1935,29 +1969,30 @@ def test_queue_with_dlq():
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        resp["Messages"][0]["Body"].should.equal("msg1")
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     with freeze_time("2015-01-01 13:01:00"):
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        resp["Messages"][0]["Body"].should.equal("msg1")
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     with freeze_time("2015-01-01 13:02:00"):
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        len(resp["Messages"]).should.equal(1)
+        assert len(resp["Messages"]) == 1
 
-    resp = sqs.receive_message(
-        QueueUrl=queue_url1, VisibilityTimeout=30, WaitTimeSeconds=0
-    )
-    resp["Messages"][0]["Body"].should.equal("msg1")
+    with freeze_time("2015-01-01 13:02:00"):
+        resp = sqs.receive_message(
+            QueueUrl=queue_url1, VisibilityTimeout=30, WaitTimeSeconds=0
+        )
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     # Might as well test list source queues
 
     resp = sqs.list_dead_letter_source_queues(QueueUrl=queue_url1)
-    resp["queueUrls"][0].should.equal(queue_url2)
+    assert resp["queueUrls"][0] == queue_url2
 
 
 @mock_sqs
@@ -2349,7 +2384,7 @@ def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 @mock_sqs
 def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise SkipTest("Cant patch env variables in server mode")
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     msg_queue = sqs.create_queue(

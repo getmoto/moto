@@ -178,7 +178,7 @@ class VPCs(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
         tag_specifications = self._get_param("TagSpecifications")
-        private_dns_enabled = self._get_param("PrivateDNSEnabled")
+        private_dns_enabled = self._get_bool_param("PrivateDNSEnabled", if_none=True)
         security_group = self._get_param("SecurityGroup")
 
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
@@ -456,6 +456,7 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
                 <item>{{ subnetId }}</item>
             {% endfor %}
         </subnetIdSet>
+        <privateDnsEnabled>{{ 'true' if vpc_end_point.private_dns_enabled else 'false' }}</privateDnsEnabled>
         <dnsEntrySet>
         {% if vpc_end_point.dns_entries  %}
             {% for entry in vpc_end_point.dns_entries %}
@@ -511,7 +512,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                     <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
                 {% endif %}
                 <state>available</state>
-                <privateDnsEnabled>{{ vpc_end_point.private_dns_enabled }}</privateDnsEnabled>
+                <privateDnsEnabled>{{ 'true' if vpc_end_point.private_dns_enabled else 'false' }}</privateDnsEnabled>
                 <serviceName>{{ vpc_end_point.service_name }}</serviceName>
                 <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
                 <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>

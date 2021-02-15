@@ -997,71 +997,20 @@ def test_iam_cloudformation_delete_users_access_key():
     ][0]
     user_name = provisioned_user["PhysicalResourceId"]
 
-    provisioned_access_key = [
-        resource
-        for resource in provisioned_resources
-        if resource["LogicalResourceId"] == "TheAccessKey"
-    ][0]
-    access_key_id = provisioned_access_key["PhysicalResourceId"]
-
-    iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
-    access_keys = iam_client.list_access_keys(UserName=user_name)
-
-    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
-
-    cf_client.delete_stack(StackName=stack_name)
-
-    iam_client.get_user.when.called_with(UserName=user_name).should.throw(
-        iam_client.exceptions.NoSuchEntityException
-    )
-    iam_client.list_access_keys.when.called_with(UserName=user_name).should.throw(
-        iam_client.exceptions.NoSuchEntityException
-    )
-
-
-@mock_iam
-@mock_cloudformation
-def test_iam_cloudformation_delete_users_access_key():
-    cf_client = boto3.client("cloudformation", region_name="us-east-1")
-
-    stack_name = "MyStack"
-
-    template = """
-    Resources:
-      TheUser:
-        Type: AWS::IAM::User
-      TheAccessKey:
-        Type: AWS::IAM::AccessKey
-        Properties:
-          UserName: !Ref TheUser
-    """.strip()
-
-    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
-
-    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
-        "StackResourceSummaries"
-    ]
-
-    provisioned_user = [
-        resource
-        for resource in provisioned_resources
-        if resource["LogicalResourceId"] == "TheUser"
-    ][0]
-    user_name = provisioned_user["PhysicalResourceId"]
-
     provisioned_access_keys = [
         resource
         for resource in provisioned_resources
         if resource["LogicalResourceId"] == "TheAccessKey"
     ]
-    len(provisioned_access_keys).should.equal(1)
+    provisioned_access_keys.should.have.length_of(1)
+    access_key_id = provisioned_access_keys[0]["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)["User"]
     user["UserName"].should.equal(user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
     access_keys["AccessKeyMetadata"][0]["UserName"].should.equal(user_name)
+    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
 
     cf_client.delete_stack(StackName=stack_name)
 

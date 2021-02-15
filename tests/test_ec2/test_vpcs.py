@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
@@ -885,6 +884,11 @@ def test_describe_vpc_end_points():
     )
 
     vpc_endpoints = ec2.describe_vpc_endpoints()
+    assert (
+        vpc_endpoints.get("VpcEndpoints")[0].get("PrivateDnsEnabled")
+        is vpc_end_point.get("VpcEndpoint").get("PrivateDnsEnabled")
+        is True
+    )
     assert vpc_endpoints.get("VpcEndpoints")[0].get(
         "VpcEndpointId"
     ) == vpc_end_point.get("VpcEndpoint").get("VpcEndpointId")

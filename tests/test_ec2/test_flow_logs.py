@@ -4,7 +4,7 @@ import pytest
 
 import boto3
 
-from botocore.exceptions import ParamValidationError, ClientError
+from botocore.exceptions import ClientError
 from botocore.parsers import ResponseParserError
 import json
 import sure  # noqa

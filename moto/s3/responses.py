@@ -1,13 +1,25 @@
 from __future__ import unicode_literals
 
+import os
 import re
 import sys
 
 import six
 from botocore.awsrequest import AWSPreparedRequest
 
-from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
-from six.moves.urllib.parse import parse_qs, urlparse, unquote, parse_qsl
+from moto.core.utils import (
+    str_to_rfc_1123_datetime,
+    py2_strip_unicode_keys,
+    unix_time_millis,
+)
+from six.moves.urllib.parse import (
+    parse_qs,
+    parse_qsl,
+    urlparse,
+    unquote,
+    urlencode,
+    urlunparse,
+)
 
 import xmltodict
 
@@ -29,6 +41,7 @@ from .exceptions import (
     S3ClientError,
     MissingBucket,
     MissingKey,
+    MissingVersion,
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
@@ -457,6 +470,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 else:
                     delete_marker_list.append(version)
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
+
+            key_list.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
             return (
                 200,
                 {},
@@ -852,10 +867,28 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if "file" in form:
             f = form["file"]
         else:
-            f = request.files["file"].stream.read()
+            fobj = request.files["file"]
+            f = fobj.stream.read()
+            key = key.replace("${filename}", os.path.basename(fobj.filename))
 
         if "success_action_redirect" in form:
-            response_headers["Location"] = form["success_action_redirect"]
+            redirect = form["success_action_redirect"]
+            parts = urlparse(redirect)
+            queryargs = parse_qs(parts.query)
+            queryargs["key"] = key
+            queryargs["bucket"] = bucket_name
+            redirect_queryargs = urlencode(queryargs, doseq=True)
+            newparts = (
+                parts.scheme,
+                parts.netloc,
+                parts.path,
+                parts.params,
+                redirect_queryargs,
+                parts.fragment,
+            )
+            fixed_redirect = urlunparse(newparts)
+
+            response_headers["Location"] = fixed_redirect
 
         if "success_action_status" in form:
             status_code = form["success_action_status"]
@@ -975,7 +1008,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             status_code, response_headers, response_content = response
 
-        if status_code == 200 and "range" in request.headers:
+        if (
+            status_code == 200
+            and "range" in request.headers
+            and request.headers["range"] != ""
+        ):
             try:
                 return self._handle_range_header(
                     request, response_headers, response_content
@@ -1167,8 +1204,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
         key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
-        if key is None:
+        if key is None and version_id is None:
             raise MissingKey(key_name)
+        elif key is None:
+            raise MissingVersion(version_id)
 
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
@@ -1248,6 +1287,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 200, response_headers, response
 
         storage_class = request.headers.get("x-amz-storage-class", "STANDARD")
+        encryption = request.headers.get("x-amz-server-side-encryption", None)
+        kms_key_id = request.headers.get(
+            "x-amz-server-side-encryption-aws-kms-key-id", None
+        )
+        bucket_key_enabled = request.headers.get(
+            "x-amz-server-side-encryption-bucket-key-enabled", None
+        )
+        if bucket_key_enabled is not None:
+            bucket_key_enabled = str(bucket_key_enabled).lower()
+
         acl = self._acl_from_headers(request.headers)
         if acl is None:
             acl = self.backend.get_bucket(bucket_name).acl
@@ -1330,7 +1379,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # Initial data
             new_key = self.backend.set_object(
-                bucket_name, key_name, body, storage=storage_class
+                bucket_name,
+                key_name,
+                body,
+                storage=storage_class,
+                encryption=encryption,
+                kms_key_id=kms_key_id,
+                bucket_key_enabled=bucket_key_enabled,
             )
             request.streaming = True
             metadata = metadata_from_headers(request.headers)
@@ -1721,8 +1776,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             upload_id = query["uploadId"][0]
             key = self.backend.complete_multipart(bucket_name, upload_id, body)
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
-            return template.render(
-                bucket_name=bucket_name, key_name=key.name, etag=key.etag
+            headers = {}
+            if key.version_id:
+                headers["x-amz-version-id"] = key.version_id
+            return (
+                200,
+                headers,
+                template.render(
+                    bucket_name=bucket_name, key_name=key.name, etag=key.etag
+                ),
             )
         elif "restore" in query:
             es = minidom.parseString(body).getElementsByTagName("Days")

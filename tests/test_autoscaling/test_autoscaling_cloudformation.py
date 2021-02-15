@@ -8,6 +8,7 @@ from moto import (
 )
 
 from .utils import setup_networking
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_autoscaling
@@ -23,13 +24,15 @@ Resources:
     LaunchConfiguration:
         Type: AWS::AutoScaling::LaunchConfiguration
         Properties:
-            ImageId: ami-0cc293023f983ed53
+            ImageId: {0}
             InstanceType: t2.micro
             LaunchConfigurationName: test_launch_configuration
 Outputs:
     LaunchConfigurationName:
         Value: !Ref LaunchConfiguration
-""".strip()
+""".strip().format(
+        EXAMPLE_AMI_ID
+    )
 
     cf_client.create_stack(
         StackName=stack_name, TemplateBody=cf_template,
@@ -39,7 +42,7 @@ Outputs:
 
     lc = client.describe_launch_configurations()["LaunchConfigurations"][0]
     lc["LaunchConfigurationName"].should.be.equal("test_launch_configuration")
-    lc["ImageId"].should.be.equal("ami-0cc293023f983ed53")
+    lc["ImageId"].should.be.equal(EXAMPLE_AMI_ID)
     lc["InstanceType"].should.be.equal("t2.micro")
 
     cf_template = """
@@ -47,13 +50,15 @@ Resources:
     LaunchConfiguration:
         Type: AWS::AutoScaling::LaunchConfiguration
         Properties:
-            ImageId: ami-1ea5b10a3d8867db4
+            ImageId: {0}
             InstanceType: m5.large
             LaunchConfigurationName: test_launch_configuration
 Outputs:
     LaunchConfigurationName:
         Value: !Ref LaunchConfiguration
-""".strip()
+""".strip().format(
+        EXAMPLE_AMI_ID
+    )
 
     cf_client.update_stack(
         StackName=stack_name, TemplateBody=cf_template,
@@ -63,7 +68,7 @@ Outputs:
 
     lc = client.describe_launch_configurations()["LaunchConfigurations"][0]
     lc["LaunchConfigurationName"].should.be.equal("test_launch_configuration")
-    lc["ImageId"].should.be.equal("ami-1ea5b10a3d8867db4")
+    lc["ImageId"].should.be.equal(EXAMPLE_AMI_ID)
     lc["InstanceType"].should.be.equal("m5.large")
 
 
@@ -76,7 +81,9 @@ def test_autoscaling_group_from_launch_config():
     client = boto3.client("autoscaling", region_name="us-east-1")
 
     client.create_launch_configuration(
-        LaunchConfigurationName="test_launch_configuration", InstanceType="t2.micro",
+        LaunchConfigurationName="test_launch_configuration",
+        InstanceType="t2.micro",
+        ImageId=EXAMPLE_AMI_ID,
     )
     stack_name = "test-auto-scaling-group"
 
@@ -118,6 +125,7 @@ Outputs:
     client.create_launch_configuration(
         LaunchConfigurationName="test_launch_configuration_new",
         InstanceType="t2.micro",
+        ImageId=EXAMPLE_AMI_ID,
     )
 
     cf_template = """
@@ -168,10 +176,7 @@ def test_autoscaling_group_from_launch_template():
 
     template_response = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={
-            "ImageId": "ami-0cc293023f983ed53",
-            "InstanceType": "t2.micro",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
     )
     launch_template_id = template_response["LaunchTemplate"]["LaunchTemplateId"]
     stack_name = "test-auto-scaling-group"
@@ -223,10 +228,7 @@ Outputs:
 
     template_response = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template_new",
-        LaunchTemplateData={
-            "ImageId": "ami-1ea5b10a3d8867db4",
-            "InstanceType": "m5.large",
-        },
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "m5.large",},
     )
     launch_template_id = template_response["LaunchTemplate"]["LaunchTemplateId"]
 

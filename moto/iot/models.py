@@ -67,6 +67,7 @@ class FakeThingType(BaseModel):
             "thingTypeId": self.thing_type_id,
             "thingTypeProperties": self.thing_type_properties,
             "thingTypeMetadata": self.metadata,
+            "thingTypeArn": self.arn,
         }
 
 
@@ -125,6 +126,7 @@ class FakeThingGroup(BaseModel):
             "version": self.version,
             "thingGroupProperties": self.thing_group_properties,
             "thingGroupMetadata": self.metadata,
+            "thingGroupArn": self.arn,
         }
 
 
@@ -425,6 +427,57 @@ class FakeEndpoint(BaseModel):
         return obj
 
 
+class FakeRule(BaseModel):
+    def __init__(
+        self,
+        rule_name,
+        description,
+        created_at,
+        rule_disabled,
+        topic_pattern,
+        actions,
+        error_action,
+        sql,
+        aws_iot_sql_version,
+        region_name,
+    ):
+        self.region_name = region_name
+        self.rule_name = rule_name
+        self.description = description or ""
+        self.created_at = created_at
+        self.rule_disabled = bool(rule_disabled)
+        self.topic_pattern = topic_pattern
+        self.actions = actions or []
+        self.error_action = error_action or {}
+        self.sql = sql
+        self.aws_iot_sql_version = aws_iot_sql_version or "2016-03-23"
+        self.arn = "arn:aws:iot:%s:1:rule/%s" % (self.region_name, rule_name)
+
+    def to_get_dict(self):
+        return {
+            "rule": {
+                "actions": self.actions,
+                "awsIotSqlVersion": self.aws_iot_sql_version,
+                "createdAt": self.created_at,
+                "description": self.description,
+                "errorAction": self.error_action,
+                "ruleDisabled": self.rule_disabled,
+                "ruleName": self.rule_name,
+                "sql": self.sql,
+            },
+            "ruleArn": self.arn,
+        }
+
+    def to_dict(self):
+        return {
+            "ruleName": self.rule_name,
+            "createdAt": self.created_at,
+            "ruleArn": self.arn,
+            "ruleDisabled": self.rule_disabled,
+            "topicPattern": self.topic_pattern,
+        }
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
@@ -438,6 +491,7 @@ class IoTBackend(BaseBackend):
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
         self.principal_things = OrderedDict()
+        self.rules = OrderedDict()
         self.endpoint = None
 
     def reset(self):
@@ -1274,6 +1328,47 @@ class IoTBackend(BaseBackend):
             )
 
         return job_executions, next_token
+
+    def list_topic_rules(self):
+        return [r.to_dict() for r in self.rules.values()]
+
+    def get_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        return self.rules[rule_name].to_get_dict()
+
+    def create_topic_rule(self, rule_name, sql, **kwargs):
+        if rule_name in self.rules:
+            raise ResourceAlreadyExistsException("Rule with given name already exists")
+        result = re.search(r"FROM\s+([^\s]*)", sql)
+        topic = result.group(1).strip("'") if result else None
+        self.rules[rule_name] = FakeRule(
+            rule_name=rule_name,
+            created_at=int(time.time()),
+            topic_pattern=topic,
+            sql=sql,
+            region_name=self.region_name,
+            **kwargs
+        )
+
+    def replace_topic_rule(self, rule_name, **kwargs):
+        self.delete_topic_rule(rule_name)
+        self.create_topic_rule(rule_name, **kwargs)
+
+    def delete_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        del self.rules[rule_name]
+
+    def enable_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        self.rules[rule_name].rule_disabled = False
+
+    def disable_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        self.rules[rule_name].rule_disabled = True
 
 
 iot_backends = {}
