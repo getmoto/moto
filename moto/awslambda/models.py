@@ -185,6 +185,29 @@ def _validate_s3_bucket_and_key(data):
     return key
 
 
+class Permission(CloudFormationModel):
+    def __init__(self, region):
+        self.region = region
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Permission"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::Lambda::Permission"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        backend = lambda_backends[region_name]
+        fn = backend.get_function(properties["FunctionName"])
+        fn.policy.add_statement(raw=json.dumps(properties))
+        return Permission(region=region_name)
+
+
 class LayerVersion(CloudFormationModel):
     def __init__(self, spec, region):
         # required
@@ -316,7 +339,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.layers = self._get_layers_data(spec.get("Layers", []))
 
         self.logs_group_name = "/aws/lambda/{}".format(self.function_name)
-        self.logs_backend.ensure_log_group(self.logs_group_name, [])
 
         # this isn't finished yet. it needs to find out the VpcId value
         self._vpc_config = spec.get(
@@ -341,6 +363,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+            else:
+                self.code_bytes = ""
+                self.code_size = 0
+                self.code_sha_256 = ""
 
         self.function_arn = make_function_arn(
             self.region, ACCOUNT_ID, self.function_name
@@ -510,6 +536,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return s
 
     def _invoke_lambda(self, code, event=None, context=None):
+        # Create the LogGroup if necessary, to write the result to
+        self.logs_backend.ensure_log_group(self.logs_group_name, [])
         # TODO: context not yet implemented
         if event is None:
             event = dict()

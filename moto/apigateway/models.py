@@ -16,7 +16,7 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 import responses
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id
 from moto.core.utils import path_url
 from .exceptions import (
@@ -49,13 +49,34 @@ from ..core.models import responses_mock
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
-class Deployment(BaseModel, dict):
+class Deployment(CloudFormationModel, dict):
     def __init__(self, deployment_id, name, description=""):
         super(Deployment, self).__init__()
         self["id"] = deployment_id
         self["stageName"] = name
         self["description"] = description
         self["createdDate"] = int(time.time())
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Deployment"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Deployment"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        rest_api_id = properties["RestApiId"]
+        name = properties["StageName"]
+        desc = properties.get("Description", "")
+        backend = apigateway_backends[region_name]
+        return backend.create_deployment(
+            function_id=rest_api_id, name=name, description=desc
+        )
 
 
 class IntegrationResponse(BaseModel, dict):
@@ -109,7 +130,7 @@ class MethodResponse(BaseModel, dict):
         self["statusCode"] = status_code
 
 
-class Method(BaseModel, dict):
+class Method(CloudFormationModel, dict):
     def __init__(self, method_type, authorization_type, **kwargs):
         super(Method, self).__init__()
         self.update(
@@ -125,6 +146,45 @@ class Method(BaseModel, dict):
         )
         self.method_responses = {}
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Method"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Method"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        rest_api_id = properties["RestApiId"]
+        resource_id = properties["ResourceId"]
+        method_type = properties["HttpMethod"]
+        auth_type = properties["AuthorizationType"]
+        key_req = properties["ApiKeyRequired"]
+        backend = apigateway_backends[region_name]
+        m = backend.create_method(
+            function_id=rest_api_id,
+            resource_id=resource_id,
+            method_type=method_type,
+            authorization_type=auth_type,
+            api_key_required=key_req,
+        )
+        int_method = properties["Integration"]["IntegrationHttpMethod"]
+        int_type = properties["Integration"]["Type"]
+        int_uri = properties["Integration"]["Uri"]
+        backend.create_integration(
+            function_id=rest_api_id,
+            resource_id=resource_id,
+            method_type=method_type,
+            integration_type=int_type,
+            uri=int_uri,
+            integration_method=int_method,
+        )
+        return m
+
     def create_response(self, response_code):
         method_response = MethodResponse(response_code)
         self.method_responses[response_code] = method_response
@@ -137,8 +197,9 @@ class Method(BaseModel, dict):
         return self.method_responses.pop(response_code)
 
 
-class Resource(BaseModel):
+class Resource(CloudFormationModel):
     def __init__(self, id, region_name, api_id, path_part, parent_id):
+        super(Resource, self).__init__()
         self.id = id
         self.region_name = region_name
         self.api_id = api_id
@@ -157,6 +218,39 @@ class Resource(BaseModel):
             response["parentId"] = self.parent_id
             response["pathPart"] = self.path_part
         return response
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Resource"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Resource"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        api_id = properties["RestApiId"]
+        parent = properties["ParentId"]
+        path = properties["PathPart"]
+
+        backend = apigateway_backends[region_name]
+        if parent == api_id:
+            # A Root path (/) is automatically created. Any new paths should use this as their parent
+            resources = backend.list_resources(function_id=api_id)
+            root_id = [resource for resource in resources if resource.path_part == "/"][
+                0
+            ].id
+            parent = root_id
+        return backend.create_resource(
+            function_id=api_id, parent_resource_id=parent, path_part=path
+        )
 
     def get_path(self):
         return self.get_parent_path() + self.path_part
@@ -473,8 +567,9 @@ class UsagePlanKey(BaseModel, dict):
         self["value"] = value
 
 
-class RestAPI(BaseModel):
+class RestAPI(CloudFormationModel):
     def __init__(self, id, region_name, name, description, **kwargs):
+        super(RestAPI, self).__init__()
         self.id = id
         self.region_name = region_name
         self.name = name
@@ -508,6 +603,38 @@ class RestAPI(BaseModel):
             "tags": self.tags,
             "policy": self.policy,
         }
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "RootResourceId":
+            return self.id
+        raise UnformattedGetAttTemplateException()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "RestApi"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::RestApi"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        name = properties["Name"]
+        desc = properties.get("Description", "")
+        config = properties.get("EndpointConfiguration", None)
+        backend = apigateway_backends[region_name]
+        return backend.create_rest_api(
+            name=name, description=desc, endpoint_configuration=config
+        )
 
     def add_child(self, path, parent_id=None):
         child_id = create_id()
@@ -1003,7 +1130,8 @@ class APIGatewayBackend(BaseBackend):
         methods = [
             list(res.resource_methods.values())
             for res in self.list_resources(function_id)
-        ][0]
+        ]
+        methods = [m for sublist in methods for m in sublist]
         if not any(methods):
             raise NoMethodDefined()
         method_integrations = [
