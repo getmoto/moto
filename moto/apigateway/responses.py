@@ -18,6 +18,7 @@ from .exceptions import (
     InvalidModelName,
     RestAPINotFound,
     ModelNotFound,
+    ApiKeyValueMinLength,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -32,17 +33,6 @@ class APIGatewayResponse(BaseResponse):
             self.response_headers,
             json.dumps({"__type": type_, "message": message}),
         )
-
-    def _get_param(self, key):
-        return json.loads(self.body).get(key) if self.body else None
-
-    def _get_param_with_default_value(self, key, default):
-        jsonbody = json.loads(self.body)
-
-        if key in jsonbody:
-            return jsonbody.get(key)
-        else:
-            return default
 
     @property
     def backend(self):
@@ -197,18 +187,16 @@ class APIGatewayResponse(BaseResponse):
             name = self._get_param("name")
             authorizer_type = self._get_param("type")
 
-            provider_arns = self._get_param_with_default_value("providerARNs", None)
-            auth_type = self._get_param_with_default_value("authType", None)
-            authorizer_uri = self._get_param_with_default_value("authorizerUri", None)
-            authorizer_credentials = self._get_param_with_default_value(
-                "authorizerCredentials", None
+            provider_arns = self._get_param("providerARNs")
+            auth_type = self._get_param("authType")
+            authorizer_uri = self._get_param("authorizerUri")
+            authorizer_credentials = self._get_param("authorizerCredentials")
+            identity_source = self._get_param("identitySource")
+            identiy_validation_expression = self._get_param(
+                "identityValidationExpression"
             )
-            identity_source = self._get_param_with_default_value("identitySource", None)
-            identiy_validation_expression = self._get_param_with_default_value(
-                "identityValidationExpression", None
-            )
-            authorizer_result_ttl = self._get_param_with_default_value(
-                "authorizerResultTtlInSeconds", 300
+            authorizer_result_ttl = self._get_param(
+                "authorizerResultTtlInSeconds", if_none=300
             )
 
             # Param validation
@@ -278,14 +266,10 @@ class APIGatewayResponse(BaseResponse):
         if self.method == "POST":
             stage_name = self._get_param("stageName")
             deployment_id = self._get_param("deploymentId")
-            stage_variables = self._get_param_with_default_value("variables", {})
-            description = self._get_param_with_default_value("description", "")
-            cacheClusterEnabled = self._get_param_with_default_value(
-                "cacheClusterEnabled", False
-            )
-            cacheClusterSize = self._get_param_with_default_value(
-                "cacheClusterSize", None
-            )
+            stage_variables = self._get_param("variables", if_none={})
+            description = self._get_param("description", if_none="")
+            cacheClusterEnabled = self._get_param("cacheClusterEnabled", if_none=False)
+            cacheClusterSize = self._get_param("cacheClusterSize")
 
             stage_response = self.backend.create_stage(
                 function_id,
@@ -417,8 +401,8 @@ class APIGatewayResponse(BaseResponse):
                 return 200, {}, json.dumps({"item": deployments})
             elif self.method == "POST":
                 name = self._get_param("stageName")
-                description = self._get_param_with_default_value("description", "")
-                stage_variables = self._get_param_with_default_value("variables", {})
+                description = self._get_param("description", if_none="")
+                stage_variables = self._get_param("variables", if_none={})
                 deployment = self.backend.create_deployment(
                     function_id, name, description, stage_variables
                 )
@@ -454,9 +438,20 @@ class APIGatewayResponse(BaseResponse):
                         error.message, error.error_type
                     ),
                 )
+
+            except ApiKeyValueMinLength as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
             return 201, {}, json.dumps(apikey_response)
+
         elif self.method == "GET":
-            apikeys_response = self.backend.get_apikeys()
+            include_values = self._get_bool_param("includeValues")
+            apikeys_response = self.backend.get_apikeys(include_values=include_values)
             return 200, {}, json.dumps({"item": apikeys_response})
 
     def apikey_individual(self, request, full_url, headers):
@@ -467,7 +462,10 @@ class APIGatewayResponse(BaseResponse):
 
         status_code = 200
         if self.method == "GET":
-            apikey_response = self.backend.get_apikey(apikey)
+            include_value = self._get_bool_param("includeValue")
+            apikey_response = self.backend.get_apikey(
+                apikey, include_value=include_value
+            )
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             apikey_response = self.backend.update_apikey(apikey, patch_operations)
