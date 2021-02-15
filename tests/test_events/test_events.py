@@ -1241,7 +1241,8 @@ def test_archive_actual_events():
     # given
     client = boto3.client("events", "eu-central-1")
     name = "test-archive"
-    name_2 = "test-archive-2"
+    name_2 = "test-archive-no-match"
+    name_3 = "test-archive-matches"
     event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
         ACCOUNT_ID
     )
@@ -1255,6 +1256,11 @@ def test_archive_actual_events():
         ArchiveName=name_2,
         EventSourceArn=event_bus_arn,
         EventPattern=json.dumps({"DetailType": ["type"], "Source": ["test"]}),
+    )
+    client.create_archive(
+        ArchiveName=name_3,
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["source"]}),
     )
 
     # when
@@ -1271,3 +1277,7 @@ def test_archive_actual_events():
     response = client.describe_archive(ArchiveName=name_2)
     response["EventCount"].should.equal(0)
     response["SizeBytes"].should.equal(0)
+
+    response = client.describe_archive(ArchiveName=name_3)
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.be.greater_than(0)
