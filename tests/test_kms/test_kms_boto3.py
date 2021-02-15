@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
+import hashlib
 from datetime import datetime
 from itertools import product
 
@@ -22,6 +24,31 @@ PLAINTEXT_VECTORS = [
     b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",
     "some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",
 ]
+
+RSA_SIGNING_ALGORITHMS = [
+    "RSASSA_PSS_SHA_256",
+    "RSASSA_PSS_SHA_384",
+    "RSASSA_PSS_SHA_512",
+    "RSASSA_PKCS1_V1_5_SHA_256",
+    "RSASSA_PKCS1_V1_5_SHA_384",
+    "RSASSA_PKCS1_V1_5_SHA_512",
+]
+
+RSA_ENCRYPTION_ALGORITHMS = [
+    "RSAES_OAEP_SHA_1",
+    "RSAES_OAEP_SHA_256",
+]
+
+RSA_KEY_SPECS = ["RSA_2048", "RSA_3072", "RSA_4096"]
+
+HASH_DICT = {
+    "RSASSA_PSS_SHA_256": hashlib.sha256,
+    "RSASSA_PSS_SHA_384": hashlib.sha384,
+    "RSASSA_PSS_SHA_512": hashlib.sha512,
+    "RSASSA_PKCS1_V1_5_SHA_256": hashlib.sha256,
+    "RSASSA_PKCS1_V1_5_SHA_384": hashlib.sha384,
+    "RSASSA_PKCS1_V1_5_SHA_512": hashlib.sha512,
+}
 
 
 def _get_encoded_value(plaintext):
@@ -277,39 +304,73 @@ def test_encrypt(plaintext):
     response["Plaintext"].should.equal(_get_encoded_value(plaintext))
 
 
-@pytest.mark.parametrize("message", PLAINTEXT_VECTORS)
+@pytest.mark.parametrize(
+    "message, key_spec, signing_algorithm",
+    product(PLAINTEXT_VECTORS, RSA_KEY_SPECS, RSA_SIGNING_ALGORITHMS),
+)
 @mock_kms
-def test_sign(message):
+def test_sign_message(message, key_spec, signing_algorithm):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="key", CustomerMasterKeySpec="RSA_4096")
-    # TODO: move this loop to test parameters
-    for signing_algorithm in [
-        "RSASSA_PSS_SHA_256",
-        "RSASSA_PSS_SHA_384",
-        "RSASSA_PKCS1_V1_5_SHA_256",
-        "RSASSA_PKCS1_V1_5_SHA_384",
-    ]:
-        response = client.sign(
-            KeyId=key["KeyMetadata"]["KeyId"],
-            Message=message,
-            MessageType="RAW",
-            SigningAlgorithm=signing_algorithm,
-        )
+    key = client.create_key(Description="key", CustomerMasterKeySpec=key_spec)
+    response = client.sign(
+        KeyId=key["KeyMetadata"]["KeyId"],
+        Message=message,
+        MessageType="RAW",
+        SigningAlgorithm=signing_algorithm,
+    )
 
-        response["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
-        response["SigningAlgorithm"].should.equal(signing_algorithm)
+    response["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
+    response["SigningAlgorithm"].should.equal(signing_algorithm)
 
-        verification_response = client.verify(
-            KeyId=key["KeyMetadata"]["KeyId"],
-            Message=message,
-            MessageType="RAW",
-            Signature=response["Signature"],
-            SigningAlgorithm=signing_algorithm,
-        )
+    verification_response = client.verify(
+        KeyId=key["KeyMetadata"]["KeyId"],
+        Message=message,
+        MessageType="RAW",
+        Signature=response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
 
-        verification_response["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
-        verification_response["SignatureValid"].should.be(True)
-        verification_response["SigningAlgorithm"].should.equal(signing_algorithm)
+    verification_response["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
+    verification_response["SignatureValid"].should.be(True)
+    verification_response["SigningAlgorithm"].should.equal(signing_algorithm)
+
+
+@pytest.mark.parametrize(
+    "message, key_spec, signing_algorithm",
+    product(PLAINTEXT_VECTORS, RSA_KEY_SPECS, RSA_SIGNING_ALGORITHMS),
+)
+@mock_kms
+def test_sign_verify_digest(message, key_spec, signing_algorithm):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key", CustomerMasterKeySpec=key_spec)
+
+    hash_alg = HASH_DICT[signing_algorithm]()
+    if isinstance(message, six.text_type):
+        message = message.encode("utf-8")
+    hash_alg.update(message)
+    digest = hash_alg.digest()
+
+    response = client.sign(
+        KeyId=key["KeyMetadata"]["KeyId"],
+        Message=digest,
+        MessageType="DIGEST",
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    response["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
+    response["SigningAlgorithm"].should.equal(signing_algorithm)
+
+    verification_response = client.verify(
+        KeyId=key["KeyMetadata"]["KeyId"],
+        Message=digest,
+        MessageType="DIGEST",
+        Signature=response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    verification_response["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
+    verification_response["SignatureValid"].should.be(True)
+    verification_response["SigningAlgorithm"].should.equal(signing_algorithm)
 
 
 @pytest.mark.parametrize("message", PLAINTEXT_VECTORS)

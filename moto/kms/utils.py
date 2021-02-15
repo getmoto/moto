@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import base64
 from collections import namedtuple
 import io
 import os
@@ -32,22 +33,16 @@ Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
 
 signing_algorithms = {
     "RSASSA_PSS_SHA_256": {
-        "padding": padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()), salt_length=int(256 / 8)
-        ),
+        "padding": padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32),
         "hash": hashes.SHA256(),
     },
     "RSASSA_PSS_SHA_384": {
-        "padding": padding.PSS(
-            mgf=padding.MGF1(hashes.SHA384()), salt_length=int(384 / 8)
-        ),
-        "hash": hashes.SHA256(),
+        "padding": padding.PSS(mgf=padding.MGF1(hashes.SHA384()), salt_length=48),
+        "hash": hashes.SHA384(),
     },
     "RSASSA_PSS_SHA_512": {
-        "padding": padding.PSS(
-            mgf=padding.MGF1(hashes.SHA512()), salt_length=int(512 / 8)
-        ),
-        "hash": hashes.SHA256(),
+        "padding": padding.PSS(mgf=padding.MGF1(hashes.SHA512()), salt_length=64),
+        "hash": hashes.SHA512(),
     },
     "RSASSA_PKCS1_V1_5_SHA_256": {
         "padding": padding.PKCS1v15(),
@@ -76,7 +71,7 @@ encryption_algorithms = {
     },
 }
 
-key_specs = {
+KEY_SPECS = {
     "SYMMETRIC_DEFAULT": {"generate": lambda: generate_data_key(MASTER_KEY_LEN),},
     "RSA_2048": {
         "generate": lambda: rsa.generate_private_key(
@@ -111,8 +106,7 @@ def generate_data_key(number_of_bytes):
 
 def generate_master_key(key_spec):
     """Generate a master key."""
-    print(key_spec)
-    return key_specs[key_spec]["generate"]()
+    return KEY_SPECS[key_spec]["generate"]()
 
 
 def serialize_ciphertext_blob(ciphertext):
@@ -269,10 +263,10 @@ def sign(master_keys, key_id, message, message_type, signing_algorithm):
             signing_algorithms[signing_algorithm]["hash"],
         )
     else:
+        message = base64.b64decode(message)
         return key.key_material.sign(
             message,
             signing_algorithms[signing_algorithm]["padding"],
-            signing_algorithms[signing_algorithm]["hash"],
             utils.Prehashed(signing_algorithms[signing_algorithm]["hash"]),
         )
 
@@ -311,11 +305,11 @@ def verify(master_keys, key_id, message, message_type, signature, signing_algori
                 signing_algorithms[signing_algorithm]["hash"],
             )
         else:
+            message = base64.b64decode(message)
             key.key_material.public_key().verify(
                 signature,
                 message,
                 signing_algorithms[signing_algorithm]["padding"],
-                signing_algorithms[signing_algorithm]["hash"],
                 utils.Prehashed(signing_algorithms[signing_algorithm]["hash"]),
             )
         return True

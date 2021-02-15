@@ -24,7 +24,7 @@ from moto.kms.utils import (
     Ciphertext,
     sign,
     verify,
-    key_specs,
+    KEY_SPECS,
     signing_algorithms,
 )
 
@@ -74,7 +74,7 @@ def test_generate_data_key():
 
 
 def test_generate_master_key():
-    for key_spec in key_specs:
+    for key_spec in KEY_SPECS:
         test = generate_master_key(key_spec)
 
         if key_spec == "SYMMETRIC_DEFAULT":
