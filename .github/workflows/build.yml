@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
-          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
       - name: Install Linux dependencies
         if: ${{ matrix.python-version == 3.8 && steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
@@ -59,7 +59,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     # Still need to properly install the dependencies - it will only skip the download part
     - name: Install project dependencies
       run: |
@@ -94,7 +94,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     - name: Install Linux dependencies
       if: ${{ matrix.python-version == 3.8 }}
       run: |
@@ -149,7 +149,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     - name: Install Linux dependencies
       if: ${{ matrix.python-version == 3.8 }}
       run: |
