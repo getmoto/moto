@@ -107,7 +107,7 @@ jobs:
     - name: Test with pytest
       if: ${{ matrix.python-version == 2.7 }}
       run: |
-        make test-only
+        make test-coverage
     # Pytest-cov explicitly fails in Py2 for XRay tests
     - name: Test with pytest/coverage
       if: ${{ matrix.python-version != 2.7 }}
