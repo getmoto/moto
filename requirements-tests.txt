@@ -1,4 +1,5 @@
 pytest
-pytest-cov
+pytest-cov; python_version >= '3.6'
+pytest-cov<=2.10.1; python_version < '3.6'
 sure==1.4.11
 freezegun
