@@ -64,6 +64,8 @@ install_requires += [
     "mock<=3.0.5; python_version < '3'",
     "more-itertools",
     "more-itertools==5.0.0; python_version < '3'",
+    # Indirect - Py2 works with 4.5, breaks with 4.7, but officially only supported by 4.0
+    "rsa<=4.0; python_version < '3'",
     "setuptools",
     "setuptools==44.0.0; python_version < '3'",
     "zipp",
