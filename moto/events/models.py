@@ -287,6 +287,8 @@ class Archive(CloudFormationModel):
             if event_value not in pattern_value:
                 return False
 
+        return True
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
