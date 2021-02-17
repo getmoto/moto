@@ -349,6 +349,12 @@ class DynamoHandler(BaseResponse):
 
     def get_item(self):
         name = self.body["TableName"]
+        table = self.dynamodb_backend.get_table(name)
+        if table is None:
+            return self.error(
+                "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException",
+                "Requested resource not found",
+            )
         key = self.body["Key"]
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
@@ -359,14 +365,9 @@ class DynamoHandler(BaseResponse):
 
         try:
             item = self.dynamodb_backend.get_item(name, key, projection_expression)
-        except KeyError:
-            er = "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
-            msg = "Requested resource not found"
-            return self.error(er, msg)
         except ValueError:
             er = "com.amazon.coral.validate#ValidationException"
-            msg = "Validation Exception"
-            return self.error(er, msg)
+            return self.error(er, "Validation Exception")
         if item:
             item_dict = item.describe_attrs(attributes=None)
             item_dict["ConsumedCapacity"] = {"TableName": name, "CapacityUnits": 0.5}
@@ -904,7 +905,7 @@ class DynamoHandler(BaseResponse):
             key = transact_item["Get"]["Key"]
             try:
                 item = self.dynamodb_backend.get_item(table_name, key)
-            except KeyError:
+            except ValueError:
                 er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
                 return self.error(er, "Requested resource not found")
 
