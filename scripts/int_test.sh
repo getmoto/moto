@@ -4,6 +4,9 @@
 
 # Runs a test to verify whether each service has the correct dependencies listed in setup.py
 #
+# Tests that depend on multiple services are assumed to be located in dedicated testfiles (and ignored during this test)
+# (test_*_integration.py/test_*_cloudformation.py)
+#
 # ::Algorithm::
 # For each valid service:
 #   - Create a virtual environment
