@@ -1159,7 +1159,7 @@ class DynamoDBBackend(BaseBackend):
     def get_item(self, table_name, keys, projection_expression=None):
         table = self.get_table(table_name)
         if not table:
-            raise ValueError("No table found")
+            raise KeyError("No table found")
         hash_key, range_key = self.get_keys_value(table, keys)
         return table.get_item(hash_key, range_key, projection_expression)
 

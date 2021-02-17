@@ -359,13 +359,13 @@ class DynamoHandler(BaseResponse):
 
         try:
             item = self.dynamodb_backend.get_item(name, key, projection_expression)
-        except ValueError as e:
-            if str(e) == "No table found":
-                er = "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
-                msg = "Requested resource not found"
-            else:
-                er = "com.amazon.coral.validate#ValidationException"
-                msg = "Validation Exception"
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
+            msg = "Requested resource not found"
+            return self.error(er, msg)
+        except ValueError:
+            er = "com.amazon.coral.validate#ValidationException"
+            msg = "Validation Exception"
             return self.error(er, msg)
         if item:
             item_dict = item.describe_attrs(attributes=None)
@@ -904,7 +904,7 @@ class DynamoHandler(BaseResponse):
             key = transact_item["Get"]["Key"]
             try:
                 item = self.dynamodb_backend.get_item(table_name, key)
-            except ValueError:
+            except KeyError:
                 er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
                 return self.error(er, "Requested resource not found")
 
