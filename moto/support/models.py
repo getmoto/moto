@@ -3,6 +3,7 @@ from boto3 import Session
 from pkg_resources import resource_filename
 from moto.core import BaseBackend
 from moto.utilities.utils import load_resource
+import random
 
 
 checks_json = "resources/describe_trusted_advisor_checks.json"
@@ -23,6 +24,17 @@ class SupportBackend(BaseBackend):
         # The checks are a static response
         checks = ADVISOR_CHECKS["checks"]
         return checks
+
+    def refresh_trusted_advisor_check(self, check_id):
+        possible_statuses = ["none", "enqueued", "processing", "success", "abandoned"]
+        status = {
+            "status": {
+                "checkId": check_id,
+                "status": random.choice(possible_statuses),
+                "millisUntilNextRefreshable": 123,
+            }
+        }
+        return status
 
 
 support_backends = {}

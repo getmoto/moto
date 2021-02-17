@@ -43,3 +43,28 @@ def test_describe_trusted_advisor_checks_returns_an_expected_check_name():
         check_names.append(check["name"])
 
     check_names.should.contain("Unassociated Elastic IP Addresses")
+
+
+@mock_support
+def test_refresh_trusted_advisor_check_returns_expected_check():
+    """
+    A refresh of a trusted advisor check returns the check id 
+    in the response
+    """
+    client = boto3.client("support", "us-east-1")
+    check_name = "XXXIIIY"
+    response = client.refresh_trusted_advisor_check(checkId=check_name)
+    response["status"]["checkId"].should.equal(check_name)
+
+
+@mock_support
+def test_refresh_trusted_advisor_check_returns_an_expected_status():
+    """
+    A refresh of a trusted advisor check returns an expected status
+    """
+    client = boto3.client("support", "us-east-1")
+    possible_statuses = ["none", "enqueued", "processing", "success", "abandoned"]
+    check_name = "XXXIIIY"
+    response = client.refresh_trusted_advisor_check(checkId=check_name)
+    actual_status = [response["status"]["status"]]
+    set(actual_status).issubset(possible_statuses).should.be.true
