@@ -575,7 +575,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
-                    self.docker_client.images.pull("docker.io/lambci/lambda", tag=self.run_time)
+                    self.docker_client.images.pull(
+                        "docker.io/lambci/lambda", tag=self.run_time
+                    )
                     container = self.docker_client.containers.run(
                         "lambci/lambda:{}".format(self.run_time),
                         [self.handler, json.dumps(event)],
