@@ -5698,3 +5698,12 @@ def test_update_item_add_to_list_using_legacy_attribute_updates():
 
     resp = table.get_item(Key={"id": "list_add"})
     resp["Item"]["attr"].should.equal(["a", "b", "c", "d", "e"])
+
+
+@mock_dynamodb2
+def test_get_item_for_non_existent_table_raises_error():
+    client = boto3.client("dynamodb", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_item(TableName="non-existent", Key={"site-id": {"S": "foo"}})
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
