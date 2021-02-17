@@ -359,9 +359,14 @@ class DynamoHandler(BaseResponse):
 
         try:
             item = self.dynamodb_backend.get_item(name, key, projection_expression)
-        except ValueError:
-            er = "com.amazon.coral.validate#ValidationException"
-            return self.error(er, "Validation Exception")
+        except ValueError as e:
+            if str(e) == "No table found":
+                er = "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
+                msg = "Requested resource not found"
+            else:
+                er = "com.amazon.coral.validate#ValidationException"
+                msg = "Validation Exception"
+            return self.error(er, msg)
         if item:
             item_dict = item.describe_attrs(attributes=None)
             item_dict["ConsumedCapacity"] = {"TableName": name, "CapacityUnits": 0.5}
