@@ -36,7 +36,7 @@ class DockerModel:
 def parse_image_name(image_name):
     # podman does not support short container image name out of box - try to make a full name
     if ":" in image_name:
-        image_repository, image_tag = image_name.split(":", maxsplit=1)
+        image_repository, image_tag = image_name.split(":", 1)
     else:
         image_repository = image_name
         image_tag = "latest"
