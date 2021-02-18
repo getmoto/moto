@@ -51,7 +51,7 @@ from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,9 @@ class _DockerDataVolumeContext:
                 volumes = {self.name: {"bind": "/tmp/data", "mode": "rw"}}
             else:
                 volumes = {self.name: "/tmp/data"}
-            self._lambda_func.docker_client.images.pull("docker.io/library/alpine")
+            self._lambda_func.docker_client.images.pull(
+                ":".join(parse_image_ref("alpine"))
+            )
             container = self._lambda_func.docker_client.containers.run(
                 "alpine", "sleep 100", volumes=volumes, detach=True
             )
@@ -575,11 +577,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
-                    self.docker_client.images.pull(
-                        "docker.io/lambci/lambda", tag=self.run_time
-                    )
+                    image_ref = "lambci/lambda:{}".format(self.run_time)
+                    self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(
-                        "lambci/lambda:{}".format(self.run_time),
+                        image_ref,
                         [self.handler, json.dumps(event)],
                         remove=False,
                         mem_limit="{}m".format(self.memory_size),

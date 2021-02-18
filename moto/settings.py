@@ -4,6 +4,7 @@ TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
 INITIAL_NO_AUTH_ACTION_COUNT = float(
     os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", float("inf"))
 )
+DEFAULT_CONTAINER_REGISTRY = os.environ.get("DEFAULT_CONTAINER_REGISTRY", "docker.io")
 
 
 def get_sf_execution_history_type():

@@ -2,6 +2,8 @@ import docker
 import functools
 import requests.adapters
 
+from moto import settings
+
 
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 
@@ -33,15 +35,25 @@ class DockerModel:
         return self.__docker_client
 
 
-def parse_image_name(image_name):
+def parse_image_ref(image_name):
     # podman does not support short container image name out of box - try to make a full name
-    if ":" in image_name:
-        image_repository, image_tag = image_name.split(":", 1)
+    # See ParseDockerRef() in https://github.com/distribution/distribution/blob/main/reference/normalize.go
+    parts = image_name.split("/")
+    if len(parts) == 1 or (
+        "." not in parts[0] and ":" not in parts[0] and parts[0] != "localhost"
+    ):
+        domain = settings.DEFAULT_CONTAINER_REGISTRY
+        remainder = parts
     else:
-        image_repository = image_name
+        domain = parts[0]
+        remainder = parts[1:]
+    # Special handling for docker.io
+    # https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md#normalization-of-dockerio-references
+    if domain == "docker.io" and len(remainder) == 1:
+        remainder = ["library"] + remainder
+    if ":" in remainder[-1]:
+        remainder[-1], image_tag = remainder[-1].split(":", 1)
+    else:
         image_tag = "latest"
-    if "/" not in image_repository:
-        image_repository = "library/" + image_repository
-    if len(image_repository.split("/")) < 3:
-        image_repository = "docker.io/" + image_repository
+    image_repository = "/".join([domain] + remainder)
     return image_repository, image_tag
