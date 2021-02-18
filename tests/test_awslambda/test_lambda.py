@@ -363,7 +363,8 @@ def test_invoke_function_from_sns():
     result = sns_conn.publish(TopicArn=topic_arn, Message=json.dumps({}))
 
     start = time.time()
-    while (time.time() - start) < 30:
+    events = []
+    while (time.time() - start) < 10:
         result = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
         log_streams = result.get("logStreams")
         if not log_streams:
@@ -375,13 +376,14 @@ def test_invoke_function_from_sns():
             logGroupName="/aws/lambda/testFunction",
             logStreamName=log_streams[0]["logStreamName"],
         )
-        for event in result.get("events"):
+        events = result.get("events")
+        for event in events:
             if event["message"] == "get_test_zip_file3 success":
                 return
 
         time.sleep(1)
 
-    assert False, "Test Failed"
+    assert False, "Expected message not found in logs:" + str(events)
 
 
 @mock_lambda
@@ -1306,7 +1308,7 @@ def test_invoke_function_from_sqs(key):
     assert msg_showed_up, (
         expected_msg
         + " was not found after sending an SQS message. All logs: "
-        + all_logs
+        + str(all_logs)
     )
 
 
@@ -1355,7 +1357,7 @@ def test_invoke_function_from_dynamodb_put():
     msg_showed_up, all_logs = wait_for_log_msg(expected_msg, log_group)
 
     assert msg_showed_up, (
-        expected_msg + " was not found after a DDB insert. All logs: " + all_logs
+        expected_msg + " was not found after a DDB insert. All logs: " + str(all_logs)
     )
 
 
@@ -1422,7 +1424,7 @@ def wait_for_log_msg(expected_msg, log_group):
     logs_conn = boto3.client("logs", region_name="us-east-1")
     received_messages = []
     start = time.time()
-    while (time.time() - start) < 10:
+    while (time.time() - start) < 30:
         result = logs_conn.describe_log_streams(logGroupName=log_group)
         log_streams = result.get("logStreams")
         if not log_streams:

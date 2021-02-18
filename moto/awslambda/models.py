@@ -569,9 +569,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
+
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
-                    self.docker_client.ping()  # Verify Docker is running
                     run_kwargs = (
                         dict(links={"motoserver": "motoserver"})
                         if settings.TEST_SERVER_MODE
@@ -608,23 +608,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
             output = output.decode("utf-8")
 
-            # Send output to "logs" backend
-            invoke_id = uuid.uuid4().hex
-            log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
-                date=datetime.datetime.utcnow(),
-                version=self.version,
-                invoke_id=invoke_id,
-            )
-
-            self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
-
-            log_events = [
-                {"timestamp": unix_time_millis(), "message": line}
-                for line in output.splitlines()
-            ]
-            self.logs_backend.put_log_events(
-                self.logs_group_name, log_stream_name, log_events, None
-            )
+            self.save_logs(output)
 
             # We only care about the response from the lambda
             # Which is the last line of the output, according to https://github.com/lambci/docker-lambda/issues/25
@@ -636,7 +620,24 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return resp, invocation_error, logs
         except docker.errors.DockerException as e:
             # Docker itself is probably not running - there will be no Lambda-logs to handle
-            return "error running docker: {}".format(e), True, ""
+            msg = "error running docker: {}".format(e)
+            self.save_logs(msg)
+            return msg, True, ""
+
+    def save_logs(self, output):
+        # Send output to "logs" backend
+        invoke_id = uuid.uuid4().hex
+        log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+            date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id,
+        )
+        self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
+        log_events = [
+            {"timestamp": unix_time_millis(), "message": line}
+            for line in output.splitlines()
+        ]
+        self.logs_backend.put_log_events(
+            self.logs_group_name, log_stream_name, log_events, None
+        )
 
     def invoke(self, body, request_headers, response_headers):
 
