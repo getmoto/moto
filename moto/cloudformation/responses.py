@@ -438,7 +438,7 @@ class CloudFormationResponse(BaseResponse):
             return json.dumps(
                 {
                     "CreateStackSetResponse": {
-                        "CreateStackSetResult": {"StackSetId": stackset.stackset_id}
+                        "CreateStackSetResult": {"StackSetId": stackset.id}
                     }
                 }
             )
@@ -926,7 +926,7 @@ LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.ama
 
 CREATE_STACK_SET_RESPONSE_TEMPLATE = """<CreateStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <CreateStackSetResult>
-    <StackSetId>{{ stackset.stackset_id }}</StackSetId>
+    <StackSetId>{{ stackset.id }}</StackSetId>
   </CreateStackSetResult>
   <ResponseMetadata>
     <RequestId>f457258c-391d-41d1-861f-example</RequestId>
