@@ -1156,10 +1156,11 @@ class InstanceTypeBackend(object):
     def describe_instance_types(self, instance_types=None):
         matches = INSTANCE_TYPES.values()
         if instance_types:
-            matches = [t for t in matches if t.get("apiname") in instance_types]
+            matches = [t for t in matches if t.get("InstanceType") in instance_types]
             if len(instance_types) > len(matches):
                 unknown_ids = set(instance_types) - set(
-                    t.get("apiname") for t in matches)
+                    t.get("InstanceType") for t in matches
+                )
                 raise InvalidInstanceTypeError(unknown_ids)
         return matches
 
