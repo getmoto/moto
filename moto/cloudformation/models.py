@@ -558,7 +558,9 @@ class CloudFormationBackend(BaseBackend):
         operation_id=None,
     ):
         stackset = self.get_stack_set(stackset_name)
-        resolved_parameters = self._resolve_update_parameters(instance=stackset, incoming_params=parameters)
+        resolved_parameters = self._resolve_update_parameters(
+            instance=stackset, incoming_params=parameters
+        )
         update = stackset.update(
             template=template,
             description=description,
@@ -738,7 +740,9 @@ class CloudFormationBackend(BaseBackend):
 
     def update_stack(self, name, template, role_arn=None, parameters=None, tags=None):
         stack = self.get_stack(name)
-        resolved_parameters = self._resolve_update_parameters(instance=stack, incoming_params=parameters)
+        resolved_parameters = self._resolve_update_parameters(
+            instance=stack, incoming_params=parameters
+        )
         stack.update(template, role_arn, parameters=resolved_parameters, tags=tags)
         return stack
 
