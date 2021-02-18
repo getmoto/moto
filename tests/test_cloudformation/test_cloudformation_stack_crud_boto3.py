@@ -559,6 +559,43 @@ def test_update_stack_set():
 
 
 @mock_cloudformation
+def test_update_stack_set_with_previous_value():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    param = [
+        {"ParameterKey": "TagDescription", "ParameterValue": "StackSetValue"},
+        {"ParameterKey": "TagName", "ParameterValue": "StackSetValue2"},
+    ]
+    param_overrides = [
+        {"ParameterKey": "TagDescription", "ParameterValue": "OverrideValue"},
+        {"ParameterKey": "TagName", "UsePreviousValue": True},
+    ]
+    cf_conn.create_stack_set(
+        StackSetName="test_stack_set",
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=param,
+    )
+    cf_conn.update_stack_set(
+        StackSetName="test_stack_set",
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=param_overrides,
+    )
+    stackset = cf_conn.describe_stack_set(StackSetName="test_stack_set")
+
+    stackset["StackSet"]["Parameters"][0]["ParameterValue"].should.equal(
+        param_overrides[0]["ParameterValue"]
+    )
+    stackset["StackSet"]["Parameters"][1]["ParameterValue"].should.equal(
+        param[1]["ParameterValue"]
+    )
+    stackset["StackSet"]["Parameters"][0]["ParameterKey"].should.equal(
+        param_overrides[0]["ParameterKey"]
+    )
+    stackset["StackSet"]["Parameters"][1]["ParameterKey"].should.equal(
+        param_overrides[1]["ParameterKey"]
+    )
+
+
+@mock_cloudformation
 def test_boto3_list_stack_set_operations():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
