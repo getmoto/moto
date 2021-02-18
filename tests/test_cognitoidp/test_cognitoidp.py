@@ -169,7 +169,6 @@ def test_describe_user_pool_domain():
     result["DomainDescription"]["Domain"].should.equal(domain)
     result["DomainDescription"]["UserPoolId"].should.equal(user_pool_id)
     result["DomainDescription"]["AWSAccountId"].should_not.be.none
-    result["DomainDescription"]["CloudFrontDomain"].should_not.be.none
 
 
 @mock_cognitoidp
