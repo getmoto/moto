@@ -1158,7 +1158,8 @@ class InstanceTypeBackend(object):
         if instance_types:
             matches = [t for t in matches if t.get("apiname") in instance_types]
             if len(instance_types) > len(matches):
-                unknown_ids = set(instance_types) - set(matches)
+                unknown_ids = set(instance_types) - set(
+                    t.get("apiname") for t in matches)
                 raise InvalidInstanceTypeError(unknown_ids)
         return matches
 
