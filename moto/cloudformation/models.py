@@ -494,6 +494,8 @@ class CloudFormationBackend(BaseBackend):
 
     def get_stack_set(self, name):
         stacksets = self.stacksets.keys()
+        if name in stacksets:
+            return self.stacksets[name]
         for stackset in stacksets:
             if self.stacksets[stackset].name == name:
                 return self.stacksets[stackset]
@@ -501,6 +503,8 @@ class CloudFormationBackend(BaseBackend):
 
     def delete_stack_set(self, name):
         stacksets = self.stacksets.keys()
+        if name in stacksets:
+            self.stacksets[name].delete()
         for stackset in stacksets:
             if self.stacksets[stackset].name == name:
                 self.stacksets[stackset].delete()
