@@ -603,13 +603,14 @@ def test_boto3_delete_stack_set():
 @mock_cloudformation
 def test_boto3_create_stack_set():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    cf_conn.create_stack_set(
+    response = cf_conn.create_stack_set(
         StackSetName="test_stack_set", TemplateBody=dummy_template_json
     )
 
     cf_conn.describe_stack_set(StackSetName="test_stack_set")["StackSet"][
         "TemplateBody"
     ].should.equal(dummy_template_json)
+    response["StackSetId"].should_not.be.empty
 
 
 @mock_cloudformation
