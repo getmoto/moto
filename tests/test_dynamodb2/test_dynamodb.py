@@ -5598,8 +5598,14 @@ def test_lsi_projection_type_keys_only():
 
 
 @mock_dynamodb2
-def test_set_attribute_is_dropped_if_empty_after_update_expression():
+@pytest.mark.parametrize(
+    "attr_name",
+    ["orders", "#placeholder"],
+    ids=["use attribute name", "use expression attribute name"],
+)
+def test_set_attribute_is_dropped_if_empty_after_update_expression(attr_name):
     table_name, item_key, set_item = "test-table", "test-id", "test-data"
+    expression_attribute_names = {"#placeholder": "orders"}
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
         TableName=table_name,
@@ -5611,7 +5617,8 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression():
     client.update_item(
         TableName=table_name,
         Key={"customer": {"S": item_key}},
-        UpdateExpression="ADD orders :order",
+        UpdateExpression="ADD {} :order".format(attr_name),
+        ExpressionAttributeNames=expression_attribute_names,
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
     resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
@@ -5622,7 +5629,8 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression():
     client.update_item(
         TableName=table_name,
         Key={"customer": {"S": item_key}},
-        UpdateExpression="DELETE orders :order",
+        UpdateExpression="DELETE {} :order".format(attr_name),
+        ExpressionAttributeNames=expression_attribute_names,
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
     resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
