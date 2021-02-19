@@ -638,7 +638,7 @@ def test_boto3_delete_stack_set_by_name():
 
 
 @mock_cloudformation
-def test_boto3_delete_stack_set_by_name():
+def test_boto3_delete_stack_set_by_id():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.create_stack_set(
         StackSetName="test_stack_set", TemplateBody=dummy_template_json
