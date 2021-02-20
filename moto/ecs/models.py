@@ -833,7 +833,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         overrides or {},
                         started_by or "",
                         tags or [],
-                    )
+                        )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
                     )
