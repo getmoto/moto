@@ -1457,6 +1457,16 @@ def test_run_task():
         taskDefinition="test_ecs_task",
         count=2,
         startedBy="moto",
+        tags=[
+            {
+                "key": "tagKey0",
+                "value": "tagValue0"
+            },
+            {
+                "key": "tagKey1",
+                "value": "tagValue1"
+            },
+        ],
     )
     len(response["tasks"]).should.equal(2)
     response["tasks"][0]["taskArn"].should.contain(
@@ -1476,6 +1486,7 @@ def test_run_task():
     response["tasks"][0]["desiredStatus"].should.equal("RUNNING")
     response["tasks"][0]["startedBy"].should.equal("moto")
     response["tasks"][0]["stoppedReason"].should.equal("")
+    response["tasks"][0]["tags"][0].get("value").should.equal("tagValue0")
 
 
 @mock_ec2
