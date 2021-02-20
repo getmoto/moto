@@ -264,7 +264,7 @@ class Task(BaseObject):
         resource_requirements,
         overrides={},
         started_by="",
-        tags=[]
+        tags=[],
     ):
         self.cluster_arn = cluster.arn
         self.task_arn = "arn:aws:ecs:{0}:{1}:task/{2}".format(
@@ -478,8 +478,10 @@ class ContainerInstance(BaseObject):
                 "type": "STRINGSET",
             },
         ]
-        self.container_instance_arn = "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
-            region_name, ACCOUNT_ID, str(uuid.uuid4())
+        self.container_instance_arn = (
+            "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
+                region_name, ACCOUNT_ID, str(uuid.uuid4())
+            )
         )
         self.pending_tasks_count = 0
         self.remaining_resources = [
@@ -792,7 +794,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise TaskDefinitionNotFoundException
 
-    def run_task(self, cluster_str, task_definition_str, count, overrides, started_by, tags):
+    def run_task(
+        self, cluster_str, task_definition_str, count, overrides, started_by, tags
+    ):
         cluster = self._get_cluster(cluster_str)
 
         task_definition = self.describe_task_definition(task_definition_str)
