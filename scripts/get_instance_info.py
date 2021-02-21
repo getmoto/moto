@@ -18,10 +18,10 @@ def main():
     regions.extend(Session().get_available_regions("ec2", partition_name="aws-cn"))
     print("Found " + str(len(regions)) + " regions")
 
-    for region in ["us-east-1"]:
+    instances = []
+    for region in regions:
         try:
             ec2 = boto3.client("ec2", region_name=region)
-            instances = []
             offerings = ec2.describe_instance_types()
             instances.extend(offerings["InstanceTypes"])
             next_token = offerings.get("NextToken", "")
