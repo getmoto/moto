@@ -25,10 +25,13 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
         * Internal testing is now executed using Pytest (instead of Nose)
         
         * CORS is now enabled when running MotoServer
+
+        * AWS Lambda and Batch now support Podman as an alternative to Docker
     
     New Services:
         * Forecast
         * MediaLive
+        * Support
         * Transcribe
     
     New Methods:
@@ -73,6 +76,8 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
             * put_role_permissions_boundary
             * replace_iam_instance_profile_association
             * set_default_policy_version
+            * tag_user
+            * untag_user
         * IOT
             * create_topic_rule
             * delete_topic_rule
@@ -91,6 +96,9 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
             * describe_notebook_instance_lifecycle_config
         * Secrets Manager
             * tag_resource
+        * SES
+            * test_render_template
+            * update_template
         * Step Functions
             * get_execution_history
             * tag_resource
@@ -101,7 +109,14 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
         * ACM - import_certificate() now supports the Tags-parameter
         * ACM - request_certificate() now supports the Tags-parameter
         * CF - SSHIngressRule now supports CidrIp and Description
-        * CF - Now fully supports AWS::StepFunctions::StateMachine
+        * CF - Now fully supports:
+             AWS::StepFunctions::StateMachine
+        * CF - Now supports creation of:
+             AWS::ApiGateway::Deployment
+             AWS::ApiGateway::Method
+             AWS::ApiGateway::Resource
+             AWS::ApiGateway::RestApi
+             AWS::Lambda::Permission
         * CF - Now supports S3 outputs: Arn, DomainName, DualStackDomainName, RegionalDomainName, WebsiteURL
         * CloudWatch - list_metrics() no longer returns duplicate entries
         * CloudWatch - put_metric_alarm() now supports the Metrics and DatapointsToAlarm parameters
@@ -130,14 +145,17 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
         * EC2 - create_vpc_endpoint() now properly handles private_dns_enabled-parameter in CF/TF
         * EC2 - create_vpn_endpoint() now supports the VpnGatewayId-parameter
         * EC2 - describe_addresses() now returns Tags
+        * EC2 - describe_instances() now supports filtering by the subnet-id-attribute
         * EC2 - describe_subnets() now supports filtering by the state-attribute
         * ECR - list_images() now returns a proper value for the imageDigest-attribute
         * ECS - the default cluster is now used in a variety of methods, if the Cluster-parameter is not supplied
         * ECS - create_service() now supports the launchType-parameter
+        * ECS - delete_service() now supports the force-parameter
         * ECS - describe_container_instances() now returns the registeredAt-attribute
         * ECS - list_tasks now supports the filters family/service_name/desired_status
         * ECS - register_scalable_target() now supports updates
         * ECS - register_task_definition() now returns some attributes that were missing before
+        * ECS - run_task() now supports the tags-parameter
         * EMR - ReleaseLabel now respects semantic versioning
         * Events - Now supports the Go SDK
         * Events - list_rules() now returns the EventBusName-parameter
@@ -149,8 +167,11 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..
         * Lambda - update_function_configuration() now supports the VpcConfig-parameter
         * RDS - create_db_parameter_group() now returns the DBParameterGroupArn-attribute
         * RDS - describe_db_instances() now returns the TagList-attribute
+        * RDS - describe_db_instances() now supports the filters-parameter
+        * RDS - describe_db_snapshots() now supports the filters-parameter
         * Redshift - modify_cluster() now checks for invalid ClusterType/NumberOfNodes combinations
         * ResourceGroupTagging: Now supports EC2 VPC resources
+        * ResourceGroupTagging: Now supports RDS DBInstance, DBSnapshot resources
         * ResourceGroupTagging - get_resources() has improved support for the TagFilters-parameter
         * S3 - copy_object() now supports copying deleted and subsequently restored objects with storage class Glacier
         * S3 - get_object() now throws the correct error for an unknown VersionId
