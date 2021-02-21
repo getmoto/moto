@@ -6202,3 +6202,18 @@ def test_source_and_restored_table_items_are_not_linked():
     set(restored_table_guids).should.equal(
         set(guids_original) | set(guids_added_after_restore)
     )
+
+
+@mock_dynamodb2
+@pytest.mark.parametrize("region", ["eu-central-1", "ap-south-1"])
+def test_describe_endpoints(region):
+    client = boto3.client("dynamodb", region)
+    res = client.describe_endpoints()["Endpoints"]
+    res.should.equal(
+        [
+            {
+                "Address": "dynamodb.{}.amazonaws.com".format(region),
+                "CachePeriodInMinutes": 1440,
+            },
+        ]
+    )

@@ -1085,6 +1085,14 @@ class DynamoDBBackend(BaseBackend):
     def delete_table(self, name):
         return self.tables.pop(name, None)
 
+    def describe_endpoints(self):
+        return [
+            {
+                "Address": "dynamodb.{}.amazonaws.com".format(self.region_name),
+                "CachePeriodInMinutes": 1440,
+            }
+        ]
+
     def tag_resource(self, table_arn, tags):
         for table in self.tables:
             if self.tables[table].table_arn == table_arn:
