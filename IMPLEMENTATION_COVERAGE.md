@@ -5878,7 +5878,7 @@
 - [ ] add_flow_outputs
 - [ ] add_flow_sources
 - [ ] add_flow_vpc_interfaces
-- [ ] create_flow
+- [x] create_flow
 - [ ] delete_flow
 - [ ] describe_flow
 - [ ] grant_flow_entitlements

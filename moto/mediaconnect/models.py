@@ -1,0 +1,93 @@
+from __future__ import unicode_literals
+
+from collections import OrderedDict
+from uuid import uuid4
+
+from boto3 import Session
+from moto.core import BaseBackend, BaseModel
+
+
+class Flow(BaseModel):
+    def __init__(self, *args, **kwargs):
+        self.availability_zone = kwargs.get("availability_zone")
+        self.entitlements = kwargs.get("entitlements", [])
+        self.name = kwargs.get("name")
+        self.outputs = kwargs.get("outputs", [])
+        self.source = kwargs.get("source", {})
+        self.source_failover_config = kwargs.get("source_failover_config", {})
+        self.sources = kwargs.get("sources", [])
+        self.vpc_interfaces = kwargs.get("vpc_interfaces", [])
+        self.status = "STANDBY"  # one of 'STANDBY'|'ACTIVE'|'UPDATING'|'DELETING'|'STARTING'|'STOPPING'|'ERROR'
+        self.description = None
+        self.flow_arn = None
+        self.egress_ip = None
+
+    def to_dict(self):
+        data = {
+            "availabilityZone": self.availability_zone,
+            "description": self.description,
+            "egressIp": self.egress_ip,
+            "entitlements": self.entitlements,
+            "flowArn": self.flow_arn,
+            "name": self.name,
+            "outputs": self.outputs,
+            "source": self.source,
+            "source_failover_config": self.source_failover_config,
+            "sources": self.sources,
+            "status": self.status,
+            "vpc_interfaces": self.vpc_interfaces,
+        }
+        return data
+
+
+class MediaConnectBackend(BaseBackend):
+    def __init__(self, region_name=None):
+        super(MediaConnectBackend, self).__init__()
+        self.region_name = region_name
+        self._flows = OrderedDict()
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
+
+    def create_flow(
+        self,
+        availability_zone,
+        entitlements,
+        name,
+        outputs,
+        source,
+        source_failover_config,
+        sources,
+        vpc_interfaces,
+    ):
+        flow = Flow(
+            availability_zone=availability_zone,
+            entitlements=entitlements,
+            name=name,
+            outputs=outputs,
+            source=source,
+            source_failover_config=source_failover_config,
+            sources=sources,
+            vpc_interfaces=vpc_interfaces,
+        )
+        flow.description = "A Moto test flow"
+        flow.egress_ip = "127.0.0.1"
+        flow_id = uuid4().hex
+        flow.flow_arn = "arn:aws:mediaconnect:flow:{}".format(flow_id)
+        self._flows[flow.flow_arn] = flow
+        return flow
+
+    # add methods from here
+
+
+mediaconnect_backends = {}
+for region in Session().get_available_regions("mediaconnect"):
+    mediaconnect_backends[region] = MediaConnectBackend()
+for region in Session().get_available_regions(
+    "mediaconnect", partition_name="aws-us-gov"
+):
+    mediaconnect_backends[region] = MediaConnectBackend()
+for region in Session().get_available_regions("mediaconnect", partition_name="aws-cn"):
+    mediaconnect_backends[region] = MediaConnectBackend()
