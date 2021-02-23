@@ -126,7 +126,7 @@ mock_support = lazy_load(".support", "mock_support")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "1.3.17.dev"
+__version__ = "2.0.1.dev"
 
 
 try:
