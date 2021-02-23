@@ -1420,6 +1420,9 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
           <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
         </PermissionsBoundary>
         {% endif %}
+        {% if role.description %}
+        <Description>{{ role.description }}</Description>
+        {% endif %}
       </member>
       {% endfor %}
     </Roles>
