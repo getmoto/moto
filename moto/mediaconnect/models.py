@@ -22,7 +22,7 @@ class Flow(BaseModel):
         self.flow_arn = None
         self.egress_ip = None
 
-    def to_dict(self):
+    def to_dict(self, include=None):
         data = {
             "availabilityZone": self.availability_zone,
             "description": self.description,
@@ -37,6 +37,11 @@ class Flow(BaseModel):
             "status": self.status,
             "vpc_interfaces": self.vpc_interfaces,
         }
+        if include:
+            new_data = {k: v for k, v in data.items() if k in include}
+            if "sourceType" in include:
+                new_data["sourceType"] = "OWNED"
+            return new_data
         return data
 
 
@@ -78,6 +83,25 @@ class MediaConnectBackend(BaseBackend):
         flow.flow_arn = "arn:aws:mediaconnect:flow:{}".format(flow_id)
         self._flows[flow.flow_arn] = flow
         return flow
+
+    def list_flows(self, max_results, next_token):
+        flows = list(self._flows.values())
+        if max_results is not None:
+            flows = flows[:max_results]
+        response_flows = [
+            fl.to_dict(
+                include=[
+                    "availabilityZone",
+                    "description",
+                    "flowArn",
+                    "name",
+                    "sourceType",
+                    "status",
+                ]
+            )
+            for fl in flows
+        ]
+        return response_flows, next_token
 
     # add methods from here
 

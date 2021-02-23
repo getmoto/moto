@@ -31,3 +31,11 @@ class MediaConnectResponse(BaseResponse):
             vpc_interfaces=vpc_interfaces,
         )
         return json.dumps(dict(flow=flow.to_dict()))
+
+    def list_flows(self):
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        flows, next_token = self.mediaconnect_backend.list_flows(
+            max_results=max_results, next_token=next_token,
+        )
+        return json.dumps(dict(flows=flows, nextToken=next_token))

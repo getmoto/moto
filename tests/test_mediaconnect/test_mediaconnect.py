@@ -59,3 +59,26 @@ def test_create_flow_succeeds():
     response["Flow"]["FlowArn"][:26].should.equal("arn:aws:mediaconnect:flow:")
     response["Flow"]["Name"].should.equal("test Flow 1")
     response["Flow"]["Status"].should.equal("STANDBY")
+
+
+@mock_mediaconnect
+def test_list_flows_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    flow_1_config = _create_flow_config("test Flow 1")
+    flow_2_config = _create_flow_config("test Flow 2")
+
+    client.create_flow(**flow_1_config)
+    client.create_flow(**flow_2_config)
+
+    response = client.list_flows()
+    len(response["Flows"]).should.equal(2)
+
+    response["Flows"][0]["Name"].should.equal("test Flow 1")
+    response["Flows"][0]["AvailabilityZone"].should.equal("AZ1")
+    response["Flows"][0]["SourceType"].should.equal("OWNED")
+    response["Flows"][0]["Status"].should.equal("STANDBY")
+
+    response["Flows"][1]["Name"].should.equal("test Flow 2")
+    response["Flows"][1]["AvailabilityZone"].should.equal("AZ1")
+    response["Flows"][1]["SourceType"].should.equal("OWNED")
+    response["Flows"][1]["Status"].should.equal("STANDBY")
