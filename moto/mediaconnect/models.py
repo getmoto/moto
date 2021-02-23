@@ -123,6 +123,14 @@ class MediaConnectBackend(BaseBackend):
             raise NotFoundException(message="Flow not found.")
         return flow.to_dict(), messages
 
+    def delete_flow(self, flow_arn):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            del self._flows[flow_arn]
+        else:
+            raise NotFoundException(message="Flow not found.")
+        return flow_arn, flow.status
+
     # add methods from here
 
 

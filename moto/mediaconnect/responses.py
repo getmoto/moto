@@ -46,3 +46,10 @@ class MediaConnectResponse(BaseResponse):
             flow_arn = flow_arn.replace("%3A", ":")
         flow, messages = self.mediaconnect_backend.describe_flow(flow_arn=flow_arn,)
         return json.dumps(dict(flow=flow, messages=messages))
+
+    def delete_flow(self):
+        flow_arn = self._get_param("flowArn")
+        if flow_arn:
+            flow_arn = flow_arn.replace("%3A", ":")
+        flow_arn, status = self.mediaconnect_backend.delete_flow(flow_arn=flow_arn,)
+        return json.dumps(dict(flowArn=flow_arn, status=status))

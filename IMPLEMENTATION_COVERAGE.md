@@ -5879,7 +5879,7 @@
 - [ ] add_flow_sources
 - [ ] add_flow_vpc_interfaces
 - [x] create_flow
-- [ ] delete_flow
+- [x] delete_flow
 - [x] describe_flow
 - [ ] grant_flow_entitlements
 - [ ] list_entitlements

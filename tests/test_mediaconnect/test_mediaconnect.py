@@ -95,3 +95,17 @@ def test_describe_flow_succeeds():
     describe_response = client.describe_flow(FlowArn=flow_arn)
     describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     describe_response["Flow"]["Name"].should.equal("test Flow 1")
+
+
+@mock_mediaconnect
+def test_delete_flow_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test Flow 1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    flow_arn = create_response["Flow"]["FlowArn"]
+    delete_response = client.delete_flow(FlowArn=flow_arn)
+    delete_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    delete_response["FlowArn"].should.equal(flow_arn)
+    delete_response["Status"].should.equal("STANDBY")
