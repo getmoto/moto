@@ -6738,7 +6738,7 @@
 
 ## mediaconnect
 <details>
-<summary>13% implemented</summary>
+<summary>22% implemented</summary>
 
 - [ ] add_flow_outputs
 - [ ] add_flow_sources
@@ -6759,8 +6759,8 @@
 - [ ] remove_flow_source
 - [ ] remove_flow_vpc_interface
 - [ ] revoke_flow_entitlement
-- [ ] start_flow
-- [ ] stop_flow
+- [x] start_flow
+- [x] stop_flow
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_flow

@@ -131,6 +131,22 @@ class MediaConnectBackend(BaseBackend):
             raise NotFoundException(message="Flow not found.")
         return flow_arn, flow.status
 
+    def start_flow(self, flow_arn):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.status = "STARTING"
+        else:
+            raise NotFoundException(message="Flow not found.")
+        return flow_arn, flow.status
+
+    def stop_flow(self, flow_arn):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.status = "STOPPING"
+        else:
+            raise NotFoundException(message="Flow not found.")
+        return flow_arn, flow.status
+
     # add methods from here
 
 
