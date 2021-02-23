@@ -177,6 +177,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
 
         self.cpu = cpu
         self.memory = memory
+        self.status = "ACTIVE"
 
     @property
     def response_object(self):
@@ -788,7 +789,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             family in self.task_definitions
             and revision in self.task_definitions[family]
         ):
-            return self.task_definitions[family].pop(revision)
+            task_definition = self.task_definitions[family].pop(revision)
+            task_definition.status = "INACTIVE"
+            return task_definition
         else:
             raise TaskDefinitionNotFoundException
 
