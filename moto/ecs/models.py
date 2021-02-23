@@ -264,6 +264,7 @@ class Task(BaseObject):
         resource_requirements,
         overrides={},
         started_by="",
+        tags=[],
     ):
         self.cluster_arn = cluster.arn
         self.task_arn = "arn:aws:ecs:{0}:{1}:task/{2}".format(
@@ -276,6 +277,7 @@ class Task(BaseObject):
         self.overrides = overrides
         self.containers = []
         self.started_by = started_by
+        self.tags = tags
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
 
@@ -790,7 +792,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise TaskDefinitionNotFoundException
 
-    def run_task(self, cluster_str, task_definition_str, count, overrides, started_by):
+    def run_task(
+        self, cluster_str, task_definition_str, count, overrides, started_by, tags
+    ):
         cluster = self._get_cluster(cluster_str)
 
         task_definition = self.describe_task_definition(task_definition_str)
@@ -830,6 +834,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         resource_requirements,
                         overrides or {},
                         started_by or "",
+                        tags or [],
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
