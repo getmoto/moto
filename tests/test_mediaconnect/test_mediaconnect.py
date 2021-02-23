@@ -82,3 +82,16 @@ def test_list_flows_succeeds():
     response["Flows"][1]["AvailabilityZone"].should.equal("AZ1")
     response["Flows"][1]["SourceType"].should.equal("OWNED")
     response["Flows"][1]["Status"].should.equal("STANDBY")
+
+
+@mock_mediaconnect
+def test_describe_flow_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config("test Flow 1")
+
+    create_response = client.create_flow(**channel_config)
+    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    flow_arn = create_response["Flow"]["FlowArn"]
+    describe_response = client.describe_flow(FlowArn=flow_arn)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    describe_response["Flow"]["Name"].should.equal("test Flow 1")

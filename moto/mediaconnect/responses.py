@@ -39,3 +39,10 @@ class MediaConnectResponse(BaseResponse):
             max_results=max_results, next_token=next_token,
         )
         return json.dumps(dict(flows=flows, nextToken=next_token))
+
+    def describe_flow(self):
+        flow_arn = self._get_param("flowArn")
+        if flow_arn:
+            flow_arn = flow_arn.replace("%3A", ":")
+        flow, messages = self.mediaconnect_backend.describe_flow(flow_arn=flow_arn,)
+        return json.dumps(dict(flow=flow, messages=messages))

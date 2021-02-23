@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
+from moto.mediaconnect.exceptions import NotFoundException
 
 
 class Flow(BaseModel):
@@ -18,6 +19,7 @@ class Flow(BaseModel):
         self.sources = kwargs.get("sources", [])
         self.vpc_interfaces = kwargs.get("vpc_interfaces", [])
         self.status = "STANDBY"  # one of 'STANDBY'|'ACTIVE'|'UPDATING'|'DELETING'|'STARTING'|'STOPPING'|'ERROR'
+        self._previous_status = None
         self.description = None
         self.flow_arn = None
         self.egress_ip = None
@@ -43,6 +45,15 @@ class Flow(BaseModel):
                 new_data["sourceType"] = "OWNED"
             return new_data
         return data
+
+    def resolve_transient_states(self):
+        if self.status in ["STARTING"]:
+            self.status = "ACTIVE"
+        if self.status in ["STOPPING"]:
+            self.status = "STANDBY"
+        if self.status in ["UPDATING"]:
+            self.status = self._previous_status
+            self._previous_status = None
 
 
 class MediaConnectBackend(BaseBackend):
@@ -102,6 +113,15 @@ class MediaConnectBackend(BaseBackend):
             for fl in flows
         ]
         return response_flows, next_token
+
+    def describe_flow(self, flow_arn=None):
+        messages = {}
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.resolve_transient_states()
+        else:
+            raise NotFoundException(message="Flow not found.")
+        return flow.to_dict(), messages
 
     # add methods from here
 

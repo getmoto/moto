@@ -5873,17 +5873,17 @@
 
 ## mediaconnect
 <details>
-<summary>0% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] add_flow_outputs
 - [ ] add_flow_sources
 - [ ] add_flow_vpc_interfaces
 - [x] create_flow
 - [ ] delete_flow
-- [ ] describe_flow
+- [x] describe_flow
 - [ ] grant_flow_entitlements
 - [ ] list_entitlements
-- [ ] list_flows
+- [x] list_flows
 - [ ] list_tags_for_resource
 - [ ] remove_flow_output
 - [ ] remove_flow_source
