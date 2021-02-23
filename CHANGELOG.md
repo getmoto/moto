@@ -8,7 +8,7 @@ Unreleased
 2.0.0
 ----
 Full list of PRs merged in this release:
-https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..2021-01-27
+https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..2021-02-23
 
     General Changes:
         * When installing, it is now required to specify the service you want to use:
