@@ -2,6 +2,9 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
+from moto.ec2.exceptions import (
+    MissingParameterError
+)
 
 class ElasticBlockStore(BaseResponse):
     def attach_volume(self):
@@ -44,6 +47,8 @@ class ElasticBlockStore(BaseResponse):
         size = self._get_param("Size")
         zone = self._get_param("AvailabilityZone")
         snapshot_id = self._get_param("SnapshotId")
+        if not size or snapshot_id:
+            raise MissingParameterError("size or snapshotId")
         volume_type = self._get_param("VolumeType")
         tags = self._parse_tag_specification("TagSpecification")
         volume_tags = tags.get("volume", {})
@@ -55,6 +60,24 @@ class ElasticBlockStore(BaseResponse):
             )
             volume.add_tags(volume_tags)
             template = self.response_template(CREATE_VOLUME_RESPONSE)
+            return template.render(volume=volume)
+
+    def modify_volume(self):
+        volume_id = self._get_param("VolumeId")
+        size = self._get_param("Size")
+        zone = self._get_param("AvailabilityZone")
+        snapshot_id = self._get_param("SnapshotId")
+        volume_type = self._get_param("VolumeType")
+        tags = self._parse_tag_specification("TagSpecification")
+        volume_tags = tags.get("volume", {})
+        encrypted = self._get_bool_param("Encrypted", if_none=False)
+        kms_key_id = self._get_param("KmsKeyId")
+        if self.is_not_dryrun("ModifyVolume"):
+            volume = self.ec2_backend.modify_volume(
+                volume_id, size, zone, volume_type, snapshot_id, encrypted, kms_key_id
+            )
+            volume.add_tags(volume_tags)
+            template = self.response_template(MODIFY_VOLUME_RESPONSE)
             return template.render(volume=volume)
 
     def delete_snapshot(self):
@@ -157,6 +180,37 @@ class ElasticBlockStore(BaseResponse):
 
 
 CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <volumeId>{{ volume.id }}</volumeId>
+  <size>{{ volume.size }}</size>
+  {% if volume.snapshot_id %}
+    <snapshotId>{{ volume.snapshot_id }}</snapshotId>
+  {% else %}
+    <snapshotId/>
+  {% endif %}
+  <encrypted>{{ 'true' if volume.encrypted else 'false' }}</encrypted>
+  {% if volume.encrypted %}
+  <kmsKeyId>{{ volume.kms_key_id }}</kmsKeyId>
+  {% endif %}
+  <availabilityZone>{{ volume.zone.name }}</availabilityZone>
+  <status>creating</status>
+  <createTime>{{ volume.create_time}}</createTime>
+  {% if volume.get_tags() %}
+    <tagSet>
+      {% for tag in volume.get_tags() %}
+          <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+          </item>
+      {% endfor %}
+    </tagSet>
+  {% endif %}
+  <volumeType>{{ volume.type }}</volumeType>
+</CreateVolumeResponse>"""
+
+MODIFY_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <volumeId>{{ volume.id }}</volumeId>
   <size>{{ volume.size }}</size>

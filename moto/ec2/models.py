@@ -2768,6 +2768,22 @@ class EBSBackend(object):
         volume.attachment = None
         return old_attachment
 
+    def modify_volume(self, volume_id, size, zone, volume_type, snapshot_id=None, encrypted=False, kms_key_id=None):
+        if kms_key_id and not encrypted:
+            raise InvalidParameterDependency("KmsKeyId", "Encrypted")
+        if encrypted and not kms_key_id:
+            kms_key_id = self._get_default_encryption_key()
+        # zone = self.zone.name
+        if snapshot_id:
+            snapshot = self.get_snapshot(snapshot_id)
+            if size is None:
+                size = snapshot.volume.size
+            if snapshot.encrypted:
+                encrypted = snapshot.encrypted
+        volume = Volume(self, volume_id, size, volume_type, zone, snapshot_id, encrypted, kms_key_id)
+        self.volumes[volume_id] = volume
+        return volume
+
     def create_snapshot(self, volume_id, description, owner_id=None):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
