@@ -4029,6 +4029,29 @@ def test_list_roles_none_found_returns_empty_list():
     assert len(roles) == 0
 
 
+@pytest.mark.parametrize("desc", ["", "Test Description"])
+@mock_iam()
+def test_list_roles_with_description(desc):
+    conn = boto3.client("iam", region_name="us-east-1")
+    resp = conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Description=desc,
+    )
+    resp.get("Role").get("Description").should.equal(desc)
+
+    # Ensure the Description is included in role listing as well
+    conn.list_roles().get("Roles")[0].get("Description").should.equal(desc)
+
+
+@mock_iam()
+def test_list_roles_without_description():
+    conn = boto3.client("iam", region_name="us-east-1")
+    resp = conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy",)
+    resp.get("Role").should_not.have.key("Description")
+
+    # Ensure the Description is not included in role listing as well
+    conn.list_roles().get("Roles")[0].should_not.have.key("Description")
+
+
 @mock_iam()
 def test_create_user_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
