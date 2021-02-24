@@ -34,10 +34,10 @@ class Flow(BaseModel):
             "name": self.name,
             "outputs": self.outputs,
             "source": self.source,
-            "source_failover_config": self.source_failover_config,
+            "sourceFailoverConfig": self.source_failover_config,
             "sources": self.sources,
             "status": self.status,
-            "vpc_interfaces": self.vpc_interfaces,
+            "vpcInterfaces": self.vpc_interfaces,
         }
         if include:
             new_data = {k: v for k, v in data.items() if k in include}
@@ -56,11 +56,25 @@ class Flow(BaseModel):
             self._previous_status = None
 
 
+class Resource(BaseModel):
+    def __init__(self, *args, **kwargs):
+        self.resource_arn = kwargs.get("resource_arn")
+        self.tags = OrderedDict()
+
+    def to_dict(self):
+        data = {
+            "resourceArn": self.resource_arn,
+            "tags": self.tags,
+        }
+        return data
+
+
 class MediaConnectBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaConnectBackend, self).__init__()
         self.region_name = region_name
         self._flows = OrderedDict()
+        self._resources = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -146,6 +160,22 @@ class MediaConnectBackend(BaseBackend):
         else:
             raise NotFoundException(message="Flow not found.")
         return flow_arn, flow.status
+
+    def tag_resource(self, resource_arn, tags):
+        if resource_arn in self._resources:
+            resource = self._resources[resource_arn]
+        else:
+            resource = Resource(resource_arn=resource_arn)
+        resource.tags.update(tags)
+        self._resources[resource_arn] = resource
+        return None
+
+    def list_tags_for_resource(self, resource_arn):
+        if resource_arn in self._resources:
+            resource = self._resources[resource_arn]
+        else:
+            raise NotFoundException(message="Resource not found.")
+        return resource.tags
 
     # add methods from here
 

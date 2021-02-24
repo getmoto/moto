@@ -6738,7 +6738,7 @@
 
 ## mediaconnect
 <details>
-<summary>22% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] add_flow_outputs
 - [ ] add_flow_sources
@@ -6753,7 +6753,7 @@
 - [x] list_flows
 - [ ] list_offerings
 - [ ] list_reservations
-- [ ] list_tags_for_resource
+- [x] list_tags_for_resource
 - [ ] purchase_offering
 - [ ] remove_flow_output
 - [ ] remove_flow_source
@@ -6761,7 +6761,7 @@
 - [ ] revoke_flow_entitlement
 - [x] start_flow
 - [x] stop_flow
-- [ ] tag_resource
+- [x] tag_resource
 - [ ] untag_resource
 - [ ] update_flow
 - [ ] update_flow_entitlement

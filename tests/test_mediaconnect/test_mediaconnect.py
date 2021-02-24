@@ -138,3 +138,15 @@ def test_start_stop_flow_succeeds():
     describe_response = client.describe_flow(FlowArn=flow_arn)
     describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     describe_response["Flow"]["Status"].should.equal("STANDBY")
+
+
+@mock_mediaconnect
+def test_tag_resource_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+
+    tag_response = client.tag_resource(ResourceArn="some-arn", Tags={"Tag1": "Value1"})
+    tag_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    list_response = client.list_tags_for_resource(ResourceArn="some-arn")
+    list_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    list_response["Tags"].should.equal({"Tag1": "Value1"})

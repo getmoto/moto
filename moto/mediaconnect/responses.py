@@ -67,3 +67,22 @@ class MediaConnectResponse(BaseResponse):
             flow_arn = flow_arn.replace("%3A", ":")
         flow_arn, status = self.mediaconnect_backend.stop_flow(flow_arn=flow_arn,)
         return json.dumps(dict(flowArn=flow_arn, status=status))
+
+    def tag_resource(self):
+        resource_arn = self._get_param("resourceArn")
+        if resource_arn:
+            resource_arn = resource_arn.replace("%3A", ":")
+        tags = self._get_param("tags")
+        self.mediaconnect_backend.tag_resource(
+            resource_arn=resource_arn, tags=tags,
+        )
+        return json.dumps(dict())
+
+    def list_tags_for_resource(self):
+        resource_arn = self._get_param("resourceArn")
+        if resource_arn:
+            resource_arn = resource_arn.replace("%3A", ":")
+        tags = self.mediaconnect_backend.list_tags_for_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(dict(tags=tags))
