@@ -4029,8 +4029,8 @@ def test_list_roles_none_found_returns_empty_list():
     assert len(roles) == 0
 
 
-@mock_iam()
 @pytest.mark.parametrize("desc", ["", "Test Description"])
+@mock_iam()
 def test_list_roles_with_description(desc):
     conn = boto3.client("iam", region_name="us-east-1")
     resp = conn.create_role(
