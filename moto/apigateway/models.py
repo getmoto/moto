@@ -1218,6 +1218,25 @@ class APIGatewayBackend(BaseBackend):
 
         return self.usage_plans[usage_plan_id]
 
+    def __apply_usage_plan_patch_operations(self, plan, patch_operations):
+        for op in patch_operations:
+            if op["op"] == "replace":
+                if "/quota/limit" in op["path"]:
+                    plan["quota"]["limit"] = op["value"]
+                if "/quota/period" in op["path"]:
+                    plan["quota"]["period"] = op["value"]
+                if "/throttle/rateLimit" in op["path"]:
+                    plan["throttle"]["rateLimit"] = op["value"]
+                if "/throttle/burstLimit" in op["path"]:
+                    plan["throttle"]["burstLimit"] = op["value"]
+
+    def update_usage_plan(self, usage_plan_id, patch_operations):
+        if usage_plan_id not in self.usage_plans:
+            raise UsagePlanNotFoundException()
+        plan = self.usage_plans[usage_plan_id]
+        self.__apply_usage_plan_patch_operations(plan, patch_operations)
+        return self.usage_plans[usage_plan_id]
+
     def delete_usage_plan(self, usage_plan_id):
         self.usage_plans.pop(usage_plan_id)
         return {}
