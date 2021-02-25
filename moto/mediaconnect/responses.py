@@ -1,7 +1,14 @@
 from __future__ import unicode_literals
+
+import json
+
 from moto.core.responses import BaseResponse
 from .models import mediaconnect_backends
-import json
+
+try:
+    from urllib import unquote
+except ImportError:
+    from urllib.parse import unquote
 
 
 class MediaConnectResponse(BaseResponse):
@@ -41,37 +48,27 @@ class MediaConnectResponse(BaseResponse):
         return json.dumps(dict(flows=flows, nextToken=next_token))
 
     def describe_flow(self):
-        flow_arn = self._get_param("flowArn")
-        if flow_arn:
-            flow_arn = flow_arn.replace("%3A", ":")
+        flow_arn = unquote(self._get_param("flowArn"))
         flow, messages = self.mediaconnect_backend.describe_flow(flow_arn=flow_arn,)
         return json.dumps(dict(flow=flow, messages=messages))
 
     def delete_flow(self):
-        flow_arn = self._get_param("flowArn")
-        if flow_arn:
-            flow_arn = flow_arn.replace("%3A", ":")
+        flow_arn = unquote(self._get_param("flowArn"))
         flow_arn, status = self.mediaconnect_backend.delete_flow(flow_arn=flow_arn,)
         return json.dumps(dict(flowArn=flow_arn, status=status))
 
     def start_flow(self):
-        flow_arn = self._get_param("flowArn")
-        if flow_arn:
-            flow_arn = flow_arn.replace("%3A", ":")
+        flow_arn = unquote(self._get_param("flowArn"))
         flow_arn, status = self.mediaconnect_backend.start_flow(flow_arn=flow_arn,)
         return json.dumps(dict(flowArn=flow_arn, status=status))
 
     def stop_flow(self):
-        flow_arn = self._get_param("flowArn")
-        if flow_arn:
-            flow_arn = flow_arn.replace("%3A", ":")
+        flow_arn = unquote(self._get_param("flowArn"))
         flow_arn, status = self.mediaconnect_backend.stop_flow(flow_arn=flow_arn,)
         return json.dumps(dict(flowArn=flow_arn, status=status))
 
     def tag_resource(self):
-        resource_arn = self._get_param("resourceArn")
-        if resource_arn:
-            resource_arn = resource_arn.replace("%3A", ":")
+        resource_arn = unquote(self._get_param("resourceArn"))
         tags = self._get_param("tags")
         self.mediaconnect_backend.tag_resource(
             resource_arn=resource_arn, tags=tags,
@@ -79,9 +76,7 @@ class MediaConnectResponse(BaseResponse):
         return json.dumps(dict())
 
     def list_tags_for_resource(self):
-        resource_arn = self._get_param("resourceArn")
-        if resource_arn:
-            resource_arn = resource_arn.replace("%3A", ":")
+        resource_arn = unquote(self._get_param("resourceArn"))
         tags = self.mediaconnect_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
