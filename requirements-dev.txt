@@ -10,4 +10,4 @@ prompt-toolkit==2.0.10 # 3.x is not available with python2
 click==6.7
 inflection==0.3.1
 lxml==4.2.3
-beautifulsoup4==4.6.0
+

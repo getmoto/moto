@@ -459,6 +459,27 @@ class OrganizationsBackend(BaseBackend):
         )
         return account.create_account_status
 
+    def list_create_account_status(self, **kwargs):
+        requested_states = kwargs.get("States")
+        if not requested_states:
+            requested_states = ["IN_PROGRESS", "SUCCEEDED", "FAILED"]
+        accountStatuses = []
+        for account in self.accounts:
+            create_account_status = account.create_account_status["CreateAccountStatus"]
+            if create_account_status["State"] in requested_states:
+                accountStatuses.append(create_account_status)
+        token = kwargs.get("NextToken")
+        if token:
+            start = int(token)
+        else:
+            start = 0
+        max_results = int(kwargs.get("MaxResults", 123))
+        accounts_resp = accountStatuses[start : start + max_results]
+        next_token = None
+        if max_results and len(accountStatuses) > (start + max_results):
+            next_token = str(len(accounts_resp))
+        return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
+
     def list_accounts(self):
         return dict(Accounts=[account.describe() for account in self.accounts])
 

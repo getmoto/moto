@@ -8,7 +8,7 @@ import itertools
 import six
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores, amzn_request_id
+from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
 from .exceptions import (
     InvalidIndexNameError,
     ItemSizeTooLarge,
@@ -80,6 +80,7 @@ class DynamoHandler(BaseResponse):
         """
         return dynamodb_backends[self.region]
 
+    @amz_crc32
     @amzn_request_id
     def call_action(self):
         self.body = json.loads(self.body or "{}")
@@ -348,6 +349,12 @@ class DynamoHandler(BaseResponse):
 
     def get_item(self):
         name = self.body["TableName"]
+        table = self.dynamodb_backend.get_table(name)
+        if table is None:
+            return self.error(
+                "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException",
+                "Requested resource not found",
+            )
         key = self.body["Key"]
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})

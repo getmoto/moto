@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 from botocore.exceptions import ClientError
 
 import pytest
@@ -605,6 +604,29 @@ def test_get_instances_filtering_by_instance_group_id():
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
     )["Reservations"]
     reservations[0]["Instances"].should.have.length_of(1)
+
+
+@mock_ec2
+def test_get_instances_filtering_by_subnet_id():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    vpc_cidr = ipaddress.ip_network("192.168.42.0/24")
+    subnet_cidr = ipaddress.ip_network("192.168.42.0/25")
+
+    resp = client.create_vpc(CidrBlock=str(vpc_cidr),)
+    vpc_id = resp["Vpc"]["VpcId"]
+
+    resp = client.create_subnet(CidrBlock=str(subnet_cidr), VpcId=vpc_id)
+    subnet_id = resp["Subnet"]["SubnetId"]
+
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id,
+    )
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "subnet-id", "Values": [subnet_id]}]
+    )["Reservations"]
+    reservations.should.have.length_of(1)
 
 
 @mock_ec2_deprecated

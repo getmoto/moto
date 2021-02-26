@@ -7,6 +7,7 @@ import os
 from boto3 import Session
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import urlparse, parse_qs
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
@@ -253,6 +254,23 @@ def test_multipart_etag():
     multipart.complete_upload()
     # we should get both parts as the key contents
     bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
+
+
+@mock_s3_deprecated
+@reduced_min_part_size
+def test_multipart_version():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3("the_key", "the_secret")
+    bucket = conn.create_bucket("mybucket")
+    bucket.configure_versioning(versioning=True)
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b"0" * REDUCED_PART_SIZE
+    multipart.upload_part_from_file(BytesIO(part1), 1)
+    # last part, can be less than 5 MB
+    part2 = b"1"
+    multipart.upload_part_from_file(BytesIO(part2), 2)
+    resp = multipart.complete_upload()
+    resp.version_id.should_not.be.none
 
 
 @mock_s3_deprecated
@@ -2571,6 +2589,54 @@ def test_boto3_multipart_etag():
 
 @mock_s3
 @reduced_min_part_size
+def test_boto3_multipart_version():
+    # Create Bucket so that test can run
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    s3.put_bucket_versioning(
+        Bucket="mybucket", VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    upload_id = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")["UploadId"]
+    part1 = b"0" * REDUCED_PART_SIZE
+    etags = []
+    etags.append(
+        s3.upload_part(
+            Bucket="mybucket",
+            Key="the-key",
+            PartNumber=1,
+            UploadId=upload_id,
+            Body=part1,
+        )["ETag"]
+    )
+    # last part, can be less than 5 MB
+    part2 = b"1"
+    etags.append(
+        s3.upload_part(
+            Bucket="mybucket",
+            Key="the-key",
+            PartNumber=2,
+            UploadId=upload_id,
+            Body=part2,
+        )["ETag"]
+    )
+    response = s3.complete_multipart_upload(
+        Bucket="mybucket",
+        Key="the-key",
+        UploadId=upload_id,
+        MultipartUpload={
+            "Parts": [
+                {"ETag": etag, "PartNumber": i} for i, etag in enumerate(etags, 1)
+            ]
+        },
+    )
+
+    response["VersionId"].should.should_not.be.none
+
+
+@mock_s3
+@reduced_min_part_size
 def test_boto3_multipart_part_size():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
@@ -4749,9 +4815,11 @@ def test_creating_presigned_post():
         {"success_action_redirect": success_url},
     ]
     conditions.append(["content-length-range", 1, 30])
+
+    real_key = "{file_uid}.txt".format(file_uid=file_uid)
     data = s3.generate_presigned_post(
         Bucket=bucket,
-        Key="{file_uid}.txt".format(file_uid=file_uid),
+        Key=real_key,
         Fields={
             "content-type": "text/plain",
             "success_action_redirect": success_url,
@@ -4763,14 +4831,15 @@ def test_creating_presigned_post():
     resp = requests.post(
         data["url"], data=data["fields"], files={"file": fdata}, allow_redirects=False
     )
-    assert resp.headers["Location"] == success_url
     assert resp.status_code == 303
-    assert (
-        s3.get_object(Bucket=bucket, Key="{file_uid}.txt".format(file_uid=file_uid))[
-            "Body"
-        ].read()
-        == fdata
-    )
+    redirect = resp.headers["Location"]
+    assert redirect.startswith(success_url)
+    parts = urlparse(redirect)
+    args = parse_qs(parts.query)
+    assert args["key"][0] == real_key
+    assert args["bucket"][0] == bucket
+
+    assert s3.get_object(Bucket=bucket, Key=real_key)["Body"].read() == fdata
 
 
 @mock_s3

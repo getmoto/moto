@@ -34,6 +34,7 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
+from moto.utilities.utils import load_resource
 from os import listdir
 
 from .exceptions import (
@@ -169,12 +170,7 @@ from .utils import (
 )
 
 
-def _load_resource(filename):
-    with open(filename, "r") as f:
-        return json.load(f)
-
-
-INSTANCE_TYPES = _load_resource(
+INSTANCE_TYPES = load_resource(
     resource_filename(__name__, "resources/instance_types.json")
 )
 
@@ -190,10 +186,10 @@ for location_type in listdir(resource_filename(__name__, offerings_path)):
         )
         INSTANCE_TYPE_OFFERINGS[location_type][
             region.replace(".json", "")
-        ] = _load_resource(full_path)
+        ] = load_resource(full_path)
 
 
-AMIS = _load_resource(
+AMIS = load_resource(
     os.environ.get("MOTO_AMIS_PATH")
     or resource_filename(__name__, "resources/amis.json"),
 )
@@ -1160,9 +1156,11 @@ class InstanceTypeBackend(object):
     def describe_instance_types(self, instance_types=None):
         matches = INSTANCE_TYPES.values()
         if instance_types:
-            matches = [t for t in matches if t.get("apiname") in instance_types]
+            matches = [t for t in matches if t.get("InstanceType") in instance_types]
             if len(instance_types) > len(matches):
-                unknown_ids = set(instance_types) - set(matches)
+                unknown_ids = set(instance_types) - set(
+                    t.get("InstanceType") for t in matches
+                )
                 raise InvalidInstanceTypeError(unknown_ids)
         return matches
 

@@ -387,22 +387,6 @@ def test_duplicate_put_metric_data():
         Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
     )["Metrics"]
     len(result).should.equal(1)
-
-    conn.put_metric_data(
-        Namespace="tester",
-        MetricData=[
-            dict(
-                MetricName="metric",
-                Dimensions=[{"Name": "Name", "Value": "B"}],
-                Value=1.5,
-                Timestamp=utc_now,
-            )
-        ],
-    )
-
-    result = conn.list_metrics(
-        Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
-    )["Metrics"]
     result.should.equal(
         [
             {
@@ -678,6 +662,7 @@ def test_get_metric_data_partially_within_timeframe():
             }
         ],
     )
+
     cloudwatch.put_metric_data(
         Namespace=namespace1,
         MetricData=[
@@ -686,31 +671,89 @@ def test_get_metric_data_partially_within_timeframe():
                 "Value": 50,
                 "Unit": "Seconds",
                 "Timestamp": last_week,
-            }
-        ],
-    )
-    # get_metric_data
-    response = cloudwatch.get_metric_data(
-        MetricDataQueries=[
+            },
             {
-                "Id": "result",
-                "MetricStat": {
-                    "Metric": {"Namespace": namespace1, "MetricName": "metric1"},
-                    "Period": 60,
-                    "Stat": "Sum",
-                },
-            }
+                "MetricName": "metric1",
+                "Value": 10,
+                "Unit": "Seconds",
+                "Timestamp": last_week + timedelta(seconds=10),
+            },
+            {
+                "MetricName": "metric1",
+                "Value": 20,
+                "Unit": "Seconds",
+                "Timestamp": last_week + timedelta(seconds=15),
+            },
+            {
+                "MetricName": "metric1",
+                "Value": 40,
+                "Unit": "Seconds",
+                "Timestamp": last_week + timedelta(seconds=30),
+            },
         ],
-        StartTime=yesterday - timedelta(seconds=60),
-        EndTime=utc_now + timedelta(seconds=60),
     )
-    #
+
+    # data for average, min, max
+
+    def get_data(start, end, stat="Sum", scanBy="TimestampAscending"):
+        # get_metric_data
+        response = cloudwatch.get_metric_data(
+            MetricDataQueries=[
+                {
+                    "Id": "result",
+                    "MetricStat": {
+                        "Metric": {"Namespace": namespace1, "MetricName": "metric1"},
+                        "Period": 60,
+                        "Stat": stat,
+                    },
+                }
+            ],
+            StartTime=start,
+            EndTime=end,
+            ScanBy=scanBy,
+        )
+        return response
+
+    response = get_data(
+        start=yesterday - timedelta(seconds=60), end=utc_now + timedelta(seconds=60),
+    )
+
     # Assert Last week's data is not returned
     len(response["MetricDataResults"]).should.equal(1)
     sum_ = response["MetricDataResults"][0]
     sum_["Label"].should.equal("metric1 Sum")
     sum_["StatusCode"].should.equal("Complete")
-    sum_["Values"].should.equal([30.0])
+    sum_["Values"].should.equal([20.0, 10.0])
+    response = get_data(
+        start=yesterday - timedelta(seconds=60),
+        end=utc_now + timedelta(seconds=60),
+        scanBy="TimestampDescending",
+    )
+    response["MetricDataResults"][0]["Values"].should.equal([10.0, 20.0])
+
+    response = get_data(
+        start=last_week - timedelta(seconds=1),
+        end=utc_now + timedelta(seconds=60),
+        stat="Average",
+    )
+    # assert average
+    response["MetricDataResults"][0]["Values"].should.equal([30.0, 20.0, 10.0])
+
+    response = get_data(
+        start=last_week - timedelta(seconds=1),
+        end=utc_now + timedelta(seconds=60),
+        stat="Maximum",
+    )
+    # assert maximum
+    response["MetricDataResults"][0]["Values"].should.equal([50.0, 20.0, 10.0])
+
+    response = get_data(
+        start=last_week - timedelta(seconds=1),
+        end=utc_now + timedelta(seconds=60),
+        stat="Minimum",
+    )
+    # assert minimum
+    response["MetricDataResults"][0]["Values"].should.equal([10.0, 20.0, 10.0])
 
 
 @mock_cloudwatch

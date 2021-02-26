@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
-          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
       - name: Install Linux dependencies
         if: ${{ matrix.python-version == 3.8 && steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
@@ -59,7 +59,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     # Still need to properly install the dependencies - it will only skip the download part
     - name: Install project dependencies
       run: |
@@ -94,7 +94,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     - name: Install Linux dependencies
       if: ${{ matrix.python-version == 3.8 }}
       run: |
@@ -105,20 +105,14 @@ jobs:
         pip install -r requirements-dev.txt
         pip install pytest-cov
     - name: Test with pytest
-      if: ${{ matrix.python-version != 3.7 }}
-      run: |
-        make test-only
-    # Only need to configure coverage once
-    # Pytest-cov explicitly fails in Py2 for XRay tests
-    - name: Test with pytest/coverage
-      if: ${{ matrix.python-version == 3.7 }}
       run: |
         make test-coverage
     - name: "Upload coverage to Codecov"
-      if: ${{ matrix.python-version == 3.7 && github.repository == 'spulec/moto'}}
+      if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
+        flags: unittests
 
   testserver:
     name: Unit tests in Server Mode
@@ -130,6 +124,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -147,7 +143,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements-dev.txt') }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     - name: Install Linux dependencies
       if: ${{ matrix.python-version == 3.8 }}
       run: |
@@ -156,11 +152,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-    - name: Test ServerMode
+    - name: Test ServerMode/Coverage
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        make test-only
+        make test-coverage
+    - name: "Upload coverage to Codecov"
+      if: ${{ github.repository == 'spulec/moto'}}
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+        flags: servertests
 
   deploy:
     name: Deploy

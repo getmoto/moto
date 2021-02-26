@@ -114,7 +114,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         for the specified resource ID.
         """
         resource_type, cluster, service = r_id.split("/")
-        result = self.ecs_backend.describe_services(cluster, [service])
+        result, _ = self.ecs_backend.describe_services(cluster, [service])
         if len(result) != 1:
             raise AWSValidationException("ECS service doesn't exist: {}".format(r_id))
         return True

@@ -3,10 +3,196 @@ Moto Changelog
 
 Unreleased
 -----
-    * Reduced dependency overhead.
-      It is now possible to install dependencies for only specific services using:
-      pip install moto[service1,service1].
-      See the README for more information.
+
+
+2.0.0
+----
+Full list of PRs merged in this release:
+https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2020-09-07..2021-02-23
+
+    General Changes:
+        * When installing, it is now required to specify the service you want to use:
+          pip install moto[service1,service2]
+          pip install moto[all]
+          
+          This will ensure that only the required dependencies are downloaded. 
+          See the README for more information.
+          
+        * Moved CI to Github Actions
+        
+        * Moto no longer hogs the _default_mock from responses
+        
+        * Internal testing is now executed using Pytest (instead of Nose)
+        
+        * CORS is now enabled when running MotoServer
+
+        * AWS Lambda and Batch now support Podman as an alternative to Docker
+    
+    New Services:
+        * Forecast
+        * MediaLive
+        * Support
+        * Transcribe
+    
+    New Methods:
+        * Application Autoscaling
+            * delete_scaling_policy
+            * deregister_scalable_target
+            * describe_scaling_policies
+            * put_scaling_policy
+        * Batch
+            * batch_update_partition
+        * Cognito IDP
+            * admin_set_user_password
+        * EC2
+            * create_flow_logs
+            * delete_flow_logs
+            * describe_flow_logs
+            * describe_instance_type_offerings
+            * describe_vpc_endpoints
+        * EMR
+            * create_security_configuration
+            * delete_security_configuration
+            * get_security_configuration
+            * modify_cluster
+            * put_autoscaling_policy
+            * remove_auto_scaling_policy
+        * Events
+            * create_archive
+            * delete_archive
+            * describe_archive
+            * list_archives
+            * update_archive
+        * Lambda
+            * get_function_configuration
+            * get_layer_version
+            * list_layers
+            * publish_layer_version
+        * IAM
+            * associate_iam_instance_profile
+            * delete_role_permissions_boundary
+            * describe_iam_instance_profile_associations
+            * disassociate_iam_instance_profile
+            * put_role_permissions_boundary
+            * replace_iam_instance_profile_association
+            * set_default_policy_version
+            * tag_user
+            * untag_user
+        * IOT
+            * create_topic_rule
+            * delete_topic_rule
+            * disable_topic_rule
+            * enable_topic_rule
+            * get_topic_rule
+            * list_topic_rules
+            * replace_topic_rule
+        * Redshift
+            * get_cluster_credentials
+        * Route53
+            * get_change (dummy)
+        * SageMaker
+            * create_notebook_instance_lifecycle_config
+            * delete_notebook_instance_lifecycle_config
+            * describe_notebook_instance_lifecycle_config
+        * Secrets Manager
+            * tag_resource
+        * SES
+            * test_render_template
+            * update_template
+        * Step Functions
+            * get_execution_history
+            * tag_resource
+            * untag_resource
+            * update_state_machine
+
+    General Changes:
+        * ACM - import_certificate() now supports the Tags-parameter
+        * ACM - request_certificate() now supports the Tags-parameter
+        * CF - SSHIngressRule now supports CidrIp and Description
+        * CF - Now fully supports:
+             AWS::StepFunctions::StateMachine
+        * CF - Now supports creation of:
+             AWS::ApiGateway::Deployment
+             AWS::ApiGateway::Method
+             AWS::ApiGateway::Resource
+             AWS::ApiGateway::RestApi
+             AWS::Lambda::Permission
+        * CF - Now supports S3 outputs: Arn, DomainName, DualStackDomainName, RegionalDomainName, WebsiteURL
+        * CloudWatch - list_metrics() no longer returns duplicate entries
+        * CloudWatch - put_metric_alarm() now supports the Metrics and DatapointsToAlarm parameters
+        * Config - Now supports IAM (Role, Policy)
+        * Cognito - admin_initiate_auth() now supports the ADMIN_USER_PASSWORD_AUTH-flow
+        * CognitoIDP - list_users() now supports spaces in the Filter-parameter
+        * DynamoDB - GSI's now support the ProjectionType=INCLUDE parameter
+        * DynamoDB - put_item() now supports empty values (in non-key attributes)
+        * DynamoDB - update_item() now supports the ADD operation to a list (using the AttributeUpdates-parameter)
+        * DynamoDB - update_item() now supports the PUT operation to a StringSet (using the AttributeUpdates-parameter)
+        * DynamoDB - update_item() now supports ReturnValues='UPDATED_NEW'
+        * DynamoDB - update_item() now defaults to PUT if the action is not supplied
+        * DynamoDB Streams - The event name for deletions has been corrected to REMOVE (was DELETE before)
+        * EB - create()/describe_applications() now return a properly formatted ARN (that contains the application-name)
+        * EC2 - copy_snapshot() now supports the TagSpecifications-parameter
+        * EC2 - create_image() now supports the TagSpecifications-parameter
+        * EC2 - create_internet_gateway() now supports the TagSpecifications-parameter
+        * EC2 - create_nat_gateway() now supports the TagSpecification-parameter
+        * EC2 - create_network_acl() now supports the TagSpecification-parameter
+        * EC2 - create_route_table() now supports the TagSpecifications-parameter
+        * EC2 - create_subnet() now supports the TagSpecifications-parameter
+        * EC2 - create_subnet() now supports secondary CidrBlock-values 
+        * EC2 - create_tags() now supports empty values
+        * EC2 - create_volume() now supports the KmsKeyId-parameter
+        * EC2 - create_vpc now supports the TagSpecifications-parameter
+        * EC2 - create_vpc_endpoint() now properly handles private_dns_enabled-parameter in CF/TF
+        * EC2 - create_vpn_endpoint() now supports the VpnGatewayId-parameter
+        * EC2 - describe_addresses() now returns Tags
+        * EC2 - describe_instances() now supports filtering by the subnet-id-attribute
+        * EC2 - describe_subnets() now supports filtering by the state-attribute
+        * ECR - list_images() now returns a proper value for the imageDigest-attribute
+        * ECS - the default cluster is now used in a variety of methods, if the Cluster-parameter is not supplied
+        * ECS - create_service() now supports the launchType-parameter
+        * ECS - delete_service() now supports the force-parameter
+        * ECS - describe_container_instances() now returns the registeredAt-attribute
+        * ECS - list_tasks now supports the filters family/service_name/desired_status
+        * ECS - register_scalable_target() now supports updates
+        * ECS - register_task_definition() now returns some attributes that were missing before
+        * ECS - run_task() now supports the tags-parameter
+        * EMR - ReleaseLabel now respects semantic versioning
+        * Events - Now supports the Go SDK
+        * Events - list_rules() now returns the EventBusName-parameter
+        * Events - put_events() now has basic input validation 
+        * Glue - create_database() now returns some attributes that were missing before
+        * IAM - create_user() now returns the Tags-attribute
+        * IAM - list_roles() now supports the parameters PathPrefix/Marker/MaxItems
+        * IOT - delete_thing_group() is now idempotent
+        * Lambda - update_function_configuration() now supports the VpcConfig-parameter
+        * RDS - create_db_parameter_group() now returns the DBParameterGroupArn-attribute
+        * RDS - describe_db_instances() now returns the TagList-attribute
+        * RDS - describe_db_instances() now supports the filters-parameter
+        * RDS - describe_db_snapshots() now supports the filters-parameter
+        * Redshift - modify_cluster() now checks for invalid ClusterType/NumberOfNodes combinations
+        * ResourceGroupTagging: Now supports EC2 VPC resources
+        * ResourceGroupTagging: Now supports RDS DBInstance, DBSnapshot resources
+        * ResourceGroupTagging - get_resources() has improved support for the TagFilters-parameter
+        * S3 - copy_object() now supports copying deleted and subsequently restored objects with storage class Glacier
+        * S3 - get_object() now throws the correct error for an unknown VersionId
+        * S3 - get_object() now supports an empty Range-parameter
+        * S3 - get_object() now returns headers that were missing in some cases (ContentLength/ActualObjectSize/RangeRequested)
+        * S3 - put_object/get_object now support the ServerSideEncryption/SSEKMSKeyId/BucketKeyEnabled parameters
+        * S3 - list_object_versions now returns the object in the correct sort order (last modified time)
+        * SecretsManager - describe_secret() now returns a persistent ARN
+        * SecretsManager - get_secret_value() now requires a version to exist
+        * SecretsManager - put_secret_value() now requires a secret to exist
+        * SES - get-template() now returns the HtmlPart-attribute
+        * SNS - Support KmsMasterKeyId-attribute
+        * SNS - create_topic() no longer throws an error when creating a FIFO queue
+        * SNS - delete_topic() now also deletes the corresponding subscriptions
+        * SNS - delete_topic() now raises an appropriate exception if the supplied topic not exists
+        * Step Functions - list_executions() now supports filtering and pagination
+        * SQS - The MD5OfMessageAttributes is now computed correctly 
+        * SQS - a message in the DLQ now no longer blocks other messages with that MessageGroupId
+        * SQS - create_queue() now supports the MaximumMessageSize-attribute
+        * SQS - receive_message() now supports MessageAttributeNames=["All"]
+        * SQS - send_message() now deduplicates properly using the MessageDeduplicationId
 
 
 

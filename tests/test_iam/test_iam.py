@@ -674,20 +674,15 @@ def test_get_aws_managed_policy_version():
 
 
 @mock_iam
-def test_get_aws_managed_policy_v4_version():
+def test_get_aws_managed_policy_v6_version():
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = "arn:aws:iam::aws:policy/job-function/SystemAdministrator"
-    managed_policy_version_create_date = datetime.strptime(
-        "2018-10-08T21:33:45+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
-    )
     with pytest.raises(ClientError):
         conn.get_policy_version(
             PolicyArn=managed_policy_arn, VersionId="v2-does-not-exist"
         )
-    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v4")
-    retrieved["PolicyVersion"]["CreateDate"].replace(tzinfo=None).should.equal(
-        managed_policy_version_create_date
-    )
+    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v6")
+    retrieved["PolicyVersion"]["CreateDate"].replace(tzinfo=None).should.be.an(datetime)
     retrieved["PolicyVersion"]["Document"].should.be.an(dict)
 
 
@@ -1140,8 +1135,9 @@ def test_enable_virtual_mfa_device():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
     serial_number = response["VirtualMFADevice"]["SerialNumber"]
+    tags = [{"Key": "key", "Value": "value"}]
 
-    client.create_user(UserName="test-user")
+    client.create_user(UserName="test-user", Tags=tags)
     client.enable_mfa_device(
         UserName="test-user",
         SerialNumber=serial_number,
@@ -1165,6 +1161,7 @@ def test_enable_virtual_mfa_device():
         "arn:aws:iam::{}:user/test-user".format(ACCOUNT_ID)
     )
     device["User"]["CreateDate"].should.be.a(datetime)
+    device["User"]["Tags"].should.equal(tags)
     device["EnableDate"].should.be.a(datetime)
     response["IsTruncated"].should_not.be.ok
 
@@ -2924,7 +2921,7 @@ def test_list_user_tags():
         ],
     )
     response = conn.list_user_tags(UserName="kenny-bania")
-    response["Tags"].should.equal([])
+    response["Tags"].should.have.length_of(0)
     response["IsTruncated"].should_not.be.ok
 
     response = conn.list_user_tags(UserName="jackie-chiles")
@@ -4032,6 +4029,29 @@ def test_list_roles_none_found_returns_empty_list():
     assert len(roles) == 0
 
 
+@pytest.mark.parametrize("desc", ["", "Test Description"])
+@mock_iam()
+def test_list_roles_with_description(desc):
+    conn = boto3.client("iam", region_name="us-east-1")
+    resp = conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Description=desc,
+    )
+    resp.get("Role").get("Description").should.equal(desc)
+
+    # Ensure the Description is included in role listing as well
+    conn.list_roles().get("Roles")[0].get("Description").should.equal(desc)
+
+
+@mock_iam()
+def test_list_roles_without_description():
+    conn = boto3.client("iam", region_name="us-east-1")
+    resp = conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy",)
+    resp.get("Role").should_not.have.key("Description")
+
+    # Ensure the Description is not included in role listing as well
+    conn.list_roles().get("Roles")[0].should_not.have.key("Description")
+
+
 @mock_iam()
 def test_create_user_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -4047,3 +4067,80 @@ def test_create_user_with_tags():
 
     resp = conn.create_user(UserName="test-create-user-no-tags")
     assert "Tags" not in resp["User"]
+
+
+@mock_iam
+def test_tag_user():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "test-user"
+    tags = sorted(
+        [{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value-2"}],
+        key=lambda item: item["Key"],
+    )
+    client.create_user(UserName=name)
+
+    # when
+    client.tag_user(UserName=name, Tags=tags)
+
+    # then
+    response = client.list_user_tags(UserName=name)
+    sorted(response["Tags"], key=lambda item: item["Key"],).should.equal(tags)
+
+
+@mock_iam
+def test_tag_user_error_unknown_user_name():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.tag_user(UserName=name, Tags=[{"Key": "key", "Value": "value"}])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("TagUser")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NoSuchEntity")
+    ex.response["Error"]["Message"].should.equal(
+        "The user with name {} cannot be found.".format(name)
+    )
+
+
+@mock_iam
+def test_untag_user():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "test-user"
+    client.create_user(
+        UserName=name,
+        Tags=[{"Key": "key", "Value": "value"}, {"Key": "key-2", "Value": "value"}],
+    )
+
+    # when
+    client.untag_user(UserName=name, TagKeys=["key-2"])
+
+    # then
+    response = client.list_user_tags(UserName=name)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+
+@mock_iam
+def test_untag_user_error_unknown_user_name():
+    # given
+    client = boto3.client("iam", region_name="eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.untag_user(UserName=name, TagKeys=["key"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UntagUser")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NoSuchEntity")
+    ex.response["Error"]["Message"].should.equal(
+        "The user with name {} cannot be found.".format(name)
+    )

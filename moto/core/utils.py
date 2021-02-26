@@ -227,10 +227,14 @@ def gen_amz_crc32(response, headerdict=None):
     if not isinstance(response, bytes):
         response = response.encode()
 
-    crc = str(binascii.crc32(response))
+    crc = binascii.crc32(response)
+    if six.PY2:
+        # https://python.readthedocs.io/en/v2.7.2/library/binascii.html
+        # TLDR: Use bitshift to match Py3 behaviour
+        crc = crc & 0xFFFFFFFF
 
     if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amz-crc32": crc})
+        headerdict.update({"x-amz-crc32": str(crc)})
 
     return crc
 

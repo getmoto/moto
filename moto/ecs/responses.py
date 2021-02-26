@@ -111,8 +111,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition_str = self._get_param("taskDefinition")
         count = self._get_int_param("count")
         started_by = self._get_param("startedBy")
+        tags = self._get_param("tags")
         tasks = self.ecs_backend.run_task(
-            cluster_str, task_definition_str, count, overrides, started_by
+            cluster_str, task_definition_str, count, overrides, started_by, tags
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}
@@ -201,10 +202,12 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_services(self):
         cluster_str = self._get_param("cluster", "default")
         service_names = self._get_param("services")
-        services = self.ecs_backend.describe_services(cluster_str, service_names)
+        services, failures = self.ecs_backend.describe_services(
+            cluster_str, service_names
+        )
         resp = {
             "services": [service.response_object for service in services],
-            "failures": [],
+            "failures": failures,
         }
         if "TAGS" in self._get_param("include", []):
             for i, service in enumerate(services):

@@ -352,11 +352,40 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": "{0}".format(kms_key.arn), "Tags": tags}
 
         # RDS Instance
+        if (
+            not resource_type_filters
+            or "rds" in resource_type_filters
+            or "rds:db" in resource_type_filters
+        ):
+            for database in self.rds_backend.databases.values():
+                tags = database.get_tags()
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": database.db_instance_arn,
+                    "Tags": tags,
+                }
+
         # RDS Reserved Database Instance
         # RDS Option Group
         # RDS Parameter Group
         # RDS Security Group
+
         # RDS Snapshot
+        if (
+            not resource_type_filters
+            or "rds" in resource_type_filters
+            or "rds:snapshot" in resource_type_filters
+        ):
+            for snapshot in self.rds_backend.snapshots.values():
+                tags = snapshot.get_tags()
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": snapshot.snapshot_arn,
+                    "Tags": tags,
+                }
+
         # RDS Subnet Group
         # RDS Event Subscription
 

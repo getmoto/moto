@@ -616,7 +616,19 @@ class AutoScalingBackend(BaseBackend):
         ebs_optimized,
         associate_public_ip_address,
         block_device_mappings,
+        instance_id=None,
     ):
+        valid_requests = [
+            instance_id is not None,
+            image_id is not None and instance_type is not None,
+        ]
+        if not any(valid_requests):
+            raise ValidationError(
+                "Valid requests must contain either the InstanceID parameter or both the ImageId and InstanceType parameters."
+            )
+        if instance_id is not None:
+            # TODO: https://docs.aws.amazon.com/autoscaling/ec2/userguide/create-lc-with-instanceID.html
+            pass
         launch_configuration = FakeLaunchConfiguration(
             name=name,
             image_id=image_id,

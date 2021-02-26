@@ -137,6 +137,7 @@ def test_create_user_pool_domain():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    result["CloudFrontDomain"].should_not.be.none
 
 
 @mock_cognitoidp

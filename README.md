@@ -116,6 +116,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | Logs                      | @mock_logs            | basic endpoints done            |                             |
 | Organizations             | @mock_organizations   | some core endpoints done        |                             |
 | Polly                     | @mock_polly           | all endpoints done              |                             |
+| RAM                       | @mock_ram             | core endpoints done             |                             |
 | RDS                       | @mock_rds             | core endpoints done             |                             |
 | RDS2                      | @mock_rds2            | core endpoints done             |                             |
 | Redshift                  | @mock_redshift        | core endpoints done             |                             |

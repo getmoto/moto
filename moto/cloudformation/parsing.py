@@ -15,6 +15,7 @@ from moto.compat import collections_abc
 # the subclass's module hasn't been imported yet - then that subclass
 # doesn't exist yet, and __subclasses__ won't find it.
 # So we import here to populate the list of subclasses.
+from moto.apigateway import models as apigateway_models  # noqa
 from moto.autoscaling import models as autoscaling_models  # noqa
 from moto.awslambda import models as awslambda_models  # noqa
 from moto.batch import models as batch_models  # noqa

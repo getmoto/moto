@@ -182,3 +182,12 @@ class ModelNotFound(RESTError):
         super(ModelNotFound, self).__init__(
             "NotFoundException", "Invalid Model Name specified"
         )
+
+
+class ApiKeyValueMinLength(RESTError):
+    code = 400
+
+    def __init__(self):
+        super(ApiKeyValueMinLength, self).__init__(
+            "BadRequestException", "API Key value should be at least 20 characters"
+        )
