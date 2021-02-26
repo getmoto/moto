@@ -358,7 +358,7 @@
 - [ ] test_invoke_method
 - [ ] untag_resource
 - [ ] update_account
-- [ ] update_api_key
+- [X] update_api_key
 - [X] update_authorizer
 - [ ] update_base_path_mapping
 - [ ] update_client_certificate
@@ -377,7 +377,7 @@
 - [ ] update_rest_api
 - [X] update_stage
 - [ ] update_usage
-- [ ] update_usage_plan
+- [X] update_usage_plan
 - [ ] update_vpc_link
 </details>
 
