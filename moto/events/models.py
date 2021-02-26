@@ -492,10 +492,22 @@ class EventsBackend(BaseBackend):
 
         return return_obj
 
+    def update_rule(self, rule, **kwargs):
+        rule.event_pattern = kwargs.get("EventPattern") or rule.event_pattern
+        rule.schedule_exp = kwargs.get("ScheduleExpression") or rule.schedule_exp
+        rule.state = kwargs.get("State") or rule.state
+        rule.description = kwargs.get("Description") or rule.description
+        rule.role_arn = kwargs.get("RoleArn") or rule.role_arn
+        rule.event_bus_name = kwargs.get("EventBusName", "default") or rule.event_bus_name
+
     def put_rule(self, name, **kwargs):
-        new_rule = Rule(name, self.region_name, **kwargs)
-        self.rules[new_rule.name] = new_rule
-        self.rules_order.append(new_rule.name)
+        if name in self.rules:
+            self.update_rule(self.rules[name], **kwargs)
+            new_rule = self.rules[name]
+        else:
+            new_rule = Rule(name, self.region_name, **kwargs)
+            self.rules[new_rule.name] = new_rule
+            self.rules_order.append(new_rule.name)
         return new_rule
 
     def put_targets(self, name, targets):
