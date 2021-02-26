@@ -762,7 +762,7 @@ class BatchBackend(BaseBackend):
 
         if compute_resources is None and _type == "MANAGED":
             raise InvalidParameterValueException(
-                "computeResources must be specified when creating a MANAGED environment".format(
+                "computeResources must be specified when creating a {0} environment".format(
                     state
                 )
             )

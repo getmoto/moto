@@ -358,7 +358,7 @@
 - [ ] test_invoke_method
 - [ ] untag_resource
 - [ ] update_account
-- [ ] update_api_key
+- [X] update_api_key
 - [X] update_authorizer
 - [ ] update_base_path_mapping
 - [ ] update_client_certificate
@@ -377,7 +377,7 @@
 - [ ] update_rest_api
 - [X] update_stage
 - [ ] update_usage
-- [ ] update_usage_plan
+- [X] update_usage_plan
 - [ ] update_vpc_link
 </details>
 
@@ -6738,30 +6738,30 @@
 
 ## mediaconnect
 <details>
-<summary>0% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] add_flow_outputs
 - [ ] add_flow_sources
 - [ ] add_flow_vpc_interfaces
-- [ ] create_flow
-- [ ] delete_flow
-- [ ] describe_flow
+- [x] create_flow
+- [x] delete_flow
+- [x] describe_flow
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] grant_flow_entitlements
 - [ ] list_entitlements
-- [ ] list_flows
+- [x] list_flows
 - [ ] list_offerings
 - [ ] list_reservations
-- [ ] list_tags_for_resource
+- [x] list_tags_for_resource
 - [ ] purchase_offering
 - [ ] remove_flow_output
 - [ ] remove_flow_source
 - [ ] remove_flow_vpc_interface
 - [ ] revoke_flow_entitlement
-- [ ] start_flow
-- [ ] stop_flow
-- [ ] tag_resource
+- [x] start_flow
+- [x] stop_flow
+- [x] tag_resource
 - [ ] untag_resource
 - [ ] update_flow
 - [ ] update_flow_entitlement

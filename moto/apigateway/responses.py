@@ -477,7 +477,6 @@ class APIGatewayResponse(BaseResponse):
 
     def usage_plans(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-
         if self.method == "POST":
             usage_plan_response = self.backend.create_usage_plan(json.loads(self.body))
         elif self.method == "GET":
@@ -505,6 +504,11 @@ class APIGatewayResponse(BaseResponse):
                 )
         elif self.method == "DELETE":
             usage_plan_response = self.backend.delete_usage_plan(usage_plan)
+        elif self.method == "PATCH":
+            patch_operations = self._get_param("patchOperations")
+            usage_plan_response = self.backend.update_usage_plan(
+                usage_plan, patch_operations
+            )
         return 200, {}, json.dumps(usage_plan_response)
 
     def usage_plan_keys(self, request, full_url, headers):
