@@ -1155,18 +1155,18 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         return api.delete_deployment(deployment_id)
 
-    def create_apikey(self, payload):
+    def create_api_key(self, payload):
         if payload.get("value") is not None:
             if len(payload.get("value", [])) < 20:
                 raise ApiKeyValueMinLength()
-            for api_key in self.get_apikeys(include_values=True):
+            for api_key in self.get_api_keys(include_values=True):
                 if api_key.get("value") == payload["value"]:
                     raise ApiKeyAlreadyExists()
         key = ApiKey(**payload)
         self.keys[key["id"]] = key
         return key
 
-    def get_apikeys(self, include_values=False):
+    def get_api_keys(self, include_values=False):
         api_keys = list(self.keys.values())
 
         if not include_values:
@@ -1179,7 +1179,7 @@ class APIGatewayBackend(BaseBackend):
 
         return api_keys
 
-    def get_apikey(self, api_key_id, include_value=False):
+    def get_api_key(self, api_key_id, include_value=False):
         api_key = self.keys[api_key_id]
 
         if not include_value:
@@ -1189,11 +1189,11 @@ class APIGatewayBackend(BaseBackend):
 
         return api_key
 
-    def update_apikey(self, api_key_id, patch_operations):
+    def update_api_key(self, api_key_id, patch_operations):
         key = self.keys[api_key_id]
         return key.update_operations(patch_operations)
 
-    def delete_apikey(self, api_key_id):
+    def delete_api_key(self, api_key_id):
         self.keys.pop(api_key_id)
         return {}
 

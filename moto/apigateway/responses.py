@@ -429,7 +429,7 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "POST":
             try:
-                apikey_response = self.backend.create_apikey(json.loads(self.body))
+                apikey_response = self.backend.create_api_key(json.loads(self.body))
             except ApiKeyAlreadyExists as error:
                 return (
                     error.code,
@@ -451,7 +451,7 @@ class APIGatewayResponse(BaseResponse):
 
         elif self.method == "GET":
             include_values = self._get_bool_param("includeValues")
-            apikeys_response = self.backend.get_apikeys(include_values=include_values)
+            apikeys_response = self.backend.get_api_keys(include_values=include_values)
             return 200, {}, json.dumps({"item": apikeys_response})
 
     def apikey_individual(self, request, full_url, headers):
@@ -463,14 +463,14 @@ class APIGatewayResponse(BaseResponse):
         status_code = 200
         if self.method == "GET":
             include_value = self._get_bool_param("includeValue")
-            apikey_response = self.backend.get_apikey(
+            apikey_response = self.backend.get_api_key(
                 apikey, include_value=include_value
             )
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
-            apikey_response = self.backend.update_apikey(apikey, patch_operations)
+            apikey_response = self.backend.update_api_key(apikey, patch_operations)
         elif self.method == "DELETE":
-            apikey_response = self.backend.delete_apikey(apikey)
+            apikey_response = self.backend.delete_api_key(apikey)
             status_code = 202
 
         return status_code, {}, json.dumps(apikey_response)
