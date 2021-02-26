@@ -257,9 +257,9 @@
 
 ## apigateway
 <details>
-<summary>34% implemented</summary>
+<summary>38% implemented</summary>
 
-- [ ] create_api_key
+- [X] create_api_key
 - [X] create_authorizer
 - [ ] create_base_path_mapping
 - [X] create_deployment
@@ -274,7 +274,7 @@
 - [X] create_usage_plan
 - [X] create_usage_plan_key
 - [ ] create_vpc_link
-- [ ] delete_api_key
+- [X] delete_api_key
 - [X] delete_authorizer
 - [ ] delete_base_path_mapping
 - [ ] delete_client_certificate
@@ -299,8 +299,8 @@
 - [ ] flush_stage_cache
 - [ ] generate_client_certificate
 - [ ] get_account
-- [ ] get_api_key
-- [ ] get_api_keys
+- [X] get_api_key
+- [X] get_api_keys
 - [X] get_authorizer
 - [X] get_authorizers
 - [ ] get_base_path_mapping
