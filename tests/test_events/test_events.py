@@ -10,7 +10,9 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 import pytest
 
+from moto import mock_logs
 from moto.core import ACCOUNT_ID
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.events import mock_events
 
 RULES = [
@@ -1257,12 +1259,12 @@ def test_archive_actual_events():
     client.create_archive(
         ArchiveName=name_2,
         EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["test"]}),
+        EventPattern=json.dumps({"detail-type": ["type"], "source": ["test"]}),
     )
     client.create_archive(
         ArchiveName=name_3,
         EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["source"]}),
+        EventPattern=json.dumps({"detail-type": ["type"], "source": ["source"]}),
     )
 
     # when
@@ -1828,3 +1830,78 @@ def test_cancel_replay_error_illegal_state():
     ex.response["Error"]["Message"].should.equal(
         "Replay {} is not in a valid state for this operation.".format(name)
     )
+
+
+@mock_events
+@mock_logs
+def test_start_replay_send_to_log_group():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    logs_client = boto3.client("logs", "eu-central-1")
+    log_group_name = "/test-group"
+    rule_name = "test-rule"
+    logs_client.create_log_group(logGroupName=log_group_name)
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.put_rule(Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]}))
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "test",
+                "Arn": "arn:aws:logs:eu-central-1:{0}:log-group:{1}".format(
+                    ACCOUNT_ID, log_group_name
+                ),
+            }
+        ],
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    event_time = datetime(2021, 1, 1, 12, 23, 34)
+    client.put_events(
+        Entries=[
+            {
+                "Time": event_time,
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"key": "value"}),
+            }
+        ]
+    )
+
+    # when
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1),
+        EventEndTime=datetime(2021, 1, 2),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # then
+    response = logs_client.filter_log_events(logGroupName=log_group_name)
+    event_original = json.loads(response["events"][0]["message"])
+    event_original["version"].should.equal("0")
+    event_original["id"].should_not.be.empty
+    event_original["detail-type"].should.equal("type")
+    event_original["source"].should.equal("source")
+    event_original["time"].should.equal(
+        iso_8601_datetime_without_milliseconds(event_time)
+    )
+    event_original["region"].should.equal("eu-central-1")
+    event_original["resources"].should.be.empty
+    event_original["detail"].should.equal({"key": "value"})
+    event_original.should_not.have.key("replay-name")
+
+    event_replay = json.loads(response["events"][1]["message"])
+    event_replay["version"].should.equal("0")
+    event_replay["id"].should_not.equal(event_original["id"])
+    event_replay["detail-type"].should.equal("type")
+    event_replay["source"].should.equal("source")
+    event_replay["time"].should.equal(event_original["time"])
+    event_replay["region"].should.equal("eu-central-1")
+    event_replay["resources"].should.be.empty
+    event_replay["detail"].should.equal({"key": "value"})
+    event_replay["replay-name"].should.equal("test-replay")

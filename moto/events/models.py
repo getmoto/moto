@@ -3,6 +3,7 @@ import os
 import re
 import json
 import sys
+from collections import namedtuple
 from datetime import datetime
 from enum import Enum, unique
 
@@ -10,7 +11,7 @@ from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, iso_8601_datetime_without_milliseconds
 from moto.events.exceptions import (
     ValidationException,
     ResourceNotFoundException,
@@ -24,6 +25,8 @@ from uuid import uuid4
 
 
 class Rule(CloudFormationModel):
+    Arn = namedtuple("Arn", ["service", "resource_type", "resource_id"])
+
     def _generate_arn(self, name):
         return "arn:aws:events:{region_name}:111111111111:rule/{name}".format(
             region_name=self.region_name, name=name
@@ -38,7 +41,7 @@ class Rule(CloudFormationModel):
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
         self.role_arn = kwargs.get("RoleArn")
-        self.event_bus_name = kwargs.get("EventBusName", "default")
+        self.event_bus_name = kwargs.get("EventBusName") or "default"
         self.targets = []
 
     @property
@@ -77,6 +80,98 @@ class Rule(CloudFormationModel):
             index = self._check_target_exists(target_id)
             if index is not None:
                 self.targets.pop(index)
+
+    def send_to_targets(self, event_bus_name, event):
+        if event_bus_name != self.event_bus_name:
+            return
+
+        if not self._validate_event(event):
+            return
+
+        # for now only CW Log groups are supported
+        for target in self.targets:
+            arn = self._parse_arn(target["Arn"])
+
+            if arn.service == "logs" and arn.resource_type == "log-group":
+                self._send_to_cw_log_group(arn.resource_id, event)
+            elif arn.service == "events" and not arn.resource_type:
+                input_template = json.loads(target["InputTransformer"]["InputTemplate"])
+                archive_arn = self._parse_arn(input_template["archive-arn"])
+
+                self._send_to_events_archive(archive_arn.resource_id, event)
+            else:
+                raise NotImplementedError("Expr not defined for {0}".format(type(self)))
+
+    def _validate_event(self, event):
+        for field, pattern in json.loads(self.event_pattern).items():
+            if not isinstance(pattern, list):
+                # to keep it simple at the beginning only pattern with 1 level of depth are validated
+                continue
+
+            if isinstance(pattern[0], dict):
+                if "exists" in pattern[0]:
+                    if pattern[0]["exists"] and field not in event:
+                        return False
+                    elif not pattern[0]["exists"] and field in event:
+                        return False
+            elif event.get(field) not in pattern:
+                return False
+
+        return True
+
+    def _parse_arn(self, arn):
+        # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+        # this method needs probably some more fine tuning,
+        # when also other targets are supported
+        elements = arn.split(":", 5)
+
+        service = elements[2]
+        resource = elements[5]
+
+        if ":" in resource and "/" in resource:
+            if resource.index(":") < resource.index("/"):
+                resource_type, resource_id = resource.split(":", 1)
+            else:
+                resource_type, resource_id = resource.split("/", 1)
+        elif ":" in resource:
+            resource_type, resource_id = resource.split(":", 1)
+        elif "/" in resource:
+            resource_type, resource_id = resource.split("/", 1)
+        else:
+            resource_type = None
+            resource_id = resource
+
+        return self.Arn(
+            service=service, resource_type=resource_type, resource_id=resource_id
+        )
+
+    def _send_to_cw_log_group(self, name, event):
+        from moto.logs import logs_backends
+
+        event_copy = copy.deepcopy(event)
+        event_copy["time"] = iso_8601_datetime_without_milliseconds(
+            datetime.utcfromtimestamp(event_copy["time"])
+        )
+
+        log_stream_name = str(uuid4())
+        log_events = [
+            {
+                "timestamp": unix_time(datetime.utcnow()),
+                "message": json.dumps(event_copy),
+            }
+        ]
+
+        logs_backends[self.region_name].create_log_stream(name, log_stream_name)
+        logs_backends[self.region_name].put_log_events(
+            name, log_stream_name, log_events, None
+        )
+
+    def _send_to_events_archive(self, resource_id, event):
+        archive_name, archive_uuid = resource_id.split(":")
+        archive = events_backends[self.region_name].archives.get(archive_name)
+
+        if archive.uuid == archive_uuid:
+            archive.events.append(event)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -235,6 +330,7 @@ class Archive(CloudFormationModel):
 
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "ENABLED"
+        self.uuid = str(uuid4())
 
         self.events = []
         self.event_bus_name = source_arn.split("/")[-1]
@@ -277,19 +373,6 @@ class Archive(CloudFormationModel):
     def delete(self, region_name):
         event_backend = events_backends[region_name]
         event_backend.archives.pop(self.name)
-
-    def matches_pattern(self, event):
-        if not self.event_pattern:
-            return True
-
-        # only works on the first level of the event dict
-        # logic for nested dicts needs to be implemented
-        for pattern_key, pattern_value in json.loads(self.event_pattern).items():
-            event_value = event.get(pattern_key)
-            if event_value not in pattern_value:
-                return False
-
-        return True
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -416,8 +499,15 @@ class Replay(BaseModel):
 
         return result
 
-    def replay_events(self):
-        # implement replay functionality
+    def replay_events(self, archive):
+        event_bus_name = self.destination["Arn"].split("/")[-1]
+
+        for event in archive.events:
+            for rule in events_backends[self.region].rules.values():
+                rule.send_to_targets(
+                    event_bus_name,
+                    dict(event, **{"id": str(uuid4()), "replay-name": self.name}),
+                )
 
         self.state = ReplayState.COMPLETED
         self.end_time = unix_time(datetime.utcnow())
@@ -600,9 +690,7 @@ class EventsBackend(BaseBackend):
     def put_events(self, events):
         num_events = len(events)
 
-        if num_events < 1:
-            raise JsonRESTError("ValidationError", "Need at least 1 event")
-        elif num_events > 10:
+        if num_events > 10:
             # the exact error text is longer, the Value list consists of all the put events
             raise ValidationException(
                 "1 validation error detected: "
@@ -645,25 +733,28 @@ class EventsBackend(BaseBackend):
                     )
                     continue
 
-                entries.append({"EventId": str(uuid4())})
+                event_id = str(uuid4())
+                entries.append({"EventId": event_id})
 
-                # add to correct archive
-                # if 'EventBusName' is not espically set, it will stored in the default
+                # if 'EventBusName' is not especially set, it will be sent to the default one
                 event_bus_name = event.get("EventBusName", "default")
-                archives = [
-                    archive
-                    for archive in self.archives.values()
-                    if archive.event_bus_name == event_bus_name
-                ]
 
-                for archive in archives:
-                    event_copy = copy.deepcopy(event)
-                    event_copy.pop("EventBusName", None)
+                for rule in self.rules.values():
+                    rule.send_to_targets(
+                        event_bus_name,
+                        {
+                            "version": "0",
+                            "id": event_id,
+                            "detail-type": event["DetailType"],
+                            "source": event["Source"],
+                            "account": ACCOUNT_ID,
+                            "time": event.get("Time", datetime.utcnow().timestamp()),
+                            "region": self.region_name,
+                            "resources": event.get("Resources", []),
+                            "detail": json.loads(event["Detail"]),
+                        },
+                    )
 
-                    if archive.matches_pattern(event):
-                        archive.events.append(event_copy)
-
-        # We dont really need to store the events yet
         return entries
 
     def remove_targets(self, name, ids):
@@ -809,7 +900,7 @@ class EventsBackend(BaseBackend):
         if event_pattern:
             self._validate_event_pattern(event_pattern)
 
-        self._get_event_bus(source_arn)
+        event_bus = self._get_event_bus(source_arn)
 
         if name in self.archives:
             raise ResourceAlreadyExistsException(
@@ -818,6 +909,38 @@ class EventsBackend(BaseBackend):
 
         archive = Archive(
             self.region_name, name, source_arn, description, event_pattern, retention
+        )
+
+        rule_event_pattern = json.loads(event_pattern or "{}")
+        rule_event_pattern["replay-name"] = [{"exists": False}]
+
+        rule = self.put_rule(
+            "Events-Archive-{}".format(name),
+            **{
+                "EventPattern": json.dumps(rule_event_pattern),
+                "EventBusName": event_bus.name,
+            }
+        )
+        self.put_targets(
+            rule.name,
+            [
+                {
+                    "Id": rule.name,
+                    "Arn": "arn:aws:events:{}:::".format(self.region_name),
+                    "InputTransformer": {
+                        "InputPathsMap": {},
+                        "InputTemplate": json.dumps(
+                            {
+                                "archive-arn": "{0}:{1}".format(
+                                    archive.arn, archive.uuid
+                                ),
+                                "event": "<aws.events.event.json>",
+                                "ingestion-time": "<aws.events.event.ingestion-time>",
+                            }
+                        ),
+                    },
+                }
+            ],
         )
 
         self.archives[name] = archive
@@ -957,7 +1080,7 @@ class EventsBackend(BaseBackend):
 
         self.replays[name] = replay
 
-        replay.replay_events()
+        replay.replay_events(archive)
 
         return {
             "ReplayArn": replay.arn,
