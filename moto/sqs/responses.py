@@ -396,15 +396,32 @@ class SQSResponse(BaseResponse):
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
         messages = self.sqs_backend.receive_messages(
-            queue_name,
-            message_count,
-            wait_time,
-            visibility_timeout,
-            message_attributes,
-            attribute_names,
+            queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
+
+        attributes = {
+            "approximate_first_receive_timestamp": False,
+            "approximate_receive_count": False,
+            "sender_id": False,
+            "sent_timestamp": False,
+        }
+
+        if "All" in attribute_names:
+            attributes["approximate_first_receive_timestamp"] = True
+            attributes["approximate_receive_count"] = True
+            attributes["sender_id"] = True
+            attributes["sent_timestamp"] = True
+        if "ApproximateFirstReceiveTimestamp" in attribute_names:
+            attributes["approximate_first_receive_timestamp"] = True
+        if "ApproximateReceiveCount" in attribute_names:
+            attributes["approximate_receive_count"] = True
+        if "SenderId" in attribute_names:
+            attributes["sender_id"] = True
+        if "SentTimestamp" in attribute_names:
+            attributes["sent_timestamp"] = True
+
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
-        return template.render(messages=messages)
+        return template.render(messages=messages, attributes=attributes)
 
     def list_dead_letter_source_queues(self):
         request_url = urlparse(self.uri)
@@ -544,25 +561,25 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
           <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
           <MD5OfBody>{{ message.body_md5 }}</MD5OfBody>
           <Body>{{ message.body }}</Body>
-          {% if message.sender_id is not none %}
+          {% if attributes.sender_id %}
           <Attribute>
             <Name>SenderId</Name>
             <Value>{{ message.sender_id }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.sent_timestamp is not none %}
+          {% if attributes.sent_timestamp %}
           <Attribute>
             <Name>SentTimestamp</Name>
             <Value>{{ message.sent_timestamp }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.approximate_receive_count is not none %}
+          {% if attributes.approximate_receive_count %}
           <Attribute>
             <Name>ApproximateReceiveCount</Name>
             <Value>{{ message.approximate_receive_count }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.approximate_first_receive_timestamp is not none %}
+          {% if attributes.approximate_first_receive_timestamp %}
           <Attribute>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
