@@ -7,6 +7,7 @@ import sys
 import six
 from botocore.awsrequest import AWSPreparedRequest
 
+from moto import settings
 from moto.core.utils import (
     str_to_rfc_1123_datetime,
     py2_strip_unicode_keys,
@@ -189,6 +190,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         host = request.headers.get("host", request.headers.get("Host"))
         if not host:
             host = urlparse(request.url).netloc
+
+        custom_endpoints = settings.get_custom_endpoints()
+        if host and custom_endpoints and any([host in endpoint for endpoint in custom_endpoints]):
+            # Default to path-based buckets for S3-compatible SDKs (Ceph, DigitalOcean Spaces, etc)
+            return False
 
         if (
             not host
