@@ -1740,7 +1740,7 @@ def test_list_replays_error_invalid_state():
         "1 validation error detected: "
         "Value 'invalid' at 'state' failed to satisfy constraint: "
         "Member must satisfy enum value set: "
-        "[STARTING, RUNNING, CANCELLING, COMPLETED, CANCELLED, FAILED]"
+        "[CANCELLED, CANCELLING, COMPLETED, FAILED, RUNNING, STARTING]"
     )
 
 
@@ -1881,8 +1881,11 @@ def test_start_replay_send_to_log_group():
     )
 
     # then
-    response = logs_client.filter_log_events(logGroupName=log_group_name)
-    event_original = json.loads(response["events"][0]["message"])
+    events = sorted(
+        logs_client.filter_log_events(logGroupName=log_group_name)["events"],
+        key=lambda item: item["eventId"],
+    )
+    event_original = json.loads(events[0]["message"])
     event_original["version"].should.equal("0")
     event_original["id"].should_not.be.empty
     event_original["detail-type"].should.equal("type")
@@ -1895,7 +1898,7 @@ def test_start_replay_send_to_log_group():
     event_original["detail"].should.equal({"key": "value"})
     event_original.should_not.have.key("replay-name")
 
-    event_replay = json.loads(response["events"][1]["message"])
+    event_replay = json.loads(events[1]["message"])
     event_replay["version"].should.equal("0")
     event_replay["id"].should_not.equal(event_original["id"])
     event_replay["detail-type"].should.equal("type")

@@ -748,7 +748,7 @@ class EventsBackend(BaseBackend):
                             "detail-type": event["DetailType"],
                             "source": event["Source"],
                             "account": ACCOUNT_ID,
-                            "time": event.get("Time", datetime.utcnow().timestamp()),
+                            "time": event.get("Time", unix_time(datetime.utcnow())),
                             "region": self.region_name,
                             "resources": event.get("Resources", []),
                             "detail": json.loads(event["Detail"]),
@@ -1100,7 +1100,7 @@ class EventsBackend(BaseBackend):
                 "Use either : State, EventSourceArn, or NamePrefix."
             )
 
-        valid_states = [item.value for item in ReplayState]
+        valid_states = sorted([item.value for item in ReplayState])
         if state and state not in valid_states:
             raise ValidationException(
                 "1 validation error detected: "
