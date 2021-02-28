@@ -354,7 +354,9 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         message_attributes = self._get_multi_param("message_attributes")
         if not message_attributes:
-            message_attributes = extract_input_message_attributes(self.querystring,)
+            message_attributes = extract_input_message_attributes(self.querystring)
+
+        attribute_names = self._get_multi_param("AttributeName")
 
         queue = self.sqs_backend.get_queue(queue_name)
 
@@ -394,7 +396,12 @@ class SQSResponse(BaseResponse):
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
         messages = self.sqs_backend.receive_messages(
-            queue_name, message_count, wait_time, visibility_timeout, message_attributes
+            queue_name,
+            message_count,
+            wait_time,
+            visibility_timeout,
+            message_attributes,
+            attribute_names,
         )
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages)
@@ -537,22 +544,30 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
           <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
           <MD5OfBody>{{ message.body_md5 }}</MD5OfBody>
           <Body>{{ message.body }}</Body>
+          {% if message.sender_id is not none %}
           <Attribute>
             <Name>SenderId</Name>
             <Value>{{ message.sender_id }}</Value>
           </Attribute>
+          {% endif %}
+          {% if message.sent_timestamp is not none %}
           <Attribute>
             <Name>SentTimestamp</Name>
             <Value>{{ message.sent_timestamp }}</Value>
           </Attribute>
+          {% endif %}
+          {% if message.approximate_receive_count is not none %}
           <Attribute>
             <Name>ApproximateReceiveCount</Name>
             <Value>{{ message.approximate_receive_count }}</Value>
           </Attribute>
+          {% endif %}
+          {% if message.approximate_first_receive_timestamp is not none %}
           <Attribute>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
+          {% endif %}
           {% if message.deduplication_id is not none %}
           <Attribute>
             <Name>MessageDeduplicationId</Name>

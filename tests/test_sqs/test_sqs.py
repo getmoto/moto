@@ -670,6 +670,9 @@ def test_send_receive_message_without_attributes():
     message1.shouldnt.have.key("MD5OfMessageAttributes")
     message2.shouldnt.have.key("MD5OfMessageAttributes")
 
+    message1.should_not.have.key("Attributes")
+    message2.should_not.have.key("Attributes")
+
 
 @mock_sqs
 def test_send_receive_message_with_attributes():
@@ -782,9 +785,11 @@ def test_send_receive_message_timestamps():
     response = queue.send_message(MessageBody="derp")
     assert response["ResponseMetadata"]["RequestId"]
 
-    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=1)[
-        "Messages"
-    ]
+    messages = conn.receive_message(
+        QueueUrl=queue.url,
+        AttributeNames=["ApproximateFirstReceiveTimestamp", "SentTimestamp"],
+        MaxNumberOfMessages=1,
+    )["Messages"]
 
     message = messages[0]
     sent_timestamp = message.get("Attributes").get("SentTimestamp")
@@ -794,6 +799,134 @@ def test_send_receive_message_timestamps():
 
     int.when.called_with(sent_timestamp).shouldnt.throw(ValueError)
     int.when.called_with(approximate_first_receive_timestamp).shouldnt.throw(ValueError)
+
+
+@mock_sqs
+def test_send_receive_message_with_attribute_name_all():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    client = boto3.client("sqs", region_name="us-east-1")
+    client.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    body_one = "this is a test message"
+    body_two = "this is another test message"
+
+    queue.send_message(MessageBody=body_one)
+    queue.send_message(MessageBody=body_two)
+
+    messages = client.receive_message(
+        QueueUrl=queue.url, AttributeNames=["All"], MaxNumberOfMessages=2
+    )["Messages"]
+
+    message1 = messages[0]
+    message2 = messages[1]
+
+    message1["Body"].should.equal(body_one)
+    message2["Body"].should.equal(body_two)
+
+    message1.shouldnt.have.key("MD5OfMessageAttributes")
+    message2.shouldnt.have.key("MD5OfMessageAttributes")
+
+    message1["Attributes"].should.have.key("ApproximateFirstReceiveTimestamp")
+    message1["Attributes"]["ApproximateReceiveCount"].should.equal("1")
+    message1["Attributes"].should.have.key("SenderId")
+    message1["Attributes"].should.have.key("SentTimestamp")
+    message2["Attributes"].should.have.key("ApproximateFirstReceiveTimestamp")
+    message2["Attributes"]["ApproximateReceiveCount"].should.equal("1")
+    message2["Attributes"].should.have.key("SenderId")
+    message2["Attributes"].should.have.key("SentTimestamp")
+
+
+@mock_sqs
+def test_send_receive_message_with_attribute_name_receive_time():
+    # given
+    client = boto3.client("sqs", region_name="us-east-1")
+    queue_url = client.create_queue(QueueName="test-queue")["QueueUrl"]
+    body = "this is a test message"
+    client.send_message(QueueUrl=queue_url, MessageBody=body)
+
+    # when
+    message = client.receive_message(
+        QueueUrl=queue_url, AttributeNames=["ApproximateFirstReceiveTimestamp"]
+    )["Messages"][0]
+
+    # then
+    message["Body"].should.equal(body)
+    message.should_not.have.key("MD5OfMessageAttributes")
+
+    message["Attributes"].should.have.key("ApproximateFirstReceiveTimestamp")
+    message["Attributes"].should_not.have.key("ApproximateReceiveCount")
+    message["Attributes"].should_not.have.key("SenderId")
+    message["Attributes"].should_not.have.key("SentTimestamp")
+
+
+@mock_sqs
+def test_send_receive_message_with_attribute_name_receive_count():
+    # given
+    client = boto3.client("sqs", region_name="us-east-1")
+    queue_url = client.create_queue(QueueName="test-queue")["QueueUrl"]
+    body = "this is a test message"
+    client.send_message(QueueUrl=queue_url, MessageBody=body)
+
+    # when
+    message = client.receive_message(
+        QueueUrl=queue_url, AttributeNames=["ApproximateReceiveCount"]
+    )["Messages"][0]
+
+    # then
+    message["Body"].should.equal(body)
+    message.should_not.have.key("MD5OfMessageAttributes")
+
+    message["Attributes"].should_not.have.key("ApproximateFirstReceiveTimestamp")
+    message["Attributes"]["ApproximateReceiveCount"].should.equal("1")
+    message["Attributes"].should_not.have.key("SenderId")
+    message["Attributes"].should_not.have.key("SentTimestamp")
+
+
+@mock_sqs
+def test_send_receive_message_with_attribute_name_sender_id():
+    # given
+    client = boto3.client("sqs", region_name="us-east-1")
+    queue_url = client.create_queue(QueueName="test-queue")["QueueUrl"]
+    body = "this is a test message"
+    client.send_message(QueueUrl=queue_url, MessageBody=body)
+
+    # when
+    message = client.receive_message(QueueUrl=queue_url, AttributeNames=["SenderId"])[
+        "Messages"
+    ][0]
+
+    # then
+    message["Body"].should.equal(body)
+    message.should_not.have.key("MD5OfMessageAttributes")
+
+    message["Attributes"].should_not.have.key("ApproximateFirstReceiveTimestamp")
+    message["Attributes"].should_not.have.key("ApproximateReceiveCount")
+    message["Attributes"].should.have.key("SenderId")
+    message["Attributes"].should_not.have.key("SentTimestamp")
+
+
+@mock_sqs
+def test_send_receive_message_with_attribute_name_sent_time():
+    # given
+    client = boto3.client("sqs", region_name="us-east-1")
+    queue_url = client.create_queue(QueueName="test-queue")["QueueUrl"]
+    body = "this is a test message"
+    client.send_message(QueueUrl=queue_url, MessageBody=body)
+
+    # when
+    message = client.receive_message(
+        QueueUrl=queue_url, AttributeNames=["SentTimestamp"]
+    )["Messages"][0]
+
+    # then
+    message["Body"].should.equal(body)
+    message.should_not.have.key("MD5OfMessageAttributes")
+
+    message["Attributes"].should_not.have.key("ApproximateFirstReceiveTimestamp")
+    message["Attributes"].should_not.have.key("ApproximateReceiveCount")
+    message["Attributes"].should_not.have.key("SenderId")
+    message["Attributes"].should.have.key("SentTimestamp")
 
 
 @mock_sqs
@@ -1013,7 +1146,7 @@ def test_message_attributes():
 
     queue.count().should.equal(1)
 
-    messages = conn.receive_message(queue, number_messages=1)
+    messages = conn.receive_message(queue, number_messages=1, attributes=["All"])
     queue.count().should.equal(0)
 
     assert len(messages) == 1

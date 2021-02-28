@@ -769,6 +769,7 @@ class SQSBackend(BaseBackend):
         wait_seconds_timeout,
         visibility_timeout,
         message_attribute_names=None,
+        attribute_names=None,
     ):
         """
         Attempt to retrieve visible messages from a queue.
@@ -829,7 +830,39 @@ class SQSBackend(BaseBackend):
                 _filter_message_attributes(message, message_attribute_names)
                 if not self.is_message_valid_based_on_retention_period(queue_name):
                     break
-                result.append(message)
+
+                message_copy = deepcopy(message)
+                message_copy.approximate_first_receive_timestamp = None
+                message_copy.approximate_receive_count = None
+                message_copy.sender_id = None
+                message_copy.sent_timestamp = None
+
+                if not attribute_names:
+                    attribute_names = []
+
+                if "All" in attribute_names:
+                    message_copy.approximate_first_receive_timestamp = (
+                        message.approximate_first_receive_timestamp
+                    )
+                    message_copy.approximate_receive_count = (
+                        message.approximate_receive_count
+                    )
+                    message_copy.sender_id = message.sender_id
+                    message_copy.sent_timestamp = message.sent_timestamp
+                if "ApproximateFirstReceiveTimestamp" in attribute_names:
+                    message_copy.approximate_first_receive_timestamp = (
+                        message.approximate_first_receive_timestamp
+                    )
+                if "ApproximateReceiveCount" in attribute_names:
+                    message_copy.approximate_receive_count = (
+                        message.approximate_receive_count
+                    )
+                if "SenderId" in attribute_names:
+                    message_copy.sender_id = message.sender_id
+                if "SentTimestamp" in attribute_names:
+                    message_copy.sent_timestamp = message.sent_timestamp
+
+                result.append(message_copy)
                 if len(result) >= count:
                     break
 
