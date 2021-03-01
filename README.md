@@ -22,12 +22,7 @@ If you don't care about the number of dependencies, or if you want to mock many 
 ```console
 $ pip install moto[all]
 ```
-Not all services might be covered, in which case you might see a warning:  
-`moto 1.3.16 does not provide the extra 'service'`.  
-You can ignore the warning, or simply install moto as is:
-```console
-$ pip install moto
-```
+
 
 ## In a nutshell
 
