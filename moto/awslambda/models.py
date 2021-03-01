@@ -970,7 +970,9 @@ class LambdaStorage(object):
         fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
-    def publish_function(self, name):
+    def publish_function(self, name_or_arn):
+        function = self.get_function_by_name_or_arn(name_or_arn)
+        name = function.function_name
         if name not in self._functions:
             return None
         if not self._functions[name]["latest"]:
