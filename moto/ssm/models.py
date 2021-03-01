@@ -46,6 +46,7 @@ class Parameter(BaseModel):
         keyid,
         last_modified_date,
         version,
+        tags=None,
     ):
         self.name = name
         self.type = type
@@ -54,6 +55,7 @@ class Parameter(BaseModel):
         self.keyid = keyid
         self.last_modified_date = last_modified_date
         self.version = version
+        self.tags = tags or []
         self.labels = []
 
         if self.type == "SecureString":
@@ -1151,6 +1153,12 @@ class SimpleSystemManagerBackend(BaseBackend):
                 values = ["/" + value.strip("/") for value in values]
             elif key == "Type":
                 what = parameter.type
+            elif key.startswith("tag:"):
+                what = key[4:] or None
+                for tag in parameter.tags:
+                    if tag["Key"] == what and tag["Value"] in values:
+                        return True
+                return False
 
             if what is None:
                 return False
@@ -1274,7 +1282,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return [invalid_labels, version]
 
     def put_parameter(
-        self, name, description, value, type, allowed_pattern, keyid, overwrite
+        self, name, description, value, type, allowed_pattern, keyid, overwrite, tags,
     ):
         if name.lower().lstrip("/").startswith("aws") or name.lower().lstrip(
             "/"
@@ -1315,6 +1323,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 keyid,
                 last_modified_date,
                 version,
+                tags or [],
             )
         )
         return version
