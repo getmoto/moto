@@ -508,6 +508,8 @@ class Queue(CloudFormationModel):
         self._messages.append(message)
 
         for arn, esm in self.lambda_event_source_mappings.items():
+            from moto.awslambda import lambda_backends
+
             backend = sqs_backends[self.region]
 
             """

@@ -15,9 +15,10 @@ from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_sqs, mock_sqs_deprecated, mock_logs, settings
+from moto import mock_sqs, mock_sqs_deprecated, settings
 
 from unittest import SkipTest, mock
+
 import pytest
 from tests.helpers import requires_boto_gte
 from moto.core import ACCOUNT_ID
