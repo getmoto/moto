@@ -498,7 +498,7 @@ class EventsBackend(BaseBackend):
         rule.state = kwargs.get("State") or rule.state
         rule.description = kwargs.get("Description") or rule.description
         rule.role_arn = kwargs.get("RoleArn") or rule.role_arn
-        rule.event_bus_name = kwargs.get("EventBusName", "default") or rule.event_bus_name
+        rule.event_bus_name = kwargs.get("EventBusName") or rule.event_bus_name
 
     def put_rule(self, name, **kwargs):
         if name in self.rules:
