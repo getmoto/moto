@@ -2,6 +2,13 @@ from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
+class IllegalStatusException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(IllegalStatusException, self).__init__("IllegalStatusException", message)
+
+
 class InvalidEventPatternException(JsonRESTError):
     code = 400
 
