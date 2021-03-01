@@ -157,3 +157,10 @@ class UnknownSnapshotCopyRegionFaultError(RedshiftClientError):
         super(UnknownSnapshotCopyRegionFaultError, self).__init__(
             "UnknownSnapshotCopyRegionFault", message
         )
+
+
+class ClusterSecurityGroupNotFoundFaultError(RedshiftClientError):
+    def __init__(self, message):
+        super(ClusterSecurityGroupNotFoundFaultError, self).__init__(
+            "ClusterSecurityGroupNotFoundFault", message
+        )
