@@ -209,6 +209,37 @@ def test_remove_targets():
 
 
 @mock_events
+def test_update_rule_with_targets():
+    client = boto3.client("events", "us-west-2")
+    client.put_rule(
+        Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="",
+    )
+
+    client.put_targets(
+        Rule="test1",
+        Targets=[
+            {
+                "Id": "test-target-1",
+                "Arn": "arn:aws:lambda:us-west-2:111111111111:function:test-function-1",
+            }
+        ],
+    )
+
+    targets = client.list_targets_by_rule(Rule="test1")["Targets"]
+    targets_before = len(targets)
+    assert targets_before == 1
+
+    client.put_rule(
+        Name="test1", ScheduleExpression="rate(1 minute)", EventPattern="",
+    )
+
+    targets = client.list_targets_by_rule(Rule="test1")["Targets"]
+
+    assert len(targets) == 1
+    assert targets[0].get("Id") == "test-target-1"
+
+
+@mock_events
 def test_remove_targets_errors():
     client = boto3.client("events", "us-east-1")
 
