@@ -2,8 +2,6 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
-from moto.ec2.exceptions import MissingParameterError
-
 
 class ElasticBlockStore(BaseResponse):
     def attach_volume(self):
@@ -46,8 +44,6 @@ class ElasticBlockStore(BaseResponse):
         size = self._get_param("Size")
         zone = self._get_param("AvailabilityZone")
         snapshot_id = self._get_param("SnapshotId")
-        if not size or snapshot_id:
-            raise MissingParameterError("size or snapshotId")
         volume_type = self._get_param("VolumeType")
         tags = self._parse_tag_specification("TagSpecification")
         volume_tags = tags.get("volume", {})
