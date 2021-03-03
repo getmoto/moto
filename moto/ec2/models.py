@@ -2687,7 +2687,13 @@ class EBSBackend(object):
         super(EBSBackend, self).__init__()
 
     def create_volume(
-        self, size, zone_name, volume_type, snapshot_id=None, encrypted=False, kms_key_id=None
+        self,
+        size,
+        zone_name,
+        volume_type,
+        snapshot_id=None,
+        encrypted=False,
+        kms_key_id=None,
     ):
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -2701,7 +2707,9 @@ class EBSBackend(object):
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
-        volume = Volume(self, volume_id, size, volume_type, zone, snapshot_id, encrypted, kms_key_id)
+        volume = Volume(
+            self, volume_id, size, volume_type, zone, snapshot_id, encrypted, kms_key_id
+        )
         self.volumes[volume_id] = volume
         return volume
 
@@ -2770,7 +2778,16 @@ class EBSBackend(object):
         volume.attachment = None
         return old_attachment
 
-    def modify_volume(self, volume_id, size, zone, volume_type, snapshot_id=None, encrypted=False, kms_key_id=None):
+    def modify_volume(
+        self,
+        volume_id,
+        size,
+        zone,
+        volume_type,
+        snapshot_id=None,
+        encrypted=False,
+        kms_key_id=None,
+    ):
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
         if encrypted and not kms_key_id:
@@ -2782,7 +2799,9 @@ class EBSBackend(object):
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
-        volume = Volume(self, volume_id, size, volume_type, zone, snapshot_id, encrypted, kms_key_id)
+        volume = Volume(
+            self, volume_id, size, volume_type, zone, snapshot_id, encrypted, kms_key_id
+        )
         self.volumes[volume_id] = volume
         return volume
 

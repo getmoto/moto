@@ -2,9 +2,8 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
-from moto.ec2.exceptions import (
-    MissingParameterError
-)
+from moto.ec2.exceptions import MissingParameterError
+
 
 class ElasticBlockStore(BaseResponse):
     def attach_volume(self):
