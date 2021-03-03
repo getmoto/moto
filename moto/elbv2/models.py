@@ -132,7 +132,7 @@ class FakeTargetGroup(CloudFormationModel):
 
     def health_for(self, target, ec2_backend):
         t = self.targets.get(target["id"])
-        if t is None:
+        if t["id"] is None:
             raise InvalidTargetError()
         if t["id"].startswith("i-"):  # EC2 instance ID
             instance = ec2_backend.get_instance_by_id(t["id"])
