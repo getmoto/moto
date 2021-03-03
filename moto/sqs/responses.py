@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import re
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amz_crc32, amzn_request_id
+from moto.core.utils import amz_crc32, amzn_request_id, camelcase_to_underscores
 from six.moves.urllib.parse import urlparse
 
 from .exceptions import (
@@ -402,23 +402,25 @@ class SQSResponse(BaseResponse):
         attributes = {
             "approximate_first_receive_timestamp": False,
             "approximate_receive_count": False,
+            "message_deduplication_id": False,
+            "message_group_id": False,
             "sender_id": False,
             "sent_timestamp": False,
+            "sequence_number": False,
         }
 
-        if "All" in attribute_names:
-            attributes["approximate_first_receive_timestamp"] = True
-            attributes["approximate_receive_count"] = True
-            attributes["sender_id"] = True
-            attributes["sent_timestamp"] = True
-        if "ApproximateFirstReceiveTimestamp" in attribute_names:
-            attributes["approximate_first_receive_timestamp"] = True
-        if "ApproximateReceiveCount" in attribute_names:
-            attributes["approximate_receive_count"] = True
-        if "SenderId" in attribute_names:
-            attributes["sender_id"] = True
-        if "SentTimestamp" in attribute_names:
-            attributes["sent_timestamp"] = True
+        for attribute_name in attribute_names:
+            camelcase_name = camelcase_to_underscores(attribute_name)
+            if camelcase_name == "all":
+                attributes["approximate_first_receive_timestamp"] = True
+                attributes["approximate_receive_count"] = True
+                attributes["message_deduplication_id"] = True
+                attributes["message_group_id"] = True
+                attributes["sender_id"] = True
+                attributes["sent_timestamp"] = True
+                attributes["sequence_number"] = True
+            elif camelcase_name in attributes:
+                attributes[camelcase_name] = True
 
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages, attributes=attributes)
@@ -585,16 +587,22 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.deduplication_id is not none %}
+          {% if attributes.message_deduplication_id and message.deduplication_id is not none %}
           <Attribute>
             <Name>MessageDeduplicationId</Name>
             <Value>{{ message.deduplication_id }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.group_id is not none %}
+          {% if attributes.message_group_id and message.group_id is not none %}
           <Attribute>
             <Name>MessageGroupId</Name>
             <Value>{{ message.group_id }}</Value>
+          </Attribute>
+          {% endif %}
+          {% if attributes.sequence_number and message.sequence_number is not none %}
+          <Attribute>
+            <Name>SequenceNumber</Name>
+            <Value>{{ message.sequence_number }}</Value>
           </Attribute>
           {% endif %}
           {% if message.message_attributes.items()|count > 0 %}
