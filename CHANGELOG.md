@@ -5,6 +5,27 @@ Unreleased
 -----
 
 
+2.0.1
+-----
+    New Services:
+        * Media Connect
+
+    New Methods:
+        * API Gateway: 
+            * update_usage_plan
+        * Events
+            * cancel_replay
+            * describe_replay
+            * start_replay
+            * list_replays
+        
+    Miscellaneous:
+        * ECS TaskDefinitions now have the 'status' attribute
+        * Events: the put_rule now updates an existing rule, instead of removing the old one (and the associated targets)
+        * IAM create_roles and list_roles now return the Description
+        * SSM: put_parameter and describe_parameters now supports tags
+
+
 2.0.0
 ----
 Full list of PRs merged in this release:
