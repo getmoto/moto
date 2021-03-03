@@ -12,17 +12,17 @@ class MediaPackageResponse(BaseResponse):
 
     
     def create_channel(self):
-        description = self._get_param("Description")
-        id = self._get_param("Id")
-        tags = self._get_param("Tags")
-        arn, description, egress_access_logs, hls_ingest, id, ingress_access_logs, tags = self.mediapackage_backend.create_channel(
+        description = self._get_param("description")
+        id = self._get_param("id")
+        tags = self._get_param("tags")
+        channel = self.mediapackage_backend.create_channel(
             description=description,
             id=id,
             tags=tags,
         )
-        # TODO: adjust response
-        return json.dumps(dict(arn=arn, description=description, egressAccessLogs=egress_access_logs, hlsIngest=hls_ingest, id=id, ingressAccessLogs=ingress_access_logs, tags=tags))
-    # add methods from here
+        return json.dumps(channel.to_dict())
+        # return json.dumps(dict(arn=arn, description=description, egressAccessLogs=egress_access_logs, hlsIngest=hls_ingest, id=id, ingressAccessLogs=ingress_access_logs, tags=tags))
+
     
     def describe_channel(self):
         id = self._get_param("Id")
