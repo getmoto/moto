@@ -127,7 +127,7 @@ mock_mediaconnect = lazy_load(".mediaconnect", "mock_mediaconnect")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.0.1.dev"
+__version__ = "2.0.2.dev"
 
 
 try:
