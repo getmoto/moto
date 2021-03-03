@@ -1,6 +1,28 @@
 from __future__ import unicode_literals
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
+from uuid import uuid4
+from collections import OrderedDict
+
+
+class Channel(BaseModel):
+    def __init__(self, *args, **kwargs):
+        self.arn = kwargs.get("arn")
+        self.channel_id = kwargs.get("channel_id")
+        self.description = kwargs.get("description")
+        self.tags = kwargs.get("tags")
+
+    def to_dict(self, exclude=None):
+        data = {
+            "arn": self.arn,
+            "id": self.channel_id,
+            "description": self.description,
+            "tags": self.tags,
+        }
+        if exclude:
+            for key in exclude:
+                del data[key]
+        return data
 
 
 class MediaPackageBackend(BaseBackend):
@@ -12,10 +34,21 @@ class MediaPackageBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+        self._channels = OrderedDict()
 
     def create_channel(self, description, id, tags):
-        # implement here
-        return arn, description, egress_access_logs, hls_ingest, id, ingress_access_logs, tags
+        arn = "arn:aws:medialive:channel:{}".format(id)
+        channel = Channel(
+            arn=arn,
+            description=description,
+            egress_access_logs={},
+            hls_ingest={},
+            id=id,
+            ingress_access_logs={},
+            tags=tags,
+        )
+        self._channels[id] = channel
+        return channel
     
     def describe_channel(self, id):
         # implement here

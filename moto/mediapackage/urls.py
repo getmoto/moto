@@ -11,4 +11,5 @@ response = MediaPackageResponse()
 
 url_paths = {
     '{0}/.*$': response.dispatch,
+    
 }
