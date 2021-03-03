@@ -40,3 +40,18 @@ def test_create_channel_succeeds():
     response["Description"].should.equal("Awesome channel!")
     response["Id"].should.equal("channel-id")
     response["Tags"]["Customer"].should.equal("moto")
+
+@mock_mediapackage
+def test_describe_channel_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_config = _create_channel_config()
+
+    create_response = client.create_channel(**channel_config)
+    describe_response = client.describe_channel(
+        Id=create_response["Id"]
+    )
+    describe_response["Arn"].should.equal(
+        "arn:aws:mediapackage:channel:{}".format(describe_response["Id"])
+    )
+    describe_response["Description"].should.equal(channel_config["Description"])
+    describe_response["Tags"]["Customer"].should.equal("moto")

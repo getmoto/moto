@@ -51,10 +51,8 @@ class MediaPackageBackend(BaseBackend):
         return channel
     
     def describe_channel(self, id):
-        # implement here
-        return arn, description, egress_access_logs, hls_ingest, id, ingress_access_logs, tags
-    
-    # add methods from here
+        channel = self._channels[id]
+        return channel.to_dict()
 
 
 mediapackage_backends = {}
