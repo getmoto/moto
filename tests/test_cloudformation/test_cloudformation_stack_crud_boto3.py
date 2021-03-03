@@ -559,6 +559,43 @@ def test_update_stack_set():
 
 
 @mock_cloudformation
+def test_update_stack_set_with_previous_value():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    param = [
+        {"ParameterKey": "TagDescription", "ParameterValue": "StackSetValue"},
+        {"ParameterKey": "TagName", "ParameterValue": "StackSetValue2"},
+    ]
+    param_overrides = [
+        {"ParameterKey": "TagDescription", "ParameterValue": "OverrideValue"},
+        {"ParameterKey": "TagName", "UsePreviousValue": True},
+    ]
+    cf_conn.create_stack_set(
+        StackSetName="test_stack_set",
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=param,
+    )
+    cf_conn.update_stack_set(
+        StackSetName="test_stack_set",
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=param_overrides,
+    )
+    stackset = cf_conn.describe_stack_set(StackSetName="test_stack_set")
+
+    stackset["StackSet"]["Parameters"][0]["ParameterValue"].should.equal(
+        param_overrides[0]["ParameterValue"]
+    )
+    stackset["StackSet"]["Parameters"][1]["ParameterValue"].should.equal(
+        param[1]["ParameterValue"]
+    )
+    stackset["StackSet"]["Parameters"][0]["ParameterKey"].should.equal(
+        param_overrides[0]["ParameterKey"]
+    )
+    stackset["StackSet"]["Parameters"][1]["ParameterKey"].should.equal(
+        param_overrides[1]["ParameterKey"]
+    )
+
+
+@mock_cloudformation
 def test_boto3_list_stack_set_operations():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
@@ -588,7 +625,7 @@ def test_boto3_bad_list_stack_resources():
 
 
 @mock_cloudformation
-def test_boto3_delete_stack_set():
+def test_boto3_delete_stack_set_by_name():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
         StackSetName="test_stack_set", TemplateBody=dummy_template_json
@@ -601,15 +638,30 @@ def test_boto3_delete_stack_set():
 
 
 @mock_cloudformation
+def test_boto3_delete_stack_set_by_id():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    response = cf_conn.create_stack_set(
+        StackSetName="test_stack_set", TemplateBody=dummy_template_json
+    )
+    stack_set_id = response["StackSetId"]
+    cf_conn.delete_stack_set(StackSetName=stack_set_id)
+
+    cf_conn.describe_stack_set(StackSetName="test_stack_set")["StackSet"][
+        "Status"
+    ].should.equal("DELETED")
+
+
+@mock_cloudformation
 def test_boto3_create_stack_set():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    cf_conn.create_stack_set(
+    response = cf_conn.create_stack_set(
         StackSetName="test_stack_set", TemplateBody=dummy_template_json
     )
 
     cf_conn.describe_stack_set(StackSetName="test_stack_set")["StackSet"][
         "TemplateBody"
     ].should.equal(dummy_template_json)
+    response["StackSetId"].should_not.be.empty
 
 
 @mock_cloudformation
@@ -677,6 +729,19 @@ def test_boto3_describe_stack_set_params():
     cf_conn.describe_stack_set(StackSetName="test_stack")["StackSet"][
         "Parameters"
     ].should.equal(params)
+
+
+@mock_cloudformation
+def test_boto3_describe_stack_set_by_id():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    response = cf_conn.create_stack_set(
+        StackSetName="test_stack", TemplateBody=dummy_template_json,
+    )
+
+    stack_set_id = response["StackSetId"]
+    cf_conn.describe_stack_set(StackSetName=stack_set_id)["StackSet"][
+        "TemplateBody"
+    ].should.equal(dummy_template_json)
 
 
 @mock_cloudformation

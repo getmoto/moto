@@ -963,6 +963,28 @@ def test_describe_parameters_attributes():
 
 
 @mock_ssm
+def test_describe_parameters_tags():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.put_parameter(Name="/foo/bar", Value="spam", Type="String")
+    client.put_parameter(
+        Name="/spam/eggs",
+        Value="eggs",
+        Type="String",
+        Tags=[{"Key": "spam", "Value": "eggs"}],
+    )
+
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "tag:spam", "Values": ["eggs"]}]
+    )
+
+    parameters = response["Parameters"]
+    parameters.should.have.length_of(1)
+
+    parameters[0]["Name"].should.equal("/spam/eggs")
+
+
+@mock_ssm
 def test_get_parameter_invalid():
     client = client = boto3.client("ssm", region_name="us-east-1")
     response = client.get_parameters(Names=["invalid"], WithDecryption=False)

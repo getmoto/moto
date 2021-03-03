@@ -13,6 +13,7 @@ class SupportBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(SupportBackend, self).__init__()
         self.region_name = region_name
+        self.check_status = {}
 
     def reset(self):
         region_name = self.region_name
@@ -23,6 +24,39 @@ class SupportBackend(BaseBackend):
         # The checks are a static response
         checks = ADVISOR_CHECKS["checks"]
         return checks
+
+    def refresh_trusted_advisor_check(self, check_id):
+        self.advance_check_status(check_id)
+        status = {
+            "status": {
+                "checkId": check_id,
+                "status": self.check_status[check_id],
+                "millisUntilNextRefreshable": 123,
+            }
+        }
+        return status
+
+    def advance_check_status(self, check_id):
+        """
+        Fake an advancement through statuses on refreshing TA checks
+        """
+        if check_id not in self.check_status:
+            self.check_status[check_id] = "none"
+
+        elif self.check_status[check_id] == "none":
+            self.check_status[check_id] = "enqueued"
+
+        elif self.check_status[check_id] == "enqueued":
+            self.check_status[check_id] = "processing"
+
+        elif self.check_status[check_id] == "processing":
+            self.check_status[check_id] = "success"
+
+        elif self.check_status[check_id] == "success":
+            self.check_status[check_id] = "abandoned"
+
+        elif self.check_status[check_id] == "abandoned":
+            self.check_status[check_id] = "none"
 
 
 support_backends = {}

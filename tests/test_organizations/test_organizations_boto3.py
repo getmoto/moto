@@ -352,6 +352,69 @@ def test_list_children_exception():
     ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
 
 
+@mock_organizations
+def test_list_create_account_status():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")["Organization"]
+    response = client.list_create_account_status()
+    createAccountStatuses = response["CreateAccountStatuses"]
+    createAccountStatuses.should.have.length_of(1)
+    validate_create_account_status(createAccountStatuses[0])
+
+    request_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["Id"]
+    response = client.list_create_account_status()
+    createAccountStatuses = response["CreateAccountStatuses"]
+    createAccountStatuses.should.have.length_of(2)
+    for createAccountStatus in createAccountStatuses:
+        validate_create_account_status(createAccountStatus)
+
+
+@mock_organizations
+def test_list_create_account_status_succeeded():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")["Organization"]
+    requiredStates = ["SUCCEEDED"]
+    response = client.list_create_account_status(States=requiredStates)
+    createAccountStatuses = response["CreateAccountStatuses"]
+    createAccountStatuses.should.have.length_of(1)
+    validate_create_account_status(createAccountStatuses[0])
+
+
+@mock_organizations
+def test_list_create_account_status_in_progress():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")["Organization"]
+    requiredStates = ["IN_PROGRESS"]
+    response = client.list_create_account_status(States=requiredStates)
+    createAccountStatuses = response["CreateAccountStatuses"]
+    createAccountStatuses.should.have.length_of(0)
+
+
+@mock_organizations
+def test_get_paginated_list_create_account_status():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")["Organization"]
+    for i in range(5):
+        request_id = client.create_account(AccountName=mockname, Email=mockemail)[
+            "CreateAccountStatus"
+        ]["Id"]
+    response = client.list_create_account_status(MaxResults=2)
+    createAccountStatuses = response["CreateAccountStatuses"]
+    createAccountStatuses.should.have.length_of(2)
+    for createAccountStatus in createAccountStatuses:
+        validate_create_account_status(createAccountStatus)
+    next_token = response["NextToken"]
+    next_token.should_not.be.none
+    response2 = client.list_create_account_status(NextToken=next_token)
+    createAccountStatuses.extend(response2["CreateAccountStatuses"])
+    createAccountStatuses.should.have.length_of(6)
+    assert "NextToken" not in response2.keys()
+    for createAccountStatus in createAccountStatuses:
+        validate_create_account_status(createAccountStatus)
+
+
 # Service Control Policies
 policy_doc01 = dict(
     Version="2012-10-17",

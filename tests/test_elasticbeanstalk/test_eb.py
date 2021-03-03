@@ -42,6 +42,7 @@ def test_create_environment():
     app = conn.create_application(ApplicationName="myapp",)
     env = conn.create_environment(ApplicationName="myapp", EnvironmentName="myenv",)
     env["EnvironmentName"].should.equal("myenv")
+    env["EnvironmentArn"].should.contain("myapp/myenv")
 
 
 @mock_elasticbeanstalk
@@ -58,6 +59,7 @@ def test_describe_environments():
     len(envs).should.equal(1)
     envs[0]["ApplicationName"].should.equal("myapp")
     envs[0]["EnvironmentName"].should.equal("myenv")
+    envs[0]["EnvironmentArn"].should.contain("myapp/myenv")
 
 
 def tags_dict_to_list(tag_dict):

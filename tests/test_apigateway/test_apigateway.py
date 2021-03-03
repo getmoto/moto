@@ -1829,11 +1829,91 @@ def test_http_proxying_integration():
 
 
 @mock_apigateway
+def test_api_key_value_min_length():
+    region_name = "us-east-1"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    apikey_value = "12345"
+    apikey_name = "TESTKEY1"
+    payload = {"value": apikey_value, "name": apikey_name}
+
+    with pytest.raises(ClientError) as e:
+        client.create_api_key(**payload)
+    ex = e.value
+    ex.operation_name.should.equal("CreateApiKey")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("BadRequestException")
+    ex.response["Error"]["Message"].should.equal(
+        "API Key value should be at least 20 characters"
+    )
+
+
+@mock_apigateway
+def test_get_api_key_include_value():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    apikey_value = "01234567890123456789"
+    apikey_name = "TESTKEY1"
+    payload = {"value": apikey_value, "name": apikey_name}
+
+    response = client.create_api_key(**payload)
+    api_key_id_one = response["id"]
+
+    response = client.get_api_key(apiKey=api_key_id_one, includeValue=True)
+    response.should.have.key("value")
+
+    response = client.get_api_key(apiKey=api_key_id_one)
+    response.should_not.have.key("value")
+
+    response = client.get_api_key(apiKey=api_key_id_one, includeValue=True)
+    response.should.have.key("value")
+
+    response = client.get_api_key(apiKey=api_key_id_one, includeValue=False)
+    response.should_not.have.key("value")
+
+    response = client.get_api_key(apiKey=api_key_id_one, includeValue=True)
+    response.should.have.key("value")
+
+
+@mock_apigateway
+def test_get_api_keys_include_values():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    apikey_value = "01234567890123456789"
+    apikey_name = "TESTKEY1"
+    payload = {"value": apikey_value, "name": apikey_name}
+
+    apikey_value2 = "01234567890123456789123"
+    apikey_name2 = "TESTKEY1"
+    payload2 = {"value": apikey_value2, "name": apikey_name2}
+
+    client.create_api_key(**payload)
+    client.create_api_key(**payload2)
+
+    response = client.get_api_keys()
+    len(response["items"]).should.equal(2)
+    for api_key in response["items"]:
+        api_key.should_not.have.key("value")
+
+    response = client.get_api_keys(includeValues=True)
+    len(response["items"]).should.equal(2)
+    for api_key in response["items"]:
+        api_key.should.have.key("value")
+
+    response = client.get_api_keys(includeValues=False)
+    len(response["items"]).should.equal(2)
+    for api_key in response["items"]:
+        api_key.should_not.have.key("value")
+
+
+@mock_apigateway
 def test_create_api_key():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    apikey_value = "12345"
+    apikey_value = "01234567890123456789"
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
@@ -1855,7 +1935,7 @@ def test_create_api_headers():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    apikey_value = "12345"
+    apikey_value = "01234567890123456789"
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
@@ -1874,7 +1954,7 @@ def test_api_keys():
     response = client.get_api_keys()
     len(response["items"]).should.equal(0)
 
-    apikey_value = "12345"
+    apikey_value = "01234567890123456789"
     apikey_name = "TESTKEY1"
     payload = {
         "value": apikey_value,
@@ -1883,7 +1963,7 @@ def test_api_keys():
     }
     response = client.create_api_key(**payload)
     apikey_id = response["id"]
-    apikey = client.get_api_key(apiKey=response["id"])
+    apikey = client.get_api_key(apiKey=response["id"], includeValue=True)
     apikey["name"].should.equal(apikey_name)
     apikey["value"].should.equal(apikey_value)
     apikey["tags"]["tag1"].should.equal("test_tag1")
@@ -1976,6 +2056,36 @@ def test_usage_plans():
 
     response = client.get_usage_plans()
     len(response["items"]).should.equal(1)
+
+
+@mock_apigateway
+def test_update_usage_plan():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    payload = {
+        "name": "TEST-PLAN-2",
+        "description": "Description",
+        "quota": {"limit": 10, "period": "DAY", "offset": 0},
+        "throttle": {"rateLimit": 2, "burstLimit": 1},
+        "apiStages": [{"apiId": "foo", "stage": "bar"}],
+        "tags": {"tag_key": "tag_value"},
+    }
+    response = client.create_usage_plan(**payload)
+    usage_plan_id = response["id"]
+    response = client.update_usage_plan(
+        usagePlanId=usage_plan_id,
+        patchOperations=[
+            {"op": "replace", "path": "/quota/limit", "value": "1000"},
+            {"op": "replace", "path": "/quota/period", "value": "MONTH"},
+            {"op": "replace", "path": "/throttle/rateLimit", "value": "500"},
+            {"op": "replace", "path": "/throttle/burstLimit", "value": "1500"},
+        ],
+    )
+    response["quota"]["limit"].should.equal("1000")
+    response["quota"]["period"].should.equal("MONTH")
+    response["quota"]["limit"].should.equal("1000")
+    response["quota"]["limit"].should.equal("1000")
 
 
 @mock_apigateway

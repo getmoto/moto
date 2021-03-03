@@ -18,3 +18,9 @@ class SupportResponse(BaseResponse):
         )
 
         return json.dumps({"checks": checks})
+
+    def refresh_trusted_advisor_check(self):
+        check_id = self._get_param("checkId")
+        status = self.support_backend.refresh_trusted_advisor_check(check_id=check_id,)
+
+        return json.dumps(status)

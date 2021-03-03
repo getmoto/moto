@@ -4,12 +4,15 @@ import unittest
 from datetime import datetime
 
 import boto3
+import pytz
 import sure  # noqa
 
 from botocore.exceptions import ClientError
 import pytest
 
+from moto import mock_logs
 from moto.core import ACCOUNT_ID
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.events import mock_events
 
 RULES = [
@@ -203,6 +206,37 @@ def test_remove_targets():
     targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
     targets_after = len(targets)
     assert targets_before - 1 == targets_after
+
+
+@mock_events
+def test_update_rule_with_targets():
+    client = boto3.client("events", "us-west-2")
+    client.put_rule(
+        Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="",
+    )
+
+    client.put_targets(
+        Rule="test1",
+        Targets=[
+            {
+                "Id": "test-target-1",
+                "Arn": "arn:aws:lambda:us-west-2:111111111111:function:test-function-1",
+            }
+        ],
+    )
+
+    targets = client.list_targets_by_rule(Rule="test1")["Targets"]
+    targets_before = len(targets)
+    assert targets_before == 1
+
+    client.put_rule(
+        Name="test1", ScheduleExpression="rate(1 minute)", EventPattern="",
+    )
+
+    targets = client.list_targets_by_rule(Rule="test1")["Targets"]
+
+    assert len(targets) == 1
+    assert targets[0].get("Id") == "test-target-1"
 
 
 @mock_events
@@ -1106,7 +1140,8 @@ def test_list_archives_error_invalid_state():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ValidationException")
     ex.response["Error"]["Message"].should.equal(
-        "1 validation error detected: Value 'invalid' at 'state' failed to satisfy constraint: "
+        "1 validation error detected: "
+        "Value 'invalid' at 'state' failed to satisfy constraint: "
         "Member must satisfy enum value set: "
         "[ENABLED, DISABLED, CREATING, UPDATING, CREATE_FAILED, UPDATE_FAILED]"
     )
@@ -1241,7 +1276,8 @@ def test_archive_actual_events():
     # given
     client = boto3.client("events", "eu-central-1")
     name = "test-archive"
-    name_2 = "test-archive-2"
+    name_2 = "test-archive-no-match"
+    name_3 = "test-archive-matches"
     event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
         ACCOUNT_ID
     )
@@ -1254,7 +1290,12 @@ def test_archive_actual_events():
     client.create_archive(
         ArchiveName=name_2,
         EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["test"]}),
+        EventPattern=json.dumps({"detail-type": ["type"], "source": ["test"]}),
+    )
+    client.create_archive(
+        ArchiveName=name_3,
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail-type": ["type"], "source": ["source"]}),
     )
 
     # when
@@ -1271,3 +1312,630 @@ def test_archive_actual_events():
     response = client.describe_archive(ArchiveName=name_2)
     response["EventCount"].should.equal(0)
     response["SizeBytes"].should.equal(0)
+
+    response = client.describe_archive(ArchiveName=name_3)
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.be.greater_than(0)
+
+
+@mock_events
+def test_start_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+
+    # when
+    response = client.start_replay(
+        ReplayName=name,
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1),
+        EventEndTime=datetime(2021, 2, 2),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # then
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["ReplayStartTime"].should.be.a(datetime)
+    response["State"].should.equal("STARTING")
+
+
+@mock_events
+def test_start_replay_error_unknown_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn="arn:aws:events:eu-central-1:{}:archive/test".format(
+                ACCOUNT_ID
+            ),
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={
+                "Arn": "arn:aws:events:eu-central-1:{0}:event-bus/{1}".format(
+                    ACCOUNT_ID, event_bus_name
+                ),
+            },
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Event bus {} does not exist.".format(event_bus_name)
+    )
+
+
+@mock_events
+def test_start_replay_error_invalid_event_bus_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn="arn:aws:events:eu-central-1:{}:archive/test".format(
+                ACCOUNT_ID
+            ),
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={"Arn": "invalid",},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter Destination.Arn is not valid. Reason: Must contain an event bus ARN."
+    )
+
+
+@mock_events
+def test_start_replay_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    archive_name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn="arn:aws:events:eu-central-1:{0}:archive/{1}".format(
+                ACCOUNT_ID, archive_name
+            ),
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={
+                "Arn": "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+                    ACCOUNT_ID
+                ),
+            },
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter EventSourceArn is not valid. "
+        "Reason: Archive {} does not exist.".format(archive_name)
+    )
+
+
+@mock_events
+def test_start_replay_error_cross_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive",
+        EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
+            ACCOUNT_ID
+        ),
+    )["ArchiveArn"]
+    event_bus_arn = client.create_event_bus(Name="test-bus")["EventBusArn"]
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn=archive_arn,
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={"Arn": event_bus_arn},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter Destination.Arn is not valid. "
+        "Reason: Cross event bus replay is not permitted."
+    )
+
+
+@mock_events
+def test_start_replay_error_invalid_end_time():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn=archive_arn,
+            EventStartTime=datetime(2021, 2, 2),
+            EventEndTime=datetime(2021, 2, 1),
+            Destination={"Arn": event_bus_arn},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter EventEndTime is not valid. "
+        "Reason: EventStartTime must be before EventEndTime."
+    )
+
+
+@mock_events
+def test_start_replay_error_duplicate():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1),
+        EventEndTime=datetime(2021, 2, 2),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName=name,
+            EventSourceArn=archive_arn,
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={"Arn": event_bus_arn},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceAlreadyExistsException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} already exists.".format(name)
+    )
+
+
+@mock_events
+def test_describe_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    response = client.describe_replay(ReplayName=name)
+
+    # then
+    response["Description"].should.equal("test replay")
+    response["Destination"].should.equal({"Arn": event_bus_arn})
+    response["EventSourceArn"].should.equal(archive_arn)
+    response["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=pytz.utc))
+    response["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=pytz.utc))
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["ReplayName"].should.equal(name)
+    response["ReplayStartTime"].should.be.a(datetime)
+    response["ReplayEndTime"].should.be.a(datetime)
+    response["State"].should.equal("COMPLETED")
+
+
+@mock_events
+def test_describe_replay_error_unknown_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_list_replays():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays()["Replays"]
+
+    # then
+    replays.should.have.length_of(1)
+    replay = replays[0]
+    replay["EventSourceArn"].should.equal(archive_arn)
+    replay["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=pytz.utc))
+    replay["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=pytz.utc))
+    replay["ReplayName"].should.equal(name)
+    replay["ReplayStartTime"].should.be.a(datetime)
+    replay["ReplayEndTime"].should.be.a(datetime)
+    replay["State"].should.equal("COMPLETED")
+
+
+@mock_events
+def test_list_replays_with_name_prefix():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName="test",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays(NamePrefix="test-")["Replays"]
+
+    # then
+    replays.should.have.length_of(1)
+    replays[0]["ReplayName"].should.equal("test-replay")
+
+
+@mock_events
+def test_list_replays_with_source_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName="test",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays(EventSourceArn=archive_arn)["Replays"]
+
+    # then
+    replays.should.have.length_of(2)
+
+
+@mock_events
+def test_list_replays_with_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName="test",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays(State="FAILED")["Replays"]
+
+    # then
+    replays.should.have.length_of(0)
+
+
+@mock_events
+def test_list_replays_error_multiple_filters():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_replays(NamePrefix="test", State="COMPLETED")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListReplays")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "At most one filter is allowed for ListReplays. "
+        "Use either : State, EventSourceArn, or NamePrefix."
+    )
+
+
+@mock_events
+def test_list_replays_error_invalid_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_replays(State="invalid")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListReplays")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value 'invalid' at 'state' failed to satisfy constraint: "
+        "Member must satisfy enum value set: "
+        "[CANCELLED, CANCELLING, COMPLETED, FAILED, RUNNING, STARTING]"
+    )
+
+
+@mock_events
+def test_cancel_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    response = client.cancel_replay(ReplayName=name)
+
+    # then
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["State"].should.equal("CANCELLING")
+
+    response = client.describe_replay(ReplayName=name)
+    response["State"].should.equal("CANCELLED")
+
+
+@mock_events
+def test_cancel_replay_error_unknown_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.cancel_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CancelReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_cancel_replay_error_illegal_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.cancel_replay(ReplayName=name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.cancel_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CancelReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("IllegalStatusException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} is not in a valid state for this operation.".format(name)
+    )
+
+
+@mock_events
+@mock_logs
+def test_start_replay_send_to_log_group():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    logs_client = boto3.client("logs", "eu-central-1")
+    log_group_name = "/test-group"
+    rule_name = "test-rule"
+    logs_client.create_log_group(logGroupName=log_group_name)
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.put_rule(Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]}))
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "test",
+                "Arn": "arn:aws:logs:eu-central-1:{0}:log-group:{1}".format(
+                    ACCOUNT_ID, log_group_name
+                ),
+            }
+        ],
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    event_time = datetime(2021, 1, 1, 12, 23, 34)
+    client.put_events(
+        Entries=[
+            {
+                "Time": event_time,
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"key": "value"}),
+            }
+        ]
+    )
+
+    # when
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1),
+        EventEndTime=datetime(2021, 1, 2),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # then
+    events = sorted(
+        logs_client.filter_log_events(logGroupName=log_group_name)["events"],
+        key=lambda item: item["eventId"],
+    )
+    event_original = json.loads(events[0]["message"])
+    event_original["version"].should.equal("0")
+    event_original["id"].should_not.be.empty
+    event_original["detail-type"].should.equal("type")
+    event_original["source"].should.equal("source")
+    event_original["time"].should.equal(
+        iso_8601_datetime_without_milliseconds(event_time)
+    )
+    event_original["region"].should.equal("eu-central-1")
+    event_original["resources"].should.be.empty
+    event_original["detail"].should.equal({"key": "value"})
+    event_original.should_not.have.key("replay-name")
+
+    event_replay = json.loads(events[1]["message"])
+    event_replay["version"].should.equal("0")
+    event_replay["id"].should_not.equal(event_original["id"])
+    event_replay["detail-type"].should.equal("type")
+    event_replay["source"].should.equal("source")
+    event_replay["time"].should.equal(event_original["time"])
+    event_replay["region"].should.equal("eu-central-1")
+    event_replay["resources"].should.be.empty
+    event_replay["detail"].should.equal({"key": "value"})
+    event_replay["replay-name"].should.equal("test-replay")
