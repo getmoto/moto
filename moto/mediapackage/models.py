@@ -37,13 +37,13 @@ class MediaPackageBackend(BaseBackend):
         self._channels = OrderedDict()
 
     def create_channel(self, description, id, tags):
-        arn = "arn:aws:medialive:channel:{}".format(id)
+        arn = "arn:aws:mediapackage:channel:{}".format(id)
         channel = Channel(
             arn=arn,
             description=description,
             egress_access_logs={},
             hls_ingest={},
-            id=id,
+            channel_id=id,
             ingress_access_logs={},
             tags=tags,
         )

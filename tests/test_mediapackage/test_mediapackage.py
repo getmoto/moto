@@ -33,12 +33,10 @@ def test_create_channel_succeeds():
     channel_config = _create_channel_config()
 
     response = client.create_channel(**channel_config)
-
-    print("RESPONSE ==>:", response)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["Channel"]["Arn"].should.equal(
-        "arn:aws:mediapackage:channel:{}".format(response["Channel"]["Id"])
+    response["Arn"].should.equal(
+        "arn:aws:mediapackage:channel:{}".format(response["Id"])
     )
-    response["Channel"]["Description"].should.equal("Awesome channel!")
-    response["Channel"]["Id"].should.equal("channel-id")
-    response["Channel"]["Tags"]["Customer"].should.equal("moto")
+    response["Description"].should.equal("Awesome channel!")
+    response["Id"].should.equal("channel-id")
+    response["Tags"]["Customer"].should.equal("moto")
