@@ -1031,7 +1031,16 @@ def test_send_receive_message_with_attribute_name(attribute_name, expected):
             },
         ),
     ],
-    # ids=["All", "ApproximateFirstReceiveTimestamp", "ApproximateReceiveCount", "SenderId", "SentTimestamp"],
+    ids=[
+        "All",
+        "ApproximateFirstReceiveTimestamp",
+        "ApproximateReceiveCount",
+        "MessageDeduplicationId",
+        "MessageGroupId",
+        "SenderId",
+        "SentTimestamp",
+        "SequenceNumber",
+    ],
 )
 def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected):
     client = boto3.client("sqs", region_name="us-east-1")

@@ -3,7 +3,12 @@ from __future__ import unicode_literals
 import re
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amz_crc32, amzn_request_id, camelcase_to_underscores
+from moto.core.utils import (
+    amz_crc32,
+    amzn_request_id,
+    underscores_to_camelcase,
+    camelcase_to_pascal,
+)
 from six.moves.urllib.parse import urlparse
 
 from .exceptions import (
@@ -409,18 +414,10 @@ class SQSResponse(BaseResponse):
             "sequence_number": False,
         }
 
-        for attribute_name in attribute_names:
-            camelcase_name = camelcase_to_underscores(attribute_name)
-            if camelcase_name == "all":
-                attributes["approximate_first_receive_timestamp"] = True
-                attributes["approximate_receive_count"] = True
-                attributes["message_deduplication_id"] = True
-                attributes["message_group_id"] = True
-                attributes["sender_id"] = True
-                attributes["sent_timestamp"] = True
-                attributes["sequence_number"] = True
-            elif camelcase_name in attributes:
-                attributes[camelcase_name] = True
+        for attribute in attributes:
+            pascalcase_name = camelcase_to_pascal(underscores_to_camelcase(attribute))
+            if any(x in ["All", pascalcase_name] for x in attribute_names):
+                attributes[attribute] = True
 
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages, attributes=attributes)
