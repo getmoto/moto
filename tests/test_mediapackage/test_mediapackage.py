@@ -19,6 +19,45 @@ def _create_channel_config(**kwargs):
     )
     return channel_config
 
+def _create_origin_endpoint_config(**kwargs):
+    authorization = kwargs.get(
+        "authorization", 
+        {
+            "CdnIdentifierSecret":"cdn-id-secret", 
+            "SecretsRoleArn": "secrets-arn"
+        }
+    )
+    channel_id = kwargs.get("channel_id", "channel-id")
+    cmaf_package = kwargs.get("cmafpackage", {"HlsManifests":[]})
+    dash_package = kwargs.get("dash_package", {"AdTriggers": []})
+    description = kwargs.get("description", "channel-description")
+    hls_package = kwargs.get("hls_package", {"AdMarkers": "NONE"})
+    id = kwargs.get("id", "origin-endpoint-id")
+    manifest_name = kwargs.get("manifest_name", "manifest-name")
+    mss_package = kwargs.get("mss_package", {"ManifestWindowSeconds":1})
+    origination = kwargs.get("origination","ALLOW")
+    startover_window_seconds = kwargs.get("startover_window_seconds", 1)
+    tags = kwargs.get("tags", {"Customer": "moto"}) 
+    time_delay_seconds = kwargs.get("time_delay_seconds", 1)
+    whitelist = kwargs.get("whitelist",["whitelist"])
+    origin_endpoint_config = dict(
+        Authorization=authorization, 
+        ChannelId=channel_id, 
+        CmafPackage=cmaf_package, 
+        DashPackage=dash_package, 
+        Description=description, 
+        HlsPackage=hls_package, 
+        Id=id, 
+        ManifestName=manifest_name, 
+        MssPackage=mss_package, 
+        Origination=origination, 
+        StartoverWindowSeconds=startover_window_seconds, 
+        Tags=tags, 
+        TimeDelaySeconds=time_delay_seconds, 
+        Whitelist=whitelist,
+    )
+    return origin_endpoint_config
+
 
 
 @mock_mediapackage
@@ -34,6 +73,7 @@ def test_create_channel_succeeds():
 
     response = client.create_channel(**channel_config)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    print(response)
     response["Arn"].should.equal(
         "arn:aws:mediapackage:channel:{}".format(response["Id"])
     )
@@ -55,3 +95,20 @@ def test_describe_channel_succeeds():
     )
     describe_response["Description"].should.equal(channel_config["Description"])
     describe_response["Tags"]["Customer"].should.equal("moto")
+
+@mock_mediapackage
+def test_create_endpoint_origin_succeed():
+    client = boto3.client("mediapackage", region_name=region)
+    origin_endpoint_config = _create_origin_endpoint_config()
+
+    response = client.create_origin_endpoint(**origin_endpoint_config)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    print(response)
+    response["Arn"].should.equal(
+        "arn:aws:mediapackage:origin_endpoint:{}".format(response["Id"])
+    )
+    response["ChannelId"].should.equal(origin_endpoint_config["ChannelId"])
+    response["Description"].should.equal(origin_endpoint_config["Description"])
+    response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
+    response["Origination"].should.equal("ALLOW")
+    
