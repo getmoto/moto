@@ -32,19 +32,19 @@ class MediaPackageResponse(BaseResponse):
     
     def create_origin_endpoint(self):
         authorization = self._get_param("authorization")
-        channel_id = self._get_param("channel_id")
-        cmaf_package = self._get_param("cmaf_package")
-        dash_package = self._get_param("DashPackage")
+        channel_id = self._get_param("channelId")
+        cmaf_package = self._get_param("cmafPackage")
+        dash_package = self._get_param("dashPackage")
         description = self._get_param("description")
-        hls_package = self._get_param("hls_package")
+        hls_package = self._get_param("hlsPackage")
         id = self._get_param("id")
-        manifest_name = self._get_param("ManifestName")
-        mss_package = self._get_param("MssPackage")
+        manifest_name = self._get_param("manifestName")
+        mss_package = self._get_param("mssPackage")
         origination = self._get_param("origination")
-        startover_window_seconds = self._get_int_param("StartoverWindowSeconds")
-        tags = self._get_param("Tags")
-        time_delay_seconds = self._get_int_param("TimeDelaySeconds.member")
-        whitelist = self._get_list_prefix("Whitelist.member")
+        startover_window_seconds = self._get_int_param("startoverWindowSeconds")
+        tags = self._get_param("tags")
+        time_delay_seconds = self._get_int_param("timeDelaySeconds.member")
+        whitelist = self._get_list_prefix("whitelist.member")
         origin_endpoint = self.mediapackage_backend.create_origin_endpoint(
             authorization=authorization,
             channel_id=channel_id,
