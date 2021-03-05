@@ -288,7 +288,7 @@ class LogGroup:
         def sorter(item):
             return (
                 item[0]
-                if order_by == "logStreamName"
+                if order_by == "LogStreamName"
                 else item[1].get("lastEventTimestamp", 0)
             )
 
