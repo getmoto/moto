@@ -15,6 +15,7 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
+from moto.utilities.Paginator import paginate
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,
@@ -26,6 +27,7 @@ from .utils import (
     compose_shard_iterator,
     compose_new_shard_iterator,
     decompose_shard_iterator,
+    PAGINATION_MODEL,
 )
 
 
@@ -573,6 +575,11 @@ class KinesisBackend(BaseBackend):
             shard1.put_record(
                 record.partition_key, record.data, record.explicit_hash_key
             )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_shards(self, stream_name, limit=None, next_token=None):
+        stream = self.describe_stream(stream_name)
+        return [shard.to_json() for shard in stream.shards.values()]
 
     """ Firehose """
 
