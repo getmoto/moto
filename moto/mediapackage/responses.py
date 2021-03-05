@@ -29,3 +29,36 @@ class MediaPackageResponse(BaseResponse):
             self.mediapackage_backend.describe_channel(id=id,)
         )
 # add templates from here
+    
+    def create_origin_endpoint(self):
+        authorization = self._get_param("authorization")
+        channel_id = self._get_param("channelId")
+        cmaf_package = self._get_param("cmafPackage")
+        dash_package = self._get_param("dashPackage")
+        description = self._get_param("description")
+        hls_package = self._get_param("hlsPackage")
+        id = self._get_param("id")
+        manifest_name = self._get_param("manifestName")
+        mss_package = self._get_param("mssPackage")
+        origination = self._get_param("origination")
+        startover_window_seconds = self._get_int_param("startoverWindowSeconds")
+        tags = self._get_param("tags")
+        time_delay_seconds = self._get_int_param("timeDelaySeconds.member")
+        whitelist = self._get_list_prefix("whitelist.member")
+        origin_endpoint = self.mediapackage_backend.create_origin_endpoint(
+            authorization=authorization,
+            channel_id=channel_id,
+            cmaf_package=cmaf_package,
+            dash_package=dash_package,
+            description=description,
+            hls_package=hls_package,
+            id=id,
+            manifest_name=manifest_name,
+            mss_package=mss_package,
+            origination=origination,
+            startover_window_seconds=startover_window_seconds,
+            tags=tags,
+            time_delay_seconds=time_delay_seconds,
+            whitelist=whitelist,
+        )
+        return json.dumps(origin_endpoint.to_dict())
