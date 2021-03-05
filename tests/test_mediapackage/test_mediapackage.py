@@ -73,7 +73,6 @@ def test_create_channel_succeeds():
 
     response = client.create_channel(**channel_config)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    print(response)
     response["Arn"].should.equal(
         "arn:aws:mediapackage:channel:{}".format(response["Id"])
     )
