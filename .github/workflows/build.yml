@@ -180,12 +180,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Update project version
+      - name: Update & Build
         run: |
+          pip install wheel packaging
           python update_version_from_git.py
-      - name: Build project
-        run: |
-          pip install wheel
           python setup.py sdist bdist_wheel
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@master
