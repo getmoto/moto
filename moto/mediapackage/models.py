@@ -27,7 +27,7 @@ class Channel(BaseModel):
 class OriginEndpoint(BaseModel):
     def __init__(self, *args, **kwargs):
         self.arn = kwargs.get("arn")
-        self.authorization = kwargs.get("Authorization")
+        self.authorization = kwargs.get("authorization")
         self.channel_id = kwargs.get("channel_id")
         self.cmaf_package = kwargs.get("cmaf_package")
         self.dash_package = kwargs.get("dash_package")

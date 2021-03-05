@@ -103,7 +103,6 @@ def test_create_endpoint_origin_succeed():
 
     response = client.create_origin_endpoint(**origin_endpoint_config)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    print(response)
     response["Arn"].should.equal(
         "arn:aws:mediapackage:origin_endpoint:{}".format(response["Id"])
     )
