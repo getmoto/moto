@@ -1778,9 +1778,19 @@ class RegionsAndZonesBackend(object):
         "ap-northeast-3": [
             Zone(
                 region_name="ap-northeast-3",
-                name="ap-northeast-2a",
+                name="ap-northeast-3a",
                 zone_id="apne3-az1",
-            )
+            ),
+            Zone(
+                region_name="ap-northeast-3",
+                name="ap-northeast-3b",
+                zone_id="apne3-az2",
+            ),
+            Zone(
+                region_name="ap-northeast-3",
+                name="ap-northeast-3c",
+                zone_id="apne3-az3",
+            ),
         ],
         "ap-northeast-2": [
             Zone(
@@ -1790,8 +1800,18 @@ class RegionsAndZonesBackend(object):
             ),
             Zone(
                 region_name="ap-northeast-2",
+                name="ap-northeast-2b",
+                zone_id="apne2-az2",
+            ),
+            Zone(
+                region_name="ap-northeast-2",
                 name="ap-northeast-2c",
                 zone_id="apne2-az3",
+            ),
+            Zone(
+                region_name="ap-northeast-2",
+                name="ap-northeast-2d",
+                zone_id="apne2-az4",
             ),
         ],
         "ap-northeast-1": [
