@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import re
 import json
 import email
 import datetime
@@ -22,6 +23,7 @@ from .exceptions import (
     RuleSetNameAlreadyExists,
     RuleSetDoesNotExist,
     RuleAlreadyExists,
+    MissingRenderingAttributeException,
 )
 from .utils import get_random_message_id
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
@@ -89,6 +91,17 @@ class SESQuota(BaseModel):
     @property
     def sent_past_24(self):
         return self.sent
+
+
+def are_all_variables_present(template, template_data):
+    subject_part = template["subject_part"]
+    text_part = template["text_part"]
+    html_part = template["html_part"]
+
+    for var in re.findall("{{.+?}}", subject_part + text_part + html_part):
+        if not template_data.get(var.split("{{")[1].split("}}")[0]):
+            return False
+    return True
 
 
 class SESBackend(BaseBackend):
@@ -347,6 +360,11 @@ class SESBackend(BaseBackend):
         except ValueError:
             raise InvalidRenderingParameterException(
                 "Template rendering data is invalid"
+            )
+
+        if not are_all_variables_present(template, template_data):
+            raise MissingRenderingAttributeException(
+                "Some Required Parameters are missing"
             )
 
         subject_part = template["subject_part"]

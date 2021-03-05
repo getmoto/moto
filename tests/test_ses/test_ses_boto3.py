@@ -516,6 +516,14 @@ def test_render_template():
     result["RenderedTemplate"].should.contain("<h1>Hello John,</h1>")
     result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
 
+    kwargs = dict(
+        TemplateName="MyTestTemplate", TemplateData=json.dumps({"name": "John"}),
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.test_render_template(**kwargs)
+    assert ex.value.response["Error"]["Code"] == "MissingRenderingAttributeException"
+
 
 @mock_ses
 def test_update_ses_template():
