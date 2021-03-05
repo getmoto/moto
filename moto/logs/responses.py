@@ -40,7 +40,9 @@ class LogsResponse(BaseResponse):
         limit = self._get_param("limit", 50)
         assert limit <= 50
         groups, next_token = self.logs_backend.describe_log_groups(
-            limit, log_group_name_prefix, next_token
+            limit=limit,
+            log_group_name_prefix=log_group_name_prefix,
+            next_token=next_token,
         )
         result = {"logGroups": groups}
         if next_token:
