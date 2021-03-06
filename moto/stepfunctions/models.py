@@ -19,7 +19,7 @@ from .exceptions import (
 )
 from .utils import api_to_cfn_tags, cfn_to_api_tags, PAGINATION_MODEL
 from moto import settings
-from moto.utilities.Paginator import paginate
+from moto.utilities.paginator import paginate
 
 
 class StateMachine(CloudFormationModel):

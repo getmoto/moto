@@ -109,7 +109,7 @@ class Paginator(object):
             else:
                 range_keys.append(getattr(next_item, attr))
         token_dict["pageEndingRangeKey"] = "|".join(range_keys)
-        return TokenEncoder().encode(token_dict)
+        return self._token_encoder.encode(token_dict)
 
     def paginate(self, results):
         index_start = 0

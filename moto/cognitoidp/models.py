@@ -23,7 +23,7 @@ from .exceptions import (
     InvalidParameterException,
 )
 from .utils import create_id, check_secret_hash, PAGINATION_MODEL
-from moto.utilities.Paginator import paginate
+from moto.utilities.paginator import paginate
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",

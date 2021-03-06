@@ -15,7 +15,7 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
-from moto.utilities.Paginator import paginate
+from moto.utilities.paginator import paginate
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,

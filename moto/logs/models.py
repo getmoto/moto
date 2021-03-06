@@ -2,7 +2,7 @@ from boto3 import Session
 
 from moto.core import BaseBackend
 from moto.core.utils import unix_time_millis
-from moto.utilities.Paginator import paginate
+from moto.utilities.paginator import paginate
 from .exceptions import (
     ResourceNotFoundException,
     ResourceAlreadyExistsException,
