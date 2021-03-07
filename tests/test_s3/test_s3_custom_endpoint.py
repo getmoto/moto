@@ -10,19 +10,15 @@ import unittest
 DEFAULT_REGION_NAME = "us-east-1"
 CUSTOM_ENDPOINT = "https://s3.local.some-test-domain.de"
 
-config = Config(connect_timeout=2,
-                retries={
-                    'max_attempts': 1,
-                    'mode': 'standard'
-                }
-                )
-s3_kwargs = {"region_name":DEFAULT_REGION_NAME,
-                          "endpoint_url":CUSTOM_ENDPOINT,
-                          "config":config}
+config = Config(connect_timeout=2, retries={"max_attempts": 1, "mode": "standard"})
+s3_kwargs = {
+    "region_name": DEFAULT_REGION_NAME,
+    "endpoint_url": CUSTOM_ENDPOINT,
+    "config": config,
+}
 
 
 class S3CustomEndpointTestCase(unittest.TestCase):
-
     def setUp(self):
         os.environ["CUSTOM_ENDPOINTS"] = CUSTOM_ENDPOINT
 

@@ -192,7 +192,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             host = urlparse(request.url).netloc
 
         custom_endpoints = settings.get_custom_endpoints()
-        if host and custom_endpoints and any([host in endpoint for endpoint in custom_endpoints]):
+        if (
+            host
+            and custom_endpoints
+            and any([host in endpoint for endpoint in custom_endpoints])
+        ):
             # Default to path-based buckets for S3-compatible SDKs (Ceph, DigitalOcean Spaces, etc)
             return False
 

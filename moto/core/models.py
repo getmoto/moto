@@ -29,6 +29,11 @@ from .utils import (
     convert_flask_to_responses_response,
 )
 
+try:
+    from importlib import reload
+except ImportError:
+    from imp import reload
+
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 RESPONSES_VERSION = pkg_resources.get_distribution("responses").version
 
@@ -645,6 +650,9 @@ class BaseBackend(object):
         backend_urls_module = __import__(
             backend_urls_module_name, fromlist=["url_bases", "url_paths"]
         )
+        # The urls-property will be different depending on a env variable
+        # Force a reload, to retrieve the correct set of URLs
+        reload(backend_urls_module)
         return backend_urls_module
 
     @property
@@ -653,7 +661,7 @@ class BaseBackend(object):
         A dictionary of the urls to be mocked with this service and the handlers
         that should be called in their place
         """
-        url_bases = self._url_module.url_bases
+        url_bases = self.url_bases
         unformatted_paths = self._url_module.url_paths
 
         urls = {}
@@ -684,7 +692,19 @@ class BaseBackend(object):
         """
         A list containing the url_bases extracted from urls.py
         """
-        return self._url_module.url_bases
+        provided_endpoints = self._url_module.url_bases
+        custom_endpoints = settings.get_custom_endpoints()
+        endpoints = []
+        for p in provided_endpoints:
+            if "amazonaws.com" in p:
+                for c in custom_endpoints:
+                    # c = https://s3.endpoint.com
+                    # p = https://regexstuff.amazonaws.com
+                    # x = https://regexstuff.endpoint.com
+                    x = p.replace("amazonaws.com", c.replace("https://s3.", ""))
+                    endpoints.append(x)
+            endpoints.append(p)
+        return endpoints
 
     @property
     def flask_paths(self):
