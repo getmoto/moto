@@ -92,7 +92,7 @@ class RuleSetDoesNotExist(RESTError):
 class MissingRenderingAttributeException(RESTError):
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, var):
         super(MissingRenderingAttributeException, self).__init__(
-            "MissingRenderingAttributeException", message
+            "MissingRenderingAttributeException", "Attribute '{0}' is not present in the rendering data.".format(var)
         )

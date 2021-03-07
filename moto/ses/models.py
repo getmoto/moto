@@ -98,10 +98,10 @@ def are_all_variables_present(template, template_data):
     text_part = template["text_part"]
     html_part = template["html_part"]
 
-    for var in re.findall("{{.+?}}", subject_part + text_part + html_part):
-        if not template_data.get(var.split("{{")[1].split("}}")[0]):
-            return False
-    return True
+    for var in re.findall("{{(.+?)}}", subject_part + text_part + html_part):
+        if not template_data.get(var):
+            return var, False
+    return None, True
 
 
 class SESBackend(BaseBackend):
@@ -362,9 +362,10 @@ class SESBackend(BaseBackend):
                 "Template rendering data is invalid"
             )
 
-        if not are_all_variables_present(template, template_data):
+        are_variables_present, var = are_all_variables_present(template, template_data)
+        if are_variables_present:
             raise MissingRenderingAttributeException(
-                "Some Required Parameters are missing"
+                var
             )
 
         subject_part = template["subject_part"]
