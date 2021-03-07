@@ -752,9 +752,9 @@ class RedshiftBackend(BaseBackend):
         raise ClusterSecurityGroupNotFoundError(security_group_identifier)
 
     def authorize_cluster_security_group_ingress(self, security_group_name, cidr_ip):
-        security_group = self.security_groups[security_group_name]
+        security_group = self.security_groups.get(security_group_name)
         if not security_group:
-            raise ClusterSecurityGroupNotFoundFaultError("")
+            raise ClusterSecurityGroupNotFoundFaultError()
 
         # just adding the cidr_ip as ingress rule for now as there is no security rule
         security_group.ingress_rules.append(cidr_ip)

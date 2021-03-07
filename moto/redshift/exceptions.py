@@ -160,7 +160,8 @@ class UnknownSnapshotCopyRegionFaultError(RedshiftClientError):
 
 
 class ClusterSecurityGroupNotFoundFaultError(RedshiftClientError):
-    def __init__(self, message):
+    def __init__(self):
         super(ClusterSecurityGroupNotFoundFaultError, self).__init__(
-            "ClusterSecurityGroupNotFoundFault", message
+            "ClusterSecurityGroupNotFoundFault",
+            "The cluster security group name does not refer to an existing cluster security group.",
         )
