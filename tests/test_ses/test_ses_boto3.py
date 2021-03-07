@@ -526,9 +526,9 @@ def test_render_template():
             "TemplateName": "MyTestTemplate",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
-                        "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
-                        "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
+            "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
         }
     )
 
@@ -545,7 +545,10 @@ def test_render_template():
     with pytest.raises(ClientError) as ex:
         conn.test_render_template(**kwargs)
     assert ex.value.response["Error"]["Code"] == "MissingRenderingAttributeException"
-    assert ex.value.response["Error"]["Message"] == "Attribute 'favoriteanimal' is not present in the rendering data."
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Attribute 'favoriteanimal' is not present in the rendering data."
+    )
 
 
 @mock_ses

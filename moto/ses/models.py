@@ -364,9 +364,7 @@ class SESBackend(BaseBackend):
 
         are_variables_present, var = are_all_variables_present(template, template_data)
         if are_variables_present:
-            raise MissingRenderingAttributeException(
-                var
-            )
+            raise MissingRenderingAttributeException(var)
 
         subject_part = template["subject_part"]
         text_part = template["text_part"]
