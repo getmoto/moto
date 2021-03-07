@@ -523,7 +523,7 @@ def test_render_template():
 
     conn.create_template(
         Template={
-            "TemplateName": "MyTestTemplate",
+            "TemplateName": "MyTestTemplate1",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
             "\r\nYour favorite animal is {{favoriteanimal}}.",
