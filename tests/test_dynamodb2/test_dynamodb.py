@@ -5715,3 +5715,31 @@ def test_get_item_for_non_existent_table_raises_error():
         client.get_item(TableName="non-existent", Key={"site-id": {"S": "foo"}})
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+
+
+@mock_dynamodb2
+def test_error_when_providing_expression_and_nonexpression_params():
+    client = boto3.client("dynamodb", "eu-central-1")
+    table_name = "testtable"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pkey", "KeyType": "HASH"},],
+        AttributeDefinitions=[{"AttributeName": "pkey", "AttributeType": "S"},],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_item(
+            TableName=table_name,
+            Key={"pkey": {"S": "testrecord"}},
+            AttributeUpdates={
+                "test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT"}
+            },
+            UpdateExpression="DELETE orders :order",
+            ExpressionAttributeValues={":order": {"SS": ["item"]}},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
+    )
