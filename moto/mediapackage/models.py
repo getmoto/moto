@@ -24,6 +24,46 @@ class Channel(BaseModel):
                 del data[key]
         return data
 
+class OriginEndpoint(BaseModel):
+    def __init__(self, *args, **kwargs):
+        self.arn = kwargs.get("arn")
+        self.authorization = kwargs.get("authorization")
+        self.channel_id = kwargs.get("channel_id")
+        self.cmaf_package = kwargs.get("cmaf_package")
+        self.dash_package = kwargs.get("dash_package")
+        self.description = kwargs.get("description")
+        self.hls_package = kwargs.get("hls_package")
+        self.id = kwargs.get("id")
+        self.manifest_name = kwargs.get("manifest_name")
+        self.mss_package = kwargs.get("mss_package")
+        self.origination = kwargs.get("origination")
+        self.startover_window_seconds = kwargs.get("startover_window_seconds")
+        self.tags = kwargs.get("tags")
+        self.time_delay_seconds = kwargs.get("time_delay_seconds")
+        self.url = kwargs.get("url")
+        self.whitelist = kwargs.get("whitelist")
+
+    def to_dict(self):
+        data = {
+            "arn": self.arn,
+            "authorization": self.authorization,
+            "channelId": self.channel_id,
+            "cmafPackage": self.cmaf_package,
+            "dashPackage": self.dash_package,
+            "description": self.description,
+            "hlsPackage": self.hls_package,
+            "id": self.id,
+            "manifestName": self.manifest_name,
+            "mssPackage": self.mss_package,
+            "origination": self.origination,
+            "startoverWindowSeconds": self.startover_window_seconds,
+            "tags": self.tags,
+            "timeDelaySeconds": self.time_delay_seconds,
+            "url": self.url,
+            "whitelist": self.whitelist,
+        }
+        return data
+
 
 class MediaPackageBackend(BaseBackend):
     def __init__(self, region_name=None):
@@ -35,6 +75,7 @@ class MediaPackageBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
         self._channels = OrderedDict()
+        self._origin_endpoints = OrderedDict()
 
     def create_channel(self, description, id, tags):
         arn = "arn:aws:mediapackage:channel:{}".format(id)
@@ -70,6 +111,45 @@ class MediaPackageBackend(BaseBackend):
         del self._channels[id]
         return channel.to_dict()
 
+
+    def create_origin_endpoint(
+        self, 
+        authorization, 
+        channel_id, 
+        cmaf_package, 
+        dash_package, 
+        description, 
+        hls_package, 
+        id, 
+        manifest_name, 
+        mss_package, 
+        origination, 
+        startover_window_seconds, 
+        tags, 
+        time_delay_seconds, 
+        whitelist):
+        arn = "arn:aws:mediapackage:origin_endpoint:{}".format(id)
+        url = "https://origin-endpoint.mediapackage.eu_west_1.amazonaws.com/{}".format(id)
+        origin_endpoint = OriginEndpoint(
+            arn=arn,
+            authorization=authorization,
+            channel_id=channel_id,
+            cmaf_package=cmaf_package, 
+            dash_package=dash_package, 
+            description=description, 
+            hls_package=hls_package, 
+            id=id, 
+            manifest_name=manifest_name, 
+            mss_package=mss_package, 
+            origination=origination, 
+            startover_window_seconds=startover_window_seconds, 
+            tags=tags, 
+            time_delay_seconds=time_delay_seconds,
+            url=url,
+            whitelist=whitelist
+        )
+        self._origin_endpoints[id] = origin_endpoint
+        return origin_endpoint
     
 
 mediapackage_backends = {}
