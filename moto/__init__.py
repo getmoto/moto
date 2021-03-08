@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import importlib
+import sys
 
 
 def lazy_load(module_name, element):
@@ -122,6 +123,25 @@ mock_kinesisvideoarchivedmedia = lazy_load(
 mock_medialive = lazy_load(".medialive", "mock_medialive")
 mock_support = lazy_load(".support", "mock_support")
 mock_mediaconnect = lazy_load(".mediaconnect", "mock_mediaconnect")
+
+
+def mock_all():
+    dec_names = [
+        d
+        for d in dir(sys.modules["moto"])
+        if d.startswith("mock_")
+        and not d.endswith("_deprecated")
+        and not d == "mock_all"
+    ]
+
+    def deco(f):
+        for dec_name in reversed(dec_names):
+            dec = globals()[dec_name]
+            f = dec(f)
+        return f
+
+    return deco
+
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
