@@ -126,7 +126,7 @@ def test_delete_origin_endpoint_succeeds():
     origin_endpoints_list = list_response["OriginEndpoints"]
     delete_response = client.delete_origin_endpoint(Id=create_response["Id"])
     # After deletion
-    post_deletion_list_response = client.list_origin_endpoints(ChannelId=create_response["ChannelId"])
+    post_deletion_list_response = client.list_origin_endpoints()
     print("post:",post_deletion_list_response)
     post_deletion_origin_endpoints_list = post_deletion_list_response["OriginEndpoints"]
     len(post_deletion_origin_endpoints_list).should.equal(len(origin_endpoints_list) - 1)
