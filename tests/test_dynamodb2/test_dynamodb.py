@@ -6245,3 +6245,35 @@ def test_describe_endpoints(region):
             },
         ]
     )
+
+
+@mock_dynamodb2
+def test_update_non_existing_item_raises_error_and_does_not_contain_item_afterwards():
+    """
+    https://github.com/spulec/moto/issues/3729
+    Exception is raised, but item was persisted anyway
+    Happened because we would create a placeholder, before validating/executing the UpdateExpression
+    :return:
+    """
+    name = "TestTable"
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    hkey = "primary_partition_key"
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": hkey, "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": hkey, "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    update_expression = {
+        "Key": {hkey: "some_identification_string"},
+        "UpdateExpression": "set #AA.#AB = :aa",
+        "ExpressionAttributeValues": {":aa": "abc"},
+        "ExpressionAttributeNames": {"#AA": "some_dict", "#AB": "key1"},
+        "ConditionExpression": "attribute_not_exists(#AA.#AB)",
+    }
+    table = boto3.resource("dynamodb", region_name="us-west-2").Table(name)
+    with pytest.raises(ClientError) as err:
+        table.update_item(**update_expression)
+    err.value.response["Error"]["Code"].should.equal("ValidationException")
+
+    conn.scan(TableName=name)["Items"].should.have.length_of(0)
