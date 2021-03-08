@@ -6,8 +6,6 @@ from moto import mock_mediapackage
 region = "eu-west-1"
 
 
-
-
 def _create_channel_config(**kwargs):
     id = kwargs.get("id", "channel-id")
     description = kwargs.get("description", "Awesome channel!")
@@ -18,7 +16,7 @@ def _create_channel_config(**kwargs):
         Tags=tags,
     )
     return channel_config
-
+  
 def _create_origin_endpoint_config(**kwargs):
     authorization = kwargs.get(
         "authorization", 
@@ -58,14 +56,6 @@ def _create_origin_endpoint_config(**kwargs):
     )
     return origin_endpoint_config
 
-
-
-@mock_mediapackage
-def test_list():
-    # do test
-    pass
-
-
 @mock_mediapackage
 def test_create_channel_succeeds():
     client = boto3.client("mediapackage", region_name=region)
@@ -96,6 +86,20 @@ def test_describe_channel_succeeds():
     describe_response["Tags"]["Customer"].should.equal("moto")
 
 @mock_mediapackage
+def test_delete_channel_moves_channel_in_deleted_state():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_config = _create_channel_config()
+    create_response = client.create_channel(**channel_config)
+    # Before deletion
+    list_response = client.list_channels()
+    channels_list = list_response["Channels"]
+    delete_response = client.delete_channel(Id=create_response["Id"])
+    # After deletion
+    post_deletion_list_response = client.list_channels()
+    post_deletion_channels_list = post_deletion_list_response["Channels"]
+    len(post_deletion_channels_list).should.equal(len(channels_list) - 1)
+
+@mock_mediapackage
 def test_create_endpoint_origin_succeed():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -109,4 +113,5 @@ def test_create_endpoint_origin_succeed():
     response["Description"].should.equal(origin_endpoint_config["Description"])
     response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     response["Origination"].should.equal("ALLOW")
+
     

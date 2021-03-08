@@ -80,6 +80,8 @@ BACKENDS = {
     "support": ("support", "support_backends"),
     "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
     "mediapackage": ("mediapackage", "mediapackage_backends"),
+    "mediapackage": ("mediapackage", "mediapackage_backends"),
+    "mediapackage": ("mediapackage", "mediapackage_backends"),
 }
 
 
