@@ -86,21 +86,19 @@ def test_describe_channel_succeeds():
     describe_response["Tags"]["Customer"].should.equal("moto")
 
 @mock_mediapackage
-def test_delete_channel_moves_channel_in_deleted_state():
+def test_delete_channel_successfully_deletes():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
     create_response = client.create_channel(**channel_config)
     # Before deletion
     list_response = client.list_channels()
-    print(list_response)
     channels_list = list_response["Channels"]
     delete_response = client.delete_channel(Id=create_response["Id"])
-    # print(delete_response)
     # After deletion
     post_deletion_list_response = client.list_channels()
     post_deletion_channels_list = post_deletion_list_response["Channels"]
     # print(post_deletion_list_response)
-    len(post_deletion_channels_list).should.equal(len(channels_list) - 13)
+    len(post_deletion_channels_list).should.equal(len(channels_list) - 1)
 
 @mock_mediapackage
 def test_create_endpoint_origin_succeed():
@@ -122,15 +120,14 @@ def test_delete_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
     create_response = client.create_origin_endpoint(**origin_endpoint_config)
-    # Before deletion
     list_response = client.list_origin_endpoints()
-    print(client.list_origin_endpoints())
-    # origin_endpoints_list = list_response["OriginEndpoints"]
+    # Before deletion
+    print("pre:",list_response)
+    origin_endpoints_list = list_response["OriginEndpoints"]
     delete_response = client.delete_origin_endpoint(Id=create_response["Id"])
-    # print(delete_response)
     # After deletion
-    post_deletion_list_response = client.list_origin_endpoints()
-    # print(client.list_origin_endpoints())
+    post_deletion_list_response = client.list_origin_endpoints(ChannelId=create_response["ChannelId"])
+    print("post:",post_deletion_list_response)
     post_deletion_origin_endpoints_list = post_deletion_list_response["OriginEndpoints"]
     len(post_deletion_origin_endpoints_list).should.equal(len(origin_endpoints_list) - 1)
 

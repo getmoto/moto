@@ -72,5 +72,5 @@ class MediaPackageResponse(BaseResponse):
         return json.dumps(dict(origin_endpoints=origin_endpoints))
 
     def delete_origin_endpoint(self):
-        id = self._get_param("Id")
+        id = self._get_param("id")
         return json.dumps(self.mediapackage_backend.delete_origin_endpoint(id=id))

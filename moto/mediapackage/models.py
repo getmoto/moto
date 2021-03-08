@@ -151,7 +151,6 @@ class MediaPackageBackend(BaseBackend):
         response_origin_endpoints = [
             o.to_dict() for o in origin_endpoints
         ]
-        # print(response_origin_endpoints)
         return response_origin_endpoints
 
     def delete_origin_endpoint(self, id):
