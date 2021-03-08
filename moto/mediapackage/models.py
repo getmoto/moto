@@ -50,10 +50,27 @@ class MediaPackageBackend(BaseBackend):
         self._channels[id] = channel
         return channel
     
+    def list_channels(self):
+        channels = list(self._channels.values())
+        response_channels = [
+            c.to_dict() for c in channels
+        ]
+        return response_channels
+    
     def describe_channel(self, id):
         channel = self._channels[id]
         return channel.to_dict()
 
+    def describe_origin_endpoint(self, id):
+        # implement here
+        return arn, authorization, channel_id, cmaf_package, dash_package, description, hls_package, id, manifest_name, mss_package, origination, startover_window_seconds, tags, time_delay_seconds, url, whitelist
+    
+    def delete_channel(self, id):
+        channel = self._channels[id]
+        del self._channels[id]
+        return channel.to_dict()
+
+    
 
 mediapackage_backends = {}
 for region in Session().get_available_regions("mediapackage"):

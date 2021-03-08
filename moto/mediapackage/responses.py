@@ -22,10 +22,16 @@ class MediaPackageResponse(BaseResponse):
         )
         return json.dumps(channel.to_dict())
 
+    def list_channels(self):
+        channels = self.mediapackage_backend.list_channels()
+        return json.dumps(dict(channels=channels))
     
     def describe_channel(self):
         id = self._get_param("id")
-        return json.dumps(
-            self.mediapackage_backend.describe_channel(id=id,)
-        )
-# add templates from here
+        return json.dumps(self.mediapackage_backend.describe_channel(id=id))
+
+    def delete_channel(self):
+        channel_id = self._get_param("id")
+        return json.dumps(self.mediapackage_backend.delete_channel(id=channel_id))
+
+

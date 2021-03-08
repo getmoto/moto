@@ -6,8 +6,6 @@ from moto import mock_mediapackage
 region = "eu-west-1"
 
 
-
-
 def _create_channel_config(**kwargs):
     id = kwargs.get("id", "channel-id")
     description = kwargs.get("description", "Awesome channel!")
@@ -18,14 +16,6 @@ def _create_channel_config(**kwargs):
         Tags=tags,
     )
     return channel_config
-
-
-
-@mock_mediapackage
-def test_list():
-    # do test
-    pass
-
 
 @mock_mediapackage
 def test_create_channel_succeeds():
@@ -55,3 +45,19 @@ def test_describe_channel_succeeds():
     )
     describe_response["Description"].should.equal(channel_config["Description"])
     describe_response["Tags"]["Customer"].should.equal("moto")
+
+
+@mock_mediapackage
+def test_delete_channel_moves_channel_in_deleted_state():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_config = _create_channel_config()
+    create_response = client.create_channel(**channel_config)
+    # Before deletion
+    list_response = client.list_channels()
+    channels_list = list_response["Channels"]
+    delete_response = client.delete_channel(Id=create_response["Id"])
+    # After deletion
+    post_deletion_list_response = client.list_channels()
+    post_deletion_channels_list = post_deletion_list_response["Channels"]
+    len(post_deletion_channels_list).should.equal(len(channels_list) - 1)
+    
