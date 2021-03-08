@@ -66,4 +66,11 @@ class MediaPackageResponse(BaseResponse):
             whitelist=whitelist,
         )
         return json.dumps(origin_endpoint.to_dict())
+    
+    def list_origin_endpoints(self):
+        origin_endpoints = self.mediapackage_backend.list_origin_endpoints()
+        return json.dumps(dict(origin_endpoints=origin_endpoints))
 
+    def delete_origin_endpoint(self):
+        id = self._get_param("Id")
+        return json.dumps(self.mediapackage_backend.delete_origin_endpoint(id=id))
