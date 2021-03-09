@@ -151,6 +151,18 @@ class MediaPackageBackend(BaseBackend):
         return origin_endpoint.to_dict()
 
     
+    def list_origin_endpoints(self):
+        origin_endpoints = list(self._origin_endpoints.values())
+        response_origin_endpoints = [
+            o.to_dict() for o in origin_endpoints
+        ]
+        return response_origin_endpoints
+
+    def delete_origin_endpoint(self, id):
+        origin_endpoint = self._origin_endpoints[id]
+        del self._origin_endpoints[id]
+        return origin_endpoint.to_dict()
+
 
 mediapackage_backends = {}
 for region in Session().get_available_regions("mediapackage"):

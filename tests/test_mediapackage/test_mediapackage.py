@@ -85,7 +85,7 @@ def test_describe_channel_succeeds():
     describe_response["Tags"]["Customer"].should.equal("moto")
 
 @mock_mediapackage
-def test_delete_channel_moves_channel_in_deleted_state():
+def test_delete_channel_successfully_deletes():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
     create_response = client.create_channel(**channel_config)
@@ -130,7 +130,6 @@ def test_create_endpoint_origin_succeed():
     response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     response["Origination"].should.equal("ALLOW")
 
-@mock_mediapackage
 def test_describe_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -147,5 +146,19 @@ def test_describe_origin_endpoint_succeeds():
     describe_response["Description"].should.equal(origin_endpoint_config["Description"])
     describe_response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     describe_response["Origination"].should.equal("ALLOW")
+
+@mock_mediapackage
+def test_delete_origin_endpoint_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    origin_endpoint_config = _create_origin_endpoint_config()
+    create_response = client.create_origin_endpoint(**origin_endpoint_config)
+    list_response = client.list_origin_endpoints()
+    # Before deletion
+    origin_endpoints_list = list_response["OriginEndpoints"]
+    delete_response = client.delete_origin_endpoint(Id=create_response["Id"])
+    # After deletion
+    post_deletion_list_response = client.list_origin_endpoints()
+    post_deletion_origin_endpoints_list = post_deletion_list_response["OriginEndpoints"]
+    len(post_deletion_origin_endpoints_list).should.equal(len(origin_endpoints_list) - 1)
 
     
