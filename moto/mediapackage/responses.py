@@ -10,7 +10,6 @@ class MediaPackageResponse(BaseResponse):
     def mediapackage_backend(self):
         return mediapackage_backends[self.region]
 
-    
     def create_channel(self):
         description = self._get_param("description")
         id = self._get_param("id")
@@ -70,7 +69,11 @@ class MediaPackageResponse(BaseResponse):
     def list_origin_endpoints(self):
         origin_endpoints = self.mediapackage_backend.list_origin_endpoints()
         return json.dumps(dict(originEndpoints=origin_endpoints))
-
+      
+    def describe_origin_endpoint(self):
+        id = self._get_param("id")
+        return json.dumps(self.mediapackage_backend.describe_origin_endpoint(id=id))
+      
     def delete_origin_endpoint(self):
         id = self._get_param("id")
         return json.dumps(self.mediapackage_backend.delete_origin_endpoint(id=id))

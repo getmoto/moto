@@ -5,7 +5,6 @@ import sure  # noqa
 from moto import mock_mediapackage
 region = "eu-west-1"
 
-
 def _create_channel_config(**kwargs):
     id = kwargs.get("id", "channel-id")
     description = kwargs.get("description", "Awesome channel!")
@@ -100,6 +99,23 @@ def test_delete_channel_successfully_deletes():
     len(post_deletion_channels_list).should.equal(len(channels_list) - 1)
 
 @mock_mediapackage
+def test_list_channels_succeds():
+    channels_list = []
+    client = boto3.client("mediapackage", region_name=region)
+    channel_config = _create_channel_config()
+    len(channels_list).should.equal(0)
+    create_response = client.create_channel(**channel_config)
+    list_response = client.list_channels()
+    channels_list = list_response["Channels"]
+    len(channels_list).should.equal(1)
+    first_channel = channels_list[0]
+    first_channel["Arn"].should.equal(
+        "arn:aws:mediapackage:channel:{}".format(first_channel["Id"])
+    )
+    first_channel["Description"].should.equal(channel_config["Description"])
+    first_channel["Tags"]["Customer"].should.equal("moto")
+    
+@mock_mediapackage
 def test_create_endpoint_origin_succeed():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -114,6 +130,22 @@ def test_create_endpoint_origin_succeed():
     response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     response["Origination"].should.equal("ALLOW")
 
+def test_describe_origin_endpoint_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    origin_endpoint_config = _create_origin_endpoint_config()
+
+    create_response = client.create_origin_endpoint(**origin_endpoint_config)
+    describe_response = client.describe_origin_endpoint(
+        Id=create_response["Id"]
+    )
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    describe_response["Arn"].should.equal(
+        "arn:aws:mediapackage:origin_endpoint:{}".format(describe_response["Id"])
+    )
+    describe_response["ChannelId"].should.equal(origin_endpoint_config["ChannelId"])
+    describe_response["Description"].should.equal(origin_endpoint_config["Description"])
+    describe_response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
+    describe_response["Origination"].should.equal("ALLOW")
 
 @mock_mediapackage
 def test_delete_origin_endpoint_succeeds():

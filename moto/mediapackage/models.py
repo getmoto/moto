@@ -101,7 +101,7 @@ class MediaPackageBackend(BaseBackend):
     def describe_channel(self, id):
         channel = self._channels[id]
         return channel.to_dict()
-    
+
     def delete_channel(self, id):
         channel = self._channels[id]
         del self._channels[id]
@@ -145,6 +145,11 @@ class MediaPackageBackend(BaseBackend):
         )
         self._origin_endpoints[id] = origin_endpoint
         return origin_endpoint
+
+    def describe_origin_endpoint(self, id):
+        origin_endpoint = self._origin_endpoints[id]
+        return origin_endpoint.to_dict()
+
     
     def list_origin_endpoints(self):
         origin_endpoints = list(self._origin_endpoints.values())
