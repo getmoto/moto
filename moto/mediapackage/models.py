@@ -102,15 +102,10 @@ class MediaPackageBackend(BaseBackend):
         channel = self._channels[id]
         return channel.to_dict()
 
-    def describe_origin_endpoint(self, id):
-        # implement here
-        return arn, authorization, channel_id, cmaf_package, dash_package, description, hls_package, id, manifest_name, mss_package, origination, startover_window_seconds, tags, time_delay_seconds, url, whitelist
-    
     def delete_channel(self, id):
         channel = self._channels[id]
         del self._channels[id]
         return channel.to_dict()
-
 
     def create_origin_endpoint(
         self, 
@@ -150,6 +145,11 @@ class MediaPackageBackend(BaseBackend):
         )
         self._origin_endpoints[id] = origin_endpoint
         return origin_endpoint
+
+    def describe_origin_endpoint(self, id):
+        origin_endpoint = self._origin_endpoints[id]
+        return origin_endpoint.to_dict()
+
     
 
 mediapackage_backends = {}
