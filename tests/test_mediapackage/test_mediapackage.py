@@ -167,12 +167,10 @@ def test_update_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
     create_response = client.create_origin_endpoint(**origin_endpoint_config)
-    # print(create_response)
     update_response = client.update_origin_endpoint(
         Id = create_response["Id"],
         Description = "updated-channel-description",
         ManifestName = "updated-manifest-name"
     )
-    print(update_response)
     update_response["Description"].should.equal("updated-channel-description")
     update_response["ManifestName"].should.equal("updated-manifest-name")
