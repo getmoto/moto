@@ -116,7 +116,7 @@ def test_list_channels_succeds():
     first_channel["Tags"]["Customer"].should.equal("moto")
     
 @mock_mediapackage
-def test_create_endpoint_origin_succeed():
+def test_create_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
 
