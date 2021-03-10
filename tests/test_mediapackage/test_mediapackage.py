@@ -175,6 +175,7 @@ def test_update_origin_endpoint_succeeds():
     update_response["Description"].should.equal("updated-channel-description")
     update_response["ManifestName"].should.equal("updated-manifest-name")
 
+@mock_mediapackage 
 def test_list_origin_endpoint_succeeds():
     origin_endpoints_list = []
     client = boto3.client("mediapackage", region_name=region)
