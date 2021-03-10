@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
-from uuid import uuid4
 from collections import OrderedDict
 
 
@@ -23,6 +22,7 @@ class Channel(BaseModel):
             for key in exclude:
                 del data[key]
         return data
+
 
 class OriginEndpoint(BaseModel):
     def __init__(self, *args, **kwargs):
@@ -90,14 +90,12 @@ class MediaPackageBackend(BaseBackend):
         )
         self._channels[id] = channel
         return channel
-    
+
     def list_channels(self):
         channels = list(self._channels.values())
-        response_channels = [
-            c.to_dict() for c in channels
-        ]
+        response_channels = [c.to_dict() for c in channels]
         return response_channels
-    
+
     def describe_channel(self, id):
         channel = self._channels[id]
         return channel.to_dict()
@@ -108,40 +106,43 @@ class MediaPackageBackend(BaseBackend):
         return channel.to_dict()
 
     def create_origin_endpoint(
-        self, 
-        authorization, 
-        channel_id, 
-        cmaf_package, 
-        dash_package, 
-        description, 
-        hls_package, 
-        id, 
-        manifest_name, 
-        mss_package, 
-        origination, 
-        startover_window_seconds, 
-        tags, 
-        time_delay_seconds, 
-        whitelist):
+        self,
+        authorization,
+        channel_id,
+        cmaf_package,
+        dash_package,
+        description,
+        hls_package,
+        id,
+        manifest_name,
+        mss_package,
+        origination,
+        startover_window_seconds,
+        tags,
+        time_delay_seconds,
+        whitelist,
+    ):
         arn = "arn:aws:mediapackage:origin_endpoint:{}".format(id)
-        url = "https://origin-endpoint.mediapackage.eu_west_1.amazonaws.com/{}".format(id)
+        url = "https://origin-endpoint.mediapackage.eu_west_1.amazonaws.com/{}".format(
+            id
+        )
         origin_endpoint = OriginEndpoint(
             arn=arn,
             authorization=authorization,
             channel_id=channel_id,
-            cmaf_package=cmaf_package, 
-            dash_package=dash_package, 
-            description=description, 
-            hls_package=hls_package, 
-            id=id, 
-            manifest_name=manifest_name, 
-            mss_package=mss_package, 
-            origination=origination, 
-            startover_window_seconds=startover_window_seconds, 
-            tags=tags, 
+            cmaf_package=cmaf_package,
+            dash_package=dash_package,
+            description=description,
+            hls_package=hls_package,
+            id=id,
+            manifest_name=manifest_name,
+            mss_package=mss_package,
+            origination=origination,
+            startover_window_seconds=startover_window_seconds,
+            tags=tags,
             time_delay_seconds=time_delay_seconds,
             url=url,
-            whitelist=whitelist
+            whitelist=whitelist,
         )
         self._origin_endpoints[id] = origin_endpoint
         return origin_endpoint
@@ -150,12 +151,9 @@ class MediaPackageBackend(BaseBackend):
         origin_endpoint = self._origin_endpoints[id]
         return origin_endpoint.to_dict()
 
-    
     def list_origin_endpoints(self):
         origin_endpoints = list(self._origin_endpoints.values())
-        response_origin_endpoints = [
-            o.to_dict() for o in origin_endpoints
-        ]
+        response_origin_endpoints = [o.to_dict() for o in origin_endpoints]
         return response_origin_endpoints
 
     def delete_origin_endpoint(self, id):
@@ -164,19 +162,20 @@ class MediaPackageBackend(BaseBackend):
         return origin_endpoint.to_dict()
 
     def update_origin_endpoint(
-        self, 
-        authorization, 
-        cmaf_package, 
-        dash_package, 
-        description, 
-        hls_package, 
-        id, 
-        manifest_name, 
-        mss_package, 
-        origination, 
-        startover_window_seconds, 
-        time_delay_seconds, 
-        whitelist):
+        self,
+        authorization,
+        cmaf_package,
+        dash_package,
+        description,
+        hls_package,
+        id,
+        manifest_name,
+        mss_package,
+        origination,
+        startover_window_seconds,
+        time_delay_seconds,
+        whitelist,
+    ):
         origin_endpoint = self._origin_endpoints[id]
         origin_endpoint.authorization = authorization
         origin_endpoint.cmaf_package = cmaf_package
@@ -187,15 +186,17 @@ class MediaPackageBackend(BaseBackend):
         origin_endpoint.mss_package = mss_package
         origin_endpoint.origination = origination
         origin_endpoint.startover_window_seconds = startover_window_seconds
-        origin_endpoint.time_delay_seconds = time_delay_seconds 
+        origin_endpoint.time_delay_seconds = time_delay_seconds
         origin_endpoint.whitelist = whitelist
         return origin_endpoint
-    
+
 
 mediapackage_backends = {}
 for region in Session().get_available_regions("mediapackage"):
     mediapackage_backends[region] = MediaPackageBackend()
-for region in Session().get_available_regions("mediapackage", partition_name="aws-us-gov"):
+for region in Session().get_available_regions(
+    "mediapackage", partition_name="aws-us-gov"
+):
     mediapackage_backends[region] = MediaPackageBackend()
 for region in Session().get_available_regions("mediapackage", partition_name="aws-cn"):
     mediapackage_backends[region] = MediaPackageBackend()
