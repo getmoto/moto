@@ -5,7 +5,8 @@ import json
 
 
 class MediaPackageResponse(BaseResponse):
-    SERVICE_NAME = 'mediapackage'
+    SERVICE_NAME = "mediapackage"
+
     @property
     def mediapackage_backend(self):
         return mediapackage_backends[self.region]
@@ -15,24 +16,22 @@ class MediaPackageResponse(BaseResponse):
         id = self._get_param("id")
         tags = self._get_param("tags")
         channel = self.mediapackage_backend.create_channel(
-            description=description,
-            id=id,
-            tags=tags,
+            description=description, id=id, tags=tags,
         )
         return json.dumps(channel.to_dict())
 
     def list_channels(self):
         channels = self.mediapackage_backend.list_channels()
         return json.dumps(dict(channels=channels))
-    
+
     def describe_channel(self):
         id = self._get_param("id")
         return json.dumps(self.mediapackage_backend.describe_channel(id=id))
-      
+
     def delete_channel(self):
         channel_id = self._get_param("id")
         return json.dumps(self.mediapackage_backend.delete_channel(id=channel_id))
-      
+
     def create_origin_endpoint(self):
         authorization = self._get_param("authorization")
         channel_id = self._get_param("channelId")
@@ -65,19 +64,19 @@ class MediaPackageResponse(BaseResponse):
             whitelist=whitelist,
         )
         return json.dumps(origin_endpoint.to_dict())
-    
+
     def list_origin_endpoints(self):
         origin_endpoints = self.mediapackage_backend.list_origin_endpoints()
         return json.dumps(dict(originEndpoints=origin_endpoints))
-      
+
     def describe_origin_endpoint(self):
         id = self._get_param("id")
         return json.dumps(self.mediapackage_backend.describe_origin_endpoint(id=id))
-      
+
     def delete_origin_endpoint(self):
         id = self._get_param("id")
         return json.dumps(self.mediapackage_backend.delete_origin_endpoint(id=id))
-    
+
     def update_origin_endpoint(self):
         authorization = self._get_param("authorization")
         cmaf_package = self._get_param("cmafPackage")
