@@ -104,7 +104,7 @@ def test_list_channels_succeds():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
     len(channels_list).should.equal(0)
-    create_response = client.create_channel(**channel_config)
+    client.create_channel(**channel_config)
     list_response = client.list_channels()
     channels_list = list_response["Channels"]
     len(channels_list).should.equal(1)
@@ -130,6 +130,7 @@ def test_create_endpoint_origin_succeed():
     response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     response["Origination"].should.equal("ALLOW")
 
+@mock_mediapackage
 def test_describe_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -160,5 +161,24 @@ def test_delete_origin_endpoint_succeeds():
     post_deletion_list_response = client.list_origin_endpoints()
     post_deletion_origin_endpoints_list = post_deletion_list_response["OriginEndpoints"]
     len(post_deletion_origin_endpoints_list).should.equal(len(origin_endpoints_list) - 1)
+
+@mock_mediapackage
+def test_list_origin_endpoint_succeeds():
+    origin_endpoints_list = []
+    client = boto3.client("mediapackage", region_name=region)
+    origin_endpoint_config = _create_origin_endpoint_config()
+    len(origin_endpoints_list).should.equal(0)
+    client.create_origin_endpoint(**origin_endpoint_config)
+    list_response = client.list_origin_endpoints()
+    origin_endpoints_list = list_response["OriginEndpoints"]
+    len(origin_endpoints_list).should.equal(1)
+    first_origin_endpoint = origin_endpoints_list[0]
+    first_origin_endpoint["Arn"].should.equal(
+        "arn:aws:mediapackage:origin_endpoint:{}".format(first_origin_endpoint["Id"])
+    )
+    first_origin_endpoint["ChannelId"].should.equal(origin_endpoint_config["ChannelId"])
+    first_origin_endpoint["Description"].should.equal(origin_endpoint_config["Description"])
+    first_origin_endpoint["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
+    first_origin_endpoint["Origination"].should.equal("ALLOW")
 
     
