@@ -116,7 +116,7 @@ def test_list_channels_succeds():
     first_channel["Tags"]["Customer"].should.equal("moto")
     
 @mock_mediapackage
-def test_create_endpoint_origin_succeed():
+def test_create_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
 
@@ -163,6 +163,19 @@ def test_delete_origin_endpoint_succeeds():
     len(post_deletion_origin_endpoints_list).should.equal(len(origin_endpoints_list) - 1)
 
 @mock_mediapackage
+def test_update_origin_endpoint_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    origin_endpoint_config = _create_origin_endpoint_config()
+    create_response = client.create_origin_endpoint(**origin_endpoint_config)
+    update_response = client.update_origin_endpoint(
+        Id = create_response["Id"],
+        Description = "updated-channel-description",
+        ManifestName = "updated-manifest-name"
+    )
+    update_response["Description"].should.equal("updated-channel-description")
+    update_response["ManifestName"].should.equal("updated-manifest-name")
+
+@mock_mediapackage 
 def test_list_origin_endpoint_succeeds():
     origin_endpoints_list = []
     client = boto3.client("mediapackage", region_name=region)
@@ -180,5 +193,3 @@ def test_list_origin_endpoint_succeeds():
     first_origin_endpoint["Description"].should.equal(origin_endpoint_config["Description"])
     first_origin_endpoint["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     first_origin_endpoint["Origination"].should.equal("ALLOW")
-
-    

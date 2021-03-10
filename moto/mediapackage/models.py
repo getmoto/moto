@@ -163,6 +163,34 @@ class MediaPackageBackend(BaseBackend):
         del self._origin_endpoints[id]
         return origin_endpoint.to_dict()
 
+    def update_origin_endpoint(
+        self, 
+        authorization, 
+        cmaf_package, 
+        dash_package, 
+        description, 
+        hls_package, 
+        id, 
+        manifest_name, 
+        mss_package, 
+        origination, 
+        startover_window_seconds, 
+        time_delay_seconds, 
+        whitelist):
+        origin_endpoint = self._origin_endpoints[id]
+        origin_endpoint.authorization = authorization
+        origin_endpoint.cmaf_package = cmaf_package
+        origin_endpoint.dash_package = dash_package
+        origin_endpoint.description = description
+        origin_endpoint.hls_package = hls_package
+        origin_endpoint.manifest_name = manifest_name
+        origin_endpoint.mss_package = mss_package
+        origin_endpoint.origination = origination
+        origin_endpoint.startover_window_seconds = startover_window_seconds
+        origin_endpoint.time_delay_seconds = time_delay_seconds 
+        origin_endpoint.whitelist = whitelist
+        return origin_endpoint
+    
 
 mediapackage_backends = {}
 for region in Session().get_available_regions("mediapackage"):
