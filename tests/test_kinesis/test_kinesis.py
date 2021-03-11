@@ -6,6 +6,7 @@ import time
 import boto.kinesis
 import boto3
 from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
+from dateutil.tz import tzlocal
 
 from moto import mock_kinesis, mock_kinesis_deprecated
 from moto.core import ACCOUNT_ID
@@ -378,7 +379,7 @@ def test_get_records_timestamp_filtering():
     conn.put_record(StreamName=stream_name, Data="0", PartitionKey="0")
 
     time.sleep(1.0)
-    timestamp = datetime.datetime.utcnow()
+    timestamp = datetime.datetime.now(tz=tzlocal())
 
     conn.put_record(StreamName=stream_name, Data="1", PartitionKey="1")
 
