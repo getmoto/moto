@@ -123,7 +123,7 @@ class MediaPackageBackend(BaseBackend):
         whitelist,
     ):
         arn = "arn:aws:mediapackage:origin_endpoint:{}".format(id)
-        url = "https://origin-endpoint.mediapackage.eu_west_1.amazonaws.com/{}".format(
+        url = "https://origin-endpoint.mediapackage.eu-west-1.amazonaws.com/{}".format(
             id
         )
         origin_endpoint = OriginEndpoint(
