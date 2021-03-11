@@ -1604,6 +1604,28 @@ def test_sign_up():
 
 
 @mock_cognitoidp
+def test_sign_up_existing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+    )["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
+    caught = False
+    try:
+        conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    except conn.exceptions.UsernameExistsException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
 def test_confirm_sign_up():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
