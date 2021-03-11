@@ -145,6 +145,11 @@ def test_describe_origin_endpoint_succeeds():
     describe_response["Description"].should.equal(origin_endpoint_config["Description"])
     describe_response["HlsPackage"].should.equal(origin_endpoint_config["HlsPackage"])
     describe_response["Origination"].should.equal("ALLOW")
+    describe_response["Url"].should.equal(
+        "https://origin-endpoint.mediapackage.eu-west-1.amazonaws.com/{}".format(
+            describe_response["Id"]
+        )
+    )
 
 
 @mock_mediapackage
