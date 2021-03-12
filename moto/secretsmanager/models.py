@@ -578,6 +578,20 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret_id
 
+    def untag_resource(self, secret_id, tag_keys):
+
+        if secret_id not in self.secrets.keys():
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+        tags = secret.tags
+
+        for tag in tags:
+            if tag["Key"] in tag_keys:
+                tags.remove(tag)
+
+        return secret_id
+
     @staticmethod
     def get_resource_policy(secret_id):
         resource_policy = {
