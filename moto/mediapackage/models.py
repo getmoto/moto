@@ -123,8 +123,8 @@ class MediaPackageBackend(BaseBackend):
         whitelist,
     ):
         arn = "arn:aws:mediapackage:origin_endpoint:{}".format(id)
-        url = "https://origin-endpoint.mediapackage.eu-west-1.amazonaws.com/{}".format(
-            id
+        url = "https://origin-endpoint.mediapackage.{}.amazonaws.com/{}".format(
+            self.region_name, id
         )
         origin_endpoint = OriginEndpoint(
             arn=arn,
@@ -193,10 +193,10 @@ class MediaPackageBackend(BaseBackend):
 
 mediapackage_backends = {}
 for region in Session().get_available_regions("mediapackage"):
-    mediapackage_backends[region] = MediaPackageBackend()
+    mediapackage_backends[region] = MediaPackageBackend(region)
 for region in Session().get_available_regions(
     "mediapackage", partition_name="aws-us-gov"
 ):
-    mediapackage_backends[region] = MediaPackageBackend()
+    mediapackage_backends[region] = MediaPackageBackend(region)
 for region in Session().get_available_regions("mediapackage", partition_name="aws-cn"):
-    mediapackage_backends[region] = MediaPackageBackend()
+    mediapackage_backends[region] = MediaPackageBackend(region)
