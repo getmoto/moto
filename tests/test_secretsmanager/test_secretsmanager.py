@@ -954,8 +954,11 @@ def test_untag_resource():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     conn.create_secret(Name="test-secret", SecretString="foosecret")
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeValue"},
-        {"Key": "SecondTag", "Value": "SomeValue"}],
+        SecretId="test-secret",
+        Tags=[
+            {"Key": "FirstTag", "Value": "SomeValue"},
+            {"Key": "SecondTag", "Value": "SomeValue"},
+        ],
     )
 
     conn.untag_resource(SecretId="test-secret", TagKeys=["FirstTag"])
@@ -963,7 +966,7 @@ def test_untag_resource():
     assert secrets["SecretList"][0].get("Tags") == [
         {"Key": "SecondTag", "Value": "SomeValue"},
     ]
-    
+
     with pytest.raises(ClientError) as cm:
         conn.untag_resource(
             SecretId="dummy-test-secret",

@@ -577,7 +577,7 @@ class SecretsManagerBackend(BaseBackend):
             old_tags.append(tag)
 
         return secret_id
-    
+
     def untag_resource(self, secret_id, tag_keys):
 
         if secret_id not in self.secrets.keys():
@@ -587,7 +587,7 @@ class SecretsManagerBackend(BaseBackend):
         tags = secret.tags
 
         for tag in tags:
-            if tag['Key'] in tag_keys:
+            if tag["Key"] in tag_keys:
                 tags.remove(tag)
 
         return secret_id
