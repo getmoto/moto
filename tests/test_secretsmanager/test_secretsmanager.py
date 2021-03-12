@@ -925,11 +925,17 @@ def test_tag_resource():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     conn.create_secret(Name="test-secret", SecretString="foosecret")
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        SecretId="test-secret",
+        Tags=[
+            {"Key": "FirstTag", "Value": "SomeValue"},
+        ],
     )
 
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
+        SecretId="test-secret",
+        Tags=[
+            {"Key": "SecondTag", "Value": "AnotherValue"},
+        ],
     )
 
     secrets = conn.list_secrets()
@@ -941,13 +947,16 @@ def test_tag_resource():
     with pytest.raises(ClientError) as cm:
         conn.tag_resource(
             SecretId="dummy-test-secret",
-            Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+            Tags=[
+                {"Key": "FirstTag", "Value": "SomeValue"},
+            ],
         )
 
     assert (
         "Secrets Manager can't find the specified secret."
         == cm.value.response["Error"]["Message"]
     )
+
 
 @mock_secretsmanager
 def test_untag_resource():
@@ -977,7 +986,6 @@ def test_untag_resource():
         "Secrets Manager can't find the specified secret."
         == cm.value.response["Error"]["Message"]
     )
-
 
 
 @mock_secretsmanager
