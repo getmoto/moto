@@ -134,7 +134,7 @@ def test_submit_job():
     resp = logs_client.describe_log_streams(
         logGroupName="/aws/batch/job", logStreamNamePrefix="sayhellotomylittlefriend"
     )
-    len(resp["logStreams"]).should.equal(1)
+    resp["logStreams"].should.have.length_of(1)
     ls_name = resp["logStreams"][0]["logStreamName"]
 
     resp = logs_client.get_log_events(
@@ -191,20 +191,17 @@ def test_list_jobs():
     )
     job_id2 = resp["jobId"]
 
-    resp_finished_jobs = batch_client.list_jobs(
+    batch_client.list_jobs(
         jobQueue=queue_arn, jobStatus="SUCCEEDED"
-    )
+    )["jobSummaryList"].should.have.length_of(0)
 
     # Wait only as long as it takes to run the jobs
     for job_id in [job_id1, job_id2]:
         _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
-    resp_finished_jobs2 = batch_client.list_jobs(
+    batch_client.list_jobs(
         jobQueue=queue_arn, jobStatus="SUCCEEDED"
-    )
-
-    len(resp_finished_jobs["jobSummaryList"]).should.equal(0)
-    len(resp_finished_jobs2["jobSummaryList"]).should.equal(2)
+    )["jobSummaryList"].should.have.length_of(2)
 
 
 @mock_logs
@@ -264,7 +261,7 @@ def test_terminate_job():
     resp = logs_client.describe_log_streams(
         logGroupName="/aws/batch/job", logStreamNamePrefix="echo-sleep-echo"
     )
-    len(resp["logStreams"]).should.equal(1)
+    resp["logStreams"].should.have.length_of(1)
     ls_name = resp["logStreams"][0]["logStreamName"]
 
     resp = logs_client.get_log_events(
