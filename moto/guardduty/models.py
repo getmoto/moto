@@ -3,6 +3,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime
 from uuid import uuid4
+from .exceptions import MissingParameterError
 
 
 class GuardDutyBackend(BaseBackend):
@@ -24,7 +25,11 @@ class GuardDutyBackend(BaseBackend):
             "ONE_HOUR",
             "SIX_HOURS",
         ]:
-            return None
+            finding_publishing_frequency = "SIX_HOURS"
+
+        if enable is None or "":
+            raise MissingParameterError(parameter="enabled")
+
         service_role = "AWSServiceRoleForAmazonGuardDuty"
         print(finding_publishing_frequency)
         detector = Detector(
