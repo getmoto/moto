@@ -110,7 +110,7 @@ def register_job_def(batch_client, definition_name="sleep10"):
         containerProperties={
             "image": "busybox",
             "vcpus": 1,
-            "memory": random.randint(1, 128),
+            "memory": random.randint(4, 128),
             "command": ["sleep", "10"],
         },
     )
