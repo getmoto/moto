@@ -34,8 +34,50 @@ def test_create_job_queue():
     queue_arn = resp["jobQueueArn"]
 
     resp = batch_client.describe_job_queues()
-    resp.should.have.key("jobQueues").being.length_of(1)
+
+    resp.should.contain("jobQueues")
+    len(resp["jobQueues"]).should.equal(1)
     resp["jobQueues"][0]["jobQueueArn"].should.equal(queue_arn)
+
+    resp = batch_client.describe_job_queues(jobQueues=["test_invalid_queue"])
+    resp.should.contain("jobQueues")
+    len(resp["jobQueues"]).should.equal(0)
+
+    # Create job queue which already exists
+    try:
+        resp = batch_client.create_job_queue(
+            jobQueueName="test_job_queue",
+            state="ENABLED",
+            priority=123,
+            computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+        )
+
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("ClientException")
+
+    # Create job queue with incorrect state
+    try:
+        resp = batch_client.create_job_queue(
+            jobQueueName="test_job_queue2",
+            state="JUNK",
+            priority=123,
+            computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+        )
+
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("ClientException")
+
+    # Create job queue with no compute env
+    try:
+        resp = batch_client.create_job_queue(
+            jobQueueName="test_job_queue3",
+            state="JUNK",
+            priority=123,
+            computeEnvironmentOrder=[],
+        )
+
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("ClientException")
 
 
 @mock_ec2
