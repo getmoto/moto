@@ -292,7 +292,9 @@ class BatchResponse(BaseResponse):
         return ""
 
     # CancelJob
-    def canceljob(
-        self,
-    ):  # Theres some AWS semantics on the differences but for us they're identical ;-)
-        return self.terminatejob()
+    def canceljob(self,):
+        job_id = self._get_param("jobId")
+        reason = self._get_param("reason")
+        self.batch_backend.cancel_job(job_id, reason)
+
+        return ""
