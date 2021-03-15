@@ -19,4 +19,4 @@ def load_resource(filename):
     load_resource(resource_filename(__name__, "resources/file.json"))
     """
     with open(filename, "r") as f:
-        return json.load(f)
+        return json.load(f, encoding="utf-8")
