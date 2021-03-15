@@ -53,15 +53,16 @@ class Route53(BaseResponse):
         dnsname = query_params.get("dnsname")
 
         if dnsname:
-            dnsname = dnsname[
-                0
-            ]  # parse_qs gives us a list, but this parameter doesn't repeat
-            # return all zones with that name (there can be more than one)
+            dnsname = dnsname[0]
+            if dnsname[-1] != ".":
+                dnsname += "."
             zones = [
                 zone
                 for zone in route53_backend.get_all_hosted_zones()
                 if zone.name == dnsname
             ]
+            template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
+            return 200, headers, template.render(zones=zones, dnsname=dnsname)
         else:
             # sort by names, but with domain components reversed
             # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
@@ -74,9 +75,11 @@ class Route53(BaseResponse):
 
             zones = route53_backend.get_all_hosted_zones()
             zones = sorted(zones, key=sort_key)
+            template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
+            return 200, headers, template.render(zones=zones, dnsname=dnsname)
 
-        template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
-        return 200, headers, template.render(zones=zones)
+        # template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
+        # return 200, headers, template.render(zones=zones)
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -354,6 +357,9 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
 </ListHostedZonesResponse>"""
 
 LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+  {% if dnsname %}
+  <DNSName>{{ dnsname }}</DNSName>
+  {% endif %}
   <HostedZones>
       {% for zone in zones %}
       <HostedZone>
