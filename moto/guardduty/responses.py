@@ -21,6 +21,15 @@ class GuardDutyResponse(BaseResponse):
     # def _get_param(self, param, default=None):
     #     return self.request_params.get(param,default)
 
+    def detector(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return self.create_detector()
+        elif request.method == "GET":
+            return self.list_detectors()
+        else:
+            return 404, {}, ""
+
     def create_detector(self):
         enable = self._get_param("enable")
         client_token = self._get_param("clientToken")
@@ -32,7 +41,7 @@ class GuardDutyResponse(BaseResponse):
             enable, client_token, finding_publishing_frequency, data_sources, tags
         )
 
-        return json.dumps(dict(detectorId=detector_id))
+        return 200, {}, json.dumps(dict(detectorId=detector_id))
 
     def list_detectors(self):
         maxResults = int(self._get_param("maxResults"))
@@ -41,7 +50,7 @@ class GuardDutyResponse(BaseResponse):
             maxResults, nextToken
         )
 
-        return json.dumps({"DetectorIds": detectorIds, "NextToken": nextToken})
+        return 200, {}, json.dumps({"DetectorIds": detectorIds, "NextToken": nextToken})
 
     # add methods from here
 
