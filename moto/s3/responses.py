@@ -1305,8 +1305,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if "acl" in query:
             key = self.backend.get_object(bucket_name, key_name)
             # TODO: Support the XML-based ACL format
-            key.set_acl(acl)
-            return 200, response_headers, ""
+            if key is not None:
+                key.set_acl(acl)
+                return 200, response_headers, ""
+            else:
+                raise MissingKey(key_name)
 
         if "tagging" in query:
             if "versionId" in query:

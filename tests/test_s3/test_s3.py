@@ -979,6 +979,17 @@ def test_acl_switching():
     ), grants
 
 
+@mock_s3
+def test_acl_switching_nonexistent_key():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    with pytest.raises(ClientError) as e:
+        s3.put_object_acl(Bucket="mybucket", Key="nonexistent", ACL="private")
+
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
+
+
 @mock_s3_deprecated
 def test_bucket_acl_setting():
     conn = boto.connect_s3()
