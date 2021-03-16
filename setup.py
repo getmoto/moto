@@ -35,7 +35,7 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "yaml",
+    "pyyaml",
     "six>1.9",
     "werkzeug",
     "pytz",
