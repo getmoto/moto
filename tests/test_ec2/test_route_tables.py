@@ -741,12 +741,27 @@ def test_associate_route_table_by_gateway():
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
     route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
     igw_id = ec2.create_internet_gateway()["InternetGateway"]["InternetGatewayId"]
-    route = ec2.create_route(
-        RouteTableId=route_table_id, DestinationCidrBlock="0.0.0.0/0", GatewayId=igw_id,
-    )
-    route["Return"].should.equal(True)
     assoc_id = ec2.associate_route_table(
         RouteTableId=route_table_id, GatewayId=igw_id,
+    )["AssociationId"]
+    verify = ec2.describe_route_tables(
+        Filters=[
+            {"Name": "association.route-table-association-id", "Values": [assoc_id]}
+        ]
+    )["RouteTables"]
+    verify[0]["Associations"][0]["RouteTableAssociationId"].should.equal(assoc_id)
+
+
+@mock_ec2
+def test_associate_route_table_by_subnet():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    assoc_id = ec2.associate_route_table(
+        RouteTableId=route_table_id, SubnetId=subnet_id,
     )["AssociationId"]
     verify = ec2.describe_route_tables(
         Filters=[
