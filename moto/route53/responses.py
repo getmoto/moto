@@ -61,8 +61,6 @@ class Route53(BaseResponse):
                 for zone in route53_backend.get_all_hosted_zones()
                 if zone.name == dnsname
             ]
-            template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
-            return 200, headers, template.render(zones=zones, dnsname=dnsname)
         else:
             # sort by names, but with domain components reversed
             # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
@@ -75,11 +73,9 @@ class Route53(BaseResponse):
 
             zones = route53_backend.get_all_hosted_zones()
             zones = sorted(zones, key=sort_key)
-            template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
-            return 200, headers, template.render(zones=zones, dnsname=dnsname)
 
-        # template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
-        # return 200, headers, template.render(zones=zones)
+        template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
+        return 200, headers, template.render(zones=zones, dnsname=dnsname)
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

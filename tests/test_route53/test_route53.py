@@ -525,9 +525,9 @@ def test_list_hosted_zones_by_dns_name():
         HostedZoneConfig=dict(PrivateZone=True, Comment="test org 2"),
     )
     conn.create_hosted_zone(
-        Name="ent-dev.plat.farm.",
-        CallerReference=str(hash("psh")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="infra dev moto"),
+        Name="my.test.net.",
+        CallerReference=str(hash("baz")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test net"),
     )
 
     # test lookup
@@ -538,15 +538,18 @@ def test_list_hosted_zones_by_dns_name():
     len(zones["HostedZones"]).should.equal(2)
     zones["DNSName"].should.equal("test.a.org.")
     zones["DNSName"].should.equal("test.a.org.")
-    zones = conn.list_hosted_zones_by_name(DNSName="ent-dev.plat.farm.")
+    zones = conn.list_hosted_zones_by_name(DNSName="my.test.net.")
     len(zones["HostedZones"]).should.equal(1)
-    zones["DNSName"].should.equal("ent-dev.plat.farm.")
+    zones["DNSName"].should.equal("my.test.net.")
+    zones = conn.list_hosted_zones_by_name(DNSName="my.test.net")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["DNSName"].should.equal("my.test.net.")
 
     # test sort order
     zones = conn.list_hosted_zones_by_name()
     len(zones["HostedZones"]).should.equal(4)
     zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
-    zones["HostedZones"][1]["Name"].should.equal("ent-dev.plat.farm.")
+    zones["HostedZones"][1]["Name"].should.equal("my.test.net.")
     zones["HostedZones"][2]["Name"].should.equal("test.a.org.")
     zones["HostedZones"][3]["Name"].should.equal("test.a.org.")
 
