@@ -2059,6 +2059,36 @@ def test_usage_plans():
 
 
 @mock_apigateway
+def test_update_usage_plan():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    payload = {
+        "name": "TEST-PLAN-2",
+        "description": "Description",
+        "quota": {"limit": 10, "period": "DAY", "offset": 0},
+        "throttle": {"rateLimit": 2, "burstLimit": 1},
+        "apiStages": [{"apiId": "foo", "stage": "bar"}],
+        "tags": {"tag_key": "tag_value"},
+    }
+    response = client.create_usage_plan(**payload)
+    usage_plan_id = response["id"]
+    response = client.update_usage_plan(
+        usagePlanId=usage_plan_id,
+        patchOperations=[
+            {"op": "replace", "path": "/quota/limit", "value": "1000"},
+            {"op": "replace", "path": "/quota/period", "value": "MONTH"},
+            {"op": "replace", "path": "/throttle/rateLimit", "value": "500"},
+            {"op": "replace", "path": "/throttle/burstLimit", "value": "1500"},
+        ],
+    )
+    response["quota"]["limit"].should.equal("1000")
+    response["quota"]["period"].should.equal("MONTH")
+    response["quota"]["limit"].should.equal("1000")
+    response["quota"]["limit"].should.equal("1000")
+
+
+@mock_apigateway
 def test_usage_plan_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)

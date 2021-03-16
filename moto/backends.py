@@ -78,6 +78,8 @@ BACKENDS = {
     ),
     "forecast": ("forecast", "forecast_backends"),
     "support": ("support", "support_backends"),
+    "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
+    "mediapackage": ("mediapackage", "mediapackage_backends"),
 }
 
 

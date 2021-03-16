@@ -174,13 +174,16 @@ jobs:
         python-version: [3.8]
     steps:
       - uses: actions/checkout@v2
-      - name: Update project version
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Update & Build
         run: |
-          git fetch --unshallow
+          pip install wheel packaging
           python update_version_from_git.py
-      - name: Build project
-        run: |
-          pip install wheel
           python setup.py sdist bdist_wheel
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@master

@@ -1275,7 +1275,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      {% if role.description %}
+      {% if role.description is not none %}
       <Description>{{role.description}}</Description>
       {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
@@ -1414,11 +1414,15 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
+        <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
         {% if role.permissions_boundary %}
         <PermissionsBoundary>
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
           <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
         </PermissionsBoundary>
+        {% endif %}
+        {% if role.description is not none %}
+        <Description>{{ role.description }}</Description>
         {% endif %}
       </member>
       {% endfor %}

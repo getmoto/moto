@@ -474,9 +474,9 @@ class ELBBackend(BaseBackend):
     ):
         load_balancer = self.get_load_balancer(load_balancer_name)
         listener = [
-            l
-            for l in load_balancer.listeners
-            if int(l.load_balancer_port) == load_balancer_port
+            l_listener
+            for l_listener in load_balancer.listeners
+            if int(l_listener.load_balancer_port) == load_balancer_port
         ][0]
         listener_idx = load_balancer.listeners.index(listener)
         listener.policy_names = policies

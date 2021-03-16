@@ -762,7 +762,7 @@ class BatchBackend(BaseBackend):
 
         if compute_resources is None and _type == "MANAGED":
             raise InvalidParameterValueException(
-                "computeResources must be specified when creating a MANAGED environment".format(
+                "computeResources must be specified when creating a {0} environment".format(
                     state
                 )
             )
@@ -915,7 +915,10 @@ class BatchBackend(BaseBackend):
                 instance_type = "m4.4xlarge"
 
             instance_vcpus.append(
-                (EC2_INSTANCE_TYPES[instance_type]["vcpus"], instance_type)
+                (
+                    EC2_INSTANCE_TYPES[instance_type]["VCpuInfo"]["DefaultVCpus"],
+                    instance_type,
+                )
             )
 
         instance_vcpus = sorted(instance_vcpus, key=lambda item: item[0], reverse=True)
