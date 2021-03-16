@@ -1613,7 +1613,11 @@ def test_sign_up_existing_user():
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
 
+    # Add initial user
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
     with pytest.raises(ClientError) as err:
+        # Attempt to add user again
         conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
     err.value.response["Error"]["Code"].should.equal("UsernameExistsException")
