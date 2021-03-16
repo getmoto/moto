@@ -4179,7 +4179,7 @@ class RouteTableBackend(object):
         self.route_tables.pop(route_table_id)
         return True
 
-    def associate_route_table(self, route_table_id, subnet_id):
+    def associate_route_table(self, route_table_id, gateway_id=None, subnet_id=None):
         # Idempotent if association already exists.
         route_tables_by_subnet = self.get_all_route_tables(
             filters={"association.subnet-id": [subnet_id]}
@@ -4193,10 +4193,15 @@ class RouteTableBackend(object):
 
         # Association does not yet exist, so create it.
         route_table = self.get_route_table(route_table_id)
-        self.get_subnet(subnet_id)  # Validate subnet exists
-        association_id = random_subnet_association_id()
-        route_table.associations[association_id] = subnet_id
-        return association_id
+        if gateway_id is None:
+            self.get_subnet(subnet_id)  # Validate subnet exists
+            association_id = random_subnet_association_id()
+            route_table.associations[association_id] = subnet_id
+            return association_id
+        if subnet_id is None:
+            association_id = random_subnet_association_id()
+            route_table.associations[association_id] = gateway_id
+            return association_id
 
     def disassociate_route_table(self, association_id):
         for route_table in self.route_tables.values():

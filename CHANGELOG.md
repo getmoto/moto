@@ -4,6 +4,24 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.2
+-----
+    General Changes:
+        * New Osaka region is now supported
+
+    New Services:
+        * MediaPackage
+
+    New Methods:
+        * Redshift
+            * authorize_cluster_security_group_ingress
+        * Secrets Manager:
+            * untag_resource
+
+    Miscellaneous:
+        * IAM:list_roles() now contains the MaxSessionDuration-attribute
+        * Kinesis:get_records(): Fix formatting of the ApproximateArrivalTimestamp-parameter
+        * SQS:receive_message(): Fix behaviour of the AttributeNames-parameter
 
 2.0.1
 -----
