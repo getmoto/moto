@@ -8665,18 +8665,18 @@
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case
-- [ ] create_case
+- [X] create_case
 - [ ] describe_attachment
-- [ ] describe_cases
+- [X] describe_cases
 - [ ] describe_communications
 - [ ] describe_services
 - [ ] describe_severity_levels
 - [ ] describe_trusted_advisor_check_refresh_statuses
 - [ ] describe_trusted_advisor_check_result
 - [ ] describe_trusted_advisor_check_summaries
-- [ ] describe_trusted_advisor_checks
-- [ ] refresh_trusted_advisor_check
-- [ ] resolve_case
+- [X] describe_trusted_advisor_checks
+- [X] refresh_trusted_advisor_check
+- [X] resolve_case
 </details>
 
 ## swf
