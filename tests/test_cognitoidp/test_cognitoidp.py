@@ -1613,15 +1613,10 @@ def test_sign_up_existing_user():
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
 
-    conn.sign_up(ClientId=client_id, Username=username, Password=password)
-
-    caught = False
-    try:
+    with pytest.raises(ClientError) as err:
         conn.sign_up(ClientId=client_id, Username=username, Password=password)
-    except conn.exceptions.UsernameExistsException:
-        caught = True
 
-    caught.should.be.true
+    err.value.response["Error"]["Code"].should.equal("UsernameExistsException")
 
 
 @mock_cognitoidp
