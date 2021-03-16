@@ -6,9 +6,10 @@ from moto.ec2.utils import filters_from_querystring
 class RouteTables(BaseResponse):
     def associate_route_table(self):
         route_table_id = self._get_param("RouteTableId")
+        gateway_id = self._get_param("GatewayId")
         subnet_id = self._get_param("SubnetId")
         association_id = self.ec2_backend.associate_route_table(
-            route_table_id, subnet_id
+            route_table_id, gateway_id, subnet_id
         )
         template = self.response_template(ASSOCIATE_ROUTE_TABLE_RESPONSE)
         return template.render(association_id=association_id)
@@ -192,7 +193,7 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
               <item>
                 <routeTableAssociationId>{{ association_id }}</routeTableAssociationId>
                 <routeTableId>{{ route_table.id }}</routeTableId>
-                <main>false</main>
+                <main>true</main>
                 <subnetId>{{ subnet_id }}</subnetId>
               </item>
             {% endfor %}
