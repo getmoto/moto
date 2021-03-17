@@ -11,13 +11,51 @@ checks_json = "resources/describe_trusted_advisor_checks.json"
 ADVISOR_CHECKS = load_resource(resource_filename(__name__, checks_json))
 
 
+class SupportCase(object):
+    def __init__(self, **kwargs):
+        self.case_id = kwargs.get("case_id")
+        self.display_id = "foo_display_id"
+        self.subject = kwargs.get("subject")
+        self.status = "opened"
+        self.service_code = kwargs.get("service_code")
+        self.category_code = kwargs.get("category_code")
+        self.severity_code = kwargs.get("severity_code")
+        self.submitted_by = "moto@moto.com"
+        self.time_created = self.get_datetime()
+        self.attachment_set_id = kwargs.get("attachment_set_id")
+        self.communication_body = kwargs.get("communication_body")
+        self.language = kwargs.get("language")
+        self.cc_email_addresses = kwargs.get("cc_email_addresses")
+        self.communications = {
+            "recentCommunications": {
+                "communications": [
+                    {
+                        "caseId": self.case_id,
+                        "body": self.communication_body,
+                        "submittedBy": self.submitted_by,
+                        "timeCreated": self.get_datetime(),
+                        "attachmentSet": [
+                            {
+                                "attachmentId": self.attachment_set_id,
+                                "fileName": "support_file.txt",
+                            },
+                        ],
+                    }
+                ],
+                "nextToken": "foo_next_token",
+            }
+        }
+
+    def get_datetime(self):
+        return str(datetime.datetime.now().isoformat())
+
+
 class SupportBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(SupportBackend, self).__init__()
         self.region_name = region_name
         self.check_status = {}
-        self.case_id = {}
-        self.case_severities = {}
+        self.cases = {}
 
     def reset(self):
         region_name = self.region_name
@@ -66,60 +104,55 @@ class SupportBackend(BaseBackend):
         """
         Fake an advancement through case statuses
         """
-        if case_id not in self.case_id:
-            self.case_id[case_id] = "opened"
 
-        elif self.case_id[case_id] == "opened":
-            self.case_id[case_id] = "pending-customer-action"
+        if self.cases[case_id].status == "opened":
+            self.cases[case_id].status = "pending-customer-action"
 
-        elif self.case_id[case_id] == "pending-customer-action":
-            self.case_id[case_id] = "reopened"
+        elif self.cases[case_id].status == "pending-customer-action":
+            self.cases[case_id].status = "reopened"
 
-        elif self.case_id[case_id] == "reopened":
-            self.case_id[case_id] = "resolved"
+        elif self.cases[case_id].status == "reopened":
+            self.cases[case_id].status = "resolved"
 
-        elif self.case_id[case_id] == "resolved":
-            self.case_id[case_id] = "unassigned"
+        elif self.cases[case_id].status == "resolved":
+            self.cases[case_id].status = "unassigned"
 
-        elif self.case_id[case_id] == "unassigned":
-            self.case_id[case_id] = "work-in-progress"
+        elif self.cases[case_id].status == "unassigned":
+            self.cases[case_id].status = "work-in-progress"
 
-        elif self.case_id[case_id] == "work-in-progress":
-            self.case_id[case_id] = "opened"
+        elif self.cases[case_id].status == "work-in-progress":
+            self.cases[case_id].status = "opened"
 
     def advance_case_severity_codes(self, case_id):
         """
         Fake an advancement through case status severities
         """
-        if case_id not in self.case_severities:
-            self.case_severities[case_id] = "low"
+        if self.cases[case_id].severity_code == "low":
+            self.cases[case_id].severity_code = "normal"
 
-        elif self.case_severities[case_id] == "low":
-            self.case_severities[case_id] = "normal"
+        elif self.cases[case_id].severity_code == "normal":
+            self.cases[case_id].severity_code = "high"
 
-        elif self.case_severities[case_id] == "normal":
-            self.case_severities[case_id] = "high"
+        elif self.cases[case_id].severity_code == "high":
+            self.cases[case_id].severity_code = "urgent"
 
-        elif self.case_severities[case_id] == "high":
-            self.case_severities[case_id] = "urgent"
+        elif self.cases[case_id].severity_code == "urgent":
+            self.cases[case_id].severity_code = "critical"
 
-        elif self.case_severities[case_id] == "urgent":
-            self.case_severities[case_id] = "critical"
-
-        elif self.case_severities[case_id] == "critical":
-            self.case_severities[case_id] = "low"
+        elif self.cases[case_id].severity_code == "critical":
+            self.cases[case_id].severity_code = "low"
 
     def resolve_case(self, case_id):
         self.advance_case_status(case_id)
 
-        initial_case_status = self.case_id[case_id]
         resolved_case = {
-            "initialCaseStatus": initial_case_status,
+            "initialCaseStatus": self.cases[case_id].status,
             "finalCaseStatus": "resolved",
         }
 
         return resolved_case
 
+    # persist case details to self.cases
     def create_case(
         self,
         subject,
@@ -137,6 +170,19 @@ class SupportBackend(BaseBackend):
             random.choice("0123456789ABCDEFGHIJKLMabcdefghijklm") for i in range(16)
         )
         case_id = "case-12345678910-2020-%s" % random_case_id
+        case = SupportCase(
+            case_id=case_id,
+            subject=subject,
+            service_code=service_code,
+            severity_code=severity_code,
+            category_code=category_code,
+            communication_body=communication_body,
+            cc_email_addresses=cc_email_addresses,
+            language=language,
+            attachment_set_id=attachment_set_id,
+        )
+        self.cases[case_id] = case
+
         return {"caseId": case_id}
 
     def describe_cases(
@@ -153,47 +199,25 @@ class SupportBackend(BaseBackend):
     ):
         cases = []
 
-        support_user = "moto_user"
-        now_time_format = (str(datetime.datetime.now().isoformat()),)
-
         for case in case_id_list:
             self.advance_case_status(case)
             self.advance_case_severity_codes(case)
             formatted_case = {
-                "caseId": case,
-                "displayId": display_id,
-                "subject": "case subject",
-                "status": self.case_id[case],
-                "serviceCode": "1",
-                "categoryCode": "2",
-                "severityCode": self.case_severities[case],
-                "submittedBy": support_user,
-                "timeCreated": str(datetime.datetime.now().isoformat()),
-                "ccEmailAddresses": ["%s@moto.com" % support_user,],
-                "language": language,
+                "caseId": self.cases[case].case_id,
+                "displayId": self.cases[case].display_id,
+                "subject": self.cases[case].subject,
+                "status": self.cases[case].status,
+                "serviceCode": self.cases[case].service_code,
+                "categoryCode": self.cases[case].category_code,
+                "severityCode": self.cases[case].severity_code,
+                "submittedBy": self.cases[case].submitted_by,
+                "timeCreated": self.cases[case].time_created,
+                "ccEmailAddresses": self.cases[case].cc_email_addresses,
+                "language": self.cases[case].language,
             }
 
             if include_communications:
-                communications = {
-                    "recentCommunications": {
-                        "communications": [
-                            {
-                                "caseId": case,
-                                "body": "this is a body response.",
-                                "submittedBy": support_user,
-                                "timeCreated": now_time_format,
-                                "attachmentSet": [
-                                    {
-                                        "attachmentId": "attachment-id-01",
-                                        "fileName": "support_file.txt",
-                                    },
-                                ],
-                            }
-                        ],
-                        "nextToken": next_token,
-                    }
-                }
-                formatted_case.update(communications)
+                formatted_case.update(self.cases[case].communications)
 
             if (
                 include_resolved_cases is False

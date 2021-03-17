@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto3
 import sure  # noqa
 from moto import mock_support
+from parameterized import parameterized
 
 
 @mock_support
@@ -166,13 +167,13 @@ def test_refresh_trusted_advisor_check_cycle_continues_on_full_cycle():
 @mock_support
 def test_support_case_is_closed():
     """
-    On closing a case, the correct response is returned
+    On closing a case, the correct resolved response is returned
     """
     client = boto3.client("support", "us-east-1")
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -195,9 +196,9 @@ def test_support_case_is_closed():
     expected_initial_case = [resolve_case_response["initialCaseStatus"]]
     expected_final_case = "resolved"
 
-    set(expected_initial_case).issubset(
-        possible_case_status
-    ).should.be.true and expected_final_case.should.equal("resolved")
+    set(expected_initial_case).issubset(possible_case_status).should.be.true
+
+    expected_final_case.should.equal("resolved")
 
 
 @mock_support
@@ -210,7 +211,7 @@ def test_support_case_created():
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -222,8 +223,17 @@ def test_support_case_created():
     len(create_case_response["caseId"]).should.equal(38)
 
 
+@parameterized.expand(
+    [
+        ("subject", "test_subject",),
+        ("serviceCode", "test_service_code",),
+        ("severityCode", "normal",),
+        ("categoryCode", "test_category_code",),
+        ("language", "test_language",),
+    ]
+)
 @mock_support
-def test_support_created_case_can_be_described():
+def test_support_created_case_can_be_described(case_property, expected_property):
     """
     On creating a support request it can be described
     """
@@ -232,7 +242,7 @@ def test_support_created_case_can_be_described():
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -254,9 +264,262 @@ def test_support_created_case_can_be_described():
         includeCommunications=True,
     )
 
-    actual_case_id = describe_cases_response["cases"][0]["caseId"]
+    actual_case_id = describe_cases_response["cases"][0][case_property]
 
-    actual_case_id.should.equal(case_id_list)
+    actual_case_id.should.equal(expected_property)
+
+
+@parameterized.expand(
+    [
+        ("subject", "test_subject",),
+        ("serviceCode", "test_service_code",),
+        ("severityCode", "normal",),
+        ("categoryCode", "test_category_code",),
+        ("language", "test_language",),
+    ]
+)
+@mock_support
+def test_support_created_case_can_be_described_without_next_token(
+    case_property, expected_property
+):
+    """
+    On creating a support request it can be described without next token
+    """
+
+    client = boto3.client("support", "us-east-1")
+    create_case_response = client.create_case(
+        subject="test_subject",
+        serviceCode="test_service_code",
+        severityCode="low",
+        categoryCode="test_category_code",
+        communicationBody="test_communication_body",
+        ccEmailAddresses=["test_email_cc",],
+        language="test_language",
+        issueType="test_issue_type",
+        attachmentSetId="test_attachment_set_id",
+    )
+
+    case_id_list = create_case_response["caseId"]
+    describe_cases_response = client.describe_cases(
+        caseIdList=[case_id_list],
+        displayId="test_display_id",
+        afterTime="test_after_time",
+        beforeTime="test_before_time",
+        includeResolvedCases=True,
+        language="test_lanauage",
+        includeCommunications=True,
+        maxResults=137,
+    )
+
+    actual_case_id = describe_cases_response["cases"][0][case_property]
+
+    actual_case_id.should.equal(expected_property)
+
+
+@parameterized.expand(
+    [
+        ("subject", "test_subject",),
+        ("serviceCode", "test_service_code",),
+        ("severityCode", "normal",),
+        ("categoryCode", "test_category_code",),
+        ("language", "test_language",),
+    ]
+)
+@mock_support
+def test_support_created_case_can_be_described_without_max_results(
+    case_property, expected_property
+):
+    """
+    On creating a support request it can be described without max_results
+    """
+
+    client = boto3.client("support", "us-east-1")
+    create_case_response = client.create_case(
+        subject="test_subject",
+        serviceCode="test_service_code",
+        severityCode="low",
+        categoryCode="test_category_code",
+        communicationBody="test_communication_body",
+        ccEmailAddresses=["test_email_cc",],
+        language="test_language",
+        issueType="test_issue_type",
+        attachmentSetId="test_attachment_set_id",
+    )
+
+    case_id_list = create_case_response["caseId"]
+    describe_cases_response = client.describe_cases(
+        caseIdList=[case_id_list],
+        displayId="test_display_id",
+        afterTime="test_after_time",
+        beforeTime="test_before_time",
+        includeResolvedCases=True,
+        language="test_lanauage",
+        nextToken="test_next_token",
+        includeCommunications=True,
+    )
+
+    actual_case_id = describe_cases_response["cases"][0][case_property]
+
+    actual_case_id.should.equal(expected_property)
+
+
+@parameterized.expand(
+    [
+        ("subject", "test_subject",),
+        ("serviceCode", "test_service_code",),
+        ("severityCode", "normal",),
+        ("categoryCode", "test_category_code",),
+        ("language", "test_language",),
+    ]
+)
+@mock_support
+def test_support_created_case_can_be_described_without_max_results_or_next_token(
+    case_property, expected_property
+):
+    """
+    On creating a support request it can be described without max_results
+    """
+
+    client = boto3.client("support", "us-east-1")
+    create_case_response = client.create_case(
+        subject="test_subject",
+        serviceCode="test_service_code",
+        severityCode="low",
+        categoryCode="test_category_code",
+        communicationBody="test_communication_body",
+        ccEmailAddresses=["test_email_cc",],
+        language="test_language",
+        issueType="test_issue_type",
+        attachmentSetId="test_attachment_set_id",
+    )
+
+    case_id_list = create_case_response["caseId"]
+    describe_cases_response = client.describe_cases(
+        caseIdList=[case_id_list],
+        displayId="test_display_id",
+        afterTime="test_after_time",
+        beforeTime="test_before_time",
+        includeResolvedCases=True,
+        language="test_lanauage",
+        includeCommunications=True,
+    )
+
+    actual_case_id = describe_cases_response["cases"][0][case_property]
+
+    actual_case_id.should.equal(expected_property)
+
+
+@mock_support
+def test_support_created_case_cc_email_correct():
+    """
+    On creating a support request it can be described with
+    the correct cc email
+    """
+
+    client = boto3.client("support", "us-east-1")
+    create_case_response = client.create_case(
+        subject="test_subject",
+        serviceCode="test_service_code",
+        severityCode="low",
+        categoryCode="test_category_code",
+        communicationBody="test_communication_body",
+        ccEmailAddresses=["test_email_cc",],
+        language="test_language",
+        issueType="test_issue_type",
+        attachmentSetId="test_attachment_set_id",
+    )
+
+    case_id_list = create_case_response["caseId"]
+    describe_cases_response = client.describe_cases(
+        caseIdList=[case_id_list],
+        displayId="test_display_id",
+        afterTime="test_after_time",
+        beforeTime="test_before_time",
+        includeResolvedCases=True,
+        nextToken="test_next_token",
+        maxResults=137,
+        language="test_lanauage",
+        includeCommunications=True,
+    )
+
+    actual_case_id = describe_cases_response["cases"][0]["ccEmailAddresses"][0]
+
+    actual_case_id.should.equal("test_email_cc")
+
+
+@mock_support
+def test_support_case_include_resolved_defaults_to_false():
+    """
+    On creating a support request it can be described and it
+    defaults to not include resolved cases
+    """
+
+    client = boto3.client("support", "us-east-1")
+    create_case_response = client.create_case(
+        subject="test_subject",
+        serviceCode="test_service_code",
+        severityCode="low",
+        categoryCode="test_category_code",
+        communicationBody="test_communication_body",
+        ccEmailAddresses=["test_email_cc",],
+        language="test_language",
+        issueType="test_issue_type",
+        attachmentSetId="test_attachment_set_id",
+    )
+
+    case_id_list = create_case_response["caseId"]
+
+    for _ in range(3):
+        describe_cases_response = client.describe_cases(
+            caseIdList=[case_id_list],
+            displayId="test_display_id",
+            afterTime="test_after_time",
+            beforeTime="test_before_time",
+            nextToken="test_next_token",
+            maxResults=137,
+            language="test_lanauage",
+            includeCommunications=True,
+        )
+    actual = describe_cases_response["cases"]
+
+    actual.should_not.contain(case_id_list)
+
+
+@mock_support
+def test_support_case_include_communications_defaults_to_true():
+    """
+    On creating a support request it can be described and it
+    defaults to include communcations cases
+    """
+
+    client = boto3.client("support", "us-east-1")
+    create_case_response = client.create_case(
+        subject="test_subject",
+        serviceCode="test_service_code",
+        severityCode="low",
+        categoryCode="test_category_code",
+        communicationBody="test_communication_body",
+        ccEmailAddresses=["test_email_cc",],
+        language="test_language",
+        issueType="test_issue_type",
+        attachmentSetId="test_attachment_set_id",
+    )
+
+    case_id_list = create_case_response["caseId"]
+
+    describe_cases_response = client.describe_cases(
+        caseIdList=[case_id_list],
+        displayId="test_display_id",
+        afterTime="test_after_time",
+        beforeTime="test_before_time",
+        nextToken="test_next_token",
+        maxResults=137,
+        language="test_lanauage",
+    )
+
+    actual = describe_cases_response["cases"][0]
+
+    actual.should.contain("recentCommunications")
 
 
 @mock_support
@@ -269,7 +532,7 @@ def test_multiple_support_created_cases_can_be_described():
     create_case_response_1 = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -281,7 +544,7 @@ def test_multiple_support_created_cases_can_be_described():
     create_case_response_2 = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -311,17 +574,17 @@ def test_multiple_support_created_cases_can_be_described():
 
 
 @mock_support
-def test_support_created_case_can_be_described_and_contains_communications():
+def test_support_created_case_can_be_described_and_contains_communications_when_set_to_true():
     """
     On creating a support request it can be described and contains comms
-    when set to true
+    when includeResolvedCases=True
     """
 
     client = boto3.client("support", "us-east-1")
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -348,17 +611,17 @@ def test_support_created_case_can_be_described_and_contains_communications():
 
 
 @mock_support
-def test_support_created_case_can_be_described_and_does_not_ontain_communications_when_false():
+def test_support_created_case_can_be_described_and_does_not_contain_communications_when_false():
     """
     On creating a support request it does not include 
-    comms when set to false
+    comms when  includeCommunications=False
     """
 
     client = boto3.client("support", "us-east-1")
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -388,14 +651,15 @@ def test_support_created_case_can_be_described_and_does_not_ontain_communication
 @mock_support
 def test_support_created_case_can_be_described_and_contains_resolved_cases_when_true():
     """
-    On creating a support request it contains resolved cases when set to true
+    On creating a support request it does contain resolved cases when 
+    includeResolvedCases=true
     """
 
     client = boto3.client("support", "us-east-1")
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -425,16 +689,17 @@ def test_support_created_case_can_be_described_and_contains_resolved_cases_when_
 
 
 @mock_support
-def test_support_created_case_can_be_described_and_contains_resolved_cases_when_false():
+def test_support_created_case_can_be_described_and_does_not_contain_resolved_cases_when_false():
     """
-    On creating a support request it contains resolved cases when set to false
+    On creating a support request it does not contain resolved cases when 
+    includeResolvedCases=false
     """
 
     client = boto3.client("support", "us-east-1")
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -459,7 +724,6 @@ def test_support_created_case_can_be_described_and_contains_resolved_cases_when_
         )
 
     actual = describe_cases_response["cases"]
-
     actual.should_not.contain(case_id_list)
 
 
@@ -473,7 +737,7 @@ def test_support_created_case_can_be_described_and_can_cycle_case_severities():
     create_case_response = client.create_case(
         subject="test_subject",
         serviceCode="test_service_code",
-        severityCode="test_severity_code",
+        severityCode="low",
         categoryCode="test_category_code",
         communicationBody="test_communication_body",
         ccEmailAddresses=["test_email_cc",],
@@ -484,7 +748,7 @@ def test_support_created_case_can_be_described_and_can_cycle_case_severities():
 
     case_id_list = create_case_response["caseId"]
 
-    for _ in range(4):
+    for _ in range(3):
         describe_cases_response = client.describe_cases(
             caseIdList=[case_id_list],
             displayId="test_display_id",

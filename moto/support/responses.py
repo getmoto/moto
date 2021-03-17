@@ -36,7 +36,7 @@ class SupportResponse(BaseResponse):
         severity_code = self._get_param("severityCode")
         category_code = self._get_param("categoryCode")
         communication_body = self._get_param("communicationBody")
-        cc_email_addresses = self._get_list_prefix("ccEmailAddresses.member")
+        cc_email_addresses = self._get_param("ccEmailAddresses")
         language = self._get_param("language")
         issue_type = self._get_param("issueType")
         attachment_set_id = self._get_param("attachmentSetId")
@@ -59,11 +59,11 @@ class SupportResponse(BaseResponse):
         display_id = self._get_param("displayId")
         after_time = self._get_param("afterTime")
         before_time = self._get_param("beforeTime")
-        include_resolved_cases = self._get_param("includeResolvedCases")
+        include_resolved_cases = self._get_param("includeResolvedCases", False)
         next_token = self._get_param("nextToken")
         max_results = self._get_int_param("maxResults")
         language = self._get_param("language")
-        include_communications = self._get_param("includeCommunications")
+        include_communications = self._get_param("includeCommunications", True)
 
         describe_cases_response = self.support_backend.describe_cases(
             case_id_list=case_id_list,
