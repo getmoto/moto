@@ -10059,9 +10059,9 @@
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case
-- [ ] create_case
+- [X] create_case
 - [ ] describe_attachment
-- [ ] describe_cases
+- [X] describe_cases
 - [ ] describe_communications
 - [ ] describe_services
 - [ ] describe_severity_levels
@@ -10070,7 +10070,7 @@
 - [ ] describe_trusted_advisor_check_summaries
 - [X] describe_trusted_advisor_checks
 - [X] refresh_trusted_advisor_check
-- [ ] resolve_case
+- [X] resolve_case
 </details>
 
 ## swf
