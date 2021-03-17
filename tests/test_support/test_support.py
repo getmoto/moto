@@ -4,7 +4,6 @@ import boto3
 import pytest
 import sure  # noqa
 from moto import mock_support
-from parameterized import parameterized
 
 
 @mock_support
@@ -211,17 +210,18 @@ def test_support_case_created():
     len(create_case_response["caseId"]).should.equal(38)
 
 
-@parameterized.expand(
+@pytest.mark.parametrize(
+    "key,value",
     [
         ("subject", "test_subject",),
         ("serviceCode", "test_service_code",),
         ("severityCode", "normal",),
         ("categoryCode", "test_category_code",),
         ("language", "test_language",),
-    ]
+    ],
 )
 @mock_support
-def test_support_created_case_can_be_described(case_property, expected_property):
+def test_support_created_case_can_be_described(key, value):
     """
     On creating a support request it can be described
     """
@@ -252,24 +252,23 @@ def test_support_created_case_can_be_described(case_property, expected_property)
         includeCommunications=True,
     )
 
-    actual_case_id = describe_cases_response["cases"][0][case_property]
+    actual_case_id = describe_cases_response["cases"][0][key]
 
-    actual_case_id.should.equal(expected_property)
+    actual_case_id.should.equal(value)
 
 
-@parameterized.expand(
+@pytest.mark.parametrize(
+    "key,value",
     [
         ("subject", "test_subject",),
         ("serviceCode", "test_service_code",),
         ("severityCode", "normal",),
         ("categoryCode", "test_category_code",),
         ("language", "test_language",),
-    ]
+    ],
 )
 @mock_support
-def test_support_created_case_can_be_described_without_next_token(
-    case_property, expected_property
-):
+def test_support_created_case_can_be_described_without_next_token(key, value):
     """
     On creating a support request it can be described without next token
     """
@@ -299,24 +298,23 @@ def test_support_created_case_can_be_described_without_next_token(
         maxResults=137,
     )
 
-    actual_case_id = describe_cases_response["cases"][0][case_property]
+    actual_case_id = describe_cases_response["cases"][0][key]
 
-    actual_case_id.should.equal(expected_property)
+    actual_case_id.should.equal(value)
 
 
-@parameterized.expand(
+@pytest.mark.parametrize(
+    "key,value",
     [
         ("subject", "test_subject",),
         ("serviceCode", "test_service_code",),
         ("severityCode", "normal",),
         ("categoryCode", "test_category_code",),
         ("language", "test_language",),
-    ]
+    ],
 )
 @mock_support
-def test_support_created_case_can_be_described_without_max_results(
-    case_property, expected_property
-):
+def test_support_created_case_can_be_described_without_max_results(key, value):
     """
     On creating a support request it can be described without max_results
     """
@@ -346,23 +344,24 @@ def test_support_created_case_can_be_described_without_max_results(
         includeCommunications=True,
     )
 
-    actual_case_id = describe_cases_response["cases"][0][case_property]
+    actual_case_id = describe_cases_response["cases"][0][key]
 
-    actual_case_id.should.equal(expected_property)
+    actual_case_id.should.equal(value)
 
 
-@parameterized.expand(
+@pytest.mark.parametrize(
+    "key,value",
     [
         ("subject", "test_subject",),
         ("serviceCode", "test_service_code",),
         ("severityCode", "normal",),
         ("categoryCode", "test_category_code",),
         ("language", "test_language",),
-    ]
+    ],
 )
 @mock_support
 def test_support_created_case_can_be_described_without_max_results_or_next_token(
-    case_property, expected_property
+    key, value
 ):
     """
     On creating a support request it can be described without max_results
@@ -392,9 +391,9 @@ def test_support_created_case_can_be_described_without_max_results_or_next_token
         includeCommunications=True,
     )
 
-    actual_case_id = describe_cases_response["cases"][0][case_property]
+    actual_case_id = describe_cases_response["cases"][0][key]
 
-    actual_case_id.should.equal(expected_property)
+    actual_case_id.should.equal(value)
 
 
 @mock_support
