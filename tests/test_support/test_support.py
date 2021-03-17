@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto3
+import pytest
 import sure  # noqa
 from moto import mock_support
 from parameterized import parameterized
@@ -67,46 +68,33 @@ def test_refresh_trusted_advisor_check_returns_an_expected_status():
     possible_statuses = ["none", "enqueued", "processing", "success", "abandoned"]
     check_name = "XXXIIIY"
     response = client.refresh_trusted_advisor_check(checkId=check_name)
-    actual_status = [response["status"]["status"]]
-    set(actual_status).issubset(possible_statuses).should.be.true
+    actual_status = response["status"]["status"]
+    possible_statuses.should.contain(actual_status)
 
 
+@pytest.mark.parametrize(
+    "possible_statuses",
+    [
+        ["none", "enqueued", "processing"],
+        ["none", "enqueued", "processing", "success", "abandoned"],
+    ],
+)
 @mock_support
-def test_refresh_trusted_advisor_check_cycles_to_new_status_on_each_call():
-    """
-    On each call, the next expected status is returned
-    """
-    client = boto3.client("support", "us-east-1")
-    check_name = "XXXIIIY"
-    actual_statuses = []
-    possible_statuses = ["none", "enqueued", "processing", "success", "abandoned"]
-
-    for status in possible_statuses:
-        response = client.refresh_trusted_advisor_check(checkId=check_name)
-        actual_statuses.append(response["status"]["status"])
-
-    actual_statuses.should.equal(possible_statuses)
-
-
-@mock_support
-def test_refresh_trusted_advisor_check_cycles_to_new_status_on_each_call():
+def test_refresh_trusted_advisor_check_cycles_to_new_status_on_each_call(
+    possible_statuses,
+):
     """
     Called only three times, only three expected statuses are returned
     """
     client = boto3.client("support", "us-east-1")
     check_name = "XXXIIIY"
     actual_statuses = []
-    possible_statuses = ["none", "enqueued", "processing"]
 
     for status in possible_statuses:
         response = client.refresh_trusted_advisor_check(checkId=check_name)
         actual_statuses.append(response["status"]["status"])
 
-    unexpected_statuses = set(["success", "abandoned"]).issubset(actual_statuses)
-
-    actual_statuses.should.equal(
-        possible_statuses
-    ) and unexpected_statuses.should.be.false
+    actual_statuses.should.equal(possible_statuses)
 
 
 @mock_support
