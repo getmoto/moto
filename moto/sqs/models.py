@@ -71,7 +71,7 @@ DEDUPLICATION_TIME_IN_SECONDS = 300
 
 class Message(BaseModel):
     def __init__(self, message_id, body):
-        self.id = message_id
+        self.message_id = message_id
         self._body = body
         self.message_attributes = {}
         self.receipt_handle = None
