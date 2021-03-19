@@ -4029,6 +4029,10 @@ class SubnetRouteTableAssociation(CloudFormationModel):
     def __init__(self, route_table_id, subnet_id):
         self.route_table_id = route_table_id
         self.subnet_id = subnet_id
+    
+    @property
+    def physical_resource_id(self):
+        return self.route_table_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -4253,6 +4257,10 @@ class Route(CloudFormationModel):
         self.nat_gateway = nat_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
+    
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     @staticmethod
     def cloudformation_name_type():
@@ -5842,6 +5850,10 @@ class NatGateway(CloudFormationModel):
         # associate allocation with ENI
         self._backend.associate_address(eni=self._eni, allocation_id=self.allocation_id)
         self.tags = tags
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     @property
     def vpc_id(self):
