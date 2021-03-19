@@ -19,16 +19,18 @@ def create_route53_zone_id():
 
 
 class HealthCheck(CloudFormationModel):
-    def __init__(self, health_check_id, health_check_args):
+    def __init__(self, health_check_id, caller_reference, health_check_args):
         self.id = health_check_id
         self.ip_address = health_check_args.get("ip_address")
-        self.port = health_check_args.get("port", 80)
+        self.port = health_check_args.get("port") or 80
         self.type_ = health_check_args.get("type")
         self.resource_path = health_check_args.get("resource_path")
         self.fqdn = health_check_args.get("fqdn")
         self.search_string = health_check_args.get("search_string")
-        self.request_interval = health_check_args.get("request_interval", 30)
-        self.failure_threshold = health_check_args.get("failure_threshold", 3)
+        self.request_interval = health_check_args.get("request_interval") or 30
+        self.failure_threshold = health_check_args.get("failure_threshold") or 3
+        self.health_threshold = health_check_args.get("health_threshold")
+        self.caller_reference = caller_reference
 
     @property
     def physical_resource_id(self):
@@ -58,22 +60,39 @@ class HealthCheck(CloudFormationModel):
             "request_interval": properties.get("RequestInterval"),
             "failure_threshold": properties.get("FailureThreshold"),
         }
-        health_check = route53_backend.create_health_check(health_check_args)
+        health_check = route53_backend.create_health_check(
+            caller_reference=resource_name, health_check_args=health_check_args
+        )
         return health_check
 
     def to_xml(self):
         template = Template(
             """<HealthCheck>
             <Id>{{ health_check.id }}</Id>
-            <CallerReference>example.com 192.0.2.17</CallerReference>
+            <CallerReference>{{ health_check.caller_reference }}</CallerReference>
             <HealthCheckConfig>
-                <IPAddress>{{ health_check.ip_address }}</IPAddress>
-                <Port>{{ health_check.port }}</Port>
+                {% if health_check.type_ != "CALCULATED" %}
+                    <IPAddress>{{ health_check.ip_address }}</IPAddress>
+                    <Port>{{ health_check.port }}</Port>
+                {% endif %}
                 <Type>{{ health_check.type_ }}</Type>
-                <ResourcePath>{{ health_check.resource_path }}</ResourcePath>
-                <FullyQualifiedDomainName>{{ health_check.fqdn }}</FullyQualifiedDomainName>
-                <RequestInterval>{{ health_check.request_interval }}</RequestInterval>
-                <FailureThreshold>{{ health_check.failure_threshold }}</FailureThreshold>
+                {% if health_check.resource_path %}
+                    <ResourcePath>{{ health_check.resource_path }}</ResourcePath>
+                {% endif %}
+                {% if health_check.fqdn %}
+                    <FullyQualifiedDomainName>{{ health_check.fqdn }}</FullyQualifiedDomainName>
+                {% endif %}
+                {% if health_check.type_ != "CALCULATED" %}
+                    <RequestInterval>{{ health_check.request_interval }}</RequestInterval>
+                    <FailureThreshold>{{ health_check.failure_threshold }}</FailureThreshold>
+                    <MeasureLatency>False</MeasureLatency>
+                {% endif %}
+                {% if health_check.type_ == "CALCULATED" %}
+                    <HealthThreshold>{{ health_check.health_threshold }}</HealthThreshold>
+                {% endif %}
+                <Inverted>False</Inverted>
+                <Disabled>False</Disabled>
+                <EnableSNI>False</EnableSNI>
                 {% if health_check.search_string %}
                     <SearchString>{{ health_check.search_string }}</SearchString>
                 {% endif %}
@@ -388,9 +407,9 @@ class Route53Backend(BaseBackend):
     def delete_hosted_zone(self, id_):
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
-    def create_health_check(self, health_check_args):
+    def create_health_check(self, caller_reference, health_check_args):
         health_check_id = str(uuid.uuid4())
-        health_check = HealthCheck(health_check_id, health_check_args)
+        health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
         self.health_checks[health_check_id] = health_check
         return health_check
 
