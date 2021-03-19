@@ -1861,7 +1861,10 @@ def lambda_handler(event, context):
             "lambdaTest": {
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
-                    "Content": {"S3Bucket": bucket_name, "S3Key": "test.zip",},
+                    "Content": {
+                        "S3Bucket": bucket_name,
+                        "S3Key": "test.zip",
+                    },
                     "LayerName": "testLayer",
                     "Description": "Test Layer",
                     "CompatibleRuntimes": ["python2.7", "python3.6"],
@@ -1949,8 +1952,11 @@ def test_nat_gateway():
     result["NatGateways"][0]["VpcId"].should.equal(vpc_id)
     result["NatGateways"][0]["SubnetId"].should.equal(subnet_id)
     result["NatGateways"][0]["State"].should.equal("available")
-    result["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_resource.get("PhysicalResourceId"))
-    route_resource.get("PhysicalResourceId").should.contain('rtb-')
+    result["NatGateways"][0]["NatGatewayId"].should.equal(
+        nat_gateway_resource.get("PhysicalResourceId")
+    )
+    route_resource.get("PhysicalResourceId").should.contain("rtb-")
+
 
 @mock_cloudformation()
 @mock_kms()
@@ -2405,7 +2411,10 @@ def test_stack_dynamodb_resources_integration():
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
     table_desc = dynamodb_client.describe_table(TableName="myTableName")["Table"]
     table_desc["StreamSpecification"].should.equal(
-        {"StreamEnabled": True, "StreamViewType": "KEYS_ONLY",}
+        {
+            "StreamEnabled": True,
+            "StreamViewType": "KEYS_ONLY",
+        }
     )
 
     dynamodb_conn = boto3.resource("dynamodb", region_name="us-east-1")
@@ -2863,7 +2872,9 @@ def test_stack_events_get_attribute_integration():
 @mock_dynamodb2
 def test_dynamodb_table_creation():
     CFN_TEMPLATE = {
-        "Outputs": {"MyTableName": {"Value": {"Ref": "MyTable"}},},
+        "Outputs": {
+            "MyTableName": {"Value": {"Ref": "MyTable"}},
+        },
         "Resources": {
             "MyTable": {
                 "Type": "AWS::DynamoDB::Table",
