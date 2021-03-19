@@ -4029,7 +4029,7 @@ class SubnetRouteTableAssociation(CloudFormationModel):
     def __init__(self, route_table_id, subnet_id):
         self.route_table_id = route_table_id
         self.subnet_id = subnet_id
-    
+
     @property
     def physical_resource_id(self):
         return self.route_table_id
@@ -4257,7 +4257,7 @@ class Route(CloudFormationModel):
         self.nat_gateway = nat_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
-    
+
     @property
     def physical_resource_id(self):
         return self.id
