@@ -134,7 +134,7 @@ def test_send_templated_email():
     conn.verify_domain_identity(Domain="example.com")
 
     with pytest.raises(ClientError) as ex:
-        conn.send_templated_email(**kwargs).when.called_with(**kwargs)
+        conn.send_templated_email(**kwargs)
 
     ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
 
