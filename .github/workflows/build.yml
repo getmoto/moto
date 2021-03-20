@@ -189,4 +189,27 @@ jobs:
         uses: pypa/gh-action-pypi-publish@master
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-
+      - name: Get version number
+        run: |
+          version=$(grep -oP '(?<=__version__ = ")[0-9.a-z]+(?=")' moto/__init__.py)
+          echo "moto_version=$version" >> $GITHUB_ENV
+      - name: Get PR number
+        run: |
+          msg="${{ github.event.commits[0].message }}"
+          nr=$(grep -oP '\(#\K[0-9]+' <<< "$msg" | head -n 1)
+          if [ -z "$nr" ]
+          then
+            echo "PR nr not found in $msg"
+            echo "pr_found=false" >> $GITHUB_ENV
+          else
+            echo "PR NR: $nr"
+            echo "pr_nr=$nr" >> $GITHUB_ENV
+            echo "pr_found=true" >> $GITHUB_ENV
+          fi
+      - name: Leave PR comment with Moto version
+        uses: peter-evans/create-or-update-comment@v1
+        if: env.pr_found == 'true'
+        with:
+          issue-number: ${{ env.pr_nr }}
+          body: |
+            This is now part of moto >= ${{ env.moto_version }}
