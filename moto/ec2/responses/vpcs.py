@@ -179,6 +179,7 @@ class VPCs(BaseResponse):
         client_token = self._get_param("ClientToken")
         tag_specifications = self._get_param("TagSpecifications")
         private_dns_enabled = self._get_bool_param("PrivateDNSEnabled", if_none=True)
+        # TODO: change to self._get_multi_param("SecurityGroupId") below!
         security_group = self._get_param("SecurityGroup")
 
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
@@ -479,8 +480,8 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
         {% endfor %}
     </serviceNameSet>
     <serviceDetailSet>
+        {% for service in vpc_end_points.servicesDetails %}
         <item>
-            {% for service in vpc_end_points.servicesDetails %}
                 <owner>amazon</owner>
                 <serviceType>
                     <item>
@@ -498,8 +499,8 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                 </availabilityZoneSet>
                 <serviceName>{{ service.service_name }}</serviceName>
                 <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
-            {% endfor %}
         </item>
+        {% endfor %}
     </serviceDetailSet>
 </DescribeVpcEndpointServicesResponse>"""
 

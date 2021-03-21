@@ -311,7 +311,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.step_scaling_policy_configuration = None
         self.target_tracking_scaling_policy_configuration = None
 
-        if "policy_type" == "StepScaling":
+        if policy_type == "StepScaling":
             self.step_scaling_policy_configuration = policy_body
             self.target_tracking_scaling_policy_configuration = None
         elif policy_type == "TargetTrackingScaling":

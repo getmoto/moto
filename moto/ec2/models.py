@@ -250,8 +250,12 @@ class TaggedEC2Resource(BaseModel):
             return [tag["key"] for tag in tags]
         elif filter_name == "tag-value":
             return [tag["value"] for tag in tags]
-        else:
-            raise FilterNotImplementedError(filter_name, method_name)
+
+        value = getattr(self, filter_name.lower().replace('-', '_'), None)
+        if value is not None:
+            return [value]
+
+        raise FilterNotImplementedError(filter_name, method_name)
 
 
 class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
@@ -3266,6 +3270,7 @@ class VPCBackend(object):
             dns_entries = [dns_entries]
 
         vpc_end_point = VPCEndPoint(
+            self,
             vpc_endpoint_id,
             vpc_id,
             service_name,
@@ -4317,6 +4322,7 @@ class Route(CloudFormationModel):
 class VPCEndPoint(TaggedEC2Resource):
     def __init__(
         self,
+        ec2_backend,
         id,
         vpc_id,
         service_name,
@@ -4331,6 +4337,7 @@ class VPCEndPoint(TaggedEC2Resource):
         tag_specifications=None,
         private_dns_enabled=None,
     ):
+        self.ec2_backend = ec2_backend
         self.id = id
         self.vpc_id = vpc_id
         self.service_name = service_name

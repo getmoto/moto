@@ -827,7 +827,7 @@ class SQSBackend(BaseBackend):
                         continue
 
                 if (
-                    queue.dead_letter_queue is not None
+                    queue.dead_letter_queue is not None and queue.redrive_policy
                     and message.approximate_receive_count
                     >= queue.redrive_policy["maxReceiveCount"]
                 ):
