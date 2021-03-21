@@ -95,7 +95,7 @@ def prerelease_version():
     assert (
         initpy_ver > ver
     ), "the moto/__init__.py version should be newer than the last tagged release."
-    return "{initpy_ver}.{commits_since}".format(
+    return "{initpy_ver}{commits_since}".format(
         initpy_ver=initpy_ver, commits_since=commits_since
     )
 
