@@ -44,7 +44,7 @@ def test_decorator_ordering():
         Params={
             "Bucket": bucket_name,
             "Key": key,
-            **({"ResponseContentDisposition": f"attachment;filename=bar"}),
+            "ResponseContentDisposition": "attachment;filename=bar",
         },
     )
 
