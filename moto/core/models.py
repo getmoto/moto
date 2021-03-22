@@ -292,7 +292,11 @@ def _find_first_match_legacy(self, request):
             matches.append(match)
 
     # Look for implemented callbacks first
-    implemented_matches = [m for m in matches if m.callback != not_implemented_callback]
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
     if implemented_matches:
         return implemented_matches[0]
     elif matches:
@@ -312,7 +316,11 @@ def _find_first_match(self, request):
             match_failed_reasons.append(reason)
 
     # Look for implemented callbacks first
-    implemented_matches = [m for m in matches if m.callback != not_implemented_callback]
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
     if implemented_matches:
         return implemented_matches[0], []
     elif matches:
