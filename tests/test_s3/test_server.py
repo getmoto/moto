@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 import io
+import os
 from six.moves.urllib.parse import urlparse, parse_qs
 import sure  # noqa
 
@@ -54,6 +55,17 @@ def test_s3_server_bucket_create():
     res = test_client.get("/bar", "http://foobaz.localhost:5000/")
     res.status_code.should.equal(200)
     res.data.should.equal(b"test value")
+
+
+def test_s3_server_ignore_subdomain_for_bucketnames():
+    os.environ["S3_IGNORE_SUBDOMAIN_BUCKETNAME"] = "1"
+    test_client = authenticated_client()
+
+    res = test_client.put("/mybucket", "http://foobaz.localhost:5000/")
+    res.status_code.should.equal(200)
+    res.data.should.contain(b"mybucket")
+
+    del os.environ["S3_IGNORE_SUBDOMAIN_BUCKETNAME"]
 
 
 def test_s3_server_bucket_versioning():
