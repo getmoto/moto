@@ -510,7 +510,7 @@ class DynamoHandler(BaseResponse):
                 range_key_expression_components = range_key_expression.split()
                 range_comparison = range_key_expression_components[1]
 
-                if "AND" in range_key_expression:
+                if " and " in range_key_expression.lower():
                     range_comparison = "BETWEEN"
                     range_values = [
                         value_alias_map[range_key_expression_components[2]],
@@ -521,6 +521,18 @@ class DynamoHandler(BaseResponse):
                     range_values = [
                         value_alias_map[range_key_expression_components[-1]]
                     ]
+                elif "begins_with" in range_key_expression.lower():
+                    function_used = range_key_expression[
+                        range_key_expression.lower().index("begins_with") : len(
+                            "begins_with"
+                        )
+                    ]
+                    return self.error(
+                        "com.amazonaws.dynamodb.v20111205#ValidationException",
+                        "Invalid KeyConditionExpression: Invalid function name; function: {}".format(
+                            function_used
+                        ),
+                    )
                 else:
                     range_values = [value_alias_map[range_key_expression_components[2]]]
             else:
