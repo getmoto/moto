@@ -5685,7 +5685,7 @@ def test_dynamodb_update_item_fails_on_string_sets():
     )
 
 
-@moto.mock_dynamodb2
+@mock_dynamodb2
 def test_update_item_add_to_list_using_legacy_attribute_updates():
     resource = boto3.resource("dynamodb", region_name="us-west-2")
     resource.create_table(
@@ -5715,3 +5715,27 @@ def test_get_item_for_non_existent_table_raises_error():
         client.get_item(TableName="non-existent", Key={"site-id": {"S": "foo"}})
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+
+
+@mock_dynamodb2
+def test_attribute_item_delete():
+    name = "TestTable"
+    conn = boto3.client("dynamodb", region_name="eu-west-2")
+    conn.create_table(
+        TableName=name,
+        AttributeDefinitions=[{"AttributeName": "name", "AttributeType": "S"}],
+        KeySchema=[{"AttributeName": "name", "KeyType": "HASH"}],
+    )
+
+    item_name = "foo"
+    conn.put_item(
+        TableName=name, Item={"name": {"S": item_name}, "extra": {"S": "bar"}}
+    )
+
+    conn.update_item(
+        TableName=name,
+        Key={"name": {"S": item_name}},
+        AttributeUpdates={"extra": {"Action": "DELETE"}},
+    )
+    items = conn.scan(TableName=name)["Items"]
+    items.should.equal([{"name": {"S": "foo"}}])
