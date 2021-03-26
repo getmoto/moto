@@ -6,20 +6,26 @@ from moto import mock_mediastore
 
 region = "eu-west-1"
 
-
-
-def _create_lifecycle_policy_config(**kwargs):
-    container_name = kwargs.get("container_name", "container-name")
-    lifecycle_policy = kwargs.get("lifecycle_policy", "lifecycle-policy")
-    policy_config = dict(ContainerName=container_name, LifecyclePolicy=lifecycle_policy,)
-    return policy_config
+@mock_mediastore
+def test_create_channel_succeeds():
+    client = boto3.client("mediastore", region_name=region)
+    response = client.create_container(ContainerName="Awesome container!", Tags=[{"Key": "customer"}])
+    print(response)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["Arn"].should.equal(
+         "arn:aws:mediastore:container:{}".format(response["Name"])
+    )
+    response["Name"].should.equal("Awesome container!")
+    response["Status"].should.equal("ACTIVE")
+    response["Tags"][0]["Key"].should.equal("customer")
 
 @mock_mediastore
 def test_put_lifecycle_policy_succeeds():
     client = boto3.client("mediastore", region_name=region)
-    policy_config = _create_lifecycle_policy_config()
-    print(policy_config)
-    client.put_lifecycle_policy(**policy_config)
-    # response["ContainerName"].should.equal("container-name")
+    container = client.create_container(ContainerName="container-name", Tags=[{"Key": "customer"}])
+    print(container)
+    response = client.put_lifecycle_policy(container["ContainerName"], "lifecycle-policy")
+    print(response)
+#   response["ContainerName"].should.equal("container-name")
 
     

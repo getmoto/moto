@@ -10,6 +10,12 @@ class MediaStoreResponse(BaseResponse):
     def mediastore_backend(self):
         return mediastore_backends[self.region]
 
+    def create_container(self):
+        name = self._get_param("container_name")
+        tags = self._get_param("tags")
+        container = self.mediastore_backend.create_container(name=name, tags=tags)
+        # print(container.to_dict())
+        return json.dumps(container.to_dict())
     
     def put_lifecycle_policy(self):
         container_name = self._get_param("ContainerName")
