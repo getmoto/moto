@@ -2265,6 +2265,8 @@ class SecurityGroupBackend(object):
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges:
             if isinstance(ip_ranges, str) or (
                 six.PY2 and isinstance(ip_ranges, unicode)  # noqa
@@ -2353,6 +2355,8 @@ class SecurityGroupBackend(object):
     ):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges and not isinstance(ip_ranges, list):
 
             if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:

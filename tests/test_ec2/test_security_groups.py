@@ -969,3 +969,19 @@ def test_revoke_security_group_egress():
 
     sg.reload()
     sg.ip_permissions_egress.should.have.length_of(0)
+
+
+@mock_ec2
+def test_non_existent_security_group_raises_error_on_authorize():
+    client = boto3.client("ec2", "us-east-1")
+    non_existent_sg = "sg-123abc"
+    expected_error = "The security group '{}' does not exist".format(non_existent_sg)
+    authorize_funcs = [
+        client.authorize_security_group_egress,
+        client.authorize_security_group_ingress,
+    ]
+    for authorize_func in authorize_funcs:
+        with pytest.raises(ClientError) as ex:
+            authorize_func(GroupId=non_existent_sg, IpPermissions=[{}])
+        ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
+        ex.value.response["Error"]["Message"].should.equal(expected_error)
