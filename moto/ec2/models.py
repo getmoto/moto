@@ -2151,10 +2151,11 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def add_ingress_rule(self, rule):
         if rule in self.ingress_rules:
             raise InvalidPermissionDuplicateError()
-        else:
-            self.ingress_rules.append(rule)
+        self.ingress_rules.append(rule)
 
     def add_egress_rule(self, rule):
+        if rule in self.egress_rules:
+            raise InvalidPermissionDuplicateError()
         self.egress_rules.append(rule)
 
     def get_number_of_ingress_rules(self):
