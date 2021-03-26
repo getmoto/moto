@@ -30,6 +30,11 @@ class HealthCheck(CloudFormationModel):
         self.request_interval = health_check_args.get("request_interval") or 30
         self.failure_threshold = health_check_args.get("failure_threshold") or 3
         self.health_threshold = health_check_args.get("health_threshold")
+        self.measure_latency = health_check_args.get("measure_latency") or False
+        self.inverted = health_check_args.get("inverted") or False
+        self.disabled = health_check_args.get("disabled") or False
+        self.enable_sni = health_check_args.get("enable_sni") or False
+        self.children = health_check_args.get("children") or None
         self.caller_reference = caller_reference
 
     @property
@@ -85,16 +90,23 @@ class HealthCheck(CloudFormationModel):
                 {% if health_check.type_ != "CALCULATED" %}
                     <RequestInterval>{{ health_check.request_interval }}</RequestInterval>
                     <FailureThreshold>{{ health_check.failure_threshold }}</FailureThreshold>
-                    <MeasureLatency>False</MeasureLatency>
+                    <MeasureLatency>{{ health_check.measure_latency }}</MeasureLatency>
                 {% endif %}
                 {% if health_check.type_ == "CALCULATED" %}
                     <HealthThreshold>{{ health_check.health_threshold }}</HealthThreshold>
                 {% endif %}
-                <Inverted>False</Inverted>
-                <Disabled>False</Disabled>
-                <EnableSNI>False</EnableSNI>
+                <Inverted>{{ health_check.inverted }}</Inverted>
+                <Disabled>{{ health_check.disabled }}</Disabled>
+                <EnableSNI>{{ health_check.enable_sni }}</EnableSNI>
                 {% if health_check.search_string %}
                     <SearchString>{{ health_check.search_string }}</SearchString>
+                {% endif %}
+                {% if health_check.children %}
+                    <ChildHealthChecks>
+                    {% for child in health_check.children %}
+                        <member>{{ child }}</member>
+                    {% endfor %}
+                    </ChildHealthChecks>
                 {% endif %}
             </HealthCheckConfig>
             <HealthCheckVersion>1</HealthCheckVersion>

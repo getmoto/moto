@@ -190,6 +190,11 @@ class Route53(BaseResponse):
                 "request_interval": config.get("RequestInterval"),
                 "failure_threshold": config.get("FailureThreshold"),
                 "health_threshold": config.get("HealthThreshold"),
+                "measure_latency": config.get("MeasureLatency"),
+                "inverted": config.get("Inverted"),
+                "disabled": config.get("Disabled"),
+                "enable_sni": config.get("EnableSNI"),
+                "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
             }
             health_check = route53_backend.create_health_check(
                 caller_reference, health_check_args
