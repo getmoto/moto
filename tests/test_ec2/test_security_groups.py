@@ -574,7 +574,7 @@ def test_sec_group_rule_limit():
     # fill the rules up the limit
     # remember that by default, when created a sec group contains 1 egress rule
     # so our other_sg rule + 98 CIDR IP rules + 1 by default == 100 the limit
-    for i in range(98):
+    for i in range(1, 99):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
@@ -645,7 +645,7 @@ def test_sec_group_rule_limit_vpc():
     # fill the rules up the limit
     # remember that by default, when created a sec group contains 1 egress rule
     # so our other_sg rule + 48 CIDR IP rules + 1 by default == 50 the limit
-    for i in range(48):
+    for i in range(1, 49):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
@@ -677,6 +677,7 @@ def test_add_same_rule_twice_throws_error():
         GroupName="sg1", Description="Test security group sg1", VpcId=vpc.id
     )
 
+    # Ingress
     ip_permissions = [
         {
             "IpProtocol": "tcp",
@@ -689,6 +690,28 @@ def test_add_same_rule_twice_throws_error():
 
     with pytest.raises(ClientError) as ex:
         sg.authorize_ingress(IpPermissions=ip_permissions)
+    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.Duplicate")
+    ex.value.response["Error"]["Message"].should.match(
+        r"^.* specified rule.*already exists$"
+    )
+
+    # Egress
+    ip_permissions = [
+        {
+            "IpProtocol": "-1",
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": [],
+        }
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        sg.authorize_egress(IpPermissions=ip_permissions)
+    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.Duplicate")
+    ex.value.response["Error"]["Message"].should.match(
+        r"^.* specified rule.*already exists$"
+    )
 
 
 @mock_ec2
