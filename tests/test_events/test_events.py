@@ -88,7 +88,6 @@ def test_put_rule():
         "Name": "my-event",
         "ScheduleExpression": "rate(5 minutes)",
         "EventPattern": '{"source": ["test-source"]}',
-        "EventBusName": "test-bus",
     }
 
     client.put_rule(**rule_data)
@@ -99,8 +98,32 @@ def test_put_rule():
     rules[0]["Name"].should.equal(rule_data["Name"])
     rules[0]["ScheduleExpression"].should.equal(rule_data["ScheduleExpression"])
     rules[0]["EventPattern"].should.equal(rule_data["EventPattern"])
-    rules[0]["EventBusName"].should.equal(rule_data["EventBusName"])
     rules[0]["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_put_rule_error_schedule_expression_custom_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "test-bus"
+    client.create_event_bus(Name=event_bus_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_rule(
+            Name="test-rule",
+            ScheduleExpression="rate(5 minutes)",
+            EventBusName=event_bus_name,
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutRule")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "ScheduleExpression is supported only on the default event bus."
+    )
 
 
 @mock_events
@@ -118,13 +141,49 @@ def test_describe_rule():
     client = generate_environment()
     response = client.describe_rule(Name=rule_name)
 
-    assert response is not None
-    assert response.get("Name") == rule_name
-
-    rule_arn = response.get("Arn")
-    assert rule_arn == "arn:aws:events:us-west-2:{account}:rule/{name}".format(
-        account=ACCOUNT_ID, name=rule_name
+    response["Name"].should.equal(rule_name)
+    response["Arn"].should.equal(
+        "arn:aws:events:us-west-2:{0}:rule/{1}".format(ACCOUNT_ID, rule_name)
     )
+
+
+@mock_events
+def test_describe_rule_with_event_bus_name():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "test-bus"
+    rule_name = "test-rule"
+    client.create_event_bus(Name=event_bus_name)
+    client.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="DISABLED",
+        Description="test rule",
+        RoleArn="arn:aws:iam::{}:role/test-role".format(ACCOUNT_ID),
+        EventBusName=event_bus_name,
+    )
+
+    # when
+    response = client.describe_rule(Name=rule_name, EventBusName=event_bus_name)
+
+    # then
+    response["Arn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:rule/{1}/{2}".format(
+            ACCOUNT_ID, event_bus_name, rule_name
+        )
+    )
+    response["CreatedBy"].should.equal(ACCOUNT_ID)
+    response["Description"].should.equal("test rule")
+    response["EventBusName"].should.equal(event_bus_name)
+    json.loads(response["EventPattern"]).should.equal({"account": [ACCOUNT_ID]})
+    response["Name"].should.equal(rule_name)
+    response["RoleArn"].should.equal(
+        "arn:aws:iam::{}:role/test-role".format(ACCOUNT_ID)
+    )
+    response["State"].should.equal("DISABLED")
+
+    response.should_not.have.key("ManagedBy")
+    response.should_not.have.key("ScheduleExpression")
 
 
 @mock_events
@@ -791,10 +850,11 @@ def test_list_tags_for_resource_error_unknown_arn():
 def test_create_archive():
     # given
     client = boto3.client("events", "eu-central-1")
+    archive_name = "test-archive"
 
     # when
     response = client.create_archive(
-        ArchiveName="test-archive",
+        ArchiveName=archive_name,
         EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
             ACCOUNT_ID
         ),
@@ -802,10 +862,30 @@ def test_create_archive():
 
     # then
     response["ArchiveArn"].should.equal(
-        "arn:aws:events:eu-central-1:{}:archive/test-archive".format(ACCOUNT_ID)
+        "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, archive_name)
     )
     response["CreationTime"].should.be.a(datetime)
     response["State"].should.equal("ENABLED")
+
+    # check for archive rule existence
+    rule_name = "Events-Archive-{}".format(archive_name)
+    response = client.describe_rule(Name=rule_name)
+
+    response["Arn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:rule/{1}".format(ACCOUNT_ID, rule_name)
+    )
+    response["CreatedBy"].should.equal(ACCOUNT_ID)
+    response["EventBusName"].should.equal("default")
+    json.loads(response["EventPattern"]).should.equal(
+        {"replay-name": [{"exists": False}]}
+    )
+    response["ManagedBy"].should.equal("prod.vhs.events.aws.internal")
+    response["Name"].should.equal(rule_name)
+    response["State"].should.equal("ENABLED")
+
+    response.should_not.have.key("Description")
+    response.should_not.have.key("RoleArn")
+    response.should_not.have.key("ScheduleExpression")
 
 
 @mock_events
