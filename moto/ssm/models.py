@@ -1284,6 +1284,11 @@ class SimpleSystemManagerBackend(BaseBackend):
     def put_parameter(
         self, name, description, value, type, allowed_pattern, keyid, overwrite, tags,
     ):
+        if value == "":
+            raise ValidationException(
+                "1 validation error detected: Value '' at 'value' failed to satisfy"
+                " constraint: Member must have length greater than or equal to 1."
+            )
         if name.lower().lstrip("/").startswith("aws") or name.lower().lstrip(
             "/"
         ).startswith("ssm"):

@@ -300,6 +300,22 @@ def test_put_parameter():
 
 
 @mock_ssm
+def test_put_parameter_empty_string_value():
+    client = boto3.client("ssm", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        client.put_parameter(Name="test_name", Value="", Type="String")
+    ex = e.value
+    ex.operation_name.should.equal("PutParameter")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value '' at 'value' failed to satisfy constraint: "
+        "Member must have length greater than or equal to 1."
+    )
+
+
+@mock_ssm
 def test_put_parameter_invalid_names():
     client = boto3.client("ssm", region_name="us-east-1")
 
