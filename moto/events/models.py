@@ -207,6 +207,8 @@ class Rule(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        properties.setdefault("EventBusName", "default")
+
         event_backend = events_backends[region_name]
         event_name = resource_name
         return event_backend.put_rule(name=event_name, **properties)
