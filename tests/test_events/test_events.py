@@ -1330,7 +1330,7 @@ def test_archive_event_with_bus_arn():
         "Source": "source",
         "DetailType": "type",
         "Detail": '{ "key1": "value1" }',
-        "EventBusName": event_bus_arn
+        "EventBusName": event_bus_arn,
     }
     client.create_archive(ArchiveName=archive_name, EventSourceArn=event_bus_arn)
 
