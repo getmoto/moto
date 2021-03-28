@@ -28,8 +28,8 @@ class Rule(CloudFormationModel):
     Arn = namedtuple("Arn", ["service", "resource_type", "resource_id"])
 
     def _generate_arn(self, name):
-        return "arn:aws:events:{region_name}:111111111111:rule/{name}".format(
-            region_name=self.region_name, name=name
+        return "arn:aws:events:{region_name}:{account}:rule/{name}".format(
+            region_name=self.region_name, account=ACCOUNT_ID, name=name
         )
 
     def __init__(self, name, region_name, **kwargs):
