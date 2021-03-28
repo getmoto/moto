@@ -27,22 +27,33 @@ from uuid import uuid4
 class Rule(CloudFormationModel):
     Arn = namedtuple("Arn", ["service", "resource_type", "resource_id"])
 
-    def _generate_arn(self, name):
-        return "arn:aws:events:{region_name}:{account}:rule/{name}".format(
-            region_name=self.region_name, account=ACCOUNT_ID, name=name
-        )
-
     def __init__(self, name, region_name, **kwargs):
         self.name = name
         self.region_name = region_name
-        self.arn = kwargs.get("Arn") or self._generate_arn(name)
         self.event_pattern = kwargs.get("EventPattern")
         self.schedule_exp = kwargs.get("ScheduleExpression")
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
         self.role_arn = kwargs.get("RoleArn")
-        self.event_bus_name = kwargs.get("EventBusName") or "default"
+        self.managed_by = kwargs.get("ManagedBy")  # can only be set by AWS services
+        self.event_bus_name = kwargs.get("EventBusName")
+        self.created_by = ACCOUNT_ID
         self.targets = []
+
+    @property
+    def arn(self):
+        event_bus_name = (
+            ""
+            if self.event_bus_name == "default"
+            else "{}/".format(self.event_bus_name)
+        )
+
+        return "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
+            region=self.region_name,
+            account_id=ACCOUNT_ID,
+            event_bus_name=event_bus_name,
+            name=self.name,
+        )
 
     @property
     def physical_resource_id(self):
@@ -196,6 +207,8 @@ class Rule(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        properties.setdefault("EventBusName", "default")
+
         event_backend = events_backends[region_name]
         event_name = resource_name
         return event_backend.put_rule(name=event_name, **properties)
@@ -682,6 +695,11 @@ class EventsBackend(BaseBackend):
         rule.event_bus_name = kwargs.get("EventBusName") or rule.event_bus_name
 
     def put_rule(self, name, **kwargs):
+        if kwargs.get("ScheduleExpression") and kwargs.get("EventBusName") != "default":
+            raise ValidationException(
+                "ScheduleExpression is supported only on the default event bus."
+            )
+
         if name in self.rules:
             self.update_rule(self.rules[name], **kwargs)
             new_rule = self.rules[name]
@@ -932,6 +950,7 @@ class EventsBackend(BaseBackend):
             **{
                 "EventPattern": json.dumps(rule_event_pattern),
                 "EventBusName": event_bus.name,
+                "ManagedBy": "prod.vhs.events.aws.internal",
             }
         )
         self.put_targets(

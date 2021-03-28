@@ -25,7 +25,9 @@ class EventsHandler(BaseResponse):
             "Description": rule.description,
             "ScheduleExpression": rule.schedule_exp,
             "RoleArn": rule.role_arn,
+            "ManagedBy": rule.managed_by,
             "EventBusName": rule.event_bus_name,
+            "CreatedBy": rule.created_by,
         }
 
     @property
@@ -168,10 +170,7 @@ class EventsHandler(BaseResponse):
         state = self._get_param("State")
         desc = self._get_param("Description")
         role_arn = self._get_param("RoleArn")
-        event_bus_name = self._get_param("EventBusName")
-
-        if not name:
-            return self.error("ValidationException", "Parameter Name is required.")
+        event_bus_name = self._get_param("EventBusName", "default")
 
         if event_pattern:
             try:
