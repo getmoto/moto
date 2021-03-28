@@ -82,6 +82,7 @@ class Rule(CloudFormationModel):
                 self.targets.pop(index)
 
     def send_to_targets(self, event_bus_name, event):
+        event_bus_name = event_bus_name.split("/")[-1]
         if event_bus_name != self.event_bus_name:
             return
 

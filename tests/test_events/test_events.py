@@ -1319,6 +1319,34 @@ def test_archive_actual_events():
 
 
 @mock_events
+def test_archive_event_with_bus_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_name = "mock_archive"
+    event_with_bus_arn = {
+        "Source": "source",
+        "DetailType": "type",
+        "Detail": '{ "key1": "value1" }',
+        "EventBusName": event_bus_arn
+    }
+    client.create_archive(ArchiveName=archive_name, EventSourceArn=event_bus_arn)
+
+    # when
+    response = client.put_events(Entries=[event_with_bus_arn])
+
+    # then
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
+
+    response = client.describe_archive(ArchiveName=archive_name)
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.be.greater_than(0)
+
+
+@mock_events
 def test_start_replay():
     # given
     client = boto3.client("events", "eu-central-1")
