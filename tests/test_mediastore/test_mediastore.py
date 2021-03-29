@@ -8,20 +8,18 @@ region = "eu-west-1"
 
 
 @mock_mediastore
-# def test_create_channel_succeeds():
-#     client = boto3.client("mediastore", region_name=region)
-#     response = client.create_container(
-#         ContainerName="Awesome container!", Tags=[{"Key": "customer"}]
-#     )
-#     print(response)
-#     container = response["Container"]
-#     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-#     container["ARN"].should.equal(
-#         "arn:aws:mediastore:container:{}".format(container["Name"])
-#     )
-#     container["Name"].should.equal("Awesome container!")
-#     container["Status"].should.equal("ACTIVE")
-#     container["Tags"][0]["Key"].should.equal("customer")
+def test_create_channel_succeeds():
+    client = boto3.client("mediastore", region_name=region)
+    response = client.create_container(
+        ContainerName="Awesome container!", Tags=[{"Key": "customer"}]
+    )
+    container = response["Container"]
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    container["ARN"].should.equal(
+        "arn:aws:mediastore:container:{}".format(container["Name"])
+    )
+    container["Name"].should.equal("Awesome container!")
+    container["Status"].should.equal("CREATING")
 
 
 @mock_mediastore
