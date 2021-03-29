@@ -14,11 +14,11 @@ class Container(BaseModel):
 
     def to_dict(self, exclude=None):
         data = {
-            "arn": self.arn,
-            "name": self.name,
-            "endpoint": self.endpoint,
-            "status": self.status,
-            "creation_time": self.creation_time,
+            "ARN": self.arn,
+            "Name": self.name,
+            "Endpoint": self.endpoint,
+            "Status": self.status,
+            "CreationTime": self.creation_time,
         }
         if exclude:
             for key in exclude:
@@ -29,14 +29,15 @@ class MediaStoreBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaStoreBackend, self).__init__()
         self.region_name = region_name
+        self._containers = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
         self._lifecycle_policies = OrderedDict()
-        self._containers = OrderedDict()
-
+        
+        
     def create_container(self, name, tags):
         arn = "arn:aws:mediastore:container:{}".format(name)
         container = Container(
@@ -46,12 +47,12 @@ class MediaStoreBackend(BaseBackend):
             status="CREATING",
             creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S")
         )
-        self._containers[id] = container
+        self._containers[name] = container
         # print(container)
         return container
 
     def put_lifecycle_policy(self, container_name, lifecycle_policy):
-        if container_name not in self._conatiners:
+        if container_name not in self._containers:
             raise ResourceNotFoundException()
         self._containers[container_name].lifecycle_policy = lifecycle_policy
         # print(lifecycle_policy)
