@@ -72,7 +72,10 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return applicationautoscaling_backends[self.region]
 
     def describe_scalable_targets(
-        self, namespace, r_ids=None, dimension=None,
+        self,
+        namespace,
+        r_ids=None,
+        dimension=None,
     ):
         """ Describe scalable targets. """
         if r_ids is None:

@@ -86,7 +86,8 @@ def test_invalid_associate():
     # Wrong instance profile
     with pytest.raises(ClientError) as ex:
         client.associate_iam_instance_profile(
-            IamInstanceProfile={"Arn": "fake", "Name": "fake"}, InstanceId=instance_id,
+            IamInstanceProfile={"Arn": "fake", "Name": "fake"},
+            InstanceId=instance_id,
         )
     ex.value.response["Error"]["Code"].should.equal("NoSuchEntity")
     ex.value.response["Error"]["Message"].should.contain("not found")
@@ -255,7 +256,10 @@ def test_invalid_replace():
     # Wrong instance profile
     with pytest.raises(ClientError) as ex:
         client.replace_iam_instance_profile_association(
-            IamInstanceProfile={"Arn": "fake", "Name": "fake",},
+            IamInstanceProfile={
+                "Arn": "fake",
+                "Name": "fake",
+            },
             AssociationId=association["IamInstanceProfileAssociation"]["AssociationId"],
         )
     ex.value.response["Error"]["Code"].should.equal("NoSuchEntity")
@@ -304,6 +308,8 @@ def test_invalid_disassociate():
 
     # Wrong id
     with pytest.raises(ClientError) as ex:
-        client.disassociate_iam_instance_profile(AssociationId="fake",)
+        client.disassociate_iam_instance_profile(
+            AssociationId="fake",
+        )
     ex.value.response["Error"]["Code"].should.equal("InvalidAssociationID.NotFound")
     ex.value.response["Error"]["Message"].should.contain("An invalid association-id of")

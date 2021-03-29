@@ -348,7 +348,9 @@ class InvalidDependantParameterError(EC2ClientError):
         super(InvalidDependantParameterError, self).__init__(
             "InvalidParameter",
             "{0} can't be empty if {1} is {2}.".format(
-                dependant_parameter, parameter, parameter_value,
+                dependant_parameter,
+                parameter,
+                parameter_value,
             ),
         )
 
@@ -358,7 +360,9 @@ class InvalidDependantParameterTypeError(EC2ClientError):
         super(InvalidDependantParameterTypeError, self).__init__(
             "InvalidParameter",
             "{0} type must be {1} if {2} is provided.".format(
-                dependant_parameter, parameter_value, parameter,
+                dependant_parameter,
+                parameter_value,
+                parameter,
             ),
         )
 
@@ -366,7 +370,8 @@ class InvalidDependantParameterTypeError(EC2ClientError):
 class InvalidAggregationIntervalParameterError(EC2ClientError):
     def __init__(self, parameter):
         super(InvalidAggregationIntervalParameterError, self).__init__(
-            "InvalidParameter", "Invalid {0}".format(parameter),
+            "InvalidParameter",
+            "Invalid {0}".format(parameter),
         )
 
 

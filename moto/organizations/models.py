@@ -806,7 +806,8 @@ class OrganizationsBackend(BaseBackend):
             )
 
         admin = next(
-            (admin for admin in self.admins if admin.account.id == account_id), None,
+            (admin for admin in self.admins if admin.account.id == account_id),
+            None,
         )
         if admin is None:
             account = next(
@@ -862,7 +863,8 @@ class OrganizationsBackend(BaseBackend):
                 )
         elif re.match(account_id_regex, target_id):
             account = next(
-                (account for account in self.accounts if account.id == target_id), None,
+                (account for account in self.accounts if account.id == target_id),
+                None,
             )
             if account is not None:
                 if account in account.attached_policies:

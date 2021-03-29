@@ -11,7 +11,11 @@ def _create_channel_config(**kwargs):
     id = kwargs.get("id", "channel-id")
     description = kwargs.get("description", "Awesome channel!")
     tags = kwargs.get("tags", {"Customer": "moto"})
-    channel_config = dict(Description=description, Id=id, Tags=tags,)
+    channel_config = dict(
+        Description=description,
+        Id=id,
+        Tags=tags,
+    )
     return channel_config
 
 

@@ -183,7 +183,8 @@ def test_create_another_member_withopts():
 
     # But cannot get
     response = conn.get_member.when.called_with(
-        NetworkId=network_id, MemberId=member_id2,
+        NetworkId=network_id,
+        MemberId=member_id2,
     ).should.throw(Exception, "Member {0} not found".format(member_id2))
 
     # Delete member 1
@@ -255,7 +256,9 @@ def test_invite_and_remove_member():
 
     # Create proposal (invite and remove member)
     response = conn.create_proposal(
-        NetworkId=network_id, MemberId=member_id, Actions=both_policy_actions,
+        NetworkId=network_id,
+        MemberId=member_id,
+        Actions=both_policy_actions,
     )
     proposal_id2 = response["ProposalId"]
 
@@ -368,7 +371,10 @@ def test_create_too_many_members():
         MemberConfiguration=helpers.create_member_configuration(
             "testmember6", "admin", "Admin12345", False, "Test Member 6"
         ),
-    ).should.throw(Exception, "is the maximum number of members allowed in a",)
+    ).should.throw(
+        Exception,
+        "is the maximum number of members allowed in a",
+    )
 
 
 @mock_managedblockchain
@@ -594,7 +600,8 @@ def test_get_member_badmember():
     network_id = response["NetworkId"]
 
     response = conn.get_member.when.called_with(
-        NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        NetworkId=network_id,
+        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
     ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
@@ -624,7 +631,8 @@ def test_delete_member_badmember():
     network_id = response["NetworkId"]
 
     response = conn.delete_member.when.called_with(
-        NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        NetworkId=network_id,
+        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
     ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 

@@ -517,8 +517,10 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject):
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-        self.notebook_instance_lifecycle_config_arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-            self.notebook_instance_lifecycle_config_name, self.region_name
+        self.notebook_instance_lifecycle_config_arn = (
+            FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                self.notebook_instance_lifecycle_config_name, self.region_name
+            )
         )
 
     @staticmethod
@@ -790,7 +792,10 @@ class SageMakerModelBackend(BaseBackend):
             raise ValidationError(message=message)
 
     def create_endpoint(
-        self, endpoint_name, endpoint_config_name, tags,
+        self,
+        endpoint_name,
+        endpoint_config_name,
+        tags,
     ):
         try:
             endpoint_config = self.describe_endpoint_config(endpoint_config_name)

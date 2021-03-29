@@ -715,7 +715,8 @@ def test_get_metric_data_partially_within_timeframe():
         return response
 
     response = get_data(
-        start=yesterday - timedelta(seconds=60), end=utc_now + timedelta(seconds=60),
+        start=yesterday - timedelta(seconds=60),
+        end=utc_now + timedelta(seconds=60),
     )
 
     # Assert Last week's data is not returned

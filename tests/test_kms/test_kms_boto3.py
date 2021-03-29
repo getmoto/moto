@@ -54,14 +54,20 @@ def test_create_key():
     key["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048",)
+    key = conn.create_key(
+        KeyUsage="ENCRYPT_DECRYPT",
+        CustomerMasterKeySpec="RSA_2048",
+    )
 
     sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(
         ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
     )
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048",)
+    key = conn.create_key(
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="RSA_2048",
+    )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal(
@@ -76,21 +82,24 @@ def test_create_key():
     )
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_SECG_P256K1",
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="ECC_SECG_P256K1",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_256"])
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P384",
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="ECC_NIST_P384",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_384"])
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P521",
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="ECC_NIST_P521",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
@@ -100,7 +109,10 @@ def test_create_key():
 @mock_kms
 def test_describe_key():
     client = boto3.client("kms", region_name="us-east-1")
-    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT",)
+    response = client.create_key(
+        Description="my key",
+        KeyUsage="ENCRYPT_DECRYPT",
+    )
     key_id = response["KeyMetadata"]["KeyId"]
 
     response = client.describe_key(KeyId=key_id)
@@ -535,7 +547,10 @@ def test_generate_random(number_of_bytes):
 
 @pytest.mark.parametrize(
     "number_of_bytes,error_type",
-    [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError),],
+    [
+        (2048, botocore.exceptions.ClientError),
+        (1025, botocore.exceptions.ClientError),
+    ],
 )
 @mock_kms
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):

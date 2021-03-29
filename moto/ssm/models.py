@@ -1282,7 +1282,15 @@ class SimpleSystemManagerBackend(BaseBackend):
         return [invalid_labels, version]
 
     def put_parameter(
-        self, name, description, value, type, allowed_pattern, keyid, overwrite, tags,
+        self,
+        name,
+        description,
+        value,
+        type,
+        allowed_pattern,
+        keyid,
+        overwrite,
+        tags,
     ):
         if not value:
             raise ValidationException(

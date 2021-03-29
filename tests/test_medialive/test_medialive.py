@@ -65,7 +65,10 @@ def _create_channel_config(name, **kwargs):
                 "InputSettings": {
                     "DenoiseFilter": "DISABLED",
                     "AudioSelectors": [
-                        {"Name": "EnglishLanguage", "SelectorSettings": {},}
+                        {
+                            "Name": "EnglishLanguage",
+                            "SelectorSettings": {},
+                        }
                     ],
                     "InputFilter": "AUTO",
                     "DeblockFilter": "DISABLED",
@@ -87,7 +90,9 @@ def _create_channel_config(name, **kwargs):
             "VideoDescriptions": [],
             "AudioDescriptions": [],
             "OutputGroups": [],
-            "TimecodeConfig": {"Source": "a-source",},
+            "TimecodeConfig": {
+                "Source": "a-source",
+            },
         },
     )
     input_specification = kwargs.get("input_specification", {})
@@ -237,12 +242,15 @@ def test_update_channel_succeeds():
     assert len(channel_id) > 1
 
     update_response = client.update_channel(
-        ChannelId=channel_id, Name="Updated Channel",
+        ChannelId=channel_id,
+        Name="Updated Channel",
     )
     update_response["Channel"]["State"].should.equal("UPDATING")
     update_response["Channel"]["Name"].should.equal("Updated Channel")
 
-    describe_response = client.describe_channel(ChannelId=channel_id,)
+    describe_response = client.describe_channel(
+        ChannelId=channel_id,
+    )
     describe_response["State"].should.equal("IDLE")
     describe_response["Name"].should.equal("Updated Channel")
 
@@ -331,6 +339,7 @@ def test_update_input_succeeds():
 
     create_response = client.create_input(**input_config)
     update_response = client.update_input(
-        InputId=create_response["Input"]["Id"], Name="test input U",
+        InputId=create_response["Input"]["Id"],
+        Name="test input U",
     )
     update_response["Input"]["Name"].should.equal("test input U")

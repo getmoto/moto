@@ -1607,7 +1607,12 @@ class AmiBackend(object):
             # Limit by owner ids
             if owners:
                 # support filtering by Owners=['self']
-                owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners,))
+                owners = list(
+                    map(
+                        lambda o: OWNER_ID if o == "self" else o,
+                        owners,
+                    )
+                )
                 images = [ami for ami in images if ami.owner_id in owners]
 
             # Generic filters
@@ -3871,13 +3876,17 @@ class FlowLogsBackend(object):
     ):
         if log_group_name is None and log_destination is None:
             raise InvalidDependantParameterError(
-                "LogDestination", "LogGroupName", "not provided",
+                "LogDestination",
+                "LogGroupName",
+                "not provided",
             )
 
         if log_destination_type == "s3":
             if log_group_name is not None:
                 raise InvalidDependantParameterTypeError(
-                    "LogDestination", "cloud-watch-logs", "LogGroupName",
+                    "LogDestination",
+                    "cloud-watch-logs",
+                    "LogGroupName",
                 )
         elif log_destination_type == "cloud-watch-logs":
             if deliver_logs_permission_arn is None:
@@ -4025,7 +4034,8 @@ class FlowLogsBackend(object):
 
         if non_existing:
             raise InvalidFlowLogIdError(
-                len(flow_log_ids), " ".join(x for x in flow_log_ids),
+                len(flow_log_ids),
+                " ".join(x for x in flow_log_ids),
             )
         return True
 
@@ -6122,9 +6132,9 @@ class IamInstanceProfileAssociationBackend(object):
                 self.iam_instance_profile_associations[association_key].id
                 == association_id
             ):
-                iam_instance_profile_associations = self.iam_instance_profile_associations[
-                    association_key
-                ]
+                iam_instance_profile_associations = (
+                    self.iam_instance_profile_associations[association_key]
+                )
                 del self.iam_instance_profile_associations[association_key]
                 # Deleting once and avoiding `RuntimeError: dictionary changed size during iteration`
                 break
@@ -6153,9 +6163,9 @@ class IamInstanceProfileAssociationBackend(object):
                 self.iam_instance_profile_associations[
                     association_key
                 ].iam_instance_profile = instance_profile
-                iam_instance_profile_association = self.iam_instance_profile_associations[
-                    association_key
-                ]
+                iam_instance_profile_association = (
+                    self.iam_instance_profile_associations[association_key]
+                )
                 break
 
         if not iam_instance_profile_association:

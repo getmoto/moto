@@ -212,7 +212,9 @@ def test_instance_detach_volume_wrong_path():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},],
+        BlockDeviceMappings=[
+            {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},
+        ],
     )
     instance = result[0]
     for volume in instance.volumes.all():
@@ -613,14 +615,19 @@ def test_get_instances_filtering_by_subnet_id():
     vpc_cidr = ipaddress.ip_network("192.168.42.0/24")
     subnet_cidr = ipaddress.ip_network("192.168.42.0/25")
 
-    resp = client.create_vpc(CidrBlock=str(vpc_cidr),)
+    resp = client.create_vpc(
+        CidrBlock=str(vpc_cidr),
+    )
     vpc_id = resp["Vpc"]["VpcId"]
 
     resp = client.create_subnet(CidrBlock=str(subnet_cidr), VpcId=vpc_id)
     subnet_id = resp["Subnet"]["SubnetId"]
 
     client.run_instances(
-        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id,
+        ImageId=EXAMPLE_AMI_ID,
+        MaxCount=1,
+        MinCount=1,
+        SubnetId=subnet_id,
     )
 
     reservations = client.describe_instances(
@@ -1602,7 +1609,9 @@ def test_create_instance_ebs_optimized():
     instance.ebs_optimized.should.be(False)
 
     instance = ec2_resource.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1,
+        ImageId=EXAMPLE_AMI_ID,
+        MaxCount=1,
+        MinCount=1,
     )[0]
     instance.load()
     instance.ebs_optimized.should.be(False)

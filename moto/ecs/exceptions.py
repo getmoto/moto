@@ -26,7 +26,8 @@ class RevisionNotFoundException(JsonRESTError):
 
     def __init__(self):
         super(RevisionNotFoundException, self).__init__(
-            error_type="ClientException", message="Revision is missing.",
+            error_type="ClientException",
+            message="Revision is missing.",
         )
 
 
@@ -45,7 +46,8 @@ class ClusterNotFoundException(JsonRESTError):
 
     def __init__(self):
         super(ClusterNotFoundException, self).__init__(
-            error_type="ClusterNotFoundException", message="Cluster not found.",
+            error_type="ClusterNotFoundException",
+            message="Cluster not found.",
         )
 
 
@@ -54,5 +56,6 @@ class InvalidParameterException(JsonRESTError):
 
     def __init__(self, message):
         super(InvalidParameterException, self).__init__(
-            error_type="ClientException", message=message,
+            error_type="ClientException",
+            message=message,
         )

@@ -222,7 +222,9 @@ def test_invoke_dryrun_function():
         Runtime="python2.7",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1(),},
+        Code={
+            "ZipFile": get_test_zip_file1(),
+        },
         Description="test lambda function",
         Timeout=3,
         MemorySize=128,
@@ -1364,7 +1366,8 @@ def wait_for_log_msg(expected_msg, log_group):
 
         for log_stream in log_streams:
             result = logs_conn.get_log_events(
-                logGroupName=log_group, logStreamName=log_stream["logStreamName"],
+                logGroupName=log_group,
+                logStreamName=log_stream["logStreamName"],
             )
             received_messages.extend(
                 [event["message"] for event in result.get("events")]
@@ -1811,7 +1814,9 @@ def test_remove_function_permission():
     )
 
     remove = conn.remove_permission(
-        FunctionName="testFunction", StatementId="1", Qualifier="2",
+        FunctionName="testFunction",
+        StatementId="1",
+        Qualifier="2",
     )
     remove["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
     policy = conn.get_policy(FunctionName="testFunction", Qualifier="2")["Policy"]

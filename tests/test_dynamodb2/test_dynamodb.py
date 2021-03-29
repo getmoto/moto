@@ -1412,9 +1412,13 @@ def test_get_item_returns_consumed_capacity():
 def test_put_empty_item():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        AttributeDefinitions=[{"AttributeName": "structure_id", "AttributeType": "S"},],
+        AttributeDefinitions=[
+            {"AttributeName": "structure_id", "AttributeType": "S"},
+        ],
         TableName="test",
-        KeySchema=[{"AttributeName": "structure_id", "KeyType": "HASH"},],
+        KeySchema=[
+            {"AttributeName": "structure_id", "KeyType": "HASH"},
+        ],
         ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
     )
     table = dynamodb.Table("test")
@@ -1431,9 +1435,13 @@ def test_put_empty_item():
 def test_put_item_nonexisting_hash_key():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
-        AttributeDefinitions=[{"AttributeName": "structure_id", "AttributeType": "S"},],
+        AttributeDefinitions=[
+            {"AttributeName": "structure_id", "AttributeType": "S"},
+        ],
         TableName="test",
-        KeySchema=[{"AttributeName": "structure_id", "KeyType": "HASH"},],
+        KeySchema=[
+            {"AttributeName": "structure_id", "KeyType": "HASH"},
+        ],
         ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
     )
     table = dynamodb.Table("test")
@@ -2376,7 +2384,10 @@ def test_update_item_on_map():
     table.update_item(
         Key={"forum_name": "the-key", "subject": "123"},
         UpdateExpression="SET body.#nested.#data = :tb",
-        ExpressionAttributeNames={"#nested": "nested", "#data": "data",},
+        ExpressionAttributeNames={
+            "#nested": "nested",
+            "#data": "data",
+        },
         ExpressionAttributeValues={":tb": "new_value"},
     )
     # Running this against AWS DDB gives an exception so make sure it also fails.:
@@ -4078,19 +4089,30 @@ def test_update_supports_nested_update_if_nested_value_not_exists():
 
     table = dynamodb.Table(name)
     table.put_item(
-        Item={"user_id": "1234", "friends": {"5678": {"name": "friend_5678"}},},
+        Item={
+            "user_id": "1234",
+            "friends": {"5678": {"name": "friend_5678"}},
+        },
     )
     table.update_item(
         Key={"user_id": "1234"},
-        ExpressionAttributeNames={"#friends": "friends", "#friendid": "0000",},
-        ExpressionAttributeValues={":friend": {"name": "friend_0000"},},
+        ExpressionAttributeNames={
+            "#friends": "friends",
+            "#friendid": "0000",
+        },
+        ExpressionAttributeValues={
+            ":friend": {"name": "friend_0000"},
+        },
         UpdateExpression="SET #friends.#friendid = :friend",
         ReturnValues="UPDATED_NEW",
     )
     item = table.get_item(Key={"user_id": "1234"})["Item"]
     assert item == {
         "user_id": "1234",
-        "friends": {"5678": {"name": "friend_5678"}, "0000": {"name": "friend_0000"},},
+        "friends": {
+            "5678": {"name": "friend_5678"},
+            "0000": {"name": "friend_0000"},
+        },
     }
 
 
@@ -4284,11 +4306,17 @@ def test_invalid_transact_get_items():
     )
     table = dynamodb.Table("test1")
     table.put_item(
-        Item={"id": "1", "val": "1",}
+        Item={
+            "id": "1",
+            "val": "1",
+        }
     )
 
     table.put_item(
-        Item={"id": "1", "val": "2",}
+        Item={
+            "id": "1",
+            "val": "2",
+        }
     )
 
     client = boto3.client("dynamodb", region_name="us-east-1")
@@ -4310,8 +4338,22 @@ def test_invalid_transact_get_items():
     with pytest.raises(ClientError) as ex:
         client.transact_get_items(
             TransactItems=[
-                {"Get": {"Key": {"id": {"S": "1"},}, "TableName": "test1",}},
-                {"Get": {"Key": {"id": {"S": "1"},}, "TableName": "non_exists_table",}},
+                {
+                    "Get": {
+                        "Key": {
+                            "id": {"S": "1"},
+                        },
+                        "TableName": "test1",
+                    }
+                },
+                {
+                    "Get": {
+                        "Key": {
+                            "id": {"S": "1"},
+                        },
+                        "TableName": "non_exists_table",
+                    }
+                },
             ]
         )
 
@@ -4337,11 +4379,17 @@ def test_valid_transact_get_items():
     )
     table1 = dynamodb.Table("test1")
     table1.put_item(
-        Item={"id": "1", "sort_key": "1",}
+        Item={
+            "id": "1",
+            "sort_key": "1",
+        }
     )
 
     table1.put_item(
-        Item={"id": "1", "sort_key": "2",}
+        Item={
+            "id": "1",
+            "sort_key": "2",
+        }
     )
 
     dynamodb.create_table(
@@ -4358,7 +4406,10 @@ def test_valid_transact_get_items():
     )
     table2 = dynamodb.Table("test2")
     table2.put_item(
-        Item={"id": "1", "sort_key": "1",}
+        Item={
+            "id": "1",
+            "sort_key": "1",
+        }
     )
 
     client = boto3.client("dynamodb", region_name="us-east-1")
@@ -4472,7 +4523,10 @@ def test_valid_transact_get_items():
             "TableName": "test1",
             "CapacityUnits": 4.0,
             "ReadCapacityUnits": 4.0,
-            "Table": {"CapacityUnits": 4.0, "ReadCapacityUnits": 4.0,},
+            "Table": {
+                "CapacityUnits": 4.0,
+                "ReadCapacityUnits": 4.0,
+            },
         }
     )
 
@@ -4481,7 +4535,10 @@ def test_valid_transact_get_items():
             "TableName": "test2",
             "CapacityUnits": 2.0,
             "ReadCapacityUnits": 2.0,
-            "Table": {"CapacityUnits": 2.0, "ReadCapacityUnits": 2.0,},
+            "Table": {
+                "CapacityUnits": 2.0,
+                "ReadCapacityUnits": 2.0,
+            },
         }
     )
 
@@ -4497,7 +4554,9 @@ def test_gsi_verify_negative_number_order():
                     {"AttributeName": "gsiK1PartitionKey", "KeyType": "HASH"},
                     {"AttributeName": "gsiK1SortKey", "KeyType": "RANGE"},
                 ],
-                "Projection": {"ProjectionType": "KEYS_ONLY",},
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY",
+                },
             }
         ],
         "AttributeDefinitions": [
@@ -4548,7 +4607,9 @@ def test_gsi_verify_negative_number_order():
 def test_transact_write_items_put():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -4559,7 +4620,10 @@ def test_transact_write_items_put():
         TransactItems=[
             {
                 "Put": {
-                    "Item": {"id": {"S": "foo{}".format(str(i))}, "foo": {"S": "bar"},},
+                    "Item": {
+                        "id": {"S": "foo{}".format(str(i))},
+                        "foo": {"S": "bar"},
+                    },
                     "TableName": "test-table",
                 }
             }
@@ -4575,14 +4639,19 @@ def test_transact_write_items_put():
 def test_transact_write_items_put_conditional_expressions():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
     dynamodb.put_item(
-        TableName="test-table", Item={"id": {"S": "foo2"},},
+        TableName="test-table",
+        Item={
+            "id": {"S": "foo2"},
+        },
     )
     # Put multiple items
     with pytest.raises(ClientError) as ex:
@@ -4620,7 +4689,9 @@ def test_transact_write_items_put_conditional_expressions():
 def test_transact_write_items_conditioncheck_passes():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -4628,7 +4699,10 @@ def test_transact_write_items_conditioncheck_passes():
     )
     # Insert an item without email address
     dynamodb.put_item(
-        TableName="test-table", Item={"id": {"S": "foo"},},
+        TableName="test-table",
+        Item={
+            "id": {"S": "foo"},
+        },
     )
     # Put an email address, after verifying it doesn't exist yet
     dynamodb.transact_write_items(
@@ -4662,7 +4736,9 @@ def test_transact_write_items_conditioncheck_passes():
 def test_transact_write_items_conditioncheck_fails():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -4711,7 +4787,9 @@ def test_transact_write_items_conditioncheck_fails():
 def test_transact_write_items_delete():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -4719,12 +4797,20 @@ def test_transact_write_items_delete():
     )
     # Insert an item
     dynamodb.put_item(
-        TableName="test-table", Item={"id": {"S": "foo"},},
+        TableName="test-table",
+        Item={
+            "id": {"S": "foo"},
+        },
     )
     # Delete the item
     dynamodb.transact_write_items(
         TransactItems=[
-            {"Delete": {"Key": {"id": {"S": "foo"}}, "TableName": "test-table",}}
+            {
+                "Delete": {
+                    "Key": {"id": {"S": "foo"}},
+                    "TableName": "test-table",
+                }
+            }
         ]
     )
     # Assert the item is deleted
@@ -4736,7 +4822,9 @@ def test_transact_write_items_delete():
 def test_transact_write_items_delete_with_successful_condition_expression():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -4744,14 +4832,19 @@ def test_transact_write_items_delete_with_successful_condition_expression():
     )
     # Insert an item without email address
     dynamodb.put_item(
-        TableName="test-table", Item={"id": {"S": "foo"},},
+        TableName="test-table",
+        Item={
+            "id": {"S": "foo"},
+        },
     )
     # ConditionExpression will pass - no email address has been specified yet
     dynamodb.transact_write_items(
         TransactItems=[
             {
                 "Delete": {
-                    "Key": {"id": {"S": "foo"},},
+                    "Key": {
+                        "id": {"S": "foo"},
+                    },
                     "TableName": "test-table",
                     "ConditionExpression": "attribute_not_exists(#e)",
                     "ExpressionAttributeNames": {"#e": "email_address"},
@@ -4768,7 +4861,9 @@ def test_transact_write_items_delete_with_successful_condition_expression():
 def test_transact_write_items_delete_with_failed_condition_expression():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -4786,7 +4881,9 @@ def test_transact_write_items_delete_with_failed_condition_expression():
             TransactItems=[
                 {
                     "Delete": {
-                        "Key": {"id": {"S": "foo"},},
+                        "Key": {
+                            "id": {"S": "foo"},
+                        },
                         "TableName": "test-table",
                         "ConditionExpression": "attribute_not_exists(#e)",
                         "ExpressionAttributeNames": {"#e": "email_address"},
@@ -4807,7 +4904,9 @@ def test_transact_write_items_delete_with_failed_condition_expression():
 def test_transact_write_items_update():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -4839,7 +4938,9 @@ def test_transact_write_items_update():
 def test_transact_write_items_update_with_failed_condition_expression():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -5029,12 +5130,18 @@ def create_simple_table_and_return_client():
     dynamodb.create_table(
         TableName="moto-test",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"},],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
     dynamodb.put_item(
         TableName="moto-test",
-        Item={"id": {"S": "1"}, "myNum": {"N": "1"}, "MyStr": {"S": "1"},},
+        Item={
+            "id": {"S": "1"},
+            "myNum": {"N": "1"},
+            "MyStr": {"S": "1"},
+        },
     )
     return dynamodb
 
@@ -5098,7 +5205,11 @@ def test_update_expression_with_plus_in_attribute_name():
 
     dynamodb.put_item(
         TableName="moto-test",
-        Item={"id": {"S": "1"}, "my+Num": {"S": "1"}, "MyStr": {"S": "aaa"},},
+        Item={
+            "id": {"S": "1"},
+            "my+Num": {"S": "1"},
+            "MyStr": {"S": "aaa"},
+        },
     )
     try:
         dynamodb.update_item(
@@ -5125,7 +5236,11 @@ def test_update_expression_with_minus_in_attribute_name():
 
     dynamodb.put_item(
         TableName="moto-test",
-        Item={"id": {"S": "1"}, "my-Num": {"S": "1"}, "MyStr": {"S": "aaa"},},
+        Item={
+            "id": {"S": "1"},
+            "my-Num": {"S": "1"},
+            "MyStr": {"S": "aaa"},
+        },
     )
     try:
         dynamodb.update_item(
@@ -5152,7 +5267,11 @@ def test_update_expression_with_space_in_attribute_name():
 
     dynamodb.put_item(
         TableName="moto-test",
-        Item={"id": {"S": "1"}, "my Num": {"S": "1"}, "MyStr": {"S": "aaa"},},
+        Item={
+            "id": {"S": "1"},
+            "my Num": {"S": "1"},
+            "MyStr": {"S": "aaa"},
+        },
     )
 
     try:
@@ -5335,7 +5454,8 @@ def test_update_item_atomic_counter_from_zero():
     key = {"t_id": {"S": "item1"}}
 
     ddb_mock.put_item(
-        TableName=table, Item=key,
+        TableName=table,
+        Item=key,
     )
 
     ddb_mock.update_item(
@@ -5361,7 +5481,8 @@ def test_update_item_add_to_non_existent_set():
     )
     key = {"t_id": {"S": "item1"}}
     ddb_mock.put_item(
-        TableName=table, Item=key,
+        TableName=table,
+        Item=key,
     )
 
     ddb_mock.update_item(
@@ -5386,7 +5507,8 @@ def test_update_item_add_to_non_existent_number_set():
     )
     key = {"t_id": {"S": "item1"}}
     ddb_mock.put_item(
-        TableName=table, Item=key,
+        TableName=table,
+        Item=key,
     )
 
     ddb_mock.update_item(
@@ -5403,7 +5525,9 @@ def test_update_item_add_to_non_existent_number_set():
 def test_transact_write_items_fails_with_transaction_canceled_exception():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -5455,7 +5579,9 @@ def test_gsi_projection_type_keys_only():
                     {"AttributeName": "gsiK1PartitionKey", "KeyType": "HASH"},
                     {"AttributeName": "gsiK1SortKey", "KeyType": "RANGE"},
                 ],
-                "Projection": {"ProjectionType": "KEYS_ONLY",},
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY",
+                },
             }
         ],
         "AttributeDefinitions": [
@@ -5563,7 +5689,9 @@ def test_lsi_projection_type_keys_only():
                     {"AttributeName": "partitionKey", "KeyType": "HASH"},
                     {"AttributeName": "lsiK1SortKey", "KeyType": "RANGE"},
                 ],
-                "Projection": {"ProjectionType": "KEYS_ONLY",},
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY",
+                },
             }
         ],
         "AttributeDefinitions": [
@@ -5588,7 +5716,8 @@ def test_lsi_projection_type_keys_only():
     table.put_item(Item=item)
 
     items = table.query(
-        KeyConditionExpression=Key("partitionKey").eq("pk-1"), IndexName="LSI",
+        KeyConditionExpression=Key("partitionKey").eq("pk-1"),
+        IndexName="LSI",
     )["Items"]
     items.should.have.length_of(1)
     # Item should only include GSI Keys and Table Keys, as per the ProjectionType
@@ -5671,12 +5800,23 @@ def test_dynamodb_update_item_fails_on_string_sets():
 
     table = dynamodb.create_table(
         TableName="test",
-        KeySchema=[{"AttributeName": "record_id", "KeyType": "HASH"},],
-        AttributeDefinitions=[{"AttributeName": "record_id", "AttributeType": "S"},],
+        KeySchema=[
+            {"AttributeName": "record_id", "KeyType": "HASH"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "record_id", "AttributeType": "S"},
+        ],
         BillingMode="PAY_PER_REQUEST",
     )
     table.meta.client.get_waiter("table_exists").wait(TableName="test")
-    attribute = {"test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT"}}
+    attribute = {
+        "test_field": {
+            "Value": {
+                "SS": ["test1", "test2"],
+            },
+            "Action": "PUT",
+        }
+    }
 
     client.update_item(
         TableName="test",
@@ -5696,7 +5836,9 @@ def test_update_item_add_to_list_using_legacy_attribute_updates():
     )
     table = resource.Table("TestTable")
     table.wait_until_exists()
-    table.put_item(Item={"id": "list_add", "attr": ["a", "b", "c"]},)
+    table.put_item(
+        Item={"id": "list_add", "attr": ["a", "b", "c"]},
+    )
 
     table.update_item(
         TableName="TestTable",

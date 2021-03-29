@@ -21,13 +21,17 @@ class SupportResponse(BaseResponse):
 
     def refresh_trusted_advisor_check(self):
         check_id = self._get_param("checkId")
-        status = self.support_backend.refresh_trusted_advisor_check(check_id=check_id,)
+        status = self.support_backend.refresh_trusted_advisor_check(
+            check_id=check_id,
+        )
 
         return json.dumps(status)
 
     def resolve_case(self):
         case_id = self._get_param("caseId")
-        resolve_case_response = self.support_backend.resolve_case(case_id=case_id,)
+        resolve_case_response = self.support_backend.resolve_case(
+            case_id=case_id,
+        )
         return json.dumps(resolve_case_response)
 
     def create_case(self):

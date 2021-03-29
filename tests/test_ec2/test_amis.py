@@ -889,7 +889,10 @@ def test_create_image_with_tag_specification():
                     "Key": "Base_AMI_Name",
                     "Value": "Deep Learning Base AMI (Amazon Linux 2) Version 31.0",
                 },
-                {"Key": "OS_Version", "Value": "AWS Linux 2",},
+                {
+                    "Key": "OS_Version",
+                    "Value": "AWS Linux 2",
+                },
             ],
         },
     ]

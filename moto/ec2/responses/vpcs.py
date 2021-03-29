@@ -71,8 +71,8 @@ class VPCs(BaseResponse):
 
     def enable_vpc_classic_link_dns_support(self):
         vpc_id = self._get_param("VpcId")
-        classic_link_dns_supported = self.ec2_backend.enable_vpc_classic_link_dns_support(
-            vpc_id=vpc_id
+        classic_link_dns_supported = (
+            self.ec2_backend.enable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         )
         doc_date = self._get_doc_date()
         template = self.response_template(ENABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
@@ -82,8 +82,8 @@ class VPCs(BaseResponse):
 
     def disable_vpc_classic_link_dns_support(self):
         vpc_id = self._get_param("VpcId")
-        classic_link_dns_supported = self.ec2_backend.disable_vpc_classic_link_dns_support(
-            vpc_id=vpc_id
+        classic_link_dns_supported = (
+            self.ec2_backend.disable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         )
         doc_date = self._get_doc_date()
         template = self.response_template(DISABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)

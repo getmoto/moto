@@ -326,25 +326,29 @@ def test_put_parameter_invalid_names():
     client.put_parameter.when.called_with(
         Name="ssm_test", Value="value", Type="String"
     ).should.throw(
-        ClientError, invalid_prefix_err,
+        ClientError,
+        invalid_prefix_err,
     )
 
     client.put_parameter.when.called_with(
         Name="SSM_TEST", Value="value", Type="String"
     ).should.throw(
-        ClientError, invalid_prefix_err,
+        ClientError,
+        invalid_prefix_err,
     )
 
     client.put_parameter.when.called_with(
         Name="aws_test", Value="value", Type="String"
     ).should.throw(
-        ClientError, invalid_prefix_err,
+        ClientError,
+        invalid_prefix_err,
     )
 
     client.put_parameter.when.called_with(
         Name="AWS_TEST", Value="value", Type="String"
     ).should.throw(
-        ClientError, invalid_prefix_err,
+        ClientError,
+        invalid_prefix_err,
     )
 
     ssm_path = "/ssm_test/path/to/var"
@@ -371,14 +375,16 @@ def test_put_parameter_invalid_names():
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
     ).should.throw(
-        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+        ClientError,
+        "No access to reserved parameter name: {}.".format(aws_path),
     )
 
     aws_path = "/AWS/PATH/TO/VAR"
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
     ).should.throw(
-        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+        ClientError,
+        "No access to reserved parameter name: {}.".format(aws_path),
     )
 
 

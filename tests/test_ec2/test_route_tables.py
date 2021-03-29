@@ -742,7 +742,8 @@ def test_associate_route_table_by_gateway():
     route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
     igw_id = ec2.create_internet_gateway()["InternetGateway"]["InternetGatewayId"]
     assoc_id = ec2.associate_route_table(
-        RouteTableId=route_table_id, GatewayId=igw_id,
+        RouteTableId=route_table_id,
+        GatewayId=igw_id,
     )["AssociationId"]
     verify = ec2.describe_route_tables(
         Filters=[
@@ -761,7 +762,8 @@ def test_associate_route_table_by_subnet():
         "SubnetId"
     ]
     assoc_id = ec2.associate_route_table(
-        RouteTableId=route_table_id, SubnetId=subnet_id,
+        RouteTableId=route_table_id,
+        SubnetId=subnet_id,
     )["AssociationId"]
     verify = ec2.describe_route_tables(
         Filters=[

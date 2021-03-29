@@ -43,35 +43,45 @@ class MediaConnectResponse(BaseResponse):
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         flows, next_token = self.mediaconnect_backend.list_flows(
-            max_results=max_results, next_token=next_token,
+            max_results=max_results,
+            next_token=next_token,
         )
         return json.dumps(dict(flows=flows, nextToken=next_token))
 
     def describe_flow(self):
         flow_arn = unquote(self._get_param("flowArn"))
-        flow, messages = self.mediaconnect_backend.describe_flow(flow_arn=flow_arn,)
+        flow, messages = self.mediaconnect_backend.describe_flow(
+            flow_arn=flow_arn,
+        )
         return json.dumps(dict(flow=flow, messages=messages))
 
     def delete_flow(self):
         flow_arn = unquote(self._get_param("flowArn"))
-        flow_arn, status = self.mediaconnect_backend.delete_flow(flow_arn=flow_arn,)
+        flow_arn, status = self.mediaconnect_backend.delete_flow(
+            flow_arn=flow_arn,
+        )
         return json.dumps(dict(flowArn=flow_arn, status=status))
 
     def start_flow(self):
         flow_arn = unquote(self._get_param("flowArn"))
-        flow_arn, status = self.mediaconnect_backend.start_flow(flow_arn=flow_arn,)
+        flow_arn, status = self.mediaconnect_backend.start_flow(
+            flow_arn=flow_arn,
+        )
         return json.dumps(dict(flowArn=flow_arn, status=status))
 
     def stop_flow(self):
         flow_arn = unquote(self._get_param("flowArn"))
-        flow_arn, status = self.mediaconnect_backend.stop_flow(flow_arn=flow_arn,)
+        flow_arn, status = self.mediaconnect_backend.stop_flow(
+            flow_arn=flow_arn,
+        )
         return json.dumps(dict(flowArn=flow_arn, status=status))
 
     def tag_resource(self):
         resource_arn = unquote(self._get_param("resourceArn"))
         tags = self._get_param("tags")
         self.mediaconnect_backend.tag_resource(
-            resource_arn=resource_arn, tags=tags,
+            resource_arn=resource_arn,
+            tags=tags,
         )
         return json.dumps(dict())
 

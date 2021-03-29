@@ -2452,7 +2452,9 @@ def test_boto3_get_object_if_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
+            Bucket=bucket_name,
+            Key=key,
+            IfMatch='"hello"',
         )
     e = err.value
     e.response["Error"]["Code"].should.equal("PreconditionFailed")
@@ -2471,7 +2473,9 @@ def test_boto3_get_object_if_none_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
+            Bucket=bucket_name,
+            Key=key,
+            IfNoneMatch=etag,
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
@@ -2529,7 +2533,9 @@ def test_boto3_head_object_if_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
+            Bucket=bucket_name,
+            Key=key,
+            IfMatch='"hello"',
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
@@ -2547,7 +2553,9 @@ def test_boto3_head_object_if_none_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
+            Bucket=bucket_name,
+            Key=key,
+            IfNoneMatch=etag,
         )
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})

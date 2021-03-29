@@ -657,7 +657,10 @@ def test_run_instances_should_attach_to_default_subnet():
     ec2.create_security_group(GroupName="sg01", Description="Test security group sg01")
     # run_instances
     instances = client.run_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=["sg01"],
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        SecurityGroups=["sg01"],
     )
     # Assert subnet is created appropriately
     subnets = client.describe_subnets()["Subnets"]

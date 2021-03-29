@@ -32,7 +32,10 @@ def test_camelcase_to_underscores(input, expected):
 
 @pytest.mark.parametrize(
     "input,expected",
-    [("the_new_attribute", "theNewAttribute"), ("attribute", "attribute"),],
+    [
+        ("the_new_attribute", "theNewAttribute"),
+        ("attribute", "attribute"),
+    ],
 )
 def test_underscores_to_camelcase(input, expected):
     underscores_to_camelcase(input).should.equal(expected)
@@ -40,7 +43,10 @@ def test_underscores_to_camelcase(input, expected):
 
 @pytest.mark.parametrize(
     "input,expected",
-    [("TheNewAttribute", "theNewAttribute"), ("Attribute", "attribute"),],
+    [
+        ("TheNewAttribute", "theNewAttribute"),
+        ("Attribute", "attribute"),
+    ],
 )
 def test_pascal_to_camelcase(input, expected):
     pascal_to_camelcase(input).should.equal(expected)
@@ -48,7 +54,10 @@ def test_pascal_to_camelcase(input, expected):
 
 @pytest.mark.parametrize(
     "input,expected",
-    [("theNewAttribute", "TheNewAttribute"), ("attribute", "Attribute"),],
+    [
+        ("theNewAttribute", "TheNewAttribute"),
+        ("attribute", "Attribute"),
+    ],
 )
 def test_camelcase_to_pascal(input, expected):
     camelcase_to_pascal(input).should.equal(expected)

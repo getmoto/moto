@@ -48,11 +48,13 @@ class Rule(CloudFormationModel):
             else "{}/".format(self.event_bus_name)
         )
 
-        return "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
-            region=self.region_name,
-            account_id=ACCOUNT_ID,
-            event_bus_name=event_bus_name,
-            name=self.name,
+        return (
+            "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
+                region=self.region_name,
+                account_id=ACCOUNT_ID,
+                event_bus_name=event_bus_name,
+                name=self.name,
+            )
         )
 
     @property

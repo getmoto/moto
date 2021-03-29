@@ -479,8 +479,10 @@ class ContainerInstance(BaseObject):
                 "type": "STRINGSET",
             },
         ]
-        self.container_instance_arn = "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
-            region_name, ACCOUNT_ID, str(uuid.uuid4())
+        self.container_instance_arn = (
+            "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
+                region_name, ACCOUNT_ID, str(uuid.uuid4())
+            )
         )
         self.pending_tasks_count = 0
         self.remaining_resources = [
