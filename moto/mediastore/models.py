@@ -48,7 +48,11 @@ class MediaStoreBackend(BaseBackend):
             creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S")
         )
         self._containers[name] = container
-        # print(container)
+        return container
+
+    def describe_container(self, name):
+        container = self._containers[name]
+        container.status = "ACTIVE"
         return container
 
     def put_lifecycle_policy(self, container_name, lifecycle_policy):

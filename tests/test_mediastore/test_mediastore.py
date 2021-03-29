@@ -8,7 +8,7 @@ region = "eu-west-1"
 
 
 @mock_mediastore
-def test_create_channel_succeeds():
+def test_create_container_succeeds():
     client = boto3.client("mediastore", region_name=region)
     response = client.create_container(
         ContainerName="Awesome container!", Tags=[{"Key": "customer"}]
@@ -21,6 +21,22 @@ def test_create_channel_succeeds():
     container["Name"].should.equal("Awesome container!")
     container["Status"].should.equal("CREATING")
 
+
+@mock_mediastore
+def test_describe_container_succeeds():
+    client = boto3.client("mediastore", region_name=region)
+    create_response = client.create_container(
+        ContainerName="Awesome container!", Tags=[{"Key": "customer"}]
+    )
+    container_name = create_response["Container"]["Name"]
+    response = client.describe_container(ContainerName=container_name)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    container = response["Container"]
+    container["ARN"].should.equal(
+        "arn:aws:mediastore:container:{}".format(container["Name"])
+    )
+    container["Name"].should.equal("Awesome container!")
+    container["Status"].should.equal("ACTIVE")
 
 @mock_mediastore
 def test_put_lifecycle_policy_succeeds():

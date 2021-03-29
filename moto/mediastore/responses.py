@@ -14,7 +14,11 @@ class MediaStoreResponse(BaseResponse):
         name = self._get_param("ContainerName")
         tags = self._get_param("Tags")
         container = self.mediastore_backend.create_container(name=name, tags=tags)
-        # print(container.to_dict())
+        return json.dumps(dict(Container=container.to_dict()))
+
+    def describe_container(self):
+        name = self._get_param("ContainerName")
+        container = self.mediastore_backend.describe_container(name=name)
         return json.dumps(dict(Container=container.to_dict()))
     
     def put_lifecycle_policy(self):
@@ -25,8 +29,3 @@ class MediaStoreResponse(BaseResponse):
             lifecycle_policy=lifecycle_policy,
         )
         return json.dumps(policy)
-
-
-
-
-# add templates from here
