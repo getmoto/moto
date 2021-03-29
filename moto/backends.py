@@ -30,6 +30,7 @@ BACKENDS = {
     "ecr": ("ecr", "ecr_backends"),
     "ecs": ("ecs", "ecs_backends"),
     "elasticbeanstalk": ("elasticbeanstalk", "eb_backends"),
+    "elastictranscoder": ("elastictranscoder", "elastictranscoder_backends"),
     "elb": ("elb", "elb_backends"),
     "elbv2": ("elbv2", "elbv2_backends"),
     "emr": ("emr", "emr_backends"),
