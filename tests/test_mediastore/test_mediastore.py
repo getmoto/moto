@@ -9,6 +9,7 @@ from botocore.exceptions import ClientError
 
 region = "eu-west-1"
 
+
 @mock_mediastore
 def test_create_container_succeeds():
     client = boto3.client("mediastore", region_name=region)
@@ -22,6 +23,7 @@ def test_create_container_succeeds():
     )
     container["Name"].should.equal("Awesome container!")
     container["Status"].should.equal("CREATING")
+
 
 @mock_mediastore
 def test_describe_container_succeeds():
@@ -38,6 +40,7 @@ def test_describe_container_succeeds():
     )
     container["Name"].should.equal("Awesome container!")
     container["Status"].should.equal("ACTIVE")
+
 
 @mock_mediastore
 def test_put_lifecycle_policy_succeeds():
