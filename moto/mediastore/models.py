@@ -3,6 +3,8 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from datetime import date
+from .exceptions import ResourceNotFoundException
+
 
 class Container(BaseModel):
     def __init__(self, *args, **kwargs):
@@ -25,6 +27,7 @@ class Container(BaseModel):
                 del data[key]
         return data
 
+
 class MediaStoreBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaStoreBackend, self).__init__()
@@ -36,8 +39,7 @@ class MediaStoreBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
         self._lifecycle_policies = OrderedDict()
-        
-        
+
     def create_container(self, name, tags):
         arn = "arn:aws:mediastore:container:{}".format(name)
         container = Container(
@@ -45,28 +47,32 @@ class MediaStoreBackend(BaseBackend):
             name=name,
             endpoint="/{}".format(name),
             status="CREATING",
-            creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S")
+            creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S"),
         )
         self._containers[name] = container
-        # print(container)
         return container
 
     def put_lifecycle_policy(self, container_name, lifecycle_policy):
         if container_name not in self._containers:
             raise ResourceNotFoundException()
         self._containers[container_name].lifecycle_policy = lifecycle_policy
-        # print(lifecycle_policy)
-        # print(container_name)
         return {}
 
-    
+    def get_lifecycle_policy(self, container_name):
+        if container_name not in self._containers:
+            raise ResourceNotFoundException()
+        lifecycle_policy = self._containers[container_name].lifecycle_policy
+        return lifecycle_policy
+
     # add methods from here
 
 
 mediastore_backends = {}
 for region in Session().get_available_regions("mediastore"):
     mediastore_backends[region] = MediaStoreBackend(region)
-for region in Session().get_available_regions("mediastore", partition_name="aws-us-gov"):
+for region in Session().get_available_regions(
+    "mediastore", partition_name="aws-us-gov"
+):
     mediastore_backends[region] = MediaStoreBackend(region)
 for region in Session().get_available_regions("mediastore", partition_name="aws-cn"):
     mediastore_backends[region] = MediaStoreBackend(region)

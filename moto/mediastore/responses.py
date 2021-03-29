@@ -5,7 +5,8 @@ import json
 
 
 class MediaStoreResponse(BaseResponse):
-    SERVICE_NAME = 'mediastore'
+    SERVICE_NAME = "mediastore"
+
     @property
     def mediastore_backend(self):
         return mediastore_backends[self.region]
@@ -16,17 +17,21 @@ class MediaStoreResponse(BaseResponse):
         container = self.mediastore_backend.create_container(name=name, tags=tags)
         # print(container.to_dict())
         return json.dumps(dict(Container=container.to_dict()))
-    
+
     def put_lifecycle_policy(self):
         container_name = self._get_param("ContainerName")
         lifecycle_policy = self._get_param("LifecyclePolicy")
         policy = self.mediastore_backend.put_lifecycle_policy(
-            container_name=container_name,
-            lifecycle_policy=lifecycle_policy,
+            container_name=container_name, lifecycle_policy=lifecycle_policy,
         )
         return json.dumps(policy)
 
-
+    def get_lifecycle_policy(self):
+        container_name = self._get_param("ContainerName")
+        lifecycle_policy = self.mediastore_backend.get_lifecycle_policy(
+            container_name=container_name,
+        )
+        return json.dumps(dict(LifecyclePolicy=lifecycle_policy))
 
 
 # add templates from here
