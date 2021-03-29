@@ -10,7 +10,7 @@ except ImportError:
     import collections as collections_abc  # noqa
 
 try:
-    from unittest import mock  # noqa
+    from unittest.mock import patch  # noqa
 except ImportError:
     # for python 2.7
-    from mock import mock  # noqa
+    from mock import patch  # noqa

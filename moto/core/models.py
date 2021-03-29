@@ -22,7 +22,7 @@ from werkzeug.wrappers import Request
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
-from moto.compat import mock
+from moto.compat import patch
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
@@ -56,7 +56,7 @@ class BaseMockAWS(object):
             "AWS_SECRET_ACCESS_KEY": "foobar_secret",
         }
         self.ORIG_KEYS = {}
-        self.default_session_mock = mock.patch("boto3.DEFAULT_SESSION", None)
+        self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
 
         if self.__class__.nested_count == 0:
             self.reset()
@@ -500,10 +500,10 @@ class ServerModeMockAWS(BaseMockAWS):
             if message_body is not None:
                 self.send(message_body)
 
-        self._client_patcher = mock.patch("boto3.client", fake_boto3_client)
-        self._resource_patcher = mock.patch("boto3.resource", fake_boto3_resource)
+        self._client_patcher = patch("boto3.client", fake_boto3_client)
+        self._resource_patcher = patch("boto3.resource", fake_boto3_resource)
         if six.PY2:
-            self._httplib_patcher = mock.patch(
+            self._httplib_patcher = patch(
                 "httplib.HTTPConnection._send_output", fake_httplib_send_output
             )
 

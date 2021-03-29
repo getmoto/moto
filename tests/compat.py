@@ -1,5 +1,5 @@
 try:
-    from unittest.mock import mock, patch
+    from unittest.mock import patch
 except ImportError:
     # for python 2.7
-    from mock import mock, patch
+    from mock import patch
