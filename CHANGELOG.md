@@ -4,6 +4,29 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.3
+-----
+    New Methods:
+        * Support
+            * create_case
+            * describe_cases
+            * resolve_case
+    Miscelleaneous:
+        * CF now returns the PhysicalResourceId-attributes for AWS::EC2::NatGateway/AWS::EC2::Route/AWS::EC2::SubnetRouteTableAssociation
+        * CognitoIDP:sign_up() now throws an UsernameExistsException if appropriate
+        * DynamoDB now validates the case sensitivity for begins_with/between operators
+        * EC2:associate_route_table() now supports the GatewayId-parameter
+        * EC2:authorize_egress() now throws a InvalidPermission.Duplicate-exception if appropriate
+        * EC2:authorize_security_group_egress() now throws a InvalidGroup.NotFound-exception
+        * EC2:authorize_security_group_ingress() now throws a InvalidGroup.NotFound-exception
+        * Events:describe_rule() now returns the ManagedBy/CreatedBy-parameters
+        * Events:put_events() now supports providing an ARN for the EventBusName-parameter
+        * Route53:list_hosted_zones_by_name() now returns the DNSName-parameter
+        * S3:put_object_acl() now throws a NoSuchKey-exception if the object does not exist
+        * SES:send_templated_email() now throws a TemplateDoesNotExist-exception if the template has not been created first
+        * SSM:put_parameter() now throws an exception for empty values
+
+
 2.0.2
 -----
     General Changes:
