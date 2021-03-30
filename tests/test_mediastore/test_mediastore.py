@@ -77,3 +77,17 @@ def test_get_lifecycle_policy_raises_error_if_container_does_not_exist():
         ClientError,
         "An error occurred (ResourceNotFoundException) when calling the GetLifecyclePolicy operation: The specified container does not exist",
     )
+
+@mock_mediastore
+def test_get_lifecycle_policy_raises_error_if_container_does_not_have_lifecycle_policy():
+    client = boto3.client("mediastore", region_name=region)
+    container_response = client.create_container(
+        ContainerName="container-name", Tags=[{"Key": "customer"}]
+    )
+    container = container_response["Container"]
+    client.get_lifecycle_policy.when.called_with(
+        ContainerName=container["Name"]
+    ).should.throw(
+        ClientError,
+        "An error occurred (PolicyNotFoundException) when calling the GetLifecyclePolicy operation: The policy does not exist within the specfied container",
+    )
