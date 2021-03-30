@@ -207,18 +207,10 @@ class EventsHandler(BaseResponse):
 
     def put_targets(self):
         rule_name = self._get_param("Rule")
+        event_bus_name = self._get_param("EventBusName", "default")
         targets = self._get_param("Targets")
 
-        if not rule_name:
-            return self.error("ValidationException", "Parameter Rule is required.")
-
-        if not targets:
-            return self.error("ValidationException", "Parameter Targets is required.")
-
-        if not self.events_backend.put_targets(rule_name, targets):
-            return self.error(
-                "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
-            )
+        self.events_backend.put_targets(rule_name, event_bus_name, targets)
 
         return (
             json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),
@@ -227,18 +219,10 @@ class EventsHandler(BaseResponse):
 
     def remove_targets(self):
         rule_name = self._get_param("Rule")
+        event_bus_name = self._get_param("EventBusName", "default")
         ids = self._get_param("Ids")
 
-        if not rule_name:
-            return self.error("ValidationException", "Parameter Rule is required.")
-
-        if not ids:
-            return self.error("ValidationException", "Parameter Ids is required.")
-
-        if not self.events_backend.remove_targets(rule_name, ids):
-            return self.error(
-                "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
-            )
+        self.events_backend.remove_targets(rule_name, event_bus_name, ids)
 
         return (
             json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),

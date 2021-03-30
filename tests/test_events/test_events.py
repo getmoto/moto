@@ -301,14 +301,21 @@ def test_update_rule_with_targets():
 
 
 @mock_events
-def test_remove_targets_errors():
-    client = boto3.client("events", "us-east-1")
+def test_remove_targets_error_unknown_rule():
+    # given
+    client = boto3.client("events", "eu-central-1")
 
-    client.remove_targets.when.called_with(
-        Rule="non-existent", Ids=["Id12345678"]
-    ).should.throw(
-        client.exceptions.ResourceNotFoundException,
-        "An entity that you specified does not exist",
+    # when
+    with pytest.raises(ClientError) as e:
+        client.remove_targets(Rule="unknown", Ids=["something"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("RemoveTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
     )
 
 
@@ -328,7 +335,7 @@ def test_put_targets():
     targets_before = len(targets)
     assert targets_before == 0
 
-    targets_data = [{"Arn": "test_arn", "Id": "test_id"}]
+    targets_data = [{"Arn": "arn:aws:s3:::test-arn", "Id": "test_id"}]
     resp = client.put_targets(Rule=rule_name, Targets=targets_data)
     assert resp["FailedEntryCount"] == 0
     assert len(resp["FailedEntries"]) == 0
@@ -337,8 +344,61 @@ def test_put_targets():
     targets_after = len(targets)
     assert targets_before + 1 == targets_after
 
-    assert targets[0]["Arn"] == "test_arn"
+    assert targets[0]["Arn"] == "arn:aws:s3:::test-arn"
     assert targets[0]["Id"] == "test_id"
+
+
+@mock_events
+def test_put_targets_error_invalid_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    rule_name = "test-rule"
+    client.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="ENABLED",
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule=rule_name,
+            Targets=[
+                {"Id": "s3", "Arn": "arn:aws:s3:::test-bucket"},
+                {"Id": "s3", "Arn": "test-bucket"},
+            ],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter test-bucket is not valid. "
+        "Reason: Provided Arn is not in correct format."
+    )
+
+
+@mock_events
+def test_put_targets_error_unknown_rule():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule="unknown", Targets=[{"Id": "s3", "Arn": "arn:aws:s3:::test-bucket"}]
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
+    )
 
 
 @mock_events
