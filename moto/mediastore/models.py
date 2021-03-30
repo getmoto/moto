@@ -5,6 +5,7 @@ from collections import OrderedDict
 from datetime import date
 from .exceptions import ResourceNotFoundException, PolicyNotFoundException
 
+
 class Container(BaseModel):
     def __init__(self, *args, **kwargs):
         self.arn = kwargs.get("arn")
@@ -26,6 +27,7 @@ class Container(BaseModel):
                 del data[key]
         return data
 
+
 class MediaStoreBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaStoreBackend, self).__init__()
@@ -37,8 +39,7 @@ class MediaStoreBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
         self._lifecycle_policies = OrderedDict()
-        
-        
+
     def create_container(self, name, tags):
         arn = "arn:aws:mediastore:container:{}".format(name)
         container = Container(
@@ -46,7 +47,7 @@ class MediaStoreBackend(BaseBackend):
             name=name,
             endpoint="/{}".format(name),
             status="CREATING",
-            creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S")
+            creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S"),
         )
         self._containers[name] = container
         return container
@@ -66,9 +67,8 @@ class MediaStoreBackend(BaseBackend):
         if container_name not in self._containers:
             raise ResourceNotFoundException()
         self._containers[container_name].policy = policy
-        print(policy)
         return {}
-    
+
     def get_container_policy(self, container_name):
         try:
             if container_name not in self._containers:
@@ -77,15 +77,31 @@ class MediaStoreBackend(BaseBackend):
             return policy
         except AttributeError:
             raise PolicyNotFoundException()
-    
-    
+
+    def put_metric_policy(self, container_name, metric_policy):
+        if container_name not in self._containers:
+            raise ResourceNotFoundException()
+        self._containers[container_name].metric_policy = metric_policy
+        return {}
+
+    def get_metric_policy(self, container_name):
+        try:
+            if container_name not in self._containers:
+                raise ResourceNotFoundException()
+            metric_policy = self._containers[container_name].metric_policy
+            return metric_policy
+        except AttributeError:
+            raise PolicyNotFoundException()
+
     # add methods from here
 
 
 mediastore_backends = {}
 for region in Session().get_available_regions("mediastore"):
     mediastore_backends[region] = MediaStoreBackend(region)
-for region in Session().get_available_regions("mediastore", partition_name="aws-us-gov"):
+for region in Session().get_available_regions(
+    "mediastore", partition_name="aws-us-gov"
+):
     mediastore_backends[region] = MediaStoreBackend(region)
 for region in Session().get_available_regions("mediastore", partition_name="aws-cn"):
     mediastore_backends[region] = MediaStoreBackend(region)

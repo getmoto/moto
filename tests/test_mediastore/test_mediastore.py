@@ -39,6 +39,7 @@ def test_describe_container_succeeds():
     container["Name"].should.equal("Awesome container!")
     container["Status"].should.equal("ACTIVE")
 
+
 # @mock_mediastore
 # def test_put_lifecycle_policy_succeeds():
 #     client = boto3.client("mediastore", region_name=region)
@@ -54,6 +55,7 @@ def test_describe_container_succeeds():
 #     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 #     response["LifeCyclePolicy"].should.equal("lifecycle-policy")
 
+
 @mock_mediastore
 def test_put_container_policy_succeeds():
     client = boto3.client("mediastore", region_name=region)
@@ -61,13 +63,13 @@ def test_put_container_policy_succeeds():
         ContainerName="container-name", Tags=[{"Key": "customer"}]
     )
     container = container_response["Container"]
-    print(container)
     response = client.put_container_policy(
         ContainerName=container["Name"], Policy="container-policy"
     )
     response = client.get_container_policy(ContainerName=container["Name"])
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["Policy"].should.equal("container-policy")
+
 
 @mock_mediastore
 def test_put_container_policy_raises_error_if_container_does_not_exist():
@@ -90,6 +92,7 @@ def test_get_container_policy_raises_error_if_container_does_not_exist():
         "An error occurred (ResourceNotFoundException) when calling the GetContainerPolicy operation: The specified container does not exist",
     )
 
+
 @mock_mediastore
 def test_get_container_policy_raises_error_if_container_does_not_have_lifecycle_policy():
     client = boto3.client("mediastore", region_name=region)
@@ -102,4 +105,58 @@ def test_get_container_policy_raises_error_if_container_does_not_have_lifecycle_
     ).should.throw(
         ClientError,
         "An error occurred (PolicyNotFoundException) when calling the GetContainerPolicy operation: The policy does not exist within the specfied container",
+    )
+
+
+@mock_mediastore
+def test_put_metric_policy_succeeds():
+    client = boto3.client("mediastore", region_name=region)
+    container_response = client.create_container(
+        ContainerName="container-name", Tags=[{"Key": "customer"}]
+    )
+    container = container_response["Container"]
+    response = client.put_metric_policy(
+        ContainerName=container["Name"],
+        MetricPolicy={"ContainerLevelMetrics": "ENABLED"},
+    )
+    response = client.get_metric_policy(ContainerName=container["Name"])
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["MetricPolicy"].should.equal({"ContainerLevelMetrics": "ENABLED"})
+
+
+@mock_mediastore
+def test_put_metric_policy_raises_error_if_container_does_not_exist():
+    client = boto3.client("mediastore", region_name=region)
+    client.put_metric_policy.when.called_with(
+        ContainerName="container-name",
+        MetricPolicy={"ContainerLevelMetrics": "ENABLED"},
+    ).should.throw(
+        ClientError,
+        "An error occurred (ResourceNotFoundException) when calling the PutMetricPolicy operation: The specified container does not exist",
+    )
+
+
+@mock_mediastore
+def test_get_metric_policy_raises_error_if_container_does_not_exist():
+    client = boto3.client("mediastore", region_name=region)
+    client.get_metric_policy.when.called_with(
+        ContainerName="container-name"
+    ).should.throw(
+        ClientError,
+        "An error occurred (ResourceNotFoundException) when calling the GetMetricPolicy operation: The specified container does not exist",
+    )
+
+
+@mock_mediastore
+def test_get_metric_policy_raises_error_if_container_does_not_have_lifecycle_policy():
+    client = boto3.client("mediastore", region_name=region)
+    container_response = client.create_container(
+        ContainerName="container-name", Tags=[{"Key": "customer"}]
+    )
+    container = container_response["Container"]
+    client.get_metric_policy.when.called_with(
+        ContainerName=container["Name"]
+    ).should.throw(
+        ClientError,
+        "An error occurred (PolicyNotFoundException) when calling the GetMetricPolicy operation: The policy does not exist within the specfied container",
     )
