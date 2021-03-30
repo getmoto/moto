@@ -29,3 +29,19 @@ class MediaStoreResponse(BaseResponse):
             lifecycle_policy=lifecycle_policy,
         )
         return json.dumps(policy)
+    
+    def put_container_policy(self):
+        container_name = self._get_param("ContainerName")
+        policy = self._get_param("Policy")
+        container_policy = self.mediastore_backend.put_container_policy(
+            container_name=container_name,
+            policy=policy,
+        )
+        return json.dumps(container_policy)
+    
+    def get_container_policy(self):
+        container_name = self._get_param("ContainerName")
+        policy = self.mediastore_backend.get_container_policy(
+            container_name=container_name,
+        )
+        return json.dumps(dict(Policy=policy))
