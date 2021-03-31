@@ -397,6 +397,33 @@ def test_support_created_case_can_be_described_without_max_results_or_next_token
 
 
 @mock_support
+def test_support_created_case_can_be_described_without_params():
+    """
+    On creating a support request it can be described
+    """
+
+    client = boto3.client("support", "us-east-1")
+
+    describe_cases_response = client.describe_cases()
+    describe_cases_response["cases"].should.equal([])
+
+    client.create_case(
+        subject="test_subject",
+        serviceCode="test_service_code",
+        severityCode="low",
+        categoryCode="test_category_code",
+        communicationBody="test_communication_body",
+        ccEmailAddresses=["test_email_cc",],
+        language="test_language",
+        issueType="test_issue_type",
+        attachmentSetId="test_attachment_set_id",
+    )
+
+    describe_cases_response = client.describe_cases()
+    describe_cases_response["cases"].should.have.length_of(1)
+
+
+@mock_support
 def test_support_created_case_cc_email_correct():
     """
     On creating a support request it can be described with
