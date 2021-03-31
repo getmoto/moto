@@ -12,6 +12,7 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
+from moto.ec2 import ec2_backend
 
 
 @mock_ec2_deprecated
@@ -985,3 +986,51 @@ def test_non_existent_security_group_raises_error_on_authorize():
             authorize_func(GroupId=non_existent_sg, IpPermissions=[{}])
         ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
         ex.value.response["Error"]["Message"].should.equal(expected_error)
+
+
+@mock_ec2
+def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api():
+    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
+    group_name = "test-backend-authorize"
+    sg = ec2_resource.create_security_group(
+        GroupName=group_name, Description="test", VpcId=vpc.id
+    )
+    # Add an ingress/egress rule using the EC2 backend directly.
+    rule_ingress = {
+        "group_name_or_id": sg.id,
+        "from_port": 0,
+        "ip_protocol": "udp",
+        "ip_ranges": [],
+        "to_port": 65535,
+        "source_group_ids": [sg.id],
+    }
+    ec2_backend.authorize_security_group_ingress(**rule_ingress)
+    rule_egress = {
+        "group_name_or_id": sg.id,
+        "from_port": 8443,
+        "ip_protocol": "tcp",
+        "ip_ranges": [],
+        "to_port": 8443,
+        "source_group_ids": [sg.id],
+    }
+    ec2_backend.authorize_security_group_egress(**rule_egress)
+    # Both rules (plus the default egress) should now be present.
+    sg = ec2_client.describe_security_groups(
+        Filters=[{"Name": "group-name", "Values": [group_name]}]
+    ).get("SecurityGroups")[0]
+    assert len(sg["IpPermissions"]) == 1
+    assert len(sg["IpPermissionsEgress"]) == 2
+    # Revoking via the API should work for all rules (even those we added directly).
+    ec2_client.revoke_security_group_egress(
+        GroupId=sg["GroupId"], IpPermissions=sg["IpPermissionsEgress"]
+    )
+    ec2_client.revoke_security_group_ingress(
+        GroupId=sg["GroupId"], IpPermissions=sg["IpPermissions"]
+    )
+    sg = ec2_client.describe_security_groups(
+        Filters=[{"Name": "group-name", "Values": [group_name]}]
+    ).get("SecurityGroups")[0]
+    assert len(sg["IpPermissions"]) == 0
+    assert len(sg["IpPermissionsEgress"]) == 0
