@@ -4,6 +4,11 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.4
+-----
+    Miscelleaneous:
+        * Support:describe_cases() no longer requires the caseIdList-parameter
+
 2.0.3
 -----
     New Methods:
@@ -25,6 +30,8 @@ Unreleased
         * S3:put_object_acl() now throws a NoSuchKey-exception if the object does not exist
         * SES:send_templated_email() now throws a TemplateDoesNotExist-exception if the template has not been created first
         * SSM:put_parameter() now throws an exception for empty values
+    Known bugs:
+        * Support:describe_cases() throws an exception when called without the caseIdList-parameter
 
 
 2.0.2
