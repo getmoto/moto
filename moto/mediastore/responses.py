@@ -37,14 +37,13 @@ class MediaStoreResponse(BaseResponse):
         )
         return json.dumps(dict(LifecyclePolicy=lifecycle_policy))
 
-    
     def list_containers(self):
         next_token = self._get_param("NextToken")
         max_results = self._get_int_param("MaxResults")
         containers, next_token = self.mediastore_backend.list_containers(
-            next_token=next_token,
-            max_results=max_results,
+            next_token=next_token, max_results=max_results,
         )
         return json.dumps(dict(dict(Containers=containers), NextToken=next_token))
+
 
 # add templates from here
