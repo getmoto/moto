@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import copy
 import json
+import unittest
 
 import pytest
 
@@ -11,7 +12,7 @@ from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2, mock_ec2_deprecated
+from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2 import ec2_backend
 
 
@@ -990,6 +991,8 @@ def test_non_existent_security_group_raises_error_on_authorize():
 
 @mock_ec2
 def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api():
+    if settings.TEST_SERVER_MODE:
+        raise unittest.SkipTest("Can't test backend directly in server mode.")
     ec2_resource = boto3.resource("ec2", region_name="us-east-1")
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
