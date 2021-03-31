@@ -56,6 +56,11 @@ class MediaStoreBackend(BaseBackend):
         container = self._containers[name]
         container.status = "ACTIVE"
         return container
+    
+    def list_containers(self, next_token, max_results):
+        containers = list(self._containers.values())
+        response_containers = [c.to_dict() for c in containers]
+        return response_containers, next_token
 
     def put_lifecycle_policy(self, container_name, lifecycle_policy):
         if container_name not in self._containers:
@@ -72,6 +77,8 @@ class MediaStoreBackend(BaseBackend):
         except AttributeError:
             raise PolicyNotFoundException()
 
+
+    
     # add methods from here
 
 

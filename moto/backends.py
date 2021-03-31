@@ -81,7 +81,6 @@ BACKENDS = {
     "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
     "mediapackage": ("mediapackage", "mediapackage_backends"),
     "mediastore": ("mediastore", "mediastore_backends"),
-    "mediastore": ("mediastore", "mediastore_backends"),
 }
 
 

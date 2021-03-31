@@ -41,6 +41,22 @@ def test_describe_container_succeeds():
     container["Name"].should.equal("Awesome container!")
     container["Status"].should.equal("ACTIVE")
 
+@mock_mediastore
+def test_list_containers_succeeds():
+    client = boto3.client("mediastore", region_name=region)
+    create_container1 = client.create_container(
+        ContainerName="Awesome container!", Tags=[{"Key": "customer"}]
+    )
+    list_response = client.list_containers(NextToken='next-token', MaxResults=123)
+    containers_list = list_response["Containers"]
+    len(containers_list).should.equal(1)
+    create_container2 = client.create_container(
+        ContainerName="Awesome container2!", Tags=[{"Key": "customer"}]
+    )
+    list_response = client.list_containers(NextToken='next-token', MaxResults=123)
+    containers_list = list_response["Containers"]
+    len(containers_list).should.equal(2)
+    
 
 @mock_mediastore
 def test_put_lifecycle_policy_succeeds():
