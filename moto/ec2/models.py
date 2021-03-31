@@ -1984,10 +1984,11 @@ class SecurityRule(object):
         self.ip_protocol = ip_protocol
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
+        self.from_port = self.to_port = None
 
         if ip_protocol != "-1":
-            self.from_port = from_port
-            self.to_port = to_port
+            self.from_port = int(from_port)
+            self.to_port = int(to_port)
 
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
