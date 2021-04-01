@@ -198,8 +198,9 @@ class SupportBackend(BaseBackend):
         include_communications,
     ):
         cases = []
+        requested_case_ids = case_id_list or self.cases.keys()
 
-        for case in case_id_list:
+        for case in requested_case_ids:
             self.advance_case_status(case)
             self.advance_case_severity_codes(case)
             formatted_case = {

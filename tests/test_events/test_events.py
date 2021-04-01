@@ -88,7 +88,6 @@ def test_put_rule():
         "Name": "my-event",
         "ScheduleExpression": "rate(5 minutes)",
         "EventPattern": '{"source": ["test-source"]}',
-        "EventBusName": "test-bus",
     }
 
     client.put_rule(**rule_data)
@@ -99,8 +98,32 @@ def test_put_rule():
     rules[0]["Name"].should.equal(rule_data["Name"])
     rules[0]["ScheduleExpression"].should.equal(rule_data["ScheduleExpression"])
     rules[0]["EventPattern"].should.equal(rule_data["EventPattern"])
-    rules[0]["EventBusName"].should.equal(rule_data["EventBusName"])
     rules[0]["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_put_rule_error_schedule_expression_custom_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "test-bus"
+    client.create_event_bus(Name=event_bus_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_rule(
+            Name="test-rule",
+            ScheduleExpression="rate(5 minutes)",
+            EventBusName=event_bus_name,
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutRule")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "ScheduleExpression is supported only on the default event bus."
+    )
 
 
 @mock_events
@@ -118,11 +141,49 @@ def test_describe_rule():
     client = generate_environment()
     response = client.describe_rule(Name=rule_name)
 
-    assert response is not None
-    assert response.get("Name") == rule_name
-    assert response.get(
-        "Arn"
-    ) == "arn:aws:events:us-west-2:111111111111:rule/{0}".format(rule_name)
+    response["Name"].should.equal(rule_name)
+    response["Arn"].should.equal(
+        "arn:aws:events:us-west-2:{0}:rule/{1}".format(ACCOUNT_ID, rule_name)
+    )
+
+
+@mock_events
+def test_describe_rule_with_event_bus_name():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "test-bus"
+    rule_name = "test-rule"
+    client.create_event_bus(Name=event_bus_name)
+    client.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="DISABLED",
+        Description="test rule",
+        RoleArn="arn:aws:iam::{}:role/test-role".format(ACCOUNT_ID),
+        EventBusName=event_bus_name,
+    )
+
+    # when
+    response = client.describe_rule(Name=rule_name, EventBusName=event_bus_name)
+
+    # then
+    response["Arn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:rule/{1}/{2}".format(
+            ACCOUNT_ID, event_bus_name, rule_name
+        )
+    )
+    response["CreatedBy"].should.equal(ACCOUNT_ID)
+    response["Description"].should.equal("test rule")
+    response["EventBusName"].should.equal(event_bus_name)
+    json.loads(response["EventPattern"]).should.equal({"account": [ACCOUNT_ID]})
+    response["Name"].should.equal(rule_name)
+    response["RoleArn"].should.equal(
+        "arn:aws:iam::{}:role/test-role".format(ACCOUNT_ID)
+    )
+    response["State"].should.equal("DISABLED")
+
+    response.should_not.have.key("ManagedBy")
+    response.should_not.have.key("ScheduleExpression")
 
 
 @mock_events
@@ -240,14 +301,21 @@ def test_update_rule_with_targets():
 
 
 @mock_events
-def test_remove_targets_errors():
-    client = boto3.client("events", "us-east-1")
+def test_remove_targets_error_unknown_rule():
+    # given
+    client = boto3.client("events", "eu-central-1")
 
-    client.remove_targets.when.called_with(
-        Rule="non-existent", Ids=["Id12345678"]
-    ).should.throw(
-        client.exceptions.ResourceNotFoundException,
-        "An entity that you specified does not exist",
+    # when
+    with pytest.raises(ClientError) as e:
+        client.remove_targets(Rule="unknown", Ids=["something"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("RemoveTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
     )
 
 
@@ -267,7 +335,7 @@ def test_put_targets():
     targets_before = len(targets)
     assert targets_before == 0
 
-    targets_data = [{"Arn": "test_arn", "Id": "test_id"}]
+    targets_data = [{"Arn": "arn:aws:s3:::test-arn", "Id": "test_id"}]
     resp = client.put_targets(Rule=rule_name, Targets=targets_data)
     assert resp["FailedEntryCount"] == 0
     assert len(resp["FailedEntries"]) == 0
@@ -276,8 +344,61 @@ def test_put_targets():
     targets_after = len(targets)
     assert targets_before + 1 == targets_after
 
-    assert targets[0]["Arn"] == "test_arn"
+    assert targets[0]["Arn"] == "arn:aws:s3:::test-arn"
     assert targets[0]["Id"] == "test_id"
+
+
+@mock_events
+def test_put_targets_error_invalid_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    rule_name = "test-rule"
+    client.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="ENABLED",
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule=rule_name,
+            Targets=[
+                {"Id": "s3", "Arn": "arn:aws:s3:::test-bucket"},
+                {"Id": "s3", "Arn": "test-bucket"},
+            ],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter test-bucket is not valid. "
+        "Reason: Provided Arn is not in correct format."
+    )
+
+
+@mock_events
+def test_put_targets_error_unknown_rule():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule="unknown", Targets=[{"Id": "s3", "Arn": "arn:aws:s3:::test-bucket"}]
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
+    )
 
 
 @mock_events
@@ -789,10 +910,11 @@ def test_list_tags_for_resource_error_unknown_arn():
 def test_create_archive():
     # given
     client = boto3.client("events", "eu-central-1")
+    archive_name = "test-archive"
 
     # when
     response = client.create_archive(
-        ArchiveName="test-archive",
+        ArchiveName=archive_name,
         EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
             ACCOUNT_ID
         ),
@@ -800,10 +922,30 @@ def test_create_archive():
 
     # then
     response["ArchiveArn"].should.equal(
-        "arn:aws:events:eu-central-1:{}:archive/test-archive".format(ACCOUNT_ID)
+        "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, archive_name)
     )
     response["CreationTime"].should.be.a(datetime)
     response["State"].should.equal("ENABLED")
+
+    # check for archive rule existence
+    rule_name = "Events-Archive-{}".format(archive_name)
+    response = client.describe_rule(Name=rule_name)
+
+    response["Arn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:rule/{1}".format(ACCOUNT_ID, rule_name)
+    )
+    response["CreatedBy"].should.equal(ACCOUNT_ID)
+    response["EventBusName"].should.equal("default")
+    json.loads(response["EventPattern"]).should.equal(
+        {"replay-name": [{"exists": False}]}
+    )
+    response["ManagedBy"].should.equal("prod.vhs.events.aws.internal")
+    response["Name"].should.equal(rule_name)
+    response["State"].should.equal("ENABLED")
+
+    response.should_not.have.key("Description")
+    response.should_not.have.key("RoleArn")
+    response.should_not.have.key("ScheduleExpression")
 
 
 @mock_events
@@ -1314,6 +1456,34 @@ def test_archive_actual_events():
     response["SizeBytes"].should.equal(0)
 
     response = client.describe_archive(ArchiveName=name_3)
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.be.greater_than(0)
+
+
+@mock_events
+def test_archive_event_with_bus_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_name = "mock_archive"
+    event_with_bus_arn = {
+        "Source": "source",
+        "DetailType": "type",
+        "Detail": '{ "key1": "value1" }',
+        "EventBusName": event_bus_arn,
+    }
+    client.create_archive(ArchiveName=archive_name, EventSourceArn=event_bus_arn)
+
+    # when
+    response = client.put_events(Entries=[event_with_bus_arn])
+
+    # then
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
+
+    response = client.describe_archive(ArchiveName=archive_name)
     response["EventCount"].should.equal(1)
     response["SizeBytes"].should.be.greater_than(0)
 

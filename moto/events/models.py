@@ -27,22 +27,33 @@ from uuid import uuid4
 class Rule(CloudFormationModel):
     Arn = namedtuple("Arn", ["service", "resource_type", "resource_id"])
 
-    def _generate_arn(self, name):
-        return "arn:aws:events:{region_name}:111111111111:rule/{name}".format(
-            region_name=self.region_name, name=name
-        )
-
     def __init__(self, name, region_name, **kwargs):
         self.name = name
         self.region_name = region_name
-        self.arn = kwargs.get("Arn") or self._generate_arn(name)
         self.event_pattern = kwargs.get("EventPattern")
         self.schedule_exp = kwargs.get("ScheduleExpression")
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
         self.role_arn = kwargs.get("RoleArn")
-        self.event_bus_name = kwargs.get("EventBusName") or "default"
+        self.managed_by = kwargs.get("ManagedBy")  # can only be set by AWS services
+        self.event_bus_name = kwargs.get("EventBusName")
+        self.created_by = ACCOUNT_ID
         self.targets = []
+
+    @property
+    def arn(self):
+        event_bus_name = (
+            ""
+            if self.event_bus_name == "default"
+            else "{}/".format(self.event_bus_name)
+        )
+
+        return "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
+            region=self.region_name,
+            account_id=ACCOUNT_ID,
+            event_bus_name=event_bus_name,
+            name=self.name,
+        )
 
     @property
     def physical_resource_id(self):
@@ -100,13 +111,17 @@ class Rule(CloudFormationModel):
             return self._does_event_match_pattern(event_item, pattern_item)
 
     def send_to_targets(self, event_bus_name, event):
+        event_bus_name = event_bus_name.split("/")[-1]
         if event_bus_name != self.event_bus_name:
             return
 
         if not self._validate_event(event):
             return
 
-        # for now only CW Log groups are supported
+        # supported targets
+        # - CloudWatch Log Group
+        # - EventBridge Archive
+        # - SQS Queue (not FIFO)
         for target in self.targets:
             arn = self._parse_arn(target["Arn"])
 
@@ -117,6 +132,8 @@ class Rule(CloudFormationModel):
                 archive_arn = self._parse_arn(input_template["archive-arn"])
 
                 self._send_to_events_archive(archive_arn.resource_id, event)
+            elif arn.service == "sqs":
+                self._send_to_sqs_queue(arn.resource_id, event)
             else:
                 raise NotImplementedError("Expr not defined for {0}".format(type(self)))
 
@@ -194,6 +211,18 @@ class Rule(CloudFormationModel):
             if self._does_event_match_pattern(event, pattern):
                 archive.events.append(event)
 
+    def _send_to_sqs_queue(self, resource_id, event):
+        from moto.sqs import sqs_backends
+
+        event_copy = copy.deepcopy(event)
+        event_copy["time"] = iso_8601_datetime_without_milliseconds(
+            datetime.utcfromtimestamp(event_copy["time"])
+        )
+
+        sqs_backends[self.region_name].send_message(
+            queue_name=resource_id, message_body=json.dumps(event_copy)
+        )
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -216,6 +245,8 @@ class Rule(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        properties.setdefault("EventBusName", "default")
+
         event_backend = events_backends[region_name]
         event_name = resource_name
         return event_backend.put_rule(name=event_name, **properties)
@@ -702,6 +733,11 @@ class EventsBackend(BaseBackend):
         rule.event_bus_name = kwargs.get("EventBusName") or rule.event_bus_name
 
     def put_rule(self, name, **kwargs):
+        if kwargs.get("ScheduleExpression") and kwargs.get("EventBusName") != "default":
+            raise ValidationException(
+                "ScheduleExpression is supported only on the default event bus."
+            )
+
         if name in self.rules:
             self.update_rule(self.rules[name], **kwargs)
             new_rule = self.rules[name]
@@ -711,14 +747,30 @@ class EventsBackend(BaseBackend):
             self.rules_order.append(new_rule.name)
         return new_rule
 
-    def put_targets(self, name, targets):
+    def put_targets(self, name, event_bus_name, targets):
+        # super simple ARN check
+        invalid_arn = next(
+            (
+                target["Arn"]
+                for target in targets
+                if not re.match(r"arn:[\d\w:\-/]*", target["Arn"])
+            ),
+            None,
+        )
+        if invalid_arn:
+            raise ValidationException(
+                "Parameter {} is not valid. "
+                "Reason: Provided Arn is not in correct format.".format(invalid_arn)
+            )
+
         rule = self.rules.get(name)
 
-        if rule:
-            rule.put_targets(targets)
-            return True
+        if not rule:
+            raise ResourceNotFoundException(
+                "Rule {0} does not exist on EventBus {1}.".format(name, event_bus_name)
+            )
 
-        return False
+        rule.put_targets(targets)
 
     def put_events(self, events):
         num_events = len(events)
@@ -790,17 +842,15 @@ class EventsBackend(BaseBackend):
 
         return entries
 
-    def remove_targets(self, name, ids):
+    def remove_targets(self, name, event_bus_name, ids):
         rule = self.rules.get(name)
 
-        if rule:
-            rule.remove_targets(ids)
-            return {"FailedEntries": [], "FailedEntryCount": 0}
-        else:
-            raise JsonRESTError(
-                "ResourceNotFoundException",
-                "An entity that you specified does not exist",
+        if not rule:
+            raise ResourceNotFoundException(
+                "Rule {0} does not exist on EventBus {1}.".format(name, event_bus_name)
             )
+
+        rule.remove_targets(ids)
 
     def test_event_pattern(self):
         raise NotImplementedError()
@@ -952,10 +1002,12 @@ class EventsBackend(BaseBackend):
             **{
                 "EventPattern": json.dumps(rule_event_pattern),
                 "EventBusName": event_bus.name,
+                "ManagedBy": "prod.vhs.events.aws.internal",
             }
         )
         self.put_targets(
             rule.name,
+            rule.event_bus_name,
             [
                 {
                     "Id": rule.name,

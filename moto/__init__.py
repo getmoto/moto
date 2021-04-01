@@ -128,7 +128,7 @@ mock_mediapackage = lazy_load(".mediapackage", "mock_mediapackage")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.0.3.dev"
+__version__ = "2.0.5.dev"
 
 
 try:
