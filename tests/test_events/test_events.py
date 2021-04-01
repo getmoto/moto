@@ -1496,19 +1496,51 @@ def test_event_not_routed_to_archive_when_detail_does_not_match_pattern():
         ACCOUNT_ID
     )
     client.create_archive(
-        ArchiveName="no-matches-detail",
+        ArchiveName="archive-with-dict-filter",
         EventSourceArn=event_bus_arn,
         EventPattern=json.dumps({"detail": {"foo": ["bar"]}}),
     )
+    client.create_archive(
+        ArchiveName="archive-with-list-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"source": ["foo", "bar"]}),
+    )
 
     # when
-    event = {"Source": "source", "DetailType": "type", "Detail": '{"foo": "baz"}'}
-    client.put_events(Entries=[event])
+    event_matching_detail = {
+        "Source": "source", "DetailType": "type", "Detail": '{"foo": "bar"}'
+    }
+    event_not_matching_detail = {
+        "Source": "source", "DetailType": "type", "Detail": '{"foo": "baz"}'
+    }
+    event_matching_source_foo = {
+        "Source": "foo", "DetailType": "type", "Detail": '{}'
+    }
+    event_matching_source_bar = {
+        "Source": "bar", "DetailType": "type", "Detail": '{}'
+    }
+    event_not_matching_source = {
+        "Source": "baz", "DetailType": "type", "Detail": '{}'
+    }
+
+    client.put_events(
+        Entries=[
+            event_matching_detail,
+            event_not_matching_detail,
+            event_matching_source_foo,
+            event_matching_source_bar,
+            event_not_matching_source
+        ]
+    )
 
     # then
-    response = client.describe_archive(ArchiveName="no-matches-detail")
-    response["EventCount"].should.equal(0)
-    response["SizeBytes"].should.equal(0)
+    response = client.describe_archive(ArchiveName="archive-with-dict-filter")
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.be.greater_than(0)
+
+    response = client.describe_archive(ArchiveName="archive-with-list-filter")
+    response["EventCount"].should.equal(2)
+    response["SizeBytes"].should.be.greater_than(0)
 
 
 @mock_events
