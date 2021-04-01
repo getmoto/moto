@@ -7,6 +7,7 @@ Unreleased
 2.0.4
 -----
     Miscelleaneous:
+        * Events:put_targets() now supports SQS queues
         * Support:describe_cases() no longer requires the caseIdList-parameter
 
 2.0.3
