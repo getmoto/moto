@@ -8,9 +8,10 @@ import boto3
 import boto
 from boto.exception import EC2ResponseError
 
-# import sure  # noqa
+import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
+from moto.core import ACCOUNT_ID
 
 SAMPLE_DOMAIN_NAME = "example.com"
 SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
@@ -920,3 +921,104 @@ def test_describe_vpc_end_points():
         )
     except ClientError as err:
         assert err.response["Error"]["Code"] == "InvalidVpcEndPointId.NotFound"
+
+
+@mock_ec2
+def test_delete_vpc_endpoint_type_gateway():
+    ec2 = boto3.client("ec2", region_name="ap-south-1")
+    res = boto3.resource("ec2", region_name="ap-south-1")
+
+    # given
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    route_table_id = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])["RouteTable"][
+        "RouteTableId"
+    ]
+    route_table = res.RouteTable(route_table_id)
+    route_table.routes.should.have.length_of(1)
+    vpc_end_point = ec2.create_vpc_endpoint(
+        VpcId=vpc["Vpc"]["VpcId"],
+        ServiceName="com.amazonaws.ap-south-1.s3",
+        RouteTableIds=[route_table_id],
+        VpcEndpointType="Gateway",
+    )["VpcEndpoint"]
+
+    vpc_endpoints = ec2.describe_vpc_endpoints()["VpcEndpoints"]
+    vpc_endpoints.should.have.length_of(1)
+    route_table.reload()
+    route_table.routes.should.have.length_of(2)
+
+    # when
+    res = ec2.delete_vpc_endpoints(VpcEndpointIds=[vpc_end_point["VpcEndpointId"]])
+
+    # then
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    res["Unsuccessful"].should.equal([])
+
+    vpc_endpoints = ec2.describe_vpc_endpoints()["VpcEndpoints"]
+    vpc_endpoints.should.have.length_of(0)
+
+    # VPC Endpoints adds a route for type=gateway - that should be deleted with the VPC Endpoint
+    route_table.reload()
+    route_table.routes.should.have.length_of(1)
+
+
+@mock_ec2
+def test_delete_vpc_end_point_unknown():
+    ec2 = boto3.client("ec2", region_name="ap-south-1")
+    # when
+    unknown_vpc_id = "vpce-a0b1c256230a7d289"
+    res = ec2.delete_vpc_endpoints(VpcEndpointIds=[unknown_vpc_id])
+
+    # then
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    res["Unsuccessful"].should.have.length_of(1)
+    res["Unsuccessful"][0]["Error"]["Code"].should.equal("InvalidVpcEndpoint.NotFound")
+    res["Unsuccessful"][0]["ResourceId"].should.equal(unknown_vpc_id)
+
+
+@mock_ec2
+def test_delete_vpc_end_point_type_interface():
+    ec2 = boto3.client("ec2", region_name="ap-south-1")
+
+    # given
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = ec2.create_subnet(
+        AvailabilityZone="ap-south-1a", CidrBlock="10.0.0.0/17", VpcId=vpc["VpcId"]
+    )["Subnet"]
+    vpc_end_point = ec2.create_vpc_endpoint(
+        VpcId=vpc["VpcId"],
+        ServiceName="com.amazonaws.ap-south-1.s3",
+        SubnetIds=[subnet["SubnetId"]],
+        VpcEndpointType="Interface",
+    )["VpcEndpoint"]
+    vpc_end_point["RouteTableIds"].should.equal([])
+    vpc_end_point.should.have.key("NetworkInterfaceIds").being.length_of(1)
+
+    # NetworkInterface has been created automatically
+    network_interface_id = vpc_end_point["NetworkInterfaceIds"][0]
+    ni = ec2.describe_network_interfaces(NetworkInterfaceIds=[network_interface_id])[
+        "NetworkInterfaces"
+    ]
+    ni.should.have.length_of(1)
+    ni = ni[0]
+    ni.should.have.key("AvailabilityZone").being.equal("ap-south-1a")
+    ni.should.have.key("Description").being.equal(
+        "VPC Endpoint Interface {}".format(vpc_end_point["VpcEndpointId"])
+    )
+    ni.should.have.key("OwnerId").being.equal(ACCOUNT_ID)
+    ni.should.have.key("SubnetId").being.equal(subnet["SubnetId"])
+    ni.should.have.key("VpcId").being.equal(vpc["VpcId"])
+
+    # when
+    ec2.delete_vpc_endpoints(VpcEndpointIds=[vpc_end_point["VpcEndpointId"]])
+
+    # then
+    vpc_endpoints = ec2.describe_vpc_endpoints()["VpcEndpoints"]
+    vpc_endpoints.should.have.length_of(0)
+
+    # NetworkInterface has also been deleted
+    with pytest.raises(ClientError) as exc:
+        ec2.describe_network_interfaces(NetworkInterfaceIds=[network_interface_id])
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidNetworkInterfaceID.NotFound")

@@ -211,6 +211,12 @@ class VPCs(BaseResponse):
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
         return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
 
+    def delete_vpc_endpoints(self):
+        vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
+        errors = self.ec2_backend.delete_vpc_endpoints(vpc_end_points_ids)
+        template = self.response_template(DELETE_VPC_ENDPOINTS_RESPONSE)
+        return template.render(errors=errors)
+
 
 CREATE_VPC_RESPONSE = """
 <CreateVpcResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
@@ -568,3 +574,18 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
         {% endfor %}
     </vpcEndpointSet>
 </DescribeVpcEndpointsResponse>"""
+
+
+DELETE_VPC_ENDPOINTS_RESPONSE = """<DeleteVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>5e876365-0d10-4df4-9653-9c4f6466834c</requestId>
+  <unsuccessful>
+      {% for resource_id, msg in errors.items() %}
+        <item>
+          <error>
+            <code>{{ msg }}</code>
+          </error>
+          <resourceId>{{ resource_id }}</resourceId>
+        </item>
+      {% endfor %}
+  </unsuccessful>
+</DeleteVpcEndpointsResponse>"""

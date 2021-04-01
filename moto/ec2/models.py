@@ -3235,12 +3235,17 @@ class VPCBackend(object):
         # validates if vpc is present or not.
         self.get_vpc(vpc_id)
 
+        route_ids = {}
         if type and type.lower() == "interface":
 
             network_interface_ids = []
             for subnet_id in subnet_ids:
-                self.get_subnet(subnet_id)
-                eni = self.create_network_interface(subnet_id, random_private_ip())
+                subnet = self.get_subnet(subnet_id)
+                eni = self.create_network_interface(
+                    subnet,
+                    random_private_ip(),
+                    description="VPC Endpoint Interface {}".format(vpc_endpoint_id),
+                )
                 network_interface_ids.append(eni.id)
 
             dns_entries = create_dns_entries(service_name, vpc_endpoint_id)
@@ -3250,7 +3255,8 @@ class VPCBackend(object):
             service_destination_cidr = randor_ipv4_cidr()
 
             for route_table_id in route_table_ids:
-                self.create_route(route_table_id, service_destination_cidr)
+                r = self.create_route(route_table_id, service_destination_cidr)
+                route_ids[route_table_id] = r.id
         if dns_entries:
             dns_entries = [dns_entries]
 
@@ -3268,6 +3274,7 @@ class VPCBackend(object):
             security_group,
             tag_specifications,
             private_dns_enabled,
+            route_ids=route_ids,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
@@ -3292,6 +3299,24 @@ class VPCBackend(object):
                 raise InvalidVpcEndPointIdError(invalid_id)
 
         return generic_filter(filters, vpc_end_points)
+
+    def delete_vpc_endpoints(self, vpc_end_points_ids):
+        errors = {}
+        for id in vpc_end_points_ids:
+            vpc_endpoint = self.vpc_end_points.pop(id, None)
+            if not vpc_endpoint:
+                errors[id] = "InvalidVpcEndpoint.NotFound"
+            else:
+                if vpc_endpoint.is_type_gateway():
+                    for route_table_id, route_id in vpc_endpoint.route_ids.items():
+                        self.delete_route_by_route_id(route_table_id, route_id)
+                if vpc_endpoint.is_type_interface():
+                    for eni_id in vpc_endpoint.network_interface_ids:
+                        self.delete_network_interface(eni_id)
+                # if vpc_endpoint.is_type_ 'Gateway Load Balancer '
+                # Delete the endpoint network interfaces
+                # Creation of this type isn't implemented yet
+        return errors
 
     def get_vpc_end_point_services(self):
         vpc_end_point_services = self.vpc_end_points.values()
@@ -4189,6 +4214,9 @@ class RouteTableBackend(object):
         self.route_tables.pop(route_table_id)
         return True
 
+    def delete_route_by_route_id(self, route_table_id, route_id):
+        self.route_tables[route_table_id].routes.pop(route_id)
+
     def associate_route_table(self, route_table_id, gateway_id=None, subnet_id=None):
         # Idempotent if association already exists.
         route_tables_by_subnet = self.get_all_route_tables(
@@ -4319,6 +4347,7 @@ class VPCEndPoint(TaggedEC2Resource):
         security_group=None,
         tag_specifications=None,
         private_dns_enabled=None,
+        route_ids=None,
     ):
         self.id = id
         self.vpc_id = vpc_id
@@ -4334,6 +4363,13 @@ class VPCEndPoint(TaggedEC2Resource):
         self.private_dns_enabled = private_dns_enabled
         self.created_at = datetime.utcnow()
         self.dns_entries = dns_entries
+        self.route_ids = route_ids or {}
+
+    def is_type_gateway(self):
+        return self.type and self.type.lower() == "gateway"
+
+    def is_type_interface(self):
+        return self.type and self.type.lower() == "interface"
 
 
 class RouteBackend(object):

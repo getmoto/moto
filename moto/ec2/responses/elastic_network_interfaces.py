@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -35,7 +36,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         filters = filters_from_querystring(self.querystring)
         enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
-        return template.render(enis=enis)
+        return template.render(enis=enis, account_id=ACCOUNT_ID)
 
     def attach_network_interface(self):
         eni_id = self._get_param("NetworkInterfaceId")
@@ -124,9 +125,9 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
            <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
            <subnetId>{{ eni.subnet.id }}</subnetId>
            <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
-           <availabilityZone>us-west-2a</availabilityZone>
+           <availabilityZone>{{ eni.subnet.availability_zone }}</availabilityZone>
            <description>{{ eni.description }}</description>
-           <ownerId>190610284047</ownerId>
+           <ownerId>{{ account_id }}</ownerId>
            <requesterManaged>false</requesterManaged>
            {% if eni.attachment_id %}
              <status>in-use</status>
