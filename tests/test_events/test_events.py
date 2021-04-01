@@ -1508,20 +1508,18 @@ def test_event_not_routed_to_archive_when_detail_does_not_match_pattern():
 
     # when
     event_matching_detail = {
-        "Source": "source", "DetailType": "type", "Detail": '{"foo": "bar"}'
+        "Source": "source",
+        "DetailType": "type",
+        "Detail": '{"foo": "bar"}',
     }
     event_not_matching_detail = {
-        "Source": "source", "DetailType": "type", "Detail": '{"foo": "baz"}'
+        "Source": "source",
+        "DetailType": "type",
+        "Detail": '{"foo": "baz"}',
     }
-    event_matching_source_foo = {
-        "Source": "foo", "DetailType": "type", "Detail": '{}'
-    }
-    event_matching_source_bar = {
-        "Source": "bar", "DetailType": "type", "Detail": '{}'
-    }
-    event_not_matching_source = {
-        "Source": "baz", "DetailType": "type", "Detail": '{}'
-    }
+    event_matching_source_foo = {"Source": "foo", "DetailType": "type", "Detail": "{}"}
+    event_matching_source_bar = {"Source": "bar", "DetailType": "type", "Detail": "{}"}
+    event_not_matching_source = {"Source": "baz", "DetailType": "type", "Detail": "{}"}
 
     client.put_events(
         Entries=[
@@ -1529,7 +1527,7 @@ def test_event_not_routed_to_archive_when_detail_does_not_match_pattern():
             event_not_matching_detail,
             event_matching_source_foo,
             event_matching_source_bar,
-            event_not_matching_source
+            event_not_matching_source,
         ]
     )
 
