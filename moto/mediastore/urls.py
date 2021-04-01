@@ -5,7 +5,8 @@ url_bases = [
     "https?://mediastore.(.+).amazonaws.com",
 ]
 
+response = MediaStoreResponse()
 
 url_paths = {
-    "{0}/$": MediaStoreResponse.dispatch,
+    "{0}/$": response.dispatch,
 }

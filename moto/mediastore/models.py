@@ -53,15 +53,31 @@ class MediaStoreBackend(BaseBackend):
         return container
 
     def describe_container(self, name):
+        if name not in self._containers:
+            raise ResourceNotFoundException()
         container = self._containers[name]
         container.status = "ACTIVE"
         return container
+
+    def list_containers(self, next_token, max_results):
+        containers = list(self._containers.values())
+        response_containers = [c.to_dict() for c in containers]
+        return response_containers, next_token
 
     def put_lifecycle_policy(self, container_name, lifecycle_policy):
         if container_name not in self._containers:
             raise ResourceNotFoundException()
         self._containers[container_name].lifecycle_policy = lifecycle_policy
         return {}
+
+    def get_lifecycle_policy(self, container_name):
+        try:
+            if container_name not in self._containers:
+                raise ResourceNotFoundException()
+            lifecycle_policy = self._containers[container_name].lifecycle_policy
+            return lifecycle_policy
+        except AttributeError:
+            raise PolicyNotFoundException()
 
     def put_container_policy(self, container_name, policy):
         if container_name not in self._containers:
