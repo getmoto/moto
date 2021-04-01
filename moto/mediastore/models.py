@@ -3,6 +3,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from datetime import date
+from .exceptions import ResourceNotFoundException
 
 class Container(BaseModel):
     def __init__(self, *args, **kwargs):
@@ -51,6 +52,8 @@ class MediaStoreBackend(BaseBackend):
         return container
 
     def describe_container(self, name):
+        if name not in self._containers:
+            raise ResourceNotFoundException()
         container = self._containers[name]
         container.status = "ACTIVE"
         return container
@@ -62,9 +65,6 @@ class MediaStoreBackend(BaseBackend):
         # print(lifecycle_policy)
         # print(container_name)
         return {}
-
-    
-    # add methods from here
 
 
 mediastore_backends = {}
