@@ -91,6 +91,7 @@ class Rule(CloudFormationModel):
         return True
 
     def _does_event_item_match_pattern_item(self, event_item, pattern_item):
+        #  Only supports "key: [value]" filters currently
         if not event_item:
             return False
         if isinstance(pattern_item, list):
