@@ -92,6 +92,24 @@ class Rule(CloudFormationModel):
             if index is not None:
                 self.targets.pop(index)
 
+    def _does_event_match_pattern(self, event, pattern):
+        if not pattern:
+            return True
+        event_pattern_pairs = [(event.get(k), v) for k, v in pattern.items()]
+        for event_item, pattern_item in event_pattern_pairs:
+            if not self._does_event_item_match_pattern_item(event_item, pattern_item):
+                return False
+        return True
+
+    def _does_event_item_match_pattern_item(self, event_item, pattern_item):
+        #  Only supports "key: [value]" filters currently
+        if not event_item:
+            return False
+        if isinstance(pattern_item, list):
+            return event_item in pattern_item
+        if isinstance(pattern_item, dict):
+            return self._does_event_match_pattern(event_item, pattern_item)
+
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]
         if event_bus_name != self.event_bus_name:
@@ -186,9 +204,12 @@ class Rule(CloudFormationModel):
     def _send_to_events_archive(self, resource_id, event):
         archive_name, archive_uuid = resource_id.split(":")
         archive = events_backends[self.region_name].archives.get(archive_name)
-
+        pattern = archive.event_pattern
         if archive.uuid == archive_uuid:
-            archive.events.append(event)
+            event = json.loads(json.dumps(event))
+            pattern = json.loads(pattern) if pattern else None
+            if self._does_event_match_pattern(event, pattern):
+                archive.events.append(event)
 
     def _send_to_sqs_queue(self, resource_id, event):
         from moto.sqs import sqs_backends
