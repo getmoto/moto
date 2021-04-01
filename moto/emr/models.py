@@ -2,16 +2,21 @@ from __future__ import unicode_literals
 from datetime import datetime
 from datetime import timedelta
 
+import warnings
+
 import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
+from moto.ec2 import ec2_backends
+from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.emr.exceptions import EmrError, InvalidRequestException
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
     random_step_id,
     CamelToUnderscoresWalker,
+    EmrSecurityGroupManager,
 )
 
 
@@ -363,6 +368,14 @@ class ElasticMapReduceBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @property
+    def ec2_backend(self):
+        """
+        :return: EC2 Backend
+        :rtype: moto.ec2.models.EC2Backend
+        """
+        return ec2_backends[self.region_name]
+
     def add_applications(self, cluster_id, applications):
         cluster = self.get_cluster(cluster_id)
         cluster.add_applications(applications)
@@ -501,7 +514,50 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster = self.get_cluster(cluster_id)
         cluster.remove_tags(tag_keys)
 
+    def _manage_security_groups(
+        self,
+        ec2_subnet_id,
+        emr_managed_master_security_group,
+        emr_managed_slave_security_group,
+        service_access_security_group,
+        **_
+    ):
+        default_return_value = (
+            emr_managed_master_security_group,
+            emr_managed_slave_security_group,
+            service_access_security_group,
+        )
+        if not ec2_subnet_id:
+            # TODO: Set up Security Groups in Default VPC.
+            return default_return_value
+
+        try:
+            subnet = self.ec2_backend.get_subnet(ec2_subnet_id)
+        except InvalidSubnetIdError:
+            warnings.warn(
+                "Could not find Subnet with id: {0}\n"
+                "In the near future, this will raise an error.\n"
+                "Use ec2.describe_subnets() to find a suitable id "
+                "for your test.".format(ec2_subnet_id),
+                PendingDeprecationWarning,
+            )
+            return default_return_value
+
+        manager = EmrSecurityGroupManager(self.ec2_backend, subnet.vpc_id)
+        master, slave, service = manager.manage_security_groups(
+            emr_managed_master_security_group,
+            emr_managed_slave_security_group,
+            service_access_security_group,
+        )
+        return master.id, slave.id, service.id
+
     def run_job_flow(self, **kwargs):
+        if "instance_attrs" in kwargs:
+            (
+                kwargs["instance_attrs"]["emr_managed_master_security_group"],
+                kwargs["instance_attrs"]["emr_managed_slave_security_group"],
+                kwargs["instance_attrs"]["service_access_security_group"],
+            ) = self._manage_security_groups(**kwargs["instance_attrs"])
         return FakeCluster(self, **kwargs)
 
     def set_visible_to_all_users(self, job_flow_ids, visible_to_all_users):

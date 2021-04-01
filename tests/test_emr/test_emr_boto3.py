@@ -12,7 +12,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 import pytest
 
-from moto import mock_emr
+from moto import mock_emr, mock_ec2
 
 
 run_job_flow_args = dict(
@@ -1045,3 +1045,78 @@ def test_security_configurations():
     ex.value.response["Error"]["Message"].should.match(
         r"Security configuration with name .* does not exist."
     )
+
+
+@mock_emr
+@mock_ec2
+def test_default_emr_security_groups_get_created_on_first_job_flow():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-east-1a"
+    )
+
+    def _get_default_security_groups():
+        group_resp = ec2_client.describe_security_groups(
+            Filters=[
+                {"Name": "vpc-id", "Values": [vpc.id]},
+                {
+                    "Name": "group-name",
+                    "Values": [
+                        "ElasticMapReduce-Master-Private",
+                        "ElasticMapReduce-Slave-Private",
+                        "ElasticMapReduce-ServiceAccess",
+                    ],
+                },
+            ]
+        )
+        return group_resp.get("SecurityGroups", [])
+
+    assert len(_get_default_security_groups()) == 0
+
+    client = boto3.client("emr", region_name="us-east-1")
+    run_job_flow_params = dict(
+        ReleaseLabel="emr-5.29.0",
+        Instances={
+            "KeepJobFlowAliveWhenNoSteps": True,
+            "Ec2SubnetId": subnet.id,
+            "InstanceGroups": [
+                {
+                    "Name": "Master",
+                    "Market": "ON_DEMAND",
+                    "InstanceRole": "MASTER",
+                    "InstanceType": "m5.xlarge",
+                    "InstanceCount": 3,
+                },
+                {
+                    "Name": "Core",
+                    "Market": "ON_DEMAND",
+                    "InstanceRole": "CORE",
+                    "InstanceType": "m5.xlarge",
+                    "InstanceCount": 2,
+                },
+            ],
+        },
+        JobFlowRole="EMR_EC2_DefaultRole",
+        Name="test-emr-cluster-security-groups",
+        ServiceRole="EMR_DefaultRole",
+        VisibleToAllUsers=True,
+    )
+    cluster_id = client.run_job_flow(**run_job_flow_params)["JobFlowId"]
+
+    # Default security groups should have been created.
+    default_security_groups = _get_default_security_groups()
+    default_security_group_ids = [sg["GroupId"] for sg in default_security_groups]
+    assert len(default_security_group_ids) == 3
+
+    resp = client.describe_cluster(ClusterId=cluster_id)
+    ec2_attrs = resp["Cluster"]["Ec2InstanceAttributes"]
+    assert ec2_attrs["Ec2SubnetId"] == subnet.id
+    cluster_security_group_ids = [
+        ec2_attrs["EmrManagedMasterSecurityGroup"],
+        ec2_attrs["EmrManagedSlaveSecurityGroup"],
+        ec2_attrs["ServiceAccessSecurityGroup"],
+    ]
+    assert set(cluster_security_group_ids) == set(default_security_group_ids)
