@@ -6,6 +6,10 @@ INITIAL_NO_AUTH_ACTION_COUNT = float(
 )
 DEFAULT_CONTAINER_REGISTRY = os.environ.get("DEFAULT_CONTAINER_REGISTRY", "docker.io")
 
+S3_IGNORE_SUBDOMAIN_BUCKETNAME = os.environ.get(
+    "S3_IGNORE_SUBDOMAIN_BUCKETNAME", ""
+) in ["1", "true"]
+
 
 def get_sf_execution_history_type():
     """

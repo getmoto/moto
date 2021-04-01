@@ -1940,13 +1940,23 @@ def test_nat_gateway():
 
     cf_conn = boto3.client("cloudformation", "us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    stack_resources = cf_conn.list_stack_resources(StackName="test_stack")
+    nat_gateway_resource = stack_resources.get("StackResourceSummaries")[0]
+    for resource in stack_resources["StackResourceSummaries"]:
+        if resource["ResourceType"] == "AWS::EC2::NatGateway":
+            nat_gateway_resource = resource
+        elif resource["ResourceType"] == "AWS::EC2::Route":
+            route_resource = resource
 
     result = ec2_conn.describe_nat_gateways()
-
     result["NatGateways"].should.have.length_of(1)
     result["NatGateways"][0]["VpcId"].should.equal(vpc_id)
     result["NatGateways"][0]["SubnetId"].should.equal(subnet_id)
     result["NatGateways"][0]["State"].should.equal("available")
+    result["NatGateways"][0]["NatGatewayId"].should.equal(
+        nat_gateway_resource.get("PhysicalResourceId")
+    )
+    route_resource.get("PhysicalResourceId").should.contain("rtb-")
 
 
 @mock_cloudformation()

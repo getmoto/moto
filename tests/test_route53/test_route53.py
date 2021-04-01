@@ -507,6 +507,54 @@ def test_list_hosted_zones_by_name():
 
 
 @mock_route53
+def test_list_hosted_zones_by_dns_name():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="test.b.com.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test org"),
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test org 2"),
+    )
+    conn.create_hosted_zone(
+        Name="my.test.net.",
+        CallerReference=str(hash("baz")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test net"),
+    )
+
+    # test lookup
+    zones = conn.list_hosted_zones_by_name(DNSName="test.b.com.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["DNSName"].should.equal("test.b.com.")
+    zones = conn.list_hosted_zones_by_name(DNSName="test.a.org.")
+    len(zones["HostedZones"]).should.equal(2)
+    zones["DNSName"].should.equal("test.a.org.")
+    zones["DNSName"].should.equal("test.a.org.")
+    zones = conn.list_hosted_zones_by_name(DNSName="my.test.net.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["DNSName"].should.equal("my.test.net.")
+    zones = conn.list_hosted_zones_by_name(DNSName="my.test.net")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["DNSName"].should.equal("my.test.net.")
+
+    # test sort order
+    zones = conn.list_hosted_zones_by_name()
+    len(zones["HostedZones"]).should.equal(4)
+    zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
+    zones["HostedZones"][1]["Name"].should.equal("my.test.net.")
+    zones["HostedZones"][2]["Name"].should.equal("test.a.org.")
+    zones["HostedZones"][3]["Name"].should.equal("test.a.org.")
+
+
+@mock_route53
 def test_change_resource_record_sets_crud_valid():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(

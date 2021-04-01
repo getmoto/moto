@@ -164,6 +164,9 @@ class SESBackend(BaseBackend):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
 
+        if not self.templates.get(template[0]):
+            raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
+
         self.__process_sns_feedback__(source, destinations, region)
 
         message_id = get_random_message_id()
