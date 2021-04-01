@@ -5,7 +5,6 @@ import sure  # noqa
 from moto import mock_mediastore
 from botocore.exceptions import ClientError
 
-# from moto.mediastore.exceptions import ResourceNotFoundException
 
 region = "eu-west-1"
 
@@ -58,6 +57,16 @@ def test_list_containers_succeeds():
     containers_list = list_response["Containers"]
     len(containers_list).should.equal(2)
 
+
+@mock_mediastore
+def test_describe_container_raises_error_if_container_does_not_exist():
+    client = boto3.client("mediastore", region_name=region)
+    client.describe_container.when.called_with(
+        ContainerName="container-name"
+    ).should.throw(
+        ClientError,
+        "An error occurred (ResourceNotFoundException) when calling the DescribeContainer operation: The specified container does not exist",
+    )
 
 @mock_mediastore
 def test_put_lifecycle_policy_succeeds():

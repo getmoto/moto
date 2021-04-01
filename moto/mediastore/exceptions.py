@@ -1,10 +1,9 @@
 from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
-
 class MediaStoreClientError(JsonRESTError):
     code = 400
-
+    
 
 class ResourceNotFoundException(MediaStoreClientError):
     def __init__(self, msg=None):
@@ -21,3 +20,4 @@ class PolicyNotFoundException(MediaStoreClientError):
             "PolicyNotFoundException",
             msg or "The policy does not exist within the specfied container",
         )
+

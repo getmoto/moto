@@ -5,7 +5,6 @@ from collections import OrderedDict
 from datetime import date
 from .exceptions import ResourceNotFoundException, PolicyNotFoundException
 
-
 class Container(BaseModel):
     def __init__(self, *args, **kwargs):
         self.arn = kwargs.get("arn")
@@ -53,6 +52,8 @@ class MediaStoreBackend(BaseBackend):
         return container
 
     def describe_container(self, name):
+        if name not in self._containers:
+            raise ResourceNotFoundException()
         container = self._containers[name]
         container.status = "ACTIVE"
         return container
@@ -61,12 +62,6 @@ class MediaStoreBackend(BaseBackend):
         containers = list(self._containers.values())
         response_containers = [c.to_dict() for c in containers]
         return response_containers, next_token
-
-    def put_lifecycle_policy(self, container_name, lifecycle_policy):
-        if container_name not in self._containers:
-            raise ResourceNotFoundException()
-        self._containers[container_name].lifecycle_policy = lifecycle_policy
-        return {}
 
     def get_lifecycle_policy(self, container_name):
         try:
@@ -78,6 +73,7 @@ class MediaStoreBackend(BaseBackend):
             raise PolicyNotFoundException()
 
     # add methods from here
+
 
 
 mediastore_backends = {}
