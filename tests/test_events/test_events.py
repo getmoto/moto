@@ -1319,6 +1319,29 @@ def test_archive_actual_events():
 
 
 @mock_events
+def test_event_not_routed_to_archive_when_detail_does_not_match_pattern():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.create_archive(
+        ArchiveName="no-matches-detail",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"foo": ["bar"]}}),
+    )
+
+    # when
+    event = {"Source": "source", "DetailType": "type", "Detail": '{"foo": "baz"}'}
+    client.put_events(Entries=[event])
+
+    # then
+    response = client.describe_archive(ArchiveName="no-matches-detail")
+    response["EventCount"].should.equal(0)
+    response["SizeBytes"].should.equal(0)
+
+
+@mock_events
 def test_start_replay():
     # given
     client = boto3.client("events", "eu-central-1")
