@@ -1489,56 +1489,84 @@ def test_archive_event_with_bus_arn():
 
 
 @mock_events
-def test_event_not_routed_to_archive_when_detail_does_not_match_pattern():
-    # given
+def test_archive_with_allowed_values_event_filter():
     client = boto3.client("events", "eu-central-1")
     event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
         ACCOUNT_ID
     )
     client.create_archive(
-        ArchiveName="archive-with-dict-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"foo": ["bar"]}}),
-    )
-    client.create_archive(
-        ArchiveName="archive-with-list-filter",
+        ArchiveName="with-allowed-values-filter",
         EventSourceArn=event_bus_arn,
         EventPattern=json.dumps({"source": ["foo", "bar"]}),
     )
-
-    # when
-    event_matching_detail = {
-        "Source": "source",
-        "DetailType": "type",
-        "Detail": '{"foo": "bar"}',
-    }
-    event_not_matching_detail = {
-        "Source": "source",
-        "DetailType": "type",
-        "Detail": '{"foo": "baz"}',
-    }
-    event_matching_source_foo = {"Source": "foo", "DetailType": "type", "Detail": "{}"}
-    event_matching_source_bar = {"Source": "bar", "DetailType": "type", "Detail": "{}"}
-    event_not_matching_source = {"Source": "baz", "DetailType": "type", "Detail": "{}"}
-
-    client.put_events(
-        Entries=[
-            event_matching_detail,
-            event_not_matching_detail,
-            event_matching_source_foo,
-            event_matching_source_bar,
-            event_not_matching_source,
-        ]
+    matching_foo_event = {"Source": "foo", "DetailType": "", "Detail": "{}"}
+    matching_bar_event = {"Source": "bar", "DetailType": "", "Detail": "{}"}
+    non_matching_event = {"Source": "baz", "DetailType": "", "Detail": "{}"}
+    response = client.put_events(
+        Entries=[matching_foo_event, matching_bar_event, non_matching_event]
     )
-
-    # then
-    response = client.describe_archive(ArchiveName="archive-with-dict-filter")
-    response["EventCount"].should.equal(1)
-    response["SizeBytes"].should.be.greater_than(0)
-
-    response = client.describe_archive(ArchiveName="archive-with-list-filter")
+    response["FailedEntryCount"].should.equal(0)
+    response = client.describe_archive(ArchiveName="with-allowed-values-filter")
     response["EventCount"].should.equal(2)
-    response["SizeBytes"].should.be.greater_than(0)
+
+
+@mock_events
+def test_archive_with_nested_event_filter():
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.create_archive(
+        ArchiveName="with-nested-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"foo": ["bar"]}}),
+    )
+    matching_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar"}'}
+    not_matching_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "baz"}'}
+    response = client.put_events(Entries=[matching_event, not_matching_event])
+    response["FailedEntryCount"].should.equal(0)
+    response = client.describe_archive(ArchiveName="with-nested-filter")
+    response["EventCount"].should.equal(1)
+
+
+@mock_events
+def test_archive_with_exists_event_filter():
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.create_archive(
+        ArchiveName="foo-exists-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"foo": [{"exists": True}]}}),
+    )
+    client.create_archive(
+        ArchiveName="foo-not-exists-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"foo": [{"exists": False}]}}),
+    )
+    client.create_archive(
+        ArchiveName="bar-exists-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"bar": [{"exists": True}]}}),
+    )
+    client.create_archive(
+        ArchiveName="bar-not-exists-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"bar": [{"exists": False}]}}),
+    )
+    foo_exists_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar"}'}
+    foo_not_exists_event = {"Source": "", "DetailType": "", "Detail": '{}'}
+    response = client.put_events(Entries=[foo_exists_event, foo_not_exists_event])
+    response["FailedEntryCount"].should.equal(0)
+    response = client.describe_archive(ArchiveName="foo-exists-filter")
+    response["EventCount"].should.equal(1)
+    response = client.describe_archive(ArchiveName="foo-not-exists-filter")
+    response["EventCount"].should.equal(1)
+    response = client.describe_archive(ArchiveName="bar-exists-filter")
+    response["EventCount"].should.equal(0)
+    response = client.describe_archive(ArchiveName="bar-not-exists-filter")
+    response["EventCount"].should.equal(2)
 
 
 @mock_events
