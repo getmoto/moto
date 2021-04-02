@@ -554,12 +554,11 @@ class ElasticMapReduceBackend(BaseBackend):
         return master.id, slave.id, service.id
 
     def run_job_flow(self, **kwargs):
-        if "instance_attrs" in kwargs:
-            (
-                kwargs["instance_attrs"]["emr_managed_master_security_group"],
-                kwargs["instance_attrs"]["emr_managed_slave_security_group"],
-                kwargs["instance_attrs"]["service_access_security_group"],
-            ) = self._manage_security_groups(**kwargs["instance_attrs"])
+        (
+            kwargs["instance_attrs"]["emr_managed_master_security_group"],
+            kwargs["instance_attrs"]["emr_managed_slave_security_group"],
+            kwargs["instance_attrs"]["service_access_security_group"],
+        ) = self._manage_security_groups(**kwargs["instance_attrs"])
         return FakeCluster(self, **kwargs)
 
     def set_visible_to_all_users(self, job_flow_ids, visible_to_all_users):
