@@ -9,6 +9,7 @@ from datetime import datetime
 from enum import Enum, unique
 
 from boto3 import Session
+from six import string_types
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
@@ -110,8 +111,9 @@ class Rule(CloudFormationModel):
         return all(nested_filter_matches + filter_list_matches)
 
     def _does_item_match_filters(self, item, filters):
-        allowed_values = [value for value in filters if isinstance(value, str)]
+        allowed_values = [value for value in filters if isinstance(value, string_types)]
         allowed_values_match = item in allowed_values if allowed_values else True
+        print(item, filters, allowed_values)
         named_filter_matches = [
             self._does_item_match_named_filter(item, filter)
             for filter in filters
@@ -131,7 +133,7 @@ class Rule(CloudFormationModel):
                     filter_name
                 )
             )
-            return True
+            return False
 
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]
