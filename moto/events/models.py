@@ -126,13 +126,18 @@ class Rule(CloudFormationModel):
             should_exist = filter_value
             return item_exists if should_exist else not item_exists
         elif filter_name == "prefix":
-            raise NotImplementedError
+            warnings.warn("'prefix' filter logic unimplemented. defaulting to True")
+            return True
         elif filter_name == "anything-but":
-            raise NotImplementedError
+            warnings.warn(
+                "'anything-but' filter logic unimplemented. defaulting to True"
+            )
+            return True
         elif filter_name == "cidr":
-            raise NotImplementedError
+            warnings.warn("'cidr' filter logic unimplemented. defaulting to True")
+            return True
         elif filter_name == "numeric":
-            raise NotImplementedError
+            warnings.warn("'numeric' filter logic unimplemented. defaulting to True")
 
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]
