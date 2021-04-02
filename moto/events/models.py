@@ -3,6 +3,7 @@ import os
 import re
 import json
 import sys
+import warnings
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum, unique
@@ -144,7 +145,7 @@ class Rule(CloudFormationModel):
         # supported targets
         # - CloudWatch Log Group
         # - EventBridge Archive
-        # - SQS Queue (not FIFO)
+        # - SQS Queue + FIFO Queue
         for target in self.targets:
             arn = self._parse_arn(target["Arn"])
 
@@ -156,7 +157,8 @@ class Rule(CloudFormationModel):
 
                 self._send_to_events_archive(archive_arn.resource_id, event)
             elif arn.service == "sqs":
-                self._send_to_sqs_queue(arn.resource_id, event)
+                group_id = target.get("SqsParameters", {}).get("MessageGroupId")
+                self._send_to_sqs_queue(arn.resource_id, event, group_id)
             else:
                 raise NotImplementedError("Expr not defined for {0}".format(type(self)))
 
@@ -234,7 +236,7 @@ class Rule(CloudFormationModel):
             if self._does_event_match_filter(event, pattern):
                 archive.events.append(event)
 
-    def _send_to_sqs_queue(self, resource_id, event):
+    def _send_to_sqs_queue(self, resource_id, event, group_id=None):
         from moto.sqs import sqs_backends
 
         event_copy = copy.deepcopy(event)
@@ -242,8 +244,20 @@ class Rule(CloudFormationModel):
             datetime.utcfromtimestamp(event_copy["time"])
         )
 
+        if group_id:
+            queue_attr = sqs_backends[self.region_name].get_queue_attributes(
+                queue_name=resource_id, attribute_names=["ContentBasedDeduplication"]
+            )
+            if queue_attr["ContentBasedDeduplication"] == "false":
+                warnings.warn(
+                    "To let EventBridge send messages to your SQS FIFO queue, you must enable content-based deduplication."
+                )
+                return
+
         sqs_backends[self.region_name].send_message(
-            queue_name=resource_id, message_body=json.dumps(event_copy)
+            queue_name=resource_id,
+            message_body=json.dumps(event_copy),
+            group_id=group_id,
         )
 
     def get_cfn_attribute(self, attribute_name):
@@ -785,6 +799,20 @@ class EventsBackend(BaseBackend):
                 "Parameter {} is not valid. "
                 "Reason: Provided Arn is not in correct format.".format(invalid_arn)
             )
+
+        for target in targets:
+            arn = target["Arn"]
+
+            if (
+                ":sqs:" in arn
+                and arn.endswith(".fifo")
+                and not target.get("SqsParameters")
+            ):
+                raise ValidationException(
+                    "Parameter(s) SqsParameters must be specified for target: {}.".format(
+                        target["Id"]
+                    )
+                )
 
         rule = self.rules.get(name)
 

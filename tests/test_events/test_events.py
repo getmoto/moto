@@ -402,6 +402,35 @@ def test_put_targets_error_unknown_rule():
 
 
 @mock_events
+def test_put_targets_error_missing_parameter_sqs_fifo():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule="unknown",
+            Targets=[
+                {
+                    "Id": "sqs-fifo",
+                    "Arn": "arn:aws:sqs:eu-central-1:{}:test-queue.fifo".format(
+                        ACCOUNT_ID
+                    ),
+                }
+            ],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter(s) SqsParameters must be specified for target: sqs-fifo."
+    )
+
+
+@mock_events
 def test_permissions():
     client = boto3.client("events", "eu-central-1")
 
