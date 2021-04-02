@@ -8,7 +8,6 @@ from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
 )
-from moto.ec2.exceptions import InvalidPermissionDuplicateError
 
 import six
 
@@ -442,6 +441,8 @@ class EmrSecurityGroupManager(object):
         for rules, add_rule in rules_metadata:
             rendered_rules = self._render_rules(rules, managed_groups)
             for rule in rendered_rules:
+                from moto.ec2.exceptions import InvalidPermissionDuplicateError
+
                 try:
                     add_rule(vpc_id=self.vpc_id, **rule)
                 except InvalidPermissionDuplicateError:

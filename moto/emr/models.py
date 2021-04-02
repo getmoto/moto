@@ -8,8 +8,6 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
-from moto.ec2 import ec2_backends
-from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.emr.exceptions import EmrError, InvalidRequestException
 from .utils import (
     random_instance_group_id,
@@ -374,6 +372,8 @@ class ElasticMapReduceBackend(BaseBackend):
         :return: EC2 Backend
         :rtype: moto.ec2.models.EC2Backend
         """
+        from moto.ec2 import ec2_backends
+
         return ec2_backends[self.region_name]
 
     def add_applications(self, cluster_id, applications):
@@ -530,6 +530,8 @@ class ElasticMapReduceBackend(BaseBackend):
         if not ec2_subnet_id:
             # TODO: Set up Security Groups in Default VPC.
             return default_return_value
+
+        from moto.ec2.exceptions import InvalidSubnetIdError
 
         try:
             subnet = self.ec2_backend.get_subnet(ec2_subnet_id)
