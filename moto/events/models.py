@@ -113,7 +113,8 @@ class Rule(CloudFormationModel):
         allowed_values_match = item in allowed_values if allowed_values else True
         named_filter_matches = [
             self._does_item_match_named_filter(item, filter)
-            for filter in filters if isinstance(filter, dict)
+            for filter in filters
+            if isinstance(filter, dict)
         ]
         return allowed_values_match and all(named_filter_matches)
 
@@ -131,7 +132,6 @@ class Rule(CloudFormationModel):
             raise NotImplementedError
         elif filter_name == "numeric":
             raise NotImplementedError
-
 
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]

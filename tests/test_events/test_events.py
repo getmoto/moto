@@ -1556,7 +1556,7 @@ def test_archive_with_exists_event_filter():
         EventPattern=json.dumps({"detail": {"bar": [{"exists": False}]}}),
     )
     foo_exists_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar"}'}
-    foo_not_exists_event = {"Source": "", "DetailType": "", "Detail": '{}'}
+    foo_not_exists_event = {"Source": "", "DetailType": "", "Detail": "{}"}
     response = client.put_events(Entries=[foo_exists_event, foo_not_exists_event])
     response["FailedEntryCount"].should.equal(0)
     response = client.describe_archive(ArchiveName="foo-exists-filter")
