@@ -7,6 +7,7 @@ import warnings
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum, unique
+from operator import lt, le, eq, ge, gt
 
 from boto3 import Session
 from six import string_types
@@ -113,7 +114,6 @@ class Rule(CloudFormationModel):
     def _does_item_match_filters(self, item, filters):
         allowed_values = [value for value in filters if isinstance(value, string_types)]
         allowed_values_match = item in allowed_values if allowed_values else True
-        print(item, filters, allowed_values)
         named_filter_matches = [
             self._does_item_match_named_filter(item, filter)
             for filter in filters
@@ -127,13 +127,24 @@ class Rule(CloudFormationModel):
             item_exists = item is not None
             should_exist = filter_value
             return item_exists if should_exist else not item_exists
+        if filter_name == "prefix":
+            prefix = filter_value
+            return item.startswith(prefix)
+        if filter_name == "numeric":
+            as_function = {"<": lt, "<=": le, "=": eq, ">=": ge, ">": gt}
+            operators_and_values = zip(filter_value[::2], filter_value[1::2])
+            numeric_matches = [
+                as_function[operator](item, value)
+                for operator, value in operators_and_values
+            ]
+            return all(numeric_matches)
         else:
             warnings.warn(
                 "'{}' filter logic unimplemented. defaulting to True".format(
                     filter_name
                 )
             )
-            return False
+            return True
 
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]

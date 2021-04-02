@@ -1599,6 +1599,91 @@ def test_archive_with_exists_event_filter():
 
 
 @mock_events
+def test_archive_with_prefix_event_filter():
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.create_archive(
+        ArchiveName="with-prefix-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"foo": [{"prefix": "bar"}]}}),
+    )
+    matching_event_1 = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar"}'}
+    matching_event_2 = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar!"}'}
+    not_matching_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "ba"}'}
+    response = client.put_events(
+        Entries=[matching_event_1, matching_event_2, not_matching_event]
+    )
+    response["FailedEntryCount"].should.equal(0)
+    response = client.describe_archive(ArchiveName="with-prefix-filter")
+    response["EventCount"].should.equal(2)
+
+
+@mock_events
+@pytest.mark.parametrize(
+    "operator, compare_to, should_match, should_not_match",
+    [
+        ("<", 1, [0], [1, 2]),
+        ("<=", 1, [0, 1], [2]),
+        ("=", 1, [1], [0, 2]),
+        (">", 1, [2], [0, 1]),
+        (">=", 1, [1, 2], [0]),
+    ],
+)
+def test_archive_with_single_numeric_event_filter(
+    operator, compare_to, should_match, should_not_match
+):
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.create_archive(
+        ArchiveName="with-numeric-filter",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps(
+            {"detail": {"foo": [{"numeric": [operator, compare_to]}]}}
+        ),
+    )
+    events = [
+        {"Source": "", "DetailType": "", "Detail": '{{"foo": {}}}'.format(number)}
+        for number in should_match + should_not_match
+    ]
+    response = client.put_events(Entries=events)
+    response["FailedEntryCount"].should.equal(0)
+    response = client.describe_archive(ArchiveName="with-numeric-filter")
+    response["EventCount"].should.equal(len(should_match))
+
+
+@mock_events
+def test_archive_with_multi_numeric_event_filter():
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.create_archive(
+        ArchiveName="with-numeric-filter-1",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"foo": [{"numeric": [">", 1, "<=", 3]}]}}),
+    )
+    client.create_archive(
+        ArchiveName="with-numeric-filter-2",
+        EventSourceArn=event_bus_arn,
+        EventPattern=json.dumps({"detail": {"foo": [{"numeric": [">=", 1, "<", 3]}]}}),
+    )
+    events = [
+        {"Source": "", "DetailType": "", "Detail": '{{"foo": {}}}'.format(number)}
+        for number in range(5)
+    ]
+    response = client.put_events(Entries=events)
+    response["FailedEntryCount"].should.equal(0)
+    response = client.describe_archive(ArchiveName="with-numeric-filter-1")
+    response["EventCount"].should.equal(2)
+    response = client.describe_archive(ArchiveName="with-numeric-filter-2")
+    response["EventCount"].should.equal(2)
+
+
+@mock_events
 def test_start_replay():
     # given
     client = boto3.client("events", "eu-central-1")
