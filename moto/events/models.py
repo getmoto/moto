@@ -561,7 +561,6 @@ class Replay(BaseModel):
 
 
 class EventPattern:
-
     def __init__(self, filter):
         self._filter = json.loads(filter) if filter else None
 
