@@ -14,6 +14,7 @@ from moto import mock_logs
 from moto.core import ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.events import mock_events
+from moto.events.models import EventPattern
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -1517,110 +1518,44 @@ def test_archive_event_with_bus_arn():
     response["SizeBytes"].should.be.greater_than(0)
 
 
-@mock_events
 def test_archive_with_allowed_values_event_filter():
-    client = boto3.client("events", "eu-central-1")
-    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
-        ACCOUNT_ID
-    )
-    client.create_archive(
-        ArchiveName="with-allowed-values-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"source": ["foo", "bar"]}),
-    )
-    matching_foo_event = {"Source": "foo", "DetailType": "", "Detail": "{}"}
-    matching_bar_event = {"Source": "bar", "DetailType": "", "Detail": "{}"}
-    non_matching_event = {"Source": "baz", "DetailType": "", "Detail": "{}"}
-    response = client.put_events(
-        Entries=[matching_foo_event, matching_bar_event, non_matching_event]
-    )
-    response["FailedEntryCount"].should.equal(0)
-    response = client.describe_archive(ArchiveName="with-allowed-values-filter")
-    response["EventCount"].should.equal(2)
+    pattern = EventPattern(json.dumps({"source": ["foo", "bar"]}))
+    assert pattern.matches_event({"source": "foo"})
+    assert pattern.matches_event({"source": "bar"})
+    assert not pattern.matches_event({"source": "baz"})
 
 
-@mock_events
 def test_archive_with_nested_event_filter():
-    client = boto3.client("events", "eu-central-1")
-    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
-        ACCOUNT_ID
-    )
-    client.create_archive(
-        ArchiveName="with-nested-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"foo": ["bar"]}}),
-    )
-    matching_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar"}'}
-    not_matching_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "baz"}'}
-    response = client.put_events(Entries=[matching_event, not_matching_event])
-    response["FailedEntryCount"].should.equal(0)
-    response = client.describe_archive(ArchiveName="with-nested-filter")
-    response["EventCount"].should.equal(1)
+    pattern = EventPattern(json.dumps({"detail": {"foo": ["bar"]}}))
+    assert pattern.matches_event({"detail": {"foo": "bar"}})
+    assert not pattern.matches_event({"detail": {"foo": "baz"}})
 
 
-@mock_events
 def test_archive_with_exists_event_filter():
-    client = boto3.client("events", "eu-central-1")
-    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
-        ACCOUNT_ID
-    )
-    client.create_archive(
-        ArchiveName="foo-exists-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"foo": [{"exists": True}]}}),
-    )
-    client.create_archive(
-        ArchiveName="foo-not-exists-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"foo": [{"exists": False}]}}),
-    )
-    client.create_archive(
-        ArchiveName="bar-exists-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"bar": [{"exists": True}]}}),
-    )
-    client.create_archive(
-        ArchiveName="bar-not-exists-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"bar": [{"exists": False}]}}),
-    )
-    foo_exists_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar"}'}
-    foo_not_exists_event = {"Source": "", "DetailType": "", "Detail": "{}"}
-    response = client.put_events(Entries=[foo_exists_event, foo_not_exists_event])
-    response["FailedEntryCount"].should.equal(0)
-    response = client.describe_archive(ArchiveName="foo-exists-filter")
-    response["EventCount"].should.equal(1)
-    response = client.describe_archive(ArchiveName="foo-not-exists-filter")
-    response["EventCount"].should.equal(1)
-    response = client.describe_archive(ArchiveName="bar-exists-filter")
-    response["EventCount"].should.equal(0)
-    response = client.describe_archive(ArchiveName="bar-not-exists-filter")
-    response["EventCount"].should.equal(2)
+    foo_exists = EventPattern(json.dumps({"detail": {"foo": [{"exists": True}]}}))
+    assert foo_exists.matches_event({"detail": {"foo": "bar"}})
+    assert not foo_exists.matches_event({"detail": {}})
+
+    foo_not_exists = EventPattern(json.dumps({"detail": {"foo": [{"exists": False}]}}))
+    assert not foo_not_exists.matches_event({"detail": {"foo": "bar"}})
+    assert foo_not_exists.matches_event({"detail": {}})
+
+    bar_exists = EventPattern(json.dumps({"detail": {"bar": [{"exists": True}]}}))
+    assert not bar_exists.matches_event({"detail": {"foo": "bar"}})
+    assert not bar_exists.matches_event({"detail": {}})
+
+    bar_not_exists = EventPattern(json.dumps({"detail": {"bar": [{"exists": False}]}}))
+    assert bar_not_exists.matches_event({"detail": {"foo": "bar"}})
+    assert bar_not_exists.matches_event({"detail": {}})
 
 
-@mock_events
 def test_archive_with_prefix_event_filter():
-    client = boto3.client("events", "eu-central-1")
-    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
-        ACCOUNT_ID
-    )
-    client.create_archive(
-        ArchiveName="with-prefix-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"foo": [{"prefix": "bar"}]}}),
-    )
-    matching_event_1 = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar"}'}
-    matching_event_2 = {"Source": "", "DetailType": "", "Detail": '{"foo": "bar!"}'}
-    not_matching_event = {"Source": "", "DetailType": "", "Detail": '{"foo": "ba"}'}
-    response = client.put_events(
-        Entries=[matching_event_1, matching_event_2, not_matching_event]
-    )
-    response["FailedEntryCount"].should.equal(0)
-    response = client.describe_archive(ArchiveName="with-prefix-filter")
-    response["EventCount"].should.equal(2)
+    pattern = EventPattern(json.dumps({"detail": {"foo": [{"prefix": "bar"}]}}))
+    assert pattern.matches_event({"detail": {"foo": "bar"}})
+    assert pattern.matches_event({"detail": {"foo": "bar!"}})
+    assert not pattern.matches_event({"detail": {"foo": "ba"}})
 
 
-@mock_events
 @pytest.mark.parametrize(
     "operator, compare_to, should_match, should_not_match",
     [
@@ -1634,53 +1569,35 @@ def test_archive_with_prefix_event_filter():
 def test_archive_with_single_numeric_event_filter(
     operator, compare_to, should_match, should_not_match
 ):
-    client = boto3.client("events", "eu-central-1")
-    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
-        ACCOUNT_ID
+    pattern = EventPattern(
+        json.dumps({"detail": {"foo": [{"numeric": [operator, compare_to]}]}})
     )
-    client.create_archive(
-        ArchiveName="with-numeric-filter",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps(
-            {"detail": {"foo": [{"numeric": [operator, compare_to]}]}}
-        ),
-    )
-    events = [
-        {"Source": "", "DetailType": "", "Detail": '{{"foo": {}}}'.format(number)}
-        for number in should_match + should_not_match
-    ]
-    response = client.put_events(Entries=events)
-    response["FailedEntryCount"].should.equal(0)
-    response = client.describe_archive(ArchiveName="with-numeric-filter")
-    response["EventCount"].should.equal(len(should_match))
+    for number in should_match:
+        assert pattern.matches_event({"detail": {"foo": number}})
+    for number in should_not_match:
+        assert not pattern.matches_event({"detail": {"foo": number}})
 
 
-@mock_events
 def test_archive_with_multi_numeric_event_filter():
-    client = boto3.client("events", "eu-central-1")
-    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
-        ACCOUNT_ID
+    events = [{"detail": {"foo": number}} for number in range(5)]
+
+    one_or_two = EventPattern(
+        json.dumps({"detail": {"foo": [{"numeric": [">=", 1, "<", 3]}]}})
     )
-    client.create_archive(
-        ArchiveName="with-numeric-filter-1",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"foo": [{"numeric": [">", 1, "<=", 3]}]}}),
+    assert not one_or_two.matches_event(events[0])
+    assert one_or_two.matches_event(events[1])
+    assert one_or_two.matches_event(events[2])
+    assert not one_or_two.matches_event(events[3])
+    assert not one_or_two.matches_event(events[4])
+
+    two_or_three = EventPattern(
+        json.dumps({"detail": {"foo": [{"numeric": [">", 1, "<=", 3]}]}})
     )
-    client.create_archive(
-        ArchiveName="with-numeric-filter-2",
-        EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"detail": {"foo": [{"numeric": [">=", 1, "<", 3]}]}}),
-    )
-    events = [
-        {"Source": "", "DetailType": "", "Detail": '{{"foo": {}}}'.format(number)}
-        for number in range(5)
-    ]
-    response = client.put_events(Entries=events)
-    response["FailedEntryCount"].should.equal(0)
-    response = client.describe_archive(ArchiveName="with-numeric-filter-1")
-    response["EventCount"].should.equal(2)
-    response = client.describe_archive(ArchiveName="with-numeric-filter-2")
-    response["EventCount"].should.equal(2)
+    assert not two_or_three.matches_event(events[0])
+    assert not two_or_three.matches_event(events[1])
+    assert two_or_three.matches_event(events[2])
+    assert two_or_three.matches_event(events[3])
+    assert not two_or_three.matches_event(events[4])
 
 
 @mock_events
