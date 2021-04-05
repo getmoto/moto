@@ -847,4 +847,11 @@ class MotoAPIBackend(BaseBackend):
         self.__init__()
 
 
+class CloudWatchMetricProvider:
+    @staticmethod
+    @abstractmethod
+    def get_cloudwatch_metrics():
+        pass
+
+
 moto_api_backend = MotoAPIBackend()

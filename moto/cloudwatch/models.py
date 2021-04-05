@@ -3,7 +3,12 @@ import json
 from boto3 import Session
 
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import (
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 from moto.core.exceptions import RESTError
 from moto.logs import logs_backends
 from datetime import datetime, timedelta
@@ -168,7 +173,7 @@ def are_dimensions_same(metric_dimensions, dimensions):
 
 
 class MetricDatum(BaseModel):
-    def __init__(self, namespace, name, value, dimensions, timestamp):
+    def __init__(self, namespace, name, value, dimensions, timestamp, unit=None):
         self.namespace = namespace
         self.name = name
         self.value = value
@@ -176,6 +181,7 @@ class MetricDatum(BaseModel):
         self.dimensions = [
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
+        self.unit = unit
 
     def filter(self, namespace, name, dimensions, already_present_metrics):
         if namespace and namespace != self.namespace:
@@ -223,6 +229,7 @@ class Statistics:
         self.timestamp = iso_8601_datetime_without_milliseconds(dt)
         self.values = []
         self.stats = stats
+        self.unit = None
 
     @property
     def sample_count(self):
@@ -230,10 +237,6 @@ class Statistics:
             return None
 
         return len(self.values)
-
-    @property
-    def unit(self):
-        return None
 
     @property
     def sum(self):
@@ -276,9 +279,10 @@ class CloudWatchBackend(BaseBackend):
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
     # Computed on the fly
     def aws_metric_data(self):
+        providers = CloudWatchMetricProvider.__subclasses__()
         md = []
-        for name, service in metric_providers.items():
-            md.extend(service.get_cloudwatch_metrics())
+        for provider in providers:
+            md.extend(provider.get_cloudwatch_metrics())
         return md
 
     def put_metric_alarm(
@@ -449,12 +453,21 @@ class CloudWatchBackend(BaseBackend):
         return results
 
     def get_metric_statistics(
-        self, namespace, metric_name, start_time, end_time, period, stats
+        self,
+        namespace,
+        metric_name,
+        start_time,
+        end_time,
+        period,
+        stats,
+        unit,
+        dimensions,
     ):
         period_delta = timedelta(seconds=period)
+        # TODO: Also filter by unit and dimensions
         filtered_data = [
             md
-            for md in self.metric_data
+            for md in self.get_all_metrics()
             if md.namespace == namespace
             and md.name == metric_name
             and start_time <= md.timestamp <= end_time
@@ -477,6 +490,7 @@ class CloudWatchBackend(BaseBackend):
                 dt + period_delta
             ):
                 s.values.append(filtered_data[idx].value)
+                s.unit = filtered_data[idx].unit
                 idx += 1
 
             if not s.values:
@@ -611,8 +625,3 @@ for region in Session().get_available_regions(
     cloudwatch_backends[region] = CloudWatchBackend()
 for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
     cloudwatch_backends[region] = CloudWatchBackend()
-
-# List of services that provide OOTB CW metrics
-# See the S3Backend constructor for an example
-# TODO: We might have to separate this out per region for non-global services
-metric_providers = {}

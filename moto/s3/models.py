@@ -21,7 +21,13 @@ import uuid
 import six
 
 from bisect import insort
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import (
+    ACCOUNT_ID,
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
@@ -1258,21 +1264,16 @@ class FakeBucket(CloudFormationModel):
         return config_dict
 
 
-class S3Backend(BaseBackend):
+class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def __init__(self):
         self.buckets = {}
         self.account_public_access_block = None
         self.tagger = TaggingService()
 
-        # TODO: This is broken! DO NOT IMPORT MUTABLE DATA TYPES FROM OTHER AREAS -- THIS BREAKS UNMOCKING!
-        # WRAP WITH A GETTER/SETTER FUNCTION
-        # Register this class as a CloudWatch Metric Provider
-        # Must provide a method 'get_cloudwatch_metrics' that will return a list of metrics, based on the data available
-        # metric_providers["S3"] = self
-
-    def get_cloudwatch_metrics(self):
+    @classmethod
+    def get_cloudwatch_metrics(cls):
         metrics = []
-        for name, bucket in self.buckets.items():
+        for name, bucket in s3_backend.buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1282,7 +1283,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Bytes",
                 )
             )
             metrics.append(
@@ -1294,7 +1298,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Count",
                 )
             )
         return metrics
