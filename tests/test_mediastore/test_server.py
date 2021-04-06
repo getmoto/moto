@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import json
 import sure  # noqa
 
 import moto.server as server
