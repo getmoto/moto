@@ -1,12 +1,12 @@
 from __future__ import unicode_literals
 import logging
-import os
 
 import re
 import six
 from six.moves.urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
 import sys
+from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
 
 log = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ user_settable_fields = {
 
 
 def bucket_name_from_url(url):
-    if os.environ.get("S3_IGNORE_SUBDOMAIN_BUCKETNAME", "") in ["1", "true"]:
+    if S3_IGNORE_SUBDOMAIN_BUCKETNAME:
         return None
     domain = urlparse(url).netloc
 

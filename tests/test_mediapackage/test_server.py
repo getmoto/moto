@@ -5,12 +5,26 @@ import sure  # noqa
 import moto.server as server
 from moto import mock_mediapackage
 
-'''
+"""
 Test the different server responses
-'''
+"""
+
 
 @mock_mediapackage
-def test_mediapackage_list():
+def test_mediapackage_list_channels():
     backend = server.create_backend_app("mediapackage")
     test_client = backend.test_client()
-    # do test
+
+    res = test_client.get("/channels")
+    result = res.data.decode("utf-8")
+    result.should.contain('"channels": []')
+
+
+@mock_mediapackage
+def test_mediapackage_list_origin_endpoints():
+    backend = server.create_backend_app("mediapackage")
+    test_client = backend.test_client()
+
+    res = test_client.get("/origin_endpoints")
+    result = res.data.decode("utf-8")
+    result.should.contain('"originEndpoints": []')

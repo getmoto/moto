@@ -3,7 +3,10 @@ from __future__ import unicode_literals
 import base64
 import hashlib
 import json
+import random
 import re
+import string
+
 import six
 import struct
 from copy import deepcopy
@@ -78,6 +81,7 @@ class Message(BaseModel):
         self.approximate_receive_count = 0
         self.deduplication_id = None
         self.group_id = None
+        self.sequence_number = None
         self.visible_at = 0
         self.delayed_until = 0
 
@@ -697,6 +701,9 @@ class SQSBackend(BaseBackend):
         # Attributes, but not *message* attributes
         if deduplication_id is not None:
             message.deduplication_id = deduplication_id
+            message.sequence_number = "".join(
+                random.choice(string.digits) for _ in range(20)
+            )
         if group_id is not None:
             message.group_id = group_id
 

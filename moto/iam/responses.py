@@ -1414,6 +1414,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
+        <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
         {% if role.permissions_boundary %}
         <PermissionsBoundary>
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>

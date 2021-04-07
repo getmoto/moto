@@ -43,7 +43,7 @@ class Record(BaseModel):
             "Data": self.data,
             "PartitionKey": self.partition_key,
             "SequenceNumber": str(self.sequence_number),
-            "ApproximateArrivalTimestamp": self.created_at_datetime.isoformat(),
+            "ApproximateArrivalTimestamp": self.created_at,
         }
 
 

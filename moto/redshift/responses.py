@@ -412,6 +412,34 @@ class RedshiftResponse(BaseResponse):
             }
         )
 
+    def authorize_cluster_security_group_ingress(self):
+        cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
+        cidr_ip = self._get_param("CIDRIP")
+
+        security_group = self.redshift_backend.authorize_cluster_security_group_ingress(
+            cluster_security_group_name, cidr_ip
+        )
+
+        return self.get_response(
+            {
+                "AuthorizeClusterSecurityGroupIngressResponse": {
+                    "AuthorizeClusterSecurityGroupIngressResult": {
+                        "ClusterSecurityGroup": {
+                            "ClusterSecurityGroupName": cluster_security_group_name,
+                            "Description": security_group.description,
+                            "IPRanges": [
+                                {
+                                    "Status": "authorized",
+                                    "CIDRIP": cidr_ip,
+                                    "Tags": security_group.tags,
+                                },
+                            ],
+                        }
+                    }
+                }
+            }
+        )
+
     def create_cluster_parameter_group(self):
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
         group_family = self._get_param("ParameterGroupFamily")

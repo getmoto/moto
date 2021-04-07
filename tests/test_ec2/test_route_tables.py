@@ -187,7 +187,7 @@ def test_route_table_associations():
     route_table.associations.should.have.length_of(1)
 
     route_table.associations[0].id.should.equal(association_id)
-    route_table.associations[0].main.should.equal(False)
+    route_table.associations[0].main.should.equal(True)
     route_table.associations[0].route_table_id.should.equal(route_table.id)
     route_table.associations[0].subnet_id.should.equal(subnet.id)
 
@@ -263,7 +263,7 @@ def test_route_table_replace_route_table_association():
     route_table2.associations.should.have.length_of(0)
 
     route_table1.associations[0].id.should.equal(association_id1)
-    route_table1.associations[0].main.should.equal(False)
+    route_table1.associations[0].main.should.equal(True)
     route_table1.associations[0].route_table_id.should.equal(route_table1.id)
     route_table1.associations[0].subnet_id.should.equal(subnet.id)
 
@@ -281,7 +281,7 @@ def test_route_table_replace_route_table_association():
     route_table2.associations.should.have.length_of(1)
 
     route_table2.associations[0].id.should.equal(association_id2)
-    route_table2.associations[0].main.should.equal(False)
+    route_table2.associations[0].main.should.equal(True)
     route_table2.associations[0].route_table_id.should.equal(route_table2.id)
     route_table2.associations[0].subnet_id.should.equal(subnet.id)
 
@@ -733,3 +733,39 @@ def test_create_route_tables_with_tags():
     )
 
     route_table.tags.should.have.length_of(1)
+
+
+@mock_ec2
+def test_associate_route_table_by_gateway():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    igw_id = ec2.create_internet_gateway()["InternetGateway"]["InternetGatewayId"]
+    assoc_id = ec2.associate_route_table(
+        RouteTableId=route_table_id, GatewayId=igw_id,
+    )["AssociationId"]
+    verify = ec2.describe_route_tables(
+        Filters=[
+            {"Name": "association.route-table-association-id", "Values": [assoc_id]}
+        ]
+    )["RouteTables"]
+    verify[0]["Associations"][0]["RouteTableAssociationId"].should.equal(assoc_id)
+
+
+@mock_ec2
+def test_associate_route_table_by_subnet():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    assoc_id = ec2.associate_route_table(
+        RouteTableId=route_table_id, SubnetId=subnet_id,
+    )["AssociationId"]
+    verify = ec2.describe_route_tables(
+        Filters=[
+            {"Name": "association.route-table-association-id", "Values": [assoc_id]}
+        ]
+    )["RouteTables"]
+    verify[0]["Associations"][0]["RouteTableAssociationId"].should.equal(assoc_id)

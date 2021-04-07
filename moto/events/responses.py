@@ -25,7 +25,9 @@ class EventsHandler(BaseResponse):
             "Description": rule.description,
             "ScheduleExpression": rule.schedule_exp,
             "RoleArn": rule.role_arn,
+            "ManagedBy": rule.managed_by,
             "EventBusName": rule.event_bus_name,
+            "CreatedBy": rule.created_by,
         }
 
     @property
@@ -168,10 +170,7 @@ class EventsHandler(BaseResponse):
         state = self._get_param("State")
         desc = self._get_param("Description")
         role_arn = self._get_param("RoleArn")
-        event_bus_name = self._get_param("EventBusName")
-
-        if not name:
-            return self.error("ValidationException", "Parameter Name is required.")
+        event_bus_name = self._get_param("EventBusName", "default")
 
         if event_pattern:
             try:
@@ -208,18 +207,10 @@ class EventsHandler(BaseResponse):
 
     def put_targets(self):
         rule_name = self._get_param("Rule")
+        event_bus_name = self._get_param("EventBusName", "default")
         targets = self._get_param("Targets")
 
-        if not rule_name:
-            return self.error("ValidationException", "Parameter Rule is required.")
-
-        if not targets:
-            return self.error("ValidationException", "Parameter Targets is required.")
-
-        if not self.events_backend.put_targets(rule_name, targets):
-            return self.error(
-                "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
-            )
+        self.events_backend.put_targets(rule_name, event_bus_name, targets)
 
         return (
             json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),
@@ -228,18 +219,10 @@ class EventsHandler(BaseResponse):
 
     def remove_targets(self):
         rule_name = self._get_param("Rule")
+        event_bus_name = self._get_param("EventBusName", "default")
         ids = self._get_param("Ids")
 
-        if not rule_name:
-            return self.error("ValidationException", "Parameter Rule is required.")
-
-        if not ids:
-            return self.error("ValidationException", "Parameter Ids is required.")
-
-        if not self.events_backend.remove_targets(rule_name, ids):
-            return self.error(
-                "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
-            )
+        self.events_backend.remove_targets(rule_name, event_bus_name, ids)
 
         return (
             json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),
@@ -389,3 +372,40 @@ class EventsHandler(BaseResponse):
         self.events_backend.delete_archive(name)
 
         return "", self.response_headers
+
+    def start_replay(self):
+        name = self._get_param("ReplayName")
+        description = self._get_param("Description")
+        source_arn = self._get_param("EventSourceArn")
+        start_time = self._get_param("EventStartTime")
+        end_time = self._get_param("EventEndTime")
+        destination = self._get_param("Destination")
+
+        result = self.events_backend.start_replay(
+            name, description, source_arn, start_time, end_time, destination
+        )
+
+        return json.dumps(result), self.response_headers
+
+    def describe_replay(self):
+        name = self._get_param("ReplayName")
+
+        result = self.events_backend.describe_replay(name)
+
+        return json.dumps(result), self.response_headers
+
+    def list_replays(self):
+        name_prefix = self._get_param("NamePrefix")
+        source_arn = self._get_param("EventSourceArn")
+        state = self._get_param("State")
+
+        result = self.events_backend.list_replays(name_prefix, source_arn, state)
+
+        return json.dumps({"Replays": result}), self.response_headers
+
+    def cancel_replay(self):
+        name = self._get_param("ReplayName")
+
+        result = self.events_backend.cancel_replay(name)
+
+        return json.dumps(result), self.response_headers

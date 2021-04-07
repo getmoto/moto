@@ -951,6 +951,35 @@ def test_tag_resource():
 
 
 @mock_secretsmanager
+def test_untag_resource():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    conn.tag_resource(
+        SecretId="test-secret",
+        Tags=[
+            {"Key": "FirstTag", "Value": "SomeValue"},
+            {"Key": "SecondTag", "Value": "SomeValue"},
+        ],
+    )
+
+    conn.untag_resource(SecretId="test-secret", TagKeys=["FirstTag"])
+    secrets = conn.list_secrets()
+    assert secrets["SecretList"][0].get("Tags") == [
+        {"Key": "SecondTag", "Value": "SomeValue"},
+    ]
+
+    with pytest.raises(ClientError) as cm:
+        conn.untag_resource(
+            SecretId="dummy-test-secret", TagKeys=["FirstTag"],
+        )
+
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
+
+
+@mock_secretsmanager
 def test_secret_versions_to_stages_attribute_discrepancy():
     client = boto3.client("secretsmanager", region_name="us-west-2")
 
