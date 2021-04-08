@@ -13,6 +13,9 @@ class Container(BaseModel):
         self.endpoint = kwargs.get("endpoint")
         self.status = kwargs.get("status")
         self.creation_time = kwargs.get("creation_time")
+        self.lifecycle_policy = None
+        self.policy = None
+        self.metric_policy = None
 
     def to_dict(self, exclude=None):
         data = {
@@ -38,7 +41,6 @@ class MediaStoreBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
-        self._lifecycle_policies = OrderedDict()
 
     def create_container(self, name, tags):
         arn = "arn:aws:mediastore:container:{}".format(name)
@@ -62,7 +64,7 @@ class MediaStoreBackend(BaseBackend):
     def list_containers(self, next_token, max_results):
         containers = list(self._containers.values())
         response_containers = [c.to_dict() for c in containers]
-        return response_containers, next_token
+        return response_containers, None
 
     def put_lifecycle_policy(self, container_name, lifecycle_policy):
         if container_name not in self._containers:
@@ -71,13 +73,12 @@ class MediaStoreBackend(BaseBackend):
         return {}
 
     def get_lifecycle_policy(self, container_name):
-        try:
-            if container_name not in self._containers:
-                raise ResourceNotFoundException()
-            lifecycle_policy = self._containers[container_name].lifecycle_policy
-            return lifecycle_policy
-        except AttributeError:
+        if container_name not in self._containers:
+            raise ResourceNotFoundException()
+        lifecycle_policy = self._containers[container_name].lifecycle_policy
+        if not lifecycle_policy:
             raise PolicyNotFoundException()
+        return lifecycle_policy
 
     def put_container_policy(self, container_name, policy):
         if container_name not in self._containers:
@@ -86,13 +87,12 @@ class MediaStoreBackend(BaseBackend):
         return {}
 
     def get_container_policy(self, container_name):
-        try:
-            if container_name not in self._containers:
-                raise ResourceNotFoundException()
-            policy = self._containers[container_name].policy
-            return policy
-        except AttributeError:
+        if container_name not in self._containers:
+            raise ResourceNotFoundException()
+        policy = self._containers[container_name].policy
+        if not policy:
             raise PolicyNotFoundException()
+        return policy
 
     def put_metric_policy(self, container_name, metric_policy):
         if container_name not in self._containers:
@@ -101,15 +101,12 @@ class MediaStoreBackend(BaseBackend):
         return {}
 
     def get_metric_policy(self, container_name):
-        try:
-            if container_name not in self._containers:
-                raise ResourceNotFoundException()
-            metric_policy = self._containers[container_name].metric_policy
-            return metric_policy
-        except AttributeError:
+        if container_name not in self._containers:
+            raise ResourceNotFoundException()
+        metric_policy = self._containers[container_name].metric_policy
+        if not metric_policy:
             raise PolicyNotFoundException()
-
-    # add methods from here
+        return metric_policy
 
 
 mediastore_backends = {}
