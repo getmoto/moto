@@ -48,10 +48,8 @@ def test_describe_stack_subresources():
 
     cf.create_stack(StackName="test_sqs", TemplateBody=simple_queue_json)
 
-    queues = client.list_queues()["QueueUrls"]
-    queues.should.equal(
-        ["https://queue.amazonaws.com/{}/{}".format(ACCOUNT_ID, "my-queue")]
-    )
+    queue_url = client.list_queues()["QueueUrls"][0]
+    queue_url.should.contain("{}/{}".format(ACCOUNT_ID, "my-queue"))
 
     stack = res.Stack("test_sqs")
     for s in stack.resource_summaries.all():
@@ -68,10 +66,8 @@ def test_list_stack_resources():
 
     cf.create_stack(StackName="test_sqs", TemplateBody=simple_queue_json)
 
-    queues = client.list_queues()["QueueUrls"]
-    queues.should.equal(
-        ["https://queue.amazonaws.com/{}/{}".format(ACCOUNT_ID, "my-queue")]
-    )
+    queue_url = client.list_queues()["QueueUrls"][0]
+    queue_url.should.contain("{}/{}".format(ACCOUNT_ID, "my-queue"))
 
     queue = cf.list_stack_resources(StackName="test_sqs")["StackResourceSummaries"][0]
 

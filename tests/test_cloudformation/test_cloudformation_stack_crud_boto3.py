@@ -20,6 +20,7 @@ from moto import (
     mock_sqs,
     mock_ec2,
     mock_iam,
+    mock_lambda,
 )
 from moto import settings
 from moto.core import ACCOUNT_ID
@@ -229,6 +230,7 @@ dummy_redrive_template_json = json.dumps(dummy_redrive_template)
 
 
 @mock_cloudformation
+@mock_ec2
 def test_create_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
@@ -241,6 +243,7 @@ def test_create_stack():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_boto3_describe_stack_instances():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(
@@ -1552,6 +1555,7 @@ def test_describe_stack_with_special_chars():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_describe_updated_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(
@@ -1639,6 +1643,7 @@ def test_cloudformation_params():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_update_stack_with_parameters():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1672,6 +1677,7 @@ def test_update_stack_with_parameters():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_update_stack_replace_tags():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     cf.create_stack(
@@ -1711,6 +1717,7 @@ def test_update_stack_when_rolled_back():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_cloudformation_params_conditions_and_resources_are_distinct():
     template_with_conditions = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1946,6 +1953,7 @@ def test_delete_stack_dynamo_template():
 
 @mock_dynamodb2
 @mock_cloudformation
+@mock_lambda
 def test_create_stack_lambda_and_dynamodb():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant set environment variables in server mode")
