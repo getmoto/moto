@@ -59,6 +59,9 @@ def test_create_flow_succeeds():
     response["Flow"]["FlowArn"][:26].should.equal("arn:aws:mediaconnect:flow:")
     response["Flow"]["Name"].should.equal("test Flow 1")
     response["Flow"]["Status"].should.equal("STANDBY")
+    response["Flow"]["Sources"][0][
+        "SourceArn"
+    ] == "arn:aws:mediaconnect:source:Source A"
 
 
 @mock_mediaconnect
