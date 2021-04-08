@@ -2,6 +2,7 @@ import boto3
 import json
 import sure  # noqa
 
+from copy import deepcopy
 from moto import mock_cloudformation, mock_ec2, mock_route53
 from tests.test_cloudformation.fixtures import route53_ec2_instance_with_public_ip
 from tests.test_cloudformation.fixtures import route53_health_check
@@ -202,10 +203,11 @@ def test_route53_with_update():
     record_set["ResourceRecords"][0]["Value"].should.equal("my.example.com")
 
     # given
-    route53_health_check.template["Resources"]["myDNSRecord"]["Properties"][
-        "ResourceRecords"
-    ] = ["my_other.example.com"]
-    template_json = json.dumps(route53_health_check.template)
+    template = deepcopy(route53_health_check.template)
+    template["Resources"]["myDNSRecord"]["Properties"]["ResourceRecords"] = [
+        "my_other.example.com"
+    ]
+    template_json = json.dumps(template)
 
     # when
     cf.update_stack(StackName="test_stack", TemplateBody=template_json)

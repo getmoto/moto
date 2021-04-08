@@ -22,6 +22,7 @@ import boto.vpc
 import boto3
 import sure  # noqa
 import pytest
+from copy import deepcopy
 from string import Template
 
 from moto import (
@@ -1481,10 +1482,11 @@ def test_route53_with_update():
     record_set = rrsets[0]
     record_set.resource_records.should.equal(["my.example.com"])
 
-    route53_health_check.template["Resources"]["myDNSRecord"]["Properties"][
-        "ResourceRecords"
-    ] = ["my_other.example.com"]
-    template_json = json.dumps(route53_health_check.template)
+    template = deepcopy(route53_health_check.template)
+    template["Resources"]["myDNSRecord"]["Properties"]["ResourceRecords"] = [
+        "my_other.example.com"
+    ]
+    template_json = json.dumps(template)
     cf_conn.update_stack("test_stack", template_body=template_json)
 
     zones = route53_conn.get_all_hosted_zones()["ListHostedZonesResponse"][
