@@ -12,7 +12,15 @@ from botocore.exceptions import ClientError
 import pytest
 from unittest import SkipTest
 
-from moto import mock_cloudformation, mock_dynamodb2, mock_s3, mock_sns, mock_sqs, mock_ec2, mock_iam
+from moto import (
+    mock_cloudformation,
+    mock_dynamodb2,
+    mock_s3,
+    mock_sns,
+    mock_sqs,
+    mock_ec2,
+    mock_iam,
+)
 from moto import settings
 from moto.core import ACCOUNT_ID
 from moto.cloudformation import cloudformation_backends
@@ -1936,6 +1944,7 @@ def test_delete_stack_dynamo_template():
     conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json4)
 
 
+@mock_dynamodb2
 @mock_cloudformation
 def test_create_stack_lambda_and_dynamodb():
     if settings.TEST_SERVER_MODE:
