@@ -33,7 +33,7 @@ class Rule(CloudFormationModel):
     def __init__(self, name, region_name, **kwargs):
         self.name = name
         self.region_name = region_name
-        self.event_pattern = kwargs.get("EventPattern")
+        self.event_pattern = EventPattern(kwargs.get("EventPattern"))
         self.schedule_exp = kwargs.get("ScheduleExpression")
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
@@ -100,7 +100,7 @@ class Rule(CloudFormationModel):
         if event_bus_name != self.event_bus_name:
             return
 
-        if not self._validate_event(event):
+        if not self.event_pattern.matches_event(event):
             return
 
         # supported targets
@@ -122,23 +122,6 @@ class Rule(CloudFormationModel):
                 self._send_to_sqs_queue(arn.resource_id, event, group_id)
             else:
                 raise NotImplementedError("Expr not defined for {0}".format(type(self)))
-
-    def _validate_event(self, event):
-        for field, pattern in json.loads(self.event_pattern).items():
-            if not isinstance(pattern, list):
-                # to keep it simple at the beginning only pattern with 1 level of depth are validated
-                continue
-
-            if isinstance(pattern[0], dict):
-                if "exists" in pattern[0]:
-                    if pattern[0]["exists"] and field not in event:
-                        return False
-                    elif not pattern[0]["exists"] and field in event:
-                        return False
-            elif event.get(field) not in pattern:
-                return False
-
-        return True
 
     def _parse_arn(self, arn):
         # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -191,8 +174,7 @@ class Rule(CloudFormationModel):
         archive_name, archive_uuid = resource_id.split(":")
         archive = events_backends[self.region_name].archives.get(archive_name)
         if archive.uuid == archive_uuid:
-            if archive.event_pattern.matches_event(event):
-                archive.events.append(event)
+            archive.events.append(event)
 
     def _send_to_sqs_queue(self, resource_id, event, group_id=None):
         from moto.sqs import sqs_backends
@@ -413,7 +395,7 @@ class Archive(CloudFormationModel):
         if description:
             self.description = description
         if event_pattern:
-            self.event_pattern = event_pattern
+            self.event_pattern = EventPattern(event_pattern)
         if retention:
             self.retention = retention
 
@@ -562,10 +544,33 @@ class Replay(BaseModel):
 
 class EventPattern:
     def __init__(self, filter):
-        self._filter = json.loads(filter) if filter else None
+        self._filter = self._load_event_pattern(filter)
+        if not self._validate_event_pattern(self._filter):
+            raise InvalidEventPatternException
 
     def __str__(self):
         return json.dumps(self._filter)
+
+    def _load_event_pattern(self, pattern):
+        try:
+            return json.loads(pattern) if pattern else None
+        except json.JSONDecodeError:
+            raise InvalidEventPatternException
+
+    def _validate_event_pattern(self, pattern):
+        # values in the event pattern have to be either a dict or an array
+        if pattern is None:
+            return True
+
+        dicts_valid = [
+            self._validate_event_pattern(value)
+            for value in pattern.values() if isinstance(value, dict)
+        ]
+        non_dicts_valid = [
+            isinstance(value, list)
+            for value in pattern.values() if not isinstance(value, dict)
+        ]
+        return all(dicts_valid) and all(non_dicts_valid)
 
     def matches_event(self, event):
         if not self._filter:
@@ -1052,9 +1057,6 @@ class EventsBackend(BaseBackend):
                 "Member must have length less than or equal to 48".format(name)
             )
 
-        if event_pattern:
-            self._validate_event_pattern(event_pattern)
-
         event_bus = self._get_event_bus(source_arn)
 
         if name in self.archives:
@@ -1104,26 +1106,6 @@ class EventsBackend(BaseBackend):
 
         return archive
 
-    def _validate_event_pattern(self, pattern):
-        try:
-            json_pattern = json.loads(pattern)
-        except ValueError:  # json.JSONDecodeError exists since Python 3.5
-            raise InvalidEventPatternException
-
-        if not self._is_event_value_an_array(json_pattern):
-            raise InvalidEventPatternException
-
-    def _is_event_value_an_array(self, pattern):
-        # the values of a key in the event pattern have to be either a dict or an array
-        for value in pattern.values():
-            if isinstance(value, dict):
-                if not self._is_event_value_an_array(value):
-                    return False
-            elif not isinstance(value, list):
-                return False
-
-        return True
-
     def describe_archive(self, name):
         archive = self.archives.get(name)
 
@@ -1167,9 +1149,6 @@ class EventsBackend(BaseBackend):
 
         if not archive:
             raise ResourceNotFoundException("Archive {} does not exist.".format(name))
-
-        if event_pattern:
-            self._validate_event_pattern(event_pattern)
 
         archive.update(description, event_pattern, retention)
 
