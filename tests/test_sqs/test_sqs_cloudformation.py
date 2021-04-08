@@ -126,7 +126,7 @@ def test_update_stack():
     queues = client.list_queues()["QueueUrls"]
     queues.should.have.length_of(1)
     attrs = client.get_queue_attributes(QueueUrl=queues[0])["Attributes"]
-    attrs["VisibilityTimeout"].should.equal("60")
+    attrs["VisibilityTimeout"].should.equal("100")
 
 
 @mock_cloudformation

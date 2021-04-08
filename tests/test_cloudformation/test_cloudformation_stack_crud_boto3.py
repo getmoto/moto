@@ -2003,14 +2003,10 @@ def test_create_stack_lambda_and_dynamodb():
     ]
     resources.should.have.length_of(4)
     resource_types = [r["ResourceType"] for r in resources]
-    resource_types.should.equal(
-        [
-            "AWS::Lambda::Function",
-            "AWS::Lambda::Version",
-            "AWS::DynamoDB::Table",
-            "AWS::Lambda::EventSourceMapping",
-        ]
-    )
+    resource_types.should.contain("AWS::Lambda::Function")
+    resource_types.should.contain("AWS::Lambda::Version")
+    resource_types.should.contain("AWS::DynamoDB::Table")
+    resource_types.should.contain("AWS::Lambda::EventSourceMapping")
 
 
 def get_role_name():
