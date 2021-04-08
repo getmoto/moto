@@ -5,7 +5,7 @@ from boto3 import Session
 from copy import deepcopy
 from datetime import datetime
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
 from .exceptions import MissingModel, ValidationError
@@ -383,7 +383,7 @@ class Container(BaseObject):
         }
 
 
-class FakeSagemakerNotebookInstance:
+class FakeSagemakerNotebookInstance(CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -502,6 +502,35 @@ class FakeSagemakerNotebookInstance:
 
     def stop(self):
         self.status = "Stopped"
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html
+        return "AWS::SageMaker::NotebookInstance"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        instance_type = properties["InstanceType"]
+        role_arn = properties["RoleArn"]
+
+        notebook = sagemaker_backends[region_name].create_notebook_instance(
+            notebook_instance_name=resource_name,
+            instance_type=instance_type,
+            role_arn=role_arn,
+        )
+        return notebook
 
 
 class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject):
