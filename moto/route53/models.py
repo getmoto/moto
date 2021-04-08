@@ -146,6 +146,7 @@ class RecordSet(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        print("create_from_cf(" + str(resource_name) + "," + str(properties) + ")")
 
         zone_name = properties.get("HostedZoneName")
         if zone_name:
@@ -159,12 +160,22 @@ class RecordSet(CloudFormationModel):
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
+        print(
+            "create_from_cf("
+            + str(new_resource_name)
+            + ","
+            + str(cloudformation_json)
+            + ")"
+        )
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, region_name
         )
-        return cls.create_from_cloudformation_json(
+        print("Deleting " + str(original_resource.records))
+        created = cls.create_from_cloudformation_json(
             new_resource_name, cloudformation_json, region_name
         )
+        print("Created: " + str(created.records))
+        return created
 
     @classmethod
     def delete_from_cloudformation_json(
