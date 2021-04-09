@@ -541,6 +541,19 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         return notebook
 
     @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Operations keep same resource name so delete old and create new to mimic update
+        cls.delete_from_cloudformation_json(
+            original_resource.arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            original_resource.notebook_instance_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):

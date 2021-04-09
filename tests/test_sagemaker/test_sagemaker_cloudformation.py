@@ -135,3 +135,64 @@ def test_sagemaker_cloudformation_notebook_instance_delete():
             NotebookInstanceName=outputs["NotebookInstanceName"]
         )
     ce.value.response["Error"]["Message"].should.contain("RecordNotFound")
+
+
+@mock_cloudformation
+@mock_sagemaker
+def test_sagemaker_cloudformation_notebook_instance_update():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    # Set up template for stack with initial and update instance types
+    stack_name = "test_sagemaker_notebook_instance"
+    initial_instance_type = "ml.c4.xlarge"
+    updated_instance_type = "ml.c4.4xlarge"
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                "TestNotebookInstance": {
+                    "Type": "AWS::SageMaker::NotebookInstance",
+                    "Properties": {"InstanceType": "%s", "RoleArn": FAKE_ROLE_ARN,},
+                },
+            },
+            "Outputs": {
+                "NotebookInstanceName": {
+                    "Value": {
+                        "Fn::GetAtt": ["TestNotebookInstance", "NotebookInstanceName"]
+                    },
+                },
+            },
+        }
+    )
+    initial_template_json = template_json % initial_instance_type
+    updated_template_json = template_json % updated_instance_type
+
+    # Create stack with initial template and check attributes
+    cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
+    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+    initial_notebook_name = outputs["NotebookInstanceName"]
+    notebook_instance_description = sm.describe_notebook_instance(
+        NotebookInstanceName=initial_notebook_name,
+    )
+    initial_instance_type.should.equal(notebook_instance_description["InstanceType"])
+
+    # Update stack with new instance type and check attributes
+    cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
+    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+    updated_notebook_name = outputs["NotebookInstanceName"]
+    updated_notebook_name.should.equal(initial_notebook_name)
+
+    notebook_instance_description = sm.describe_notebook_instance(
+        NotebookInstanceName=updated_notebook_name,
+    )
+    updated_instance_type.should.equal(notebook_instance_description["InstanceType"])
