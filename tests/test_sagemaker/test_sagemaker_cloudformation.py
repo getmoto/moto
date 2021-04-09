@@ -9,7 +9,30 @@ from moto import mock_cloudformation, mock_sagemaker
 from moto.sts.models import ACCOUNT_ID
 
 
-FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
+def _get_notebook_instance_template_string(
+    instance_type="ml.c4.xlarge",
+    role_arn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+    include_outputs=True,
+):
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "TestNotebookInstance": {
+                "Type": "AWS::SageMaker::NotebookInstance",
+                "Properties": {"InstanceType": instance_type, "RoleArn": role_arn},
+            },
+        },
+    }
+    if include_outputs:
+        template["Outputs"] = {
+            "NotebookInstanceArn": {"Value": {"Ref": "TestNotebookInstance"}},
+            "NotebookInstanceName": {
+                "Value": {
+                    "Fn::GetAtt": ["TestNotebookInstance", "NotebookInstanceName"]
+                },
+            },
+        }
+    return json.dumps(template)
 
 
 @mock_cloudformation
@@ -17,20 +40,8 @@ def test_sagemaker_cloudformation_create_notebook_instance():
     cf = boto3.client("cloudformation", region_name="us-east-1")
 
     stack_name = "test_sagemaker_notebook_instance"
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "TestNotebookInstance": {
-                "Type": "AWS::SageMaker::NotebookInstance",
-                "Properties": {
-                    "InstanceType": "ml.c4.xlarge",
-                    "RoleArn": FAKE_ROLE_ARN,
-                },
-            },
-        },
-    }
-    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+    template = _get_notebook_instance_template_string(include_outputs=False)
+    cf.create_stack(StackName=stack_name, TemplateBody=template)
 
     provisioned_resource = cf.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
@@ -46,28 +57,8 @@ def test_sagemaker_cloudformation_notebook_instance_get_attr():
     sm = boto3.client("sagemaker", region_name="us-east-1")
 
     stack_name = "test_sagemaker_notebook_instance"
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "TestNotebookInstance": {
-                "Type": "AWS::SageMaker::NotebookInstance",
-                "Properties": {
-                    "InstanceType": "ml.c4.xlarge",
-                    "RoleArn": FAKE_ROLE_ARN,
-                },
-            },
-        },
-        "Outputs": {
-            "NotebookInstanceArn": {"Value": {"Ref": "TestNotebookInstance"}},
-            "NotebookInstanceName": {
-                "Value": {
-                    "Fn::GetAtt": ["TestNotebookInstance", "NotebookInstanceName"]
-                },
-            },
-        },
-    }
-    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+    template = _get_notebook_instance_template_string()
+    cf.create_stack(StackName=stack_name, TemplateBody=template)
 
     stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
     outputs = {
@@ -93,27 +84,8 @@ def test_sagemaker_cloudformation_notebook_instance_delete():
 
     # Create stack with notebook instance and verify existence
     stack_name = "test_sagemaker_notebook_instance"
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "TestNotebookInstance": {
-                "Type": "AWS::SageMaker::NotebookInstance",
-                "Properties": {
-                    "InstanceType": "ml.c4.xlarge",
-                    "RoleArn": FAKE_ROLE_ARN,
-                },
-            },
-        },
-        "Outputs": {
-            "NotebookInstanceArn": {"Value": {"Ref": "TestNotebookInstance"}},
-            "NotebookInstanceName": {
-                "Value": {
-                    "Fn::GetAtt": ["TestNotebookInstance", "NotebookInstanceName"]
-                },
-            },
-        },
-    }
-    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+    template = _get_notebook_instance_template_string()
+    cf.create_stack(StackName=stack_name, TemplateBody=template)
 
     stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
     outputs = {
@@ -147,27 +119,12 @@ def test_sagemaker_cloudformation_notebook_instance_update():
     stack_name = "test_sagemaker_notebook_instance"
     initial_instance_type = "ml.c4.xlarge"
     updated_instance_type = "ml.c4.4xlarge"
-
-    template_json = json.dumps(
-        {
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Resources": {
-                "TestNotebookInstance": {
-                    "Type": "AWS::SageMaker::NotebookInstance",
-                    "Properties": {"InstanceType": "%s", "RoleArn": FAKE_ROLE_ARN,},
-                },
-            },
-            "Outputs": {
-                "NotebookInstanceName": {
-                    "Value": {
-                        "Fn::GetAtt": ["TestNotebookInstance", "NotebookInstanceName"]
-                    },
-                },
-            },
-        }
+    initial_template_json = _get_notebook_instance_template_string(
+        instance_type=initial_instance_type
     )
-    initial_template_json = template_json % initial_instance_type
-    updated_template_json = template_json % updated_instance_type
+    updated_template_json = _get_notebook_instance_template_string(
+        instance_type=updated_instance_type
+    )
 
     # Create stack with initial template and check attributes
     cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
