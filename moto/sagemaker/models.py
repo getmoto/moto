@@ -507,6 +507,14 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
     def physical_resource_id(self):
         return self.arn
 
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html#aws-resource-sagemaker-notebookinstance-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "NotebookInstanceName":
+            return self.notebook_instance_name
+        raise UnformattedGetAttTemplateException()
+
     @staticmethod
     def cloudformation_name_type():
         return None
