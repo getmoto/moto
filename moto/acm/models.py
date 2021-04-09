@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import re
+import os
 import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import AWSError
@@ -324,13 +325,15 @@ class CertBundle(BaseModel):
             )
 
     def check(self):
-        # Basically, if the certificate is pending, and then checked again after 1 min
-        # It will appear as if its been validated
+        # Basically, if the certificate is pending, and then checked again after a
+        # while, it will appear as if its been validated. The default wait time is 60
+        # seconds but you can set an environment to change it.
+        wait = os.environ.get("MOTO_ACM_VALIDATION_WAIT", 60)
         if (
             self.type == "AMAZON_ISSUED"
             and self.status == "PENDING_VALIDATION"
-            and (datetime.datetime.now() - self.created_at).total_seconds() > 60
-        ):  # 1min
+            and (datetime.datetime.now() - self.created_at).total_seconds() > wait
+        ):
             self.status = "ISSUED"
 
     def describe(self):
