@@ -1,7 +1,9 @@
 import json
 import boto3
 
+import pytest
 import sure  # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_cloudformation, mock_sagemaker
 from moto.sts.models import ACCOUNT_ID
@@ -81,3 +83,55 @@ def test_sagemaker_cloudformation_notebook_instance_get_attr():
     notebook_instance_arn.should.equal(
         notebook_instance_description["NotebookInstanceArn"]
     )
+
+
+@mock_cloudformation
+@mock_sagemaker
+def test_sagemaker_cloudformation_notebook_instance_delete():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    # Create stack with notebook instance and verify existence
+    stack_name = "test_sagemaker_notebook_instance"
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "TestNotebookInstance": {
+                "Type": "AWS::SageMaker::NotebookInstance",
+                "Properties": {
+                    "InstanceType": "ml.c4.xlarge",
+                    "RoleArn": FAKE_ROLE_ARN,
+                },
+            },
+        },
+        "Outputs": {
+            "NotebookInstanceArn": {"Value": {"Ref": "TestNotebookInstance"}},
+            "NotebookInstanceName": {
+                "Value": {
+                    "Fn::GetAtt": ["TestNotebookInstance", "NotebookInstanceName"]
+                },
+            },
+        },
+    }
+    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+    notebook_instance = sm.describe_notebook_instance(
+        NotebookInstanceName=outputs["NotebookInstanceName"],
+    )
+    outputs["NotebookInstanceArn"].should.equal(
+        notebook_instance["NotebookInstanceArn"]
+    )
+
+    # Delete the stack and verify notebook instance has also been deleted
+    # TODO replace exception check with `list_notebook_instances` method when implemented
+    cf.delete_stack(StackName=stack_name)
+    with pytest.raises(ClientError) as ce:
+        sm.describe_notebook_instance(
+            NotebookInstanceName=outputs["NotebookInstanceName"]
+        )
+    ce.value.response["Error"]["Message"].should.contain("RecordNotFound")

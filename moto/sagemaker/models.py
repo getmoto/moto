@@ -540,6 +540,19 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         )
         return notebook
 
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        notebook_instance_name = resource_name.split("/")[-1]
+
+        backend = sagemaker_backends[region_name]
+        backend.stop_notebook_instance(notebook_instance_name)
+        backend.delete_notebook_instance(notebook_instance_name)
+
 
 class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject):
     def __init__(
