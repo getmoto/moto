@@ -5,7 +5,7 @@ from boto3 import Session
 from copy import deepcopy
 from datetime import datetime
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
 from .exceptions import MissingModel, ValidationError
@@ -383,7 +383,7 @@ class Container(BaseObject):
         }
 
 
-class FakeSagemakerNotebookInstance:
+class FakeSagemakerNotebookInstance(CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -502,6 +502,69 @@ class FakeSagemakerNotebookInstance:
 
     def stop(self):
         self.status = "Stopped"
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html#aws-resource-sagemaker-notebookinstance-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "NotebookInstanceName":
+            return self.notebook_instance_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html
+        return "AWS::SageMaker::NotebookInstance"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        instance_type = properties["InstanceType"]
+        role_arn = properties["RoleArn"]
+
+        notebook = sagemaker_backends[region_name].create_notebook_instance(
+            notebook_instance_name=resource_name,
+            instance_type=instance_type,
+            role_arn=role_arn,
+        )
+        return notebook
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Operations keep same resource name so delete old and create new to mimic update
+        cls.delete_from_cloudformation_json(
+            original_resource.arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            original_resource.notebook_instance_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        notebook_instance_name = resource_name.split("/")[-1]
+
+        backend = sagemaker_backends[region_name]
+        backend.stop_notebook_instance(notebook_instance_name)
+        backend.delete_notebook_instance(notebook_instance_name)
 
 
 class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject):
