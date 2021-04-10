@@ -1535,10 +1535,13 @@ def test_archive_with_exists_event_filter():
     foo_exists = EventPattern(json.dumps({"detail": {"foo": [{"exists": True}]}}))
     assert foo_exists.matches_event({"detail": {"foo": "bar"}})
     assert not foo_exists.matches_event({"detail": {}})
+    # exists filters only match leaf nodes of an event
+    assert not foo_exists.matches_event({"detail": {"foo": {"bar": "baz"}}})
 
     foo_not_exists = EventPattern(json.dumps({"detail": {"foo": [{"exists": False}]}}))
     assert not foo_not_exists.matches_event({"detail": {"foo": "bar"}})
     assert foo_not_exists.matches_event({"detail": {}})
+    assert foo_not_exists.matches_event({"detail": {"foo": {"bar": "baz"}}})
 
     bar_exists = EventPattern(json.dumps({"detail": {"bar": [{"exists": True}]}}))
     assert not bar_exists.matches_event({"detail": {"foo": "bar"}})

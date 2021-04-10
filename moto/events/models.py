@@ -605,9 +605,10 @@ class EventPattern:
     def _does_item_match_named_filter(self, item, filter):
         filter_name, filter_value = list(filter.items())[0]
         if filter_name == "exists":
-            item_exists = item is not None
+            is_leaf_node = not isinstance(item, dict)
+            leaf_exists = is_leaf_node and item is not None
             should_exist = filter_value
-            return item_exists if should_exist else not item_exists
+            return leaf_exists if should_exist else not leaf_exists
         if filter_name == "prefix":
             prefix = filter_value
             return item.startswith(prefix)
