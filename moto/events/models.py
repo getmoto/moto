@@ -554,7 +554,7 @@ class EventPattern:
     def _load_event_pattern(self, pattern):
         try:
             return json.loads(pattern) if pattern else None
-        except json.JSONDecodeError:
+        except ValueError:
             raise InvalidEventPatternException
 
     def _validate_event_pattern(self, pattern):
