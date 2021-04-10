@@ -4,6 +4,29 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.5
+-----
+    New Services:
+        * MediaStore
+            * create_container()
+            * describe_container()
+            * list_containers()
+            * put_lifecycle_policy()
+            * get_lifecycle_policy()
+            * put_container_policy()
+            * get_container_policy()
+            * put_metric_policy()
+            * get_metric_policy
+
+    Miscellaneous:
+        * ACM now supports the MOTO_ACM_VALIDATION_WAIT-environment variable, to configure the wait time before the status on new certificates move from PENDING_VALIDATION to ISSUED
+        * CloudFormation support for AWS::SageMaker::NotebookInstance
+        * EMR:run_job_flow() now creates the appropriate EC2 security groups in a private subnet
+        * Events:put_events() has improved support for the EventPattern-parameter in create_archive/put_rule
+        * Events:put_targets() now support SQS queues
+        * IAM:get_user() now returns the Tags-attribute
+        * Fixed a bug where Moto would break on systems with a default encoding other than UTF-8
+
 2.0.4
 -----
     Miscelleaneous:
