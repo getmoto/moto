@@ -536,11 +536,10 @@ def test_request_certificate_issued_status():
         resp["Certificate"]["Status"].should.equal("ISSUED")
 
 
+@mock.patch("moto.settings.ACM_VALIDATION_WAIT", 3)
 @mock_acm
-@mock.patch.dict(os.environ, {"MOTO_ACM_VALIDATION_WAIT": 3})
 def test_request_certificate_issued_status_with_wait_in_envvar():
-    # After requesting a certificate, it should then auto-validate after 1 minute
-    # Some sneaky programming for that ;-)
+    # After requesting a certificate, it should then auto-validate after 3 seconds
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 

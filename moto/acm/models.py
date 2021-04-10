@@ -5,7 +5,7 @@ import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import AWSError
 from moto.ec2 import ec2_backends
-from moto.settings import ACM_VALIDATION_WAIT
+from moto import settings
 
 from .utils import make_arn_for_certificate
 
@@ -332,7 +332,7 @@ class CertBundle(BaseModel):
         if (
             self.type == "AMAZON_ISSUED"
             and self.status == "PENDING_VALIDATION"
-            and waited_seconds > ACM_VALIDATION_WAIT
+            and waited_seconds > settings.ACM_VALIDATION_WAIT
         ):
             self.status = "ISSUED"
 
