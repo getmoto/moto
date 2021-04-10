@@ -1518,20 +1518,20 @@ def test_archive_event_with_bus_arn():
     response["SizeBytes"].should.be.greater_than(0)
 
 
-def test_archive_with_allowed_values_event_filter():
+def test_event_pattern_with_allowed_values_event_filter():
     pattern = EventPattern(json.dumps({"source": ["foo", "bar"]}))
     assert pattern.matches_event({"source": "foo"})
     assert pattern.matches_event({"source": "bar"})
     assert not pattern.matches_event({"source": "baz"})
 
 
-def test_archive_with_nested_event_filter():
+def test_event_pattern_with_nested_event_filter():
     pattern = EventPattern(json.dumps({"detail": {"foo": ["bar"]}}))
     assert pattern.matches_event({"detail": {"foo": "bar"}})
     assert not pattern.matches_event({"detail": {"foo": "baz"}})
 
 
-def test_archive_with_exists_event_filter():
+def test_event_pattern_with_exists_event_filter():
     foo_exists = EventPattern(json.dumps({"detail": {"foo": [{"exists": True}]}}))
     assert foo_exists.matches_event({"detail": {"foo": "bar"}})
     assert not foo_exists.matches_event({"detail": {}})
@@ -1552,7 +1552,7 @@ def test_archive_with_exists_event_filter():
     assert bar_not_exists.matches_event({"detail": {}})
 
 
-def test_archive_with_prefix_event_filter():
+def test_event_pattern_with_prefix_event_filter():
     pattern = EventPattern(json.dumps({"detail": {"foo": [{"prefix": "bar"}]}}))
     assert pattern.matches_event({"detail": {"foo": "bar"}})
     assert pattern.matches_event({"detail": {"foo": "bar!"}})
@@ -1569,7 +1569,7 @@ def test_archive_with_prefix_event_filter():
         (">=", 1, [1, 2], [0]),
     ],
 )
-def test_archive_with_single_numeric_event_filter(
+def test_event_pattern_with_single_numeric_event_filter(
     operator, compare_to, should_match, should_not_match
 ):
     pattern = EventPattern(
@@ -1581,7 +1581,7 @@ def test_archive_with_single_numeric_event_filter(
         assert not pattern.matches_event({"detail": {"foo": number}})
 
 
-def test_archive_with_multi_numeric_event_filter():
+def test_event_pattern_with_multi_numeric_event_filter():
     events = [{"detail": {"foo": number}} for number in range(5)]
 
     one_or_two = EventPattern(
