@@ -27,10 +27,6 @@ jobs:
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
-      - name: Install Linux dependencies
-        if: ${{ matrix.python-version == 3.8 && steps.pip-cache.outputs.cache-hit != 'true' }}
-        run: |
-          sudo apt-get install libxslt-dev libxml2-dev -y
       - name: Update pip
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' && matrix.python-version != '2.7' }}
         run: |
@@ -102,10 +98,6 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
-    - name: Install Linux dependencies
-      if: ${{ matrix.python-version == 3.8 }}
-      run: |
-        sudo apt-get install libxslt-dev libxml2-dev -y
     - name: Update pip
       if: ${{ matrix.python-version != '2.7' }}
       run: |
@@ -154,10 +146,6 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
-    - name: Install Linux dependencies
-      if: ${{ matrix.python-version == 3.8 }}
-      run: |
-        sudo apt-get install libxslt-dev libxml2-dev -y
     - name: Update pip
       if: ${{ matrix.python-version != '2.7' }}
       run: |
