@@ -564,11 +564,13 @@ class EventPattern:
 
         dicts_valid = [
             self._validate_event_pattern(value)
-            for value in pattern.values() if isinstance(value, dict)
+            for value in pattern.values()
+            if isinstance(value, dict)
         ]
         non_dicts_valid = [
             isinstance(value, list)
-            for value in pattern.values() if not isinstance(value, dict)
+            for value in pattern.values()
+            if not isinstance(value, dict)
         ]
         return all(dicts_valid) and all(non_dicts_valid)
 
