@@ -20,7 +20,7 @@ class EventsHandler(BaseResponse):
         return {
             "Name": rule.name,
             "Arn": rule.arn,
-            "EventPattern": rule.event_pattern,
+            "EventPattern": str(rule.event_pattern),
             "State": rule.state,
             "Description": rule.description,
             "ScheduleExpression": rule.schedule_exp,
