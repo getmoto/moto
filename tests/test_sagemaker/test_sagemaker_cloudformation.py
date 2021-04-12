@@ -10,6 +10,7 @@ from moto.sts.models import ACCOUNT_ID
 
 
 def _get_notebook_instance_template_string(
+    resource_name="TestNotebook",
     instance_type="ml.c4.xlarge",
     role_arn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
     include_outputs=True,
@@ -17,7 +18,7 @@ def _get_notebook_instance_template_string(
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
-            "TestNotebookInstance": {
+            resource_name: {
                 "Type": "AWS::SageMaker::NotebookInstance",
                 "Properties": {"InstanceType": instance_type, "RoleArn": role_arn},
             },
@@ -25,11 +26,9 @@ def _get_notebook_instance_template_string(
     }
     if include_outputs:
         template["Outputs"] = {
-            "NotebookInstanceArn": {"Value": {"Ref": "TestNotebookInstance"}},
+            "NotebookInstanceArn": {"Value": {"Ref": resource_name}},
             "NotebookInstanceName": {
-                "Value": {
-                    "Fn::GetAtt": ["TestNotebookInstance", "NotebookInstanceName"]
-                },
+                "Value": {"Fn::GetAtt": [resource_name, "NotebookInstanceName"]},
             },
         }
     return json.dumps(template)
@@ -71,17 +70,34 @@ def _get_notebook_instance_lifecycle_config_template_string(
 
 
 @mock_cloudformation
-def test_sagemaker_cloudformation_create_notebook_instance():
+@pytest.mark.parametrize(
+    "stack_name,resource_name,template",
+    [
+        (
+            "test_sagemaker_notebook_instance",
+            "TestNotebookInstance",
+            _get_notebook_instance_template_string(
+                resource_name="TestNotebookInstance", include_outputs=False
+            ),
+        ),
+        (
+            "test_sagemaker_notebook_instance_lifecycle_config",
+            "TestNotebookInstanceLifecycleConfig",
+            _get_notebook_instance_lifecycle_config_template_string(
+                resource_name="TestNotebookInstanceLifecycleConfig",
+                include_outputs=False,
+            ),
+        ),
+    ],
+)
+def test_sagemaker_cloudformation_create(stack_name, resource_name, template):
     cf = boto3.client("cloudformation", region_name="us-east-1")
-
-    stack_name = "test_sagemaker_notebook_instance"
-    template = _get_notebook_instance_template_string(include_outputs=False)
     cf.create_stack(StackName=stack_name, TemplateBody=template)
 
     provisioned_resource = cf.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
     ][0]
-    provisioned_resource["LogicalResourceId"].should.equal("TestNotebookInstance")
+    provisioned_resource["LogicalResourceId"].should.equal(resource_name)
     len(provisioned_resource["PhysicalResourceId"]).should.be.greater_than(0)
 
 
@@ -188,25 +204,6 @@ def test_sagemaker_cloudformation_notebook_instance_update():
         NotebookInstanceName=updated_notebook_name,
     )
     updated_instance_type.should.equal(notebook_instance_description["InstanceType"])
-
-
-@mock_cloudformation
-def test_sagemaker_cloudformation_create_notebook_instance_lifecycle_config():
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-
-    stack_name = "test_sagemaker_notebook_instance_lifecycle_config"
-    template = _get_notebook_instance_lifecycle_config_template_string(
-        resource_name="TestNotebookInstanceLifecycleConfig", include_outputs=False
-    )
-    cf.create_stack(StackName=stack_name, TemplateBody=template)
-
-    provisioned_resource = cf.list_stack_resources(StackName=stack_name)[
-        "StackResourceSummaries"
-    ][0]
-    provisioned_resource["LogicalResourceId"].should.equal(
-        "TestNotebookInstanceLifecycleConfig"
-    )
-    len(provisioned_resource["PhysicalResourceId"]).should.be.greater_than(0)
 
 
 @mock_cloudformation
