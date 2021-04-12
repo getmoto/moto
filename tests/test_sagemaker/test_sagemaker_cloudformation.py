@@ -143,31 +143,55 @@ def test_sagemaker_cloudformation_get_attr(
 
 @mock_cloudformation
 @mock_sagemaker
-def test_sagemaker_cloudformation_notebook_instance_delete():
+@pytest.mark.parametrize(
+    "stack_name,template,describe_function_name,name_parameter,arn_parameter,error_message",
+    [
+        (
+            "test_sagemaker_notebook_instance",
+            _get_notebook_instance_template_string(),
+            "describe_notebook_instance",
+            "NotebookInstanceName",
+            "NotebookInstanceArn",
+            "RecordNotFound",
+        ),
+        (
+            "test_sagemaker_notebook_instance_lifecycle_config",
+            _get_notebook_instance_lifecycle_config_template_string(),
+            "describe_notebook_instance_lifecycle_config",
+            "NotebookInstanceLifecycleConfigName",
+            "NotebookInstanceLifecycleConfigArn",
+            "Notebook Instance Lifecycle Config does not exist",
+        ),
+    ],
+)
+def test_sagemaker_cloudformation_notebook_instance_delete(
+    stack_name,
+    template,
+    describe_function_name,
+    name_parameter,
+    arn_parameter,
+    error_message,
+):
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
 
-    # Create stack with notebook instance and verify existence
-    stack_name = "test_sagemaker_notebook_instance"
-    template = _get_notebook_instance_template_string()
+    # Create stack and verify existence
     cf.create_stack(StackName=stack_name, TemplateBody=template)
-
     stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
     outputs = {
         output["OutputKey"]: output["OutputValue"]
         for output in stack_description["Outputs"]
     }
-    notebook_instance = sm.describe_notebook_instance(
-        NotebookInstanceName=outputs["Name"],
+    resource_description = getattr(sm, describe_function_name)(
+        **{name_parameter: outputs["Name"]}
     )
-    outputs["Arn"].should.equal(notebook_instance["NotebookInstanceArn"])
+    outputs["Arn"].should.equal(resource_description[arn_parameter])
 
-    # Delete the stack and verify notebook instance has also been deleted
-    # TODO replace exception check with `list_notebook_instances` method when implemented
+    # Delete the stack and verify resource has also been deleted
     cf.delete_stack(StackName=stack_name)
     with pytest.raises(ClientError) as ce:
-        sm.describe_notebook_instance(NotebookInstanceName=outputs["Name"])
-    ce.value.response["Error"]["Message"].should.contain("RecordNotFound")
+        getattr(sm, describe_function_name)(**{name_parameter: outputs["Name"]})
+    ce.value.response["Error"]["Message"].should.contain(error_message)
 
 
 @mock_cloudformation
@@ -214,41 +238,6 @@ def test_sagemaker_cloudformation_notebook_instance_update():
         NotebookInstanceName=updated_notebook_name,
     )
     updated_instance_type.should.equal(notebook_instance_description["InstanceType"])
-
-
-@mock_cloudformation
-@mock_sagemaker
-def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_delete():
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-    sm = boto3.client("sagemaker", region_name="us-east-1")
-
-    # Create stack with notebook instance lifecycle config and verify existence
-    stack_name = "test_sagemaker_notebook_instance_lifecycle_config"
-    template = _get_notebook_instance_lifecycle_config_template_string()
-    cf.create_stack(StackName=stack_name, TemplateBody=template)
-
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
-    notebook_lifecycle_config_description = sm.describe_notebook_instance_lifecycle_config(
-        NotebookInstanceLifecycleConfigName=outputs["Name"],
-    )
-    outputs["Arn"].should.equal(
-        notebook_lifecycle_config_description["NotebookInstanceLifecycleConfigArn"]
-    )
-
-    # Delete the stack and verify notebook instance lifecycle config has also been deleted
-    # TODO replace exception check with `list-notebook-instance-lifecycle-configs` method when implemented
-    cf.delete_stack(StackName=stack_name)
-    with pytest.raises(ClientError) as ce:
-        sm.describe_notebook_instance_lifecycle_config(
-            NotebookInstanceLifecycleConfigName=outputs["Name"]
-        )
-    ce.value.response["Error"]["Message"].should.contain(
-        "Notebook Instance Lifecycle Config does not exist"
-    )
 
 
 @mock_cloudformation
