@@ -26,10 +26,8 @@ def _get_notebook_instance_template_string(
     }
     if include_outputs:
         template["Outputs"] = {
-            "NotebookInstanceArn": {"Value": {"Ref": resource_name}},
-            "NotebookInstanceName": {
-                "Value": {"Fn::GetAtt": [resource_name, "NotebookInstanceName"]},
-            },
+            "Arn": {"Value": {"Ref": resource_name}},
+            "Name": {"Value": {"Fn::GetAtt": [resource_name, "NotebookInstanceName"]}},
         }
     return json.dumps(template)
 
@@ -103,28 +101,44 @@ def test_sagemaker_cloudformation_create(stack_name, resource_name, template):
 
 @mock_cloudformation
 @mock_sagemaker
-def test_sagemaker_cloudformation_notebook_instance_get_attr():
+@pytest.mark.parametrize(
+    "stack_name,template,describe_function_name,name_parameter,arn_parameter",
+    [
+        (
+            "test_sagemaker_notebook_instance",
+            _get_notebook_instance_template_string(),
+            "describe_notebook_instance",
+            "NotebookInstanceName",
+            "NotebookInstanceArn",
+        ),
+        (
+            "test_sagemaker_notebook_instance_lifecycle_config",
+            _get_notebook_instance_lifecycle_config_template_string(),
+            "describe_notebook_instance_lifecycle_config",
+            "NotebookInstanceLifecycleConfigName",
+            "NotebookInstanceLifecycleConfigArn",
+        ),
+    ],
+)
+def test_sagemaker_cloudformation_get_attr(
+    stack_name, template, describe_function_name, name_parameter, arn_parameter
+):
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
 
-    stack_name = "test_sagemaker_notebook_instance"
-    template = _get_notebook_instance_template_string()
+    # Create stack and get description for output values
     cf.create_stack(StackName=stack_name, TemplateBody=template)
-
     stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
     outputs = {
         output["OutputKey"]: output["OutputValue"]
         for output in stack_description["Outputs"]
     }
-    notebook_instance_name = outputs["NotebookInstanceName"]
-    notebook_instance_arn = outputs["NotebookInstanceArn"]
 
-    notebook_instance_description = sm.describe_notebook_instance(
-        NotebookInstanceName=notebook_instance_name,
+    # Using the describe function, ensure output ARN matches resource ARN
+    resource_description = getattr(sm, describe_function_name)(
+        **{name_parameter: outputs["Name"]}
     )
-    notebook_instance_arn.should.equal(
-        notebook_instance_description["NotebookInstanceArn"]
-    )
+    outputs["Arn"].should.equal(resource_description[arn_parameter])
 
 
 @mock_cloudformation
@@ -144,19 +158,15 @@ def test_sagemaker_cloudformation_notebook_instance_delete():
         for output in stack_description["Outputs"]
     }
     notebook_instance = sm.describe_notebook_instance(
-        NotebookInstanceName=outputs["NotebookInstanceName"],
+        NotebookInstanceName=outputs["Name"],
     )
-    outputs["NotebookInstanceArn"].should.equal(
-        notebook_instance["NotebookInstanceArn"]
-    )
+    outputs["Arn"].should.equal(notebook_instance["NotebookInstanceArn"])
 
     # Delete the stack and verify notebook instance has also been deleted
     # TODO replace exception check with `list_notebook_instances` method when implemented
     cf.delete_stack(StackName=stack_name)
     with pytest.raises(ClientError) as ce:
-        sm.describe_notebook_instance(
-            NotebookInstanceName=outputs["NotebookInstanceName"]
-        )
+        sm.describe_notebook_instance(NotebookInstanceName=outputs["Name"])
     ce.value.response["Error"]["Message"].should.contain("RecordNotFound")
 
 
@@ -184,7 +194,7 @@ def test_sagemaker_cloudformation_notebook_instance_update():
         output["OutputKey"]: output["OutputValue"]
         for output in stack_description["Outputs"]
     }
-    initial_notebook_name = outputs["NotebookInstanceName"]
+    initial_notebook_name = outputs["Name"]
     notebook_instance_description = sm.describe_notebook_instance(
         NotebookInstanceName=initial_notebook_name,
     )
@@ -197,37 +207,13 @@ def test_sagemaker_cloudformation_notebook_instance_update():
         output["OutputKey"]: output["OutputValue"]
         for output in stack_description["Outputs"]
     }
-    updated_notebook_name = outputs["NotebookInstanceName"]
+    updated_notebook_name = outputs["Name"]
     updated_notebook_name.should.equal(initial_notebook_name)
 
     notebook_instance_description = sm.describe_notebook_instance(
         NotebookInstanceName=updated_notebook_name,
     )
     updated_instance_type.should.equal(notebook_instance_description["InstanceType"])
-
-
-@mock_cloudformation
-@mock_sagemaker
-def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_get_attr():
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-    sm = boto3.client("sagemaker", region_name="us-east-1")
-
-    stack_name = "test_sagemaker_notebook_instance_lifecycle_config"
-    template = _get_notebook_instance_lifecycle_config_template_string()
-    cf.create_stack(StackName=stack_name, TemplateBody=template)
-
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
-
-    notebook_lifecycle_config_description = sm.describe_notebook_instance_lifecycle_config(
-        NotebookInstanceLifecycleConfigName=outputs["Name"],
-    )
-    outputs["Arn"].should.equal(
-        notebook_lifecycle_config_description["NotebookInstanceLifecycleConfigArn"]
-    )
 
 
 @mock_cloudformation
