@@ -349,7 +349,7 @@ class IAMPolicyDocumentValidator:
                 return
 
             resource_partitions = resource_partitions[2].partition(":")
-            if resource_partitions[0] != "aws":
+            if resource_partitions[0] not in ["aws", "*"]:
                 remaining_resource_parts = resource_partitions[2].split(":")
 
                 arn1 = (
