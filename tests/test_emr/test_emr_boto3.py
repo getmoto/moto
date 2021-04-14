@@ -759,6 +759,63 @@ def test_bootstrap_actions():
 
 
 @mock_emr
+def test_instances():
+    input_groups = dict((g["Name"], g) for g in input_instance_groups)
+    client = boto3.client("emr", region_name="us-east-1")
+    args = deepcopy(run_job_flow_args)
+    args["Instances"] = {"InstanceGroups": input_instance_groups}
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    jf = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
+    instances = client.list_instances(ClusterId=cluster_id)["Instances"]
+    len(instances).should.equal(sum(g["InstanceCount"] for g in input_instance_groups))
+    for x in instances:
+        x.should.have.key("InstanceGroupId")
+        instance_group = [
+            j
+            for j in jf["Instances"]["InstanceGroups"]
+            if j["InstanceGroupId"] == x["InstanceGroupId"]
+        ]
+        len(instance_group).should.equal(1)
+        y = input_groups[instance_group[0]["Name"]]
+        x.should.have.key("Id")
+        x.should.have.key("Ec2InstanceId")
+        x.should.have.key("PublicDnsName")
+        x.should.have.key("PublicIpAddress")
+        x.should.have.key("PrivateDnsName")
+        x.should.have.key("PrivateIpAddress")
+        x.should.have.key("InstanceFleetId")
+        x["InstanceType"].should.equal(y["InstanceType"])
+        x["Market"].should.equal(y["Market"])
+        x["Status"]["Timeline"]["ReadyDateTime"].should.be.a("datetime.datetime")
+        x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
+        x["Status"]["State"].should.equal("RUNNING")
+
+    for x in [["MASTER"], ["CORE"], ["TASK"], ["MASTER", "TASK"]]:
+        instances = client.list_instances(ClusterId=cluster_id, InstanceGroupTypes=x)[
+            "Instances"
+        ]
+        len(instances).should.equal(
+            sum(
+                g["InstanceCount"]
+                for g in input_instance_groups
+                if g["InstanceRole"] in x
+            )
+        )
+
+    test_group = jf["Instances"]["InstanceGroups"][0]
+    instances = client.list_instances(
+        ClusterId=cluster_id, InstanceGroupId=test_group["InstanceGroupId"]
+    )["Instances"]
+    len(instances).should.equal(
+        sum(
+            g["InstanceCount"]
+            for g in input_instance_groups
+            if g["InstanceRole"] == test_group["InstanceRole"]
+        )
+    )
+
+
+@mock_emr
 def test_instance_groups():
     input_groups = dict((g["Name"], g) for g in input_instance_groups)
 
@@ -800,7 +857,6 @@ def test_instance_groups():
         x["ReadyDateTime"].should.be.a("datetime.datetime")
         x["StartDateTime"].should.be.a("datetime.datetime")
         x["State"].should.equal("RUNNING")
-
     groups = client.list_instance_groups(ClusterId=cluster_id)["InstanceGroups"]
     for x in groups:
         y = deepcopy(input_groups[x["Name"]])

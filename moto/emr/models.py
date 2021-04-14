@@ -16,6 +16,7 @@ from .utils import (
     CamelToUnderscoresWalker,
     EmrSecurityGroupManager,
 )
+from tests import EXAMPLE_AMI_ID
 
 
 class FakeApplication(BaseModel):
@@ -31,6 +32,53 @@ class FakeBootstrapAction(BaseModel):
         self.args = args or []
         self.name = name
         self.script_path = script_path
+
+
+class FakeInstance(BaseModel):
+    def __init__(
+        self,
+        cluster_id,
+        instance_role,
+        ec2_instance_id,
+        public_dns,
+        public_ip,
+        private_dns,
+        private_ip,
+        instance_group_id,
+        instance_fleet_id=None,
+        market="ON_DEMAND",
+        name=None,
+        instance_type=None,
+        block_devices=None,
+    ):
+
+        self.id = self.ec2_instance_id = ec2_instance_id
+        self.cluster_id = cluster_id
+        self.public_dns_name = public_dns
+        self.public_ip_address = public_ip
+        self.private_dns_name = private_dns
+        self.private_ip_address = private_ip
+        self.instance_group_id = instance_group_id
+        self.instance_fleet_id = instance_fleet_id
+        self.instance_type = instance_type
+        self.market = market
+        if name is None:
+            if instance_role == "MASTER":
+                self.name = "MASTER"
+            elif instance_role == "CORE":
+                self.name = "CORE"
+            else:
+                self.name = "TASK"
+        ebs_volumes = []
+        for ebs in block_devices:
+            ebs_volumes.append(
+                {"device": ebs, "volume_id": block_devices[ebs].volume_id}
+            )
+        self.state = "RUNNING"
+        self.state_change_reason = (None,)
+        self.creation_datetime = datetime.now(pytz.utc)
+        self.ready_datetime = datetime.now(pytz.utc)
+        self.end_datetime = datetime.now(pytz.utc)
 
 
 class FakeInstanceGroup(BaseModel):
@@ -177,6 +225,7 @@ class FakeCluster(BaseModel):
         self.set_visibility(visible_to_all_users)
 
         self.instance_group_ids = []
+        self.instances = []
         self.master_instance_group_id = None
         self.core_instance_group_id = None
         if (
@@ -319,6 +368,9 @@ class FakeCluster(BaseModel):
             self.core_instance_group_id = instance_group.id
         self.instance_group_ids.append(instance_group.id)
 
+    def add_instance(self, instance):
+        self.instances.append(instance)
+
     def add_steps(self, steps):
         added_steps = []
         for step in steps:
@@ -359,6 +411,7 @@ class ElasticMapReduceBackend(BaseBackend):
         self.region_name = region_name
         self.clusters = {}
         self.instance_groups = {}
+        self.instances = []
         self.security_configurations = {}
 
     def reset(self):
@@ -389,6 +442,28 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.add_instance_group(group)
             result_groups.append(group)
         return result_groups
+
+    def add_instances(self, cluster_id, instances, instance_groups):
+        cluster = self.clusters[cluster_id]
+        response = self.ec2_backend.add_instances(
+            EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
+        )
+        for instance in response.instances:
+            instance = FakeInstance(
+                cluster_id=cluster_id,
+                instance_role=instances["instance_role"],
+                ec2_instance_id=instance.id,
+                instance_type=instance.instance_type,
+                instance_group_id=instance_groups.id,
+                public_dns=instance.public_dns,
+                public_ip=instance.public_ip,
+                private_dns=instance.private_dns,
+                private_ip=instance.private_ip,
+                block_devices=instance.block_device_mapping,
+                market=instance_groups.market,
+            )
+            self.instances.append(instance)
+            cluster.add_instance(instance)
 
     def add_job_flow_steps(self, job_flow_id, steps):
         cluster = self.clusters[job_flow_id]
@@ -483,6 +558,21 @@ class ElasticMapReduceBackend(BaseBackend):
         marker = (
             None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
         )
+        return groups[start_idx : start_idx + max_items], marker
+
+    def list_instances(
+        self, cluster_id, marker=None, instance_group_id=None, instance_group_types=None
+    ):
+        max_items = 50
+        groups = sorted(self.clusters[cluster_id].instances, key=lambda x: x.id)
+        start_idx = 0 if marker is None else int(marker)
+        marker = (
+            None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
+        )
+        if instance_group_id:
+            groups = [g for g in groups if g.instance_group_id == instance_group_id]
+        if instance_group_types:
+            groups = [g for g in groups if g.name in instance_group_types]
         return groups[start_idx : start_idx + max_items], marker
 
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
