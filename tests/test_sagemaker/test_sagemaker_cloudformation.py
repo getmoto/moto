@@ -9,13 +9,18 @@ from moto import mock_cloudformation, mock_sagemaker
 from .cloudformation_test_configs import (
     NotebookInstanceTestConfig,
     NotebookInstanceLifecycleConfigTestConfig,
+    ModelTestConfig,
 )
 
 
 @mock_cloudformation
 @pytest.mark.parametrize(
     "test_config",
-    [NotebookInstanceTestConfig(), NotebookInstanceLifecycleConfigTestConfig()],
+    [
+        NotebookInstanceTestConfig(),
+        NotebookInstanceLifecycleConfigTestConfig(),
+        ModelTestConfig(),
+    ],
 )
 def test_sagemaker_cloudformation_create(test_config):
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -37,7 +42,11 @@ def test_sagemaker_cloudformation_create(test_config):
 @mock_sagemaker
 @pytest.mark.parametrize(
     "test_config",
-    [NotebookInstanceTestConfig(), NotebookInstanceLifecycleConfigTestConfig()],
+    [
+        NotebookInstanceTestConfig(),
+        NotebookInstanceLifecycleConfigTestConfig(),
+        ModelTestConfig(),
+    ],
 )
 def test_sagemaker_cloudformation_get_attr(test_config):
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -71,6 +80,7 @@ def test_sagemaker_cloudformation_get_attr(test_config):
             NotebookInstanceLifecycleConfigTestConfig(),
             "Notebook Instance Lifecycle Config does not exist",
         ),
+        (ModelTestConfig(), "Could not find model"),
     ],
 )
 def test_sagemaker_cloudformation_notebook_instance_delete(test_config, error_message):
@@ -200,4 +210,57 @@ def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
     len(resource_description["OnCreate"]).should.equal(1)
     updated_on_create_script.should.equal(
         resource_description["OnCreate"][0]["Content"]
+    )
+
+
+@mock_cloudformation
+@mock_sagemaker
+def test_sagemaker_cloudformation_model_update():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    test_config = ModelTestConfig()
+
+    # Set up template for stack with initial and update instance types
+    stack_name = "{}_stack".format(test_config.resource_name)
+    image = "404615174143.dkr.ecr.us-east-2.amazonaws.com/kmeans:{}"
+    initial_image_version = 1
+    updated_image_version = 2
+    initial_template_json = test_config.get_cloudformation_template(
+        image=image.format(initial_image_version)
+    )
+    updated_template_json = test_config.get_cloudformation_template(
+        image=image.format(updated_image_version)
+    )
+
+    # Create stack with initial template and check attributes
+    cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
+    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+    inital_model_name = outputs["Name"]
+    resource_description = getattr(sm, test_config.describe_function_name)(
+        **{test_config.name_parameter: inital_model_name}
+    )
+    resource_description["PrimaryContainer"]["Image"].should.equal(
+        image.format(initial_image_version)
+    )
+
+    # Update stack with new instance type and check attributes
+    cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
+    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+    updated_notebook_name = outputs["Name"]
+    updated_notebook_name.should_not.equal(inital_model_name)
+
+    resource_description = getattr(sm, test_config.describe_function_name)(
+        **{test_config.name_parameter: updated_notebook_name}
+    )
+    resource_description["PrimaryContainer"]["Image"].should.equal(
+        image.format(updated_image_version)
     )

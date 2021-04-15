@@ -310,7 +310,7 @@ class FakeEndpointConfig(BaseObject):
         )
 
 
-class Model(BaseObject):
+class Model(BaseObject, CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -352,6 +352,83 @@ class Model(BaseObject):
             + ":model/"
             + model_name
         )
+
+    @property
+    def physical_resource_id(self):
+        return self.model_arn
+
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html#aws-resource-sagemaker-model-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "ModelName":
+            return self.model_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html
+        return "AWS::SageMaker::Model"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sagemaker_backend = sagemaker_backends[region_name]
+
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        execution_role_arn = properties["ExecutionRoleArn"]
+        primary_container = properties["PrimaryContainer"]
+
+        # `create_model` returns `Model.response_create()` so we will
+        # just create another Model object to return for the CF machinery
+        _ = sagemaker_backend.create_model(
+            ModelName=resource_name,
+            ExecutionRoleArn=execution_role_arn,
+            PrimaryContainer=primary_container,
+            VpcConfig=properties.get("VpcConfig", {}),
+            Containers=properties.get("Containers", []),
+            Tags=properties.get("Tags", []),
+        )
+        model = Model(
+            region_name=region_name,
+            model_name=resource_name,
+            execution_role_arn=execution_role_arn,
+            primary_container=primary_container,
+            vpc_config=properties.get("VpcConfig", {}),
+            containers=properties.get("Containers", []),
+            tags=properties.get("Tags", []),
+        )
+        return model
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Most changes to the model will change resource name for Models
+        cls.delete_from_cloudformation_json(
+            original_resource.model_arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        model_name = resource_name.split("/")[-1]
+
+        sagemaker_backends[region_name].delete_model(model_name)
 
 
 class VpcConfig(BaseObject):

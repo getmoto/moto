@@ -139,3 +139,50 @@ class NotebookInstanceLifecycleConfigTestConfig(TestConfig):
                 },
             }
         return json.dumps(template)
+
+
+class ModelTestConfig(TestConfig):
+    """Test configuration for SageMaker Models."""
+
+    @property
+    def resource_name(self):
+        return "TestModel"
+
+    @property
+    def describe_function_name(self):
+        return "describe_model"
+
+    @property
+    def name_parameter(self):
+        return "ModelName"
+
+    @property
+    def arn_parameter(self):
+        return "ModelArn"
+
+    def get_cloudformation_template(self, include_outputs=True, **kwargs):
+        execution_role_arn = kwargs.get(
+            "execution_role_arn", "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
+        )
+        image = kwargs.get(
+            "image", "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1"
+        )
+
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                self.resource_name: {
+                    "Type": "AWS::SageMaker::Model",
+                    "Properties": {
+                        "ExecutionRoleArn": execution_role_arn,
+                        "PrimaryContainer": {"Image": image,},
+                    },
+                },
+            },
+        }
+        if include_outputs:
+            template["Outputs"] = {
+                "Arn": {"Value": {"Ref": self.resource_name}},
+                "Name": {"Value": {"Fn::GetAtt": [self.resource_name, "ModelName"],}},
+            }
+        return json.dumps(template)
