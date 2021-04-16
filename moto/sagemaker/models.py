@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import os
 from boto3 import Session
-from copy import deepcopy
 from datetime import datetime
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
@@ -310,7 +309,7 @@ class FakeEndpointConfig(BaseObject):
         )
 
 
-class Model(BaseObject):
+class Model(BaseObject, CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -352,6 +351,72 @@ class Model(BaseObject):
             + ":model/"
             + model_name
         )
+
+    @property
+    def physical_resource_id(self):
+        return self.model_arn
+
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html#aws-resource-sagemaker-model-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "ModelName":
+            return self.model_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html
+        return "AWS::SageMaker::Model"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sagemaker_backend = sagemaker_backends[region_name]
+
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        execution_role_arn = properties["ExecutionRoleArn"]
+        primary_container = properties["PrimaryContainer"]
+
+        model = sagemaker_backend.create_model(
+            ModelName=resource_name,
+            ExecutionRoleArn=execution_role_arn,
+            PrimaryContainer=primary_container,
+            VpcConfig=properties.get("VpcConfig", {}),
+            Containers=properties.get("Containers", []),
+            Tags=properties.get("Tags", []),
+        )
+        return model
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Most changes to the model will change resource name for Models
+        cls.delete_from_cloudformation_json(
+            original_resource.model_arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        model_name = resource_name.split("/")[-1]
+
+        sagemaker_backends[region_name].delete_model(model_name)
 
 
 class VpcConfig(BaseObject):
@@ -699,23 +764,19 @@ class SageMakerModelBackend(BaseBackend):
         )
 
         self._models[kwargs.get("ModelName")] = model_obj
-        return model_obj.response_create
+        return model_obj
 
     def describe_model(self, model_name=None):
         model = self._models.get(model_name)
         if model:
-            return model.response_object
+            return model
         message = "Could not find model '{}'.".format(
             Model.arn_for_model_name(model_name, self.region_name)
         )
         raise ValidationError(message=message)
 
     def list_models(self):
-        models = []
-        for model in self._models.values():
-            model_response = deepcopy(model.response_object)
-            models.append(model_response)
-        return {"Models": models}
+        return self._models.values()
 
     def delete_model(self, model_name=None):
         for model in self._models.values():
