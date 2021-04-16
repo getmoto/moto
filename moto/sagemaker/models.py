@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import os
 from boto3 import Session
-from copy import deepcopy
 from datetime import datetime
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
@@ -385,24 +384,13 @@ class Model(BaseObject, CloudFormationModel):
         execution_role_arn = properties["ExecutionRoleArn"]
         primary_container = properties["PrimaryContainer"]
 
-        # `create_model` returns `Model.response_create()` so we will
-        # just create another Model object to return for the CF machinery
-        _ = sagemaker_backend.create_model(
+        model = sagemaker_backend.create_model(
             ModelName=resource_name,
             ExecutionRoleArn=execution_role_arn,
             PrimaryContainer=primary_container,
             VpcConfig=properties.get("VpcConfig", {}),
             Containers=properties.get("Containers", []),
             Tags=properties.get("Tags", []),
-        )
-        model = Model(
-            region_name=region_name,
-            model_name=resource_name,
-            execution_role_arn=execution_role_arn,
-            primary_container=primary_container,
-            vpc_config=properties.get("VpcConfig", {}),
-            containers=properties.get("Containers", []),
-            tags=properties.get("Tags", []),
         )
         return model
 
@@ -776,23 +764,19 @@ class SageMakerModelBackend(BaseBackend):
         )
 
         self._models[kwargs.get("ModelName")] = model_obj
-        return model_obj.response_create
+        return model_obj
 
     def describe_model(self, model_name=None):
         model = self._models.get(model_name)
         if model:
-            return model.response_object
+            return model
         message = "Could not find model '{}'.".format(
             Model.arn_for_model_name(model_name, self.region_name)
         )
         raise ValidationError(message=message)
 
     def list_models(self):
-        models = []
-        for model in self._models.values():
-            model_response = deepcopy(model.response_object)
-            models.append(model_response)
-        return {"Models": models}
+        return self._models.values()
 
     def delete_model(self, model_name=None):
         for model in self._models.values():
