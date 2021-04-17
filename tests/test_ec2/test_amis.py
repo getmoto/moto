@@ -16,6 +16,7 @@ from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_ami_create_and_delete():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -94,6 +95,85 @@ def test_ami_create_and_delete():
     cm.value.request_id.should_not.be.none
 
 
+@mock_ec2
+def test_ami_create_and_delete_boto3():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    initial_ami_count = len(AMIS)
+    ec2.describe_volumes()["Volumes"].should.have.length_of(0)
+    ec2.describe_snapshots()["Snapshots"].should.have.length_of(initial_ami_count)
+
+    reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    with pytest.raises(ClientError) as ex:
+        ec2.create_image(
+            InstanceId=instance["InstanceId"], Name="test-ami", DryRun=True
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("DryRunOperation")
+    err["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateImage operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    image_id = ec2.create_image(InstanceId=instance["InstanceId"], Name="test-ami", Description="this is a test ami")["ImageId"]
+
+    all_images = ec2.describe_images()["Images"]
+    set([i["ImageId"] for i in all_images]).should.contain(image_id)
+
+    retrieved_image = [i for i in all_images if i["ImageId"] == image_id][0]
+
+    retrieved_image.should.have.key("ImageId").equal(image_id)
+    retrieved_image.should.have.key("VirtualizationType").equal(instance["VirtualizationType"])
+    retrieved_image.should.have.key("Architecture").equal(instance["Architecture"])
+    retrieved_image.should.have.key("KernelId").equal(instance["KernelId"])
+    retrieved_image.should.have.key("Platform").equal(instance["Platform"])
+    retrieved_image.should.have.key("CreationDate")
+    ec2.terminate_instances(InstanceIds=[instance["InstanceId"]])
+
+    # Ensure we're no longer creating a volume
+    ec2.describe_volumes()["Volumes"].should.have.length_of(0)
+
+    # Validate auto-created snapshot
+    snapshots = ec2.describe_snapshots()["Snapshots"]
+    snapshots.should.have.length_of(initial_ami_count + 1)
+
+    retrieved_image_snapshot_id = (
+        retrieved_image["BlockDeviceMappings"][0]["Ebs"]["SnapshotId"]
+    )
+    [s["SnapshotId"] for s in snapshots].should.contain(retrieved_image_snapshot_id)
+    snapshot = [s for s in snapshots if s["SnapshotId"] == retrieved_image_snapshot_id][0]
+    snapshot["Description"].should.equal(
+        "Auto-created snapshot for AMI {0}".format(retrieved_image["ImageId"])
+    )
+
+    # root device should be in AMI's block device mappings
+    root_mapping = [m for m in retrieved_image["BlockDeviceMappings"] if m["DeviceName"] == retrieved_image["RootDeviceName"]]
+    root_mapping.should_not.equal([])
+
+    # Deregister
+    with pytest.raises(ClientError) as ex:
+        ec2.deregister_image(ImageId=image_id, DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("DryRunOperation")
+    err["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DeregisterImage operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    success = ec2.deregister_image(ImageId=image_id)
+    success["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    with pytest.raises(ClientError) as ex:
+        ec2.deregister_image(ImageId=image_id)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidAMIID.NotFound")
+    ex.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.14.0")
 @mock_ec2_deprecated
 def test_ami_copy():
@@ -177,6 +257,89 @@ def test_ami_copy():
 
 
 @mock_ec2
+def test_ami_copy_boto3():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+
+    initial_ami_count = len(AMIS)
+    ec2.describe_volumes()["Volumes"].should.have.length_of(0)
+    ec2.describe_snapshots()["Snapshots"].should.have.length_of(initial_ami_count)
+
+    reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    source_image_id = ec2.create_image(InstanceId=instance["InstanceId"], Name="test-ami", Description="this is a test ami")[
+        "ImageId"]
+    ec2.terminate_instances(InstanceIds=[instance["InstanceId"]])
+    source_image = ec2.describe_images(ImageIds=[source_image_id])["Images"][0]
+
+    with pytest.raises(ClientError) as ex:
+        ec2.copy_image(
+            SourceRegion="us-west-1",
+            SourceImageId=source_image["ImageId"],
+            Name="test-copy-ami",
+            Description="this is a test copy ami",
+            DryRun=True,
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("DryRunOperation")
+    err["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CopyImage operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    copy_image_ref = ec2.copy_image(
+        SourceRegion="us-west-1",
+        SourceImageId=source_image["ImageId"],
+        Name="test-copy-ami",
+        Description="this is a test copy ami",
+    )
+    copy_image_id = copy_image_ref["ImageId"]
+    copy_image = ec2.describe_images(ImageIds=[copy_image_id])["Images"][0]
+
+    copy_image["Name"].should.equal("test-copy-ami")
+    copy_image["Description"].should.equal("this is a test copy ami")
+    copy_image["ImageId"].should.equal(copy_image_id)
+    copy_image["VirtualizationType"].should.equal(source_image["VirtualizationType"])
+    copy_image["Architecture"].should.equal(source_image["Architecture"])
+    copy_image["KernelId"].should.equal(source_image["KernelId"])
+    copy_image["Platform"].should.equal(source_image["Platform"])
+
+    # Ensure we're no longer creating a volume
+    ec2.describe_volumes()["Volumes"].should.have.length_of(0)
+
+    # Validate auto-created snapshot
+    ec2.describe_snapshots()["Snapshots"].should.have.length_of(initial_ami_count + 2)
+
+    copy_image["BlockDeviceMappings"][0]["Ebs"]["SnapshotId"].shouldnt.equal(
+        source_image["BlockDeviceMappings"][0]["Ebs"]["SnapshotId"]
+    )
+
+    # Copy from non-existent source ID.
+    with pytest.raises(ClientError) as ex:
+        ec2.copy_image(
+            SourceRegion="us-west-1",
+            SourceImageId="ami-abcd1234",
+            Name="test-copy-ami",
+            Description="this is a test copy ami",
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidAMIID.NotFound")
+
+    # Copy from non-existent source region.
+    with pytest.raises(ClientError) as ex:
+        ec2.copy_image(
+            SourceRegion="us-east-1",
+            SourceImageId=source_image["ImageId"],
+            Name="test-copy-ami",
+            Description="this is a test copy ami"
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidAMIID.NotFound")
+
+
+@mock_ec2
 def test_copy_image_changes_owner_id():
     conn = boto3.client("ec2", region_name="us-east-1")
 
@@ -200,6 +363,7 @@ def test_copy_image_changes_owner_id():
     describe_resp["Images"][0]["ImageId"].should.equal(copy_resp["ImageId"])
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_ami_tagging():
     conn = boto.connect_vpc("the_key", "the_secret")
@@ -228,6 +392,32 @@ def test_ami_tagging():
     image.tags["a key"].should.equal("some value")
 
 
+@mock_ec2
+def test_ami_tagging_boto3():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    res = boto3.resource("ec2", region_name="us-east-1")
+    reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+    image_id = ec2.create_image(InstanceId=instance["InstanceId"], Name="test-ami", Description="this is a test ami")["ImageId"]
+    image = res.Image(image_id)
+
+    with pytest.raises(ClientError) as ex:
+        image.create_tags(Tags=[{"Key": "a key", "Value": "some value"}], DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("DryRunOperation")
+    err["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    image.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
+    image.tags.should.equal([{u'Value': 'some value', u'Key': 'a key'}])
+
+    image = ec2.describe_images(ImageIds=[image_id])["Images"][0]
+    image["Tags"].should.equal([{u'Value': 'some value', u'Key': 'a key'}])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_ami_create_from_missing_instance():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -238,6 +428,17 @@ def test_ami_create_from_missing_instance():
     cm.value.code.should.equal("InvalidInstanceID.NotFound")
     cm.value.status.should.equal(400)
     cm.value.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_ami_create_from_missing_instance_boto3():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.create_image(InstanceId="i-abcdefg", Name="test-ami", Description="this is a test ami")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidInstanceID.NotFound")
 
 
 @mock_ec2_deprecated
