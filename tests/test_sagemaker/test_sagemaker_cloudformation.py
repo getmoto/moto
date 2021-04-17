@@ -14,6 +14,15 @@ from .cloudformation_test_configs import (
 )
 
 
+def _get_stack_outputs(cf_client, stack_name):
+    """Returns the outputs for the first entry in describe_stacks."""
+    stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
+    return {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+
+
 @mock_cloudformation
 @mock_sagemaker
 @pytest.mark.parametrize(
@@ -68,11 +77,7 @@ def test_sagemaker_cloudformation_get_attr(test_config):
     cf.create_stack(
         StackName=stack_name, TemplateBody=test_config.get_cloudformation_template()
     )
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
 
     # Using the describe function, ensure output ARN matches resource ARN
     resource_description = getattr(sm, test_config.describe_function_name)(
@@ -107,11 +112,8 @@ def test_sagemaker_cloudformation_notebook_instance_delete(test_config, error_me
     cf.create_stack(
         StackName=stack_name, TemplateBody=test_config.get_cloudformation_template()
     )
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
+
     resource_description = getattr(sm, test_config.describe_function_name)(
         **{test_config.name_parameter: outputs["Name"]}
     )
@@ -147,11 +149,8 @@ def test_sagemaker_cloudformation_notebook_instance_update():
 
     # Create stack with initial template and check attributes
     cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
+
     initial_notebook_name = outputs["Name"]
     resource_description = getattr(sm, test_config.describe_function_name)(
         **{test_config.name_parameter: initial_notebook_name}
@@ -160,11 +159,8 @@ def test_sagemaker_cloudformation_notebook_instance_update():
 
     # Update stack with new instance type and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
+
     updated_notebook_name = outputs["Name"]
     updated_notebook_name.should.equal(initial_notebook_name)
 
@@ -195,11 +191,8 @@ def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
 
     # Create stack with initial template and check attributes
     cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
+
     initial_config_name = outputs["Name"]
     resource_description = getattr(sm, test_config.describe_function_name)(
         **{test_config.name_parameter: initial_config_name}
@@ -211,11 +204,8 @@ def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
 
     # Update stack with new instance type and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
+
     updated_config_name = outputs["Name"]
     updated_config_name.should.equal(initial_config_name)
 
@@ -250,14 +240,11 @@ def test_sagemaker_cloudformation_model_update():
 
     # Create stack with initial template and check attributes
     cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
-    inital_model_name = outputs["Name"]
+    outputs = _get_stack_outputs(cf, stack_name)
+
+    initial_model_name = outputs["Name"]
     resource_description = getattr(sm, test_config.describe_function_name)(
-        **{test_config.name_parameter: inital_model_name}
+        **{test_config.name_parameter: initial_model_name}
     )
     resource_description["PrimaryContainer"]["Image"].should.equal(
         image.format(initial_image_version)
@@ -265,16 +252,13 @@ def test_sagemaker_cloudformation_model_update():
 
     # Update stack with new instance type and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
-    updated_notebook_name = outputs["Name"]
-    updated_notebook_name.should_not.equal(inital_model_name)
+    outputs = _get_stack_outputs(cf, stack_name)
+
+    updated_model_name = outputs["Name"]
+    updated_model_name.should_not.equal(initial_model_name)
 
     resource_description = getattr(sm, test_config.describe_function_name)(
-        **{test_config.name_parameter: updated_notebook_name}
+        **{test_config.name_parameter: updated_model_name}
     )
     resource_description["PrimaryContainer"]["Image"].should.equal(
         image.format(updated_image_version)
@@ -305,11 +289,8 @@ def test_sagemaker_cloudformation_endpoint_config_update():
 
     # Create stack with initial template and check attributes
     cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
+
     initial_endpoint_config_name = outputs["Name"]
     resource_description = getattr(sm, test_config.describe_function_name)(
         **{test_config.name_parameter: initial_endpoint_config_name}
@@ -320,11 +301,8 @@ def test_sagemaker_cloudformation_endpoint_config_update():
 
     # Update stack with new instance type and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
-    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
-    outputs = {
-        output["OutputKey"]: output["OutputValue"]
-        for output in stack_description["Outputs"]
-    }
+    outputs = _get_stack_outputs(cf, stack_name)
+
     updated_endpoint_config_name = outputs["Name"]
     updated_endpoint_config_name.should_not.equal(initial_endpoint_config_name)
 
