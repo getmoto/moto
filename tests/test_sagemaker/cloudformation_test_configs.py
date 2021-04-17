@@ -260,3 +260,65 @@ class EndpointConfigTestConfig(TestConfig):
                 "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
             },
         )
+
+
+class EndpointTestConfig(TestConfig):
+    """Test configuration for SageMaker Endpoints."""
+
+    @property
+    def resource_name(self):
+        return "TestEndpoint"
+
+    @property
+    def describe_function_name(self):
+        return "describe_endpoint"
+
+    @property
+    def name_parameter(self):
+        return "EndpointName"
+
+    @property
+    def arn_parameter(self):
+        return "EndpointArn"
+
+    def get_cloudformation_template(self, include_outputs=True, **kwargs):
+        endpoint_config_name = kwargs.get("endpoint_config_name", self.resource_name)
+
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                self.resource_name: {
+                    "Type": "AWS::SageMaker::Endpoint",
+                    "Properties": {"EndpointConfigName": endpoint_config_name},
+                },
+            },
+        }
+        if include_outputs:
+            template["Outputs"] = {
+                "Arn": {"Value": {"Ref": self.resource_name}},
+                "Name": {"Value": {"Fn::GetAtt": [self.resource_name, "EndpointName"]}},
+            }
+        return json.dumps(template)
+
+    def run_setup_procedure(self, sagemaker_client):
+        """Adds Model and Endpoint Config that can be referenced in the CloudFormation template."""
+
+        sagemaker_client.create_model(
+            ModelName=self.resource_name,
+            ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+            PrimaryContainer={
+                "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
+            },
+        )
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=self.resource_name,
+            ProductionVariants=[
+                {
+                    "InitialInstanceCount": 1,
+                    "InitialVariantWeight": 1,
+                    "InstanceType": "ml.c4.xlarge",
+                    "ModelName": self.resource_name,
+                    "VariantName": "variant-name-1",
+                },
+            ],
+        )

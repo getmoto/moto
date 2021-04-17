@@ -5,12 +5,14 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 from moto import mock_cloudformation, mock_sagemaker
+from moto.sts.models import ACCOUNT_ID
 
 from .cloudformation_test_configs import (
     NotebookInstanceTestConfig,
     NotebookInstanceLifecycleConfigTestConfig,
     ModelTestConfig,
     EndpointConfigTestConfig,
+    EndpointTestConfig,
 )
 
 
@@ -32,6 +34,7 @@ def _get_stack_outputs(cf_client, stack_name):
         NotebookInstanceLifecycleConfigTestConfig(),
         ModelTestConfig(),
         EndpointConfigTestConfig(),
+        EndpointTestConfig(),
     ],
 )
 def test_sagemaker_cloudformation_create(test_config):
@@ -63,6 +66,7 @@ def test_sagemaker_cloudformation_create(test_config):
         NotebookInstanceLifecycleConfigTestConfig(),
         ModelTestConfig(),
         EndpointConfigTestConfig(),
+        EndpointTestConfig(),
     ],
 )
 def test_sagemaker_cloudformation_get_attr(test_config):
@@ -98,6 +102,7 @@ def test_sagemaker_cloudformation_get_attr(test_config):
         ),
         (ModelTestConfig(), "Could not find model"),
         (EndpointConfigTestConfig(), "Could not find endpoint configuration"),
+        (EndpointTestConfig(), "Could not find endpoint"),
     ],
 )
 def test_sagemaker_cloudformation_notebook_instance_delete(test_config, error_message):
@@ -311,4 +316,88 @@ def test_sagemaker_cloudformation_endpoint_config_update():
     )
     len(resource_description["ProductionVariants"]).should.equal(
         updated_num_production_variants
+    )
+
+
+@mock_cloudformation
+@mock_sagemaker
+def test_sagemaker_cloudformation_endpoint_update():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    test_config = EndpointTestConfig()
+
+    # Set up template for stack with two different endpoint config names
+    stack_name = "{}_stack".format(test_config.resource_name)
+    initial_endpoint_config_name = test_config.resource_name
+    updated_endpoint_config_name = "updated-endpoint-config-name"
+    initial_template_json = test_config.get_cloudformation_template(
+        endpoint_config_name=initial_endpoint_config_name
+    )
+    updated_template_json = test_config.get_cloudformation_template(
+        endpoint_config_name=updated_endpoint_config_name
+    )
+
+    # Create SM resources and stack with initial template and check attributes
+    sm.create_model(
+        ModelName=initial_endpoint_config_name,
+        ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+        PrimaryContainer={
+            "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
+        },
+    )
+    sm.create_endpoint_config(
+        EndpointConfigName=initial_endpoint_config_name,
+        ProductionVariants=[
+            {
+                "InitialInstanceCount": 1,
+                "InitialVariantWeight": 1,
+                "InstanceType": "ml.c4.xlarge",
+                "ModelName": initial_endpoint_config_name,
+                "VariantName": "variant-name-1",
+            },
+        ],
+    )
+    cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
+    outputs = _get_stack_outputs(cf, stack_name)
+
+    initial_endpoint_name = outputs["Name"]
+    resource_description = getattr(sm, test_config.describe_function_name)(
+        **{test_config.name_parameter: initial_endpoint_name}
+    )
+    resource_description["EndpointConfigName"].should.match(
+        initial_endpoint_config_name
+    )
+
+    # Create additional SM resources and update stack
+    sm.create_model(
+        ModelName=updated_endpoint_config_name,
+        ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+        PrimaryContainer={
+            "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
+        },
+    )
+    sm.create_endpoint_config(
+        EndpointConfigName=updated_endpoint_config_name,
+        ProductionVariants=[
+            {
+                "InitialInstanceCount": 1,
+                "InitialVariantWeight": 1,
+                "InstanceType": "ml.c4.xlarge",
+                "ModelName": updated_endpoint_config_name,
+                "VariantName": "variant-name-1",
+            },
+        ],
+    )
+    cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
+    outputs = _get_stack_outputs(cf, stack_name)
+
+    updated_endpoint_name = outputs["Name"]
+    updated_endpoint_name.should.equal(initial_endpoint_name)
+
+    resource_description = getattr(sm, test_config.describe_function_name)(
+        **{test_config.name_parameter: updated_endpoint_name}
+    )
+    resource_description["EndpointConfigName"].should.match(
+        updated_endpoint_config_name
     )

@@ -140,7 +140,7 @@ class FakeTrainingJob(BaseObject):
         )
 
 
-class FakeEndpoint(BaseObject):
+class FakeEndpoint(BaseObject, CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -183,6 +183,68 @@ class FakeEndpoint(BaseObject):
             + ":endpoint/"
             + endpoint_name
         )
+
+    @property
+    def physical_resource_id(self):
+        return self.endpoint_arn
+
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html#aws-resource-sagemaker-endpoint-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "EndpointName":
+            return self.endpoint_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html
+        return "AWS::SageMaker::Endpoint"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sagemaker_backend = sagemaker_backends[region_name]
+
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        endpoint_config_name = properties["EndpointConfigName"]
+
+        endpoint = sagemaker_backend.create_endpoint(
+            endpoint_name=resource_name,
+            endpoint_config_name=endpoint_config_name,
+            tags=properties.get("Tags", []),
+        )
+        return endpoint
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Changes to the Endpoint will not change resource name
+        cls.delete_from_cloudformation_json(
+            original_resource.endpoint_arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            original_resource.endpoint_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        endpoint_name = resource_name.split("/")[-1]
+
+        sagemaker_backends[region_name].delete_endpoint(endpoint_name)
 
 
 class FakeEndpointConfig(BaseObject, CloudFormationModel):
