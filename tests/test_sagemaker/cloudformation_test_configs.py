@@ -194,7 +194,7 @@ class ModelTestConfig(TestConfig):
         if include_outputs:
             template["Outputs"] = {
                 "Arn": {"Value": {"Ref": self.resource_name}},
-                "Name": {"Value": {"Fn::GetAtt": [self.resource_name, "ModelName"],}},
+                "Name": {"Value": {"Fn::GetAtt": [self.resource_name, "ModelName"]}},
             }
         return json.dumps(template)
 
@@ -237,7 +237,7 @@ class EndpointConfigTestConfig(TestConfig):
             "Resources": {
                 self.resource_name: {
                     "Type": "AWS::SageMaker::EndpointConfig",
-                    "Properties": {"ProductionVariants": production_variants,},
+                    "Properties": {"ProductionVariants": production_variants},
                 },
             },
         }
