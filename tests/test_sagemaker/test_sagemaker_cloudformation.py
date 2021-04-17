@@ -10,20 +10,27 @@ from .cloudformation_test_configs import (
     NotebookInstanceTestConfig,
     NotebookInstanceLifecycleConfigTestConfig,
     ModelTestConfig,
+    EndpointConfigTestConfig,
 )
 
 
 @mock_cloudformation
+@mock_sagemaker
 @pytest.mark.parametrize(
     "test_config",
     [
         NotebookInstanceTestConfig(),
         NotebookInstanceLifecycleConfigTestConfig(),
         ModelTestConfig(),
+        EndpointConfigTestConfig(),
     ],
 )
 def test_sagemaker_cloudformation_create(test_config):
     cf = boto3.client("cloudformation", region_name="us-east-1")
+    sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    # Utilize test configuration to set-up any mock SageMaker resources
+    test_config.run_setup_procedure(sm)
 
     stack_name = "{}_stack".format(test_config.resource_name)
     cf.create_stack(
@@ -46,11 +53,15 @@ def test_sagemaker_cloudformation_create(test_config):
         NotebookInstanceTestConfig(),
         NotebookInstanceLifecycleConfigTestConfig(),
         ModelTestConfig(),
+        EndpointConfigTestConfig(),
     ],
 )
 def test_sagemaker_cloudformation_get_attr(test_config):
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    # Utilize test configuration to set-up any mock SageMaker resources
+    test_config.run_setup_procedure(sm)
 
     # Create stack and get description for output values
     stack_name = "{}_stack".format(test_config.resource_name)
@@ -81,11 +92,15 @@ def test_sagemaker_cloudformation_get_attr(test_config):
             "Notebook Instance Lifecycle Config does not exist",
         ),
         (ModelTestConfig(), "Could not find model"),
+        (EndpointConfigTestConfig(), "Could not find endpoint configuration"),
     ],
 )
 def test_sagemaker_cloudformation_notebook_instance_delete(test_config, error_message):
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    # Utilize test configuration to set-up any mock SageMaker resources
+    test_config.run_setup_procedure(sm)
 
     # Create stack and verify existence
     stack_name = "{}_stack".format(test_config.resource_name)
@@ -263,4 +278,59 @@ def test_sagemaker_cloudformation_model_update():
     )
     resource_description["PrimaryContainer"]["Image"].should.equal(
         image.format(updated_image_version)
+    )
+
+
+@mock_cloudformation
+@mock_sagemaker
+def test_sagemaker_cloudformation_endpoint_config_update():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    sm = boto3.client("sagemaker", region_name="us-east-1")
+
+    test_config = EndpointConfigTestConfig()
+
+    # Utilize test configuration to set-up any mock SageMaker resources
+    test_config.run_setup_procedure(sm)
+
+    # Set up template for stack with initial and update instance types
+    stack_name = "{}_stack".format(test_config.resource_name)
+    initial_num_production_variants = 1
+    updated_num_production_variants = 2
+    initial_template_json = test_config.get_cloudformation_template(
+        num_production_variants=initial_num_production_variants
+    )
+    updated_template_json = test_config.get_cloudformation_template(
+        num_production_variants=updated_num_production_variants
+    )
+
+    # Create stack with initial template and check attributes
+    cf.create_stack(StackName=stack_name, TemplateBody=initial_template_json)
+    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+    initial_endpoint_config_name = outputs["Name"]
+    resource_description = getattr(sm, test_config.describe_function_name)(
+        **{test_config.name_parameter: initial_endpoint_config_name}
+    )
+    len(resource_description["ProductionVariants"]).should.equal(
+        initial_num_production_variants
+    )
+
+    # Update stack with new instance type and check attributes
+    cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
+    stack_description = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }
+    updated_endpoint_config_name = outputs["Name"]
+    updated_endpoint_config_name.should_not.equal(initial_endpoint_config_name)
+
+    resource_description = getattr(sm, test_config.describe_function_name)(
+        **{test_config.name_parameter: updated_endpoint_config_name}
+    )
+    len(resource_description["ProductionVariants"]).should.equal(
+        updated_num_production_variants
     )

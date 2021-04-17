@@ -42,6 +42,14 @@ class TestConfig:
     def get_cloudformation_template(self, include_outputs=True, **kwargs):
         pass
 
+    def run_setup_procedure(self, sagemaker_client):
+        """Provides a method to set up resources with a SageMaker client.
+
+        Note: This procedure should be called while within a `mock_sagemaker`
+        context so that no actual resources are created with the sagemaker_client.
+        """
+        pass
+
 
 class NotebookInstanceTestConfig(TestConfig):
     """Test configuration for SageMaker Notebook Instances."""
@@ -189,3 +197,66 @@ class ModelTestConfig(TestConfig):
                 "Name": {"Value": {"Fn::GetAtt": [self.resource_name, "ModelName"],}},
             }
         return json.dumps(template)
+
+
+class EndpointConfigTestConfig(TestConfig):
+    """Test configuration for SageMaker Endpoint Configs."""
+
+    @property
+    def resource_name(self):
+        return "TestEndpointConfig"
+
+    @property
+    def describe_function_name(self):
+        return "describe_endpoint_config"
+
+    @property
+    def name_parameter(self):
+        return "EndpointConfigName"
+
+    @property
+    def arn_parameter(self):
+        return "EndpointConfigArn"
+
+    def get_cloudformation_template(self, include_outputs=True, **kwargs):
+        num_production_variants = kwargs.get("num_production_variants", 1)
+
+        production_variants = [
+            {
+                "InitialInstanceCount": 1,
+                "InitialVariantWeight": 1,
+                "InstanceType": "ml.c4.xlarge",
+                "ModelName": self.resource_name,
+                "VariantName": "variant-name-{}".format(i),
+            }
+            for i in range(num_production_variants)
+        ]
+
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                self.resource_name: {
+                    "Type": "AWS::SageMaker::EndpointConfig",
+                    "Properties": {"ProductionVariants": production_variants,},
+                },
+            },
+        }
+        if include_outputs:
+            template["Outputs"] = {
+                "Arn": {"Value": {"Ref": self.resource_name}},
+                "Name": {
+                    "Value": {"Fn::GetAtt": [self.resource_name, "EndpointConfigName"]}
+                },
+            }
+        return json.dumps(template)
+
+    def run_setup_procedure(self, sagemaker_client):
+        """Adds Model that can be referenced in the CloudFormation template."""
+
+        sagemaker_client.create_model(
+            ModelName=self.resource_name,
+            ExecutionRoleArn="arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID),
+            PrimaryContainer={
+                "Image": "404615174143.dkr.ecr.us-east-2.amazonaws.com/linear-learner:1",
+            },
+        )
