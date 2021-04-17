@@ -141,7 +141,7 @@ def test_sagemaker_cloudformation_notebook_instance_update():
 
     test_config = NotebookInstanceTestConfig()
 
-    # Set up template for stack with initial and update instance types
+    # Set up template for stack with two different instance types
     stack_name = "{}_stack".format(test_config.resource_name)
     initial_instance_type = "ml.c4.xlarge"
     updated_instance_type = "ml.c4.4xlarge"
@@ -162,7 +162,7 @@ def test_sagemaker_cloudformation_notebook_instance_update():
     )
     initial_instance_type.should.equal(resource_description["InstanceType"])
 
-    # Update stack with new instance type and check attributes
+    # Update stack and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
     outputs = _get_stack_outputs(cf, stack_name)
 
@@ -183,7 +183,7 @@ def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
 
     test_config = NotebookInstanceLifecycleConfigTestConfig()
 
-    # Set up template for stack with initial and update instance types
+    # Set up template for stack with two different OnCreate scripts
     stack_name = "{}_stack".format(test_config.resource_name)
     initial_on_create_script = "echo Hello World"
     updated_on_create_script = "echo Goodbye World"
@@ -207,7 +207,7 @@ def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
         resource_description["OnCreate"][0]["Content"]
     )
 
-    # Update stack with new instance type and check attributes
+    # Update stack and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
     outputs = _get_stack_outputs(cf, stack_name)
 
@@ -231,7 +231,7 @@ def test_sagemaker_cloudformation_model_update():
 
     test_config = ModelTestConfig()
 
-    # Set up template for stack with initial and update instance types
+    # Set up template for stack with two different image versions
     stack_name = "{}_stack".format(test_config.resource_name)
     image = "404615174143.dkr.ecr.us-east-2.amazonaws.com/kmeans:{}"
     initial_image_version = 1
@@ -255,7 +255,7 @@ def test_sagemaker_cloudformation_model_update():
         image.format(initial_image_version)
     )
 
-    # Update stack with new instance type and check attributes
+    # Update stack and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
     outputs = _get_stack_outputs(cf, stack_name)
 
@@ -281,7 +281,7 @@ def test_sagemaker_cloudformation_endpoint_config_update():
     # Utilize test configuration to set-up any mock SageMaker resources
     test_config.run_setup_procedure(sm)
 
-    # Set up template for stack with initial and update instance types
+    # Set up template for stack with two different production variant counts
     stack_name = "{}_stack".format(test_config.resource_name)
     initial_num_production_variants = 1
     updated_num_production_variants = 2
@@ -304,7 +304,7 @@ def test_sagemaker_cloudformation_endpoint_config_update():
         initial_num_production_variants
     )
 
-    # Update stack with new instance type and check attributes
+    # Update stack and check attributes
     cf.update_stack(StackName=stack_name, TemplateBody=updated_template_json)
     outputs = _get_stack_outputs(cf, stack_name)
 
