@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import itertools
 from collections import defaultdict
 
 import string
@@ -215,9 +216,14 @@ class RecordSet(CloudFormationModel):
 
 
 def reverse_domain_name(domain_name):
-    if domain_name.endswith("."):  # normalize without trailing dot
-        domain_name = domain_name[:-1]
-    return ".".join(reversed(domain_name.split(".")))
+    labels = domain_name.split(".")
+    if domain_name.endswith("."):
+        labels.pop()
+        labels = list(reversed(labels))
+        labels.append("")
+    else:
+        labels = reversed(labels)
+    return ".".join(labels)
 
 
 class FakeZone(CloudFormationModel):
@@ -264,20 +270,20 @@ class FakeZone(CloudFormationModel):
         ]
 
     def get_record_sets(self, start_type, start_name):
-        record_sets = list(self.rrsets)  # Copy the list
+        def predicate(rrset):
+            return (
+                reverse_domain_name(rrset.name) < reverse_domain_name(start_name)
+                or rrset.type_ < start_type
+            )
+
+        record_sets = sorted(
+            self.rrsets,
+            key=lambda rrset: (reverse_domain_name(rrset.name), rrset.type_),
+        )
+
         if start_name:
-            record_sets = [
-                record_set
-                for record_set in record_sets
-                if reverse_domain_name(record_set.name)
-                >= reverse_domain_name(start_name)
-            ]
-        if start_type:
-            record_sets = [
-                record_set
-                for record_set in record_sets
-                if record_set.type_ >= start_type
-            ]
+            start_type = start_type or ""
+            record_sets = itertools.dropwhile(predicate, record_sets)
 
         return record_sets
 
