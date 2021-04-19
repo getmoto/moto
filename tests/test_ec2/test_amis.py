@@ -12,7 +12,7 @@ import sure  # noqa
 from moto import mock_ec2_deprecated, mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID
 from moto.core import ACCOUNT_ID
-from tests import EXAMPLE_AMI_ID
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL, EXAMPLE_AMI_WINDOWS
 from tests.helpers import requires_boto_gte
 
 
@@ -441,6 +441,7 @@ def test_ami_create_from_missing_instance_boto3():
     ex.value.response["Error"]["Code"].should.equal("InvalidInstanceID.NotFound")
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_ami_pulls_attributes_from_instance():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -453,6 +454,19 @@ def test_ami_pulls_attributes_from_instance():
     image.kernel_id.should.equal("test-kernel")
 
 
+@mock_ec2
+def test_ami_pulls_attributes_from_instance_boto3():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+    ec2.modify_instance_attribute(InstanceId=instance["InstanceId"], Kernel={"Value": "test-kernel"})
+
+    image_id = ec2.create_image(InstanceId=instance["InstanceId"], Name="test-ami")["ImageId"]
+    image = boto3.resource("ec2", region_name="us-east-1").Image(image_id)
+    image.kernel_id.should.equal("test-kernel")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_ami_uses_account_id_if_valid_access_key_is_supplied():
     access_key = "AKIAXXXXXXXXXXXXXXXX"
@@ -466,6 +480,23 @@ def test_ami_uses_account_id_if_valid_access_key_is_supplied():
     [(ami.id, ami.owner_id) for ami in images].should.equal([(image_id, ACCOUNT_ID)])
 
 
+@mock_ec2
+def test_ami_uses_account_id_if_valid_access_key_is_supplied_boto3():
+    # The boto-equivalent required an access_key to be passed in, but Moto will always mock this in boto3
+    # So the only thing we're testing here, really.. is whether OwnerId is equal to ACCOUNT_ID?
+    # TODO: Maybe patch account_id with multiple values, and verify it always  matches with OwnerId
+    # TODO: And probably remove the modify_instance_attribute, as it looks like it was a unnecessary copy-paste
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+    ec2.modify_instance_attribute(InstanceId=instance["InstanceId"], Kernel={"Value": "test-kernel"})
+
+    image_id = ec2.create_image(InstanceId=instance["InstanceId"], Name="test-ami")["ImageId"]
+    images = ec2.describe_images(Owners=["self"])["Images"]
+    [(ami["ImageId"], ami["OwnerId"]) for ami in images].should.equal([(image_id, ACCOUNT_ID)])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_ami_filters():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -525,6 +556,60 @@ def test_ami_filters():
     amis_by_nonpublic = conn.get_all_images(filters={"is-public": "false"})
     set([ami.id for ami in amis_by_nonpublic]).should.contain(imageA.id)
     len(amis_by_nonpublic).should.equal(1)
+
+
+@mock_ec2
+def test_ami_filters_boto3():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    reservationA = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instanceA = reservationA["Instances"][0]
+    ec2.modify_instance_attribute(InstanceId=instanceA["InstanceId"], Kernel={"Value": "k-1234abcd"})
+
+    imageA_id = ec2.create_image(InstanceId=instanceA["InstanceId"], Name="test-ami-A")["ImageId"]
+    imageA = boto3.resource("ec2", region_name="us-east-1").Image(imageA_id)
+
+    reservationB = ec2.run_instances(ImageId=EXAMPLE_AMI_PARAVIRTUAL, MinCount=1, MaxCount=1)
+    instanceB = reservationB["Instances"][0]
+    ec2.modify_instance_attribute(InstanceId=instanceB["InstanceId"], Kernel={"Value": "k-abcd1234"})
+    imageB_id = ec2.create_image(InstanceId=instanceB["InstanceId"], Name="test-ami-B")["ImageId"]
+    imageB = boto3.resource("ec2", region_name="us-east-1").Image(imageB_id)
+    imageB.modify_attribute(LaunchPermission={"Add": [{"Group": "all"}]})
+
+    amis_by_architecture = ec2.describe_images(Filters=[{"Name": "architecture", "Values": ["x86_64"]}])["Images"]
+    [ami["ImageId"] for ami in amis_by_architecture].should.contain(imageB_id)
+    amis_by_architecture.should.have.length_of(36)
+
+    amis_by_kernel = ec2.describe_images(Filters=[{"Name": "kernel-id", "Values": ["k-abcd1234"]}])["Images"]
+    [ami["ImageId"] for ami in amis_by_kernel].should.equal([imageB.id])
+
+    amis_by_virtualization = ec2.describe_images(
+        Filters=[{"Name": "virtualization-type", "Values": ["paravirtual"]}]
+    )["Images"]
+    [ami["ImageId"] for ami in amis_by_virtualization].should.contain(imageB.id)
+    amis_by_virtualization.should.have.length_of(3)
+
+    amis_by_platform = ec2.describe_images(Filters=[{"Name": "platform", "Values": ["windows"]}])["Images"]
+    [ami["ImageId"] for ami in amis_by_platform].should.contain(imageA_id)
+    amis_by_platform.should.have.length_of(24)
+
+    amis_by_id = ec2.describe_images(Filters=[{"Name": "image-id", "Values": [imageA_id]}])["Images"]
+    [ami["ImageId"] for ami in amis_by_id].should.equal([imageA_id])
+
+    amis_by_state = ec2.describe_images(Filters=[{"Name": "state", "Values": ["available"]}])["Images"]
+    ami_ids_by_state = [ami["ImageId"] for ami in amis_by_state]
+    ami_ids_by_state.should.contain(imageA_id)
+    ami_ids_by_state.should.contain(imageB.id)
+    amis_by_state.should.have.length_of(36)
+
+    amis_by_name = ec2.describe_images(Filters=[{"Name": "name", "Values": [imageA.name]}])["Images"]
+    [ami["ImageId"] for ami in amis_by_name].should.equal([imageA.id])
+
+    amis_by_public = ec2.describe_images(Filters=[{"Name": "is-public", "Values": ["true"]}])["Images"]
+    amis_by_public.should.have.length_of(34)
+
+    amis_by_nonpublic = ec2.describe_images(Filters=[{"Name": "is-public", "Values": ["false"]}])["Images"]
+    [ami["ImageId"] for ami in amis_by_nonpublic].should.contain(imageA.id)
+    amis_by_nonpublic.should.have.length_of(2)
 
 
 @mock_ec2_deprecated
