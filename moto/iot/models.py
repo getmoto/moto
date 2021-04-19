@@ -925,7 +925,7 @@ class IoTBackend(BaseBackend):
 
     def list_principal_things(self, principal_arn):
         thing_names = [
-            k[0] for k, v in self.principal_things.items() if k[0] == principal_arn
+            k[1] for k, v in self.principal_things.items() if k[0] == principal_arn
         ]
         return thing_names
 
