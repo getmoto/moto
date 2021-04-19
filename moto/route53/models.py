@@ -216,14 +216,9 @@ class RecordSet(CloudFormationModel):
 
 
 def reverse_domain_name(domain_name):
-    labels = domain_name.split(".")
-    if domain_name.endswith("."):
-        labels.pop()
-        labels = list(reversed(labels))
-        labels.append("")
-    else:
-        labels = reversed(labels)
-    return ".".join(labels)
+    if domain_name.endswith("."):  # normalize without trailing dot
+        domain_name = domain_name[:-1]
+    return ".".join(reversed(domain_name.split(".")))
 
 
 class FakeZone(CloudFormationModel):
@@ -271,9 +266,10 @@ class FakeZone(CloudFormationModel):
 
     def get_record_sets(self, start_type, start_name):
         def predicate(rrset):
-            return (
-                reverse_domain_name(rrset.name) < reverse_domain_name(start_name)
-                or rrset.type_ < start_type
+            rrset_name_reversed = reverse_domain_name(rrset.name)
+            start_name_reversed = reverse_domain_name(start_name)
+            return rrset_name_reversed < start_name_reversed or (
+                rrset_name_reversed == start_name_reversed and rrset.type_ < start_type
             )
 
         record_sets = sorted(

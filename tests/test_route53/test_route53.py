@@ -63,7 +63,7 @@ def test_rrset():
     rrsets.should.have.length_of(1)
     rrsets[0].resource_records[0].should.equal("1.2.3.4")
 
-    rrsets = conn.get_all_rrsets(zoneid, name="foo.bar.testdns.aws.com", type="CNAME")
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.bar.testdns.aws.com.", type="CNAME")
     rrsets.should.have.length_of(0)
 
     changes = ResourceRecordSets(conn, zoneid)
@@ -143,9 +143,10 @@ def test_rrset():
     rrsets[0].resource_records[0].should.equal("5.6.7.8")
     rrsets[1].resource_records[0].should.equal("bar")
 
-    rrsets = conn.get_all_rrsets(zoneid, name="bar.testdns.aws.com", type="TXT")
-    rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal("bar")
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.bar.testdns.aws.com", type="TXT")
+    rrsets.should.have.length_of(2)
+    rrsets[0].resource_records[0].should.equal("5.6.7.8")
+    rrsets[1].resource_records[0].should.equal("bar")
 
     rrsets = conn.get_all_rrsets(zoneid, name="foo.foo.testdns.aws.com", type="A")
     rrsets.should.have.length_of(0)
