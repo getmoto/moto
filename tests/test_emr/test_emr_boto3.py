@@ -802,18 +802,6 @@ def test_instances():
             )
         )
 
-    test_group = jf["Instances"]["InstanceGroups"][0]
-    instances = client.list_instances(
-        ClusterId=cluster_id, InstanceGroupId=test_group["InstanceGroupId"]
-    )["Instances"]
-    len(instances).should.equal(
-        sum(
-            g["InstanceCount"]
-            for g in input_instance_groups
-            if g["InstanceRole"] == test_group["InstanceRole"]
-        )
-    )
-
 
 @mock_emr
 def test_instance_groups():
