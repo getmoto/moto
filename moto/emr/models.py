@@ -16,7 +16,9 @@ from .utils import (
     CamelToUnderscoresWalker,
     EmrSecurityGroupManager,
 )
+
 EXAMPLE_AMI_ID = "ami-12c6146b"
+
 
 class FakeApplication(BaseModel):
     def __init__(self, name, version, args=None, additional_info=None):
