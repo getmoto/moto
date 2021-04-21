@@ -1157,11 +1157,11 @@ LIST_INSTANCES_TEMPLATE = """<ListInstancesResponse xmlns="http://elasticmapredu
             <ReadyDateTime>{{ instance.ready_datetime.isoformat() }}</ReadyDateTime>
             {% endif %}
           </Timeline>
-        </Status> 
+        </Status>
       </member>
-    {% endfor %} 
-    </Instances> 
- </ListInstancesResult> 
+    {% endfor %}
+    </Instances>
+ </ListInstancesResult>
  <ResponseMetadata>
     <RequestId>4248c46c-71c0-4772-b155-0e992dc30027</RequestId>
   </ResponseMetadata>
