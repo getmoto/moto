@@ -4075,7 +4075,8 @@ def test_create_user_with_tags():
     assert resp["User"]["Tags"] == tags
     resp = conn.list_user_tags(UserName=user_name)
     assert resp["Tags"] == tags
-
+    resp = conn.get_user(UserName=user_name)
+    assert resp["User"]["Tags"] == tags
     resp = conn.create_user(UserName="test-create-user-no-tags")
     assert "Tags" not in resp["User"]
 

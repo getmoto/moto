@@ -28,7 +28,10 @@ class TestDBInstanceFilters(object):
 
     @classmethod
     def teardown_class(cls):
-        cls.mock_rds.stop()
+        try:
+            cls.mock_rds.stop()
+        except RuntimeError:
+            pass
 
     def test_invalid_filter_name_raises_error(self):
         with pytest.raises(ClientError) as ex:
@@ -203,7 +206,10 @@ class TestDBSnapshotFilters(object):
 
     @classmethod
     def teardown_class(cls):
-        cls.mock_rds.stop()
+        try:
+            cls.mock_rds.stop()
+        except RuntimeError:
+            pass
 
     def test_invalid_filter_name_raises_error(self):
         with pytest.raises(ClientError) as ex:

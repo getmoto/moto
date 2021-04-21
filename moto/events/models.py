@@ -7,6 +7,7 @@ import warnings
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum, unique
+from operator import lt, le, eq, ge, gt
 
 from boto3 import Session
 from six import string_types
@@ -32,7 +33,7 @@ class Rule(CloudFormationModel):
     def __init__(self, name, region_name, **kwargs):
         self.name = name
         self.region_name = region_name
-        self.event_pattern = kwargs.get("EventPattern")
+        self.event_pattern = EventPattern(kwargs.get("EventPattern"))
         self.schedule_exp = kwargs.get("ScheduleExpression")
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
@@ -94,53 +95,12 @@ class Rule(CloudFormationModel):
             if index is not None:
                 self.targets.pop(index)
 
-    def _does_event_match_filter(self, event, filter):
-        if not filter:
-            return True
-        items_and_filters = [(event.get(k), v) for k, v in filter.items()]
-        nested_filter_matches = [
-            self._does_event_match_filter(item, nested_filter)
-            for item, nested_filter in items_and_filters
-            if isinstance(nested_filter, dict)
-        ]
-        filter_list_matches = [
-            self._does_item_match_filters(item, filter_list)
-            for item, filter_list in items_and_filters
-            if isinstance(filter_list, list)
-        ]
-        return all(nested_filter_matches + filter_list_matches)
-
-    def _does_item_match_filters(self, item, filters):
-        allowed_values = [value for value in filters if isinstance(value, string_types)]
-        allowed_values_match = item in allowed_values if allowed_values else True
-        print(item, filters, allowed_values)
-        named_filter_matches = [
-            self._does_item_match_named_filter(item, filter)
-            for filter in filters
-            if isinstance(filter, dict)
-        ]
-        return allowed_values_match and all(named_filter_matches)
-
-    def _does_item_match_named_filter(self, item, filter):
-        filter_name, filter_value = list(filter.items())[0]
-        if filter_name == "exists":
-            item_exists = item is not None
-            should_exist = filter_value
-            return item_exists if should_exist else not item_exists
-        else:
-            warnings.warn(
-                "'{}' filter logic unimplemented. defaulting to True".format(
-                    filter_name
-                )
-            )
-            return False
-
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]
         if event_bus_name != self.event_bus_name:
             return
 
-        if not self._validate_event(event):
+        if not self.event_pattern.matches_event(event):
             return
 
         # supported targets
@@ -162,23 +122,6 @@ class Rule(CloudFormationModel):
                 self._send_to_sqs_queue(arn.resource_id, event, group_id)
             else:
                 raise NotImplementedError("Expr not defined for {0}".format(type(self)))
-
-    def _validate_event(self, event):
-        for field, pattern in json.loads(self.event_pattern).items():
-            if not isinstance(pattern, list):
-                # to keep it simple at the beginning only pattern with 1 level of depth are validated
-                continue
-
-            if isinstance(pattern[0], dict):
-                if "exists" in pattern[0]:
-                    if pattern[0]["exists"] and field not in event:
-                        return False
-                    elif not pattern[0]["exists"] and field in event:
-                        return False
-            elif event.get(field) not in pattern:
-                return False
-
-        return True
 
     def _parse_arn(self, arn):
         # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -230,12 +173,8 @@ class Rule(CloudFormationModel):
     def _send_to_events_archive(self, resource_id, event):
         archive_name, archive_uuid = resource_id.split(":")
         archive = events_backends[self.region_name].archives.get(archive_name)
-        pattern = archive.event_pattern
         if archive.uuid == archive_uuid:
-            event = json.loads(json.dumps(event))
-            pattern = json.loads(pattern) if pattern else None
-            if self._does_event_match_filter(event, pattern):
-                archive.events.append(event)
+            archive.events.append(event)
 
     def _send_to_sqs_queue(self, resource_id, event, group_id=None):
         from moto.sqs import sqs_backends
@@ -415,7 +354,7 @@ class Archive(CloudFormationModel):
         self.name = name
         self.source_arn = source_arn
         self.description = description
-        self.event_pattern = event_pattern
+        self.event_pattern = EventPattern(event_pattern)
         self.retention = retention if retention else 0
 
         self.creation_time = unix_time(datetime.utcnow())
@@ -446,7 +385,7 @@ class Archive(CloudFormationModel):
         result = {
             "ArchiveArn": self.arn,
             "Description": self.description,
-            "EventPattern": self.event_pattern,
+            "EventPattern": str(self.event_pattern),
         }
         result.update(self.describe_short())
 
@@ -456,7 +395,7 @@ class Archive(CloudFormationModel):
         if description:
             self.description = description
         if event_pattern:
-            self.event_pattern = event_pattern
+            self.event_pattern = EventPattern(event_pattern)
         if retention:
             self.retention = retention
 
@@ -601,6 +540,95 @@ class Replay(BaseModel):
 
         self.state = ReplayState.COMPLETED
         self.end_time = unix_time(datetime.utcnow())
+
+
+class EventPattern:
+    def __init__(self, filter):
+        self._filter = self._load_event_pattern(filter)
+        if not self._validate_event_pattern(self._filter):
+            raise InvalidEventPatternException
+
+    def __str__(self):
+        return json.dumps(self._filter)
+
+    def _load_event_pattern(self, pattern):
+        try:
+            return json.loads(pattern) if pattern else None
+        except ValueError:
+            raise InvalidEventPatternException
+
+    def _validate_event_pattern(self, pattern):
+        # values in the event pattern have to be either a dict or an array
+        if pattern is None:
+            return True
+
+        dicts_valid = [
+            self._validate_event_pattern(value)
+            for value in pattern.values()
+            if isinstance(value, dict)
+        ]
+        non_dicts_valid = [
+            isinstance(value, list)
+            for value in pattern.values()
+            if not isinstance(value, dict)
+        ]
+        return all(dicts_valid) and all(non_dicts_valid)
+
+    def matches_event(self, event):
+        if not self._filter:
+            return True
+        event = json.loads(json.dumps(event))
+        return self._does_event_match(event, self._filter)
+
+    def _does_event_match(self, event, filter):
+        items_and_filters = [(event.get(k), v) for k, v in filter.items()]
+        nested_filter_matches = [
+            self._does_event_match(item, nested_filter)
+            for item, nested_filter in items_and_filters
+            if isinstance(nested_filter, dict)
+        ]
+        filter_list_matches = [
+            self._does_item_match_filters(item, filter_list)
+            for item, filter_list in items_and_filters
+            if isinstance(filter_list, list)
+        ]
+        return all(nested_filter_matches + filter_list_matches)
+
+    def _does_item_match_filters(self, item, filters):
+        allowed_values = [value for value in filters if isinstance(value, string_types)]
+        allowed_values_match = item in allowed_values if allowed_values else True
+        named_filter_matches = [
+            self._does_item_match_named_filter(item, filter)
+            for filter in filters
+            if isinstance(filter, dict)
+        ]
+        return allowed_values_match and all(named_filter_matches)
+
+    def _does_item_match_named_filter(self, item, filter):
+        filter_name, filter_value = list(filter.items())[0]
+        if filter_name == "exists":
+            is_leaf_node = not isinstance(item, dict)
+            leaf_exists = is_leaf_node and item is not None
+            should_exist = filter_value
+            return leaf_exists if should_exist else not leaf_exists
+        if filter_name == "prefix":
+            prefix = filter_value
+            return item.startswith(prefix)
+        if filter_name == "numeric":
+            as_function = {"<": lt, "<=": le, "=": eq, ">=": ge, ">": gt}
+            operators_and_values = zip(filter_value[::2], filter_value[1::2])
+            numeric_matches = [
+                as_function[operator](item, value)
+                for operator, value in operators_and_values
+            ]
+            return all(numeric_matches)
+        else:
+            warnings.warn(
+                "'{}' filter logic unimplemented. defaulting to True".format(
+                    filter_name
+                )
+            )
+            return True
 
 
 class EventsBackend(BaseBackend):
@@ -1032,9 +1060,6 @@ class EventsBackend(BaseBackend):
                 "Member must have length less than or equal to 48".format(name)
             )
 
-        if event_pattern:
-            self._validate_event_pattern(event_pattern)
-
         event_bus = self._get_event_bus(source_arn)
 
         if name in self.archives:
@@ -1084,26 +1109,6 @@ class EventsBackend(BaseBackend):
 
         return archive
 
-    def _validate_event_pattern(self, pattern):
-        try:
-            json_pattern = json.loads(pattern)
-        except ValueError:  # json.JSONDecodeError exists since Python 3.5
-            raise InvalidEventPatternException
-
-        if not self._is_event_value_an_array(json_pattern):
-            raise InvalidEventPatternException
-
-    def _is_event_value_an_array(self, pattern):
-        # the values of a key in the event pattern have to be either a dict or an array
-        for value in pattern.values():
-            if isinstance(value, dict):
-                if not self._is_event_value_an_array(value):
-                    return False
-            elif not isinstance(value, list):
-                return False
-
-        return True
-
     def describe_archive(self, name):
         archive = self.archives.get(name)
 
@@ -1147,9 +1152,6 @@ class EventsBackend(BaseBackend):
 
         if not archive:
             raise ResourceNotFoundException("Archive {} does not exist.".format(name))
-
-        if event_pattern:
-            self._validate_event_pattern(event_pattern)
 
         archive.update(description, event_pattern, retention)
 
