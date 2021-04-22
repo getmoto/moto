@@ -260,7 +260,7 @@ class FakeCluster(BaseModel):
         self.kerberos_attributes = kerberos_attributes
 
     @property
-    def cluster_arn(self):
+    def arn(self):
         return "arn:aws:elasticmapreduce:{0}:1234567890:cluster/{1}".format(
             self.emr_backend.region_name, self.id
         )
