@@ -923,6 +923,7 @@ LIST_CLUSTERS_TEMPLATE = """<ListClustersResponse xmlns="http://elasticmapreduce
             {% endif %}
           </Timeline>
         </Status>
+        <ClusterArn>{{ cluster.cluster_arn }}</ClusterArn>
       </member>
       {% endfor %}
     </Clusters>
