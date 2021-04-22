@@ -511,13 +511,14 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("PutAutoScalingPolicy")
     def put_auto_scaling_policy(self):
         cluster_id = self._get_param("ClusterId")
+        cluster = self.backend.get_cluster(cluster_id)
         instance_group_id = self._get_param("InstanceGroupId")
         auto_scaling_policy = self._get_param("AutoScalingPolicy")
         instance_group = self.backend.put_auto_scaling_policy(
             instance_group_id, auto_scaling_policy
         )
         template = self.response_template(PUT_AUTO_SCALING_POLICY)
-        return template.render(cluster_id=cluster_id, instance_group=instance_group)
+        return template.render(cluster_id=cluster_id, cluster=cluster, instance_group=instance_group)
 
     @generate_boto3_response("RemoveAutoScalingPolicy")
     def remove_auto_scaling_policy(self):
@@ -1313,6 +1314,7 @@ PUT_AUTO_SCALING_POLICY = """<PutAutoScalingPolicyResponse xmlns="http://elastic
         {% endif %}
     </AutoScalingPolicy>
     {% endif %}
+    <ClusterArn>{{ cluster.cluster_arn }}</ClusterArn>
   </PutAutoScalingPolicyResult>
   <ResponseMetadata>
     <RequestId>d47379d9-b505-49af-9335-a68950d82535</RequestId>

@@ -570,6 +570,9 @@ def test_put_remove_auto_scaling_policy():
     )
     del resp["AutoScalingPolicy"]["Status"]
     resp["AutoScalingPolicy"].should.equal(auto_scaling_policy_with_cluster_id)
+    resp["ClusterArn"].should.equal(
+        "arn:aws:elasticmapreduce:us-east-1:1234567890:cluster/" + cluster_id
+    )
 
     core_instance_group = [
         ig
