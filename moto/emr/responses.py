@@ -1185,6 +1185,7 @@ REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticmapreduce.ama
 RUN_JOB_FLOW_TEMPLATE = """<RunJobFlowResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <RunJobFlowResult>
     <JobFlowId>{{ cluster.id }}</JobFlowId>
+    <ClusterArn>{{ cluster.cluster_arn }}</ClusterArn>
   </RunJobFlowResult>
   <ResponseMetadata>
     <RequestId>8296d8b8-ed85-11dd-9877-6fad448a8419</RequestId>

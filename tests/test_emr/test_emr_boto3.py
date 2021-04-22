@@ -389,10 +389,14 @@ def test_list_clusters():
 def test_run_job_flow():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
-    cluster_id = client.run_job_flow(**args)["JobFlowId"]
-    resp = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
+    resp = client.run_job_flow(**args)
+    resp["ClusterArn"].startswith(
+        "arn:aws:elasticmapreduce:us-east-1:1234567890:cluster/"
+    )
+    job_flow_id = resp["JobFlowId"]
+    resp = client.describe_job_flows(JobFlowIds=[job_flow_id])["JobFlows"][0]
     resp["ExecutionStatusDetail"]["State"].should.equal("WAITING")
-    resp["JobFlowId"].should.equal(cluster_id)
+    resp["JobFlowId"].should.equal(job_flow_id)
     resp["Name"].should.equal(args["Name"])
     resp["Instances"]["MasterInstanceType"].should.equal(
         args["Instances"]["MasterInstanceType"]
