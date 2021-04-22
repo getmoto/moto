@@ -1125,36 +1125,36 @@ LIST_INSTANCES_TEMPLATE = """<ListInstancesResponse xmlns="http://elasticmapredu
       <member>
         <Id>{{ instance.id }}</Id>
         <Ec2InstanceId>{{ instance.ec2_instance_id }}</Ec2InstanceId>
-        <PublicDnsName>{{ instance.public_dns_name }}</PublicDnsName>
-        <PublicIpAddress>{{ instance.public_ip_address }}</PublicIpAddress>
-        <PrivateDnsName>{{ instance.private_dns_name }}</PrivateDnsName>
-        <PrivateIpAddress>{{ instance.private_ip_address }}</PrivateIpAddress>
-        <InstanceGroupId>{{ instance.instance_group_id }}</InstanceGroupId>
+        <PublicDnsName>{{ instance.details.public_dns }}</PublicDnsName>
+        <PublicIpAddress>{{ instance.details.public_ip }}</PublicIpAddress>
+        <PrivateDnsName>{{ instance.details.private_dns }}</PrivateDnsName>
+        <PrivateIpAddress>{{ instance.details.private_ip }}</PrivateIpAddress>
+        <InstanceGroupId>{{ instance.instance_group.id }}</InstanceGroupId>
         <InstanceFleetId>{{ instance.instance_fleet_id }}</InstanceFleetId>
-        <Market>{{ instance.market }}</Market>
-        <InstanceType>{{ instance.instance_type }}</InstanceType>
+        <Market>{{ instance.instance_group.market }}</Market>
+        <InstanceType>{{ instance.details.instance_type }}</InstanceType>
          <EbsVolumes>
-              {% for volume in instance.ebs_volumes %}
+              {% for volume in instance.details.block_device_mapping %}
           <member>
-              <Device>{{ volume.device }}</VolumeType>
-              <VolumeId>{{ volume.volume_id }}</SizeInGB>
+              <Device>{{ volume }}</Device>
+              <VolumeId>{{ instance.details.block_device_mapping[volume].volume_id }}</VolumeId>
           </member>
               {% endfor %}
         </EbsVolumes>
        <Status>
-          <State>{{ instance.state }}</State>
+          <State>{{ instance.instance_group.state }}</State>
           <StateChangeReason>
             {% if instance.state_change_reason is not none %}
             <Message>{{ instance.state_change_reason }}</Message>
             {% endif %}
           </StateChangeReason>
           <Timeline>
-            <CreationDateTime>{{ instance.creation_datetime.isoformat() }}</CreationDateTime>
-            {% if instance.end_datetime is not none %}
-            <EndDateTime>{{ instance.end_datetime.isoformat() }}</EndDateTime>
+            <CreationDateTime>{{ instance.instance_group.creation_datetime.isoformat() }}</CreationDateTime>
+            {% if instance.instance_group.end_datetime is not none %}
+            <EndDateTime>{{ instance.instance_group.end_datetime.isoformat() }}</EndDateTime>
             {% endif %}
-            {% if instance.ready_datetime is not none %}
-            <ReadyDateTime>{{ instance.ready_datetime.isoformat() }}</ReadyDateTime>
+            {% if instance.instance_group.ready_datetime is not none %}
+            <ReadyDateTime>{{ instance.instance_group.ready_datetime.isoformat() }}</ReadyDateTime>
             {% endif %}
           </Timeline>
         </Status>
