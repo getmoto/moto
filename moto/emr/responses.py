@@ -673,6 +673,7 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       <TerminationProtected>{{ cluster.termination_protected|lower }}</TerminationProtected>
       <VisibleToAllUsers>{{ cluster.visible_to_all_users|lower }}</VisibleToAllUsers>
       <StepConcurrencyLevel>{{ cluster.step_concurrency_level }}</StepConcurrencyLevel>
+      <ClusterArn>{{ cluster.cluster_arn }}</ClusterArn>
     </Cluster>
   </DescribeClusterResult>
   <ResponseMetadata>

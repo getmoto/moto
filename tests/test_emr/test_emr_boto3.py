@@ -178,6 +178,9 @@ def test_describe_cluster():
 
     cl["TerminationProtected"].should.equal(False)
     cl["VisibleToAllUsers"].should.equal(True)
+    cl["ClusterArn"].should.equal(
+        "arn:aws:elasticmapreduce:us-east-1:1234567890:cluster/" + cluster_id
+    )
 
 
 @mock_emr
