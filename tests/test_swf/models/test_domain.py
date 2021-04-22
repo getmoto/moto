@@ -1,6 +1,7 @@
 from collections import namedtuple
 import sure  # noqa
 
+from moto.core import ACCOUNT_ID
 from moto.swf.exceptions import SWFUnknownResourceFault
 from moto.swf.models import Domain
 
@@ -12,7 +13,11 @@ WorkflowExecution = namedtuple(
 
 def test_domain_short_dict_representation():
     domain = Domain("foo", "52")
-    domain.to_short_dict().should.equal({"name": "foo", "status": "REGISTERED"})
+    domain.to_short_dict().should.equal({
+        "name": "foo", 
+        "status": "REGISTERED",
+        "arn": "arn:aws:swf:unknown:{0}:/domain/foo".format(ACCOUNT_ID),
+    })
 
     domain.description = "foo bar"
     domain.to_short_dict()["description"].should.equal("foo bar")

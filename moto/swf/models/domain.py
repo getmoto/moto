@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from collections import defaultdict
 
-from moto.core import BaseModel
+from moto.core import ACCOUNT_ID, BaseModel
 from ..exceptions import (
     SWFUnknownResourceFault,
     SWFWorkflowExecutionAlreadyStartedFault,
@@ -9,10 +9,11 @@ from ..exceptions import (
 
 
 class Domain(BaseModel):
-    def __init__(self, name, retention, description=None):
+    def __init__(self, name, retention, description=None, swf_backend=None):
         self.name = name
         self.retention = retention
         self.description = description
+        self.swf_backend = swf_backend
         self.status = "REGISTERED"
         self.types = {"activity": defaultdict(dict), "workflow": defaultdict(dict)}
         # Workflow executions have an id, which unicity is guaranteed
@@ -31,6 +32,10 @@ class Domain(BaseModel):
         hsh = {"name": self.name, "status": self.status}
         if self.description:
             hsh["description"] = self.description
+        region = self.swf_backend.region_name if self.swf_backend else "unknown"
+        hsh["arn"] = "arn:aws:swf:{0}:{1}:/domain/{2}".format(
+            region, ACCOUNT_ID, self.name
+        )
         return hsh
 
     def to_full_dict(self):
