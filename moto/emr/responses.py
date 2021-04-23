@@ -185,8 +185,20 @@ class ElasticMapReduceResponse(BaseResponse):
         template = self.response_template(LIST_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups, marker=marker)
 
+    @generate_boto3_response("ListInstances")
     def list_instances(self):
-        raise NotImplementedError
+        cluster_id = self._get_param("ClusterId")
+        marker = self._get_param("Marker")
+        instance_group_id = self._get_param("InstanceGroupId")
+        instance_group_types = self._get_param("InstanceGroupTypes")
+        instances, marker = self.backend.list_instances(
+            cluster_id,
+            marker=marker,
+            instance_group_id=instance_group_id,
+            instance_group_types=instance_group_types,
+        )
+        template = self.response_template(LIST_INSTANCES_TEMPLATE)
+        return template.render(instances=instances, marker=marker)
 
     @generate_boto3_response("ListSteps")
     def list_steps(self):
@@ -395,7 +407,13 @@ class ElasticMapReduceResponse(BaseResponse):
                 self._parse_ebs_configuration(ig)
                 # Adding support for auto_scaling_policy
                 Unflattener.unflatten_complex_params(ig, "auto_scaling_policy")
-            self.backend.add_instance_groups(cluster.id, instance_groups)
+            instance_group_result = self.backend.add_instance_groups(
+                cluster.id, instance_groups
+            )
+            for i in range(0, len(instance_group_result)):
+                self.backend.add_instances(
+                    cluster.id, instance_groups[i], instance_group_result[i]
+                )
 
         tags = self._get_list_prefix("Tags.member")
         if tags:
@@ -1099,6 +1117,55 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
     <RequestId>8296d8b8-ed85-11dd-9877-6fad448a8419</RequestId>
   </ResponseMetadata>
 </ListInstanceGroupsResponse>"""
+
+LIST_INSTANCES_TEMPLATE = """<ListInstancesResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ListInstancesResult>
+    <Instances>
+     {% for instance in instances %}
+      <member>
+        <Id>{{ instance.id }}</Id>
+        <Ec2InstanceId>{{ instance.ec2_instance_id }}</Ec2InstanceId>
+        <PublicDnsName>{{ instance.details.public_dns }}</PublicDnsName>
+        <PublicIpAddress>{{ instance.details.public_ip }}</PublicIpAddress>
+        <PrivateDnsName>{{ instance.details.private_dns }}</PrivateDnsName>
+        <PrivateIpAddress>{{ instance.details.private_ip }}</PrivateIpAddress>
+        <InstanceGroupId>{{ instance.instance_group.id }}</InstanceGroupId>
+        <InstanceFleetId>{{ instance.instance_fleet_id }}</InstanceFleetId>
+        <Market>{{ instance.instance_group.market }}</Market>
+        <InstanceType>{{ instance.details.instance_type }}</InstanceType>
+         <EbsVolumes>
+              {% for volume in instance.details.block_device_mapping %}
+          <member>
+              <Device>{{ volume }}</Device>
+              <VolumeId>{{ instance.details.block_device_mapping[volume].volume_id }}</VolumeId>
+          </member>
+              {% endfor %}
+        </EbsVolumes>
+       <Status>
+          <State>{{ instance.instance_group.state }}</State>
+          <StateChangeReason>
+            {% if instance.state_change_reason is not none %}
+            <Message>{{ instance.state_change_reason }}</Message>
+            {% endif %}
+          </StateChangeReason>
+          <Timeline>
+            <CreationDateTime>{{ instance.instance_group.creation_datetime.isoformat() }}</CreationDateTime>
+            {% if instance.instance_group.end_datetime is not none %}
+            <EndDateTime>{{ instance.instance_group.end_datetime.isoformat() }}</EndDateTime>
+            {% endif %}
+            {% if instance.instance_group.ready_datetime is not none %}
+            <ReadyDateTime>{{ instance.instance_group.ready_datetime.isoformat() }}</ReadyDateTime>
+            {% endif %}
+          </Timeline>
+        </Status>
+      </member>
+    {% endfor %}
+    </Instances>
+ </ListInstancesResult>
+ <ResponseMetadata>
+    <RequestId>4248c46c-71c0-4772-b155-0e992dc30027</RequestId>
+  </ResponseMetadata>
+</ListInstancesResponse>"""
 
 LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <ListStepsResult>

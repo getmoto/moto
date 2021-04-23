@@ -17,6 +17,8 @@ from .utils import (
     EmrSecurityGroupManager,
 )
 
+EXAMPLE_AMI_ID = "ami-12c6146b"
+
 
 class FakeApplication(BaseModel):
     def __init__(self, name, version, args=None, additional_info=None):
@@ -31,6 +33,16 @@ class FakeBootstrapAction(BaseModel):
         self.args = args or []
         self.name = name
         self.script_path = script_path
+
+
+class FakeInstance(BaseModel):
+    def __init__(
+        self, ec2_instance_id, instance_group, instance_fleet_id=None, id=None,
+    ):
+        self.id = id or random_instance_group_id()
+        self.ec2_instance_id = ec2_instance_id
+        self.instance_group = instance_group
+        self.instance_fleet_id = instance_fleet_id
 
 
 class FakeInstanceGroup(BaseModel):
@@ -177,6 +189,7 @@ class FakeCluster(BaseModel):
         self.set_visibility(visible_to_all_users)
 
         self.instance_group_ids = []
+        self.instances = []
         self.master_instance_group_id = None
         self.core_instance_group_id = None
         if (
@@ -319,6 +332,9 @@ class FakeCluster(BaseModel):
             self.core_instance_group_id = instance_group.id
         self.instance_group_ids.append(instance_group.id)
 
+    def add_instance(self, instance):
+        self.instances.append(instance)
+
     def add_steps(self, steps):
         added_steps = []
         for step in steps:
@@ -389,6 +405,17 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.add_instance_group(group)
             result_groups.append(group)
         return result_groups
+
+    def add_instances(self, cluster_id, instances, instance_group):
+        cluster = self.clusters[cluster_id]
+        response = self.ec2_backend.add_instances(
+            EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
+        )
+        for instance in response.instances:
+            instance = FakeInstance(
+                ec2_instance_id=instance.id, instance_group=instance_group,
+            )
+            cluster.add_instance(instance)
 
     def add_job_flow_steps(self, job_flow_id, steps):
         cluster = self.clusters[job_flow_id]
@@ -483,6 +510,25 @@ class ElasticMapReduceBackend(BaseBackend):
         marker = (
             None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
         )
+        return groups[start_idx : start_idx + max_items], marker
+
+    def list_instances(
+        self, cluster_id, marker=None, instance_group_id=None, instance_group_types=None
+    ):
+        max_items = 50
+        groups = sorted(self.clusters[cluster_id].instances, key=lambda x: x.id)
+        start_idx = 0 if marker is None else int(marker)
+        marker = (
+            None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
+        )
+        if instance_group_id:
+            groups = [g for g in groups if g.instance_group.id == instance_group_id]
+        if instance_group_types:
+            groups = [
+                g for g in groups if g.instance_group.role in instance_group_types
+            ]
+        for g in groups:
+            g.details = self.ec2_backend.get_instance(g.ec2_instance_id)
         return groups[start_idx : start_idx + max_items], marker
 
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
