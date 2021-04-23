@@ -113,7 +113,10 @@ class SWFBackend(BaseBackend):
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
         domain = Domain(
-            name, workflow_execution_retention_period_in_days, description, self
+            name,
+            workflow_execution_retention_period_in_days,
+            self.region_name,
+            description,
         )
         self.domains.append(domain)
 
