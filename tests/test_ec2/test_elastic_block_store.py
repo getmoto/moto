@@ -417,7 +417,7 @@ def test_volume_filters_boto3():
         volumes = client.describe_volumes(Filters=[{"Name": name, "Values": [value]}])[
             "Volumes"
         ]
-        [vol["VolumeId"] for vol in volumes].should.equal(expected)
+        set([vol["VolumeId"] for vol in volumes]).should.equal(set(expected))
 
     # We should probably make this less strict, i.e. figure out which formats AWS expects/approves of
     attach_time = block_mapping["Ebs"]["AttachTime"].strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -830,7 +830,7 @@ def test_snapshot_filters_boto3():
         snapshots = client.describe_snapshots(
             Filters=[{"Name": name, "Values": [value]}]
         )["Snapshots"]
-        [s["SnapshotId"] for s in snapshots].should.equal(expected)
+        set([s["SnapshotId"] for s in snapshots]).should.equal(set(expected))
 
     verify_filter("description", "testsnapshot1", expected=snapshot1.id)
     verify_filter("snapshot-id", snapshot1.id, expected=snapshot1.id)
