@@ -593,10 +593,12 @@ def test_get_instances_filtering_by_state_boto3():
     reservations = client.describe_instances()["Reservations"]
     reservations[0]["Instances"].should.have.length_of(3)
 
-    filters = [{"Name": "not-implemented-filter", "Values": ["foobar"]}]
-    client.describe_instances.when.called_with(Filters=filters).should.throw(
-        NotImplementedError
-    )
+    if not settings.TEST_SERVER_MODE:
+        # ServerMode will just throw a generic 500
+        filters = [{"Name": "not-implemented-filter", "Values": ["foobar"]}]
+        client.describe_instances.when.called_with(Filters=filters).should.throw(
+            NotImplementedError
+        )
 
 
 # Has boto3 equivalent
