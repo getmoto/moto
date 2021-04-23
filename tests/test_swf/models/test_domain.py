@@ -13,11 +13,13 @@ WorkflowExecution = namedtuple(
 
 def test_domain_short_dict_representation():
     domain = Domain("foo", "52")
-    domain.to_short_dict().should.equal({
-        "name": "foo", 
-        "status": "REGISTERED",
-        "arn": "arn:aws:swf:unknown:{0}:/domain/foo".format(ACCOUNT_ID),
-    })
+    domain.to_short_dict().should.equal(
+        {
+            "name": "foo",
+            "status": "REGISTERED",
+            "arn": "arn:aws:swf:unknown:{0}:/domain/foo".format(ACCOUNT_ID),
+        }
+    )
 
     domain.description = "foo bar"
     domain.to_short_dict()["description"].should.equal("foo bar")

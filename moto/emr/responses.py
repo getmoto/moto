@@ -518,7 +518,9 @@ class ElasticMapReduceResponse(BaseResponse):
             instance_group_id, auto_scaling_policy
         )
         template = self.response_template(PUT_AUTO_SCALING_POLICY)
-        return template.render(cluster_id=cluster_id, cluster=cluster, instance_group=instance_group)
+        return template.render(
+            cluster_id=cluster_id, cluster=cluster, instance_group=instance_group
+        )
 
     @generate_boto3_response("RemoveAutoScalingPolicy")
     def remove_auto_scaling_policy(self):

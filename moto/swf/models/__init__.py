@@ -112,7 +112,9 @@ class SWFBackend(BaseBackend):
     ):
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
-        domain = Domain(name, workflow_execution_retention_period_in_days, description, self)
+        domain = Domain(
+            name, workflow_execution_retention_period_in_days, description, self
+        )
         self.domains.append(domain)
 
     def deprecate_domain(self, name):
