@@ -529,13 +529,16 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("PutAutoScalingPolicy")
     def put_auto_scaling_policy(self):
         cluster_id = self._get_param("ClusterId")
+        cluster = self.backend.get_cluster(cluster_id)
         instance_group_id = self._get_param("InstanceGroupId")
         auto_scaling_policy = self._get_param("AutoScalingPolicy")
         instance_group = self.backend.put_auto_scaling_policy(
             instance_group_id, auto_scaling_policy
         )
         template = self.response_template(PUT_AUTO_SCALING_POLICY)
-        return template.render(cluster_id=cluster_id, instance_group=instance_group)
+        return template.render(
+            cluster_id=cluster_id, cluster=cluster, instance_group=instance_group
+        )
 
     @generate_boto3_response("RemoveAutoScalingPolicy")
     def remove_auto_scaling_policy(self):
@@ -691,6 +694,7 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       <TerminationProtected>{{ cluster.termination_protected|lower }}</TerminationProtected>
       <VisibleToAllUsers>{{ cluster.visible_to_all_users|lower }}</VisibleToAllUsers>
       <StepConcurrencyLevel>{{ cluster.step_concurrency_level }}</StepConcurrencyLevel>
+      <ClusterArn>{{ cluster.arn }}</ClusterArn>
     </Cluster>
   </DescribeClusterResult>
   <ResponseMetadata>
@@ -940,6 +944,7 @@ LIST_CLUSTERS_TEMPLATE = """<ListClustersResponse xmlns="http://elasticmapreduce
             {% endif %}
           </Timeline>
         </Status>
+        <ClusterArn>{{ cluster.arn }}</ClusterArn>
       </member>
       {% endfor %}
     </Clusters>
@@ -1249,6 +1254,7 @@ REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticmapreduce.ama
 RUN_JOB_FLOW_TEMPLATE = """<RunJobFlowResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <RunJobFlowResult>
     <JobFlowId>{{ cluster.id }}</JobFlowId>
+    <ClusterArn>{{ cluster.arn }}</ClusterArn>
   </RunJobFlowResult>
   <ResponseMetadata>
     <RequestId>8296d8b8-ed85-11dd-9877-6fad448a8419</RequestId>
@@ -1378,6 +1384,7 @@ PUT_AUTO_SCALING_POLICY = """<PutAutoScalingPolicyResponse xmlns="http://elastic
         {% endif %}
     </AutoScalingPolicy>
     {% endif %}
+    <ClusterArn>{{ cluster.arn }}</ClusterArn>
   </PutAutoScalingPolicyResult>
   <ResponseMetadata>
     <RequestId>d47379d9-b505-49af-9335-a68950d82535</RequestId>

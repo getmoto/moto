@@ -7,7 +7,7 @@ import warnings
 import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.emr.exceptions import EmrError, InvalidRequestException
 from .utils import (
     random_instance_group_id,
@@ -271,6 +271,12 @@ class FakeCluster(BaseModel):
             security_configuration  # ToDo: Raise if doesn't already exist.
         )
         self.kerberos_attributes = kerberos_attributes
+
+    @property
+    def arn(self):
+        return "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
+            self.emr_backend.region_name, ACCOUNT_ID, self.id
+        )
 
     @property
     def instance_groups(self):
