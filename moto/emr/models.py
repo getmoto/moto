@@ -8,7 +8,6 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core import BaseBackend, BaseModel
 from moto.emr.exceptions import EmrError, InvalidRequestException
 from .utils import (
     random_instance_group_id,
