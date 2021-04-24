@@ -16,6 +16,7 @@ from tests.helpers import requires_boto_gte
 
 import moto.dynamodb2.comparisons
 import moto.dynamodb2.models
+from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 import pytest
 
@@ -23,11 +24,6 @@ try:
     import boto.dynamodb2
 except ImportError:
     print("This boto version is not supported")
-
-# https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-partition-sort-keys
-HASH_KEY_MAX_LENGTH = 2048  # Must be <= this in bytes
-RANGE_KEY_MAX_LENGTH = 1024
-
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated

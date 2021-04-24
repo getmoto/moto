@@ -18,6 +18,8 @@ from moto.dynamodb2.exceptions import (
     InvalidIndexNameError,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
+    HashKeyTooLong,
+    RangeKeyTooLong,
     ConditionalCheckFailed,
     TransactionCanceledException,
     EmptyKeyAttributeException,
@@ -27,7 +29,7 @@ from moto.dynamodb2.models.dynamo_type import DynamoType
 from moto.dynamodb2.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
-
+from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 class DynamoJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -69,6 +71,11 @@ class Item(BaseModel):
         self.hash_key_type = hash_key_type
         self.range_key = range_key
         self.range_key_type = range_key_type
+
+        if hash_key.size() > HASH_KEY_MAX_LENGTH:
+            raise HashKeyTooLong
+        if range_key and (range_key.size() < RANGE_KEY_MAX_LENGTH):
+            raise RangeKeyTooLong
 
         self.attrs = LimitedSizeDict()
         for key, value in attrs.items():
