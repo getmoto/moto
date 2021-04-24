@@ -188,7 +188,6 @@ def test_list_not_found_table_tags():
         assert exception.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_add_empty_string_hash_key_exception():
     name = "TestTable"
@@ -224,7 +223,6 @@ def test_item_add_empty_string_hash_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_add_empty_string_range_key_exception():
     name = "TestTable"
@@ -266,7 +264,6 @@ def test_item_add_empty_string_range_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_add_empty_string_attr_no_exception():
     name = "TestTable"
@@ -295,7 +292,6 @@ def test_item_add_empty_string_attr_no_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_update_item_with_empty_string_hash_key_exception():
     name = "TestTable"
@@ -338,7 +334,6 @@ def test_update_item_with_empty_string_hash_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_update_item_with_empty_string_range_key_exception():
     name = "TestTable"
@@ -390,7 +385,6 @@ def test_update_item_with_empty_string_range_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_update_item_with_empty_string_attr_no_exception():
     name = "TestTable"
@@ -426,7 +420,6 @@ def test_update_item_with_empty_string_attr_no_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_add_long_string_hash_key_exception():
     name = "TestTable"
@@ -472,7 +465,6 @@ def test_item_add_long_string_hash_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_add_long_string_nonascii_hash_key_exception():
     name = "TestTable"
@@ -520,7 +512,6 @@ def test_item_add_long_string_nonascii_hash_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_item_add_long_string_range_key_exception():
     name = "TestTable"
@@ -562,7 +553,6 @@ def test_item_add_long_string_range_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_update_item_with_long_string_hash_key_exception():
     name = "TestTable"
@@ -611,7 +601,6 @@ def test_update_item_with_long_string_hash_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_update_item_with_long_string_range_key_exception():
     name = "TestTable"
