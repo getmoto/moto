@@ -481,7 +481,8 @@ def test_item_add_long_string_nonascii_hash_key_exception():
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    emoji = "😃"  # 1 character, but 4 bytes
+    emoji_b = b"\xf0\x9f\x98\x83"  # smile emoji
+    emoji = emoji_b.decode('utf-8') # 1 character, but 4 bytes
     short_enough = emoji * int(HASH_KEY_MAX_LENGTH / len(emoji.encode()))
     too_long = "x" + short_enough
 
