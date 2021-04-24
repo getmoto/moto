@@ -442,6 +442,14 @@ def test_item_add_long_string_hash_key_exception():
             "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
         },
     )
+    conn.update_item(
+        TableName=name,
+        Key={"forum_name": {"S": "LOLCat Forum"}},
+        UpdateExpression="set forum_name=:NewName",
+        ExpressionAttributeValues={
+            ":NewName": {"S": "x" * HASH_KEY_MAX_LENGTH}
+        },
+    )
 
     with pytest.raises(ClientError) as ex:
         conn.update_item(
@@ -452,7 +460,6 @@ def test_item_add_long_string_hash_key_exception():
                 ":NewName": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)}
             },
         )
-
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # deliberately no space between "of" and "2048"
