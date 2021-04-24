@@ -314,6 +314,12 @@ def test_update_item_with_empty_string_hash_key_exception():
             "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
         },
     )
+    conn.update_item(
+        TableName=name,
+        Key={"forum_name": {"S": "LOLCat Forum"}},
+        UpdateExpression="set forum_name=:NewName",
+        ExpressionAttributeValues={":NewName": {"S": "x"}},
+    )
 
     with pytest.raises(ClientError) as ex:
         conn.update_item(
@@ -435,29 +441,23 @@ def test_item_add_long_string_hash_key_exception():
     conn.put_item(
         TableName=name,
         Item={
-            "forum_name": {"S": "LOLCat Forum"},
+            "forum_name": {"S": "x" * HASH_KEY_MAX_LENGTH},
             "subject": {"S": "Check this out!"},
             "Body": {"S": "http://url_to_lolcat.gif"},
             "SentBy": {"S": "test"},
             "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
         },
     )
-    conn.update_item(
-        TableName=name,
-        Key={"forum_name": {"S": "LOLCat Forum"}},
-        UpdateExpression="set forum_name=:NewName",
-        ExpressionAttributeValues={
-            ":NewName": {"S": "x" * HASH_KEY_MAX_LENGTH}
-        },
-    )
 
     with pytest.raises(ClientError) as ex:
-        conn.update_item(
+        conn.put_item(
             TableName=name,
-            Key={"forum_name": {"S": "LOLCat Forum"}},
-            UpdateExpression="set forum_name=:NewName",
-            ExpressionAttributeValues={
-                ":NewName": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)}
+            Item={
+                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH+1)},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "test"},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
             },
         )
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
@@ -501,11 +501,15 @@ def test_item_add_long_string_nonascii_hash_key_exception():
     )
 
     with pytest.raises(ClientError) as ex:
-        conn.update_item(
+        conn.put_item(
             TableName=name,
-            Key={"forum_name": {"S": "LOLCat Forum"}},
-            UpdateExpression="set forum_name=:NewName",
-            ExpressionAttributeValues={":NewName": {"S": too_long}},
+            Item={
+                "forum_name": {"S": too_long},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "test"},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+            },
         )
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
@@ -514,6 +518,58 @@ def test_item_add_long_string_nonascii_hash_key_exception():
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
     )
+
+@mock_dynamodb2
+def test_item_add_long_string_range_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "someone@somewhere.edu"},
+            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
+        },
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                "forum_name": {"S": "LOLCat Forum"},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "someone@somewhere.edu"},
+                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
+    )
+
 
 
 @mock_dynamodb2
@@ -536,6 +592,17 @@ def test_item_add_long_string_range_key_exception():
             {"AttributeName": "ReceivedTime", "AttributeType": "S"},
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "someone@somewhere.edu"},
+            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
+        },
     )
 
     with pytest.raises(ClientError) as ex:
@@ -573,14 +640,15 @@ def test_update_item_with_long_string_hash_key_exception():
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    conn.put_item(
+    conn.update_item(
         TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
+        Key={
+            "forum_name": {"S": "x" * HASH_KEY_MAX_LENGTH},
             "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+        },
+        UpdateExpression="set body=:New",
+        ExpressionAttributeValues={
+            ":New": {"S": "hello"}
         },
     )
 
@@ -588,12 +656,12 @@ def test_update_item_with_long_string_hash_key_exception():
         conn.update_item(
             TableName=name,
             Key={
-                "forum_name": {"S": "LOLCat Forum"},
+                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)},
                 "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
             },
-            UpdateExpression="set ReceivedTime=:ReceivedTime",
+            UpdateExpression="set body=:New",
             ExpressionAttributeValues={
-                ":ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)}
+                ":New": {"S": "hello"}
             },
         )
 
@@ -603,7 +671,6 @@ def test_update_item_with_long_string_hash_key_exception():
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
     )
-
 
 @mock_dynamodb2
 def test_update_item_with_long_string_range_key_exception():
@@ -616,25 +683,20 @@ def test_update_item_with_long_string_range_key_exception():
     )
     conn.create_table(
         TableName=name,
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
-        ],
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    conn.put_item(
+    conn.update_item(
         TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+        Key={
+            "forum_name": {"S": "Lolcat Forum"},
+            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
+        },
+        UpdateExpression="set body=:New",
+        ExpressionAttributeValues={
+            ":New": {"S": "hello"}
         },
     )
 
@@ -642,21 +704,21 @@ def test_update_item_with_long_string_range_key_exception():
         conn.update_item(
             TableName=name,
             Key={
-                "forum_name": {"S": "LOLCat Forum"},
-                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+                "forum_name": {"S": "Lolcat Forum"},
+                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)}
             },
-            UpdateExpression="set ReceivedTime=:ReceivedTime",
+            UpdateExpression="set body=:New",
             ExpressionAttributeValues={
-                ":ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)}
+                ":New": {"S": "hello"}
             },
         )
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    # deliberately no space between "of" and "2048"
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
-
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2

@@ -72,9 +72,9 @@ class Item(BaseModel):
         self.range_key = range_key
         self.range_key_type = range_key_type
 
-        if hash_key.size() > HASH_KEY_MAX_LENGTH:
+        if hash_key and hash_key.size() > HASH_KEY_MAX_LENGTH:
             raise HashKeyTooLong
-        if range_key and (range_key.size() < RANGE_KEY_MAX_LENGTH):
+        if range_key and (range_key.size() > RANGE_KEY_MAX_LENGTH):
             raise RangeKeyTooLong
 
         self.attrs = LimitedSizeDict()
