@@ -122,12 +122,14 @@ mock_kinesisvideoarchivedmedia = lazy_load(
 mock_medialive = lazy_load(".medialive", "mock_medialive")
 mock_support = lazy_load(".support", "mock_support")
 mock_mediaconnect = lazy_load(".mediaconnect", "mock_mediaconnect")
+mock_mediapackage = lazy_load(".mediapackage", "mock_mediapackage")
+mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.0.1.dev"
+__version__ = "2.0.6.dev"
 
 
 try:

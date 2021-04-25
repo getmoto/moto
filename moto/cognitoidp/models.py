@@ -883,6 +883,8 @@ class CognitoIdpBackend(BaseBackend):
                 user_pool = p
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
+        elif username in user_pool.users:
+            raise UsernameExistsException(username)
 
         user = CognitoIdpUser(
             user_pool_id=user_pool.id,

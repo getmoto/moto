@@ -162,3 +162,10 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId")
         tags = self._get_param("Tags", if_none=[])
         return secretsmanager_backends[self.region].tag_resource(secret_id, tags)
+
+    def untag_resource(self):
+        secret_id = self._get_param("SecretId")
+        tag_keys = self._get_param("TagKeys", if_none=[])
+        return secretsmanager_backends[self.region].untag_resource(
+            secret_id=secret_id, tag_keys=tag_keys
+        )
