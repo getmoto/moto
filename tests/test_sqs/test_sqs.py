@@ -2458,3 +2458,31 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
     msg_queue.send_message(MessageBody="second", MessageGroupId="1")
     messages = msg_queue.receive_messages()
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_message_attributes_in_receive_message():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageSystemAttributes={
+            "AWSTraceHeader": {
+                "StringValue": "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1",
+                "DataType": "String",
+            }
+        },
+    )
+
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
+    )["Messages"]
+
+    assert (
+        messages[0]["Attributes"]["AWSTraceHeader"]
+        == "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1"
+    )
