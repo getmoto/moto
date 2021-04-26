@@ -208,6 +208,7 @@ def test_create_autoscaling_group():
 
 @mock_autoscaling
 @mock_elb
+@mock_ec2
 def test_create_autoscaling_group_boto3():
     regions = [("us-east-1", "c"), ("ap-northeast-1", "a")]
     for region, zone in regions:
@@ -232,9 +233,10 @@ def test_create_autoscaling_group_boto3():
             InstanceType="m1.small",
         )
 
-        subnet_id = list(
-            ec2_backends[region].subnets["{}{}".format(region, zone)].keys()
-        )[0]
+        ec2_client = boto3.client("ec2", region_name=region)
+        subnet_id = ec2_client.describe_subnets(
+            Filters=[{"Name": "availability-zone", "Values": [a_zone]}]
+        )["Subnets"][0]["SubnetId"]
 
         as_client.create_auto_scaling_group(
             AutoScalingGroupName=asg_name,
