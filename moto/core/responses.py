@@ -193,7 +193,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
-    param_list_regex = re.compile(r"(.*)\.(\d+)\.")
+    param_list_regex = re.compile(r"(\.?[^.]*)\.(\d+)\.")
+    param_regex = re.compile(r"(.*)\.(\w+)")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
@@ -467,7 +468,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_helper(self, param_prefix):
+    def _get_multi_param_helper(self, param_prefix, skip_result_conversion=False):
         value_dict = dict()
         tracked_prefixes = set()  # prefixes which have already been processed
 
@@ -498,12 +499,19 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 name = prefix
                 value_dict[name] = value
             else:
-                value_dict[name] = value[0]
+                match = self.param_regex.search(name[len(param_prefix) :])
+                if match:
+                    # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
+                    sub_attr = match.group(2)
+                    value = self._get_param(name)
+                    value_dict[name] = value
+                else:
+                    value_dict[name] = value[0]
 
         if not value_dict:
             return None
 
-        if len(value_dict) > 1:
+        if skip_result_conversion or len(value_dict) > 1:
             # strip off period prefix
             value_dict = {
                 name[len(param_prefix) + 1 :]: value
@@ -514,7 +522,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return value_dict
 
-    def _get_multi_param(self, param_prefix):
+    def _get_multi_param(self, param_prefix, skip_result_conversion=False):
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -526,7 +534,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         values = []
         index = 1
         while True:
-            value_dict = self._get_multi_param_helper(prefix + str(index))
+            value_dict = self._get_multi_param_helper(prefix + str(index),
+                skip_result_conversion=skip_result_conversion)
             if not value_dict and value_dict != "":
                 break
 

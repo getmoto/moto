@@ -1513,6 +1513,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         grants = []
         for header, value in headers.items():
+            header = header.lower()
             if not header.startswith("x-amz-grant-"):
                 continue
 
@@ -1527,7 +1528,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             grantees = []
             for key_and_value in value.split(","):
                 key, value = re.match(
-                    '([^=]+)="([^"]+)"', key_and_value.strip()
+                    '([^=]+)="?([^"]+)"?', key_and_value.strip()
                 ).groups()
                 if key.lower() == "id":
                     grantees.append(FakeGrantee(id=value))
@@ -2260,7 +2261,7 @@ S3_ALL_MULTIPARTS = (
   <KeyMarker></KeyMarker>
   <UploadIdMarker></UploadIdMarker>
   <MaxUploads>1000</MaxUploads>
-  <IsTruncated>False</IsTruncated>
+  <IsTruncated>false</IsTruncated>
   {% for upload in uploads %}
   <Upload>
     <Key>{{ upload.key_name }}</Key>

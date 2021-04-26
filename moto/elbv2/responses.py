@@ -188,6 +188,7 @@ class ELBV2Response(BaseResponse):
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
         matcher = self._get_param("Matcher")
+        target_type = self._get_param("TargetType")
 
         target_group = self.elbv2_backend.create_target_group(
             name,
@@ -202,6 +203,7 @@ class ELBV2Response(BaseResponse):
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
             matcher=matcher,
+            target_type=target_type,
         )
 
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
