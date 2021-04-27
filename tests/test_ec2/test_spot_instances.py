@@ -301,9 +301,9 @@ def test_tag_spot_instance_request_boto3():
     requests.should.have.length_of(1)
     request = requests[0]
 
-    request["Tags"].should.equal(
-        [{"Key": "tag1", "Value": "value1"}, {"Key": "tag2", "Value": "value2"}]
-    )
+    request["Tags"].should.have.length_of(2)
+    request["Tags"].should.contain({"Key": "tag1", "Value": "value1"})
+    request["Tags"].should.contain({"Key": "tag2", "Value": "value2"})
 
 
 # Has boto3 equivalent
