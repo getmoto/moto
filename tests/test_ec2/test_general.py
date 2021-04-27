@@ -13,6 +13,7 @@ from moto import mock_ec2_deprecated, mock_ec2
 from tests import EXAMPLE_AMI_ID
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_console_output():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -22,6 +23,7 @@ def test_console_output():
     output.output.should_not.equal(None)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_console_output_without_instance():
     conn = boto.connect_ec2("the_key", "the_secret")
