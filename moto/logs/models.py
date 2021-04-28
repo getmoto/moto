@@ -369,12 +369,13 @@ class LogGroup:
         first_index = 0
         if next_token:
             try:
-                group, stream, event_id = next_token.split('/')
+                group, stream, event_id = next_token.split("/")
                 if group != log_group_name:
                     raise ValueError()
                 first_index = (
                     next(
-                        index for (index, e) in enumerate(events)
+                        index
+                        for (index, e) in enumerate(events)
                         if e["logStreamName"] == stream and e["eventId"] == event_id
                     )
                     + 1
@@ -387,11 +388,13 @@ class LogGroup:
         last_index = first_index + limit
         if last_index > len(events):
             last_index = len(events)
-        events_page = events[first_index : last_index]
+        events_page = events[first_index:last_index]
         next_token = None
         if events_page and last_index < len(events):
             last_event = events_page[-1]
-            next_token = "{}/{}/{}".format(log_group_name, last_event["logStreamName"], last_event["eventId"])
+            next_token = "{}/{}/{}".format(
+                log_group_name, last_event["logStreamName"], last_event["eventId"]
+            )
 
         searched_streams = [
             {"logStreamName": stream.logStreamName, "searchedCompletely": True}

@@ -137,10 +137,9 @@ def test_filter_logs_paging():
     timestamp = int(start_date.timestamp())
     messages = []
     for i in range(25):
-        messages.append({
-            "message": "Message number {}".format(i),
-            "timestamp": timestamp
-        })
+        messages.append(
+            {"message": "Message number {}".format(i), "timestamp": timestamp}
+        )
         timestamp += 100
 
     conn.put_log_events(
@@ -154,8 +153,10 @@ def test_filter_logs_paging():
     res["nextToken"].should.equal("dummy/stream/" + events[-1]["eventId"])
 
     res = conn.filter_log_events(
-        logGroupName=log_group_name, logStreamNames=[log_stream_name],
-        limit=20, nextToken=res["nextToken"]
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        limit=20,
+        nextToken=res["nextToken"],
     )
     events += res["events"]
     events.should.have.length_of(25)
@@ -167,8 +168,10 @@ def test_filter_logs_paging():
         resulting_event["message"].should.equal(original_message["message"])
 
     res = conn.filter_log_events(
-        logGroupName=log_group_name, logStreamNames=[log_stream_name],
-        limit=20, nextToken="invalid-token"
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        limit=20,
+        nextToken="invalid-token",
     )
     res["events"].should.have.length_of(0)
     res.should_not.have.key("nextToken")
