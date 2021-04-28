@@ -1273,12 +1273,10 @@ def test_put_integration_response_requires_responseTemplate():
         integrationHttpMethod="POST",
     )
 
-    with pytest.raises(ClientError) as ex:
-        client.put_integration_response(
-            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-        )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid request input")
+    client.put_integration_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+
     # Works fine if responseTemplate is defined
     client.put_integration_response(
         restApiId=api_id,

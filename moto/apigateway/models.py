@@ -1099,8 +1099,6 @@ class APIGatewayBackend(BaseBackend):
         response_templates,
         content_handling,
     ):
-        if response_templates is None:
-            raise InvalidRequestInput()
         integration = self.get_integration(function_id, resource_id, method_type)
         integration_response = integration.create_integration_response(
             status_code, selection_pattern, response_templates, content_handling
