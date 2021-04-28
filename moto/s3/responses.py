@@ -22,6 +22,7 @@ from six.moves.urllib.parse import (
 )
 
 import xmltodict
+from uuid import UUID
 
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
@@ -49,6 +50,7 @@ from .exceptions import (
     IllegalLocationConstraintException,
     InvalidNotificationARN,
     InvalidNotificationEvent,
+    InvalidVersion,
     ObjectNotInActiveTierError,
     NoSystemTags,
     PreconditionFailed,
@@ -1206,11 +1208,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if_none_match = headers.get("If-None-Match", None)
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
+        try:
+            UUID(version_id, version=4)
+        except ValueError:
+            raise InvalidVersion(version_id)
         key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
         if key is None and version_id is None:
             raise MissingKey(key_name)
         elif key is None:
-            raise MissingVersion(version_id)
+            raise MissingVersion()
 
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
