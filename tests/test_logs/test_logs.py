@@ -1,5 +1,5 @@
-from datetime import datetime
 import os
+import time
 from unittest import SkipTest
 import boto3
 import six
@@ -133,8 +133,7 @@ def test_filter_logs_paging():
     log_stream_name = "stream"
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-    start_date = datetime(2021, 4, 28, 12, 34, 56, 0)
-    timestamp = int(start_date.timestamp())
+    timestamp = int(time.time())
     messages = []
     for i in range(25):
         messages.append(
