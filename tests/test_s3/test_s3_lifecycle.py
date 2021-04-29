@@ -439,6 +439,7 @@ def test_lifecycle_with_aimu():
     # TODO: Add test for failures due to missing children
 
 
+# Has boto3 equivalent
 @mock_s3_deprecated
 def test_lifecycle_with_glacier_transition():
     conn = boto.s3.connect_to_region("us-west-1")
@@ -458,6 +459,38 @@ def test_lifecycle_with_glacier_transition():
     transition.date.should.equal(None)
 
 
+@mock_s3
+def test_lifecycle_with_glacier_transition_boto3():
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    client = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="foobar")
+
+    client.put_bucket_lifecycle_configuration(
+        Bucket="foobar",
+        LifecycleConfiguration={
+            "Rules": [
+                {
+                    "ID": "myid",
+                    "Prefix": "",
+                    "Status": "Enabled",
+                    "Transitions": [{"Days": 30, "StorageClass": "GLACIER"}],
+                }
+            ]
+        },
+    )
+
+    response = client.get_bucket_lifecycle_configuration(Bucket="foobar")
+    response.should.have.key("Rules")
+    rules = response["Rules"]
+    rules.should.have.length_of(1)
+    rules[0].should.have.key("ID").equal("myid")
+    transition = rules[0]["Transitions"][0]
+    transition["Days"].should.equal(30)
+    transition["StorageClass"].should.equal("GLACIER")
+    transition.shouldnt.have.key("Date")
+
+
+# Has boto3 equivalent
 @mock_s3_deprecated
 def test_lifecycle_multi():
     conn = boto.s3.connect_to_region("us-west-1")
@@ -500,6 +533,80 @@ def test_lifecycle_multi():
             assert False, "Invalid rule id"
 
 
+@mock_s3
+def test_lifecycle_multi_boto3():
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    client = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="foobar")
+
+    date = "2022-10-12T00:00:00.000Z"
+    sc = "GLACIER"
+
+    client.put_bucket_lifecycle_configuration(
+        Bucket="foobar",
+        LifecycleConfiguration={
+            "Rules": [
+                {"ID": "1", "Prefix": "1/", "Status": "Enabled"},
+                {
+                    "ID": "2",
+                    "Prefix": "2/",
+                    "Status": "Enabled",
+                    "Expiration": {"Days": 2},
+                },
+                {
+                    "ID": "3",
+                    "Prefix": "3/",
+                    "Status": "Enabled",
+                    "Expiration": {"Date": date},
+                },
+                {
+                    "ID": "4",
+                    "Prefix": "4/",
+                    "Status": "Enabled",
+                    "Transitions": [{"Days": 4, "StorageClass": "GLACIER"}],
+                },
+                {
+                    "ID": "5",
+                    "Prefix": "5/",
+                    "Status": "Enabled",
+                    "Transitions": [{"Date": date, "StorageClass": "GLACIER"}],
+                },
+            ]
+        },
+    )
+
+    # read the lifecycle back
+    rules = client.get_bucket_lifecycle_configuration(Bucket="foobar")["Rules"]
+
+    for rule in rules:
+        if rule["ID"] == "1":
+            rule["Prefix"].should.equal("1/")
+            rule.shouldnt.have.key("Expiration")
+        elif rule["ID"] == "2":
+            rule["Prefix"].should.equal("2/")
+            rule["Expiration"]["Days"].should.equal(2)
+        elif rule["ID"] == "3":
+            rule["Prefix"].should.equal("3/")
+            rule["Expiration"]["Date"].should.be.a(datetime)
+            rule["Expiration"]["Date"].strftime("%Y-%m-%dT%H:%M:%S.000Z").should.equal(
+                date
+            )
+        elif rule["ID"] == "4":
+            rule["Prefix"].should.equal("4/")
+            rule["Transitions"][0]["Days"].should.equal(4)
+            rule["Transitions"][0]["StorageClass"].should.equal(sc)
+        elif rule["ID"] == "5":
+            rule["Prefix"].should.equal("5/")
+            rule["Transitions"][0]["Date"].should.be.a(datetime)
+            rule["Transitions"][0]["Date"].strftime(
+                "%Y-%m-%dT%H:%M:%S.000Z"
+            ).should.equal(date)
+            rule["Transitions"][0]["StorageClass"].should.equal(sc)
+        else:
+            assert False, "Invalid rule id"
+
+
+# Has boto3 equivalent
 @mock_s3_deprecated
 def test_lifecycle_delete():
     conn = boto.s3.connect_to_region("us-west-1")
@@ -513,3 +620,26 @@ def test_lifecycle_delete():
 
     bucket.delete_lifecycle_configuration()
     bucket.get_lifecycle_config.when.called_with().should.throw(S3ResponseError)
+
+
+@mock_s3
+def test_lifecycle_delete_boto3():
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    client = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="foobar")
+
+    client.put_bucket_lifecycle_configuration(
+        Bucket="foobar",
+        LifecycleConfiguration={
+            "Rules": [{"ID": "myid", "Prefix": "", "Status": "Enabled"}]
+        },
+    )
+
+    client.delete_bucket_lifecycle(Bucket="foobar")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_bucket_lifecycle_configuration(Bucket="foobar")
+    ex.value.response["Error"]["Code"].should.equal("NoSuchLifecycleConfiguration")
+    ex.value.response["Error"]["Message"].should.equal(
+        "The lifecycle configuration does not exist"
+    )
