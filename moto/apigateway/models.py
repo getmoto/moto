@@ -29,7 +29,6 @@ from .exceptions import (
     InvalidIntegrationArn,
     InvalidHttpEndpoint,
     InvalidResourcePathException,
-    InvalidRequestInput,
     AuthorizerNotFoundException,
     StageNotFoundException,
     RoleNotSpecified,

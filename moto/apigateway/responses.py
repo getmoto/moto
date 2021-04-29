@@ -19,6 +19,7 @@ from .exceptions import (
     RestAPINotFound,
     ModelNotFound,
     ApiKeyValueMinLength,
+    InvalidRequestInput,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -369,6 +370,9 @@ class APIGatewayResponse(BaseResponse):
                     function_id, resource_id, method_type, status_code
                 )
             elif self.method == "PUT":
+                if self.body == "":
+                    raise InvalidRequestInput()
+
                 selection_pattern = self._get_param("selectionPattern")
                 response_templates = self._get_param("responseTemplates")
                 content_handling = self._get_param("contentHandling")
