@@ -1210,7 +1210,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if key is None and version_id is None:
             raise MissingKey(key_name)
         elif key is None:
-            raise MissingVersion(version_id)
+            raise MissingVersion()
 
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)

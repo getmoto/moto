@@ -5013,10 +5013,10 @@ def test_get_unknown_version_should_throw_specific_error():
 
     with pytest.raises(ClientError) as e:
         client.get_object(Bucket=bucket_name, Key=object_key, VersionId="unknown")
-    e.value.response["Error"]["Code"].should.equal("InvalidArgument")
-    e.value.response["Error"]["Message"].should.equal("Invalid version id specified")
-    e.value.response["Error"]["ArgumentName"].should.equal("versionId")
-    e.value.response["Error"]["ArgumentValue"].should.equal("unknown")
+    e.value.response["Error"]["Code"].should.equal("NoSuchVersion")
+    e.value.response["Error"]["Message"].should.equal(
+        "The specified version does not exist."
+    )
 
 
 @mock_s3
