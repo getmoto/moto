@@ -257,7 +257,7 @@
 
 ## apigateway
 <details>
-<summary>38% implemented</summary>
+<summary>39% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -4164,10 +4164,10 @@
 
 ## events
 <details>
-<summary>65% implemented</summary>
+<summary>75% implemented</summary>
 
 - [ ] activate_event_source
-- [ ] cancel_replay
+- [X] cancel_replay
 - [X] create_archive
 - [X] create_event_bus
 - [ ] create_partner_event_source
@@ -4180,7 +4180,7 @@
 - [X] describe_event_bus
 - [ ] describe_event_source
 - [ ] describe_partner_event_source
-- [ ] describe_replay
+- [X] describe_replay
 - [X] describe_rule
 - [X] disable_rule
 - [X] enable_rule
@@ -4189,7 +4189,7 @@
 - [ ] list_event_sources
 - [ ] list_partner_event_source_accounts
 - [ ] list_partner_event_sources
-- [ ] list_replays
+- [X] list_replays
 - [X] list_rule_names_by_target
 - [X] list_rules
 - [X] list_tags_for_resource
@@ -4201,7 +4201,7 @@
 - [X] put_targets
 - [X] remove_permission
 - [X] remove_targets
-- [ ] start_replay
+- [X] start_replay
 - [X] tag_resource
 - [X] test_event_pattern
 - [X] untag_resource
@@ -6738,30 +6738,30 @@
 
 ## mediaconnect
 <details>
-<summary>30% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] add_flow_outputs
 - [ ] add_flow_sources
 - [ ] add_flow_vpc_interfaces
-- [x] create_flow
-- [x] delete_flow
-- [x] describe_flow
+- [X] create_flow
+- [X] delete_flow
+- [X] describe_flow
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] grant_flow_entitlements
 - [ ] list_entitlements
-- [x] list_flows
+- [X] list_flows
 - [ ] list_offerings
 - [ ] list_reservations
-- [x] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] purchase_offering
 - [ ] remove_flow_output
 - [ ] remove_flow_source
 - [ ] remove_flow_vpc_interface
 - [ ] revoke_flow_entitlement
-- [x] start_flow
-- [x] stop_flow
-- [x] tag_resource
+- [X] start_flow
+- [X] stop_flow
+- [X] tag_resource
 - [ ] untag_resource
 - [ ] update_flow
 - [ ] update_flow_entitlement
@@ -6863,27 +6863,27 @@
 
 ## mediapackage
 <details>
-<summary>0% implemented</summary>
+<summary>47% implemented</summary>
 
 - [ ] configure_logs
-- [ ] create_channel
+- [X] create_channel
 - [ ] create_harvest_job
-- [ ] create_origin_endpoint
-- [ ] delete_channel
-- [ ] delete_origin_endpoint
-- [ ] describe_channel
+- [X] create_origin_endpoint
+- [X] delete_channel
+- [X] delete_origin_endpoint
+- [X] describe_channel
 - [ ] describe_harvest_job
-- [ ] describe_origin_endpoint
-- [ ] list_channels
+- [X] describe_origin_endpoint
+- [X] list_channels
 - [ ] list_harvest_jobs
-- [ ] list_origin_endpoints
+- [X] list_origin_endpoints
 - [ ] list_tags_for_resource
 - [ ] rotate_channel_credentials
 - [ ] rotate_ingest_endpoint_credentials
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_channel
-- [ ] update_origin_endpoint
+- [X] update_origin_endpoint
 </details>
 
 ## mediapackage-vod
@@ -6910,25 +6910,25 @@
 
 ## mediastore
 <details>
-<summary>0% implemented</summary>
+<summary>42% implemented</summary>
 
-- [ ] create_container
+- [X] create_container
 - [ ] delete_container
 - [ ] delete_container_policy
 - [ ] delete_cors_policy
 - [ ] delete_lifecycle_policy
 - [ ] delete_metric_policy
-- [ ] describe_container
-- [ ] get_container_policy
+- [X] describe_container
+- [X] get_container_policy
 - [ ] get_cors_policy
-- [ ] get_lifecycle_policy
-- [ ] get_metric_policy
-- [ ] list_containers
+- [X] get_lifecycle_policy
+- [X] get_metric_policy
+- [X] list_containers
 - [ ] list_tags_for_resource
-- [ ] put_container_policy
+- [X] put_container_policy
 - [ ] put_cors_policy
-- [ ] put_lifecycle_policy
-- [ ] put_metric_policy
+- [X] put_lifecycle_policy
+- [X] put_metric_policy
 - [ ] start_access_logging
 - [ ] stop_access_logging
 - [ ] tag_resource
@@ -8025,10 +8025,10 @@
 
 ## redshift
 <details>
-<summary>29% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
-- [ ] authorize_cluster_security_group_ingress
+- [X] authorize_cluster_security_group_ingress
 - [ ] authorize_snapshot_access
 - [ ] batch_delete_cluster_snapshots
 - [ ] batch_modify_cluster_snapshots
@@ -8933,7 +8933,7 @@
 
 ## secretsmanager
 <details>
-<summary>68% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] cancel_rotate_secret
 - [X] create_secret
@@ -8950,7 +8950,7 @@
 - [X] restore_secret
 - [X] rotate_secret
 - [X] tag_resource
-- [ ] untag_resource
+- [X] untag_resource
 - [X] update_secret
 - [ ] update_secret_version_stage
 - [ ] validate_resource_policy
@@ -9901,22 +9901,22 @@
 
 ## support
 <details>
-<summary>0% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case
-- [ ] create_case
+- [X] create_case
 - [ ] describe_attachment
-- [ ] describe_cases
+- [X] describe_cases
 - [ ] describe_communications
 - [ ] describe_services
 - [ ] describe_severity_levels
 - [ ] describe_trusted_advisor_check_refresh_statuses
 - [ ] describe_trusted_advisor_check_result
 - [ ] describe_trusted_advisor_check_summaries
-- [ ] describe_trusted_advisor_checks
-- [ ] refresh_trusted_advisor_check
-- [ ] resolve_case
+- [X] describe_trusted_advisor_checks
+- [X] refresh_trusted_advisor_check
+- [X] resolve_case
 </details>
 
 ## swf

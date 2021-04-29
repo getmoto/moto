@@ -4,6 +4,99 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.5
+-----
+    New Services:
+        * MediaStore
+            * create_container()
+            * describe_container()
+            * list_containers()
+            * put_lifecycle_policy()
+            * get_lifecycle_policy()
+            * put_container_policy()
+            * get_container_policy()
+            * put_metric_policy()
+            * get_metric_policy
+
+    Miscellaneous:
+        * ACM now supports the MOTO_ACM_VALIDATION_WAIT-environment variable, to configure the wait time before the status on new certificates move from PENDING_VALIDATION to ISSUED
+        * CloudFormation support for AWS::SageMaker::NotebookInstance
+        * EMR:run_job_flow() now creates the appropriate EC2 security groups in a private subnet
+        * Events:put_events() has improved support for the EventPattern-parameter in create_archive/put_rule
+        * Events:put_targets() now support SQS queues
+        * IAM:get_user() now returns the Tags-attribute
+        * Fixed a bug where Moto would break on systems with a default encoding other than UTF-8
+
+2.0.4
+-----
+    Miscelleaneous:
+        * Events:put_targets() now supports SQS queues
+        * Support:describe_cases() no longer requires the caseIdList-parameter
+
+2.0.3
+-----
+    New Methods:
+        * Support
+            * create_case
+            * describe_cases
+            * resolve_case
+    Miscelleaneous:
+        * CF now returns the PhysicalResourceId-attributes for AWS::EC2::NatGateway/AWS::EC2::Route/AWS::EC2::SubnetRouteTableAssociation
+        * CognitoIDP:sign_up() now throws an UsernameExistsException if appropriate
+        * DynamoDB now validates the case sensitivity for begins_with/between operators
+        * EC2:associate_route_table() now supports the GatewayId-parameter
+        * EC2:authorize_egress() now throws a InvalidPermission.Duplicate-exception if appropriate
+        * EC2:authorize_security_group_egress() now throws a InvalidGroup.NotFound-exception
+        * EC2:authorize_security_group_ingress() now throws a InvalidGroup.NotFound-exception
+        * Events:describe_rule() now returns the ManagedBy/CreatedBy-parameters
+        * Events:put_events() now supports providing an ARN for the EventBusName-parameter
+        * Route53:list_hosted_zones_by_name() now returns the DNSName-parameter
+        * S3:put_object_acl() now throws a NoSuchKey-exception if the object does not exist
+        * SES:send_templated_email() now throws a TemplateDoesNotExist-exception if the template has not been created first
+        * SSM:put_parameter() now throws an exception for empty values
+    Known bugs:
+        * Support:describe_cases() throws an exception when called without the caseIdList-parameter
+
+
+2.0.2
+-----
+    General Changes:
+        * New Osaka region is now supported
+
+    New Services:
+        * MediaPackage
+
+    New Methods:
+        * Redshift
+            * authorize_cluster_security_group_ingress
+        * Secrets Manager:
+            * untag_resource
+
+    Miscellaneous:
+        * IAM:list_roles() now contains the MaxSessionDuration-attribute
+        * Kinesis:get_records(): Fix formatting of the ApproximateArrivalTimestamp-parameter
+        * SQS:receive_message(): Fix behaviour of the AttributeNames-parameter
+
+2.0.1
+-----
+    New Services:
+        * Media Connect
+
+    New Methods:
+        * API Gateway: 
+            * update_usage_plan
+        * Events
+            * cancel_replay
+            * describe_replay
+            * start_replay
+            * list_replays
+        
+    Miscellaneous:
+        * ECS TaskDefinitions now have the 'status' attribute
+        * Events: the put_rule now updates an existing rule, instead of removing the old one (and the associated targets)
+        * IAM create_roles and list_roles now return the Description
+        * SSM: put_parameter and describe_parameters now supports tags
+
 
 2.0.0
 ----

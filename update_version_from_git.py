@@ -4,6 +4,9 @@ Adapted from https://github.com/pygame/pygameweb/blob/master/pygameweb/builds/up
 For updating the version from git.
 __init__.py contains a __version__ field.
 Update that.
+If the user supplies "patch" as a CLi argument, we want to bump the existing patch version
+If the user supplied the full version as a CLI argument, we want to use that version.
+Otherwise,
 If we are on master, we want to update the version as a pre-release.
 git describe --tags
 With these:
@@ -22,6 +25,8 @@ import io
 import os
 import re
 import subprocess
+import sys
+from packaging.version import Version
 
 
 def migrate_source_attribute(attr, to_this, target_file, regex):
@@ -49,7 +54,7 @@ def migrate_version(target_file, new_version):
     regex = r"['\"](.*)['\"]"
     migrate_source_attribute(
         "__version__",
-        "'{new_version}'".format(new_version=new_version),
+        "\"{new_version}\"".format(new_version=new_version),
         target_file,
         regex,
     )
@@ -90,7 +95,7 @@ def prerelease_version():
     assert (
         initpy_ver > ver
     ), "the moto/__init__.py version should be newer than the last tagged release."
-    return "{initpy_ver}.{commits_since}".format(
+    return "{initpy_ver}{commits_since}".format(
         initpy_ver=initpy_ver, commits_since=commits_since
     )
 
@@ -112,6 +117,15 @@ def get_version():
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
+
+
+def increase_patch_version(old_version):
+    """
+    :param old_version: 2.0.1
+    :return: 2.0.2.dev
+    """
+    v = Version(old_version)
+    return "{}.{}.{}.dev".format(v.major, v.minor, v.micro + 1)
 
 
 def release_version_correct():
@@ -142,4 +156,16 @@ def release_version_correct():
 
 
 if __name__ == "__main__":
-    release_version_correct()
+    new_version = None
+    if len(sys.argv) == 1:
+        release_version_correct()
+    elif len(sys.argv) == 2:
+        for _, arg in enumerate(sys.argv):
+            new_version = arg
+        if new_version == "patch":
+            new_version = increase_patch_version(get_version())
+        initpy = os.path.abspath("moto/__init__.py")
+        migrate_version(initpy, new_version)
+    else:
+        print("Invalid usage. Supply 0 or 1 arguments. "
+              "Argument can be either a version '1.2.3' or 'patch' if you want to increase the patch-version (1.2.3 -> 1.2.4.dev)")

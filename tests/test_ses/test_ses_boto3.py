@@ -132,6 +132,21 @@ def test_send_templated_email():
     conn.send_templated_email.when.called_with(**kwargs).should.throw(ClientError)
 
     conn.verify_domain_identity(Domain="example.com")
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+
+    conn.create_template(
+        Template={
+            "TemplateName": "test_template",
+            "SubjectPart": "lalala",
+            "HtmlPart": "",
+            "TextPart": "",
+        }
+    )
+
     conn.send_templated_email(**kwargs)
 
     too_many_addresses = list("to%s@example.com" % i for i in range(51))
