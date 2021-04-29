@@ -26,20 +26,20 @@ def extract_input_message_attributes(querystring):
     return message_attributes
 
 
-def parse_message_attributes(querystring, base="", value_namespace="Value."):
+def parse_message_attributes(
+    querystring, key="MessageAttribute", base="", value_namespace="Value."
+):
     message_attributes = {}
     index = 1
     while True:
         # Loop through looking for message attributes
-        name_key = base + "MessageAttribute.{0}.Name".format(index)
+        name_key = base + "{0}.{1}.Name".format(key, index)
         name = querystring.get(name_key)
         if not name:
             # Found all attributes
             break
 
-        data_type_key = base + "MessageAttribute.{0}.{1}DataType".format(
-            index, value_namespace
-        )
+        data_type_key = base + "{0}.{1}.{2}DataType".format(key, index, value_namespace)
         data_type = querystring.get(data_type_key)
         if not data_type:
             raise MessageAttributesInvalid(
@@ -64,8 +64,8 @@ def parse_message_attributes(querystring, base="", value_namespace="Value."):
         if data_type_parts[0] == "Binary":
             type_prefix = "Binary"
 
-        value_key = base + "MessageAttribute.{0}.{1}{2}Value".format(
-            index, value_namespace, type_prefix
+        value_key = base + "{0}.{1}.{2}{3}Value".format(
+            key, index, value_namespace, type_prefix
         )
         value = querystring.get(value_key)
         if not value:
@@ -82,55 +82,4 @@ def parse_message_attributes(querystring, base="", value_namespace="Value."):
 
         index += 1
 
-    trace_header = ""
-    index = 1
-    while True:
-        # Loop through looking for message attributes
-        name_key = base + "MessageSystemAttribute.{0}.Name".format(index)
-        name = querystring.get(name_key)
-        if not name:
-            # Found all attributes
-            break
-
-        data_type_key = base + "MessageSystemAttribute.{0}.{1}DataType".format(
-            index, value_namespace
-        )
-        data_type = querystring.get(data_type_key)
-        if not data_type:
-            raise MessageAttributesInvalid(
-                "The message attribute '{0}' must contain non-empty message attribute value.".format(
-                    name[0]
-                )
-            )
-
-        data_type_parts = data_type[0].split(".")
-        if data_type_parts[0] not in [
-            "String",
-            "Binary",
-            "Number",
-        ]:
-            raise MessageAttributesInvalid(
-                "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(
-                    name[0]
-                )
-            )
-
-        type_prefix = "String"
-        if data_type_parts[0] == "Binary":
-            type_prefix = "Binary"
-
-        value_key = base + "MessageSystemAttribute.{0}.{1}{2}Value".format(
-            index, value_namespace, type_prefix
-        )
-        value = querystring.get(value_key)
-        if not value:
-            raise MessageAttributesInvalid(
-                "The message attribute '{0}' must contain non-empty message attribute value for message attribute type '{1}'.".format(
-                    name[0], data_type[0]
-                )
-            )
-        trace_header = value[0]
-
-        index += 1
-
-    return message_attributes, trace_header
+    return message_attributes

@@ -222,8 +222,9 @@ class SQSResponse(BaseResponse):
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
 
-        message_attributes, aws_trace_header = parse_message_attributes(
-            self.querystring
+        message_attributes = parse_message_attributes(self.querystring)
+        system_message_attributes = parse_message_attributes(
+            self.querystring, key="MessageSystemAttribute"
         )
 
         queue_name = self._get_queue_name()
@@ -243,7 +244,7 @@ class SQSResponse(BaseResponse):
             delay_seconds=delay_seconds,
             deduplication_id=message_dedupe_id,
             group_id=message_group_id,
-            aws_trace_header=aws_trace_header,
+            system_attributes=system_message_attributes,
         )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
@@ -571,7 +572,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
           {% if message.aws_trace_header is not none %}
           <Attribute>
             <Name>AWSTraceHeader</Name>
-            <Value>{{ message.aws_trace_header }}</Value>
+            <Value>{{ message.system_attributes.get('AWSTraceHeader').get('string_value') }}</Value>
           </Attribute>
           {% endif %}
           {% if message.message_attributes.items()|count > 0 %}
