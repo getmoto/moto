@@ -22,7 +22,7 @@ from moto.dynamodb2.exceptions import (
     RangeKeyTooLong,
     ConditionalCheckFailed,
     TransactionCanceledException,
-    EmptyKeyAttributeException,
+    EmptyKeyAttributeException
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -1316,13 +1316,14 @@ class DynamoDBBackend(BaseBackend):
             item.validate_no_empty_key_values(attribute_updates, table.key_attributes)
 
         if update_expression:
-            validated_ast = UpdateExpressionValidator(
+            validator = UpdateExpressionValidator(
                 update_expression_ast,
                 expression_attribute_names=expression_attribute_names,
                 expression_attribute_values=expression_attribute_values,
                 item=item,
                 table=table,
-            ).validate()
+            )
+            validated_ast  = validator.validate()
             try:
                 UpdateExpressionExecutor(
                     validated_ast, item, expression_attribute_names
