@@ -600,10 +600,10 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Value>{{ message.group_id }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.aws_trace_header is not none %}
+          {% if message.system_attributes and message.system_attributes.get('AWSTraceHeader') is not none %}
           <Attribute>
             <Name>AWSTraceHeader</Name>
-            <Value>{{ message.system_attributes.get('AWSTraceHeader').get('string_value') }}</Value>
+            <Value>{{ message.system_attributes.get('AWSTraceHeader',{}).get('string_value') }}</Value>
           </Attribute>
           {% endif %}
           {% if attributes.sequence_number and message.sequence_number is not none %}
