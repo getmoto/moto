@@ -1,3 +1,6 @@
+from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+
+
 class InvalidIndexNameError(ValueError):
     pass
 
@@ -131,6 +134,25 @@ class ItemSizeToUpdateTooLarge(MockValidationException):
         super(ItemSizeToUpdateTooLarge, self).__init__(
             self.item_size_to_update_too_large_msg
         )
+
+
+class HashKeyTooLong(MockValidationException):
+    # deliberately no space between of and {lim}
+    key_too_large_msg = "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of{lim} bytes".format(
+        lim=HASH_KEY_MAX_LENGTH
+    )
+
+    def __init__(self):
+        super(HashKeyTooLong, self).__init__(self.key_too_large_msg)
+
+
+class RangeKeyTooLong(MockValidationException):
+    key_too_large_msg = "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of {lim} bytes".format(
+        lim=RANGE_KEY_MAX_LENGTH
+    )
+
+    def __init__(self):
+        super(RangeKeyTooLong, self).__init__(self.key_too_large_msg)
 
 
 class IncorrectOperandType(InvalidUpdateExpression):
