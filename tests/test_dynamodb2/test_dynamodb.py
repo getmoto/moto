@@ -388,7 +388,7 @@ def test_item_add_long_string_nonascii_hash_key_exception():
 
     emoji_b = b"\xf0\x9f\x98\x83"  # smile emoji
     emoji = emoji_b.decode("utf-8")  # 1 character, but 4 bytes
-    short_enough = emoji * int(HASH_KEY_MAX_LENGTH / len(emoji.encode()))
+    short_enough = emoji * int(HASH_KEY_MAX_LENGTH / len(emoji.encode("utf-8")))
     too_long = "x" + short_enough
 
     conn.put_item(
