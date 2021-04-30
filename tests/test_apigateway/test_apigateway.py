@@ -1289,15 +1289,6 @@ def test_put_integration_response_requires_responseTemplate():
         responseTemplates={},
     )
 
-    # Works fine if responseTemplate is defined
-    client.put_integration_response(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        statusCode="200",
-        selectionPattern={},
-    )
-
 
 @mock_apigateway
 def test_put_integration_response_with_response_template():
