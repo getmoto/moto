@@ -22,7 +22,7 @@ from moto.dynamodb2.exceptions import (
     RangeKeyTooLong,
     ConditionalCheckFailed,
     TransactionCanceledException,
-    EmptyKeyAttributeException
+    EmptyKeyAttributeException,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -30,6 +30,7 @@ from moto.dynamodb2.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
 from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+
 
 class DynamoJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -1323,7 +1324,7 @@ class DynamoDBBackend(BaseBackend):
                 item=item,
                 table=table,
             )
-            validated_ast  = validator.validate()
+            validated_ast = validator.validate()
             try:
                 UpdateExpressionExecutor(
                     validated_ast, item, expression_attribute_names

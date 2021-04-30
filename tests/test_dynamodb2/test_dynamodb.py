@@ -25,6 +25,7 @@ try:
 except ImportError:
     print("This boto version is not supported")
 
+
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 def test_list_tables():
@@ -287,6 +288,7 @@ def test_item_add_empty_string_attr_no_exception():
         },
     )
 
+
 @mock_dynamodb2
 def test_update_item_with_empty_string_attr_no_exception():
     name = "TestTable"
@@ -353,7 +355,7 @@ def test_item_add_long_string_hash_key_exception():
         conn.put_item(
             TableName=name,
             Item={
-                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH+1)},
+                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)},
                 "subject": {"S": "Check this out!"},
                 "Body": {"S": "http://url_to_lolcat.gif"},
                 "SentBy": {"S": "test"},
@@ -385,7 +387,7 @@ def test_item_add_long_string_nonascii_hash_key_exception():
     )
 
     emoji_b = b"\xf0\x9f\x98\x83"  # smile emoji
-    emoji = emoji_b.decode('utf-8') # 1 character, but 4 bytes
+    emoji = emoji_b.decode("utf-8")  # 1 character, but 4 bytes
     short_enough = emoji * int(HASH_KEY_MAX_LENGTH / len(emoji.encode()))
     too_long = "x" + short_enough
 
@@ -418,6 +420,7 @@ def test_item_add_long_string_nonascii_hash_key_exception():
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
     )
+
 
 @mock_dynamodb2
 def test_item_add_long_string_range_key_exception():
@@ -469,7 +472,6 @@ def test_item_add_long_string_range_key_exception():
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
-
 
 
 @mock_dynamodb2
@@ -547,9 +549,7 @@ def test_update_item_with_long_string_hash_key_exception():
             "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
         },
         UpdateExpression="set body=:New",
-        ExpressionAttributeValues={
-            ":New": {"S": "hello"}
-        },
+        ExpressionAttributeValues={":New": {"S": "hello"}},
     )
 
     with pytest.raises(ClientError) as ex:
@@ -560,9 +560,7 @@ def test_update_item_with_long_string_hash_key_exception():
                 "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
             },
             UpdateExpression="set body=:New",
-            ExpressionAttributeValues={
-                ":New": {"S": "hello"}
-            },
+            ExpressionAttributeValues={":New": {"S": "hello"}},
         )
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
@@ -571,6 +569,7 @@ def test_update_item_with_long_string_hash_key_exception():
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
     )
+
 
 @mock_dynamodb2
 def test_update_item_with_long_string_range_key_exception():
@@ -600,9 +599,7 @@ def test_update_item_with_long_string_range_key_exception():
             "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
         },
         UpdateExpression="set body=:New",
-        ExpressionAttributeValues={
-            ":New": {"S": "hello"}
-        },
+        ExpressionAttributeValues={":New": {"S": "hello"}},
     )
 
     with pytest.raises(ClientError) as ex:
@@ -610,12 +607,10 @@ def test_update_item_with_long_string_range_key_exception():
             TableName=name,
             Key={
                 "forum_name": {"S": "Lolcat Forum"},
-                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)}
+                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
             },
             UpdateExpression="set body=:New",
-            ExpressionAttributeValues={
-                ":New": {"S": "hello"}
-            },
+            ExpressionAttributeValues={":New": {"S": "hello"}},
         )
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
@@ -624,6 +619,7 @@ def test_update_item_with_long_string_range_key_exception():
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
+
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
