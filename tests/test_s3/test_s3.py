@@ -779,7 +779,10 @@ def test_missing_key_request_boto3():
     s3.create_bucket(Bucket="foobar")
 
     response = requests.get("http://foobar.s3.amazonaws.com/the-key")
-    response.status_code.should.equal(404)
+    if settings.TEST_SERVER_MODE:
+        response.status_code.should.equal(403)
+    else:
+        response.status_code.should.equal(404)
 
 
 # Has boto3 equivalent
@@ -1126,9 +1129,9 @@ def test_create_existing_bucket_boto3():
     client.create_bucket(**kwargs)
     with pytest.raises(ClientError) as ex:
         client.create_bucket(**kwargs)
-    ex.value.response["Error"]["Code"].should.equal("BucketAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("BucketAlreadyOwnedByYou")
     ex.value.response["Error"]["Message"].should.equal(
-        "The requested bucket name is not available. The bucket namespace is shared by all users of the system. Please select a different name and try again"
+        "Your previous request to create the named bucket succeeded and you already own it."
     )
 
 
@@ -1269,6 +1272,10 @@ def test_post_to_bucket():
 
 @mock_s3
 def test_post_to_bucket_boto3():
+    if settings.TEST_SERVER_MODE:
+        # ServerMode does not allow unauthorized requests
+        raise SkipTest()
+
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="foobar")
 
@@ -1297,6 +1304,9 @@ def test_post_with_metadata_to_bucket():
 
 @mock_s3
 def test_post_with_metadata_to_bucket_boto3():
+    if settings.TEST_SERVER_MODE:
+        # ServerMode does not allow unauthorized requests
+        raise SkipTest()
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="foobar")
 
@@ -1385,8 +1395,10 @@ def test_delete_missing_key_boto3():
             ]
         }
     )
-    result.should.have.key("Deleted").equal([{"Key": "key1"}, {"Key": "key3"}])
-    result.should.have.key("Errors").equal([{"Key": "unknown"}, {"Key": "typo"}])
+    result.should.have.key("Deleted").equal(
+        [{"Key": "unknown"}, {"Key": "key1"}, {"Key": "key3"}, {"Key": "typo"}]
+    )
+    result.shouldnt.have.key("Errors")
 
     objects = list(bucket.objects.all())
     set([o.key for o in objects]).should.equal(set(["key2", "key4"]))
