@@ -70,7 +70,7 @@ DEDUPLICATION_TIME_IN_SECONDS = 300
 
 
 class Message(BaseModel):
-    def __init__(self, message_id, body):
+    def __init__(self, message_id, body, system_attributes={}):
         self.id = message_id
         self._body = body
         self.message_attributes = {}
@@ -84,6 +84,7 @@ class Message(BaseModel):
         self.sequence_number = None
         self.visible_at = 0
         self.delayed_until = 0
+        self.system_attributes = system_attributes
 
     @property
     def body_md5(self):
@@ -673,6 +674,7 @@ class SQSBackend(BaseBackend):
         delay_seconds=None,
         deduplication_id=None,
         group_id=None,
+        system_attributes=None,
     ):
 
         queue = self.get_queue(queue_name)
@@ -689,7 +691,7 @@ class SQSBackend(BaseBackend):
             delay_seconds = queue.delay_seconds
 
         message_id = get_random_message_id()
-        message = Message(message_id, message_body)
+        message = Message(message_id, message_body, system_attributes)
 
         # if content based deduplication is set then set sha256 hash of the message
         # as the deduplication_id
