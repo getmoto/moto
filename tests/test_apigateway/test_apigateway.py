@@ -1279,6 +1279,7 @@ def test_put_integration_response_requires_responseTemplate():
         )
     ex.value.response["Error"]["Code"].should.equal("BadRequestException")
     ex.value.response["Error"]["Message"].should.equal("Invalid request input")
+
     # Works fine if responseTemplate is defined
     client.put_integration_response(
         restApiId=api_id,
