@@ -453,6 +453,7 @@ def test_record_activity_task_heartbeat_with_wrong_token_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():
     conn = setup_workflow()
