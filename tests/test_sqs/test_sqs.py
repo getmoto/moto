@@ -778,6 +778,38 @@ def test_send_receive_message_with_attributes_with_labels():
 
 
 @mock_sqs
+def test_change_message_visibility_than_permitted():
+
+    with freeze_time("2015-01-01 12:00:00"):
+        sqs = boto3.resource("sqs", region_name="us-east-1")
+        queue = sqs.create_queue(QueueName="blah")
+        queue.send_message(MessageBody="derp")
+
+        messages = queue.receive_messages()
+        messages.should.have.length_of(1)
+        messages[0].get("ReceiptHandle")
+
+        sqs.change_message_visibility(
+            queue_name="blah",
+            receipt_handle=messages[0].get("ReceiptHandle"),
+            visibility_timeout="360",
+        )
+
+    with freeze_time("2015-01-01 12:05:00"):
+
+        try:
+            sqs.change_message_visibility(
+                queue_name="blah",
+                receipt_handle=messages[0].get("ReceiptHandle"),
+                visibility_timeout="43200",
+            )
+        except botocore.exceptions.ClientError as err:
+            err.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        else:
+            raise RuntimeError("Should of raised QueueAlreadyExists Exception")
+
+
+@mock_sqs
 def test_send_receive_message_timestamps():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
