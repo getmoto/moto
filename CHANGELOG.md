@@ -4,6 +4,31 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.6
+-----
+    New Methods:
+        * EMR
+            * list_instances()
+
+    Miscellaneous:
+        * API Gateway:put_integration_response() - Fixed a bug where an error would be thrown if the responseTemplates-parameter was not specified
+        * Autoscaling - Fixed a bug where creating an ASG would remove manually created EC2-instances
+        * CloudFormation support for:
+            * AWS::SageMaker::Endpoint
+            * AWS::SageMaker::EndpointConfig
+            * AWS::SageMaker::Model
+            * AWS::SageMaker::NotebookInstanceLifecycleConfig
+        * CloudWatchLogs:filter_log_events() now supports pagination
+        * DynamoDB: Now enforces Hash and Range key size limits
+        * ECS:register_task_definition() now persists the taskRoleArn and executionRoleArn-parameters
+        * EMR:describe_cluster() now returns the ClusterArn-attribute
+        * EMR:run_job_flow() now returns the ClusterArn-attribute
+        * EMR:describe_job_flows() now returns the ClusterArn-attribute
+        * IOT:list_principal_thigns() now returns the name, instead of the ARN
+        * Route53:get_all_rrsets() now returns the record sets in the right sort order
+        * S3:get_object() now returns the NoSuchVersion-exception when the versionId was not found (instead of the InvalidVersion)
+        * SQS:send_message() now supports the MessageSystemAttributes-parameter
+
 2.0.5
 -----
     New Services:
