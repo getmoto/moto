@@ -289,14 +289,34 @@ class LogGroup:
                 else item[1].get("lastEventTimestamp", 0)
             )
 
-        if next_token is None:
-            next_token = 0
-
         log_streams = sorted(log_streams, key=sorter, reverse=descending)
-        new_token = next_token + limit
-        log_streams_page = [x[1] for x in log_streams[next_token:new_token]]
-        if new_token >= len(log_streams):
-            new_token = None
+        first_index = 0
+        if next_token:
+            try:
+                group, stream = next_token.split("@")
+                if group != log_group_name:
+                    raise ValueError()
+                first_index = (
+                    next(
+                        index
+                        for (index, e) in enumerate(log_streams)
+                        if e[1]["logStreamName"] == stream
+                    )
+                    + 1
+                )
+            except (ValueError, StopIteration):
+                first_index = 0
+                log_streams = []
+
+        last_index = first_index + limit
+        if last_index > len(log_streams):
+            last_index = len(log_streams)
+        log_streams_page = [x[1] for x in log_streams[first_index:last_index]]
+        new_token = None
+        if log_streams_page and last_index < len(log_streams):
+            new_token = "{}@{}".format(
+                log_group_name, log_streams_page[-1]["logStreamName"]
+            )
 
         return log_streams_page, new_token
 
