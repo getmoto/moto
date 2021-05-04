@@ -580,14 +580,18 @@ def test_describe_log_streams_paging():
     resp = client.describe_log_streams(logGroupName=log_group_name, limit=2)
     resp["logStreams"].should.have.length_of(2)
     resp["logStreams"][0]["arn"].should.contain(log_group_name)
-    resp["nextToken"].should.equal(log_group_name + "@" + stream_names[1])
+    resp["nextToken"].should.equal(
+        u"{}@{}".format(log_group_name, resp["logStreams"][1]["logStreamName"])
+    )
 
     resp = client.describe_log_streams(
         logGroupName=log_group_name, nextToken=resp["nextToken"], limit=1
     )
     resp["logStreams"].should.have.length_of(1)
     resp["logStreams"][0]["arn"].should.contain(log_group_name)
-    resp["nextToken"].should.equal(log_group_name + "@" + stream_names[2])
+    resp["nextToken"].should.equal(
+        u"{}@{}".format(log_group_name, resp["logStreams"][0]["logStreamName"])
+    )
 
     resp = client.describe_log_streams(
         logGroupName=log_group_name, nextToken=resp["nextToken"]
