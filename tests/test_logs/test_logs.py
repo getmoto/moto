@@ -554,3 +554,56 @@ def test_describe_log_groups_paging():
     resp = client.describe_log_groups(nextToken="invalid-token")
     resp["logGroups"].should.have.length_of(0)
     resp.should_not.have.key("nextToken")
+
+
+@mock_logs
+def test_describe_log_streams_paging():
+    client = boto3.client("logs", "us-east-1")
+
+    log_group_name = "/aws/codebuild/lowercase-dev"
+    stream_names = [
+        "job/214/stage/unit_tests/foo",
+        "job/215/stage/unit_tests/spam",
+        "job/215/stage/e2e_tests/eggs",
+        "job/216/stage/unit_tests/eggs",
+    ]
+
+    client.create_log_group(logGroupName=log_group_name)
+    for name in stream_names:
+        client.create_log_stream(logGroupName=log_group_name, logStreamName=name)
+
+    resp = client.describe_log_streams(logGroupName=log_group_name)
+    resp["logStreams"].should.have.length_of(4)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_streams(logGroupName=log_group_name, limit=2)
+    resp["logStreams"].should.have.length_of(2)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp["nextToken"].should.equal(log_group_name + "@" + stream_names[1])
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken=resp["nextToken"], limit=1
+    )
+    resp["logStreams"].should.have.length_of(1)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp["nextToken"].should.equal(log_group_name + "@" + stream_names[2])
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken=resp["nextToken"]
+    )
+    resp["logStreams"].should.have.length_of(1)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken="invalid-token"
+    )
+    resp["logStreams"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken="invalid@token"
+    )
+    resp["logStreams"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
