@@ -779,6 +779,8 @@ def test_send_receive_message_with_attributes_with_labels():
 
 @mock_sqs
 def test_change_message_visibility_than_permitted():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
 
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -797,16 +799,16 @@ def test_change_message_visibility_than_permitted():
 
     with freeze_time("2015-01-01 12:05:00"):
 
-        try:
+        with pytest.raises(ClientError) as err:
             sqs.change_message_visibility(
                 queue_name="blah",
                 receipt_handle=messages[0].get("ReceiptHandle"),
                 visibility_timeout="43200",
             )
-        except botocore.exceptions.ClientError as err:
-            err.response["Error"]["Code"].should.equal("InvalidParameterValue")
-        else:
-            raise RuntimeError("Should of raised QueueAlreadyExists Exception")
+
+        ex = err.value
+        ex.operation_name.should.equal("GetQueueAttributes")
+        ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
 
 
 @mock_sqs
