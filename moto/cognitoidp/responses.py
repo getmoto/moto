@@ -25,7 +25,7 @@ class CognitoIdpResponse(BaseResponse):
         sms_config = self._get_param("SmsMfaConfiguration", None)
         token_config = self._get_param("SoftwareTokenMfaConfiguration", None)
         mfa_config = self._get_param("MfaConfiguration")
-        
+
         if sms_config is None and token_config is None:
             raise ValueError
         if sms_config:
