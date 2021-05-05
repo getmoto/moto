@@ -21,11 +21,11 @@ class CognitoIdpResponse(BaseResponse):
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
 
     def set_user_pool_mfa_config(self):
-        # user_pool_id, sms_config, token_config, state
         user_pool_id = self._get_param("UserPoolId")
         sms_config = self._get_param("SmsMfaConfiguration", None)
         token_config = self._get_param("SoftwareTokenMfaConfiguration", None)
         mfa_config = self._get_param("MfaConfiguration")
+        
         if sms_config is None and token_config is None:
             raise ValueError
         if sms_config:
