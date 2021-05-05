@@ -20,6 +20,32 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
 
+    def set_user_pool_mfa_config(self):
+        # user_pool_id, sms_config, token_config, state
+        user_pool_id = self._get_param("UserPoolId")
+        sms_config = self._get_param("SmsMfaConfiguration", None)
+        token_config = self._get_param("SoftwareTokenMfaConfiguration", None)
+        mfa_config = self._get_param("MfaConfiguration")
+        if sms_config is None and token_config is None:
+            raise ValueError
+        if sms_config:
+            if not "SnsCallerArn" in sms_config:
+                raise ValueError
+        if mfa_config not in ["ON", "OFF", "OPTIONAL"]:
+            raise ValueError
+        response = cognitoidp_backends[self.region].set_user_pool_mfa_config(
+            user_pool_id, sms_config, token_config, mfa_config
+        )
+        print(response)
+        return json.dumps(response)
+
+    def get_user_pool_mfa_config(self):
+        user_pool_id = self._get_param("UserPoolId")
+        response = cognitoidp_backends[self.region].get_user_pool_mfa_config(
+            user_pool_id
+        )
+        return json.dumps(response)
+
     def list_user_pools(self):
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken", "0")
