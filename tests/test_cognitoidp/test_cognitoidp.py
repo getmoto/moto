@@ -55,6 +55,28 @@ def test_list_user_pools():
 
 
 @mock_cognitoidp
+def test_set_user_pool_mfa_config():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    name = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=name)["UserPool"]["Id"]
+
+    # Enable software token MFA
+    mfa_config = conn.set_user_pool_mfa_config(
+        UserPoolId=user_pool_id,
+        SoftwareTokenMfaConfiguration={"Enabled": True},
+        MfaConfiguration="ON",
+    )
+
+    mfa_config.shouldnt.have.key("SmsMfaConfiguration")
+    mfa_config["MfaConfiguration"].should.equal("ON")
+
+    # Response from describe should match
+    pool = conn.describe_user_pool(UserPoolId=user_pool_id)["UserPool"]
+    pool["MfaConfiguration"].should.equal("ON")
+
+
+@mock_cognitoidp
 def test_list_user_pools_returns_max_items():
     conn = boto3.client("cognito-idp", "us-west-2")
 
