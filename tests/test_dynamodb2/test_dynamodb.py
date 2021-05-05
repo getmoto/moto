@@ -28,6 +28,7 @@ except ImportError:
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_list_tables():
     name = "TestTable"
@@ -45,7 +46,26 @@ def test_list_tables():
     assert conn.list_tables()["TableNames"] == [name]
 
 
+@mock_dynamodb2
+@pytest.mark.parametrize(
+    "names",
+    [[], ["TestTable"], ["TestTable1", "TestTable2"]],
+    ids=["no-table", "one-table", "multiple-tables"],
+)
+def test_list_tables_boto3(names):
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    for name in names:
+        conn.create_table(
+            TableName=name,
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+    conn.list_tables()["TableNames"].should.equal(names)
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_list_tables_layer_1():
     # Should make tables properly with boto
@@ -68,7 +88,32 @@ def test_list_tables_layer_1():
     res.should.equal(expected)
 
 
+@mock_dynamodb2
+def test_list_tables_paginated():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    for name in ["name1", "name2", "name3"]:
+        conn.create_table(
+            TableName=name,
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+
+    res = conn.list_tables(Limit=2)
+    res.should.have.key("TableNames").equal(["name1", "name2"])
+    res.should.have.key("LastEvaluatedTableName").equal("name2")
+
+    res = conn.list_tables(Limit=1, ExclusiveStartTableName="name1")
+    res.should.have.key("TableNames").equal(["name2"])
+    res.should.have.key("LastEvaluatedTableName").equal("name2")
+
+    res = conn.list_tables(ExclusiveStartTableName="name1")
+    res.should.have.key("TableNames").equal(["name2", "name3"])
+    res.shouldnt.have.key("LastEvaluatedTableName")
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_describe_missing_table():
     conn = boto.dynamodb2.connect_to_region(
@@ -76,6 +121,16 @@ def test_describe_missing_table():
     )
     with pytest.raises(JSONResponseError):
         conn.describe_table("messages")
+
+
+@mock_dynamodb2
+def test_describe_missing_table_boto3():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.describe_table(TableName="messages")
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
 @requires_boto_gte("2.9")
