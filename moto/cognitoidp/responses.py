@@ -29,14 +29,13 @@ class CognitoIdpResponse(BaseResponse):
         if sms_config is None and token_config is None:
             raise ValueError
         if sms_config:
-            if not "SnsCallerArn" in sms_config:
+            if "SnsCallerArn" not in sms_config:
                 raise ValueError
         if mfa_config not in ["ON", "OFF", "OPTIONAL"]:
             raise ValueError
         response = cognitoidp_backends[self.region].set_user_pool_mfa_config(
             user_pool_id, sms_config, token_config, mfa_config
         )
-        print(response)
         return json.dumps(response)
 
     def get_user_pool_mfa_config(self):
