@@ -1,22 +1,23 @@
 from __future__ import unicode_literals
 
-import base64
-import hashlib
-import hmac
 import json
 import os
 import random
 import re
+import hmac
+import hashlib
+import base64
+
+import requests
 import uuid
 
 import boto3
-import pytest
-import requests
 
 # noinspection PyUnresolvedReferences
 import sure  # noqa
 from botocore.exceptions import ClientError
-from jose import jwk, jws, jwt
+from jose import jws, jwk, jwt
+import pytest
 
 from moto import mock_cognitoidp, settings
 from moto.cognitoidp.utils import create_id
