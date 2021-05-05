@@ -27,12 +27,12 @@ class CognitoIdpResponse(BaseResponse):
         mfa_config = self._get_param("MfaConfiguration")
 
         if sms_config is None and token_config is None:
-            raise ValueError
+            raise ValueError("At least one of [SmsMfaConfiguration] and [SoftwareTokenMfaConfiguration] must be provided.")
         if sms_config:
             if "SnsCallerArn" not in sms_config:
-                raise ValueError
+                raise ValueError("[SnsCallerArn] is a required member of [SoftwareTokenMfaConfiguration].")
         if mfa_config not in ["ON", "OFF", "OPTIONAL"]:
-            raise ValueError
+            raise ValueError("[MfaConfiguration] must be one of 'ON', 'OFF', or 'OPTIONAL'.")
         response = cognitoidp_backends[self.region].set_user_pool_mfa_config(
             user_pool_id, sms_config, token_config, mfa_config
         )
