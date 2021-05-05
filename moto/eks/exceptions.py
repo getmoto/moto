@@ -7,6 +7,11 @@ class ResourceInUseException(AWSError):
     STATUS = 409
 
 
+class ResourceNotFoundException(AWSError):
+    TYPE = "ResourceNotFoundException"
+    STATUS = 404
+
+
 class ResourceLimitExceededException(AWSError):
     TYPE = "ResourceLimitExceededException"
     STATUS = 400

@@ -23,7 +23,8 @@ class EKSResponse(BaseResponse):
         logging = self._get_param("logging")
         client_request_token = self._get_param("clientRequestToken")
         tags = self._get_param("tags")
-        encryption_config = self._get_list_prefix("encryptionConfig.member")
+        encryption_config = self._get_param("encryptionConfig")
+
         cluster = self.eks_backend.create_cluster(
             name=name,
             version=version,
@@ -37,6 +38,11 @@ class EKSResponse(BaseResponse):
         )
 
         return 200, {}, json.dumps({"cluster": {**dict(cluster)}})
+
+    def describe_cluster(self):
+        name = self._get_param("name")
+        cluster = self.eks_backend.describe_cluster(name=name)
+        return 200, {}, json.dumps({"cluster": dict(cluster)})
 
     def list_clusters(self):
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)

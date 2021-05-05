@@ -1,7 +1,12 @@
 """
 This file should only contain constants used for the EKS tests.
 """
+import re
 
+from boto3 import Session
+
+PARTITIONS = Session().get_available_partitions()
+REGION = Session().region_name
 SERVICE = "eks"
 
 CLIENT_REQUEST_TOKEN_KEY = "clientRequestToken"
@@ -28,6 +33,9 @@ RESOURCES_VPC_CONFIG_VALUE = {
 ROLE_ARN_KEY = "roleArn"
 ROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
 
+STATUS_KEY = "status"
+STATUS_VALUE = "ACTIVE"
+
 TAGS_KEY = "tags"
 TAGS_VALUE = {"hello": "world"}
 
@@ -43,6 +51,7 @@ KUBERNETES_NETWORK_CONFIG = (
 LOGGING = (LOGGING_KEY, LOGGING_VALUE)
 RESOURCES_VPC_CONFIG = (RESOURCES_VPC_CONFIG_KEY, RESOURCES_VPC_CONFIG_VALUE)
 ROLE_ARN = (ROLE_ARN_KEY, ROLE_ARN_VALUE)
+STATUS = (STATUS_KEY, STATUS_VALUE)
 TAGS = (TAGS_KEY, TAGS_VALUE)
 VERSION = (VERSION_KEY, VERSION_VALUE)
 
@@ -75,6 +84,13 @@ class ClusterAttribute:
     OIDC = "oidc"
 
 
+class ArnAttributes:
+    PARTITION = "partition"
+    REGION = "region"
+    ACCOUNT_ID = "account_id"
+    CLUSTER_NAME = "cluster_name"
+
+
 class BatchCountSize:
     SMALL = 10
     MEDIUM = 20
@@ -84,3 +100,15 @@ class BatchCountSize:
 class PageCount:
     SMALL = 3
     LARGE = 10
+
+
+class ArnFormats:
+    CLUSTER_ARN = re.compile(
+        "arn:"
+        + "(?P<partition>.+):"
+        + "eks:"
+        + "(?P<region>[-0-9a-zA-Z]+):"
+        + "(?P<account_id>[0-9]{12}):"
+        + "cluster/"
+        + "(?P<cluster_name>.+)"
+    )

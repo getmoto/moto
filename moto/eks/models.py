@@ -1,13 +1,12 @@
 from __future__ import unicode_literals
 
-import re
-
 from boto3 import Session
 from datetime import datetime
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.sts.models import ACCOUNT_ID
-from .exceptions import InvalidParameterException
+from .exceptions import ResourceNotFoundException
+from .utils import set_partition, validate_role_arn
 from ..utilities.utils import random_string
 
 ARN_TEMPLATE = "arn:{partition}:eks:{region}:" + str(ACCOUNT_ID) + ":cluster/{name}"
@@ -19,6 +18,25 @@ ENDPOINT_TEMPLATE = (
     + random_string(3)
     + ".{region}.eks.amazonaws.com/"
 )
+
+DEFAULT_KUBERNETES_NETWORK_CONFIG = {"serviceIpv4Cidr": "172.20.0.0/16"}
+DEFAULT_KUBERNETES_VERSION = "1.19"
+DEFAULT_LOGGING = {
+    "clusterLogging": [
+        {
+            "types": [
+                "api",
+                "audit",
+                "authenticator",
+                "controllerManager",
+                "scheduler",
+            ],
+            "enabled": False,
+        }
+    ]
+}
+DEFAULT_PLATFORM_VERSION = "eks.4"
+DEFAULT_STATUS = "ACTIVE"
 
 
 class Cluster:
@@ -36,25 +54,28 @@ class Cluster:
         tags=None,
         encryptionConfig=None,
     ):
-        self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
-        self.status = "ACTIVE"
-        self.platformVersion = "1.9"
         self.arn = ARN_TEMPLATE.format(
             partition=awsPartition, region=regionName, name=name
         )
-        self.endpoint = ENDPOINT_TEMPLATE.format(region=regionName)
-        self.identity = {"oidc": {"issuer": ISSUER_TEMPLATE.format(region=regionName)}}
         self.certificateAuthority = {"data": random_string(1400)}
+        self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.identity = {"oidc": {"issuer": ISSUER_TEMPLATE.format(region=regionName)}}
+        self.endpoint = ENDPOINT_TEMPLATE.format(region=regionName)
 
-        self.name = name
-        self.role_arn = roleArn
-        self.resources_vpc_config = resourcesVpcConfig
-        self.version = version
-        self.kubernetes_network_config = kubernetesNetworkConfig
-        self.logging = logging
+        self.kubernetes_network_config = (
+            kubernetesNetworkConfig or DEFAULT_KUBERNETES_NETWORK_CONFIG
+        )
+        self.logging = logging or DEFAULT_LOGGING
+        self.platformVersion = DEFAULT_PLATFORM_VERSION
+        self.status = DEFAULT_STATUS
+        self.version = version or DEFAULT_KUBERNETES_VERSION
+
         self.client_request_token = clientRequestToken
-        self.tags = tags
         self.encryption_config = encryptionConfig
+        self.name = name
+        self.resources_vpc_config = resourcesVpcConfig
+        self.role_arn = roleArn
+        self.tags = tags
 
     def __iter__(self):
         yield "name", self.name
@@ -81,7 +102,7 @@ class EKSBackend(BaseBackend):
         self.clusters = dict()
         self.cluster_count = 0
         self.region_name = region_name
-        self.partition = self._set_partition()
+        self.partition = set_partition(region_name)
 
     def reset(self):
         region_name = self.region_name
@@ -110,7 +131,7 @@ class EKSBackend(BaseBackend):
     ):
         if tags is None:
             tags = dict()
-        self._validate_role_arn(role_arn)
+        validate_role_arn(role_arn)
 
         cluster = Cluster(
             name=name,
@@ -129,29 +150,11 @@ class EKSBackend(BaseBackend):
         self.cluster_count += 1
         return cluster
 
-    def _set_partition(self):
-        if region.startswith("cn-"):
-            return "aws-cn"
-        elif region.startswith("us-gov-"):
-            return "aws-us-gov"
-        elif region.startswith("us-gov-iso-"):
-            return "aws-iso"
-        elif region.startswith("us-gov-iso-b-"):
-            return "aws-iso-b"
-        else:
-            return "aws"
-
-    def _validate_role_arn(self, arn):
-        valid_role_arn_format = re.compile(
-            "arn:(?P<partition>.+):iam::(?P<account_id>[0-9]{12}):role/.+"
-        )
-        match = valid_role_arn_format.match(arn)
-        valid_partition = (
-            match.group("partition") in Session().get_available_partitions()
-        )
-
-        if not all({arn, match, valid_partition}):
-            raise InvalidParameterException("Invalid Role Arn: '" + arn + "'")
+    def describe_cluster(self, name):
+        try:
+            return self.clusters[name]
+        except KeyError:
+            raise ResourceNotFoundException("Cluster " + name + " not found.")
 
 
 eks_backends = {}
