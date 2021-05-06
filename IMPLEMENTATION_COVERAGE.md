@@ -2960,14 +2960,14 @@
 - [ ] create_event_subscription
 - [ ] create_replication_instance
 - [ ] create_replication_subnet_group
-- [ ] create_replication_task
+- [X] create_replication_task
 - [ ] delete_certificate
 - [ ] delete_connection
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
 - [ ] delete_replication_instance
 - [ ] delete_replication_subnet_group
-- [ ] delete_replication_task
+- [X] delete_replication_task
 - [ ] delete_replication_task_assessment_run
 - [ ] describe_account_attributes
 - [ ] describe_applicable_individual_assessments
@@ -2987,7 +2987,7 @@
 - [ ] describe_replication_task_assessment_results
 - [ ] describe_replication_task_assessment_runs
 - [ ] describe_replication_task_individual_assessments
-- [ ] describe_replication_tasks
+- [X] describe_replication_tasks
 - [ ] describe_schemas
 - [ ] describe_table_statistics
 - [ ] import_certificate
@@ -3002,10 +3002,10 @@
 - [ ] refresh_schemas
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
-- [ ] start_replication_task
+- [X] start_replication_task
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
-- [ ] stop_replication_task
+- [X] stop_replication_task
 - [ ] test_connection
 </details>
 
