@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 from botocore.exceptions import ClientError
 import boto3
 import sure  # noqa
+import pytest
+
 from moto import mock_dms
 
 
@@ -46,7 +48,7 @@ def test_create_existing_replication_task_throws_error():
         TableMappings='{"rules":[]}',
     )
 
-    try:
+    with pytest.raises(ClientError) as ex:
         client.create_replication_task(
             ReplicationTaskIdentifier="test",
             SourceEndpointArn="source-endpoint-arn",
@@ -55,13 +57,12 @@ def test_create_existing_replication_task_throws_error():
             MigrationType="full-load",
             TableMappings='{"rules":[]}',
         )
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceAlreadyExistsFault")
-        err.response["Error"]["Message"].should.equal(
-            "The resource you are attempting to create already exists."
-        )
-    else:
-        raise RuntimeError("Should have raised ResourceAlreadyExistsFault")
+
+    ex.value.operation_name.should.equal("CreateReplicationTask")
+    ex.value.response["Error"]["Code"].should.equal("ResourceAlreadyExistsFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "The resource you are attempting to create already exists."
+    )
 
 
 @mock_dms
@@ -88,6 +89,23 @@ def test_start_replication_task():
 
 
 @mock_dms
+def test_start_replication_task_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.start_replication_task(
+            ReplicationTaskArn="does-not-exist",
+            StartReplicationTaskType="start-replication",
+        )
+
+    ex.value.operation_name.should.equal("StartReplicationTask")
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Replication task could not be found."
+    )
+
+
+@mock_dms
 def test_stop_replication_task_throws_invalid_state_error():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -101,11 +119,28 @@ def test_stop_replication_task_throws_invalid_state_error():
     )
     task_arn = response["ReplicationTask"]["ReplicationTaskArn"]
 
-    try:
+    with pytest.raises(ClientError) as ex:
         client.stop_replication_task(ReplicationTaskArn=task_arn)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("InvalidResourceStateFault")
-        err.response["Error"]["Message"].should.equal("Replication task is not running")
+
+    ex.value.operation_name.should.equal("StopReplicationTask")
+    ex.value.response["Error"]["Code"].should.equal("InvalidResourceStateFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Replication task is not running"
+    )
+
+
+@mock_dms
+def test_stop_replication_task_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.stop_replication_task(ReplicationTaskArn="does-not-exist")
+
+    ex.value.operation_name.should.equal("StopReplicationTask")
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Replication task could not be found."
+    )
 
 
 @mock_dms
@@ -151,3 +186,17 @@ def test_delete_replication_task():
     )
 
     tasks["ReplicationTasks"].should.have.length_of(0)
+
+
+@mock_dms
+def test_delete_replication_task_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_replication_task(ReplicationTaskArn="does-not-exist")
+
+    ex.value.operation_name.should.equal("DeleteReplicationTask")
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Replication task could not be found."
+    )

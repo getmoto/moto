@@ -22,7 +22,6 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
     def reset(self):
         region_name = self.region_name
-        self.replication_tasks = {}
         self.__dict__ = {}
         self.__init__(region_name)
 
