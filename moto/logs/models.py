@@ -1,6 +1,6 @@
 from boto3 import Session
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
 from .exceptions import (
     ResourceNotFoundException,
@@ -10,7 +10,7 @@ from .exceptions import (
 )
 
 
-class LogEvent:
+class LogEvent(BaseModel):
     _event_id = 0
 
     def __init__(self, ingestion_time, log_event):
@@ -37,7 +37,7 @@ class LogEvent:
         }
 
 
-class LogStream:
+class LogStream(BaseModel):
     _log_ids = 0
 
     def __init__(self, region, log_group, name):
@@ -238,7 +238,7 @@ class LogStream:
         return events
 
 
-class LogGroup:
+class LogGroup(BaseModel):
     def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
