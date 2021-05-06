@@ -79,7 +79,8 @@ _dep_python_jose_ecdsa_pin = (
 _dep_docker = "docker>=2.5.1"
 _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
-_dep_idna = "idna<3,>=2.5"
+_dep_idna_py2 = "idna<3,>=2.5; python_version<'3'"
+_dep_idna_py3 = "idna>=3; python_version>'3'"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_decorator = "decorator<=4.4.2; python_version<'3'"  # Transitive dependency - last version that supports py2.7
 _dep_sshpubkeys_py2 = "sshpubkeys==3.1.0; python_version<'3'"
@@ -92,7 +93,8 @@ all_extra_deps = [
     _dep_docker,
     _dep_jsondiff,
     _dep_aws_xray_sdk,
-    _dep_idna,
+    _dep_idna_py2,
+    _dep_idna_py3,
     _dep_cfn_lint,
     _dep_decorator,
     _dep_sshpubkeys_py2,
