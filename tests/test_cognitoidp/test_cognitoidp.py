@@ -15,7 +15,7 @@ import boto3
 
 # noinspection PyUnresolvedReferences
 import sure  # noqa
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from jose import jws, jwk, jwt
 import pytest
 
@@ -61,6 +61,54 @@ def test_set_user_pool_mfa_config():
     name = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=name)["UserPool"]["Id"]
 
+    # Test error for when neither token nor sms configuration is provided
+    with pytest.raises(ClientError) as ex:
+        conn.set_user_pool_mfa_config(
+            UserPoolId=user_pool_id, MfaConfiguration="ON",
+        )
+
+    ex.value.operation_name.should.equal("SetUserPoolMfaConfig")
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.value.response["Error"]["Message"].should.equal(
+        "At least one of [SmsMfaConfiguration] or [SoftwareTokenMfaConfiguration] must be provided."
+    )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+    # Test error for when sms config is missing `SmsConfiguration`
+    with pytest.raises(ClientError) as ex:
+        conn.set_user_pool_mfa_config(
+            UserPoolId=user_pool_id, SmsMfaConfiguration={}, MfaConfiguration="ON",
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.value.response["Error"]["Message"].should.equal(
+        "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
+    )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+    # Test error for when `SmsConfiguration` is missing `SnsCaller`
+    # This is asserted by boto3
+    with pytest.raises(ParamValidationError) as ex:
+        conn.set_user_pool_mfa_config(
+            UserPoolId=user_pool_id,
+            SmsMfaConfiguration={"SmsConfiguration": {}},
+            MfaConfiguration="ON",
+        )
+
+    # Test error for when `MfaConfiguration` is not one of the expected values
+    with pytest.raises(ClientError) as ex:
+        conn.set_user_pool_mfa_config(
+            UserPoolId=user_pool_id,
+            SoftwareTokenMfaConfiguration={"Enabled": True},
+            MfaConfiguration="Invalid",
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.value.response["Error"]["Message"].should.equal(
+        "[MfaConfiguration] must be one of 'ON', 'OFF', or 'OPTIONAL'."
+    )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
     # Enable software token MFA
     mfa_config = conn.set_user_pool_mfa_config(
         UserPoolId=user_pool_id,
@@ -70,10 +118,36 @@ def test_set_user_pool_mfa_config():
 
     mfa_config.shouldnt.have.key("SmsMfaConfiguration")
     mfa_config["MfaConfiguration"].should.equal("ON")
+    mfa_config["SoftwareTokenMfaConfiguration"].should.equal({"Enabled": True})
 
     # Response from describe should match
     pool = conn.describe_user_pool(UserPoolId=user_pool_id)["UserPool"]
     pool["MfaConfiguration"].should.equal("ON")
+
+    # Disable MFA
+    mfa_config = conn.set_user_pool_mfa_config(
+        UserPoolId=user_pool_id, MfaConfiguration="OFF",
+    )
+
+    mfa_config.shouldnt.have.key("SmsMfaConfiguration")
+    mfa_config.shouldnt.have.key("SoftwareTokenMfaConfiguration")
+    mfa_config["MfaConfiguration"].should.equal("OFF")
+
+    # Response from describe should match
+    pool = conn.describe_user_pool(UserPoolId=user_pool_id)["UserPool"]
+    pool["MfaConfiguration"].should.equal("OFF")
+
+    # `SnsCallerArn` needs to be at least 20 long
+    sms_config = {"SmsConfiguration": {"SnsCallerArn": "01234567890123456789"}}
+
+    # Enable SMS MFA
+    mfa_config = conn.set_user_pool_mfa_config(
+        UserPoolId=user_pool_id, SmsMfaConfiguration=sms_config, MfaConfiguration="ON",
+    )
+
+    mfa_config.shouldnt.have.key("SoftwareTokenMfaConfiguration")
+    mfa_config["SmsMfaConfiguration"].should.equal(sms_config)
+    mfa_config["MfaConfiguration"].should.equal("ON")
 
 
 @mock_cognitoidp
