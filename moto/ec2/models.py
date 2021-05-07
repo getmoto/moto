@@ -479,10 +479,10 @@ class NetworkInterfaceBackend(object):
 
         found_eni.instance.detach_eni(found_eni)
 
-    def modify_network_interface_attribute(self, eni_id, group_id):
+    def modify_network_interface_attribute(self, eni_id, group_ids):
         eni = self.get_network_interface(eni_id)
-        group = self.get_security_group_from_id(group_id)
-        eni._group_set = [group]
+        groups = [self.get_security_group_from_id(group_id) for group_id in group_ids]
+        eni._group_set = groups
 
     def get_all_network_interfaces(self, eni_ids=None, filters=None):
         enis = self.enis.values()
