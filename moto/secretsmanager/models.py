@@ -9,7 +9,6 @@ import datetime
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
-from moto.awslambda.models import lambda_backends
 from .exceptions import (
     SecretNotFoundException,
     SecretHasNoValueException,
@@ -171,7 +170,6 @@ class SecretsManagerBackend(BaseBackend):
         super(SecretsManagerBackend, self).__init__()
         self.region = region_name
         self.secrets = SecretsStore()
-        self.lambda_backend = lambda_backends[self.region]
 
     def reset(self):
         region_name = self.region
@@ -277,7 +275,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         description=None,
         tags=[],
-        **kwargs,
+        **kwargs
     ):
 
         # error if secret exists
@@ -438,10 +436,13 @@ class SecretsManagerBackend(BaseBackend):
 
         # Begin the rotation process for the given secret by invoking the lambda function.
         if secret.rotation_lambda_arn:
+            from moto.awslambda.models import lambda_backends
+            lambda_backend = lambda_backends[self.region]
+
             request_headers = {}
             response_headers = {}
 
-            func = self.lambda_backend.get_function(secret.rotation_lambda_arn)
+            func = lambda_backend.get_function(secret.rotation_lambda_arn)
             for step in ["create", "set", "test", "finish"]:
                 func.invoke(
                     json.dumps(
