@@ -277,7 +277,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         description=None,
         tags=[],
-        **kwargs
+        **kwargs,
     ):
 
         # error if secret exists
@@ -328,7 +328,7 @@ class SecretsManagerBackend(BaseBackend):
             secret = self.secrets[secret_id]
             secret.update(description, tags)
 
-            if 'AWSPENDING' in version_stages:
+            if "AWSPENDING" in version_stages:
                 secret.versions[version_id] = secret_version
             else:
                 secret.reset_default_version(secret_version, version_id)
@@ -442,15 +442,21 @@ class SecretsManagerBackend(BaseBackend):
             response_headers = {}
 
             func = self.lambda_backend.get_function(secret.rotation_lambda_arn)
-            for step in ['create', 'set', 'test', 'finish']:
-                func.invoke(json.dumps({
-                    "Step": f"{step}Secret",
-                    "SecretId": secret.name,
-                    "ClientRequestToken": new_version_id,
-                }), request_headers, response_headers)
+            for step in ["create", "set", "test", "finish"]:
+                func.invoke(
+                    json.dumps(
+                        {
+                            "Step": f"{step}Secret",
+                            "SecretId": secret.name,
+                            "ClientRequestToken": new_version_id,
+                        }
+                    ),
+                    request_headers,
+                    response_headers,
+                )
 
         secret.reset_default_version(secret.versions[new_version_id], new_version_id)
-        secret.versions[new_version_id]['version_stages'] = ['AWSCURRENT']
+        secret.versions[new_version_id]["version_stages"] = ["AWSCURRENT"]
         return secret.to_short_dict()
 
     def get_random_password(
