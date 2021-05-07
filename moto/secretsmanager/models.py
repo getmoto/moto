@@ -9,6 +9,7 @@ import datetime
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
+from moto.awslambda.models import lambda_backends
 from .exceptions import (
     SecretNotFoundException,
     SecretHasNoValueException,
@@ -170,6 +171,7 @@ class SecretsManagerBackend(BaseBackend):
         super(SecretsManagerBackend, self).__init__()
         self.region = region_name
         self.secrets = SecretsStore()
+        self.lambda_backend = lambda_backends[self.region]
 
     def reset(self):
         region_name = self.region
@@ -325,7 +327,11 @@ class SecretsManagerBackend(BaseBackend):
         if secret_id in self.secrets:
             secret = self.secrets[secret_id]
             secret.update(description, tags)
-            secret.reset_default_version(secret_version, version_id)
+
+            if 'AWSPENDING' in version_stages:
+                secret.versions[version_id] = secret_version
+            else:
+                secret.reset_default_version(secret_version, version_id)
         else:
             secret = FakeSecret(
                 region_name=self.region,
@@ -413,24 +419,38 @@ class SecretsManagerBackend(BaseBackend):
         old_secret_version = secret.versions[secret.default_version_id]
         new_version_id = client_request_token or str(uuid.uuid4())
 
+        # We add the new secret version as "pending". The previous version remains
+        # as "current" for now. Once we've passed the new secret through the lambda
+        # rotation function (if provided) we can then update the status to "current".
         self._add_secret(
             secret_id,
             old_secret_version["secret_string"],
             description=secret.description,
             tags=secret.tags,
             version_id=new_version_id,
-            version_stages=["AWSCURRENT"],
+            version_stages=["AWSPENDING"],
         )
-
         secret.rotation_lambda_arn = rotation_lambda_arn or ""
         if rotation_rules:
             secret.auto_rotate_after_days = rotation_rules.get(rotation_days, 0)
         if secret.auto_rotate_after_days > 0:
             secret.rotation_enabled = True
 
-        if "AWSCURRENT" in old_secret_version["version_stages"]:
-            old_secret_version["version_stages"].remove("AWSCURRENT")
+        # Begin the rotation process for the given secret by invoking the lambda function.
+        if secret.rotation_lambda_arn:
+            request_headers = {}
+            response_headers = {}
 
+            func = self.lambda_backend.get_function(secret.rotation_lambda_arn)
+            for step in ['create', 'set', 'test', 'finish']:
+                func.invoke(json.dumps({
+                    "Step": f"{step}Secret",
+                    "SecretId": secret.name,
+                    "ClientRequestToken": new_version_id,
+                }), request_headers, response_headers)
+
+        secret.reset_default_version(secret.versions[new_version_id], new_version_id)
+        secret.versions[new_version_id]['version_stages'] = ['AWSCURRENT']
         return secret.to_short_dict()
 
     def get_random_password(
