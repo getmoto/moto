@@ -782,11 +782,11 @@ def test_change_message_visibility_than_permitted():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+
     with freeze_time("2015-01-01 12:00:00"):
-        sqs = boto3.resource("sqs", region_name="us-east-1")
         queue = sqs.create_queue(QueueName="blah")
         queue.send_message(MessageBody="derp")
-
         messages = queue.receive_messages()
         messages.should.have.length_of(1)
 
@@ -1879,7 +1879,7 @@ def test_batch_change_message_visibility():
             {
                 "Id": str(uuid.uuid4()),
                 "ReceiptHandle": handle,
-                "VisibilityTimeout": 43200,
+                "VisibilityTimeout": 43000,
             }
             for handle in handles
         ]
