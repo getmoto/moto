@@ -10,7 +10,6 @@ import hashlib
 import boto
 import boto3
 import botocore.exceptions
-import six
 import sys
 import sure  # noqa
 from boto.exception import SQSError
@@ -564,9 +563,9 @@ def test_get_queue_attributes():
     response["Attributes"]["ApproximateNumberOfMessages"].should.equal("0")
     response["Attributes"]["ApproximateNumberOfMessagesDelayed"].should.equal("0")
     response["Attributes"]["ApproximateNumberOfMessagesNotVisible"].should.equal("0")
-    response["Attributes"]["CreatedTimestamp"].should.be.a(six.string_types)
+    response["Attributes"]["CreatedTimestamp"].should.be.a(str)
     response["Attributes"]["DelaySeconds"].should.equal("0")
-    response["Attributes"]["LastModifiedTimestamp"].should.be.a(six.string_types)
+    response["Attributes"]["LastModifiedTimestamp"].should.be.a(str)
     response["Attributes"]["MaximumMessageSize"].should.equal("262144")
     response["Attributes"]["MessageRetentionPeriod"].should.equal("345600")
     response["Attributes"]["QueueArn"].should.equal(

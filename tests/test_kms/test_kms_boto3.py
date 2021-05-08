@@ -7,7 +7,6 @@ import os
 
 import boto3
 import botocore.exceptions
-import six
 import sure  # noqa
 from freezegun import freeze_time
 import pytest
@@ -22,7 +21,7 @@ PLAINTEXT_VECTORS = [
 
 
 def _get_encoded_value(plaintext):
-    if isinstance(plaintext, six.binary_type):
+    if isinstance(plaintext, bytes):
         return plaintext
 
     return plaintext.encode("utf-8")

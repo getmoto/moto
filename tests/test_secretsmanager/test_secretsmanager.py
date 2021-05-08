@@ -10,7 +10,6 @@ import pytz
 from datetime import datetime
 import sure  # noqa
 import pytest
-from six import b
 
 DEFAULT_SECRET_NAME = "test-secret"
 
@@ -43,10 +42,10 @@ def test_get_secret_value_binary():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     create_secret = conn.create_secret(
-        Name="java-util-test-password", SecretBinary=b("foosecret")
+        Name="java-util-test-password", SecretBinary=b"foosecret"
     )
     result = conn.get_secret_value(SecretId="java-util-test-password")
-    assert result["SecretBinary"] == b("foosecret")
+    assert result["SecretBinary"] == b"foosecret"
 
 
 @mock_secretsmanager
@@ -646,7 +645,7 @@ def test_put_secret_value_on_non_existing_secret():
 @mock_secretsmanager
 def test_put_secret_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="foosecret",
@@ -665,10 +664,10 @@ def test_put_secret_value_puts_new_secret():
 @mock_secretsmanager
 def test_put_secret_binary_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
-        SecretBinary=b("foosecret"),
+        SecretBinary=b"foosecret",
         VersionStages=["AWSCURRENT"],
     )
     version_id = put_secret_value_dict["VersionId"]
@@ -678,21 +677,21 @@ def test_put_secret_binary_value_puts_new_secret():
     )
 
     assert get_secret_value_dict
-    assert get_secret_value_dict["SecretBinary"] == b("foosecret")
+    assert get_secret_value_dict["SecretBinary"] == b"foosecret"
 
 
 @mock_secretsmanager
 def test_create_and_put_secret_binary_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     conn.put_secret_value(
-        SecretId=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret_update")
+        SecretId=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret_update"
     )
 
     latest_secret = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME)
 
     assert latest_secret
-    assert latest_secret["SecretBinary"] == b("foosecret_update")
+    assert latest_secret["SecretBinary"] == b"foosecret_update"
 
 
 @mock_secretsmanager
@@ -710,7 +709,7 @@ def test_put_secret_binary_requires_either_string_or_binary():
 @mock_secretsmanager
 def test_put_secret_value_can_get_first_version_if_put_twice():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="first_secret",

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 import pytest
 import sure  # noqa

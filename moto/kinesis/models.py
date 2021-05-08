@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import datetime
 import time
 import re
-import six
 import itertools
 
 from operator import attrgetter
@@ -178,13 +177,13 @@ class Stream(CloudFormationModel):
             raise ShardNotFoundError(shard_id)
 
     def get_shard_for_key(self, partition_key, explicit_hash_key):
-        if not isinstance(partition_key, six.string_types):
+        if not isinstance(partition_key, str):
             raise InvalidArgumentError("partition_key")
         if len(partition_key) > 256:
             raise InvalidArgumentError("partition_key")
 
         if explicit_hash_key:
-            if not isinstance(explicit_hash_key, six.string_types):
+            if not isinstance(explicit_hash_key, str):
                 raise InvalidArgumentError("explicit_hash_key")
 
             key = int(explicit_hash_key)
@@ -225,7 +224,7 @@ class Stream(CloudFormationModel):
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
-                "StreamCreationTimestamp": six.text_type(self.creation_datetime),
+                "StreamCreationTimestamp": str(self.creation_datetime),
                 "OpenShardCount": self.shard_count,
             }
         }

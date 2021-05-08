@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 2.7, 3.6, 3.7, 3.8 ]
+        python-version: [ 3.6, 3.7, 3.8 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -28,7 +28,7 @@ jobs:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
       - name: Update pip
-        if: ${{ steps.pip-cache.outputs.cache-hit != 'true' && matrix.python-version != '2.7' }}
+        if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
           python -m pip install --upgrade pip
       - name: Install project dependencies
@@ -61,7 +61,6 @@ jobs:
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     # Update PIP - recent version does not support PY2 though
     - name: Update pip
-      if: ${{ matrix.python-version != '2.7' }}
       run: |
         python -m pip install --upgrade pip
     # Still need to properly install the dependencies - it will only skip the download part
@@ -79,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [2.7, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -99,7 +98,6 @@ jobs:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     - name: Update pip
-      if: ${{ matrix.python-version != '2.7' }}
       run: |
         python -m pip install --upgrade pip
     - name: Install project dependencies
@@ -122,7 +120,7 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        python-version: [2.7, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -147,7 +145,6 @@ jobs:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}
     - name: Update pip
-      if: ${{ matrix.python-version != '2.7' }}
       run: |
         python -m pip install --upgrade pip
     - name: Install project dependencies

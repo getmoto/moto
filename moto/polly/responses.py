@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import json
 import re
 
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 
 from moto.core.responses import BaseResponse
 from .models import polly_backends

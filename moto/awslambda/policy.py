@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 import json
 import uuid
 
-from six import string_types
-
 from moto.awslambda.exceptions import PreconditionFailedException
 
 
@@ -96,7 +94,7 @@ class Policy:
             obj[key] = value
 
     def principal_formatter(self, obj):
-        if isinstance(obj, string_types):
+        if isinstance(obj, str):
             if obj.endswith(".amazonaws.com"):
                 return {"Service": obj}
             if obj.endswith(":root"):

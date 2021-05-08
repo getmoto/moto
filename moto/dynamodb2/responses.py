@@ -5,7 +5,6 @@ import json
 import re
 
 import itertools
-import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
@@ -87,7 +86,7 @@ class DynamoHandler(BaseResponse):
         if endpoint:
             endpoint = camelcase_to_underscores(endpoint)
             response = getattr(self, endpoint)()
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, self.response_headers, response
 
             else:
@@ -482,8 +481,7 @@ class DynamoHandler(BaseResponse):
                 index = table.schema
 
             reverse_attribute_lookup = dict(
-                (v, k)
-                for k, v in six.iteritems(self.body.get("ExpressionAttributeNames", {}))
+                (v, k) for k, v in self.body.get("ExpressionAttributeNames", {}).items()
             )
 
             if " and " in key_condition_expression.lower():

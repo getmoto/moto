@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 import io
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 import sure  # noqa
 
 from flask.testing import FlaskClient
