@@ -777,7 +777,7 @@ def test_send_receive_message_with_attributes_with_labels():
     )
 
 
-@mock_sqs
+@mock_sqs_deprecated
 def test_change_message_visibility_than_permitted():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
