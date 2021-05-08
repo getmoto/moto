@@ -789,7 +789,6 @@ def test_change_message_visibility_than_permitted():
 
         messages = queue.receive_messages()
         messages.should.have.length_of(1)
-        messages[0].get("ReceiptHandle")
 
         sqs.change_message_visibility(
             queue_name="blah",
