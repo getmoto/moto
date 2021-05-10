@@ -345,7 +345,7 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret
 
-    def put_secret_value(self, secret_id, secret_string, secret_binary, version_stages):
+    def put_secret_value(self, secret_id, secret_string, secret_binary, client_request_token, version_stages):
 
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
@@ -358,6 +358,7 @@ class SecretsManagerBackend(BaseBackend):
             secret_id,
             secret_string,
             secret_binary,
+            version_id=client_request_token,
             description=description,
             tags=tags,
             version_stages=version_stages,

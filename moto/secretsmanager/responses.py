@@ -106,16 +106,19 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId", if_none="")
         secret_string = self._get_param("SecretString")
         secret_binary = self._get_param("SecretBinary")
+        client_request_token = self._get_param('ClientRequestToken')
         if not secret_binary and not secret_string:
             raise InvalidRequestException(
                 "You must provide either SecretString or SecretBinary."
             )
         version_stages = self._get_param("VersionStages", if_none=["AWSCURRENT"])
+
         return secretsmanager_backends[self.region].put_secret_value(
             secret_id=secret_id,
             secret_binary=secret_binary,
             secret_string=secret_string,
             version_stages=version_stages,
+            client_request_token=client_request_token,
         )
 
     def list_secret_version_ids(self):
