@@ -700,6 +700,7 @@ def lambda_handler(event, context):
 
 
 if settings.TEST_SERVER_MODE:
+
     @mock_lambda
     @mock_secretsmanager
     def test_rotate_secret_using_lambda():
@@ -707,9 +708,7 @@ if settings.TEST_SERVER_MODE:
 
         # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
         lambda_conn = boto3.client(
-            "lambda",
-            region_name="us-west-2",
-            endpoint_url='http://localhost:5000',
+            "lambda", region_name="us-west-2", endpoint_url="http://localhost:5000",
         )
         func = lambda_conn.create_function(
             FunctionName="testFunction",
@@ -726,36 +725,32 @@ if settings.TEST_SERVER_MODE:
         secrets_conn = boto3.client(
             "secretsmanager",
             region_name="us-west-2",
-            endpoint_url='http://localhost:5000',
+            endpoint_url="http://localhost:5000",
         )
         secret = secrets_conn.create_secret(
-            Name=DEFAULT_SECRET_NAME,
-            SecretString="InitialValue",
+            Name=DEFAULT_SECRET_NAME, SecretString="InitialValue",
         )
-        initial_version = secret['VersionId']
+        initial_version = secret["VersionId"]
 
         rotated_secret = secrets_conn.rotate_secret(
             SecretId=DEFAULT_SECRET_NAME,
-            RotationLambdaARN=func['FunctionArn'],
-            RotationRules=dict(
-                AutomaticallyAfterDays=30,
-            ),
+            RotationLambdaARN=func["FunctionArn"],
+            RotationRules=dict(AutomaticallyAfterDays=30,),
         )
 
         # Ensure we received an updated VersionId from `rotate_secret`
-        assert rotated_secret['VersionId'] != initial_version
+        assert rotated_secret["VersionId"] != initial_version
 
         updated_secret = secrets_conn.get_secret_value(
-            SecretId=DEFAULT_SECRET_NAME,
-            VersionStage="AWSCURRENT",
+            SecretId=DEFAULT_SECRET_NAME, VersionStage="AWSCURRENT",
         )
-        rotated_version = updated_secret['VersionId']
+        rotated_version = updated_secret["VersionId"]
 
         assert initial_version != rotated_version
         metadata = secrets_conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
-        assert metadata['VersionIdsToStages'][initial_version] == ['AWSPREVIOUS']
-        assert metadata['VersionIdsToStages'][rotated_version] == ['AWSCURRENT']
-        assert updated_secret['SecretString'] == 'UpdatedValue'
+        assert metadata["VersionIdsToStages"][initial_version] == ["AWSPREVIOUS"]
+        assert metadata["VersionIdsToStages"][rotated_version] == ["AWSCURRENT"]
+        assert updated_secret["SecretString"] == "UpdatedValue"
 
 
 @mock_secretsmanager

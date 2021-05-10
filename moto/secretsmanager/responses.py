@@ -106,7 +106,7 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId", if_none="")
         secret_string = self._get_param("SecretString")
         secret_binary = self._get_param("SecretBinary")
-        client_request_token = self._get_param('ClientRequestToken')
+        client_request_token = self._get_param("ClientRequestToken")
         if not secret_binary and not secret_string:
             raise InvalidRequestException(
                 "You must provide either SecretString or SecretBinary."

@@ -269,13 +269,7 @@ class SecretsManagerBackend(BaseBackend):
         return secret.to_short_dict()
 
     def create_secret(
-        self,
-        name,
-        secret_string=None,
-        secret_binary=None,
-        description=None,
-        tags=[],
-        **kwargs
+        self, name, secret_string=None, secret_binary=None, description=None, tags=[]
     ):
 
         # error if secret exists
@@ -345,7 +339,14 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret
 
-    def put_secret_value(self, secret_id, secret_string, secret_binary, client_request_token, version_stages):
+    def put_secret_value(
+        self,
+        secret_id,
+        secret_string,
+        secret_binary,
+        client_request_token,
+        version_stages,
+    ):
 
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
@@ -429,9 +430,9 @@ class SecretsManagerBackend(BaseBackend):
             versions = next(
                 versions
                 for versions in secret.versions.values()
-                if 'AWSPENDING' in versions
+                if "AWSPENDING" in versions
             )
-            if 'AWSCURRENT' not in versions:
+            if "AWSCURRENT" not in versions:
                 msg = "Previous rotation request is still in progress."
                 raise InvalidRequestException(msg)
 
@@ -484,7 +485,9 @@ class SecretsManagerBackend(BaseBackend):
 
             secret.set_default_version_id(new_version_id)
         else:
-            secret.reset_default_version(secret.versions[new_version_id], new_version_id)
+            secret.reset_default_version(
+                secret.versions[new_version_id], new_version_id
+            )
             secret.versions[new_version_id]["version_stages"] = ["AWSCURRENT"]
 
         return secret.to_short_dict()
@@ -648,7 +651,9 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret_id
 
-    def update_secret_version_stage(self, secret_id, version_stage, remove_from_version_id, move_to_version_id):
+    def update_secret_version_stage(
+        self, secret_id, version_stage, remove_from_version_id, move_to_version_id
+    ):
         if secret_id not in self.secrets.keys():
             raise SecretNotFoundException()
 
@@ -656,25 +661,32 @@ class SecretsManagerBackend(BaseBackend):
 
         if remove_from_version_id:
             if remove_from_version_id not in secret.versions:
-                raise InvalidParameterException("Not a valid version: %s" % remove_from_version_id)
+                raise InvalidParameterException(
+                    "Not a valid version: %s" % remove_from_version_id
+                )
 
-            stages = secret.versions[remove_from_version_id]['version_stages']
+            stages = secret.versions[remove_from_version_id]["version_stages"]
             if version_stage not in stages:
-                raise InvalidParameterException("Version stage %s not found in version %s" % (version_stage, remove_from_version_id))
+                raise InvalidParameterException(
+                    "Version stage %s not found in version %s"
+                    % (version_stage, remove_from_version_id)
+                )
 
             stages.remove(version_stage)
 
-            if version_stage == 'AWSCURRENT':
+            if version_stage == "AWSCURRENT":
                 # Whenever you move AWSCURRENT, Secrets Manager automatically
                 # moves the label AWSPREVIOUS to the version that AWSCURRENT
                 # was removed from.
-                stages.append('AWSPREVIOUS')
+                stages.append("AWSPREVIOUS")
 
         if move_to_version_id:
             if move_to_version_id not in secret.versions:
-                raise InvalidParameterException("Not a valid version: %s" % move_to_version_id)
+                raise InvalidParameterException(
+                    "Not a valid version: %s" % move_to_version_id
+                )
 
-            stages = secret.versions[move_to_version_id]['version_stages']
+            stages = secret.versions[move_to_version_id]["version_stages"]
             stages.append(version_stage)
 
         return secret_id
