@@ -112,6 +112,8 @@ class SecretsManagerResponse(BaseResponse):
                 "You must provide either SecretString or SecretBinary."
             )
         version_stages = self._get_param("VersionStages", if_none=["AWSCURRENT"])
+        if not isinstance(version_stages, list):
+            version_stages = [version_stages]
 
         return secretsmanager_backends[self.region].put_secret_value(
             secret_id=secret_id,

@@ -427,12 +427,12 @@ class SecretsManagerBackend(BaseBackend):
         # version as AWSCURRENT then any later invocation of RotateSecret assumes
         # that a previous rotation request is still in progress and returns an error.
         try:
-            versions = next(
-                versions
-                for versions in secret.versions.values()
-                if "AWSPENDING" in versions
+            version = next(
+                version
+                for version in secret.versions.values()
+                if "AWSPENDING" in version['version_stages']
             )
-            if "AWSCURRENT" not in versions:
+            if "AWSCURRENT" in version['version_stages']:
                 msg = "Previous rotation request is still in progress."
                 raise InvalidRequestException(msg)
 
@@ -674,12 +674,6 @@ class SecretsManagerBackend(BaseBackend):
 
             stages.remove(version_stage)
 
-            if version_stage == "AWSCURRENT":
-                # Whenever you move AWSCURRENT, Secrets Manager automatically
-                # moves the label AWSPREVIOUS to the version that AWSCURRENT
-                # was removed from.
-                stages.append("AWSPREVIOUS")
-
         if move_to_version_id:
             if move_to_version_id not in secret.versions:
                 raise InvalidParameterException(
@@ -688,6 +682,18 @@ class SecretsManagerBackend(BaseBackend):
 
             stages = secret.versions[move_to_version_id]["version_stages"]
             stages.append(version_stage)
+
+        if version_stage == "AWSCURRENT":
+            if remove_from_version_id:
+                # Whenever you move AWSCURRENT, Secrets Manager automatically
+                # moves the label AWSPREVIOUS to the version that AWSCURRENT
+                # was removed from.
+                secret.versions[remove_from_version_id]["version_stages"].append("AWSPREVIOUS")
+
+            if move_to_version_id:
+                stages = secret.versions[move_to_version_id]["version_stages"]
+                if "AWSPREVIOUS" in stages:
+                    stages.remove("AWSPREVIOUS")
 
         return secret_id
 
