@@ -619,6 +619,37 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret_id
 
+    def update_secret_version_stage(self, secret_id, version_stage, remove_from_version_id, move_to_version_id):
+        if secret_id not in self.secrets.keys():
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+
+        if remove_from_version_id:
+            if remove_from_version_id not in secret.versions:
+                raise InvalidParameterException("Not a valid version: %s" % remove_from_version_id)
+
+            stages = secret.versions[remove_from_version_id]['version_stages']
+            if version_stage not in stages:
+                raise InvalidParameterException("Version stage %s not found in version %s" % (version_stage, remove_from_version_id))
+
+            stages.remove(version_stage)
+
+            if version_stage == 'AWSCURRENT':
+                # Whenever you move AWSCURRENT, Secrets Manager automatically
+                # moves the label AWSPREVIOUS to the version that AWSCURRENT
+                # was removed from.
+                stages.append('AWSPREVIOUS')
+
+        if move_to_version_id:
+            if move_to_version_id not in secret.versions:
+                raise InvalidParameterException("Not a valid version: %s" % move_to_version_id)
+
+            stages = secret.versions[move_to_version_id]['version_stages']
+            stages.append(version_stage)
+
+        return secret_id
+
     @staticmethod
     def get_resource_policy(secret_id):
         resource_policy = {

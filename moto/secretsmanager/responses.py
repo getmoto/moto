@@ -169,3 +169,15 @@ class SecretsManagerResponse(BaseResponse):
         return secretsmanager_backends[self.region].untag_resource(
             secret_id=secret_id, tag_keys=tag_keys
         )
+
+    def update_secret_version_stage(self):
+        secret_id = self._get_param("SecretId")
+        version_stage = self._get_param("VersionStage")
+        remove_from_version_id = self._get_param("RemoveFromVersionId")
+        move_to_version_id = self._get_param("MoveToVersionId")
+        return secretsmanager_backends[self.region].update_secret_version_stage(
+            secret_id=secret_id,
+            version_stage=version_stage,
+            remove_from_version_id=remove_from_version_id,
+            move_to_version_id=move_to_version_id,
+        )
