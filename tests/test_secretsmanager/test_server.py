@@ -2,10 +2,14 @@
 from __future__ import unicode_literals
 
 import json
+
+import boto3
+import pytest
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_secretsmanager
+from moto import mock_secretsmanager, mock_lambda, mock_iam, mock_logs
+from tests.test_awslambda.test_lambda import get_test_zip_file1
 
 """
 Test the different server responses for secretsmanager
@@ -452,6 +456,53 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     assert json_data["__type"] == "InvalidParameterException"
 
 
+@mock_iam
+@mock_lambda
+@mock_logs
+@mock_secretsmanager
+def test_rotate_secret_lambda_invocations():
+    conn = boto3.client("iam", region_name="us-east-1")
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    role = conn.create_role(
+        RoleName="role", AssumeRolePolicyDocument="some policy", Path="/my-path/",
+    )
+
+    conn = boto3.client("lambda", region_name="us-east-1")
+    func = conn.create_function(
+        FunctionName="testFunction",
+        Code=dict(ZipFile=get_test_zip_file1()),
+        Handler="lambda_function.lambda_handler",
+        Runtime="python2.7",
+        Role=role["Role"]["Arn"],
+    )
+
+    secretsmanager_backend = server.create_backend_app("secretsmanager")
+    secretsmanager_client = secretsmanager_backend.test_client()
+
+    secretsmanager_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+
+    with pytest.raises(logs_conn.exceptions.ResourceNotFoundException):
+        # The log group doesn't exist yet
+        logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
+
+    secretsmanager_client.post(
+        "/",
+        data={
+            "SecretId": DEFAULT_SECRET_NAME,
+            "RotationLambdaARN": func["FunctionArn"],
+        },
+        headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+    )
+
+    # The log group now exists and has been logged to 4 times (for each invocation)
+    logs = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
+    assert len(logs["logStreams"]) == 4
+
+
 @mock_secretsmanager
 def test_put_secret_value_puts_new_secret():
     backend = server.create_backend_app("secretsmanager")
@@ -794,6 +845,56 @@ def test_update_secret_version_stage_currentversion_handling():
     assert len(stages) == 2
     assert stages[initial_version] == ["AWSCURRENT"]
     assert stages[new_version] == ["AWSPREVIOUS"]
+
+
+@mock_secretsmanager
+def test_update_secret_version_stage_validation():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    # Secret ID that doesn't exist
+    resp = test_client.post(
+        "/",
+        data={"SecretId": "nonexistent"},
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 404
+
+    # Add a secret so we can run further checks
+    secret = test_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    secret = json.loads(secret.data.decode("utf-8"))
+
+    # "Remove from" version ID that doesn't exist
+    resp = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME, "RemoveFromVersionId": "nonexistent"},
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 400
+
+    # "Remove from" stage name which isn't attached to the given version
+    resp = test_client.post(
+        "/",
+        data={
+            "SecretId": DEFAULT_SECRET_NAME,
+            "RemoveFromVersionId": secret["VersionId"],
+            "VersionStage": "nonexistent",
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 400
+
+    # "Move to" version ID that doesn't exist
+    resp = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME, "MoveToVersionId": "nonexistent",},
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 400
 
 
 #
