@@ -5,6 +5,7 @@ import json
 import os
 import re
 
+from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from .models import kms_backends
 from .exceptions import (
@@ -14,7 +15,6 @@ from .exceptions import (
     NotAuthorizedException,
 )
 
-ACCOUNT_ID = "012345678912"
 reserved_aliases = [
     "alias/aws/ebs",
     "alias/aws/s3",
@@ -227,8 +227,10 @@ class KmsResponse(BaseResponse):
 
         if self.kms_backend.alias_exists(alias_name):
             raise AlreadyExistsException(
-                "An alias with the name arn:aws:kms:{region}:012345678912:{alias_name} "
-                "already exists".format(region=self.region, alias_name=alias_name)
+                "An alias with the name arn:aws:kms:{region}:{account_id}:{alias_name} "
+                "already exists".format(
+                    region=self.region, account_id=ACCOUNT_ID, alias_name=alias_name
+                )
             )
 
         self._validate_cmk_id(target_key_id)
@@ -258,8 +260,8 @@ class KmsResponse(BaseResponse):
 
         response_aliases = [
             {
-                "AliasArn": "arn:aws:kms:{region}:012345678912:{reserved_alias}".format(
-                    region=region, reserved_alias=reserved_alias
+                "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
+                    region=region, account_id=ACCOUNT_ID, reserved_alias=reserved_alias
                 ),
                 "AliasName": reserved_alias,
             }
@@ -271,8 +273,8 @@ class KmsResponse(BaseResponse):
             for alias_name in aliases:
                 response_aliases.append(
                     {
-                        "AliasArn": "arn:aws:kms:{region}:012345678912:{alias_name}".format(
-                            region=region, alias_name=alias_name
+                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{alias_name}".format(
+                            region=region, account_id=ACCOUNT_ID, alias_name=alias_name
                         ),
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
