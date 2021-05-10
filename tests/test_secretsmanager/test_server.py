@@ -325,6 +325,51 @@ def test_rotate_secret_that_does_not_match():
 
 
 @mock_secretsmanager
+def test_rotate_secret_that_is_still_rotating():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    create_secret = test_client.post(
+        "/",
+        data={
+            "Name": DEFAULT_SECRET_NAME,
+            "SecretString": "foosecret",
+            # "VersionStages": ["AWSPENDING"],
+        },
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    create_secret = json.loads(create_secret.data.decode("utf-8"))
+
+    # Get the secret into a broken state.
+    version_id = create_secret['VersionId']
+    test_client.post(
+        "/",
+        data={
+            "SecretId": "test-secret",
+            "VersionStage": 'AWSPENDING',
+            "MoveToVersionId": version_id,
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    metadata = json.loads(describe_secret.data.decode("utf-8"))
+    assert metadata['SecretVersionsToStages'][version_id] == ['AWSCURRENT', 'AWSPENDING']
+
+    # Then attempt to rotate it
+    rotate_secret = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME},
+        headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+    )
+    assert rotate_secret.status_code == 400
+
+
+@mock_secretsmanager
 def test_rotate_secret_client_request_token_too_short():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -628,6 +673,127 @@ def test_get_resource_policy_secret():
     assert json_data["ARN"] != ""
     assert json_data["Name"] == "test-secret"
 
+
+@mock_secretsmanager
+def test_update_secret_version_stage():
+    custom_stage = 'CUSTOM_STAGE'
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+    create_secret = test_client.post(
+        "/",
+        data={"Name": "test-secret", "SecretString": "secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    create_secret = json.loads(create_secret.data.decode("utf-8"))
+    initial_version = create_secret["VersionId"]
+
+    # Create a new version
+    put_secret = test_client.post(
+        "/",
+        data={
+            "SecretId": DEFAULT_SECRET_NAME,
+            "SecretString": "secret",
+            "VersionStages": [custom_stage],
+        },
+        headers={"X-Amz-Target": "secretsmanager.PutSecretValue"},
+    )
+    put_secret = json.loads(put_secret.data.decode("utf-8"))
+    new_version = put_secret["VersionId"]
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": "test-secret"},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data['SecretVersionsToStages']
+    assert len(stages) == 2
+    assert stages[initial_version] == ['AWSPREVIOUS']
+    assert stages[new_version] == [custom_stage]
+
+    test_client.post(
+        "/",
+        data={
+            "SecretId": "test-secret",
+            "VersionStage": custom_stage,
+            "RemoveFromVersionId": new_version,
+            "MoveToVersionId": initial_version,
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": "test-secret"},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data['SecretVersionsToStages']
+    assert len(stages) == 2
+    assert stages[initial_version] == ['AWSPREVIOUS', custom_stage]
+    assert stages[new_version] == []
+
+
+@mock_secretsmanager
+def test_update_secret_version_stage_currentversion_handling():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+    create_secret = test_client.post(
+        "/",
+        data={"Name": "test-secret", "SecretString": "secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    create_secret = json.loads(create_secret.data.decode("utf-8"))
+    initial_version = create_secret["VersionId"]
+
+    # Create a new version
+    put_secret = test_client.post(
+        "/",
+        data={
+            "SecretId": DEFAULT_SECRET_NAME,
+            "SecretString": "secret",
+        },
+        headers={"X-Amz-Target": "secretsmanager.PutSecretValue"},
+    )
+    put_secret = json.loads(put_secret.data.decode("utf-8"))
+    new_version = put_secret["VersionId"]
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": "test-secret"},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data['SecretVersionsToStages']
+    assert len(stages) == 2
+    assert stages[initial_version] == ['AWSPREVIOUS']
+    assert stages[new_version] == ['AWSCURRENT']
+
+    test_client.post(
+        "/",
+        data={
+            "SecretId": "test-secret",
+            "VersionStage": 'AWSCURRENT',
+            "RemoveFromVersionId": new_version,
+            "MoveToVersionId": initial_version,
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": "test-secret"},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data['SecretVersionsToStages']
+    assert len(stages) == 2
+    assert stages[initial_version] == ['AWSCURRENT']
+    assert stages[new_version] == ['AWSPREVIOUS']
 
 #
 # The following tests should work, but fail on the embedded dict in
