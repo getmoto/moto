@@ -415,6 +415,30 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
 
+        # The rotation function must end with the versions of the secret in
+        # one of two states:
+        #
+        #  - The AWSPENDING and AWSCURRENT staging labels are attached to the
+        #    same version of the secret, or
+        #  - The AWSPENDING staging label is not attached to any version of the secret.
+        #
+        # If the AWSPENDING staging label is present but not attached to the same
+        # version as AWSCURRENT then any later invocation of RotateSecret assumes
+        # that a previous rotation request is still in progress and returns an error.
+        try:
+            versions = next(
+                versions
+                for versions in secret.versions.values()
+                if 'AWSPENDING' in versions
+            )
+            if 'AWSCURRENT' not in versions:
+                msg = "Previous rotation request is still in progress."
+                raise InvalidRequestException(msg)
+
+        except StopIteration:
+            # Pending is not present in any version
+            pass
+
         old_secret_version = secret.versions[secret.default_version_id]
         new_version_id = client_request_token or str(uuid.uuid4())
 
