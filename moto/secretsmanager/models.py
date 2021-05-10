@@ -462,6 +462,7 @@ class SecretsManagerBackend(BaseBackend):
         # Begin the rotation process for the given secret by invoking the lambda function.
         if secret.rotation_lambda_arn:
             from moto.awslambda.models import lambda_backends
+
             lambda_backend = lambda_backends[self.region]
 
             request_headers = {}
@@ -481,8 +482,11 @@ class SecretsManagerBackend(BaseBackend):
                     response_headers,
                 )
 
-        secret.reset_default_version(secret.versions[new_version_id], new_version_id)
-        secret.versions[new_version_id]["version_stages"] = ["AWSCURRENT"]
+            secret.set_default_version_id(new_version_id)
+        else:
+            secret.reset_default_version(secret.versions[new_version_id], new_version_id)
+            secret.versions[new_version_id]["version_stages"] = ["AWSCURRENT"]
+
         return secret.to_short_dict()
 
     def get_random_password(
