@@ -430,9 +430,9 @@ class SecretsManagerBackend(BaseBackend):
             version = next(
                 version
                 for version in secret.versions.values()
-                if "AWSPENDING" in version['version_stages']
+                if "AWSPENDING" in version["version_stages"]
             )
-            if "AWSCURRENT" in version['version_stages']:
+            if "AWSCURRENT" in version["version_stages"]:
                 msg = "Previous rotation request is still in progress."
                 raise InvalidRequestException(msg)
 
@@ -688,7 +688,9 @@ class SecretsManagerBackend(BaseBackend):
                 # Whenever you move AWSCURRENT, Secrets Manager automatically
                 # moves the label AWSPREVIOUS to the version that AWSCURRENT
                 # was removed from.
-                secret.versions[remove_from_version_id]["version_stages"].append("AWSPREVIOUS")
+                secret.versions[remove_from_version_id]["version_stages"].append(
+                    "AWSPREVIOUS"
+                )
 
             if move_to_version_id:
                 stages = secret.versions[move_to_version_id]["version_stages"]

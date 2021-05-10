@@ -341,12 +341,12 @@ def test_rotate_secret_that_is_still_rotating():
     create_secret = json.loads(create_secret.data.decode("utf-8"))
 
     # Get the secret into a broken state.
-    version_id = create_secret['VersionId']
+    version_id = create_secret["VersionId"]
     test_client.post(
         "/",
         data={
             "SecretId": "test-secret",
-            "VersionStage": 'AWSPENDING',
+            "VersionStage": "AWSPENDING",
             "MoveToVersionId": version_id,
         },
         headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
@@ -358,7 +358,10 @@ def test_rotate_secret_that_is_still_rotating():
     )
 
     metadata = json.loads(describe_secret.data.decode("utf-8"))
-    assert metadata['SecretVersionsToStages'][version_id] == ['AWSCURRENT', 'AWSPENDING']
+    assert metadata["SecretVersionsToStages"][version_id] == [
+        "AWSCURRENT",
+        "AWSPENDING",
+    ]
 
     # Then attempt to rotate it
     rotate_secret = test_client.post(
@@ -676,7 +679,7 @@ def test_get_resource_policy_secret():
 
 @mock_secretsmanager
 def test_update_secret_version_stage():
-    custom_stage = 'CUSTOM_STAGE'
+    custom_stage = "CUSTOM_STAGE"
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
     create_secret = test_client.post(
@@ -707,9 +710,9 @@ def test_update_secret_version_stage():
     )
 
     json_data = json.loads(describe_secret.data.decode("utf-8"))
-    stages = json_data['SecretVersionsToStages']
+    stages = json_data["SecretVersionsToStages"]
     assert len(stages) == 2
-    assert stages[initial_version] == ['AWSPREVIOUS']
+    assert stages[initial_version] == ["AWSPREVIOUS"]
     assert stages[new_version] == [custom_stage]
 
     test_client.post(
@@ -730,9 +733,9 @@ def test_update_secret_version_stage():
     )
 
     json_data = json.loads(describe_secret.data.decode("utf-8"))
-    stages = json_data['SecretVersionsToStages']
+    stages = json_data["SecretVersionsToStages"]
     assert len(stages) == 2
-    assert stages[initial_version] == ['AWSPREVIOUS', custom_stage]
+    assert stages[initial_version] == ["AWSPREVIOUS", custom_stage]
     assert stages[new_version] == []
 
 
@@ -751,10 +754,7 @@ def test_update_secret_version_stage_currentversion_handling():
     # Create a new version
     put_secret = test_client.post(
         "/",
-        data={
-            "SecretId": DEFAULT_SECRET_NAME,
-            "SecretString": "secret",
-        },
+        data={"SecretId": DEFAULT_SECRET_NAME, "SecretString": "secret",},
         headers={"X-Amz-Target": "secretsmanager.PutSecretValue"},
     )
     put_secret = json.loads(put_secret.data.decode("utf-8"))
@@ -767,16 +767,16 @@ def test_update_secret_version_stage_currentversion_handling():
     )
 
     json_data = json.loads(describe_secret.data.decode("utf-8"))
-    stages = json_data['SecretVersionsToStages']
+    stages = json_data["SecretVersionsToStages"]
     assert len(stages) == 2
-    assert stages[initial_version] == ['AWSPREVIOUS']
-    assert stages[new_version] == ['AWSCURRENT']
+    assert stages[initial_version] == ["AWSPREVIOUS"]
+    assert stages[new_version] == ["AWSCURRENT"]
 
     test_client.post(
         "/",
         data={
             "SecretId": "test-secret",
-            "VersionStage": 'AWSCURRENT',
+            "VersionStage": "AWSCURRENT",
             "RemoveFromVersionId": new_version,
             "MoveToVersionId": initial_version,
         },
@@ -790,10 +790,11 @@ def test_update_secret_version_stage_currentversion_handling():
     )
 
     json_data = json.loads(describe_secret.data.decode("utf-8"))
-    stages = json_data['SecretVersionsToStages']
+    stages = json_data["SecretVersionsToStages"]
     assert len(stages) == 2
-    assert stages[initial_version] == ['AWSCURRENT']
-    assert stages[new_version] == ['AWSPREVIOUS']
+    assert stages[initial_version] == ["AWSCURRENT"]
+    assert stages[new_version] == ["AWSPREVIOUS"]
+
 
 #
 # The following tests should work, but fail on the embedded dict in
