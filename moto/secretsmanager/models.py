@@ -474,7 +474,7 @@ class SecretsManagerBackend(BaseBackend):
                 func.invoke(
                     json.dumps(
                         {
-                            "Step": f"{step}Secret",
+                            "Step": step + "Secret",
                             "SecretId": secret.name,
                             "ClientRequestToken": new_version_id,
                         }
