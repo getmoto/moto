@@ -164,7 +164,7 @@ def test_get_group_configuration():
     ]
 
     resource_groups.put_group_configuration(
-        Group=group["Group"], Configuration=configuration
+        Group=group["Group"]["Name"], Configuration=configuration
     )
 
     configuration = resource_groups.get_group_configuration(Group=group["Group"])
