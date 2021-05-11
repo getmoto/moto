@@ -614,3 +614,44 @@ def test_domains_are_case_insensitive():
         identities = client.list_identities(IdentityType="Domain")["Identities"]
         identities.should.have.length_of(1)
         identities[0].should.equal("example.com")
+
+
+@mock_ses
+def test_get_send_statistics():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Source="test@example.com",
+        Destination={"ToAddresses": ["test_to@example.com"],},
+        Message={
+            "Subject": {"Data": "test subject"},
+            "Body": {"Html": {"Data": "<span>test body</span>"}},
+        },
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.send_email(**kwargs)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("MessageRejected")
+    err["Message"].should.equal("Email address not verified test@example.com")
+
+    # tests to verify rejects in get_send_statistics
+    stats = conn.get_send_statistics()["SendDataPoints"]
+
+    stats[0]["Rejects"].should.equal(1)
+    stats[0]["DeliveryAttempts"].should.equal(0)
+
+    conn.verify_email_identity(EmailAddress="test@example.com")
+    conn.send_email(
+        Source="test@example.com",
+        Message={
+            "Subject": {"Data": "test subject"},
+            "Body": {"Text": {"Data": "test body"}},
+        },
+        Destination={"ToAddresses": ["test_to@example.com"],},
+    )
+
+    # tests to delivery attempts in get_send_statistics
+    stats = conn.get_send_statistics()["SendDataPoints"]
+
+    stats[0]["Rejects"].should.equal(1)
+    stats[0]["DeliveryAttempts"].should.equal(1)
