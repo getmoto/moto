@@ -133,6 +133,16 @@ import_value_template = {
     },
 }
 
+ssm_parameter_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "Queue": {
+            "Description": "Queue description",
+            "Type": "AWS::SSM::Parameter::Value<List<String>>"
+        }
+    }
+}
+
 outputs_template = dict(list(dummy_template.items()) + list(output_dict.items()))
 bad_outputs_template = dict(list(dummy_template.items()) + list(bad_output.items()))
 get_attribute_outputs_template = dict(
@@ -498,3 +508,13 @@ def test_short_form_func_in_yaml_teamplate():
     ]
     for k, v in key_and_expects:
         template_dict.should.have.key(k).which.should.be.equal(v)
+
+
+def test_ssm():
+
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=parameters_template_json,
+        parameters=ssm_parameter_template
+    )
