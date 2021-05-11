@@ -777,12 +777,12 @@ def test_send_receive_message_with_attributes_with_labels():
     )
 
 
-@mock_sqs_deprecated
+@mock_sqs
 def test_change_message_visibility_than_permitted():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
-    sqs = boto3.resource("sqs", region_name="us-east-1")
+    sqs = boto3.client("sqs", region_name="us-east-1")
 
     with freeze_time("2015-01-01 12:00:00"):
         queue = sqs.create_queue(QueueName="blah")
