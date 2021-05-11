@@ -167,7 +167,9 @@ def test_get_group_configuration():
         Group=group["Group"]["Name"], Configuration=configuration
     )
 
-    configuration = resource_groups.get_group_configuration(Group=group["Group"]["Name"])
+    configuration = resource_groups.get_group_configuration(
+        Group=group["Group"]["Name"]
+    )
 
     assert configuration.get("GroupConfiguration") == configuration
 
