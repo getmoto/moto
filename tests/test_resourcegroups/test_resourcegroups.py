@@ -148,6 +148,31 @@ def test_update_group():
 
 
 @mock_resourcegroups
+def test_get_group_configuration():
+    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+
+    group = test_get_group()
+
+    configuration = [
+        {
+            "Type": "AWS::ResourceGroups::Generic",
+            "Parameters": [
+                {"Name": "allowed-resource-types", "Values": ["AWS::EC2::Host"]},
+                {"Name": "deletion-protection", "Values": ["UNLESS_EMPTY"]},
+            ],
+        }
+    ]
+
+    resource_groups.put_group_configuration(
+        Group=group["Group"], Configuration=configuration
+    )
+
+    configuration = resource_groups.get_group_configuration(Group=group["Group"])
+
+    assert configuration.get("GroupConfiguration") == configuration
+
+
+@mock_resourcegroups
 def test_update_group_query():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
