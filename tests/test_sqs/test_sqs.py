@@ -787,7 +787,7 @@ def test_change_message_visibility_than_permitted():
     with freeze_time("2015-01-01 12:00:00"):
         queue = sqs.create_queue(QueueName="blah")
         queue.send_message(MessageBody="derp")
-        messages = queue.receive_messages()
+        messages = sqs.receive_message(QueueUrl=queue.url)
         messages.should.have.length_of(1)
 
         sqs.change_message_visibility(
