@@ -504,6 +504,30 @@ if not settings.TEST_SERVER_MODE:
         logs = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
         assert len(logs["logStreams"]) == 4
 
+    @mock_iam
+    @mock_lambda
+    @mock_logs
+    @mock_secretsmanager
+    def test_rotate_secret_with_incorrect_lambda_arn():
+        secretsmanager_backend = server.create_backend_app("secretsmanager")
+        secretsmanager_client = secretsmanager_backend.test_client()
+
+        secretsmanager_client.post(
+            "/",
+            data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+            headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+        )
+
+        resp = secretsmanager_client.post(
+            "/",
+            data={"SecretId": DEFAULT_SECRET_NAME, "RotationLambdaARN": "notarealarn",},
+            headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+        )
+        json_data = json.loads(resp.data.decode("utf-8"))
+        assert json_data["message"] == "Resource not found for ARN 'notarealarn'."
+        assert json_data["__type"] == "ResourceNotFoundException"
+        assert resp.status_code == 404
+
 
 @mock_secretsmanager
 def test_put_secret_value_puts_new_secret():
