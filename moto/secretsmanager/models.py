@@ -470,6 +470,12 @@ class SecretsManagerBackend(BaseBackend):
             response_headers = {}
 
             func = lambda_backend.get_function(secret.rotation_lambda_arn)
+            if not func:
+                msg = "Resource not found for ARN '{}'.".format(
+                    secret.rotation_lambda_arn
+                )
+                raise ResourceNotFoundException(msg)
+
             for step in ["create", "set", "test", "finish"]:
                 func.invoke(
                     json.dumps(
