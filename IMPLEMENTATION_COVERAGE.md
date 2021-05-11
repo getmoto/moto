@@ -2119,7 +2119,7 @@
 - [ ] get_ui_customization
 - [ ] get_user
 - [ ] get_user_attribute_verification_code
-- [ ] get_user_pool_mfa_config
+- [X] get_user_pool_mfa_config
 - [ ] global_sign_out
 - [X] initiate_auth
 - [ ] list_devices
@@ -2137,7 +2137,7 @@
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [X] set_user_mfa_preference
-- [ ] set_user_pool_mfa_config
+- [X] set_user_pool_mfa_config
 - [ ] set_user_settings
 - [X] sign_up
 - [ ] start_user_import_job
