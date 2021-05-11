@@ -41,6 +41,7 @@ from moto.sagemaker import models as sagemaker_models  # noqa
 from moto.sns import models as sns_models  # noqa
 from moto.sqs import models as sqs_models  # noqa
 from moto.stepfunctions import models as stepfunctions_models  # noqa
+from moto.ssm import models as ssm_models, ssm_backend  # noqa
 
 # End ugly list of imports
 
@@ -516,6 +517,23 @@ class ResourceMap(collections_abc.Mapping):
                 parameter_slot = parameter_slots[key]
 
                 value_type = parameter_slot.get("Type", "String")
+
+                def _parse_ssm_parameter(value, value_type):
+                    # the value in SSM parameters is the SSM parameter path
+                    # we need to use ssm_backend to retreive the
+                    # actual value from parameter store
+
+                    parameter = ssm_backend.get_parameter(value, False)
+
+                    actual_value = parameter.value
+
+                    if value_type.find("List") > 0:
+                        return actual_value.split(',')
+
+                    return actual_value
+
+                if value_type.startswith("AWS::SSM::Parameter::"):
+                    value = _parse_ssm_parameter(value, value_type)
                 if value_type == "CommaDelimitedList" or value_type.startswith("List"):
                     value = value.split(",")
 
