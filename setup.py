@@ -99,7 +99,7 @@ all_extra_deps = [
     _dep_sshpubkeys_py2,
     _dep_sshpubkeys_py3,
 ]
-all_server_deps = all_extra_deps + ["flask<=2.0.0", "flask-cors"]
+all_server_deps = all_extra_deps + ["flask<2.0.0", "flask-cors"]
 
 # TODO: do we want to add ALL services here?
 # i.e. even those without extra dependencies.
