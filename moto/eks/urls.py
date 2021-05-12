@@ -10,5 +10,5 @@ response = EKSResponse()
 
 
 url_paths = {
-    '{0}/.*$': response.dispatch,
+    "{0}/.*$": response.dispatch,
 }

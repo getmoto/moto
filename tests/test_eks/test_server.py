@@ -5,9 +5,10 @@ import sure  # noqa
 import moto.server as server
 from moto import mock_eks
 
-'''
+"""
 Test the different server responses
-'''
+"""
+
 
 @mock_eks
 def test_eks_list():
