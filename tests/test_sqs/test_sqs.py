@@ -314,6 +314,29 @@ def test_message_retention_period():
 
 
 @mock_sqs
+def test_queue_retention_period():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName="blah", Attributes={"MessageRetentionPeriod": "3"}
+    )
+
+    time.sleep(5)
+
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    messages = queue.receive_messages()
+    assert len(messages) == 1
+
+
+@mock_sqs
 def test_message_with_invalid_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
