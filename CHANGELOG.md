@@ -4,6 +4,35 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.7
+-----
+    General Changes:
+        * When running Moto Server inside Docker, it is now possible to specify the service you want to run, using an environment variable (MOTO_SERVICE)
+        * CloudWatchLogs models now appear in the Moto API dashboard
+
+    New Services:
+        * DMS
+            * create_replication_task()
+            * delete_replication_task()
+            * describe_replication_tasks()
+            * start_replication_task()
+            * stop_replication_task()
+
+    New Methods:
+        * AWSLambda:
+            * update_secret_version_stage()
+        * CognitoIDP:
+            * get_user_pool_mfa_config()
+            * set_user_pool_mfa_config()
+
+    Miscellaneous:
+        * CloudWatchLogs:filter_log_events() now supports pagination
+        * CloudWatchLogs:describe_log_streams() now supports pagination
+        * EC2:describe_network_acls() now supports the filter 'owner-id'
+        * EC2:modify_network_interface_attribute() now allows multiple security groups to be specified
+        * SecretsManager:rotate_secret() now triggers the Lambda that is specified
+
+
 2.0.6
 -----
     New Methods:
