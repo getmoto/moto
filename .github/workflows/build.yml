@@ -113,7 +113,7 @@ jobs:
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         flags: unittests
 
   testserver:
@@ -162,7 +162,7 @@ jobs:
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         flags: servertests
 
   deploy:
