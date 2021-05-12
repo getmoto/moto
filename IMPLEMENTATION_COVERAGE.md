@@ -2053,7 +2053,7 @@
 
 ## cognito-idp
 <details>
-<summary>45% implemented</summary>
+<summary>47% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -2951,7 +2951,7 @@
 
 ## dms
 <details>
-<summary>0% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -9080,7 +9080,7 @@
 
 ## secretsmanager
 <details>
-<summary>63% implemented</summary>
+<summary>68% implemented</summary>
 
 - [ ] cancel_rotate_secret
 - [X] create_secret
@@ -9102,7 +9102,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_secret
-- [ ] update_secret_version_stage
+- [X] update_secret_version_stage
 - [ ] validate_resource_policy
 </details>
 
