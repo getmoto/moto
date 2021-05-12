@@ -519,10 +519,9 @@ class ResourceMap(collections_abc.Mapping):
                 value_type = parameter_slot.get("Type", "String")
 
                 def _parse_ssm_parameter(value, value_type):
-                    # the value in SSM parameters is the SSM parameter path
+                    # The Value in SSM parameters is the SSM parameter path
                     # we need to use ssm_backend to retreive the
                     # actual value from parameter store
-
                     parameter = ssm_backend.get_parameter(value, False)
 
                     actual_value = parameter.value

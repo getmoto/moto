@@ -515,6 +515,12 @@ def test_ssm():
     stack = FakeStack(
         stack_id="test_id",
         name="test_stack",
-        template=parameters_template_json,
-        parameters=ssm_parameter_template
+        template=ssm_parameter_template_json,
+        parameters={
+            "Param": "comma,seperated",
+        },
+        region_name="us-west-1",
     )
+
+    stack.resource_map.no_echo_parameter_keys.should_not.have("Param")
+    stack.resource_map.resolved_parameters["Params"].should.equal()
