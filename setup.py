@@ -36,7 +36,8 @@ install_requires = [
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
-    "werkzeug",
+    # TODO: werkzeug 2.x currently breaks test_s3_server_post_without_content_length
+    "werkzeug<2.0.0",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.9.0",
