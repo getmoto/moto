@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
-          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-2
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-3
       - name: Update pip
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' && matrix.python-version != '2.7' }}
         run: |
@@ -58,7 +58,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-2
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-3
     # Update PIP - recent version does not support PY2 though
     - name: Update pip
       if: ${{ matrix.python-version != '2.7' }}
@@ -97,7 +97,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-2
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-3
     - name: Update pip
       if: ${{ matrix.python-version != '2.7' }}
       run: |
@@ -145,7 +145,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-2
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-3
     - name: Update pip
       if: ${{ matrix.python-version != '2.7' }}
       run: |
