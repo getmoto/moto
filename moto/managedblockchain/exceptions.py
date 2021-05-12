@@ -1,9 +1,38 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
+from werkzeug.exceptions import HTTPException
+from jinja2 import DictLoader, Environment
 
 
-class ManagedBlockchainClientError(RESTError):
+ERROR_JSON_RESPONSE = """{
+    "message": "{{message}}"
+}
+"""
+
+
+class ManagedBlockchainClientError(HTTPException):
     code = 400
+
+    templates = {
+        "error": ERROR_JSON_RESPONSE,
+    }
+
+    def __init__(self, error_type, message, **kwargs):
+        super(HTTPException, self).__init__()
+        env = Environment(loader=DictLoader(self.templates))
+        self.error_type = error_type
+        self.message = message
+        self.description = env.get_template("error").render(
+            error_type=error_type, message=message, **kwargs
+        )
+
+    def get_headers(self, *args, **kwargs):
+        return [
+            ("Content-Type", "application/json"),
+            ("x-amzn-ErrorType", self.error_type),
+        ]
+
+    def get_body(self, *args, **kwargs):
+        return self.description
 
 
 class BadRequestException(ManagedBlockchainClientError):

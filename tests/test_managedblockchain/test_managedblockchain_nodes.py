@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 
 import boto3
+import pytest
 import sure  # noqa
 
+from botocore.exceptions import ClientError
 from moto import mock_managedblockchain
 from . import helpers
 
@@ -248,26 +250,37 @@ def test_create_node_badnodeconfig():
     # Incorrect instance type
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "foo"
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
-    ).should.throw(Exception, "Requested instance foo isn't supported.")
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain("Requested instance foo isn't supported.")
 
     # Incorrect instance type for edition
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "bc.t3.large"
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
-    ).should.throw(
-        Exception,
-        "Instance type bc.t3.large is not supported with STARTER Edition networks",
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain(
+        "Instance type bc.t3.large is not supported with STARTER Edition networks."
     )
 
     # Incorrect availability zone
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["AvailabilityZone"] = "us-east-11"
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
-    ).should.throw(Exception, "Availability Zone is not valid")
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain("Availability Zone is not valid")
 
 
 @mock_managedblockchain

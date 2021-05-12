@@ -4,6 +4,7 @@ import json
 from six.moves.urllib.parse import urlparse, parse_qs
 
 from moto.core.responses import BaseResponse
+from .exceptions import ManagedBlockchainClientError
 from .models import managedblockchain_backends
 from .utils import (
     region_from_managedblckchain_url,
@@ -370,14 +371,17 @@ class ManagedBlockchainResponse(BaseResponse):
             "LogPublishingConfiguration"
         ]
 
-        response = self.backend.create_node(
-            network_id,
-            member_id,
-            availabilityzone,
-            instancetype,
-            logpublishingconfiguration,
-        )
-        return 200, headers, json.dumps(response)
+        try:
+            response = self.backend.create_node(
+                network_id,
+                member_id,
+                availabilityzone,
+                instancetype,
+                logpublishingconfiguration,
+            )
+            return 200, headers, json.dumps(response)
+        except ManagedBlockchainClientError as err:
+            return err.code, err.get_headers(), err.description
 
     @classmethod
     def nodeid_response(clazz, request, full_url, headers):
