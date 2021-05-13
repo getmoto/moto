@@ -479,10 +479,10 @@ class NetworkInterfaceBackend(object):
 
         found_eni.instance.detach_eni(found_eni)
 
-    def modify_network_interface_attribute(self, eni_id, group_id):
+    def modify_network_interface_attribute(self, eni_id, group_ids):
         eni = self.get_network_interface(eni_id)
-        group = self.get_security_group_from_id(group_id)
-        eni._group_set = [group]
+        groups = [self.get_security_group_from_id(group_id) for group_id in group_ids]
+        eni._group_set = groups
 
     def get_all_network_interfaces(self, eni_ids=None, filters=None):
         enis = self.enis.values()
@@ -5667,10 +5667,13 @@ class NetworkAclAssociation(object):
 
 
 class NetworkAcl(TaggedEC2Resource):
-    def __init__(self, ec2_backend, network_acl_id, vpc_id, default=False):
+    def __init__(
+        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID,
+    ):
         self.ec2_backend = ec2_backend
         self.id = network_acl_id
         self.vpc_id = vpc_id
+        self.owner_id = owner_id
         self.network_acl_entries = []
         self.associations = {}
         self.default = "true" if default is True else "false"
@@ -5684,6 +5687,8 @@ class NetworkAcl(TaggedEC2Resource):
             return self.id
         elif filter_name == "association.subnet-id":
             return [assoc.subnet_id for assoc in self.associations.values()]
+        elif filter_name == "owner-id":
+            return self.owner_id
         else:
             return super(NetworkAcl, self).get_filter_value(
                 filter_name, "DescribeNetworkAcls"
