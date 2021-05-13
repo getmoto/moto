@@ -210,7 +210,7 @@ def test_create_group_with_configuration():
 
     response["Group"]["Name"].should.contain("test_resource_group_new")
 
-    assert response["Group"]["GroupConfiguration"]["Configuration"] == configuration
+    assert response["GroupConfiguration"]["Configuration"] == configuration
     response["Tags"]["resource_group_tag_key"].should.contain(
         "resource_group_tag_value"
     )
