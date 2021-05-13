@@ -526,7 +526,7 @@ class ResourceMap(collections_abc.Mapping):
                     actual_value = parameter.value
 
                     if value_type.find("List") > 0:
-                        return actual_value.split(',')
+                        return actual_value.split(",")
 
                     return actual_value
 

@@ -77,8 +77,8 @@ parameters = {
 
 ssm_parameter = {
     "Parameters": {
+        "SingleParam": {"Type": "AWS::SSM::Parameter::Value<String>"},
         "ListParam": {"Type": "AWS::SSM::Parameter::Value<List<String>>"},
-        "SingleParam": {"Type": "AWS::SSM::Parameter::Value<String>"}
     }
 }
 
@@ -152,7 +152,9 @@ get_availability_zones_template = dict(
 )
 
 parameters_template = dict(list(dummy_template.items()) + list(parameters.items()))
-ssm_parameter_template = dict(list(dummy_template.items()) + list(ssm_parameter.items()))
+ssm_parameter_template = dict(
+    list(dummy_template.items()) + list(ssm_parameter.items())
+)
 
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
@@ -510,22 +512,24 @@ def test_short_form_func_in_yaml_teamplate():
     for k, v in key_and_expects:
         template_dict.should.have.key(k).which.should.be.equal(v)
 
+
 @mock_ssm
 def test_ssm_parameter_parsing():
     client = boto3.client("ssm")
-    client.put_parameter(Name="SingleParam", Value="10", Type="StringList")
-    client.put_parameter(Name="ListParam", Value="comma,separated,string", Type="StringList")
+    client.put_parameter(Name="SingleParam", Value="string", Type="StringList")
+    client.put_parameter(
+        Name="ListParam", Value="comma,separated,string", Type="StringList"
+    )
 
     stack = FakeStack(
         stack_id="test_id",
         name="test_stack",
         template=ssm_parameter_template_json,
-        parameters={
-            "SingleParam": "10",
-            "ListParam": "comma,separated,string",
-        },
+        parameters={"SingleParam": "string", "ListParam": "comma,separated,string",},
         region_name="us-west-1",
     )
 
-    stack.resource_map.resolved_parameters["SingleParam"].should.equal("10")
-    stack.resource_map.resolved_parameters["ListParam"].should.equal(["comma","separated","string"])
+    stack.resource_map.resolved_parameters["SingleParam"].should.equal("string")
+    stack.resource_map.resolved_parameters["ListParam"].should.equal(
+        ["comma", "separated", "string"]
+    )
