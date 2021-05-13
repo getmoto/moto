@@ -782,15 +782,17 @@ def test_change_message_visibility_than_permitted():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
-    sqs = boto3.client("sqs", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
 
     with freeze_time("2015-01-01 12:00:00"):
-        queue = sqs.create_queue(QueueName="blah")
-        queue.send_message(MessageBody="derp")
-        messages = sqs.receive_message(QueueUrl=queue.url)
+        conn.create_queue(QueueName="test-queue-visibility")
+        queue = sqs.Queue("test-queue-visibility")
+        sqs.send_message(QueueName="blah", MessageBody="derp")
+        messages = conn.receive_message(QueueUrl=queue.url)
         messages.should.have.length_of(1)
 
-        sqs.change_message_visibility(
+        conn.change_message_visibility(
             queue_name="blah",
             receipt_handle=messages[0].get("ReceiptHandle"),
             visibility_timeout="360",
@@ -799,7 +801,7 @@ def test_change_message_visibility_than_permitted():
     with freeze_time("2015-01-01 12:05:00"):
 
         with pytest.raises(ClientError) as err:
-            sqs.change_message_visibility(
+            conn.change_message_visibility(
                 queue_name="blah",
                 receipt_handle=messages[0].get("ReceiptHandle"),
                 visibility_timeout="43200",
