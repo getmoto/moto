@@ -171,7 +171,10 @@ def test_get_group_configuration():
         Group=group["Group"]["Name"]
     )
 
-    assert configuration_resp.get("GroupConfiguration").get("Configuration") == configuration
+    assert (
+        configuration_resp.get("GroupConfiguration").get("Configuration")
+        == configuration
+    )
 
 
 @mock_resourcegroups
