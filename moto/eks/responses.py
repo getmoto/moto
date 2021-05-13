@@ -52,3 +52,8 @@ class EKSResponse(BaseResponse):
         )
 
         return 200, {}, json.dumps(dict(clusters=clusters, nextToken=next_token))
+
+    def delete_cluster(self):
+        name = self._get_param("name")
+        cluster = self.eks_backend.delete_cluster(name=name,)
+        return 200, {}, json.dumps({"cluster": dict(cluster)})

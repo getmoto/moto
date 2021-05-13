@@ -69,12 +69,14 @@ class ClusterInputs:
 
 
 class ResponseAttribute:
+    CLUSTER = "cluster"
     CLUSTERS = "clusters"
     NEXT_TOKEN = "nextToken"
 
 
 class ClusterAttribute:
     ARN = "arn"
+    CLIENT_REQUEST_TOKEN = "client_request_token"
     CLUSTER = "cluster"
     CREATED_AT = "createdAt"
     ENDPOINT = "endpoint"
@@ -112,3 +114,7 @@ class ArnFormats:
         + "cluster/"
         + "(?P<cluster_name>.+)"
     )
+
+
+class MessageTemplates:
+    ClusterNotFound = "Cluster {name} not found."

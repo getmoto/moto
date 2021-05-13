@@ -2,9 +2,8 @@ from __future__ import unicode_literals
 
 from boto3 import Session
 from datetime import datetime
-from moto.core import BaseBackend
+from moto.core import BaseBackend, ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.sts.models import ACCOUNT_ID
 from .exceptions import ResourceNotFoundException
 from .utils import set_partition, validate_role_arn
 from ..utilities.utils import random_string
@@ -155,6 +154,17 @@ class EKSBackend(BaseBackend):
             return self.clusters[name]
         except KeyError:
             raise ResourceNotFoundException("Cluster " + name + " not found.")
+
+    def delete_cluster(self, name):
+        # TODO: Nodegroups not implemented yet; ensure that this
+        #       is updated so that it acts appropriately when
+        #       deleting a cluster which contains nodegroups
+        if name not in self.clusters:
+            raise ResourceNotFoundException("Cluster " + name + " not found.")
+        else:
+            result = self.clusters.pop(name)
+            self.cluster_count -= 1
+            return result
 
 
 eks_backends = {}

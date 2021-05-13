@@ -1,17 +1,21 @@
 from __future__ import unicode_literals
 
 from datetime import datetime
+from random import randint
 
 import boto3
 import pytest
 import sure  # noqa
 
+from moto.eks.exceptions import ResourceNotFoundException
+from moto.utilities.utils import random_string
 from test_eks_constants import (
     ArnAttributes,
     ArnFormats,
     BatchCountSize,
     ClusterAttribute,
     ClusterInputs,
+    MessageTemplates,
     PageCount,
     PARTITIONS,
     ResponseAttribute,
@@ -22,14 +26,14 @@ from test_eks_constants import (
 from test_eks_utils import generate_clusters, is_valid_uri, region_matches_partition
 
 from moto import mock_eks
+from moto.core import ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.eks.responses import DEFAULT_MAX_RESULTS
-from moto.sts.models import ACCOUNT_ID
 
 
 @pytest.fixture(scope="function")
 def setup():
-    def _setup(count=1, minimal=True):
+    def _execute(count=1, minimal=True):
         client = boto3.client(SERVICE)
         cluster_names = generate_clusters(client, count, minimal)
         cluster = client.describe_cluster(
@@ -39,8 +43,19 @@ def setup():
         return client, cluster_names, cluster
 
     mock_eks().start()
-    yield _setup
+    yield _execute
     mock_eks().stop()
+
+
+@pytest.fixture(scope="function")
+def randomNames():
+    def _execute(name_list):
+        name_on_list = name_off_list = name_list[randint(0, len(name_list) - 1)]
+        while name_off_list in name_list:
+            name_off_list = random_string()
+        return name_on_list, name_off_list
+
+    return _execute
 
 
 ###
@@ -63,6 +78,7 @@ def test_list_clusters_returns_sorted_cluster_names(setup):
     result = client.list_clusters()[ResponseAttribute.CLUSTERS]
 
     result.should.equal(sorted(cluster_names))
+    len(result).should.equal(BatchCountSize.MEDIUM)
 
 
 def test_list_clusters_returns_default_max_results(setup):
@@ -172,3 +188,54 @@ def test_create_cluster_saves_provided_parameters(setup):
 
     for key, expected_value in test_list:
         test_cluster[key].should.equal(expected_value)
+
+
+def test_describe_cluster_throws_exception_when_cluster_not_found(setup, randomNames):
+    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+    _, non_existent_cluster_name = randomNames(cluster_names)
+
+    client.describe_cluster.when.called_with(
+        name=non_existent_cluster_name
+    ).should.throw(
+        ResourceNotFoundException,
+        MessageTemplates.ClusterNotFound.format(name=non_existent_cluster_name),
+    )
+
+
+def test_delete_cluster_returns_deleted_cluster(setup, randomNames):
+    client, cluster_names, _ = setup(BatchCountSize.MEDIUM, False)
+    chosen_cluster_name, _ = randomNames(cluster_names)
+    test_list = (
+        ClusterInputs.REQUIRED
+        + ClusterInputs.OPTIONAL
+        + [(ClusterAttribute.NAME, chosen_cluster_name)]
+    )
+
+    result = client.delete_cluster(name=chosen_cluster_name)[ResponseAttribute.CLUSTER]
+
+    for key, expected_value in test_list:
+        result[key].should.equal(expected_value)
+
+
+def test_delete_cluster_removes_deleted_cluster(setup, randomNames):
+    client, cluster_names, _ = setup(BatchCountSize.MEDIUM, False)
+    chosen_cluster_name, _ = randomNames(cluster_names)
+
+    client.delete_cluster(name=chosen_cluster_name)
+    result_cluster_list = client.list_clusters()[ResponseAttribute.CLUSTERS]
+
+    len(result_cluster_list).should.equal(BatchCountSize.MEDIUM - 1)
+    result_cluster_list.should_not.contain(chosen_cluster_name)
+
+
+def test_delete_cluster_throws_exception_when_cluster_not_found(setup, randomNames):
+    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+    _, non_existent_cluster_name = randomNames(cluster_names)
+
+    client.delete_cluster.when.called_with(name=non_existent_cluster_name).should.throw(
+        ResourceNotFoundException,
+        MessageTemplates.ClusterNotFound.format(name=non_existent_cluster_name),
+    )
+    len(client.list_clusters()[ResponseAttribute.CLUSTERS]).should.equal(
+        BatchCountSize.MEDIUM
+    )
