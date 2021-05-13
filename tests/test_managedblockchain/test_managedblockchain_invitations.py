@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 
 import boto3
+import pytest
 import sure  # noqa
 
+from botocore.exceptions import ClientError
 from moto import mock_managedblockchain
 from . import helpers
 
@@ -136,6 +138,10 @@ def test_reject_invitation_badinvitation():
         Vote="YES",
     )
 
-    response = conn.reject_invitation.when.called_with(
-        InvitationId="in-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "InvitationId in-ABCDEFGHIJKLMNOP0123456789 not found.")
+    with pytest.raises(ClientError) as ex:
+        conn.reject_invitation(InvitationId="in-ABCDEFGHIJKLMNOP0123456789")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain(
+        "InvitationId in-ABCDEFGHIJKLMNOP0123456789 not found."
+    )
