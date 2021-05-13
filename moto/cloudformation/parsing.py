@@ -518,12 +518,11 @@ class ResourceMap(collections_abc.Mapping):
 
                 value_type = parameter_slot.get("Type", "String")
 
-                def _parse_ssm_parameter(value, value_type):
+                def _parse_ssm_parameter(key, value, value_type):
                     # The Value in SSM parameters is the SSM parameter path
                     # we need to use ssm_backend to retreive the
                     # actual value from parameter store
-                    parameter = ssm_backend.get_parameter(value, False)
-
+                    parameter = ssm_backend.get_parameter(key, False)
                     actual_value = parameter.value
 
                     if value_type.find("List") > 0:
@@ -532,7 +531,7 @@ class ResourceMap(collections_abc.Mapping):
                     return actual_value
 
                 if value_type.startswith("AWS::SSM::Parameter::"):
-                    value = _parse_ssm_parameter(value, value_type)
+                    value = _parse_ssm_parameter(key, value, value_type)
                 if value_type == "CommaDelimitedList" or value_type.startswith("List"):
                     value = value.split(",")
 

@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import boto3
 import json
 import yaml
 
@@ -12,6 +13,7 @@ from moto.cloudformation.parsing import (
     parse_condition,
     Export,
 )
+from moto import mock_ssm
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
@@ -70,6 +72,13 @@ parameters = {
         "NumberParam": {"Type": "Number"},
         "NumberListParam": {"Type": "List<Number>"},
         "NoEchoParam": {"Type": "String", "NoEcho": True},
+    }
+}
+
+ssm_parameter = {
+    "Parameters": {
+        "ListParam": {"Type": "AWS::SSM::Parameter::Value<List<String>>"},
+        "SingleParam": {"Type": "AWS::SSM::Parameter::Value<String>"}
     }
 }
 
@@ -133,16 +142,6 @@ import_value_template = {
     },
 }
 
-ssm_parameter_template = {
-    "AWSTemplateFormatVersion": "2010-09-09",
-    "Parameters": {
-        "Queue": {
-            "Description": "Queue description",
-            "Type": "AWS::SSM::Parameter::Value<List<String>>"
-        }
-    }
-}
-
 outputs_template = dict(list(dummy_template.items()) + list(output_dict.items()))
 bad_outputs_template = dict(list(dummy_template.items()) + list(bad_output.items()))
 get_attribute_outputs_template = dict(
@@ -153,6 +152,7 @@ get_availability_zones_template = dict(
 )
 
 parameters_template = dict(list(dummy_template.items()) + list(parameters.items()))
+ssm_parameter_template = dict(list(dummy_template.items()) + list(ssm_parameter.items()))
 
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
@@ -161,6 +161,7 @@ bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(get_attribute_outputs_template)
 get_availability_zones_template_json = json.dumps(get_availability_zones_template)
 parameters_template_json = json.dumps(parameters_template)
+ssm_parameter_template_json = json.dumps(ssm_parameter_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
 export_value_template_json = json.dumps(export_value_template)
@@ -509,18 +510,22 @@ def test_short_form_func_in_yaml_teamplate():
     for k, v in key_and_expects:
         template_dict.should.have.key(k).which.should.be.equal(v)
 
-
-def test_ssm():
+@mock_ssm
+def test_ssm_parameter_parsing():
+    client = boto3.client("ssm")
+    client.put_parameter(Name="SingleParam", Value="10", Type="StringList")
+    client.put_parameter(Name="ListParam", Value="comma,separated,string", Type="StringList")
 
     stack = FakeStack(
         stack_id="test_id",
         name="test_stack",
         template=ssm_parameter_template_json,
         parameters={
-            "Param": "comma,seperated",
+            "SingleParam": "10",
+            "ListParam": "comma,separated,string",
         },
         region_name="us-west-1",
     )
 
-    stack.resource_map.no_echo_parameter_keys.should_not.have("Param")
-    stack.resource_map.resolved_parameters["Params"].should.equal()
+    stack.resource_map.resolved_parameters["SingleParam"].should.equal("10")
+    stack.resource_map.resolved_parameters["ListParam"].should.equal(["comma","separated","string"])
