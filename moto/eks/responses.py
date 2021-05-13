@@ -53,6 +53,16 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps(dict(clusters=clusters, nextToken=next_token))
 
+    def list_nodegroups(self):
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+        nodegroups, next_token = self.eks_backend.list_nodegroups(
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token,
+        )
+
+        return 200, {}, json.dumps(dict(nodegroups=nodegroups, nextToken=next_token))
+
     def delete_cluster(self):
         name = self._get_param("name")
         cluster = self.eks_backend.delete_cluster(name=name,)

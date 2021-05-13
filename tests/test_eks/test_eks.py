@@ -239,3 +239,12 @@ def test_delete_cluster_throws_exception_when_cluster_not_found(setup, randomNam
     len(client.list_clusters()[ResponseAttribute.CLUSTERS]).should.equal(
         BatchCountSize.MEDIUM
     )
+
+
+def test_list_nodegroups_returns_empty_by_default(setup):
+    client, cluster_name, _ = setup(BatchCountSize.SINGLE)
+
+    result = client.list_nodegroups(clusterName=cluster_name)[
+        ResponseAttribute.NODEGROUPS
+    ]
+    result.should.be.empty

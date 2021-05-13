@@ -53,6 +53,9 @@ class Cluster:
         tags=None,
         encryptionConfig=None,
     ):
+        self.nodegroups = dict()
+        self.nodegroup_count = 0
+
         self.arn = ARN_TEMPLATE.format(
             partition=awsPartition, region=regionName, name=name
         )
@@ -165,6 +168,15 @@ class EKSBackend(BaseBackend):
             result = self.clusters.pop(name)
             self.cluster_count -= 1
             return result
+
+    def list_nodegroups(self, cluster_name, max_results, next_token):
+        cluster = self.clusters[cluster_name]
+        nodegroup_names = sorted(cluster.nodegroups.keys())
+        start = nodegroup_names.index(next_token) if next_token else 0
+        end = min(start + max_results, cluster.nodegroup_count)
+        new_next = "null" if end == cluster.nodegroup_count else nodegroup_names[end]
+
+        return nodegroup_names[start:end], new_next
 
 
 eks_backends = {}

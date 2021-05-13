@@ -72,6 +72,7 @@ class ResponseAttribute:
     CLUSTER = "cluster"
     CLUSTERS = "clusters"
     NEXT_TOKEN = "nextToken"
+    NODEGROUPS = "nodegroups"
 
 
 class ClusterAttribute:
@@ -94,6 +95,7 @@ class ArnAttributes:
 
 
 class BatchCountSize:
+    SINGLE = 1
     SMALL = 10
     MEDIUM = 20
     LARGE = 200
