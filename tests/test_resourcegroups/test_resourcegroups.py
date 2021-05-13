@@ -167,11 +167,11 @@ def test_get_group_configuration():
         Group=group["Group"]["Name"], Configuration=configuration
     )
 
-    configuration = resource_groups.get_group_configuration(
+    configuration_resp = resource_groups.get_group_configuration(
         Group=group["Group"]["Name"]
     )
 
-    assert configuration.get("GroupConfiguration").get("Configuration") == configuration
+    assert configuration_resp.get("GroupConfiguration").get("Configuration") == configuration
 
 
 @mock_resourcegroups
@@ -207,7 +207,7 @@ def test_create_group_with_configuration():
 
     response["Group"]["Name"].should.contain("test_resource_group_new")
 
-    response["GroupConfiguration"]["Configuration"].should.contain(configuration)
+    assert response["Group"]["GroupConfiguration"]["Configuration"] == configuration
     response["Tags"]["resource_group_tag_key"].should.contain(
         "resource_group_tag_value"
     )
