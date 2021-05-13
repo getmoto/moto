@@ -365,8 +365,7 @@ class ResourceGroupsBackend(BaseBackend):
         return configuration
 
     def put_group_configuration(self, group_name, configuration):
-        if configuration:
-            self.groups.by_name[group_name].configuration = configuration
+        self.groups.by_name[group_name].configuration = configuration
         return self.groups.by_name[group_name]
 
 
