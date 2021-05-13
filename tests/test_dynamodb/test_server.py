@@ -108,6 +108,50 @@ def test_update_item():
     res["Item"].shouldnt.have.key("name")
 
 
+def test_update_item_that_doesnt_exist():
+    backend = server.create_backend_app("dynamodb")
+    test_client = backend.test_client()
+
+    create_table(test_client)
+
+    # UpdateItem
+    headers = {"X-Amz-Target": "DynamoDB_20111205.UpdateItem"}
+    request_body = {
+        "TableName": "Table1",
+        "Key": {
+            "HashKeyElement": {"S": "customer"},
+            "RangeKeyElement": {"N": "12341234"},
+        },
+        "AttributeUpdates": {"new_att": {"Value": {"SS": ["val"]}, "Action": "PUT"}},
+    }
+    res = test_client.post("/", headers=headers, json=request_body)
+    res.status_code.should.equal(400)
+    json.loads(res.data).should.equal(
+        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
+    )
+
+
+def test_update_item_in_nonexisting_table():
+    backend = server.create_backend_app("dynamodb")
+    test_client = backend.test_client()
+
+    # UpdateItem
+    headers = {"X-Amz-Target": "DynamoDB_20111205.UpdateItem"}
+    request_body = {
+        "TableName": "nonexistent",
+        "Key": {
+            "HashKeyElement": {"S": "customer"},
+            "RangeKeyElement": {"N": "12341234"},
+        },
+        "AttributeUpdates": {"new_att": {"Value": {"SS": ["val"]}, "Action": "PUT"}},
+    }
+    res = test_client.post("/", headers=headers, json=request_body)
+    res.status_code.should.equal(400)
+    json.loads(res.data).should.equal(
+        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
+    )
+
+
 def put_item(test_client, rkey="12341234"):
     headers = {
         "X-Amz-Target": "DynamoDB_20111205.PutItem",
