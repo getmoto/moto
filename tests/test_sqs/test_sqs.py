@@ -811,7 +811,7 @@ def test_change_message_visibility_than_permitted():
     with freeze_time("2015-01-01 12:00:00"):
         conn.create_queue(QueueName="test-queue-visibility")
         queue = sqs.Queue("test-queue-visibility")
-        sqs.send_message(QueueName="blah", MessageBody="derp")
+        conn.send_message(QueueName="blah", MessageBody="derp")
         messages = conn.receive_message(QueueUrl=queue.url)
         messages.should.have.length_of(1)
 
