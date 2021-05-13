@@ -171,7 +171,7 @@ def test_get_group_configuration():
         Group=group["Group"]["Name"]
     )
 
-    assert configuration.get("GroupConfiguration") == configuration
+    assert configuration.get("GroupConfiguration").get("Configuration") == configuration
 
 
 @mock_resourcegroups
@@ -190,6 +190,17 @@ def test_create_group_with_configuration():
     response = resource_groups.create_group(
         Name="test_resource_group_new",
         Description="description",
+        ResourceQuery={
+            "Type": "TAG_FILTERS_1_0",
+            "Query": json.dumps(
+                {
+                    "ResourceTypeFilters": ["AWS::AllSupported"],
+                    "TagFilters": [
+                        {"Key": "resources_tag_key", "Values": ["resources_tag_value"]}
+                    ],
+                }
+            ),
+        },
         Configuration=configuration,
         Tags={"resource_group_tag_key": "resource_group_tag_value"},
     )
