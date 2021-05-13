@@ -36,8 +36,7 @@ install_requires = [
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
-    # TODO: werkzeug 2.x currently breaks test_s3_server_post_without_content_length
-    "werkzeug<2.0.0",
+    "werkzeug",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.9.0",
@@ -99,7 +98,7 @@ all_extra_deps = [
     _dep_sshpubkeys_py2,
     _dep_sshpubkeys_py3,
 ]
-all_server_deps = all_extra_deps + ["flask<2.0.0", "flask-cors"]
+all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
 # TODO: do we want to add ALL services here?
 # i.e. even those without extra dependencies.
