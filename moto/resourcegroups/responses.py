@@ -22,8 +22,13 @@ class ResourceGroupsResponse(BaseResponse):
         description = self._get_param("Description")
         resource_query = self._get_param("ResourceQuery")
         tags = self._get_param("Tags")
+        configuration = self._get_param("Configuration")
         group = self.resourcegroups_backend.create_group(
-            name=name, description=description, resource_query=resource_query, tags=tags
+            name=name,
+            description=description,
+            resource_query=resource_query,
+            tags=tags,
+            configuration=configuration,
         )
         return json.dumps(
             {
@@ -34,6 +39,7 @@ class ResourceGroupsResponse(BaseResponse):
                 },
                 "ResourceQuery": group.resource_query,
                 "Tags": group.tags,
+                "GroupConfiguration": {"Configuration": group.configuration},
             }
         )
 
@@ -165,3 +171,18 @@ class ResourceGroupsResponse(BaseResponse):
         return json.dumps(
             {"GroupQuery": {"GroupName": group.name, "ResourceQuery": resource_query}}
         )
+
+    def get_group_configuration(self):
+        group_name = self._get_param("Group")
+        configuration = self.resourcegroups_backend.get_group_configuration(
+            group_name=group_name
+        )
+        return json.dumps({"GroupConfiguration": {"Configuration": configuration}})
+
+    def put_group_configuration(self):
+        group_name = self._get_param("Group")
+        configuration = self._get_param("Configuration")
+        self.resourcegroups_backend.put_group_configuration(
+            group_name=group_name, configuration=configuration
+        )
+        return json.dumps({"GroupConfiguration": {"Configuration": configuration}})
