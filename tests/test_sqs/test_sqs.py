@@ -813,11 +813,11 @@ def test_change_message_visibility_than_permitted():
         queue = sqs.Queue("test-queue-visibility")
         queue.send_message(MessageBody="derp")
         messages = conn.receive_message(QueueUrl=queue.url)
-        messages.should.have.length_of(1)
+        messages.get("Messages").should.have.length_of(1)
 
         conn.change_message_visibility(
             queue_name="blah",
-            receipt_handle=messages[0].get("ReceiptHandle"),
+            receipt_handle=messages.get("Messages")[0].get("ReceiptHandle"),
             visibility_timeout="360",
         )
 
