@@ -41,7 +41,7 @@ from moto.sagemaker import models as sagemaker_models  # noqa
 from moto.sns import models as sns_models  # noqa
 from moto.sqs import models as sqs_models  # noqa
 from moto.stepfunctions import models as stepfunctions_models  # noqa
-from moto.ssm import models as ssm_models, ssm_backend  # noqa
+from moto.ssm import models as ssm_models, ssm_backends  # noqa
 
 # End ugly list of imports
 
@@ -522,7 +522,9 @@ class ResourceMap(collections_abc.Mapping):
                     # The Value in SSM parameters is the SSM parameter path
                     # we need to use ssm_backend to retreive the
                     # actual value from parameter store
-                    parameter = ssm_backend.get_parameter(value, False)
+                    parameter = ssm_backends[self._region_name].get_parameter(
+                        value, False
+                    )
                     actual_value = parameter.value
 
                     if value_type.find("List") > 0:

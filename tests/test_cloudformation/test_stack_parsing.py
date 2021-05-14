@@ -515,7 +515,7 @@ def test_short_form_func_in_yaml_teamplate():
 
 @mock_ssm
 def test_ssm_parameter_parsing():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name="us-west-1")
     client.put_parameter(
         Name="/path/to/single/param", Value="string", Type="StringList"
     )
@@ -531,7 +531,7 @@ def test_ssm_parameter_parsing():
             "SingleParamCfn": "/path/to/single/param",
             "ListParamCfn": "/path/to/list/param",
         },
-        region_name="us-east-1",
+        region_name="us-west-1",
     )
 
     stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
