@@ -531,7 +531,7 @@ def test_ssm_parameter_parsing():
             "SingleParamCfn": "/path/to/single/param",
             "ListParamCfn": "/path/to/list/param",
         },
-        region_name="us-west-1",
+        region_name="us-east-1",
     )
 
     stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
