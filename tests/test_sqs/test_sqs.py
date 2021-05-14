@@ -816,18 +816,18 @@ def test_change_message_visibility_than_permitted():
         messages.get("Messages").should.have.length_of(1)
 
         conn.change_message_visibility(
-            queue_name="blah",
-            receipt_handle=messages.get("Messages")[0].get("ReceiptHandle"),
-            visibility_timeout="360",
+            QueueUrl=queue.url,
+            ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
+            VisibilityTimeout="360",
         )
 
     with freeze_time("2015-01-01 12:05:00"):
 
         with pytest.raises(ClientError) as err:
             conn.change_message_visibility(
-                queue_name="blah",
-                receipt_handle=messages[0].get("ReceiptHandle"),
-                visibility_timeout="43200",
+                QueueUrl=queue.url,
+                ReceiptHandle=messages[0].get("ReceiptHandle"),
+                VisibilityTimeout="43200",
             )
 
         ex = err.value
