@@ -253,6 +253,10 @@ class SimpleSystemManagerResponse(BaseResponse):
             name, description, value, type_, allowed_pattern, keyid, overwrite, tags
         )
 
+        if tags:
+            tags = {t["Key"]: t["Value"] for t in self._get_param("Tags")}
+            self.ssm_backend.add_tags_to_resource(name, "Parameter", tags)
+
         if result is None:
             error = {
                 "__type": "ParameterAlreadyExists",
