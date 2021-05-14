@@ -513,7 +513,6 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
               {% endif %}
 
               <Timestamp>{{ datapoint.timestamp }}</Timestamp>
-              
               {% if datapoint.unit is not none %}
               <Unit>{{ datapoint.unit }}</Unit>
               {% endif %}
