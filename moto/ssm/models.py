@@ -1331,6 +1331,11 @@ class SimpleSystemManagerBackend(BaseBackend):
                 tags or [],
             )
         )
+
+        if tags:
+            tags = {t["Key"]: t["Value"] for t in self._get_param("Tags")}
+            self.add_tags_to_resource(name, "Parameter", tags)
+
         return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
