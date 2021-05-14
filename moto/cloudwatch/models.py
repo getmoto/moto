@@ -156,6 +156,8 @@ class FakeAlarm(BaseModel):
 
 
 def are_dimensions_same(metric_dimensions, dimensions):
+    if len(metric_dimensions) != len(dimensions):
+        return False
     for dimension in metric_dimensions:
         for new_dimension in dimensions:
             if (
@@ -163,7 +165,6 @@ def are_dimensions_same(metric_dimensions, dimensions):
                 or dimension.value != new_dimension.value
             ):
                 return False
-
     return True
 
 
@@ -183,11 +184,14 @@ class MetricDatum(BaseModel):
             return False
         if name and name != self.name:
             return False
-        for metric in already_present_metrics:
-            if self.dimensions and are_dimensions_same(
-                metric.dimensions, self.dimensions
-            ):
-                return False
+
+        # Note: The logic below appears to be incorrect. We should not skip adding new Metrics
+        #       if a metric with the same dimensions has already been added to the list.
+        # for metric in already_present_metrics:
+        #     if self.dimensions and are_dimensions_same(
+        #         metric.dimensions, self.dimensions
+        #     ):
+        #         return False
 
         if dimensions and any(
             Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions

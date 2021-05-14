@@ -193,7 +193,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
-    param_list_regex = re.compile(r"(\.?[^.]*)\.(\d+)\.")
+    param_list_regex = re.compile(r"^(\.?[^.]*(\.member)?)\.(\d+)\.")
     param_regex = re.compile(r"(.*)\.(\w+)")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"

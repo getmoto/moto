@@ -464,7 +464,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
             self.job_state = "STARTING"
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             image_repository, image_tag = parse_image_ref(image)
-            self.docker_client.images.pull(image_repository, image_tag)
+            # avoid explicit pulling here, to allow using cached images
+            # self.docker_client.images.pull(image_repository, image_tag)
             container = self.docker_client.containers.run(
                 image,
                 cmd,
@@ -480,6 +481,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 container.reload()
                 while container.status == "running" and not self.stop:
                     container.reload()
+                    time.sleep(0.5)
 
                 # Container should be stopped by this point... unless asked to stop
                 if container.status == "running":
@@ -532,11 +534,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
 
-                result = container.wait()
-                if self.stop or result["StatusCode"] != 0:
-                    self._mark_stopped(success=False)
-                else:
-                    self._mark_stopped(success=True)
+                result = container.wait() or {}
+                job_failed = self.stop or result.get('StatusCode', 0) > 0
+                self._mark_stopped(success=not job_failed)
 
             except Exception as err:
                 logger.error(
