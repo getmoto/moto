@@ -69,6 +69,11 @@ def test_get_group_query():
     response = resource_groups.get_group_query(GroupName="test_resource_group")
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
 
+    response = resource_groups.get_group_query(
+        Group=response.get("Group").get("GroupArn")
+    )
+    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+
 
 @mock_resourcegroups
 def test_get_tags():
@@ -220,7 +225,7 @@ def test_create_group_with_configuration():
 def test_update_group_query():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    test_create_group()
+    group_response = test_get_group()
 
     response = resource_groups.update_group_query(
         GroupName="test_resource_group",
@@ -242,6 +247,13 @@ def test_update_group_query():
     )
 
     response = resource_groups.get_group_query(GroupName="test_resource_group")
+    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
+        "CLOUDFORMATION_STACK_1_0"
+    )
+
+    response = resource_groups.get_group_query(
+        Group=group_response.get("Group").get("GroupArn")
+    )
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
         "CLOUDFORMATION_STACK_1_0"
     )

@@ -333,7 +333,20 @@ class ResourceGroupsBackend(BaseBackend):
     #     ...
 
     def list_groups(self, filters=None, max_results=None, next_token=None):
-        return self.groups.by_name
+        if filters is None:
+            filters = []
+        groups = self.groups.by_name
+
+        for f in filters:
+            if f.get("Name") == "resource-type":
+                resource_type = f.get("Name")
+                groups = [
+                    group
+                    for group in groups
+                    if resource_type
+                    in group.resource_query.get("Query").get("ResourceTypeFilters")
+                ]
+        return groups
 
     # def search_resources(self):
     #     ...
