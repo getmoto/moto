@@ -818,7 +818,7 @@ def test_change_message_visibility_than_permitted():
         conn.change_message_visibility(
             QueueUrl=queue.url,
             ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
-            VisibilityTimeout="360",
+            VisibilityTimeout=360,
         )
 
     with freeze_time("2015-01-01 12:05:00"):
@@ -827,7 +827,7 @@ def test_change_message_visibility_than_permitted():
             conn.change_message_visibility(
                 QueueUrl=queue.url,
                 ReceiptHandle=messages[0].get("ReceiptHandle"),
-                VisibilityTimeout="43200",
+                VisibilityTimeout=43200,
             )
 
         ex = err.value
