@@ -826,7 +826,7 @@ def test_change_message_visibility_than_permitted():
         with pytest.raises(ClientError) as err:
             conn.change_message_visibility(
                 QueueUrl=queue.url,
-                ReceiptHandle=messages[0].get("ReceiptHandle"),
+                ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
                 VisibilityTimeout=43200,
             )
 
