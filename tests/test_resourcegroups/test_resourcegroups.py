@@ -64,13 +64,13 @@ def test_get_group():
 def test_get_group_query():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    test_create_group()
+    get_response = test_get_group()
 
     response = resource_groups.get_group_query(GroupName="test_resource_group")
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
 
     response_get = resource_groups.get_group_query(
-        Group=response.get("Group").get("GroupArn")
+        Group=get_response.get("Group").get("GroupArn")
     )
     response_get["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
         "TAG_FILTERS_1_0"
@@ -143,7 +143,7 @@ def test_untag():
 def test_update_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    test_get_group()
+    get_response = test_get_group()
 
     response = resource_groups.update_group(
         GroupName="test_resource_group", Description="description_2"
@@ -154,7 +154,7 @@ def test_update_group():
     response["Group"]["Description"].should.contain("description_2")
 
     response_new = resource_groups.update_group(
-        Group=response.get("Group").get("GroupArn"), Description="description_3"
+        Group=get_response.get("Group").get("GroupArn"), Description="description_3"
     )
     response_new["Group"]["Description"].should.contain("description_3")
 
