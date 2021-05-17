@@ -153,14 +153,6 @@ def test_update_group():
     response = resource_groups.get_group(GroupName="test_resource_group")
     response["Group"]["Description"].should.contain("description_2")
 
-    response_new = resource_groups.update_group(
-        Group=get_response.get("Group").get("GroupArn"), Description="description_3"
-    )
-    response_new["Group"]["Description"].should.contain("description_3")
-
-    response_new = resource_groups.get_group(GroupName="test_resource_group")
-    response_new["Group"]["Description"].should.contain("description_3")
-
 
 @mock_resourcegroups
 def test_get_group_configuration():
@@ -261,9 +253,28 @@ def test_update_group_query():
         "CLOUDFORMATION_STACK_1_0"
     )
 
+    response = resource_groups.update_group_query(
+        Group=group_response.get("Group").get("GroupArn"),
+        ResourceQuery={
+            "Type": "CLOUDFORMATION_STACK_2_0",
+            "Query": json.dumps(
+                {
+                    "ResourceTypeFilters": ["AWS::AllSupported"],
+                    "StackIdentifier": (
+                        "arn:aws:cloudformation:eu-west-1:012345678912:stack/"
+                        "test_stack/c223eca0-e744-11e8-8910-500c41f59083"
+                    ),
+                }
+            ),
+        },
+    )
+    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
+        "CLOUDFORMATION_STACK_2_0"
+    )
+
     response = resource_groups.get_group_query(
         Group=group_response.get("Group").get("GroupArn")
     )
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
-        "CLOUDFORMATION_STACK_1_0"
+        "CLOUDFORMATION_STACK_2_0"
     )
