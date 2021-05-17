@@ -88,10 +88,10 @@ class RecordSet(CloudFormationModel):
     def __init__(self, kwargs):
         self.name = kwargs.get("Name")
         self.type_ = kwargs.get("Type")
-        self.ttl = kwargs.get("TTL")
+        self.ttl = kwargs.get("TTL", 0)
         self.records = kwargs.get("ResourceRecords", [])
         self.set_identifier = kwargs.get("SetIdentifier")
-        self.weight = kwargs.get("Weight")
+        self.weight = kwargs.get("Weight", 0)
         self.region = kwargs.get("Region")
         self.health_check = kwargs.get("HealthCheckId")
         self.hosted_zone_name = kwargs.get("HostedZoneName")
