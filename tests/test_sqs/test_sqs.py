@@ -831,7 +831,7 @@ def test_change_message_visibility_than_permitted():
             )
 
         ex = err.value
-        ex.operation_name.should.equal("GetQueueAttributes")
+        ex.operation_name.should.equal("ChangeMessageVisibility")
         ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
 
 
