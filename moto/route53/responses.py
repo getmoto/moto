@@ -277,19 +277,19 @@ CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="htt
 LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
-       {% for rset in record_sets %}
+       {% for record in record_sets %}
        <ResourceRecordSet>
-           <Name>{{ rset.name }}</Name>
-           <Type>{{ rset.type_ }}</Type>
-           <TTL>{{ rset.ttl }}</TTL>
-           <Identifier>{{ rset.set_identifier }}</Identifier>
-           <Weight>{{ rset.weight }}</Weight>
-           <HealthCheck>{{ rset.health_check }}</HealthCheck>
-           <AliasTarget>{{ rset.alias_target }}</AliasTarget>
-           <Failover>{{ rset.failover }}</Failover>
-           <GeoLocation>{{ rset.geo_location }}</GeoLocation>
+           <Name>{{ record.name }}</Name>
+           <Type>{{ record.type_ }}</Type>
+           <TTL>{{ record.ttl }}</TTL>
+           <Identifier>{{ record.set_identifier }}</Identifier>
+           <Weight>{{ record.weight }}</Weight>
+           <HealthCheck>{{ record.health_check }}</HealthCheck>
+           <AliasTarget>{{ record.alias_target }}</AliasTarget>
+           <Failover>{{ record.failover }}</Failover>
+           <GeoLocation>{{ record.geo_location }}</GeoLocation>
            <ResourceRecords>
-                {% for resource_record in rset.records %}
+                {% for resource_record in record.records %}
                     <ResourceRecord>
                         <Value><![CDATA[{{ resource_record }}]]></Value>
                     </ResourceRecord>
