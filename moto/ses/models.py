@@ -362,7 +362,7 @@ class SESBackend(BaseBackend):
                 "Template rendering data is invalid"
             )
 
-        are_variables_present, var = are_all_variables_present(template, template_data)
+        var, are_variables_present = are_all_variables_present(template, template_data)
         if are_variables_present:
             raise MissingRenderingAttributeException(var)
 
