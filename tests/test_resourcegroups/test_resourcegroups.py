@@ -69,10 +69,12 @@ def test_get_group_query():
     response = resource_groups.get_group_query(GroupName="test_resource_group")
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
 
-    response = resource_groups.get_group_query(
+    response_get = resource_groups.get_group_query(
         Group=response.get("Group").get("GroupArn")
     )
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+    response_get["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
+        "TAG_FILTERS_1_0"
+    )
 
 
 @mock_resourcegroups
@@ -150,6 +152,14 @@ def test_update_group():
 
     response = resource_groups.get_group(GroupName="test_resource_group")
     response["Group"]["Description"].should.contain("description_2")
+
+    response_new = resource_groups.update_group(
+        Group=response.get("Group").get("GroupArn"), Description="description_3"
+    )
+    response_new["Group"]["Description"].should.contain("description_3")
+
+    response_new = resource_groups.get_group(GroupName="test_resource_group")
+    response_new["Group"]["Description"].should.contain("description_3")
 
 
 @mock_resourcegroups
