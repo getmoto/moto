@@ -381,6 +381,7 @@ class FakeLoadBalancer(CloudFormationModel):
         vpc_id,
         arn,
         dns_name,
+        state,
         scheme="internet-facing",
     ):
         self.name = name
@@ -393,6 +394,7 @@ class FakeLoadBalancer(CloudFormationModel):
         self.tags = {}
         self.arn = arn
         self.dns_name = dns_name
+        self.state = state
 
         self.stack = "ipv4"
         self.attrs = {
@@ -517,6 +519,8 @@ class ELBv2Backend(BaseBackend):
     ):
         vpc_id = None
         subnets = []
+        state = "provisioning"
+
         if not subnet_ids:
             raise SubnetNotFoundError()
         for subnet_id in subnet_ids:
@@ -542,6 +546,7 @@ class ELBv2Backend(BaseBackend):
             subnets=subnets,
             vpc_id=vpc_id,
             dns_name=dns_name,
+            state=state,
         )
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer

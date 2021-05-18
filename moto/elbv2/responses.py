@@ -706,7 +706,7 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
         </SecurityGroups>
         <DNSName>{{ load_balancer.dns_name }}</DNSName>
         <State>
-          <Code>provisioning</Code>
+          <Code>{{ load_balancer.state }}</Code>
         </State>
         <Type>application</Type>
       </member>

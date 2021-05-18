@@ -52,6 +52,7 @@ def test_create_load_balancer():
         ]
     )
     lb.get("CreatedTime").tzinfo.should_not.be.none
+    lb.get("State").get("Code").should.equal("provisioning")
 
     # Ensure the tags persisted
     response = conn.describe_tags(ResourceArns=[lb.get("LoadBalancerArn")])
