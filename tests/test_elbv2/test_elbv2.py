@@ -90,6 +90,7 @@ def test_describe_load_balancers():
     response.get("LoadBalancers").should.have.length_of(1)
     lb = response.get("LoadBalancers")[0]
     lb.get("LoadBalancerName").should.equal("my-lb")
+    lb.get("State").get("Code").should.equal("active")
 
     response = conn.describe_load_balancers(
         LoadBalancerArns=[lb.get("LoadBalancerArn")]

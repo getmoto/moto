@@ -421,6 +421,10 @@ class FakeLoadBalancer(CloudFormationModel):
         if key in self.tags:
             del self.tags[key]
 
+    def activate(self):
+        if self.state == "provisioning":
+            self.state = "active"
+
     def delete(self, region):
         """ Not exposed as part of the ELB API - used for CloudFormation. """
         elbv2_backends[region].delete_load_balancer(self.arn)
@@ -745,6 +749,8 @@ Member must satisfy regular expression pattern: {}".format(
         arns = arns or []
         names = names or []
         if not arns and not names:
+            for balancer in balancers:
+                balancer.activate()
             return balancers
 
         matched_balancers = []
@@ -752,6 +758,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         for arn in arns:
             for balancer in balancers:
+                balancer.activate()
                 if balancer.arn == arn:
                     matched_balancer = balancer
             if matched_balancer is None:
@@ -761,6 +768,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         for name in names:
             for balancer in balancers:
+                balancer.activate()
                 if balancer.name == name:
                     matched_balancer = balancer
             if matched_balancer is None:
