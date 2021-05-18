@@ -1,13 +1,28 @@
 from __future__ import unicode_literals
 
+from copy import deepcopy
 from datetime import datetime
 from random import randint
 
 import boto3
+import mock
 import pytest
 import sure  # noqa
 
-from moto.eks.exceptions import ResourceNotFoundException
+from moto.eks.exceptions import (
+    ResourceNotFoundException,
+    ResourceInUseException,
+    InvalidRequestException,
+    InvalidParameterException,
+)
+from moto.eks.models import (
+    NODEGROUP_EXISTS_MSG,
+    CLUSTER_NOT_READY_MSG,
+    CLUSTER_NOT_FOUND_MSG,
+    CLUSTER_IN_USE_MSG,
+    LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG,
+    LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG,
+)
 from moto.utilities.utils import random_string
 from test_eks_constants import (
     ArnAttributes,
@@ -15,15 +30,27 @@ from test_eks_constants import (
     BatchCountSize,
     ClusterAttribute,
     ClusterInputs,
-    MessageTemplates,
+    DISK_SIZE,
+    INSTANCE_TYPES,
+    LAUNCH_TEMPLATE,
+    NodegroupInputs,
     PageCount,
     PARTITIONS,
+    REMOTE_ACCESS,
     ResponseAttribute,
     REGION,
     SERVICE,
     STATUS,
+    TestResults,
+    MethodNames,
+    NodegroupAttribute,
 )
-from test_eks_utils import generate_clusters, is_valid_uri, region_matches_partition
+from test_eks_utils import (
+    generate_clusters,
+    is_valid_uri,
+    region_matches_partition,
+    generate_nodegroups,
+)
 
 from moto import mock_eks
 from moto.core import ACCOUNT_ID
@@ -31,10 +58,14 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.eks.responses import DEFAULT_MAX_RESULTS
 
 
+def client_setup():
+    return boto3.client(SERVICE)
+
+
 @pytest.fixture(scope="function")
-def setup():
+def cluster_setup():
     def _execute(count=1, minimal=True):
-        client = boto3.client(SERVICE)
+        client = client_setup()
         cluster_names = generate_clusters(client, count, minimal)
         cluster = client.describe_cluster(
             name=cluster_names if isinstance(cluster_names, str) else cluster_names[0]
@@ -45,6 +76,17 @@ def setup():
     mock_eks().start()
     yield _execute
     mock_eks().stop()
+
+
+@pytest.fixture(scope="function")
+def nodegroup_setup(cluster_setup):
+    def _execute(count=1, minimal=True):
+        client, cluster_name, _ = cluster_setup()
+        nodegroup_names = generate_nodegroups(client, cluster_name, count, minimal)
+
+        return client, cluster_name, nodegroup_names
+
+    yield _execute
 
 
 @pytest.fixture(scope="function")
@@ -72,8 +114,8 @@ def test_list_clusters_returns_empty_by_default():
     result.should.be.empty
 
 
-def test_list_clusters_returns_sorted_cluster_names(setup):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+def test_list_clusters_returns_sorted_cluster_names(cluster_setup):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM)
 
     result = client.list_clusters()[ResponseAttribute.CLUSTERS]
 
@@ -81,8 +123,8 @@ def test_list_clusters_returns_sorted_cluster_names(setup):
     len(result).should.equal(BatchCountSize.MEDIUM)
 
 
-def test_list_clusters_returns_default_max_results(setup):
-    client, cluster_names, _ = setup(BatchCountSize.LARGE)
+def test_list_clusters_returns_default_max_results(cluster_setup):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.LARGE)
 
     result = client.list_clusters()[ResponseAttribute.CLUSTERS]
 
@@ -90,8 +132,8 @@ def test_list_clusters_returns_default_max_results(setup):
     result.should.equal((sorted(cluster_names))[:DEFAULT_MAX_RESULTS])
 
 
-def test_list_clusters_returns_custom_max_results(setup):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+def test_list_clusters_returns_custom_max_results(cluster_setup):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM)
 
     result = client.list_clusters(maxResults=PageCount.LARGE)[
         ResponseAttribute.CLUSTERS
@@ -101,8 +143,8 @@ def test_list_clusters_returns_custom_max_results(setup):
     result.should.equal((sorted(cluster_names))[: PageCount.LARGE])
 
 
-def test_list_clusters_returns_second_page_results(setup):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+def test_list_clusters_returns_second_page_results(cluster_setup):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM)
     token = client.list_clusters(maxResults=PageCount.LARGE)[
         ResponseAttribute.NEXT_TOKEN
     ]
@@ -113,8 +155,8 @@ def test_list_clusters_returns_second_page_results(setup):
     result.should.equal((sorted(cluster_names))[PageCount.LARGE :])
 
 
-def test_list_clusters_returns_custom_second_page_results(setup):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+def test_list_clusters_returns_custom_second_page_results(cluster_setup):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM)
     token = client.list_clusters(maxResults=PageCount.LARGE)[
         ResponseAttribute.NEXT_TOKEN
     ]
@@ -129,8 +171,8 @@ def test_list_clusters_returns_custom_second_page_results(setup):
     )
 
 
-def test_create_cluster_generates_valid_cluster_arn(setup):
-    client, cluster_name, test_cluster = setup()
+def test_create_cluster_generates_valid_cluster_arn(cluster_setup):
+    client, cluster_name, test_cluster = cluster_setup()
     result_arn = test_cluster[ClusterAttribute.ARN]
     result_name = test_cluster[ClusterAttribute.NAME]
 
@@ -147,8 +189,8 @@ def test_create_cluster_generates_valid_cluster_arn(setup):
 
 
 @pytest.mark.freeze_time
-def test_create_cluster_generates_valid_cluster_created_timestamp(setup):
-    client, cluster_name, test_cluster = setup()
+def test_create_cluster_generates_valid_cluster_created_timestamp(cluster_setup):
+    client, cluster_name, test_cluster = cluster_setup()
     current_time = iso_8601_datetime_without_milliseconds(datetime.now())
 
     result_time = iso_8601_datetime_without_milliseconds(
@@ -158,8 +200,8 @@ def test_create_cluster_generates_valid_cluster_created_timestamp(setup):
     result_time.should.equal(current_time)
 
 
-def test_create_cluster_generates_valid_cluster_endpoint(setup):
-    client, cluster_name, test_cluster = setup()
+def test_create_cluster_generates_valid_cluster_endpoint(cluster_setup):
+    client, cluster_name, test_cluster = cluster_setup()
 
     result_endpoint = test_cluster[ClusterAttribute.ENDPOINT]
 
@@ -167,8 +209,8 @@ def test_create_cluster_generates_valid_cluster_endpoint(setup):
     result_endpoint.should.contain(REGION)
 
 
-def test_create_cluster_generates_valid_oidc_identity(setup):
-    client, cluster_name, test_cluster = setup()
+def test_create_cluster_generates_valid_oidc_identity(cluster_setup):
+    client, cluster_name, test_cluster = cluster_setup()
 
     result_issuer = test_cluster[ClusterAttribute.IDENTITY][ClusterAttribute.OIDC][
         ClusterAttribute.ISSUER
@@ -178,8 +220,8 @@ def test_create_cluster_generates_valid_oidc_identity(setup):
     result_issuer.should.contain(REGION)
 
 
-def test_create_cluster_saves_provided_parameters(setup):
-    client, cluster_name, test_cluster = setup(minimal=False)
+def test_create_cluster_saves_provided_parameters(cluster_setup):
+    client, cluster_name, test_cluster = cluster_setup(minimal=False)
     test_list = (
         ClusterInputs.REQUIRED
         + ClusterInputs.OPTIONAL
@@ -190,20 +232,27 @@ def test_create_cluster_saves_provided_parameters(setup):
         test_cluster[key].should.equal(expected_value)
 
 
-def test_describe_cluster_throws_exception_when_cluster_not_found(setup, randomNames):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+def test_describe_cluster_throws_exception_when_cluster_not_found(
+    cluster_setup, randomNames
+):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM)
     _, non_existent_cluster_name = randomNames(cluster_names)
+    expected_exception = ResourceNotFoundException
 
     client.describe_cluster.when.called_with(
         name=non_existent_cluster_name
     ).should.throw(
-        ResourceNotFoundException,
-        MessageTemplates.ClusterNotFound.format(name=non_existent_cluster_name),
+        expected_exception,
+        CLUSTER_NOT_FOUND_MSG.format(
+            exception_name=expected_exception.TYPE,
+            method=MethodNames.DESCRIBE_CLUSTER,
+            cluster_name=non_existent_cluster_name,
+        ),
     )
 
 
-def test_delete_cluster_returns_deleted_cluster(setup, randomNames):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM, False)
+def test_delete_cluster_returns_deleted_cluster(cluster_setup, randomNames):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM, False)
     chosen_cluster_name, _ = randomNames(cluster_names)
     test_list = (
         ClusterInputs.REQUIRED
@@ -217,8 +266,8 @@ def test_delete_cluster_returns_deleted_cluster(setup, randomNames):
         result[key].should.equal(expected_value)
 
 
-def test_delete_cluster_removes_deleted_cluster(setup, randomNames):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM, False)
+def test_delete_cluster_removes_deleted_cluster(cluster_setup, randomNames):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM, False)
     chosen_cluster_name, _ = randomNames(cluster_names)
 
     client.delete_cluster(name=chosen_cluster_name)
@@ -228,23 +277,265 @@ def test_delete_cluster_removes_deleted_cluster(setup, randomNames):
     result_cluster_list.should_not.contain(chosen_cluster_name)
 
 
-def test_delete_cluster_throws_exception_when_cluster_not_found(setup, randomNames):
-    client, cluster_names, _ = setup(BatchCountSize.MEDIUM)
+def test_delete_cluster_throws_exception_when_cluster_not_found(
+    cluster_setup, randomNames
+):
+    client, cluster_names, _ = cluster_setup(BatchCountSize.MEDIUM)
     _, non_existent_cluster_name = randomNames(cluster_names)
+    expected_exception = ResourceNotFoundException
 
     client.delete_cluster.when.called_with(name=non_existent_cluster_name).should.throw(
-        ResourceNotFoundException,
-        MessageTemplates.ClusterNotFound.format(name=non_existent_cluster_name),
+        expected_exception,
+        CLUSTER_NOT_FOUND_MSG.format(
+            exception_name=expected_exception.TYPE,
+            method=MethodNames.DELETE_CLUSTER,
+            cluster_name=non_existent_cluster_name,
+        ),
     )
     len(client.list_clusters()[ResponseAttribute.CLUSTERS]).should.equal(
         BatchCountSize.MEDIUM
     )
 
 
-def test_list_nodegroups_returns_empty_by_default(setup):
-    client, cluster_name, _ = setup(BatchCountSize.SINGLE)
+def test_list_nodegroups_returns_empty_by_default(cluster_setup):
+    client, cluster_name, _ = cluster_setup()
 
     result = client.list_nodegroups(clusterName=cluster_name)[
         ResponseAttribute.NODEGROUPS
     ]
     result.should.be.empty
+
+
+def test_list_nodegroups_returns_sorted_nodegroup_names(nodegroup_setup):
+    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+
+    result = client.list_nodegroups(clusterName=cluster_name)[
+        ResponseAttribute.NODEGROUPS
+    ]
+
+    result.should.equal(sorted(nodegroup_names))
+    len(result).should.equal(BatchCountSize.MEDIUM)
+
+
+def test_list_nodegroups_returns_default_max_results(nodegroup_setup):
+    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.LARGE)
+
+    result = client.list_nodegroups(clusterName=cluster_name)[
+        ResponseAttribute.NODEGROUPS
+    ]
+
+    len(result).should.equal(DEFAULT_MAX_RESULTS)
+    result.should.equal((sorted(nodegroup_names))[:DEFAULT_MAX_RESULTS])
+
+
+def test_list_nodegroups_returns_custom_max_results(nodegroup_setup):
+    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.LARGE)
+
+    result = client.list_nodegroups(
+        clusterName=cluster_name, maxResults=PageCount.LARGE
+    )[ResponseAttribute.NODEGROUPS]
+
+    len(result).should.equal(PageCount.LARGE)
+    result.should.equal((sorted(nodegroup_names))[: PageCount.LARGE])
+
+
+def test_list_nodegroups_returns_second_page_results(nodegroup_setup):
+    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    token = client.list_nodegroups(
+        clusterName=cluster_name, maxResults=PageCount.LARGE
+    )[ResponseAttribute.NEXT_TOKEN]
+
+    result = client.list_nodegroups(clusterName=cluster_name, nextToken=token)[
+        ResponseAttribute.NODEGROUPS
+    ]
+
+    len(result).should.equal(BatchCountSize.MEDIUM - PageCount.LARGE)
+    result.should.equal((sorted(nodegroup_names))[PageCount.LARGE :])
+
+
+def test_list_nodegroups_returns_custom_second_page_results(nodegroup_setup):
+    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    token = client.list_nodegroups(
+        clusterName=cluster_name, maxResults=PageCount.LARGE
+    )[ResponseAttribute.NEXT_TOKEN]
+
+    result = client.list_nodegroups(
+        clusterName=cluster_name, maxResults=PageCount.SMALL, nextToken=token
+    )[ResponseAttribute.NODEGROUPS]
+
+    len(result).should.equal(PageCount.SMALL)
+    result.should.equal(
+        (sorted(nodegroup_names))[PageCount.LARGE : PageCount.LARGE + PageCount.SMALL]
+    )
+
+
+@mock_eks
+def test_create_nodegroup_throws_exception_when_cluster_not_found(randomNames):
+    client = boto3.client(SERVICE)
+    nodegroup_inputs = deepcopy(NodegroupInputs.REQUIRED)
+    non_existent_cluster_name = random_string()
+    nodegroup_name = random_string()
+    expected_exception = ResourceNotFoundException
+
+    client.create_nodegroup.when.called_with(
+        clusterName=non_existent_cluster_name,
+        nodegroupName=nodegroup_name,
+        **dict(nodegroup_inputs)
+    ).should.throw(
+        expected_exception,
+        CLUSTER_NOT_FOUND_MSG.format(
+            exception_name=expected_exception.TYPE,
+            method=MethodNames.CREATE_NODEGROUP,
+            cluster_name=non_existent_cluster_name,
+        ),
+    )
+
+
+def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
+    nodegroup_setup, randomNames
+):
+    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    chosen_nodegroup_name, _ = randomNames(nodegroup_names)
+    nodegroup_inputs = deepcopy(NodegroupInputs.REQUIRED)
+    expected_exception = ResourceInUseException
+
+    client.create_nodegroup.when.called_with(
+        clusterName=cluster_name,
+        nodegroupName=chosen_nodegroup_name,
+        **dict(nodegroup_inputs)
+    ).should.throw(
+        expected_exception,
+        NODEGROUP_EXISTS_MSG.format(
+            exception_name=expected_exception.TYPE,
+            method=MethodNames.CREATE_NODEGROUP,
+            cluster_name=cluster_name,
+            nodegroup_name=chosen_nodegroup_name,
+        ),
+    )
+    len(
+        client.list_nodegroups(clusterName=cluster_name)[ResponseAttribute.NODEGROUPS]
+    ).should.equal(BatchCountSize.MEDIUM)
+
+
+def test_create_nodegroup_throws_exception_when_cluster_not_active(
+    nodegroup_setup, randomNames, monkeypatch
+):
+    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    _, new_nodegroup_name = randomNames(nodegroup_names)
+    nodegroup_inputs = deepcopy(NodegroupInputs.REQUIRED)
+    expected_exception = InvalidRequestException
+
+    with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
+        client.create_nodegroup.when.called_with(
+            clusterName=cluster_name,
+            nodegroupName=new_nodegroup_name,
+            **dict(nodegroup_inputs)
+        ).should.throw(
+            expected_exception,
+            CLUSTER_NOT_READY_MSG.format(
+                exception_name=expected_exception.TYPE,
+                method=MethodNames.CREATE_NODEGROUP,
+                cluster_name=cluster_name,
+            ),
+        )
+
+    len(
+        client.list_nodegroups(clusterName=cluster_name)[ResponseAttribute.NODEGROUPS]
+    ).should.equal(BatchCountSize.MEDIUM)
+
+
+def test_delete_cluster_throws_exception_when_nodegroups_exist(nodegroup_setup):
+    client, cluster_name, nodegroup_names = nodegroup_setup()
+    expected_exception = ResourceInUseException
+
+    client.delete_cluster.when.called_with(name=cluster_name).should.throw(
+        expected_exception,
+        CLUSTER_IN_USE_MSG.format(
+            exception_name=expected_exception.TYPE, method=MethodNames.DELETE_CLUSTER,
+        ),
+    )
+    len(client.list_clusters()[ResponseAttribute.CLUSTERS]).should.equal(
+        BatchCountSize.SINGLE
+    )
+
+
+# If launch_template is specified, you can not specify instanceTypes, diskSize, or remoteAccess.
+test_cases = [
+    # Happy Paths
+    (LAUNCH_TEMPLATE, None, None, None, TestResults.SUCCESS),
+    (None, INSTANCE_TYPES, DISK_SIZE, REMOTE_ACCESS, TestResults.SUCCESS),
+    (None, None, DISK_SIZE, REMOTE_ACCESS, TestResults.SUCCESS),
+    (None, INSTANCE_TYPES, None, REMOTE_ACCESS, TestResults.SUCCESS),
+    (None, INSTANCE_TYPES, DISK_SIZE, None, TestResults.SUCCESS),
+    (None, INSTANCE_TYPES, None, None, TestResults.SUCCESS),
+    (None, None, DISK_SIZE, None, TestResults.SUCCESS),
+    (None, None, None, REMOTE_ACCESS, TestResults.SUCCESS),
+    (None, None, None, None, TestResults.SUCCESS),
+    # Unhappy Paths
+    (LAUNCH_TEMPLATE, INSTANCE_TYPES, None, None, TestResults.FAILURE),
+    (LAUNCH_TEMPLATE, None, DISK_SIZE, None, TestResults.FAILURE),
+    (LAUNCH_TEMPLATE, None, None, REMOTE_ACCESS, TestResults.FAILURE),
+    (LAUNCH_TEMPLATE, INSTANCE_TYPES, DISK_SIZE, None, TestResults.FAILURE),
+    (LAUNCH_TEMPLATE, INSTANCE_TYPES, None, REMOTE_ACCESS, TestResults.FAILURE),
+    (LAUNCH_TEMPLATE, None, DISK_SIZE, REMOTE_ACCESS, TestResults.FAILURE),
+    (LAUNCH_TEMPLATE, INSTANCE_TYPES, DISK_SIZE, REMOTE_ACCESS, TestResults.FAILURE),
+]
+
+
+@pytest.mark.parametrize(
+    "launchTemplate, instanceTypes, diskSize, remoteAccess, expected_result",
+    test_cases,
+)
+def test_create_nodegroup_handles_launch_template_combinations(
+    cluster_setup,
+    launchTemplate,
+    instanceTypes,
+    diskSize,
+    remoteAccess,
+    expected_result,
+):
+    client, cluster_name, _ = cluster_setup()
+    nodegroup_name = random_string()
+    expected_exception = InvalidParameterException
+    expected_message = None
+
+    test_inputs = dict(
+        deepcopy(
+            # Required Constants
+            NodegroupInputs.REQUIRED
+            # Required Variables
+            + [
+                (ClusterAttribute.CLUSTER_NAME, cluster_name),
+                (NodegroupAttribute.NAME, nodegroup_name),
+            ]
+            # Test Case Values
+            + [_ for _ in [launchTemplate, instanceTypes, diskSize, remoteAccess] if _]
+        )
+    )
+
+    if expected_result == TestResults.SUCCESS:
+        result = client.create_nodegroup(**test_inputs)[ResponseAttribute.NODEGROUP]
+
+        for key, expected_value in test_inputs.items():
+            result[key].should.equal(expected_value)
+    else:
+        if launchTemplate and diskSize:
+            expected_message = LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG.format(
+                exception_name=expected_exception.TYPE,
+                method=MethodNames.CREATE_NODEGROUP,
+            )
+        elif launchTemplate and remoteAccess:
+            expected_message = LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG.format(
+                exception_name=expected_exception.TYPE,
+                method=MethodNames.CREATE_NODEGROUP,
+            )
+        # Docs say this combination throws an exception but testing shows that
+        # instanceTypes overrides the launchTemplate instance values instead.
+        # Leaving here for easier correction if/when that gets fixed.
+        elif launchTemplate and instanceTypes:
+            pass
+
+    if expected_message:
+        client.create_nodegroup.when.called_with(**test_inputs).should.throw(
+            expected_exception, expected_message
+        )

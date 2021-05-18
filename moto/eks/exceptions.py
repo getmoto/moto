@@ -22,6 +22,11 @@ class InvalidParameterException(AWSError):
     STATUS = 400
 
 
+class InvalidRequestException(AWSError):
+    TYPE = "InvalidRequestException"
+    STATUS = 400
+
+
 class ClientException(AWSError):
     TYPE = "ClientException"
     STATUS = 400

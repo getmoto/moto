@@ -39,6 +39,45 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps({"cluster": {**dict(cluster)}})
 
+    def create_nodegroup(self):
+        cluster_name = self._get_param("name")
+        nodegroup_name = self._get_param("nodegroupName")
+        scaling_config = self._get_param("scalingConfig")
+        disk_size = self._get_int_param("diskSize")
+        subnets = self._get_param("subnets")
+        instance_types = self._get_param("instanceTypes")
+        ami_type = self._get_param("amiType")
+        remote_access = self._get_param("remoteAccess")
+        node_role = self._get_param("nodeRole")
+        labels = self._get_param("labels")
+        tags = self._get_param("tags")
+        client_request_token = self._get_param("clientRequestToken")
+        launch_template = self._get_param("launchTemplate")
+        capacity_type = self._get_param("capacityType")
+        version = self._get_param("version")
+        release_version = self._get_param("releaseVersion")
+
+        nodegroup = self.eks_backend.create_nodegroup(
+            cluster_name=cluster_name,
+            nodegroup_name=nodegroup_name,
+            scaling_config=scaling_config,
+            disk_size=disk_size,
+            subnets=subnets,
+            instance_types=instance_types,
+            ami_type=ami_type,
+            remote_access=remote_access,
+            node_role=node_role,
+            labels=labels,
+            tags=tags,
+            client_request_token=client_request_token,
+            launch_template=launch_template,
+            capacity_type=capacity_type,
+            version=version,
+            release_version=release_version,
+        )
+
+        return 200, {}, json.dumps({"nodegroup": {**dict(nodegroup)}})
+
     def describe_cluster(self):
         name = self._get_param("name")
         cluster = self.eks_backend.describe_cluster(name=name)

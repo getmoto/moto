@@ -1,3 +1,4 @@
+import inspect
 import re
 
 from boto3 import Session
@@ -18,6 +19,13 @@ def set_partition(region):
         if region.startswith(prefix):
             return partition
     return "aws"
+
+
+def method_name():
+    """Gets the name of the method which called it from the stack and returns the name in PascalCase."""
+    return (
+        inspect.stack()[1][0].f_code.co_name.replace("_", " ").title().replace(" ", "")
+    )
 
 
 def validate_role_arn(arn):
