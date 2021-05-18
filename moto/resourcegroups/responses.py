@@ -71,6 +71,9 @@ class ResourceGroupsResponse(BaseResponse):
 
     def get_group_query(self):
         group_name = self._get_param("GroupName")
+        group_arn = self._get_param("Group")
+        if group_arn and not group_name:
+            group_name = group_arn.split(":")[-1]
         group = self.resourcegroups_backend.get_group(group_name=group_name)
         return json.dumps(
             {
@@ -165,6 +168,9 @@ class ResourceGroupsResponse(BaseResponse):
     def update_group_query(self):
         group_name = self._get_param("GroupName")
         resource_query = self._get_param("ResourceQuery")
+        group_arn = self._get_param("Group")
+        if group_arn and not group_name:
+            group_name = group_arn.split(":")[-1]
         group = self.resourcegroups_backend.update_group_query(
             group_name=group_name, resource_query=resource_query
         )
