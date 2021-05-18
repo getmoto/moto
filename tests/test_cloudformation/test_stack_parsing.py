@@ -13,7 +13,7 @@ from moto.cloudformation.parsing import (
     parse_condition,
     Export,
 )
-from moto import mock_ssm
+from moto import mock_ssm, settings
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
@@ -521,18 +521,19 @@ def test_ssm_parameter_parsing():
         Name="/path/to/list/param", Value="comma,separated,string", Type="StringList"
     )
 
-    stack = FakeStack(
-        stack_id="test_id",
-        name="test_stack",
-        template=ssm_parameter_template_json,
-        parameters={
-            "SingleParamCfn": "/path/to/single/param",
-            "ListParamCfn": "/path/to/list/param",
-        },
-        region_name="us-west-1",
-    )
+    if not settings.TEST_SERVER_MODE:
+        stack = FakeStack(
+            stack_id="test_id",
+            name="test_stack",
+            template=ssm_parameter_template_json,
+            parameters={
+                "SingleParamCfn": "/path/to/single/param",
+                "ListParamCfn": "/path/to/list/param",
+            },
+            region_name="us-west-1",
+        )
 
-    stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
-    stack.resource_map.resolved_parameters["ListParamCfn"].should.equal(
-        ["comma", "separated", "string"]
-    )
+        stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
+        stack.resource_map.resolved_parameters["ListParamCfn"].should.equal(
+            ["comma", "separated", "strin"]
+        )
