@@ -256,25 +256,21 @@ def test_update_group_query():
     response = resource_groups.update_group_query(
         Group=group_response.get("Group").get("GroupArn"),
         ResourceQuery={
-            "Type": "CLOUDFORMATION_STACK_2_0",
+            "Type": "TAG_FILTERS_1_0",
             "Query": json.dumps(
                 {
                     "ResourceTypeFilters": ["AWS::AllSupported"],
-                    "StackIdentifier": (
-                        "arn:aws:cloudformation:eu-west-1:012345678912:stack/"
-                        "test_stack/c223eca0-e744-11e8-8910-500c41f59083"
-                    ),
+                    "TagFilters": [
+                        {"Key": "resources_tag_key", "Values": ["resources_tag_value"]}
+                    ],
                 }
             ),
         },
     )
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
-        "CLOUDFORMATION_STACK_2_0"
-    )
+
+    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
 
     response = resource_groups.get_group_query(
         Group=group_response.get("Group").get("GroupArn")
     )
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
-        "CLOUDFORMATION_STACK_2_0"
-    )
+    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
