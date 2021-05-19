@@ -535,5 +535,5 @@ def test_ssm_parameter_parsing():
 
         stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
         stack.resource_map.resolved_parameters["ListParamCfn"].should.equal(
-            ["comma", "separated", "strin"]
+            ["comma", "separated", "string"]
         )
