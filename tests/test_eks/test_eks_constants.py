@@ -95,6 +95,14 @@ TAGS = (TAGS_KEY, TAGS_VALUE)
 VERSION = (VERSION_KEY, VERSION_VALUE)
 
 
+class ResponseAttribute:
+    CLUSTER = "cluster"
+    CLUSTERS = "clusters"
+    NEXT_TOKEN = "nextToken"
+    NODEGROUP = "nodegroup"
+    NODEGROUPS = "nodegroups"
+
+
 class ClusterInputs:
     REQUIRED = [ROLE_ARN, RESOURCES_VPC_CONFIG]
     OPTIONAL = [
@@ -125,18 +133,8 @@ class TestResults(Enum):
     FAILURE = "FAILURE"
 
 
-class ResponseAttribute:
-    CLUSTER = "cluster"
-    CLUSTERS = "clusters"
-    NEXT_TOKEN = "nextToken"
-    NODEGROUP = "nodegroup"
-    NODEGROUPS = "nodegroups"
-
-
 class ClusterAttributes:
     ARN = "arn"
-    CLIENT_REQUEST_TOKEN = "client_request_token"
-    CLUSTER = "cluster"
     CLUSTER_NAME = "clusterName"
     CREATED_AT = "createdAt"
     ENDPOINT = "endpoint"
@@ -198,7 +196,9 @@ class RegExTemplates:
 
 
 class MethodNames:
+    CREATE_CLUSTER = "CreateCluster"
     CREATE_NODEGROUP = "CreateNodegroup"
     DELETE_CLUSTER = "DeleteCluster"
+    DELETE_NODEGROUP = "DeleteNodegroup"
     DESCRIBE_CLUSTER = "DescribeCluster"
     DESCRIBE_NODEGROUP = "DescribeNodegroup"

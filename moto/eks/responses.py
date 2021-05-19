@@ -114,3 +114,11 @@ class EKSResponse(BaseResponse):
         name = self._get_param("name")
         cluster = self.eks_backend.delete_cluster(name=name,)
         return 200, {}, json.dumps({"cluster": dict(cluster)})
+
+    def delete_nodegroup(self):
+        cluster_name = self._get_param("name")
+        nodegroup_name = self._get_param("nodegroupName")
+        nodegroup = self.eks_backend.delete_nodegroup(
+            cluster_name=cluster_name, nodegroup_name=nodegroup_name,
+        )
+        return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})

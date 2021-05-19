@@ -276,6 +276,7 @@ class EKSBackend(BaseBackend):
         tags=None,
         encryption_config=None,
     ):
+        self.check_cluster_exists(name, throw_exception_on=True)
         validate_role_arn(role_arn)
 
         cluster = Cluster(
@@ -315,50 +316,13 @@ class EKSBackend(BaseBackend):
         version=None,
         release_version=None,
     ):
-        if cluster_name not in self.clusters.keys():
-            exception = ResourceNotFoundException
-            raise exception(
-                CLUSTER_NOT_FOUND_MSG.format(
-                    exception_name=exception.TYPE,
-                    method=method_name(),
-                    cluster_name=cluster_name,
-                )
-            )
-        if nodegroup_name in self.clusters[cluster_name].nodegroups.keys():
-            exception = ResourceInUseException
-            raise exception(
-                NODEGROUP_EXISTS_MSG.format(
-                    exception_name=exception.TYPE,
-                    method=method_name(),
-                    cluster_name=cluster_name,
-                    nodegroup_name=nodegroup_name,
-                )
-            )
-        if not self.clusters[cluster_name].isActive():
-            exception = InvalidRequestException
-            raise exception(
-                CLUSTER_NOT_READY_MSG.format(
-                    exception_name=exception.TYPE,
-                    method=method_name(),
-                    cluster_name=cluster_name,
-                )
-            )
-
-        if launch_template and disk_size:
-            exception = InvalidParameterException
-            raise exception(
-                LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG.format(
-                    exception_name=exception.TYPE, method=method_name(),
-                )
-            )
-        if launch_template and remote_access:
-            exception = InvalidParameterException
-            raise exception(
-                LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG.format(
-                    exception_name=exception.TYPE, method=method_name(),
-                )
-            )
-
+        self.check_cluster_exists(cluster_name, throw_exception_on=False)
+        self.check_nodegroup_exists(
+            cluster_name, nodegroup_name, throw_exception_on=True
+        )
+        validate_cluster_is_active(self.clusters[cluster_name])
+        if launch_template:
+            validate_launch_template_combination(disk_size, remote_access)
         validate_role_arn(node_role)
 
         nodegroup = ManagedNodegroup(
@@ -382,49 +346,39 @@ class EKSBackend(BaseBackend):
             regionName=self.region_name,
             awsPartition=self.partition,
         )
-        self.clusters[cluster_name].nodegroups[nodegroup_name] = nodegroup
-        self.clusters[cluster_name].nodegroup_count += 1
+        cluster = self.clusters[cluster_name]
+        cluster.nodegroups[nodegroup_name] = nodegroup
+        cluster.nodegroup_count += 1
         return nodegroup
 
     def describe_cluster(self, name):
-        try:
-            return self.clusters[name]
-        except KeyError:
-            exception = ResourceNotFoundException
-            raise exception(
-                CLUSTER_NOT_FOUND_MSG.format(
-                    exception_name=exception.TYPE,
-                    method=method_name(),
-                    cluster_name=name,
-                )
-            )
+        self.check_cluster_exists(name, throw_exception_on=False)
+        return self.clusters[name]
 
     def describe_nodegroup(self, cluster_name, nodegroup_name):
-        self.check_cluster_exists(cluster_name)
-        try:
-            return self.clusters[cluster_name].nodegroups[nodegroup_name]
-        except KeyError:
-            exception = ResourceNotFoundException
-            raise exception(
-                NODEGROUP_NOT_FOUND_MSG.format(
-                    exception_name=exception.TYPE,
-                    method=method_name(),
-                    nodegroup_name=nodegroup_name,
-                )
-            )
+        self.check_cluster_exists(cluster_name, throw_exception_on=False)
+        self.check_nodegroup_exists(
+            cluster_name, nodegroup_name, throw_exception_on=False
+        )
+        return self.clusters[cluster_name].nodegroups[nodegroup_name]
 
     def delete_cluster(self, name):
-        self.check_cluster_exists(name)
-        if self.clusters[name].nodegroup_count:
-            exception = ResourceInUseException
-            raise exception(
-                CLUSTER_IN_USE_MSG.format(
-                    exception_name=exception.TYPE, method=method_name()
-                )
-            )
+        self.check_cluster_exists(name, throw_exception_on=False)
+        validate_safe_to_delete(self.clusters[name])
 
         result = self.clusters.pop(name)
         self.cluster_count -= 1
+        return result
+
+    def delete_nodegroup(self, cluster_name, nodegroup_name):
+        self.check_cluster_exists(cluster_name, throw_exception_on=False)
+        self.check_nodegroup_exists(
+            cluster_name, nodegroup_name, throw_exception_on=False
+        )
+        cluster = self.clusters[cluster_name]
+
+        result = cluster.nodegroups.pop(nodegroup_name)
+        cluster.nodegroup_count -= 1
         return result
 
     def list_nodegroups(self, cluster_name, max_results, next_token):
@@ -436,16 +390,72 @@ class EKSBackend(BaseBackend):
 
         return nodegroup_names[start:end], new_next
 
-    def check_cluster_exists(self, cluster_name):
-        if cluster_name not in self.clusters:
-            exception = ResourceNotFoundException
-            raise exception(
-                CLUSTER_NOT_FOUND_MSG.format(
-                    exception_name=exception.TYPE,
-                    method=method_name(parent=True),
-                    cluster_name=cluster_name,
-                )
+    def check_cluster_exists(self, cluster_name, throw_exception_on):
+        if (cluster_name in self.clusters) == throw_exception_on:
+            msg_args = dict(
+                method=method_name(use_parent=True), cluster_name=cluster_name,
             )
+            if throw_exception_on is True:
+                exception = ResourceInUseException
+                msg = CLUSTER_EXISTS_MSG
+            else:
+                exception = ResourceNotFoundException
+                msg = CLUSTER_NOT_FOUND_MSG
+            raise exception(msg.format(exception_name=exception.TYPE, **msg_args))
+
+    def check_nodegroup_exists(self, cluster_name, nodegroup_name, throw_exception_on):
+        if (
+            nodegroup_name in self.clusters[cluster_name].nodegroups
+        ) == throw_exception_on:
+            msg_args = dict(
+                method=method_name(use_parent=True),
+                cluster_name=cluster_name,
+                nodegroup_name=nodegroup_name,
+            )
+            if throw_exception_on is True:
+                exception = ResourceInUseException
+                msg = NODEGROUP_EXISTS_MSG
+            else:
+                exception = ResourceNotFoundException
+                msg = NODEGROUP_NOT_FOUND_MSG
+            raise exception(msg.format(exception_name=exception.TYPE, **msg_args))
+
+
+def validate_safe_to_delete(cluster):
+    # A cluster which has nodegroups attached can not be deleted.
+    if cluster.nodegroup_count:
+        exception = ResourceInUseException
+        raise exception(
+            CLUSTER_IN_USE_MSG.format(
+                exception_name=exception.TYPE, method=method_name(use_parent=True)
+            )
+        )
+
+
+def validate_cluster_is_active(cluster):
+    if not cluster.isActive():
+        exception = InvalidRequestException
+        raise exception(
+            CLUSTER_NOT_READY_MSG.format(
+                exception_name=exception.TYPE,
+                method=method_name(use_parent=True),
+                cluster_name=cluster.name,
+            )
+        )
+
+
+def validate_launch_template_combination(disk_size, remote_access):
+    if not (disk_size or remote_access):
+        return
+
+    exception = InvalidParameterException
+    if disk_size:
+        msg = LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG
+    elif remote_access:
+        msg = LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG
+    raise exception(
+        msg.format(exception_name=exception.TYPE, method=method_name(use_parent=True))
+    )
 
 
 eks_backends = {}
