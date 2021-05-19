@@ -6,7 +6,11 @@ from datetime import date
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
-from .exceptions import ContainerNotFoundException, ResourceNotFoundException, PolicyNotFoundException
+from .exceptions import (
+    ContainerNotFoundException,
+    ResourceNotFoundException,
+    PolicyNotFoundException,
+)
 
 
 class Container(BaseModel):
@@ -28,7 +32,7 @@ class Container(BaseModel):
             "Endpoint": self.endpoint,
             "Status": self.status,
             "CreationTime": self.creation_time,
-            "Tags": self.tags
+            "Tags": self.tags,
         }
         if exclude:
             for key in exclude:
@@ -55,7 +59,7 @@ class MediaStoreBackend(BaseBackend):
             endpoint="/{}".format(name),
             status="CREATING",
             creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S"),
-            tags=tags
+            tags=tags,
         )
         self._containers[name] = container
         return container
@@ -128,7 +132,7 @@ mediastore_backends = {}
 for region in Session().get_available_regions("mediastore"):
     mediastore_backends[region] = MediaStoreBackend(region)
 for region in Session().get_available_regions(
-        "mediastore", partition_name="aws-us-gov"
+    "mediastore", partition_name="aws-us-gov"
 ):
     mediastore_backends[region] = MediaStoreBackend(region)
 for region in Session().get_available_regions("mediastore", partition_name="aws-cn"):

@@ -11,7 +11,8 @@ class ContainerNotFoundException(MediaStoreClientError):
     def __init__(self, msg=None):
         self.code = 400
         super(ContainerNotFoundException, self).__init__(
-            "ContainerNotFoundException", msg or "The specified container does not exist"
+            "ContainerNotFoundException",
+            msg or "The specified container does not exist",
         )
 
 

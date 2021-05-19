@@ -87,4 +87,5 @@ class MediaStoreResponse(BaseResponse):
         )
         return json.dumps(dict(MetricPolicy=metric_policy))
 
+
 # add templates from here
