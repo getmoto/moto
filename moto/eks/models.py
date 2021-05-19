@@ -79,6 +79,7 @@ NODEGROUP_EXISTS_MSG = (
     BASE_MSG
     + "NodeGroup already exists with name {nodegroup_name} and cluster name {cluster_name}"
 )
+NODEGROUP_NOT_FOUND_MSG = BASE_MSG + "No node group found for name: {nodegroup_name}."
 
 
 class Cluster:
@@ -398,16 +399,22 @@ class EKSBackend(BaseBackend):
                 )
             )
 
-    def delete_cluster(self, name):
-        if name not in self.clusters:
+    def describe_nodegroup(self, cluster_name, nodegroup_name):
+        self.check_cluster_exists(cluster_name)
+        try:
+            return self.clusters[cluster_name].nodegroups[nodegroup_name]
+        except KeyError:
             exception = ResourceNotFoundException
             raise exception(
-                CLUSTER_NOT_FOUND_MSG.format(
+                NODEGROUP_NOT_FOUND_MSG.format(
                     exception_name=exception.TYPE,
                     method=method_name(),
-                    cluster_name=name,
+                    nodegroup_name=nodegroup_name,
                 )
             )
+
+    def delete_cluster(self, name):
+        self.check_cluster_exists(name)
         if self.clusters[name].nodegroup_count:
             exception = ResourceInUseException
             raise exception(
@@ -428,6 +435,17 @@ class EKSBackend(BaseBackend):
         new_next = "null" if end == cluster.nodegroup_count else nodegroup_names[end]
 
         return nodegroup_names[start:end], new_next
+
+    def check_cluster_exists(self, cluster_name):
+        if cluster_name not in self.clusters:
+            exception = ResourceNotFoundException
+            raise exception(
+                CLUSTER_NOT_FOUND_MSG.format(
+                    exception_name=exception.TYPE,
+                    method=method_name(parent=True),
+                    cluster_name=cluster_name,
+                )
+            )
 
 
 eks_backends = {}

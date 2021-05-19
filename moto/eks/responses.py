@@ -83,6 +83,14 @@ class EKSResponse(BaseResponse):
         cluster = self.eks_backend.describe_cluster(name=name)
         return 200, {}, json.dumps({"cluster": dict(cluster)})
 
+    def describe_nodegroup(self):
+        cluster_name = self._get_param("name")
+        nodegroup_name = self._get_param("nodegroupName")
+        nodegroup = self.eks_backend.describe_nodegroup(
+            cluster_name=cluster_name, nodegroup_name=nodegroup_name,
+        )
+        return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})
+
     def list_clusters(self):
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)

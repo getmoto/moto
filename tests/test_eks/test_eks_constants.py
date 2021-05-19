@@ -11,6 +11,7 @@ REGION = Session().region_name
 SERVICE = "eks"
 SUBNET_IDS = ["subnet-12345ab", "subnet-67890cd"]
 
+
 AMI_TYPE_KEY = "amiType"
 AMI_TYPE_VALUE = "AL2_x86_64"
 
@@ -68,9 +69,6 @@ SUBNETS_VALUE = SUBNET_IDS
 TAGS_KEY = "tags"
 TAGS_VALUE = {"hello": "world"}
 
-TAINTS_KEY = "taints"
-TAINTS_VALUE = [{"key": "manual_only", "value": "true", "effect": "NO_SCHEDULE"}]
-
 VERSION_KEY = "version"
 VERSION_VALUE = "1"
 
@@ -94,7 +92,6 @@ SCALING_CONFIG = (SCALING_CONFIG_KEY, SCALING_CONFIG_VALUE)
 STATUS = (STATUS_KEY, STATUS_VALUE)
 SUBNETS = (SUBNETS_KEY, SUBNETS_VALUE)
 TAGS = (TAGS_KEY, TAGS_VALUE)
-TAINTS = (TAINTS_KEY, TAINTS_VALUE)
 VERSION = (VERSION_KEY, VERSION_VALUE)
 
 
@@ -136,7 +133,7 @@ class ResponseAttribute:
     NODEGROUPS = "nodegroups"
 
 
-class ClusterAttribute:
+class ClusterAttributes:
     ARN = "arn"
     CLIENT_REQUEST_TOKEN = "client_request_token"
     CLUSTER = "cluster"
@@ -149,15 +146,15 @@ class ClusterAttribute:
     OIDC = "oidc"
 
 
-class NodegroupAttribute:
-    NAME = "nodegroupName"
-
-
-class ArnAttributes:
-    PARTITION = "partition"
-    REGION = "region"
-    ACCOUNT_ID = "account_id"
-    CLUSTER_NAME = "cluster_name"
+class NodegroupAttributes:
+    ARN = "nodegroupArn"
+    AUTOSCALING_GROUPS = "autoScalingGroups"
+    CREATED_AT = "createdAt"
+    MODIFIED_AT = "modifiedAt"
+    NAME = "name"
+    NODEGROUP_NAME = "nodegroupName"
+    REMOTE_ACCESS_SG = "remoteAccessSecurityGroup"
+    RESOURCES = "resources"
 
 
 class BatchCountSize:
@@ -172,7 +169,10 @@ class PageCount:
     LARGE = 10
 
 
-class ArnFormats:
+NODEGROUP_UUID_PATTERN = "(?P<nodegroup_uuid>[-0-9a-z]{8}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{12})"
+
+
+class RegExTemplates:
     CLUSTER_ARN = re.compile(
         "arn:"
         + "(?P<partition>.+):"
@@ -182,9 +182,23 @@ class ArnFormats:
         + "cluster/"
         + "(?P<cluster_name>.+)"
     )
+    NODEGROUP_ARN = re.compile(
+        "arn:"
+        + "(?P<partition>.+):"
+        + "eks:"
+        + "(?P<region>[-0-9a-zA-Z]+):"
+        + "(?P<account_id>[0-9]{12}):"
+        + "nodegroup/"
+        + "(?P<cluster_name>.+)/"
+        + "(?P<nodegroup_name>.+)/"
+        + NODEGROUP_UUID_PATTERN
+    )
+    NODEGROUP_ASG_NAME_PATTERN = re.compile("eks-" + NODEGROUP_UUID_PATTERN)
+    NODEGROUP_SECURITY_GROUP_NAME_PATTERN = re.compile("sg-" + "([-0-9a-z]{17})")
 
 
 class MethodNames:
     CREATE_NODEGROUP = "CreateNodegroup"
     DELETE_CLUSTER = "DeleteCluster"
     DESCRIBE_CLUSTER = "DescribeCluster"
+    DESCRIBE_NODEGROUP = "DescribeNodegroup"

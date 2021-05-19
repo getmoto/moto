@@ -22,17 +22,19 @@ from moto.eks.models import (
     CLUSTER_IN_USE_MSG,
     LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG,
     LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG,
+    NODEGROUP_NOT_FOUND_MSG,
 )
 from moto.utilities.utils import random_string
 from test_eks_constants import (
-    ArnAttributes,
-    ArnFormats,
+    RegExTemplates,
     BatchCountSize,
-    ClusterAttribute,
+    ClusterAttributes,
     ClusterInputs,
     DISK_SIZE,
     INSTANCE_TYPES,
     LAUNCH_TEMPLATE,
+    MethodNames,
+    NodegroupAttributes,
     NodegroupInputs,
     PageCount,
     PARTITIONS,
@@ -42,8 +44,6 @@ from test_eks_constants import (
     SERVICE,
     STATUS,
     TestResults,
-    MethodNames,
-    NodegroupAttribute,
 )
 from test_eks_utils import (
     generate_clusters,
@@ -67,11 +67,11 @@ def cluster_setup():
     def _execute(count=1, minimal=True):
         client = client_setup()
         cluster_names = generate_clusters(client, count, minimal)
-        cluster = client.describe_cluster(
+        cluster_describe_output = client.describe_cluster(
             name=cluster_names if isinstance(cluster_names, str) else cluster_names[0]
-        )[ClusterAttribute.CLUSTER]
+        )[ResponseAttribute.CLUSTER]
 
-        return client, cluster_names, cluster
+        return client, cluster_names, cluster_describe_output
 
     mock_eks().start()
     yield _execute
@@ -82,9 +82,17 @@ def cluster_setup():
 def nodegroup_setup(cluster_setup):
     def _execute(count=1, minimal=True):
         client, cluster_name, _ = cluster_setup()
-        nodegroup_names = generate_nodegroups(client, cluster_name, count, minimal)
+        nodegroup_name_list = generate_nodegroups(client, cluster_name, count, minimal)
+        if isinstance(nodegroup_name_list, str):
+            first_nodegroup_name = nodegroup_name_list
+        else:
+            first_nodegroup_name = nodegroup_name_list[0]
 
-        return client, cluster_name, nodegroup_names
+        nodegroup_describe_output = client.describe_nodegroup(
+            clusterName=cluster_name, nodegroupName=first_nodegroup_name,
+        )[ResponseAttribute.NODEGROUP]
+
+        return client, cluster_name, nodegroup_name_list, nodegroup_describe_output
 
     yield _execute
 
@@ -95,6 +103,7 @@ def randomNames():
         name_on_list = name_off_list = name_list[randint(0, len(name_list) - 1)]
         while name_off_list in name_list:
             name_off_list = random_string()
+
         return name_on_list, name_off_list
 
     return _execute
@@ -172,64 +181,58 @@ def test_list_clusters_returns_custom_second_page_results(cluster_setup):
 
 
 def test_create_cluster_generates_valid_cluster_arn(cluster_setup):
-    client, cluster_name, test_cluster = cluster_setup()
-    result_arn = test_cluster[ClusterAttribute.ARN]
-    result_name = test_cluster[ClusterAttribute.NAME]
+    _, cluster_name, cluster_describe_output = cluster_setup()
+    expected_arn_values = [PARTITIONS, REGION, ACCOUNT_ID, cluster_name]
 
-    match = ArnFormats.CLUSTER_ARN.match(result_arn)
-    returned_region = match.group(ArnAttributes.REGION)
-    returned_partition = match.group(ArnAttributes.PARTITION)
-
-    match.should.be.true
-    returned_partition.should.be.within(PARTITIONS)
-    returned_region.should.equal(REGION)
-    match.group(ArnAttributes.ACCOUNT_ID).should.equal(ACCOUNT_ID)
-    match.group(ArnAttributes.CLUSTER_NAME).should.equal(result_name)
-    region_matches_partition(returned_region, returned_partition).should.be.true
+    all_arn_values_should_be_valid(
+        expected_arn_values=expected_arn_values,
+        pattern=RegExTemplates.CLUSTER_ARN,
+        arn_under_test=cluster_describe_output[ClusterAttributes.ARN],
+    )
 
 
 @pytest.mark.freeze_time
 def test_create_cluster_generates_valid_cluster_created_timestamp(cluster_setup):
-    client, cluster_name, test_cluster = cluster_setup()
+    _, _, cluster_describe_output = cluster_setup()
     current_time = iso_8601_datetime_without_milliseconds(datetime.now())
 
     result_time = iso_8601_datetime_without_milliseconds(
-        test_cluster[ClusterAttribute.CREATED_AT]
+        cluster_describe_output[ClusterAttributes.CREATED_AT]
     )
 
     result_time.should.equal(current_time)
 
 
 def test_create_cluster_generates_valid_cluster_endpoint(cluster_setup):
-    client, cluster_name, test_cluster = cluster_setup()
+    client, cluster_name, cluster_describe_output = cluster_setup()
 
-    result_endpoint = test_cluster[ClusterAttribute.ENDPOINT]
+    result_endpoint = cluster_describe_output[ClusterAttributes.ENDPOINT]
 
     is_valid_uri(result_endpoint).should.be.true
     result_endpoint.should.contain(REGION)
 
 
 def test_create_cluster_generates_valid_oidc_identity(cluster_setup):
-    client, cluster_name, test_cluster = cluster_setup()
+    client, cluster_name, cluster_describe_output = cluster_setup()
 
-    result_issuer = test_cluster[ClusterAttribute.IDENTITY][ClusterAttribute.OIDC][
-        ClusterAttribute.ISSUER
-    ]
+    result_issuer = cluster_describe_output[ClusterAttributes.IDENTITY][
+        ClusterAttributes.OIDC
+    ][ClusterAttributes.ISSUER]
 
     is_valid_uri(result_issuer).should.be.true
     result_issuer.should.contain(REGION)
 
 
 def test_create_cluster_saves_provided_parameters(cluster_setup):
-    client, cluster_name, test_cluster = cluster_setup(minimal=False)
+    client, cluster_name, cluster_describe_output = cluster_setup(minimal=False)
     test_list = (
         ClusterInputs.REQUIRED
         + ClusterInputs.OPTIONAL
-        + [STATUS, (ClusterAttribute.NAME, cluster_name)]
+        + [STATUS, (ClusterAttributes.NAME, cluster_name)]
     )
 
     for key, expected_value in test_list:
-        test_cluster[key].should.equal(expected_value)
+        cluster_describe_output[key].should.equal(expected_value)
 
 
 def test_describe_cluster_throws_exception_when_cluster_not_found(
@@ -257,7 +260,7 @@ def test_delete_cluster_returns_deleted_cluster(cluster_setup, randomNames):
     test_list = (
         ClusterInputs.REQUIRED
         + ClusterInputs.OPTIONAL
-        + [(ClusterAttribute.NAME, chosen_cluster_name)]
+        + [(ClusterAttributes.NAME, chosen_cluster_name)]
     )
 
     result = client.delete_cluster(name=chosen_cluster_name)[ResponseAttribute.CLUSTER]
@@ -307,7 +310,7 @@ def test_list_nodegroups_returns_empty_by_default(cluster_setup):
 
 
 def test_list_nodegroups_returns_sorted_nodegroup_names(nodegroup_setup):
-    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup(BatchCountSize.MEDIUM)
 
     result = client.list_nodegroups(clusterName=cluster_name)[
         ResponseAttribute.NODEGROUPS
@@ -318,7 +321,7 @@ def test_list_nodegroups_returns_sorted_nodegroup_names(nodegroup_setup):
 
 
 def test_list_nodegroups_returns_default_max_results(nodegroup_setup):
-    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.LARGE)
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup(BatchCountSize.LARGE)
 
     result = client.list_nodegroups(clusterName=cluster_name)[
         ResponseAttribute.NODEGROUPS
@@ -329,7 +332,7 @@ def test_list_nodegroups_returns_default_max_results(nodegroup_setup):
 
 
 def test_list_nodegroups_returns_custom_max_results(nodegroup_setup):
-    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.LARGE)
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup(BatchCountSize.LARGE)
 
     result = client.list_nodegroups(
         clusterName=cluster_name, maxResults=PageCount.LARGE
@@ -340,7 +343,7 @@ def test_list_nodegroups_returns_custom_max_results(nodegroup_setup):
 
 
 def test_list_nodegroups_returns_second_page_results(nodegroup_setup):
-    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup(BatchCountSize.MEDIUM)
     token = client.list_nodegroups(
         clusterName=cluster_name, maxResults=PageCount.LARGE
     )[ResponseAttribute.NEXT_TOKEN]
@@ -354,7 +357,7 @@ def test_list_nodegroups_returns_second_page_results(nodegroup_setup):
 
 
 def test_list_nodegroups_returns_custom_second_page_results(nodegroup_setup):
-    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup(BatchCountSize.MEDIUM)
     token = client.list_nodegroups(
         clusterName=cluster_name, maxResults=PageCount.LARGE
     )[ResponseAttribute.NEXT_TOKEN]
@@ -394,7 +397,7 @@ def test_create_nodegroup_throws_exception_when_cluster_not_found(randomNames):
 def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
     nodegroup_setup, randomNames
 ):
-    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup(BatchCountSize.MEDIUM)
     chosen_nodegroup_name, _ = randomNames(nodegroup_names)
     nodegroup_inputs = deepcopy(NodegroupInputs.REQUIRED)
     expected_exception = ResourceInUseException
@@ -420,7 +423,7 @@ def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
 def test_create_nodegroup_throws_exception_when_cluster_not_active(
     nodegroup_setup, randomNames, monkeypatch
 ):
-    client, cluster_name, nodegroup_names = nodegroup_setup(BatchCountSize.MEDIUM)
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup(BatchCountSize.MEDIUM)
     _, new_nodegroup_name = randomNames(nodegroup_names)
     nodegroup_inputs = deepcopy(NodegroupInputs.REQUIRED)
     expected_exception = InvalidRequestException
@@ -444,8 +447,124 @@ def test_create_nodegroup_throws_exception_when_cluster_not_active(
     ).should.equal(BatchCountSize.MEDIUM)
 
 
+def test_create_nodegroup_generates_valid_nodegroup_arn(nodegroup_setup):
+    _, cluster_name, nodegroup_name, nodegroup_describe_output = nodegroup_setup()
+    expected_arn_values = [
+        PARTITIONS,
+        REGION,
+        ACCOUNT_ID,
+        cluster_name,
+        nodegroup_name,
+        None,
+    ]
+
+    all_arn_values_should_be_valid(
+        expected_arn_values=expected_arn_values,
+        pattern=RegExTemplates.NODEGROUP_ARN,
+        arn_under_test=nodegroup_describe_output[NodegroupAttributes.ARN],
+    )
+
+
+@pytest.mark.freeze_time
+def test_create_nodegroup_generates_valid_nodegroup_created_timestamp(nodegroup_setup):
+    _, _, _, nodegroup_describe_output = nodegroup_setup()
+    current_time = iso_8601_datetime_without_milliseconds(datetime.now())
+
+    result_time = iso_8601_datetime_without_milliseconds(
+        nodegroup_describe_output[NodegroupAttributes.CREATED_AT]
+    )
+
+    result_time.should.equal(current_time)
+
+
+@pytest.mark.freeze_time
+def test_create_nodegroup_generates_valid_nodegroup_modified_timestamp(nodegroup_setup):
+    _, _, _, nodegroup_describe_output = nodegroup_setup()
+    current_time = iso_8601_datetime_without_milliseconds(datetime.now())
+
+    result_time = iso_8601_datetime_without_milliseconds(
+        nodegroup_describe_output[NodegroupAttributes.MODIFIED_AT]
+    )
+
+    result_time.should.equal(current_time)
+
+
+def test_create_nodegroup_generates_valid_autoscaling_group_name(nodegroup_setup):
+    _, _, _, nodegroup_describe_output = nodegroup_setup()
+    result_resources = nodegroup_describe_output[NodegroupAttributes.RESOURCES]
+
+    result_asg_name = result_resources[NodegroupAttributes.AUTOSCALING_GROUPS][0][
+        NodegroupAttributes.NAME
+    ]
+
+    RegExTemplates.NODEGROUP_ASG_NAME_PATTERN.match(result_asg_name).should.be.true
+
+
+def test_create_nodegroup_generates_valid_security_group_name(nodegroup_setup):
+    _, _, _, nodegroup_describe_output = nodegroup_setup()
+    result_resources = nodegroup_describe_output[NodegroupAttributes.RESOURCES]
+
+    result_security_group = result_resources[NodegroupAttributes.REMOTE_ACCESS_SG]
+
+    RegExTemplates.NODEGROUP_SECURITY_GROUP_NAME_PATTERN.match(
+        result_security_group
+    ).should.be.true
+
+
+def test_create_nodegroup_saves_provided_parameters(nodegroup_setup):
+    _, cluster_name, nodegroup_name, nodegroup_describe_output = nodegroup_setup(
+        minimal=False
+    )
+    test_list = (
+        NodegroupInputs.REQUIRED
+        + NodegroupInputs.OPTIONAL
+        + [STATUS, (NodegroupAttributes.NODEGROUP_NAME, nodegroup_name)]
+    )
+
+    for key, expected_value in test_list:
+        nodegroup_describe_output[key].should.equal(expected_value)
+
+
+def test_describe_nodegroup_throws_exception_when_cluster_not_found(
+    nodegroup_setup, randomNames
+):
+    client, cluster_name, _, _ = nodegroup_setup()
+    _, non_existent_cluster_name = randomNames(list(cluster_name))
+    expected_exception = ResourceNotFoundException
+
+    client.describe_nodegroup.when.called_with(
+        clusterName=non_existent_cluster_name, nodegroupName=_
+    ).should.throw(
+        expected_exception,
+        CLUSTER_NOT_FOUND_MSG.format(
+            exception_name=expected_exception.TYPE,
+            method=MethodNames.DESCRIBE_NODEGROUP,
+            cluster_name=non_existent_cluster_name,
+        ),
+    )
+
+
+def test_describe_nodegroup_throws_exception_when_nodegroup_not_found(
+    nodegroup_setup, randomNames
+):
+    client, cluster_name, nodegroup_name, _ = nodegroup_setup()
+    _, non_existent_nodegroup_name = randomNames(list(nodegroup_name))
+    expected_exception = ResourceNotFoundException
+
+    client.describe_nodegroup.when.called_with(
+        clusterName=cluster_name, nodegroupName=non_existent_nodegroup_name
+    ).should.throw(
+        expected_exception,
+        NODEGROUP_NOT_FOUND_MSG.format(
+            exception_name=expected_exception.TYPE,
+            method=MethodNames.DESCRIBE_NODEGROUP,
+            nodegroup_name=non_existent_nodegroup_name,
+        ),
+    )
+
+
 def test_delete_cluster_throws_exception_when_nodegroups_exist(nodegroup_setup):
-    client, cluster_name, nodegroup_names = nodegroup_setup()
+    client, cluster_name, nodegroup_names, _ = nodegroup_setup()
     expected_exception = ResourceInUseException
 
     client.delete_cluster.when.called_with(name=cluster_name).should.throw(
@@ -505,8 +624,8 @@ def test_create_nodegroup_handles_launch_template_combinations(
             NodegroupInputs.REQUIRED
             # Required Variables
             + [
-                (ClusterAttribute.CLUSTER_NAME, cluster_name),
-                (NodegroupAttribute.NAME, nodegroup_name),
+                (ClusterAttributes.CLUSTER_NAME, cluster_name),
+                (NodegroupAttributes.NODEGROUP_NAME, nodegroup_name),
             ]
             # Test Case Values
             + [_ for _ in [launchTemplate, instanceTypes, diskSize, remoteAccess] if _]
@@ -539,3 +658,15 @@ def test_create_nodegroup_handles_launch_template_combinations(
         client.create_nodegroup.when.called_with(**test_inputs).should.throw(
             expected_exception, expected_message
         )
+
+
+def all_arn_values_should_be_valid(expected_arn_values, pattern, arn_under_test):
+    findall = pattern.findall(arn_under_test)[0]
+    for value in reversed(findall):
+        expected_value = expected_arn_values.pop()
+        # Setting an expected value to None will only test that it exists
+        if expected_value:
+            value.should.be.within(expected_value)
+        else:
+            value.should.be.truthy
+    region_matches_partition(findall[1], findall[0]).should.be.true

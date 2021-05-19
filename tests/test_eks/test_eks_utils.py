@@ -4,10 +4,10 @@ from urllib.parse import urlparse
 from moto.utilities.utils import random_string
 from tests.test_eks.test_eks_constants import (
     ClusterInputs,
-    ClusterAttribute,
+    ClusterAttributes,
     NodegroupInputs,
     ResponseAttribute,
-    NodegroupAttribute,
+    NodegroupAttributes,
 )
 
 
@@ -16,7 +16,7 @@ def generate_clusters(client, num_clusters, minimal):
         [
             client.create_cluster(
                 name=random_string(), **_input_builder(ClusterInputs, minimal)
-            )[ResponseAttribute.CLUSTER][ClusterAttribute.NAME]
+            )[ResponseAttribute.CLUSTER][ClusterAttributes.NAME]
             for _ in range(num_clusters)
         ]
     )
@@ -29,7 +29,7 @@ def generate_nodegroups(client, cluster_name, num_nodegroups, minimal):
                 nodegroupName=random_string(),
                 clusterName=cluster_name,
                 **_input_builder(NodegroupInputs, minimal)
-            )[ResponseAttribute.NODEGROUP][NodegroupAttribute.NAME]
+            )[ResponseAttribute.NODEGROUP][NodegroupAttributes.NODEGROUP_NAME]
             for _ in range(num_nodegroups)
         ]
     )

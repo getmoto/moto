@@ -21,10 +21,18 @@ def set_partition(region):
     return "aws"
 
 
-def method_name():
-    """Gets the name of the method which called it from the stack and returns the name in PascalCase."""
+def method_name(parent=False):
+    """
+    Returns the name of the method which called it from the stack in PascalCase.
+    If `parent` is True, returns the parent of the method which called it instead.
+    For example: when used in a helper method, False/default will return the name of
+    the helper method, True will return the name of the method which called the helper.
+    """
     return (
-        inspect.stack()[1][0].f_code.co_name.replace("_", " ").title().replace(" ", "")
+        inspect.stack()[int(parent) + 1][0]
+        .f_code.co_name.replace("_", " ")
+        .title()
+        .replace(" ", "")
     )
 
 
