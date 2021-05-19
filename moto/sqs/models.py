@@ -887,6 +887,17 @@ class SQSBackend(BaseBackend):
             if message.receipt_handle == receipt_handle:
                 if message.visible:
                     raise MessageNotInflight
+
+                visibility_timeout_msec = int(visibility_timeout) * 1000
+                given_visibility_timeout = unix_time_millis() + visibility_timeout_msec
+                if given_visibility_timeout - message.sent_timestamp > 43200 * 1000:
+                    raise InvalidParameterValue(
+                        "Value {0} for parameter VisibilityTimeout is invalid. Reason: Total "
+                        "VisibilityTimeout for the message is beyond the limit [43200 seconds]".format(
+                            visibility_timeout
+                        )
+                    )
+
                 message.change_visibility(visibility_timeout)
                 if message.visible:
                     # If the message is visible again, remove it from pending
