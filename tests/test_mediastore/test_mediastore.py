@@ -223,11 +223,14 @@ def test_list_tags_for_resource_return_none_if_no_tags():
 @mock_mediastore
 def test_delete_container():
     client = boto3.client("mediastore", region_name=region)
-
-    create_response = client.create_container(ContainerName="Awesome container!")
+    container_name = "Awesome container!"
+    create_response = client.create_container(ContainerName=container_name)
     container = create_response["Container"]
     response = client.delete_container(ContainerName=container["Name"])
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    containers = client.list_containers(NextToken="next-token")["Containers"]
+    container_exists = any(d['Name'] == container_name for d in containers)
+    container_exists.should.equal(False)
 
 
 @mock_mediastore

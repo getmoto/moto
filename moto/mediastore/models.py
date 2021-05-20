@@ -67,6 +67,7 @@ class MediaStoreBackend(BaseBackend):
     def delete_container(self, name):
         if name not in self._containers:
             raise ContainerNotFoundException()
+        del self._containers[name]
         return {}
 
     def describe_container(self, name):
