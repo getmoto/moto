@@ -2081,13 +2081,18 @@ def test_update_usage_plan():
             {"op": "replace", "path": "/quota/period", "value": "MONTH"},
             {"op": "replace", "path": "/throttle/rateLimit", "value": "500"},
             {"op": "replace", "path": "/throttle/burstLimit", "value": "1500"},
+            {"op": "replace", "path": "/name", "value": "new-name"},
+            {"op": "replace", "path": "/description", "value": "new-description"},
+            {"op": "replace", "path": "/productCode", "value": "new-productionCode"},
+            
         ],
     )
     response["quota"]["limit"].should.equal("1000")
     response["quota"]["period"].should.equal("MONTH")
     response["quota"]["limit"].should.equal("1000")
-    response["quota"]["limit"].should.equal("1000")
-
+    response["name"].should.equal("new-name")
+    response["description"].should.equal("new-description")
+    response["productCode"].should.equal("new-productionCode")
 
 @mock_apigateway
 def test_usage_plan_keys():
