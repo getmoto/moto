@@ -545,6 +545,7 @@ class UsagePlan(BaseModel, dict):
         apiStages=None,
         throttle=None,
         quota=None,
+        productCode=None,
         tags=None,
     ):
         super(UsagePlan, self).__init__()
@@ -554,7 +555,28 @@ class UsagePlan(BaseModel, dict):
         self["apiStages"] = apiStages if apiStages else []
         self["throttle"] = throttle
         self["quota"] = quota
+        self["productCode"] = productCode
         self["tags"] = tags
+
+    def apply_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if op["op"] == "replace":
+                if "/name" in path:
+                    self["name"] = value
+                if "/productCode" in path:
+                    self["productCode"] = value
+                if "/description" in path:
+                    self["description"] = value
+                if "/quota/limit" in path:
+                    self["quota"]["limit"] = value
+                if "/quota/period" in path:
+                    self["quota"]["period"] = value
+                if "/throttle/rateLimit" in path:
+                    self["throttle"]["rateLimit"] = value
+                if "/throttle/burstLimit" in path:
+                    self["throttle"]["burstLimit"] = value
 
 
 class UsagePlanKey(BaseModel, dict):
@@ -1212,26 +1234,12 @@ class APIGatewayBackend(BaseBackend):
     def get_usage_plan(self, usage_plan_id):
         if usage_plan_id not in self.usage_plans:
             raise UsagePlanNotFoundException()
-
         return self.usage_plans[usage_plan_id]
-
-    def __apply_usage_plan_patch_operations(self, plan, patch_operations):
-        for op in patch_operations:
-            if op["op"] == "replace":
-                if "/quota/limit" in op["path"]:
-                    plan["quota"]["limit"] = op["value"]
-                if "/quota/period" in op["path"]:
-                    plan["quota"]["period"] = op["value"]
-                if "/throttle/rateLimit" in op["path"]:
-                    plan["throttle"]["rateLimit"] = op["value"]
-                if "/throttle/burstLimit" in op["path"]:
-                    plan["throttle"]["burstLimit"] = op["value"]
 
     def update_usage_plan(self, usage_plan_id, patch_operations):
         if usage_plan_id not in self.usage_plans:
             raise UsagePlanNotFoundException()
-        plan = self.usage_plans[usage_plan_id]
-        self.__apply_usage_plan_patch_operations(plan, patch_operations)
+        self.usage_plans[usage_plan_id].apply_patch_operations(patch_operations)
         return self.usage_plans[usage_plan_id]
 
     def delete_usage_plan(self, usage_plan_id):
