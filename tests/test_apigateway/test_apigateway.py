@@ -2084,7 +2084,6 @@ def test_update_usage_plan():
             {"op": "replace", "path": "/name", "value": "new-name"},
             {"op": "replace", "path": "/description", "value": "new-description"},
             {"op": "replace", "path": "/productCode", "value": "new-productionCode"},
-            
         ],
     )
     response["quota"]["limit"].should.equal("1000")
@@ -2093,6 +2092,7 @@ def test_update_usage_plan():
     response["name"].should.equal("new-name")
     response["description"].should.equal("new-description")
     response["productCode"].should.equal("new-productionCode")
+
 
 @mock_apigateway
 def test_usage_plan_keys():
