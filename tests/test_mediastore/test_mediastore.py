@@ -229,7 +229,7 @@ def test_delete_container():
     response = client.delete_container(ContainerName=container["Name"])
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     containers = client.list_containers(NextToken="next-token")["Containers"]
-    container_exists = any(d['Name'] == container_name for d in containers)
+    container_exists = any(d["Name"] == container_name for d in containers)
     container_exists.should.equal(False)
 
 
