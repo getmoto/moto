@@ -213,9 +213,7 @@ def test_list_tags_for_resource():
 def test_list_tags_for_resource_return_none_if_no_tags():
     client = boto3.client("mediastore", region_name=region)
 
-    create_response = client.create_container(
-        ContainerName="Awesome container!"
-    )
+    create_response = client.create_container(ContainerName="Awesome container!")
     container = create_response["Container"]
     response = client.list_tags_for_resource(Resource=container["Name"])
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -226,9 +224,7 @@ def test_list_tags_for_resource_return_none_if_no_tags():
 def test_delete_container():
     client = boto3.client("mediastore", region_name=region)
 
-    create_response = client.create_container(
-        ContainerName="Awesome container!"
-    )
+    create_response = client.create_container(ContainerName="Awesome container!")
     container = create_response["Container"]
     response = client.delete_container(ContainerName=container["Name"])
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
