@@ -376,7 +376,7 @@
 - [ ] update_model
 - [ ] update_request_validator
 - [ ] update_resource
-- [ ] update_rest_api
+- [X] update_rest_api
 - [X] update_stage
 - [ ] update_usage
 - [X] update_usage_plan
