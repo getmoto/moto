@@ -3,10 +3,12 @@ from __future__ import unicode_literals
 import re
 from boto3 import Session
 from collections import defaultdict
+from pkg_resources import resource_filename
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
+from moto.utilities.utils import load_resource
 
 import datetime
 import time
@@ -15,7 +17,7 @@ import json
 import yaml
 import hashlib
 
-from .utils import parameter_arn
+from .utils import parameter_arn, convert_to_params
 from .exceptions import (
     ValidationException,
     InvalidFilterValue,
@@ -33,6 +35,10 @@ from .exceptions import (
     DuplicateDocumentVersionName,
     DuplicateDocumentContent,
 )
+
+
+REGION_TREE = load_resource(resource_filename(__name__, "resources/regions.json"))
+SERVICE_TREE = load_resource(resource_filename(__name__, "resources/services.json"))
 
 
 class Parameter(BaseModel):
@@ -481,10 +487,38 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self._region = region_name
 
+        self.load_default_parameters()
+
     def reset(self):
         region_name = self._region
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def load_default_parameters(self):
+
+        params = []
+        params.extend(convert_to_params(REGION_TREE))
+        params.extend(convert_to_params(SERVICE_TREE))
+
+        for param in params:
+            last_modified_date = time.time()
+            name = param["Name"]
+            value = param["Value"]
+            # Following were lost in translation/conversion - using sensible defaults
+            _type = "String"
+            version = 1
+            self._parameters[name].append(
+                Parameter(
+                    name=name,
+                    value=value,
+                    type=_type,
+                    description=None,
+                    allowed_pattern=None,
+                    keyid=None,
+                    last_modified_date=last_modified_date,
+                    version=version,
+                )
+            )
 
     def _generate_document_description(self, document):
 
