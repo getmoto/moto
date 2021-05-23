@@ -120,7 +120,16 @@ class APIGatewayResponse(BaseResponse):
             response = self.__validte_rest_patch_operations(patch_operations)
             if response is not None:
                 return response
-            rest_api = self.backend.update_rest_api(function_id, patch_operations)
+            try:
+                rest_api = self.backend.update_rest_api(function_id, patch_operations)
+            except RestAPINotFound as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
 
         return 200, {}, json.dumps(rest_api.to_dict())
 

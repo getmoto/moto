@@ -86,6 +86,17 @@ def test_upate_rest_api():
 
 
 @mock_apigateway
+def test_upate_rest_api_invalid_api_id():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    patchOperations = [
+        {"op": "replace", "path": "/apiKeySource", "value": "AUTHORIZER"}
+    ]
+    with pytest.raises(ClientError) as ex:
+        client.update_rest_api(restApiId="api_id", patchOperations=patchOperations)
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
 def test_list_and_delete_apis():
     client = boto3.client("apigateway", region_name="us-west-2")
 

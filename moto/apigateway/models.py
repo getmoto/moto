@@ -642,10 +642,6 @@ class RestAPI(CloudFormationModel):
                 if "/description" in path:
                     self.description = value
                 if "/apiKeySource" in path:
-                    if value not in ["HEADER", "AUTHORIZER"]:
-                        raise Exception(
-                            'Allowed values for "%s" are HEADER | AUTHORIZER' % path
-                        )
                     self.api_key_source = value
                 if "/binaryMediaTypes" in path:
                     self.binaryMediaTypes = value
