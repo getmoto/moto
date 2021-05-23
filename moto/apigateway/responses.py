@@ -51,11 +51,10 @@ class APIGatewayResponse(BaseResponse):
                 ).format(api_key_source=api_key_source),
             )
 
-    def __validate_endpoint_configuration(self , endpoint_configuration):
+    def __validate_endpoint_configuration(self, endpoint_configuration):
         if endpoint_configuration and "types" in endpoint_configuration:
             invalid_types = list(
-                set(endpoint_configuration["types"])
-                - set(ENDPOINT_CONFIGURATION_TYPES)
+                set(endpoint_configuration["types"]) - set(ENDPOINT_CONFIGURATION_TYPES)
             )
             if invalid_types:
                 return self.error(
@@ -115,7 +114,7 @@ class APIGatewayResponse(BaseResponse):
             rest_api = self.backend.get_rest_api(function_id)
         elif self.method == "DELETE":
             rest_api = self.backend.delete_rest_api(function_id)
-        elif self.method == 'PATCH':
+        elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             response = self.__validte_rest_patch_operations(patch_operations)
             if response is not None:

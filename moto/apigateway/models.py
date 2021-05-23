@@ -604,7 +604,9 @@ class RestAPI(CloudFormationModel):
             "types": ["EDGE"]
         }
         self.tags = kwargs.get("tags") or {}
-        self.disableExecuteApiEndpoint = kwargs.get("disableExecuteApiEndpoint") or False
+        self.disableExecuteApiEndpoint = (
+            kwargs.get("disableExecuteApiEndpoint") or False
+        )
 
         self.deployments = {}
         self.authorizers = {}
@@ -628,9 +630,8 @@ class RestAPI(CloudFormationModel):
             "endpointConfiguration": self.endpoint_configuration,
             "tags": self.tags,
             "policy": self.policy,
-            "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint
+            "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
         }
-
 
     def apply_patch_operations(self, patch_operations):
         for op in patch_operations:
@@ -642,14 +643,15 @@ class RestAPI(CloudFormationModel):
                 if "/description" in path:
                     self.description = value
                 if "/apiKeySource" in path:
-                    if value not in ['HEADER', 'AUTHORIZER']:
-                        raise Exception('Allowed values for "%s" are HEADER | AUTHORIZER' %path)
+                    if value not in ["HEADER", "AUTHORIZER"]:
+                        raise Exception(
+                            'Allowed values for "%s" are HEADER | AUTHORIZER' % path
+                        )
                     self.api_key_source = value
                 if "/binaryMediaTypes" in path:
                     self.binaryMediaTypes = value
                 if "/disableExecuteApiEndpoint" in path:
                     self.disableExecuteApiEndpoint = bool(value)
-
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -937,7 +939,6 @@ class APIGatewayBackend(BaseBackend):
             raise RestAPINotFound()
         self.apis[function_id].apply_patch_operations(patch_operations)
         return self.apis[function_id]
-        
 
     def list_apis(self):
         return self.apis.values()
