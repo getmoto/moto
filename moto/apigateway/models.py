@@ -652,7 +652,6 @@ class RestAPI(CloudFormationModel):
                 if "/disableExecuteApiEndpoint" in path:
                     self.disableExecuteApiEndpoint = bool(value)
 
-
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
