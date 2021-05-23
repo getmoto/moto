@@ -595,6 +595,8 @@ class RestAPI(CloudFormationModel):
         self.region_name = region_name
         self.name = name
         self.description = description
+        self.version = kwargs.get("version") or "V1"
+        self.binaryMediaTypes = kwargs.get("binaryMediaTypes") or []
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
         self.policy = kwargs.get("policy") or None
@@ -602,7 +604,9 @@ class RestAPI(CloudFormationModel):
             "types": ["EDGE"]
         }
         self.tags = kwargs.get("tags") or {}
-
+        self.disableExecuteApiEndpoint = (
+            kwargs.get("disableExecuteApiEndpoint") or False
+        )
         self.deployments = {}
         self.authorizers = {}
         self.stages = {}
@@ -618,12 +622,36 @@ class RestAPI(CloudFormationModel):
             "id": self.id,
             "name": self.name,
             "description": self.description,
+            "version": self.version,
+            "binaryMediaTypes": self.binaryMediaTypes,
             "createdDate": int(time.time()),
             "apiKeySource": self.api_key_source,
             "endpointConfiguration": self.endpoint_configuration,
             "tags": self.tags,
             "policy": self.policy,
+            "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
         }
+
+    def apply_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if op["op"] == "replace":
+                if "/name" in path:
+                    self.name = value
+                if "/description" in path:
+                    self.description = value
+                if "/apiKeySource" in path:
+                    if value not in ["HEADER", "AUTHORIZER"]:
+                        raise Exception(
+                            'Allowed values for "%s" are HEADER | AUTHORIZER' % path
+                        )
+                    self.api_key_source = value
+                if "/binaryMediaTypes" in path:
+                    self.binaryMediaTypes = value
+                if "/disableExecuteApiEndpoint" in path:
+                    self.disableExecuteApiEndpoint = bool(value)
+
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -904,6 +932,13 @@ class APIGatewayBackend(BaseBackend):
         if rest_api is None:
             raise RestAPINotFound()
         return rest_api
+
+    def update_rest_api(self, function_id, patch_operations):
+        rest_api = self.apis.get(function_id)
+        if rest_api is None:
+            raise RestAPINotFound()
+        self.apis[function_id].apply_patch_operations(patch_operations)
+        return self.apis[function_id]
 
     def list_apis(self):
         return self.apis.values()

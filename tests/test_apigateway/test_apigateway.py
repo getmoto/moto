@@ -31,12 +31,51 @@ def test_create_and_get_rest_api():
             "id": api_id,
             "name": "my_api",
             "description": "this is my api",
+            "version": "V1",
+            "binaryMediaTypes":[],
             "apiKeySource": "HEADER",
             "endpointConfiguration": {"types": ["EDGE"]},
             "tags": {},
+            "disableExecuteApiEndpoint": False
+
         }
     )
 
+@mock_apigateway
+def test_upate_rest_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    patchOperations = [
+        {"op":"replace", "path": "/name", "value": "new-name"},
+        {"op": "replace", "path": "/description", "value": "new-description"},
+        {"op": "replace", "path": "/apiKeySource", "value": "AUTHORIZER"},
+        {"op": "replace", "path": "/binaryMediaTypes", "value": "image/jpeg"},
+        {"op": "replace", "path": "/disableExecuteApiEndpoint", "value": "True"}]
+
+    response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
+    response.pop("ResponseMetadata")
+    response.pop("createdDate")
+    response.pop("binaryMediaTypes")
+    response.should.equal(
+        {
+            "id": api_id,
+            "name": "new-name",
+            "version": "V1",
+            "description": "new-description",
+            "apiKeySource": "AUTHORIZER",
+            "endpointConfiguration": {"types": ["EDGE"]},
+            "tags": {},
+            "disableExecuteApiEndpoint": True
+        }
+    )
+    # should fail with wrong apikeysoruce 
+    patchOperations = [{"op": "replace", "path": "/apiKeySource", "value": "Wrong-value-AUTHORIZER"}]
+    with pytest.raises(ClientError) as ex:
+        response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
+
+    ex.value.response["Error"]["Message"].should.equal("1 validation error detected: Value 'Wrong-value-AUTHORIZER' at 'createRestApiInput.apiKeySource' failed to satisfy constraint: Member must satisfy enum value set: [AUTHORIZER, HEADER]")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 @mock_apigateway
 def test_list_and_delete_apis():
