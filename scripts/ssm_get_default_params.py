@@ -16,10 +16,6 @@ def retrieve_by_path(client, path):
         parameters.extend(x["Parameters"])
         next_token = x.get("NextToken")
 
-    # Remove LastModifiedDate - that will be recreated on the fly
-    for p in parameters:
-        del p["LastModifiedDate"]
-
     return parameters
 
 
