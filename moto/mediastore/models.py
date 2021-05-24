@@ -1,9 +1,16 @@
 from __future__ import unicode_literals
-from boto3 import Session
-from moto.core import BaseBackend, BaseModel
+
 from collections import OrderedDict
 from datetime import date
-from .exceptions import ResourceNotFoundException, PolicyNotFoundException
+
+from boto3 import Session
+
+from moto.core import BaseBackend, BaseModel
+from .exceptions import (
+    ContainerNotFoundException,
+    ResourceNotFoundException,
+    PolicyNotFoundException,
+)
 
 
 class Container(BaseModel):
@@ -16,6 +23,7 @@ class Container(BaseModel):
         self.lifecycle_policy = None
         self.policy = None
         self.metric_policy = None
+        self.tags = kwargs.get("tags")
 
     def to_dict(self, exclude=None):
         data = {
@@ -24,6 +32,7 @@ class Container(BaseModel):
             "Endpoint": self.endpoint,
             "Status": self.status,
             "CreationTime": self.creation_time,
+            "Tags": self.tags,
         }
         if exclude:
             for key in exclude:
@@ -50,9 +59,16 @@ class MediaStoreBackend(BaseBackend):
             endpoint="/{}".format(name),
             status="CREATING",
             creation_time=date.today().strftime("%m/%d/%Y, %H:%M:%S"),
+            tags=tags,
         )
         self._containers[name] = container
         return container
+
+    def delete_container(self, name):
+        if name not in self._containers:
+            raise ContainerNotFoundException()
+        del self._containers[name]
+        return {}
 
     def describe_container(self, name):
         if name not in self._containers:
@@ -65,6 +81,10 @@ class MediaStoreBackend(BaseBackend):
         containers = list(self._containers.values())
         response_containers = [c.to_dict() for c in containers]
         return response_containers, None
+
+    def list_tags_for_resource(self, name):
+        tags = self._containers[name].tags
+        return tags
 
     def put_lifecycle_policy(self, container_name, lifecycle_policy):
         if container_name not in self._containers:

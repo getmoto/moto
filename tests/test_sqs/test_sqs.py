@@ -314,6 +314,29 @@ def test_message_retention_period():
 
 
 @mock_sqs
+def test_queue_retention_period():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName="blah", Attributes={"MessageRetentionPeriod": "3"}
+    )
+
+    time.sleep(5)
+
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    messages = queue.receive_messages()
+    assert len(messages) == 1
+
+
+@mock_sqs
 def test_message_with_invalid_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
@@ -775,6 +798,41 @@ def test_send_receive_message_with_attributes_with_labels():
     response.get("MD5OfMessageAttributes").should.equal(
         "9e05cca738e70ff6c6041e82d5e77ef1"
     )
+
+
+@mock_sqs
+def test_change_message_visibility_than_permitted():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+
+    with freeze_time("2015-01-01 12:00:00"):
+        conn.create_queue(QueueName="test-queue-visibility")
+        queue = sqs.Queue("test-queue-visibility")
+        queue.send_message(MessageBody="derp")
+        messages = conn.receive_message(QueueUrl=queue.url)
+        messages.get("Messages").should.have.length_of(1)
+
+        conn.change_message_visibility(
+            QueueUrl=queue.url,
+            ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
+            VisibilityTimeout=360,
+        )
+
+    with freeze_time("2015-01-01 12:05:00"):
+
+        with pytest.raises(ClientError) as err:
+            conn.change_message_visibility(
+                QueueUrl=queue.url,
+                ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
+                VisibilityTimeout=43200,
+            )
+
+        ex = err.value
+        ex.operation_name.should.equal("ChangeMessageVisibility")
+        ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
 
 
 @mock_sqs
@@ -1846,7 +1904,7 @@ def test_batch_change_message_visibility():
             {
                 "Id": str(uuid.uuid4()),
                 "ReceiptHandle": handle,
-                "VisibilityTimeout": 43200,
+                "VisibilityTimeout": 43000,
             }
             for handle in handles
         ]

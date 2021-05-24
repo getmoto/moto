@@ -1001,6 +1001,24 @@ def test_describe_parameters_tags():
 
 
 @mock_ssm
+def test_tags_in_list_tags_from_resource():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.put_parameter(
+        Name="/spam/eggs",
+        Value="eggs",
+        Type="String",
+        Tags=[{"Key": "spam", "Value": "eggs"}],
+    )
+
+    tags = client.list_tags_for_resource(
+        ResourceId="/spam/eggs", ResourceType="Parameter"
+    )
+
+    assert tags.get("TagList") == [{"Key": "spam", "Value": "eggs"}]
+
+
+@mock_ssm
 def test_get_parameter_invalid():
     client = client = boto3.client("ssm", region_name="us-east-1")
     response = client.get_parameters(Names=["invalid"], WithDecryption=False)
