@@ -1105,12 +1105,11 @@ def test_failed_dependencies():
     future = datetime.datetime.now() + datetime.timedelta(seconds=30)
 
     # Query batch jobs until all jobs have run.
-    # Job 2 is suppose to fail and in consequence Job 3 should never run
+    # Job 2 is supposed to fail and in consequence Job 3 should never run
     # and status should change directly from PENDING to FAILED
     while datetime.datetime.now() < future:
-        resp = batch_client.describe_jobs(jobs=[job_id1, job_id2, job_id3])
+        resp = batch_client.describe_jobs(jobs=[job_id2, job_id3])
 
-        assert resp["jobs"][0]["status"] != "FAILED", "Job 1 cannot fail"
         assert resp["jobs"][1]["status"] != "SUCCEEDED", "Job 2 cannot succeed"
         assert resp["jobs"][2]["status"] != "SUCCEEDED", "Job 3 cannot succeed"
 
