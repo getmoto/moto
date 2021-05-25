@@ -8,6 +8,7 @@ from pkg_resources import resource_filename
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
+from moto.settings import ssm_should_load_global_parameters
 from moto.utilities.utils import load_resource
 
 import datetime
@@ -37,8 +38,55 @@ from .exceptions import (
 )
 
 
-REGION_TREE = load_resource(resource_filename(__name__, "resources/regions.json"))
-SERVICE_TREE = load_resource(resource_filename(__name__, "resources/services.json"))
+class ParameterDict(defaultdict):
+    def __init__(self, *args, **kwargs):
+        super(ParameterDict, self).__init__(*args, **kwargs)
+        self.parameters_loaded = False
+
+    def _check_loading_status(self):
+        if ssm_should_load_global_parameters():
+            if not self.parameters_loaded:
+                self._load_global_parameters()
+
+    def _load_global_parameters(self):
+        regions = load_resource(resource_filename(__name__, "resources/regions.json"))
+        services = load_resource(resource_filename(__name__, "resources/services.json"))
+        params = []
+        params.extend(convert_to_params(regions))
+        params.extend(convert_to_params(services))
+
+        for param in params:
+            last_modified_date = time.time()
+            name = param["Name"]
+            value = param["Value"]
+            # Following were lost in translation/conversion - using sensible defaults
+            _type = "String"
+            version = 1
+            super().__getitem__(name).append(
+                Parameter(
+                    name=name,
+                    value=value,
+                    type=_type,
+                    description=None,
+                    allowed_pattern=None,
+                    keyid=None,
+                    last_modified_date=last_modified_date,
+                    version=version,
+                )
+            )
+        self.parameters_loaded = True
+
+    def __getitem__(self, item):
+        self._check_loading_status()
+        return super().__getitem__(item)
+
+    def __iter__(self):
+        self._check_loading_status()
+        return super().__iter__()
+
+    def __contains__(self, k):
+        self._check_loading_status()
+        return super().__contains__(k)
 
 
 class Parameter(BaseModel):
@@ -478,7 +526,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         super(SimpleSystemManagerBackend, self).__init__()
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
-        self._parameters = defaultdict(list)
+        self._parameters = ParameterDict(list)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
@@ -487,38 +535,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self._region = region_name
 
-        self.load_default_parameters()
-
     def reset(self):
         region_name = self._region
         self.__dict__ = {}
         self.__init__(region_name)
-
-    def load_default_parameters(self):
-
-        params = []
-        params.extend(convert_to_params(REGION_TREE))
-        params.extend(convert_to_params(SERVICE_TREE))
-
-        for param in params:
-            last_modified_date = time.time()
-            name = param["Name"]
-            value = param["Value"]
-            # Following were lost in translation/conversion - using sensible defaults
-            _type = "String"
-            version = 1
-            self._parameters[name].append(
-                Parameter(
-                    name=name,
-                    value=value,
-                    type=_type,
-                    description=None,
-                    allowed_pattern=None,
-                    keyid=None,
-                    last_modified_date=last_modified_date,
-                    version=version,
-                )
-            )
 
     def _generate_document_description(self, document):
 
