@@ -20,7 +20,6 @@ import uuid
 import tarfile
 import calendar
 import threading
-import traceback
 import weakref
 import requests.exceptions
 
@@ -41,12 +40,18 @@ from .exceptions import (
     InvalidRoleFormat,
     InvalidParameterValueException,
 )
-from .utils import make_function_arn, make_function_ver_arn
+from .utils import (
+    make_function_arn,
+    make_function_ver_arn,
+    make_layer_arn,
+    make_layer_ver_arn,
+    split_layer_arn,
+)
 from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +131,9 @@ class _DockerDataVolumeContext:
                 volumes = {self.name: {"bind": "/tmp/data", "mode": "rw"}}
             else:
                 volumes = {self.name: "/tmp/data"}
+            self._lambda_func.docker_client.images.pull(
+                ":".join(parse_image_ref("alpine"))
+            )
             container = self._lambda_func.docker_client.containers.run(
                 "alpine", "sleep 100", volumes=volumes, detach=True
             )
@@ -150,6 +158,166 @@ class _DockerDataVolumeContext:
                     raise  # multiple processes trying to use same volume?
 
 
+def _zipfile_content(zipfile):
+    # more hackery to handle unicode/bytes/str in python3 and python2 -
+    # argh!
+    try:
+        to_unzip_code = base64.b64decode(bytes(zipfile, "utf-8"))
+    except Exception:
+        to_unzip_code = base64.b64decode(zipfile)
+
+    return to_unzip_code, len(to_unzip_code), hashlib.sha256(to_unzip_code).hexdigest()
+
+
+def _validate_s3_bucket_and_key(data):
+    key = None
+    try:
+        # FIXME: does not validate bucket region
+        key = s3_backend.get_object(data["S3Bucket"], data["S3Key"])
+    except MissingBucket:
+        if do_validate_s3():
+            raise InvalidParameterValueException(
+                "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist"
+            )
+    except MissingKey:
+        if do_validate_s3():
+            raise ValueError(
+                "InvalidParameterValueException",
+                "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.",
+            )
+    return key
+
+
+class Permission(CloudFormationModel):
+    def __init__(self, region):
+        self.region = region
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Permission"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::Lambda::Permission"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        backend = lambda_backends[region_name]
+        fn = backend.get_function(properties["FunctionName"])
+        fn.policy.add_statement(raw=json.dumps(properties))
+        return Permission(region=region_name)
+
+
+class LayerVersion(CloudFormationModel):
+    def __init__(self, spec, region):
+        # required
+        self.region = region
+        self.name = spec["LayerName"]
+        self.content = spec["Content"]
+
+        # optional
+        self.description = spec.get("Description", "")
+        self.compatible_runtimes = spec.get("CompatibleRuntimes", [])
+        self.license_info = spec.get("LicenseInfo", "")
+
+        # auto-generated
+        self.created_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.version = None
+        self._attached = False
+        self._layer = None
+
+        if "ZipFile" in self.content:
+            self.code_bytes, self.code_size, self.code_sha_256 = _zipfile_content(
+                self.content["ZipFile"]
+            )
+        else:
+            key = _validate_s3_bucket_and_key(self.content)
+            if key:
+                self.code_bytes = key.value
+                self.code_size = key.size
+                self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+
+    @property
+    def arn(self):
+        if self.version:
+            return make_layer_ver_arn(self.region, ACCOUNT_ID, self.name, self.version)
+        raise ValueError("Layer version is not set")
+
+    def attach(self, layer, version):
+        self._attached = True
+        self._layer = layer
+        self.version = version
+
+    def get_layer_version(self):
+        return {
+            "Version": self.version,
+            "LayerVersionArn": self.arn,
+            "CreatedDate": self.created_date,
+            "CompatibleRuntimes": self.compatible_runtimes,
+            "Description": self.description,
+            "LicenseInfo": self.license_info,
+        }
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "LayerVersion"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::Lambda::LayerVersion"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        optional_properties = (
+            "Description",
+            "CompatibleRuntimes",
+            "LicenseInfo",
+        )
+
+        # required
+        spec = {
+            "Content": properties["Content"],
+            "LayerName": resource_name,
+        }
+        for prop in optional_properties:
+            if prop in properties:
+                spec[prop] = properties[prop]
+
+        backend = lambda_backends[region_name]
+        layer_version = backend.publish_layer_version(spec)
+        return layer_version
+
+
+class Layer(object):
+    def __init__(self, name, region):
+        self.region = region
+        self.name = name
+
+        self.layer_arn = make_layer_arn(region, ACCOUNT_ID, self.name)
+        self._latest_version = 0
+        self.layer_versions = {}
+
+    def attach_version(self, layer_version):
+        self._latest_version += 1
+        layer_version.attach(self, self._latest_version)
+        self.layer_versions[str(self._latest_version)] = layer_version
+
+    def to_dict(self):
+        return {
+            "LayerName": self.name,
+            "LayerArn": self.layer_arn,
+            "LatestMatchingVersion": self.layer_versions[
+                str(self._latest_version)
+            ].get_layer_version(),
+        }
+
+
 class LambdaFunction(CloudFormationModel, DockerModel):
     def __init__(self, spec, region, validate_s3=True, version=1):
         DockerModel.__init__(self)
@@ -171,9 +339,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.memory_size = spec.get("MemorySize", 128)
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
+        self.layers = self._get_layers_data(spec.get("Layers", []))
 
         self.logs_group_name = "/aws/lambda/{}".format(self.function_name)
-        self.logs_backend.ensure_log_group(self.logs_group_name, [])
 
         # this isn't finished yet. it needs to find out the VpcId value
         self._vpc_config = spec.get(
@@ -185,41 +353,23 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
         if "ZipFile" in self.code:
-            # more hackery to handle unicode/bytes/str in python3 and python2 -
-            # argh!
-            try:
-                to_unzip_code = base64.b64decode(bytes(self.code["ZipFile"], "utf-8"))
-            except Exception:
-                to_unzip_code = base64.b64decode(self.code["ZipFile"])
-
-            self.code_bytes = to_unzip_code
-            self.code_size = len(to_unzip_code)
-            self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
+            self.code_bytes, self.code_size, self.code_sha_256 = _zipfile_content(
+                self.code["ZipFile"]
+            )
 
             # TODO: we should be putting this in a lambda bucket
             self.code["UUID"] = str(uuid.uuid4())
             self.code["S3Key"] = "{}-{}".format(self.function_name, self.code["UUID"])
         else:
-            # validate s3 bucket and key
-            key = None
-            try:
-                # FIXME: does not validate bucket region
-                key = s3_backend.get_object(self.code["S3Bucket"], self.code["S3Key"])
-            except MissingBucket:
-                if do_validate_s3():
-                    raise InvalidParameterValueException(
-                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist"
-                    )
-            except MissingKey:
-                if do_validate_s3():
-                    raise ValueError(
-                        "InvalidParameterValueException",
-                        "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.",
-                    )
+            key = _validate_s3_bucket_and_key(self.code)
             if key:
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+            else:
+                self.code_bytes = ""
+                self.code_size = 0
+                self.code_sha_256 = ""
 
         self.function_arn = make_function_arn(
             self.region, ACCOUNT_ID, self.function_name
@@ -248,6 +398,21 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def __repr__(self):
         return json.dumps(self.get_configuration())
 
+    def _get_layers_data(self, layers_versions_arns):
+        backend = lambda_backends[self.region]
+        layer_versions = [
+            backend.layers_versions_by_arn(layer_version)
+            for layer_version in layers_versions_arns
+        ]
+        if not all(layer_versions):
+            raise ValueError(
+                "InvalidParameterValueException",
+                "One or more LayerVersion does not exist {0}".format(
+                    layers_versions_arns
+                ),
+            )
+        return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions]
+
     def get_configuration(self):
         config = {
             "CodeSha256": self.code_sha_256,
@@ -264,6 +429,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "Timeout": self.timeout,
             "Version": str(self.version),
             "VpcConfig": self.vpc_config,
+            "Layers": self.layers,
         }
         if self.environment_vars:
             config["Environment"] = {"Variables": self.environment_vars}
@@ -308,6 +474,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self._vpc_config = value
             elif key == "Environment":
                 self.environment_vars = value["Variables"]
+            elif key == "Layers":
+                self.layers = self._get_layers_data(value)
 
         return self.get_configuration()
 
@@ -371,6 +539,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return s
 
     def _invoke_lambda(self, code, event=None, context=None):
+        # Create the LogGroup if necessary, to write the result to
+        self.logs_backend.ensure_log_group(self.logs_group_name, [])
         # TODO: context not yet implemented
         if event is None:
             event = dict()
@@ -407,8 +577,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
+                    image_ref = "lambci/lambda:{}".format(self.run_time)
+                    self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(
-                        "lambci/lambda:{}".format(self.run_time),
+                        image_ref,
                         [self.handler, json.dumps(event)],
                         remove=False,
                         mem_limit="{}m".format(self.memory_size),
@@ -468,7 +640,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             # Docker itself is probably not running - there will be no Lambda-logs to handle
             return "error running docker: {}".format(e), True, ""
         except BaseException as e:
-            traceback.print_exc()
             logs = os.linesep.join(
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
@@ -481,7 +652,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         # Get the invocation type:
         res, errored, logs = self._invoke_lambda(code=self.code, event=body)
-        if request_headers.get("x-amz-invocation-type") == "RequestResponse":
+        inv_type = request_headers.get("x-amz-invocation-type", "RequestResponse")
+        if inv_type == "RequestResponse":
             encoded = base64.b64encode(logs.encode("utf-8"))
             response_headers["x-amz-log-result"] = encoded.decode("utf-8")
             result = res.encode("utf-8")
@@ -868,10 +1040,43 @@ class LambdaStorage(object):
         return result
 
 
+class LayerStorage(object):
+    def __init__(self):
+        self._layers = {}
+        self._arns = weakref.WeakValueDictionary()
+
+    def put_layer_version(self, layer_version):
+        """
+        :param layer_version: LayerVersion
+        """
+        if layer_version.name not in self._layers:
+            self._layers[layer_version.name] = Layer(
+                layer_version.name, layer_version.region
+            )
+        self._layers[layer_version.name].attach_version(layer_version)
+
+    def list_layers(self):
+        return [layer.to_dict() for layer in self._layers.values()]
+
+    def get_layer_versions(self, layer_name):
+        if layer_name in self._layers:
+            return list(iter(self._layers[layer_name].layer_versions.values()))
+        return []
+
+    def get_layer_version_by_arn(self, layer_version_arn):
+        split_arn = split_layer_arn(layer_version_arn)
+        if split_arn.layer_name in self._layers:
+            return self._layers[split_arn.layer_name].layer_versions.get(
+                split_arn.version, None
+            )
+        return None
+
+
 class LambdaBackend(BaseBackend):
     def __init__(self, region_name):
         self._lambdas = LambdaStorage()
         self._event_source_mappings = {}
+        self._layers = LayerStorage()
         self.region_name = region_name
 
     def reset(self):
@@ -940,6 +1145,26 @@ class LambdaBackend(BaseBackend):
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
         raise RESTError("ResourceNotFoundException", "Invalid EventSourceArn")
+
+    def publish_layer_version(self, spec):
+        required = ["LayerName", "Content"]
+        for param in required:
+            if not spec.get(param):
+                raise RESTError(
+                    "InvalidParameterValueException", "Missing {}".format(param)
+                )
+        layer_version = LayerVersion(spec, self.region_name)
+        self._layers.put_layer_version(layer_version)
+        return layer_version
+
+    def list_layers(self):
+        return self._layers.list_layers()
+
+    def get_layer_versions(self, layer_name):
+        return self._layers.get_layer_versions(layer_name)
+
+    def layers_versions_by_arn(self, layer_version_arn):
+        return self._layers.get_layer_version_by_arn(layer_version_arn)
 
     def publish_function(self, function_name):
         return self._lambdas.publish_function(function_name)

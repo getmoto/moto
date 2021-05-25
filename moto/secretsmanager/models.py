@@ -269,13 +269,7 @@ class SecretsManagerBackend(BaseBackend):
         return secret.to_short_dict()
 
     def create_secret(
-        self,
-        name,
-        secret_string=None,
-        secret_binary=None,
-        description=None,
-        tags=[],
-        **kwargs
+        self, name, secret_string=None, secret_binary=None, description=None, tags=[]
     ):
 
         # error if secret exists
@@ -325,7 +319,11 @@ class SecretsManagerBackend(BaseBackend):
         if secret_id in self.secrets:
             secret = self.secrets[secret_id]
             secret.update(description, tags)
-            secret.reset_default_version(secret_version, version_id)
+
+            if "AWSPENDING" in version_stages:
+                secret.versions[version_id] = secret_version
+            else:
+                secret.reset_default_version(secret_version, version_id)
         else:
             secret = FakeSecret(
                 region_name=self.region,
@@ -341,7 +339,14 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret
 
-    def put_secret_value(self, secret_id, secret_string, secret_binary, version_stages):
+    def put_secret_value(
+        self,
+        secret_id,
+        secret_string,
+        secret_binary,
+        client_request_token,
+        version_stages,
+    ):
 
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
@@ -354,6 +359,7 @@ class SecretsManagerBackend(BaseBackend):
             secret_id,
             secret_string,
             secret_binary,
+            version_id=client_request_token,
             description=description,
             tags=tags,
             version_stages=version_stages,
@@ -410,26 +416,85 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
 
+        # The rotation function must end with the versions of the secret in
+        # one of two states:
+        #
+        #  - The AWSPENDING and AWSCURRENT staging labels are attached to the
+        #    same version of the secret, or
+        #  - The AWSPENDING staging label is not attached to any version of the secret.
+        #
+        # If the AWSPENDING staging label is present but not attached to the same
+        # version as AWSCURRENT then any later invocation of RotateSecret assumes
+        # that a previous rotation request is still in progress and returns an error.
+        try:
+            version = next(
+                version
+                for version in secret.versions.values()
+                if "AWSPENDING" in version["version_stages"]
+            )
+            if "AWSCURRENT" in version["version_stages"]:
+                msg = "Previous rotation request is still in progress."
+                raise InvalidRequestException(msg)
+
+        except StopIteration:
+            # Pending is not present in any version
+            pass
+
         old_secret_version = secret.versions[secret.default_version_id]
         new_version_id = client_request_token or str(uuid.uuid4())
 
+        # We add the new secret version as "pending". The previous version remains
+        # as "current" for now. Once we've passed the new secret through the lambda
+        # rotation function (if provided) we can then update the status to "current".
         self._add_secret(
             secret_id,
             old_secret_version["secret_string"],
             description=secret.description,
             tags=secret.tags,
             version_id=new_version_id,
-            version_stages=["AWSCURRENT"],
+            version_stages=["AWSPENDING"],
         )
-
         secret.rotation_lambda_arn = rotation_lambda_arn or ""
         if rotation_rules:
             secret.auto_rotate_after_days = rotation_rules.get(rotation_days, 0)
         if secret.auto_rotate_after_days > 0:
             secret.rotation_enabled = True
 
-        if "AWSCURRENT" in old_secret_version["version_stages"]:
-            old_secret_version["version_stages"].remove("AWSCURRENT")
+        # Begin the rotation process for the given secret by invoking the lambda function.
+        if secret.rotation_lambda_arn:
+            from moto.awslambda.models import lambda_backends
+
+            lambda_backend = lambda_backends[self.region]
+
+            request_headers = {}
+            response_headers = {}
+
+            func = lambda_backend.get_function(secret.rotation_lambda_arn)
+            if not func:
+                msg = "Resource not found for ARN '{}'.".format(
+                    secret.rotation_lambda_arn
+                )
+                raise ResourceNotFoundException(msg)
+
+            for step in ["create", "set", "test", "finish"]:
+                func.invoke(
+                    json.dumps(
+                        {
+                            "Step": step + "Secret",
+                            "SecretId": secret.name,
+                            "ClientRequestToken": new_version_id,
+                        }
+                    ),
+                    request_headers,
+                    response_headers,
+                )
+
+            secret.set_default_version_id(new_version_id)
+        else:
+            secret.reset_default_version(
+                secret.versions[new_version_id], new_version_id
+            )
+            secret.versions[new_version_id]["version_stages"] = ["AWSCURRENT"]
 
         return secret.to_short_dict()
 
@@ -575,6 +640,68 @@ class SecretsManagerBackend(BaseBackend):
 
         for tag in tags:
             old_tags.append(tag)
+
+        return secret_id
+
+    def untag_resource(self, secret_id, tag_keys):
+
+        if secret_id not in self.secrets.keys():
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+        tags = secret.tags
+
+        for tag in tags:
+            if tag["Key"] in tag_keys:
+                tags.remove(tag)
+
+        return secret_id
+
+    def update_secret_version_stage(
+        self, secret_id, version_stage, remove_from_version_id, move_to_version_id
+    ):
+        if secret_id not in self.secrets.keys():
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+
+        if remove_from_version_id:
+            if remove_from_version_id not in secret.versions:
+                raise InvalidParameterException(
+                    "Not a valid version: %s" % remove_from_version_id
+                )
+
+            stages = secret.versions[remove_from_version_id]["version_stages"]
+            if version_stage not in stages:
+                raise InvalidParameterException(
+                    "Version stage %s not found in version %s"
+                    % (version_stage, remove_from_version_id)
+                )
+
+            stages.remove(version_stage)
+
+        if move_to_version_id:
+            if move_to_version_id not in secret.versions:
+                raise InvalidParameterException(
+                    "Not a valid version: %s" % move_to_version_id
+                )
+
+            stages = secret.versions[move_to_version_id]["version_stages"]
+            stages.append(version_stage)
+
+        if version_stage == "AWSCURRENT":
+            if remove_from_version_id:
+                # Whenever you move AWSCURRENT, Secrets Manager automatically
+                # moves the label AWSPREVIOUS to the version that AWSCURRENT
+                # was removed from.
+                secret.versions[remove_from_version_id]["version_stages"].append(
+                    "AWSPREVIOUS"
+                )
+
+            if move_to_version_id:
+                stages = secret.versions[move_to_version_id]["version_stages"]
+                if "AWSPREVIOUS" in stages:
+                    stages.remove("AWSPREVIOUS")
 
         return secret_id
 

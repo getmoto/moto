@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import boto
@@ -9,12 +8,13 @@ from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ec2_deprecated
 def test_console_output():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance_id = reservation.instances[0].id
     output = conn.get_console_output(instance_id)
     output.output.should_not.equal(None)
@@ -34,7 +34,7 @@ def test_console_output_without_instance():
 @mock_ec2
 def test_console_output_boto3():
     conn = boto3.resource("ec2", "us-east-1")
-    instances = conn.create_instances(ImageId="ami-1234abcd", MinCount=1, MaxCount=1)
+    instances = conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
     output = instances[0].console_output()
     output.get("Output").should_not.equal(None)

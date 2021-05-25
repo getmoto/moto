@@ -21,6 +21,7 @@ BACKENDS = {
     "config": ("config", "config_backends"),
     "datapipeline": ("datapipeline", "datapipeline_backends"),
     "datasync": ("datasync", "datasync_backends"),
+    "dms": ("dms", "dms_backends"),
     "dynamodb": ("dynamodb", "dynamodb_backends"),
     "dynamodb2": ("dynamodb2", "dynamodb_backends2"),
     "dynamodbstreams": ("dynamodbstreams", "dynamodbstreams_backends"),
@@ -71,11 +72,16 @@ BACKENDS = {
     "transcribe": ("transcribe", "transcribe_backends"),
     "xray": ("xray", "xray_backends"),
     "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
+    "medialive": ("medialive", "medialive_backends"),
     "kinesis-video-archived-media": (
         "kinesisvideoarchivedmedia",
         "kinesisvideoarchivedmedia_backends",
     ),
     "forecast": ("forecast", "forecast_backends"),
+    "support": ("support", "support_backends"),
+    "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
+    "mediapackage": ("mediapackage", "mediapackage_backends"),
+    "mediastore": ("mediastore", "mediastore_backends"),
 }
 
 

@@ -28,7 +28,7 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -448,6 +448,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
             self.job_started_at = datetime.datetime.now()
             self.job_state = "STARTING"
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
+            image_repository, image_tag = parse_image_ref(image)
+            self.docker_client.images.pull(image_repository, image_tag)
             container = self.docker_client.containers.run(
                 image,
                 cmd,
@@ -808,7 +810,7 @@ class BatchBackend(BaseBackend):
 
         if compute_resources is None and _type == "MANAGED":
             raise InvalidParameterValueException(
-                "computeResources must be specified when creating a MANAGED environment".format(
+                "computeResources must be specified when creating a {0} environment".format(
                     state
                 )
             )
@@ -842,7 +844,7 @@ class BatchBackend(BaseBackend):
 
             for instance_type in needed_instance_types:
                 reservation = self.ec2_backend.add_instances(
-                    image_id="ami-ecs-optimised",  # Todo import AMIs
+                    image_id="ami-03cf127a",  # Todo import AMIs
                     count=1,
                     user_data=None,
                     security_group_names=[],
@@ -961,7 +963,10 @@ class BatchBackend(BaseBackend):
                 instance_type = "m4.4xlarge"
 
             instance_vcpus.append(
-                (EC2_INSTANCE_TYPES[instance_type]["vcpus"], instance_type)
+                (
+                    EC2_INSTANCE_TYPES[instance_type]["VCpuInfo"]["DefaultVCpus"],
+                    instance_type,
+                )
             )
 
         instance_vcpus = sorted(instance_vcpus, key=lambda item: item[0], reverse=True)

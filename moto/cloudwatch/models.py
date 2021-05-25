@@ -168,7 +168,7 @@ def are_dimensions_same(metric_dimensions, dimensions):
 
 
 class MetricDatum(BaseModel):
-    def __init__(self, namespace, name, value, dimensions, timestamp):
+    def __init__(self, namespace, name, value, dimensions, timestamp, unit=None):
         self.namespace = namespace
         self.name = name
         self.value = value
@@ -176,6 +176,7 @@ class MetricDatum(BaseModel):
         self.dimensions = [
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
+        self.unit = unit
 
     def filter(self, namespace, name, dimensions, already_present_metrics):
         if namespace and namespace != self.namespace:
@@ -385,48 +386,72 @@ class CloudWatchBackend(BaseBackend):
                     float(metric_member.get("Value", 0)),
                     metric_member.get("Dimensions.member", _EMPTY_LIST),
                     timestamp,
+                    metric_member.get("Unit"),
                 )
             )
 
-    def get_metric_data(self, queries, start_time, end_time):
+    def get_metric_data(
+        self, queries, start_time, end_time, scan_by="TimestampAscending"
+    ):
+
         period_data = [
             md for md in self.metric_data if start_time <= md.timestamp <= end_time
         ]
+
         results = []
         for query in queries:
+            period_start_time = start_time
             query_ns = query["metric_stat._metric._namespace"]
             query_name = query["metric_stat._metric._metric_name"]
-            query_data = [
-                md
-                for md in period_data
-                if md.namespace == query_ns and md.name == query_name
-            ]
-            metric_values = [m.value for m in query_data]
+            delta = timedelta(seconds=int(query["metric_stat._period"]))
             result_vals = []
+            timestamps = []
             stat = query["metric_stat._stat"]
-            if len(metric_values) > 0:
-                if stat == "Average":
-                    result_vals.append(sum(metric_values) / len(metric_values))
-                elif stat == "Minimum":
-                    result_vals.append(min(metric_values))
-                elif stat == "Maximum":
-                    result_vals.append(max(metric_values))
-                elif stat == "Sum":
-                    result_vals.append(sum(metric_values))
+            while period_start_time <= end_time:
+                period_end_time = period_start_time + delta
+                period_md = [
+                    period_md
+                    for period_md in period_data
+                    if period_start_time <= period_md.timestamp < period_end_time
+                ]
 
+                query_period_data = [
+                    md
+                    for md in period_md
+                    if md.namespace == query_ns and md.name == query_name
+                ]
+
+                metric_values = [m.value for m in query_period_data]
+
+                if len(metric_values) > 0:
+                    if stat == "Average":
+                        result_vals.append(sum(metric_values) / len(metric_values))
+                    elif stat == "Minimum":
+                        result_vals.append(min(metric_values))
+                    elif stat == "Maximum":
+                        result_vals.append(max(metric_values))
+                    elif stat == "Sum":
+                        result_vals.append(sum(metric_values))
+                    timestamps.append(
+                        iso_8601_datetime_without_milliseconds(period_start_time)
+                    )
+                period_start_time += delta
+            if scan_by == "TimestampDescending" and len(timestamps) > 0:
+                timestamps.reverse()
+                result_vals.reverse()
             label = query["metric_stat._metric._metric_name"] + " " + stat
             results.append(
                 {
                     "id": query["id"],
                     "label": label,
                     "vals": result_vals,
-                    "timestamps": [datetime.now() for _ in result_vals],
+                    "timestamps": timestamps,
                 }
             )
         return results
 
     def get_metric_statistics(
-        self, namespace, metric_name, start_time, end_time, period, stats
+        self, namespace, metric_name, start_time, end_time, period, stats, unit=None
     ):
         period_delta = timedelta(seconds=period)
         filtered_data = [
@@ -436,6 +461,9 @@ class CloudWatchBackend(BaseBackend):
             and md.name == metric_name
             and start_time <= md.timestamp <= end_time
         ]
+
+        if unit:
+            filtered_data = [md for md in filtered_data if md.unit == unit]
 
         # earliest to oldest
         filtered_data = sorted(filtered_data, key=lambda x: x.timestamp)

@@ -301,6 +301,7 @@ class InstanceResponse(BaseResponse):
             device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
                 device_mapping.get("ebs._encrypted", False)
             )
+            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("ebs._kms_key_id")
             mappings.append(device_template)
 
         return mappings
@@ -825,23 +826,25 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     <instanceTypeSet>
     {% for instance_type in instance_types %}
         <item>
-            <instanceType>{{ instance_type.apiname }}</instanceType>
+            <instanceType>{{ instance_type.InstanceType }}</instanceType>
             <vCpuInfo>
-                <defaultVCpus>{{ instance_type.vcpus|int }}</defaultVCpus>
-                <defaultCores>{{ instance_type.vcpus|int }}</defaultCores>
-                <defaultThreadsPerCore>1</defaultThreadsPerCore>
+                <defaultVCpus>{{ instance_type.get('VCpuInfo', {}).get('DefaultVCpus', 0)|int }}</defaultVCpus>
+                <defaultCores>{{ instance_type.get('VCpuInfo', {}).get('DefaultCores', 0)|int }}</defaultCores>
+                <defaultThreadsPerCore>{{ instance_type.get('VCpuInfo').get('DefaultThreadsPerCore', 0)|int }}</defaultThreadsPerCore>
             </vCpuInfo>
             <memoryInfo>
-                <sizeInMiB>{{ instance_type.memory|int }}</sizeInMiB>
+                <sizeInMiB>{{ instance_type.get('MemoryInfo', {}).get('SizeInMiB', 0)|int }}</sizeInMiB>
             </memoryInfo>
             <instanceStorageInfo>
-                <totalSizeInGB>{{ instance_type.storage|int }}</totalSizeInGB>
+                <totalSizeInGB>{{ instance_type.get('InstanceStorageInfo', {}).get('TotalSizeInGB', 0)|int }}</totalSizeInGB>
             </instanceStorageInfo>
             <processorInfo>
                 <supportedArchitectures>
+                    {% for arch in instance_type.get('ProcessorInfo', {}).get('SupportedArchitectures', []) %}
                     <item>
-                        x86_64
+                        {{ arch }}
                     </item>
+                    {% endfor %}
                 </supportedArchitectures>
             </processorInfo>
         </item>

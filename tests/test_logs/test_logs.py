@@ -1,12 +1,13 @@
-import boto3
 import os
-import sure  # noqa
+import time
+from unittest import SkipTest
+import boto3
 import six
 from botocore.exceptions import ClientError
+import pytest
+import sure  # noqa
 
 from moto import mock_logs, settings
-import pytest
-from unittest import SkipTest
 
 _logs_region = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -123,6 +124,65 @@ def test_filter_logs_raises_if_filter_pattern():
             logStreamNames=[log_stream_name],
             filterPattern='{$.message = "hello"}',
         )
+
+
+@mock_logs
+def test_filter_logs_paging():
+    conn = boto3.client("logs", "us-west-2")
+    log_group_name = "/aws/dummy"
+    log_stream_name = "stream/stage"
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+    timestamp = int(time.time())
+    messages = []
+    for i in range(25):
+        messages.append(
+            {"message": "Message number {}".format(i), "timestamp": timestamp}
+        )
+        timestamp += 100
+
+    conn.put_log_events(
+        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
+    )
+    res = conn.filter_log_events(
+        logGroupName=log_group_name, logStreamNames=[log_stream_name], limit=20
+    )
+    events = res["events"]
+    events.should.have.length_of(20)
+    res["nextToken"].should.equal("/aws/dummy@stream/stage@" + events[-1]["eventId"])
+
+    res = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        limit=20,
+        nextToken=res["nextToken"],
+    )
+    events += res["events"]
+    events.should.have.length_of(25)
+    res.should_not.have.key("nextToken")
+
+    for original_message, resulting_event in zip(messages, events):
+        resulting_event["eventId"].should.equal(str(resulting_event["eventId"]))
+        resulting_event["timestamp"].should.equal(original_message["timestamp"])
+        resulting_event["message"].should.equal(original_message["message"])
+
+    res = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        limit=20,
+        nextToken="invalid-token",
+    )
+    res["events"].should.have.length_of(0)
+    res.should_not.have.key("nextToken")
+
+    res = conn.filter_log_events(
+        logGroupName=log_group_name,
+        logStreamNames=[log_stream_name],
+        limit=20,
+        nextToken="wrong-group@stream@999",
+    )
+    res["events"].should.have.length_of(0)
+    res.should_not.have.key("nextToken")
 
 
 @mock_logs
@@ -493,4 +553,61 @@ def test_describe_log_groups_paging():
 
     resp = client.describe_log_groups(nextToken="invalid-token")
     resp["logGroups"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
+
+
+@mock_logs
+def test_describe_log_streams_paging():
+    client = boto3.client("logs", "us-east-1")
+
+    log_group_name = "/aws/codebuild/lowercase-dev"
+    stream_names = [
+        "job/214/stage/unit_tests/foo",
+        "job/215/stage/unit_tests/spam",
+        "job/215/stage/e2e_tests/eggs",
+        "job/216/stage/unit_tests/eggs",
+    ]
+
+    client.create_log_group(logGroupName=log_group_name)
+    for name in stream_names:
+        client.create_log_stream(logGroupName=log_group_name, logStreamName=name)
+
+    resp = client.describe_log_streams(logGroupName=log_group_name)
+    resp["logStreams"].should.have.length_of(4)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_streams(logGroupName=log_group_name, limit=2)
+    resp["logStreams"].should.have.length_of(2)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp["nextToken"].should.equal(
+        u"{}@{}".format(log_group_name, resp["logStreams"][1]["logStreamName"])
+    )
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken=resp["nextToken"], limit=1
+    )
+    resp["logStreams"].should.have.length_of(1)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp["nextToken"].should.equal(
+        u"{}@{}".format(log_group_name, resp["logStreams"][0]["logStreamName"])
+    )
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken=resp["nextToken"]
+    )
+    resp["logStreams"].should.have.length_of(1)
+    resp["logStreams"][0]["arn"].should.contain(log_group_name)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken="invalid-token"
+    )
+    resp["logStreams"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
+
+    resp = client.describe_log_streams(
+        logGroupName=log_group_name, nextToken="invalid@token"
+    )
+    resp["logStreams"].should.have.length_of(0)
     resp.should_not.have.key("nextToken")

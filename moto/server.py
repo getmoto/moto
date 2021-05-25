@@ -3,7 +3,9 @@ from __future__ import unicode_literals
 import argparse
 import io
 import json
+import os
 import re
+import signal
 import sys
 from threading import Lock
 
@@ -32,6 +34,13 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
 UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+
+# Some services have v4 signing names that differ from the backend service name/id.
+SIGNING_ALIASES = {
+    "eventbridge": "events",
+    "execute-api": "iot",
+    "iotdata": "data.iot",
+}
 
 
 class DomainDispatcherApplication(object):
@@ -73,6 +82,7 @@ class DomainDispatcherApplication(object):
             try:
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
+                service = SIGNING_ALIASES.get(service.lower(), service)
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't
                 # infer a service-region. A reduced set of services still use
@@ -93,11 +103,6 @@ class DomainDispatcherApplication(object):
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
-        if service == "EventBridge":
-            # Go SDK uses 'EventBridge' in the SigV4 request instead of 'events'
-            # see https://github.com/spulec/moto/issues/3494
-            service = "events"
-
         if service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
@@ -109,7 +114,7 @@ class DomainDispatcherApplication(object):
                 if dynamo_api_version > "20111205":
                     host = "dynamodb2"
         elif service == "sagemaker":
-            host = "api.sagemaker.{region}.amazonaws.com".format(
+            host = "api.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
         else:
@@ -245,6 +250,11 @@ def create_backend_app(service):
     return backend_app
 
 
+def signal_handler(signum, frame):
+    print("Received signal %d" % signum)
+    sys.exit(0)
+
+
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
 
@@ -253,7 +263,7 @@ def main(argv=sys.argv[1:]):
         "service",
         type=str,
         nargs="?",  # http://stackoverflow.com/a/4480202/731592
-        default=None,
+        default=os.environ.get("MOTO_SERVICE"),
     )
     parser.add_argument(
         "-H", "--host", type=str, help="Which host to bind", default="127.0.0.1"
@@ -283,6 +293,9 @@ def main(argv=sys.argv[1:]):
     )
 
     args = parser.parse_args(argv)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

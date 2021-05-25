@@ -1,6 +1,6 @@
 from boto3 import Session
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
 from .exceptions import (
     ResourceNotFoundException,
@@ -10,7 +10,7 @@ from .exceptions import (
 )
 
 
-class LogEvent:
+class LogEvent(BaseModel):
     _event_id = 0
 
     def __init__(self, ingestion_time, log_event):
@@ -37,7 +37,7 @@ class LogEvent:
         }
 
 
-class LogStream:
+class LogStream(BaseModel):
     _log_ids = 0
 
     def __init__(self, region, log_group, name):
@@ -238,7 +238,7 @@ class LogStream:
         return events
 
 
-class LogGroup:
+class LogGroup(BaseModel):
     def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
@@ -289,14 +289,34 @@ class LogGroup:
                 else item[1].get("lastEventTimestamp", 0)
             )
 
-        if next_token is None:
-            next_token = 0
-
         log_streams = sorted(log_streams, key=sorter, reverse=descending)
-        new_token = next_token + limit
-        log_streams_page = [x[1] for x in log_streams[next_token:new_token]]
-        if new_token >= len(log_streams):
-            new_token = None
+        first_index = 0
+        if next_token:
+            try:
+                group, stream = next_token.split("@")
+                if group != log_group_name:
+                    raise ValueError()
+                first_index = (
+                    next(
+                        index
+                        for (index, e) in enumerate(log_streams)
+                        if e[1]["logStreamName"] == stream
+                    )
+                    + 1
+                )
+            except (ValueError, StopIteration):
+                first_index = 0
+                log_streams = []
+
+        last_index = first_index + limit
+        if last_index > len(log_streams):
+            last_index = len(log_streams)
+        log_streams_page = [x[1] for x in log_streams[first_index:last_index]]
+        new_token = None
+        if log_streams_page and last_index < len(log_streams):
+            new_token = "{}@{}".format(
+                log_group_name, log_streams_page[-1]["logStreamName"]
+            )
 
         return log_streams_page, new_token
 
@@ -366,13 +386,35 @@ class LogGroup:
         if interleaved:
             events = sorted(events, key=lambda event: event["timestamp"])
 
-        if next_token is None:
-            next_token = 0
+        first_index = 0
+        if next_token:
+            try:
+                group, stream, event_id = next_token.split("@")
+                if group != log_group_name:
+                    raise ValueError()
+                first_index = (
+                    next(
+                        index
+                        for (index, e) in enumerate(events)
+                        if e["logStreamName"] == stream and e["eventId"] == event_id
+                    )
+                    + 1
+                )
+            except (ValueError, StopIteration):
+                first_index = 0
+                # AWS returns an empty list if it receives an invalid token.
+                events = []
 
-        events_page = events[next_token : next_token + limit]
-        next_token += limit
-        if next_token >= len(events):
-            next_token = None
+        last_index = first_index + limit
+        if last_index > len(events):
+            last_index = len(events)
+        events_page = events[first_index:last_index]
+        next_token = None
+        if events_page and last_index < len(events):
+            last_event = events_page[-1]
+            next_token = "{}@{}@{}".format(
+                log_group_name, last_event["logStreamName"], last_event["eventId"]
+            )
 
         searched_streams = [
             {"logStreamName": stream.logStreamName, "searchedCompletely": True}

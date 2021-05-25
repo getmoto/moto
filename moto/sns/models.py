@@ -391,11 +391,23 @@ class SNSBackend(BaseBackend):
         self.sms_attributes.update(attrs)
 
     def create_topic(self, name, attributes=None, tags=None):
-        fails_constraints = not re.match(r"^[a-zA-Z0-9_-]{1,256}$", name)
+
+        if attributes is None:
+            attributes = {}
+        if (
+            attributes.get("FifoTopic")
+            and attributes.get("FifoTopic").lower() == "true"
+        ):
+            fails_constraints = not re.match(r"^[a-zA-Z0-9_-]{1,256}\.fifo$", name)
+            msg = "Fifo Topic names must end with .fifo and must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
+
+        else:
+            fails_constraints = not re.match(r"^[a-zA-Z0-9_-]{1,256}$", name)
+            msg = "Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
+
         if fails_constraints:
-            raise InvalidParameterValue(
-                "Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long."
-            )
+            raise InvalidParameterValue(msg)
+
         candidate_topic = Topic(name, self)
         if attributes:
             for attribute in attributes:
@@ -593,7 +605,7 @@ class SNSBackend(BaseBackend):
         try:
             return self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
+            raise SNSNotFoundError("Endpoint does not exist")
 
     def set_endpoint_attributes(self, arn, attributes):
         endpoint = self.get_endpoint(arn)

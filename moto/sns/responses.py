@@ -6,7 +6,7 @@ from collections import defaultdict
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends
-from .exceptions import InvalidParameterValue
+from .exceptions import InvalidParameterValue, SNSNotFoundError
 from .utils import is_e164
 
 
@@ -543,24 +543,28 @@ class SNSResponse(BaseResponse):
 
     def get_endpoint_attributes(self):
         arn = self._get_param("EndpointArn")
-        endpoint = self.backend.get_endpoint(arn)
+        try:
+            endpoint = self.backend.get_endpoint(arn)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "GetEndpointAttributesResponse": {
-                        "GetEndpointAttributesResult": {
-                            "Attributes": endpoint.attributes
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
-                        },
+            if self.request_json:
+                return json.dumps(
+                    {
+                        "GetEndpointAttributesResponse": {
+                            "GetEndpointAttributesResult": {
+                                "Attributes": endpoint.attributes
+                            },
+                            "ResponseMetadata": {
+                                "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
+                            },
+                        }
                     }
-                }
-            )
+                )
 
-        template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
-        return template.render(endpoint=endpoint)
+            template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
+            return template.render(endpoint=endpoint)
+        except SNSNotFoundError:
+            error_response = self._error("NotFound", "Endpoint does not exist")
+            return error_response, dict(status=404)
 
     def set_endpoint_attributes(self):
         arn = self._get_param("EndpointArn")

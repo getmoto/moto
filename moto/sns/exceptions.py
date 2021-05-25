@@ -5,8 +5,8 @@ from moto.core.exceptions import RESTError
 class SNSNotFoundError(RESTError):
     code = 404
 
-    def __init__(self, message):
-        super(SNSNotFoundError, self).__init__("NotFound", message)
+    def __init__(self, message, **kwargs):
+        super(SNSNotFoundError, self).__init__("NotFound", message, **kwargs)
 
 
 class ResourceNotFoundError(RESTError):

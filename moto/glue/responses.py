@@ -21,19 +21,20 @@ class GlueResponse(BaseResponse):
         return json.loads(self.body)
 
     def create_database(self):
-        database_name = self.parameters["DatabaseInput"]["Name"]
-        self.glue_backend.create_database(database_name)
+        database_input = self.parameters.get("DatabaseInput")
+        database_name = database_input.get("Name")
+        self.glue_backend.create_database(database_name, database_input)
         return ""
 
     def get_database(self):
         database_name = self.parameters.get("Name")
         database = self.glue_backend.get_database(database_name)
-        return json.dumps({"Database": {"Name": database.name}})
+        return json.dumps({"Database": database.as_dict()})
 
     def get_databases(self):
         database_list = self.glue_backend.get_databases()
         return json.dumps(
-            {"DatabaseList": [{"Name": database.name} for database in database_list]}
+            {"DatabaseList": [database.as_dict() for database in database_list]}
         )
 
     def create_table(self):

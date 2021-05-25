@@ -15,6 +15,7 @@ from moto.compat import collections_abc
 # the subclass's module hasn't been imported yet - then that subclass
 # doesn't exist yet, and __subclasses__ won't find it.
 # So we import here to populate the list of subclasses.
+from moto.apigateway import models as apigateway_models  # noqa
 from moto.autoscaling import models as autoscaling_models  # noqa
 from moto.awslambda import models as awslambda_models  # noqa
 from moto.batch import models as batch_models  # noqa
@@ -36,9 +37,11 @@ from moto.redshift import models as redshift_models  # noqa
 from moto.route53 import models as route53_models  # noqa
 from moto.s3 import models as s3_models, s3_backend  # noqa
 from moto.s3.utils import bucket_and_name_from_url
+from moto.sagemaker import models as sagemaker_models  # noqa
 from moto.sns import models as sns_models  # noqa
 from moto.sqs import models as sqs_models  # noqa
 from moto.stepfunctions import models as stepfunctions_models  # noqa
+from moto.ssm import models as ssm_models, ssm_backends  # noqa
 
 # End ugly list of imports
 
@@ -514,6 +517,23 @@ class ResourceMap(collections_abc.Mapping):
                 parameter_slot = parameter_slots[key]
 
                 value_type = parameter_slot.get("Type", "String")
+
+                def _parse_ssm_parameter(value, value_type):
+                    # The Value in SSM parameters is the SSM parameter path
+                    # we need to use ssm_backend to retreive the
+                    # actual value from parameter store
+                    parameter = ssm_backends[self._region_name].get_parameter(
+                        value, False
+                    )
+                    actual_value = parameter.value
+
+                    if value_type.find("List") > 0:
+                        return actual_value.split(",")
+
+                    return actual_value
+
+                if value_type.startswith("AWS::SSM::Parameter::"):
+                    value = _parse_ssm_parameter(value, value_type)
                 if value_type == "CommaDelimitedList" or value_type.startswith("List"):
                     value = value.split(",")
 

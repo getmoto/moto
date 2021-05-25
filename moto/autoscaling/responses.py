@@ -36,6 +36,7 @@ class AutoScalingResponse(BaseResponse):
             ebs_optimized=self._get_param("EbsOptimized"),
             associate_public_ip_address=self._get_param("AssociatePublicIpAddress"),
             block_device_mappings=self._get_list_prefix("BlockDeviceMappings.member"),
+            instance_id=self._get_param("InstanceId"),
         )
         template = self.response_template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()

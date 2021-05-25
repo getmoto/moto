@@ -122,5 +122,10 @@ class STSBackend(BaseBackend):
         self.assumed_roles.append(role)
         return role
 
+    def get_caller_identity(self):
+        # Logic resides in responses.py
+        # Fake method here to make implementation coverage script aware that this method is implemented
+        pass
+
 
 sts_backend = STSBackend()

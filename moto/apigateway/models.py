@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 import random
 import string
 import re
+from copy import copy
+
 import requests
 import time
 
@@ -14,7 +16,7 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 import responses
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id
 from moto.core.utils import path_url
 from .exceptions import (
@@ -27,7 +29,6 @@ from .exceptions import (
     InvalidIntegrationArn,
     InvalidHttpEndpoint,
     InvalidResourcePathException,
-    InvalidRequestInput,
     AuthorizerNotFoundException,
     StageNotFoundException,
     RoleNotSpecified,
@@ -40,18 +41,41 @@ from .exceptions import (
     InvalidModelName,
     RestAPINotFound,
     ModelNotFound,
+    ApiKeyValueMinLength,
 )
+from ..core.models import responses_mock
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
-class Deployment(BaseModel, dict):
+class Deployment(CloudFormationModel, dict):
     def __init__(self, deployment_id, name, description=""):
         super(Deployment, self).__init__()
         self["id"] = deployment_id
         self["stageName"] = name
         self["description"] = description
         self["createdDate"] = int(time.time())
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Deployment"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Deployment"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        rest_api_id = properties["RestApiId"]
+        name = properties["StageName"]
+        desc = properties.get("Description", "")
+        backend = apigateway_backends[region_name]
+        return backend.create_deployment(
+            function_id=rest_api_id, name=name, description=desc
+        )
 
 
 class IntegrationResponse(BaseModel, dict):
@@ -105,7 +129,7 @@ class MethodResponse(BaseModel, dict):
         self["statusCode"] = status_code
 
 
-class Method(BaseModel, dict):
+class Method(CloudFormationModel, dict):
     def __init__(self, method_type, authorization_type, **kwargs):
         super(Method, self).__init__()
         self.update(
@@ -121,6 +145,45 @@ class Method(BaseModel, dict):
         )
         self.method_responses = {}
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Method"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Method"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        rest_api_id = properties["RestApiId"]
+        resource_id = properties["ResourceId"]
+        method_type = properties["HttpMethod"]
+        auth_type = properties["AuthorizationType"]
+        key_req = properties["ApiKeyRequired"]
+        backend = apigateway_backends[region_name]
+        m = backend.create_method(
+            function_id=rest_api_id,
+            resource_id=resource_id,
+            method_type=method_type,
+            authorization_type=auth_type,
+            api_key_required=key_req,
+        )
+        int_method = properties["Integration"]["IntegrationHttpMethod"]
+        int_type = properties["Integration"]["Type"]
+        int_uri = properties["Integration"]["Uri"]
+        backend.create_integration(
+            function_id=rest_api_id,
+            resource_id=resource_id,
+            method_type=method_type,
+            integration_type=int_type,
+            uri=int_uri,
+            integration_method=int_method,
+        )
+        return m
+
     def create_response(self, response_code):
         method_response = MethodResponse(response_code)
         self.method_responses[response_code] = method_response
@@ -133,8 +196,9 @@ class Method(BaseModel, dict):
         return self.method_responses.pop(response_code)
 
 
-class Resource(BaseModel):
+class Resource(CloudFormationModel):
     def __init__(self, id, region_name, api_id, path_part, parent_id):
+        super(Resource, self).__init__()
         self.id = id
         self.region_name = region_name
         self.api_id = api_id
@@ -153,6 +217,39 @@ class Resource(BaseModel):
             response["parentId"] = self.parent_id
             response["pathPart"] = self.path_part
         return response
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Resource"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Resource"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        api_id = properties["RestApiId"]
+        parent = properties["ParentId"]
+        path = properties["PathPart"]
+
+        backend = apigateway_backends[region_name]
+        if parent == api_id:
+            # A Root path (/) is automatically created. Any new paths should use this as their parent
+            resources = backend.list_resources(function_id=api_id)
+            root_id = [resource for resource in resources if resource.path_part == "/"][
+                0
+            ].id
+            parent = root_id
+        return backend.create_resource(
+            function_id=api_id, parent_resource_id=parent, path_part=path
+        )
 
     def get_path(self):
         return self.get_parent_path() + self.path_part
@@ -448,6 +545,7 @@ class UsagePlan(BaseModel, dict):
         apiStages=None,
         throttle=None,
         quota=None,
+        productCode=None,
         tags=None,
     ):
         super(UsagePlan, self).__init__()
@@ -457,7 +555,28 @@ class UsagePlan(BaseModel, dict):
         self["apiStages"] = apiStages if apiStages else []
         self["throttle"] = throttle
         self["quota"] = quota
+        self["productCode"] = productCode
         self["tags"] = tags
+
+    def apply_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if op["op"] == "replace":
+                if "/name" in path:
+                    self["name"] = value
+                if "/productCode" in path:
+                    self["productCode"] = value
+                if "/description" in path:
+                    self["description"] = value
+                if "/quota/limit" in path:
+                    self["quota"]["limit"] = value
+                if "/quota/period" in path:
+                    self["quota"]["period"] = value
+                if "/throttle/rateLimit" in path:
+                    self["throttle"]["rateLimit"] = value
+                if "/throttle/burstLimit" in path:
+                    self["throttle"]["burstLimit"] = value
 
 
 class UsagePlanKey(BaseModel, dict):
@@ -469,12 +588,15 @@ class UsagePlanKey(BaseModel, dict):
         self["value"] = value
 
 
-class RestAPI(BaseModel):
+class RestAPI(CloudFormationModel):
     def __init__(self, id, region_name, name, description, **kwargs):
+        super(RestAPI, self).__init__()
         self.id = id
         self.region_name = region_name
         self.name = name
         self.description = description
+        self.version = kwargs.get("version") or "V1"
+        self.binaryMediaTypes = kwargs.get("binaryMediaTypes") or []
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
         self.policy = kwargs.get("policy") or None
@@ -482,7 +604,9 @@ class RestAPI(BaseModel):
             "types": ["EDGE"]
         }
         self.tags = kwargs.get("tags") or {}
-
+        self.disableExecuteApiEndpoint = (
+            kwargs.get("disableExecuteApiEndpoint") or False
+        )
         self.deployments = {}
         self.authorizers = {}
         self.stages = {}
@@ -498,12 +622,63 @@ class RestAPI(BaseModel):
             "id": self.id,
             "name": self.name,
             "description": self.description,
+            "version": self.version,
+            "binaryMediaTypes": self.binaryMediaTypes,
             "createdDate": int(time.time()),
             "apiKeySource": self.api_key_source,
             "endpointConfiguration": self.endpoint_configuration,
             "tags": self.tags,
             "policy": self.policy,
+            "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
         }
+
+    def apply_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if op["op"] == "replace":
+                if "/name" in path:
+                    self.name = value
+                if "/description" in path:
+                    self.description = value
+                if "/apiKeySource" in path:
+                    self.api_key_source = value
+                if "/binaryMediaTypes" in path:
+                    self.binaryMediaTypes = value
+                if "/disableExecuteApiEndpoint" in path:
+                    self.disableExecuteApiEndpoint = bool(value)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "RootResourceId":
+            return self.id
+        raise UnformattedGetAttTemplateException()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "RestApi"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::RestApi"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        name = properties["Name"]
+        desc = properties.get("Description", "")
+        config = properties.get("EndpointConfiguration", None)
+        backend = apigateway_backends[region_name]
+        return backend.create_rest_api(
+            name=name, description=desc, endpoint_configuration=config
+        )
 
     def add_child(self, path, parent_id=None):
         child_id = create_id()
@@ -565,7 +740,7 @@ class RestAPI(BaseModel):
         )
 
         for url in [stage_url_lower, stage_url_upper]:
-            responses._default_mock._matches.insert(
+            responses_mock._matches.insert(
                 0,
                 responses.CallbackResponse(
                     url=url,
@@ -752,6 +927,13 @@ class APIGatewayBackend(BaseBackend):
         if rest_api is None:
             raise RestAPINotFound()
         return rest_api
+
+    def update_rest_api(self, function_id, patch_operations):
+        rest_api = self.apis.get(function_id)
+        if rest_api is None:
+            raise RestAPINotFound()
+        self.apis[function_id].apply_patch_operations(patch_operations)
+        return self.apis[function_id]
 
     def list_apis(self):
         return self.apis.values()
@@ -968,8 +1150,6 @@ class APIGatewayBackend(BaseBackend):
         response_templates,
         content_handling,
     ):
-        if response_templates is None:
-            raise InvalidRequestInput()
         integration = self.get_integration(function_id, resource_id, method_type)
         integration_response = integration.create_integration_response(
             status_code, selection_pattern, response_templates, content_handling
@@ -999,7 +1179,8 @@ class APIGatewayBackend(BaseBackend):
         methods = [
             list(res.resource_methods.values())
             for res in self.list_resources(function_id)
-        ][0]
+        ]
+        methods = [m for sublist in methods for m in sublist]
         if not any(methods):
             raise NoMethodDefined()
         method_integrations = [
@@ -1023,26 +1204,45 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         return api.delete_deployment(deployment_id)
 
-    def create_apikey(self, payload):
+    def create_api_key(self, payload):
         if payload.get("value") is not None:
-            for api_key in self.get_apikeys():
+            if len(payload.get("value", [])) < 20:
+                raise ApiKeyValueMinLength()
+            for api_key in self.get_api_keys(include_values=True):
                 if api_key.get("value") == payload["value"]:
                     raise ApiKeyAlreadyExists()
         key = ApiKey(**payload)
         self.keys[key["id"]] = key
         return key
 
-    def get_apikeys(self):
-        return list(self.keys.values())
+    def get_api_keys(self, include_values=False):
+        api_keys = list(self.keys.values())
 
-    def get_apikey(self, api_key_id):
-        return self.keys[api_key_id]
+        if not include_values:
+            keys = []
+            for api_key in list(self.keys.values()):
+                new_key = copy(api_key)
+                del new_key["value"]
+                keys.append(new_key)
+            api_keys = keys
 
-    def update_apikey(self, api_key_id, patch_operations):
+        return api_keys
+
+    def get_api_key(self, api_key_id, include_value=False):
+        api_key = self.keys[api_key_id]
+
+        if not include_value:
+            new_key = copy(api_key)
+            del new_key["value"]
+            api_key = new_key
+
+        return api_key
+
+    def update_api_key(self, api_key_id, patch_operations):
         key = self.keys[api_key_id]
         return key.update_operations(patch_operations)
 
-    def delete_apikey(self, api_key_id):
+    def delete_api_key(self, api_key_id):
         self.keys.pop(api_key_id)
         return {}
 
@@ -1064,7 +1264,12 @@ class APIGatewayBackend(BaseBackend):
     def get_usage_plan(self, usage_plan_id):
         if usage_plan_id not in self.usage_plans:
             raise UsagePlanNotFoundException()
+        return self.usage_plans[usage_plan_id]
 
+    def update_usage_plan(self, usage_plan_id, patch_operations):
+        if usage_plan_id not in self.usage_plans:
+            raise UsagePlanNotFoundException()
+        self.usage_plans[usage_plan_id].apply_patch_operations(patch_operations)
         return self.usage_plans[usage_plan_id]
 
     def delete_usage_plan(self, usage_plan_id):

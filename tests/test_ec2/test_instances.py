@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 from botocore.exceptions import ClientError
 
 import pytest
+from unittest import SkipTest
 
 import base64
 import ipaddress
@@ -16,7 +16,8 @@ from boto.exception import EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_ec2
+from moto import mock_ec2_deprecated, mock_ec2, settings
+from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 
 
@@ -34,13 +35,13 @@ def add_servers(ami_id, count):
 
 @mock_ec2_deprecated
 def test_add_servers():
-    add_servers("ami-1234abcd", 2)
+    add_servers(EXAMPLE_AMI_ID, 2)
 
     conn = boto.connect_ec2()
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     assert len(reservations) == 2
     instance1 = reservations[0].instances[0]
-    assert instance1.image_id == "ami-1234abcd"
+    assert instance1.image_id == EXAMPLE_AMI_ID
 
 
 ############################################
@@ -52,20 +53,20 @@ def test_instance_launch_and_terminate():
     conn = boto.ec2.connect_to_region("us-east-1")
 
     with pytest.raises(EC2ResponseError) as ex:
-        reservation = conn.run_instances("ami-1234abcd", dry_run=True)
+        reservation = conn.run_instances(EXAMPLE_AMI_ID, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
     ex.value.status.should.equal(400)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     reservation.should.be.a(Reservation)
     reservation.instances.should.have.length_of(1)
     instance = reservation.instances[0]
     instance.state.should.equal("pending")
 
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     reservations.should.have.length_of(1)
     reservations[0].id.should.equal(reservation.id)
     instances = reservations[0].instances
@@ -96,7 +97,7 @@ def test_instance_launch_and_terminate():
 
     conn.terminate_instances([instance.id])
 
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     instance = reservations[0].instances[0]
     instance.state.should.equal("terminated")
 
@@ -107,7 +108,7 @@ def test_instance_terminate_discard_volumes():
     ec2_resource = boto3.resource("ec2", "us-west-1")
 
     result = ec2_resource.create_instances(
-        ImageId="ami-d3adb33f",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         BlockDeviceMappings=[
@@ -135,7 +136,7 @@ def test_instance_terminate_keep_volumes_explicit():
     ec2_resource = boto3.resource("ec2", "us-west-1")
 
     result = ec2_resource.create_instances(
-        ImageId="ami-d3adb33f",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         BlockDeviceMappings=[
@@ -162,7 +163,7 @@ def test_instance_terminate_keep_volumes_implicit():
     ec2_resource = boto3.resource("ec2", "us-west-1")
 
     result = ec2_resource.create_instances(
-        ImageId="ami-d3adb33f",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}}],
@@ -185,7 +186,7 @@ def test_instance_terminate_keep_volumes_implicit():
 def test_instance_terminate_detach_volumes():
     ec2_resource = boto3.resource("ec2", "us-west-1")
     result = ec2_resource.create_instances(
-        ImageId="ami-d3adb33f",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         BlockDeviceMappings=[
@@ -208,7 +209,7 @@ def test_instance_terminate_detach_volumes():
 def test_instance_detach_volume_wrong_path():
     ec2_resource = boto3.resource("ec2", "us-west-1")
     result = ec2_resource.create_instances(
-        ImageId="ami-d3adb33f",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},],
@@ -237,7 +238,7 @@ def test_terminate_empty_instances():
 @mock_ec2_deprecated
 def test_instance_attach_volume():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     vol1 = conn.create_volume(size=36, zone=conn.region.name)
@@ -250,7 +251,7 @@ def test_instance_attach_volume():
     vol3.attach(instance.id, "/dev/sdc1")
     vol3.update()
 
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     instance = reservations[0].instances[0]
 
     instance.block_device_mapping.should.have.length_of(3)
@@ -270,25 +271,25 @@ def test_instance_attach_volume():
 @mock_ec2_deprecated
 def test_get_instances_by_id():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=2)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
     instance1, instance2 = reservation.instances
 
-    reservations = conn.get_all_instances(instance_ids=[instance1.id])
+    reservations = conn.get_all_reservations(instance_ids=[instance1.id])
     reservations.should.have.length_of(1)
     reservation = reservations[0]
     reservation.instances.should.have.length_of(1)
     reservation.instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(instance_ids=[instance1.id, instance2.id])
+    reservations = conn.get_all_reservations(instance_ids=[instance1.id, instance2.id])
     reservations.should.have.length_of(1)
     reservation = reservations[0]
     reservation.instances.should.have.length_of(2)
     instance_ids = [instance.id for instance in reservation.instances]
     instance_ids.should.equal([instance1.id, instance2.id])
 
-    # Call get_all_instances with a bad id should raise an error
+    # Call get_all_reservations with a bad id should raise an error
     with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_instances(instance_ids=[instance1.id, "i-1234abcd"])
+        conn.get_all_reservations(instance_ids=[instance1.id, "i-1234abcd"])
     cm.value.code.should.equal("InvalidInstanceID.NotFound")
     cm.value.status.should.equal(400)
     cm.value.request_id.should_not.be.none
@@ -296,11 +297,10 @@ def test_get_instances_by_id():
 
 @mock_ec2
 def test_get_paginated_instances():
-    image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
     for i in range(100):
-        conn.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)
+        conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     resp = client.describe_instances(MaxResults=50)
     reservations = resp["Reservations"]
     reservations.should.have.length_of(50)
@@ -316,7 +316,7 @@ def test_get_paginated_instances():
 def test_create_with_tags():
     ec2 = boto3.client("ec2", region_name="us-west-2")
     instances = ec2.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -338,38 +338,67 @@ def test_create_with_tags():
     len(instances["Instances"][0]["Tags"]).should.equal(3)
 
 
+@mock_ec2
+def test_create_with_volume_tags():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    volume_tags = [
+        {"Key": "MY_TAG1", "Value": "MY_VALUE1"},
+        {"Key": "MY_TAG2", "Value": "MY_VALUE2"},
+    ]
+    instances = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=2,
+        MaxCount=2,
+        InstanceType="t2.micro",
+        TagSpecifications=[{"ResourceType": "volume", "Tags": volume_tags}],
+    ).get("Instances")
+    instance_ids = [i["InstanceId"] for i in instances]
+    instances = (
+        ec2.describe_instances(InstanceIds=instance_ids)
+        .get("Reservations")[0]
+        .get("Instances")
+    )
+    for instance in instances:
+        instance_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+        volumes = ec2.describe_volumes(VolumeIds=[instance_volume["VolumeId"]]).get(
+            "Volumes"
+        )
+        for volume in volumes:
+            sorted(volume["Tags"], key=lambda i: i["Key"]).should.equal(volume_tags)
+
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=3)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
 
     conn.terminate_instances([instance1.id])
 
-    reservations = conn.get_all_instances(filters={"instance-state-name": "running"})
+    reservations = conn.get_all_reservations(filters={"instance-state-name": "running"})
     reservations.should.have.length_of(1)
     # Since we terminated instance1, only instance2 and instance3 should be
     # returned
     instance_ids = [instance.id for instance in reservations[0].instances]
     set(instance_ids).should.equal(set([instance2.id, instance3.id]))
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         [instance2.id], filters={"instance-state-name": "running"}
     )
     reservations.should.have.length_of(1)
     instance_ids = [instance.id for instance in reservations[0].instances]
     instance_ids.should.equal([instance2.id])
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         [instance2.id], filters={"instance-state-name": "terminated"}
     )
     list(reservations).should.equal([])
 
-    # get_all_instances should still return all 3
-    reservations = conn.get_all_instances()
+    # get_all_reservations should still return all 3
+    reservations = conn.get_all_reservations()
     reservations[0].instances.should.have.length_of(3)
 
-    conn.get_all_instances.when.called_with(
+    conn.get_all_reservations.when.called_with(
         filters={"not-implemented-filter": "foobar"}
     ).should.throw(NotImplementedError)
 
@@ -377,49 +406,49 @@ def test_get_instances_filtering_by_state():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_instance_id():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=3)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
 
-    reservations = conn.get_all_instances(filters={"instance-id": instance1.id})
-    # get_all_instances should return just instance1
+    reservations = conn.get_all_reservations(filters={"instance-id": instance1.id})
+    # get_all_reservations should return just instance1
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"instance-id": [instance1.id, instance2.id]}
     )
-    # get_all_instances should return two
+    # get_all_reservations should return two
     reservations[0].instances.should.have.length_of(2)
 
-    reservations = conn.get_all_instances(filters={"instance-id": "non-existing-id"})
+    reservations = conn.get_all_reservations(filters={"instance-id": "non-existing-id"})
     reservations.should.have.length_of(0)
 
 
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_instance_type():
     conn = boto.connect_ec2()
-    reservation1 = conn.run_instances("ami-1234abcd", instance_type="m1.small")
+    reservation1 = conn.run_instances(EXAMPLE_AMI_ID, instance_type="m1.small")
     instance1 = reservation1.instances[0]
-    reservation2 = conn.run_instances("ami-1234abcd", instance_type="m1.small")
+    reservation2 = conn.run_instances(EXAMPLE_AMI_ID, instance_type="m1.small")
     instance2 = reservation2.instances[0]
-    reservation3 = conn.run_instances("ami-1234abcd", instance_type="t1.micro")
+    reservation3 = conn.run_instances(EXAMPLE_AMI_ID, instance_type="t1.micro")
     instance3 = reservation3.instances[0]
 
-    reservations = conn.get_all_instances(filters={"instance-type": "m1.small"})
-    # get_all_instances should return instance1,2
+    reservations = conn.get_all_reservations(filters={"instance-type": "m1.small"})
+    # get_all_reservations should return instance1,2
     reservations.should.have.length_of(2)
     reservations[0].instances.should.have.length_of(1)
     reservations[1].instances.should.have.length_of(1)
     instance_ids = [reservations[0].instances[0].id, reservations[1].instances[0].id]
     set(instance_ids).should.equal(set([instance1.id, instance2.id]))
 
-    reservations = conn.get_all_instances(filters={"instance-type": "t1.micro"})
-    # get_all_instances should return one
+    reservations = conn.get_all_reservations(filters={"instance-type": "t1.micro"})
+    # get_all_reservations should return one
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance3.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"instance-type": ["t1.micro", "m1.small"]}
     )
     reservations.should.have.length_of(3)
@@ -433,7 +462,7 @@ def test_get_instances_filtering_by_instance_type():
     ]
     set(instance_ids).should.equal(set([instance1.id, instance2.id, instance3.id]))
 
-    reservations = conn.get_all_instances(filters={"instance-type": "bogus"})
+    reservations = conn.get_all_reservations(filters={"instance-type": "bogus"})
     # bogus instance-type should return none
     reservations.should.have.length_of(0)
 
@@ -441,22 +470,22 @@ def test_get_instances_filtering_by_instance_type():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_reason_code():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=3)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
     instance1.stop()
     instance2.terminate()
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"state-reason-code": "Client.UserInitiatedShutdown"}
     )
-    # get_all_instances should return instance1 and instance2
+    # get_all_reservations should return instance1 and instance2
     reservations[0].instances.should.have.length_of(2)
     set([instance1.id, instance2.id]).should.equal(
         set([i.id for i in reservations[0].instances])
     )
 
-    reservations = conn.get_all_instances(filters={"state-reason-code": ""})
-    # get_all_instances should return instance 3
+    reservations = conn.get_all_reservations(filters={"state-reason-code": ""})
+    # get_all_reservations should return instance 3
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance3.id)
 
@@ -464,16 +493,16 @@ def test_get_instances_filtering_by_reason_code():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_source_dest_check():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=2)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
     instance1, instance2 = reservation.instances
     conn.modify_instance_attribute(
         instance1.id, attribute="sourceDestCheck", value=False
     )
 
-    source_dest_check_false = conn.get_all_instances(
+    source_dest_check_false = conn.get_all_reservations(
         filters={"source-dest-check": "false"}
     )
-    source_dest_check_true = conn.get_all_instances(
+    source_dest_check_true = conn.get_all_reservations(
         filters={"source-dest-check": "true"}
     )
 
@@ -489,22 +518,22 @@ def test_get_instances_filtering_by_vpc_id():
     conn = boto.connect_vpc("the_key", "the_secret")
     vpc1 = conn.create_vpc("10.0.0.0/16")
     subnet1 = conn.create_subnet(vpc1.id, "10.0.0.0/27")
-    reservation1 = conn.run_instances("ami-1234abcd", min_count=1, subnet_id=subnet1.id)
+    reservation1 = conn.run_instances(EXAMPLE_AMI_ID, min_count=1, subnet_id=subnet1.id)
     instance1 = reservation1.instances[0]
 
     vpc2 = conn.create_vpc("10.1.0.0/16")
     subnet2 = conn.create_subnet(vpc2.id, "10.1.0.0/27")
-    reservation2 = conn.run_instances("ami-1234abcd", min_count=1, subnet_id=subnet2.id)
+    reservation2 = conn.run_instances(EXAMPLE_AMI_ID, min_count=1, subnet_id=subnet2.id)
     instance2 = reservation2.instances[0]
 
-    reservations1 = conn.get_all_instances(filters={"vpc-id": vpc1.id})
+    reservations1 = conn.get_all_reservations(filters={"vpc-id": vpc1.id})
     reservations1.should.have.length_of(1)
     reservations1[0].instances.should.have.length_of(1)
     reservations1[0].instances[0].id.should.equal(instance1.id)
     reservations1[0].instances[0].vpc_id.should.equal(vpc1.id)
     reservations1[0].instances[0].subnet_id.should.equal(subnet1.id)
 
-    reservations2 = conn.get_all_instances(filters={"vpc-id": vpc2.id})
+    reservations2 = conn.get_all_reservations(filters={"vpc-id": vpc2.id})
     reservations2.should.have.length_of(1)
     reservations2[0].instances.should.have.length_of(1)
     reservations2[0].instances[0].id.should.equal(instance2.id)
@@ -515,33 +544,31 @@ def test_get_instances_filtering_by_vpc_id():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_architecture():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=1)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=1)
     instance = reservation.instances
 
-    reservations = conn.get_all_instances(filters={"architecture": "x86_64"})
-    # get_all_instances should return the instance
+    reservations = conn.get_all_reservations(filters={"architecture": "x86_64"})
+    # get_all_reservations should return the instance
     reservations[0].instances.should.have.length_of(1)
 
 
 @mock_ec2
 def test_get_instances_filtering_by_image_id():
-    image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
-    conn.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)
+    conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
     reservations = client.describe_instances(
-        Filters=[{"Name": "image-id", "Values": [image_id]}]
+        Filters=[{"Name": "image-id", "Values": [EXAMPLE_AMI_ID]}]
     )["Reservations"]
     reservations[0]["Instances"].should.have.length_of(1)
 
 
 @mock_ec2
 def test_get_instances_filtering_by_account_id():
-    image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
-    conn.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)
+    conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
     reservations = client.describe_instances(
         Filters=[{"Name": "owner-id", "Values": ["123456789012"]}]
@@ -552,11 +579,10 @@ def test_get_instances_filtering_by_account_id():
 
 @mock_ec2
 def test_get_instances_filtering_by_private_dns():
-    image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
     conn.create_instances(
-        ImageId=image_id, MinCount=1, MaxCount=1, PrivateIpAddress="10.0.0.1"
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, PrivateIpAddress="10.0.0.1"
     )
     reservations = client.describe_instances(
         Filters=[{"Name": "private-dns-name", "Values": ["ip-10-0-0-1.ec2.internal"]}]
@@ -566,11 +592,10 @@ def test_get_instances_filtering_by_private_dns():
 
 @mock_ec2
 def test_get_instances_filtering_by_ni_private_dns():
-    image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-west-2")
     conn = boto3.resource("ec2", "us-west-2")
     conn.create_instances(
-        ImageId=image_id, MinCount=1, MaxCount=1, PrivateIpAddress="10.0.0.1"
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, PrivateIpAddress="10.0.0.1"
     )
     reservations = client.describe_instances(
         Filters=[
@@ -585,11 +610,10 @@ def test_get_instances_filtering_by_ni_private_dns():
 
 @mock_ec2
 def test_get_instances_filtering_by_instance_group_name():
-    image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
     client.create_security_group(Description="test", GroupName="test_sg")
     client.run_instances(
-        ImageId=image_id, MinCount=1, MaxCount=1, SecurityGroups=["test_sg"]
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=["test_sg"]
     )
     reservations = client.describe_instances(
         Filters=[{"Name": "instance.group-name", "Values": ["test_sg"]}]
@@ -599,12 +623,11 @@ def test_get_instances_filtering_by_instance_group_name():
 
 @mock_ec2
 def test_get_instances_filtering_by_instance_group_id():
-    image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
     create_sg = client.create_security_group(Description="test", GroupName="test_sg")
     group_id = create_sg["GroupId"]
     client.run_instances(
-        ImageId=image_id, MinCount=1, MaxCount=1, SecurityGroups=["test_sg"]
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=["test_sg"]
     )
     reservations = client.describe_instances(
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
@@ -612,10 +635,33 @@ def test_get_instances_filtering_by_instance_group_id():
     reservations[0]["Instances"].should.have.length_of(1)
 
 
+@mock_ec2
+def test_get_instances_filtering_by_subnet_id():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    vpc_cidr = ipaddress.ip_network("192.168.42.0/24")
+    subnet_cidr = ipaddress.ip_network("192.168.42.0/25")
+
+    resp = client.create_vpc(CidrBlock=str(vpc_cidr),)
+    vpc_id = resp["Vpc"]["VpcId"]
+
+    resp = client.create_subnet(CidrBlock=str(subnet_cidr), VpcId=vpc_id)
+    subnet_id = resp["Subnet"]["SubnetId"]
+
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id,
+    )
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "subnet-id", "Values": [subnet_id]}]
+    )["Reservations"]
+    reservations.should.have.length_of(1)
+
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=3)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
     instance1.add_tag("tag1", "value1")
     instance1.add_tag("tag2", "value2")
@@ -623,35 +669,35 @@ def test_get_instances_filtering_by_tag():
     instance2.add_tag("tag2", "wrong value")
     instance3.add_tag("tag2", "value2")
 
-    reservations = conn.get_all_instances(filters={"tag:tag0": "value0"})
-    # get_all_instances should return no instances
+    reservations = conn.get_all_reservations(filters={"tag:tag0": "value0"})
+    # get_all_reservations should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={"tag:tag1": "value1"})
-    # get_all_instances should return both instances with this tag value
+    reservations = conn.get_all_reservations(filters={"tag:tag1": "value1"})
+    # get_all_reservations should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"tag:tag1": "value1", "tag:tag2": "value2"}
     )
-    # get_all_instances should return the instance with both tag values
+    # get_all_reservations should return the instance with both tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(
+    reservations = conn.get_all_reservations(
         filters={"tag:tag1": "value1", "tag:tag2": "value2"}
     )
-    # get_all_instances should return the instance with both tag values
+    # get_all_reservations should return the instance with both tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(1)
     reservations[0].instances[0].id.should.equal(instance1.id)
 
-    reservations = conn.get_all_instances(filters={"tag:tag2": ["value2", "bogus"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(filters={"tag:tag2": ["value2", "bogus"]})
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
@@ -662,7 +708,7 @@ def test_get_instances_filtering_by_tag():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag_value():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=3)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
     instance1.add_tag("tag1", "value1")
     instance1.add_tag("tag2", "value2")
@@ -670,19 +716,21 @@ def test_get_instances_filtering_by_tag_value():
     instance2.add_tag("tag2", "wrong value")
     instance3.add_tag("tag2", "value2")
 
-    reservations = conn.get_all_instances(filters={"tag-value": "value0"})
-    # get_all_instances should return no instances
+    reservations = conn.get_all_reservations(filters={"tag-value": "value0"})
+    # get_all_reservations should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={"tag-value": "value1"})
-    # get_all_instances should return both instances with this tag value
+    reservations = conn.get_all_reservations(filters={"tag-value": "value1"})
+    # get_all_reservations should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(filters={"tag-value": ["value2", "value1"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(
+        filters={"tag-value": ["value2", "value1"]}
+    )
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(3)
@@ -690,8 +738,8 @@ def test_get_instances_filtering_by_tag_value():
     reservations[0].instances[1].id.should.equal(instance2.id)
     reservations[0].instances[2].id.should.equal(instance3.id)
 
-    reservations = conn.get_all_instances(filters={"tag-value": ["value2", "bogus"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(filters={"tag-value": ["value2", "bogus"]})
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
@@ -702,7 +750,7 @@ def test_get_instances_filtering_by_tag_value():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_tag_name():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances("ami-1234abcd", min_count=3)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
     instance1.add_tag("tag1")
     instance1.add_tag("tag2")
@@ -710,19 +758,19 @@ def test_get_instances_filtering_by_tag_name():
     instance2.add_tag("tag2X")
     instance3.add_tag("tag3")
 
-    reservations = conn.get_all_instances(filters={"tag-key": "tagX"})
-    # get_all_instances should return no instances
+    reservations = conn.get_all_reservations(filters={"tag-key": "tagX"})
+    # get_all_reservations should return no instances
     reservations.should.have.length_of(0)
 
-    reservations = conn.get_all_instances(filters={"tag-key": "tag1"})
-    # get_all_instances should return both instances with this tag value
+    reservations = conn.get_all_reservations(filters={"tag-key": "tag1"})
+    # get_all_reservations should return both instances with this tag value
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(2)
     reservations[0].instances[0].id.should.equal(instance1.id)
     reservations[0].instances[1].id.should.equal(instance2.id)
 
-    reservations = conn.get_all_instances(filters={"tag-key": ["tag1", "tag3"]})
-    # get_all_instances should return both instances with one of the
+    reservations = conn.get_all_reservations(filters={"tag-key": ["tag1", "tag3"]})
+    # get_all_reservations should return both instances with one of the
     # acceptable tag values
     reservations.should.have.length_of(1)
     reservations[0].instances.should.have.length_of(3)
@@ -734,7 +782,7 @@ def test_get_instances_filtering_by_tag_name():
 @mock_ec2_deprecated
 def test_instance_start_and_stop():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd", min_count=2)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
     instances = reservation.instances
     instances.should.have.length_of(2)
 
@@ -768,7 +816,7 @@ def test_instance_start_and_stop():
 @mock_ec2_deprecated
 def test_instance_reboot():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as ex:
@@ -786,7 +834,7 @@ def test_instance_reboot():
 @mock_ec2_deprecated
 def test_instance_attribute_instance_type():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as ex:
@@ -807,7 +855,7 @@ def test_instance_attribute_instance_type():
 @mock_ec2_deprecated
 def test_modify_instance_attribute_security_groups():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     sg_id = conn.create_security_group(
@@ -837,7 +885,7 @@ def test_modify_instance_attribute_security_groups():
 @mock_ec2_deprecated
 def test_instance_attribute_user_data():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as ex:
@@ -858,7 +906,7 @@ def test_instance_attribute_user_data():
 @mock_ec2_deprecated
 def test_instance_attribute_source_dest_check():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     # Default value is true
@@ -902,7 +950,7 @@ def test_instance_attribute_source_dest_check():
 def test_user_data_with_run_instance():
     user_data = b"some user data"
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd", user_data=user_data)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, user_data=user_data)
     instance = reservation.instances[0]
 
     instance_attribute = instance.get_attribute("userData")
@@ -926,7 +974,7 @@ def test_run_instance_with_security_group_name():
 
     group = conn.create_security_group("group1", "some description")
 
-    reservation = conn.run_instances("ami-1234abcd", security_groups=["group1"])
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, security_groups=["group1"])
     instance = reservation.instances[0]
 
     instance.groups[0].id.should.equal(group.id)
@@ -937,7 +985,7 @@ def test_run_instance_with_security_group_name():
 def test_run_instance_with_security_group_id():
     conn = boto.connect_ec2("the_key", "the_secret")
     group = conn.create_security_group("group1", "some description")
-    reservation = conn.run_instances("ami-1234abcd", security_group_ids=[group.id])
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, security_group_ids=[group.id])
     instance = reservation.instances[0]
 
     instance.groups[0].id.should.equal(group.id)
@@ -947,7 +995,7 @@ def test_run_instance_with_security_group_id():
 @mock_ec2_deprecated
 def test_run_instance_with_instance_type():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd", instance_type="t1.micro")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, instance_type="t1.micro")
     instance = reservation.instances[0]
 
     instance.instance_type.should.equal("t1.micro")
@@ -956,7 +1004,7 @@ def test_run_instance_with_instance_type():
 @mock_ec2_deprecated
 def test_run_instance_with_default_placement():
     conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     instance.placement.should.equal("us-east-1a")
@@ -965,7 +1013,7 @@ def test_run_instance_with_default_placement():
 @mock_ec2_deprecated
 def test_run_instance_with_placement():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd", placement="us-east-1b")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, placement="us-east-1b")
     instance = reservation.instances[0]
 
     instance.placement.should.equal("us-east-1b")
@@ -997,7 +1045,7 @@ def test_run_instance_with_subnet_boto3():
         subnet_id = resp["Subnet"]["SubnetId"]
 
         resp = client.run_instances(
-            ImageId="ami-1234abcd", MaxCount=1, MinCount=1, SubnetId=subnet_id
+            ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id
         )
         instance = resp["Instances"][0]
         instance["SubnetId"].should.equal(subnet_id)
@@ -1025,7 +1073,7 @@ def test_run_instance_with_specified_private_ipv4():
     subnet_id = resp["Subnet"]["SubnetId"]
 
     resp = client.run_instances(
-        ImageId="ami-1234abcd",
+        ImageId=EXAMPLE_AMI_ID,
         MaxCount=1,
         MinCount=1,
         SubnetId=subnet_id,
@@ -1058,7 +1106,7 @@ def test_run_instance_mapped_public_ipv4():
     )
 
     resp = client.run_instances(
-        ImageId="ami-1234abcd", MaxCount=1, MinCount=1, SubnetId=subnet_id
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id
     )
     instance = resp["Instances"][0]
     instance.should.contain("PublicDnsName")
@@ -1081,7 +1129,7 @@ def test_run_instance_with_nic_autocreated():
     private_ip = "10.0.0.1"
 
     reservation = conn.run_instances(
-        "ami-1234abcd",
+        EXAMPLE_AMI_ID,
         subnet_id=subnet.id,
         security_groups=[security_group1.name],
         security_group_ids=[security_group2.id],
@@ -1141,7 +1189,7 @@ def test_run_instance_with_nic_preexisting():
     # end Boto objects
 
     reservation = conn.run_instances(
-        "ami-1234abcd",
+        EXAMPLE_AMI_ID,
         network_interfaces=interfaces,
         security_group_ids=[security_group2.id],
     )
@@ -1180,7 +1228,7 @@ def test_instance_with_nic_attach_detach():
     )
 
     reservation = conn.run_instances(
-        "ami-1234abcd", security_group_ids=[security_group1.id]
+        EXAMPLE_AMI_ID, security_group_ids=[security_group1.id]
     )
     instance = reservation.instances[0]
 
@@ -1249,7 +1297,7 @@ def test_instance_with_nic_attach_detach():
 @mock_ec2_deprecated
 def test_ec2_classic_has_public_ip_address():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd", key_name="keypair_name")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
     instance = reservation.instances[0]
     instance.ip_address.should_not.equal(None)
     instance.public_dns_name.should.contain(instance.ip_address.replace(".", "-"))
@@ -1262,7 +1310,7 @@ def test_ec2_classic_has_public_ip_address():
 @mock_ec2_deprecated
 def test_run_instance_with_keypair():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd", key_name="keypair_name")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
     instance = reservation.instances[0]
 
     instance.key_name.should.equal("keypair_name")
@@ -1275,7 +1323,7 @@ def test_run_instance_with_block_device_mappings():
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
-        "ImageId": "ami-d3adb33f",
+        "ImageId": EXAMPLE_AMI_ID,
         "KeyName": "the_key",
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": 50}}],
@@ -1299,7 +1347,7 @@ def test_run_instance_with_block_device_mappings_missing_ebs():
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
-        "ImageId": "ami-d3adb33f",
+        "ImageId": EXAMPLE_AMI_ID,
         "KeyName": "the_key",
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [{"DeviceName": "/dev/sda2"}],
@@ -1321,7 +1369,7 @@ def test_run_instance_with_block_device_mappings_missing_size():
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
-        "ImageId": "ami-d3adb33f",
+        "ImageId": EXAMPLE_AMI_ID,
         "KeyName": "the_key",
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [
@@ -1352,7 +1400,7 @@ def test_run_instance_with_block_device_mappings_from_snapshot():
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
-        "ImageId": "ami-d3adb33f",
+        "ImageId": EXAMPLE_AMI_ID,
         "KeyName": "the_key",
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [
@@ -1383,7 +1431,7 @@ def test_describe_instance_status_no_instances():
 @mock_ec2_deprecated
 def test_describe_instance_status_with_instances():
     conn = boto.connect_ec2("the_key", "the_secret")
-    conn.run_instances("ami-1234abcd", key_name="keypair_name")
+    conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
 
     all_status = conn.get_all_instance_status()
     len(all_status).should.equal(1)
@@ -1396,11 +1444,11 @@ def test_describe_instance_status_with_instance_filter_deprecated():
     conn = boto.connect_ec2("the_key", "the_secret")
 
     # We want to filter based on this one
-    reservation = conn.run_instances("ami-1234abcd", key_name="keypair_name")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
     instance = reservation.instances[0]
 
     # This is just to setup the test
-    conn.run_instances("ami-1234abcd", key_name="keypair_name")
+    conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
 
     all_status = conn.get_all_instance_status(instance_ids=[instance.id])
     len(all_status).should.equal(1)
@@ -1419,7 +1467,7 @@ def test_describe_instance_credit_specifications():
     conn = boto3.client("ec2", region_name="us-west-1")
 
     # We want to filter based on this one
-    reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=1, MaxCount=1)
+    reservation = conn.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     result = conn.describe_instance_credit_specifications(
         InstanceIds=[reservation["Instances"][0]["InstanceId"]]
     )
@@ -1434,7 +1482,7 @@ def test_describe_instance_status_with_instance_filter():
     conn = boto3.client("ec2", region_name="us-west-1")
 
     # We want to filter based on this one
-    reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=3, MaxCount=3)
+    reservation = conn.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
     instance1 = reservation["Instances"][0]
     instance2 = reservation["Instances"][1]
     instance3 = reservation["Instances"][2]
@@ -1502,7 +1550,7 @@ def test_describe_instance_status_with_instance_filter():
 @mock_ec2_deprecated
 def test_describe_instance_status_with_non_running_instances():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd", min_count=3)
+    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
     instance1, instance2, instance3 = reservation.instances
     instance1.stop()
     instance2.terminate()
@@ -1529,7 +1577,7 @@ def test_describe_instance_status_with_non_running_instances():
 def test_get_instance_by_security_group():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    conn.run_instances("ami-1234abcd")
+    conn.run_instances(EXAMPLE_AMI_ID)
     instance = conn.get_only_instances()[0]
 
     security_group = conn.create_security_group("test", "test")
@@ -1555,7 +1603,7 @@ def test_get_instance_by_security_group():
 @mock_ec2
 def test_modify_delete_on_termination():
     ec2_client = boto3.resource("ec2", region_name="us-west-1")
-    result = ec2_client.create_instances(ImageId="ami-12345678", MinCount=1, MaxCount=1)
+    result = ec2_client.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = result[0]
     instance.load()
     instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(True)
@@ -1573,7 +1621,7 @@ def test_create_instance_ebs_optimized():
     ec2_resource = boto3.resource("ec2", region_name="eu-west-1")
 
     instance = ec2_resource.create_instances(
-        ImageId="ami-12345678", MaxCount=1, MinCount=1, EbsOptimized=True
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, EbsOptimized=True
     )[0]
     instance.load()
     instance.ebs_optimized.should.be(True)
@@ -1583,7 +1631,7 @@ def test_create_instance_ebs_optimized():
     instance.ebs_optimized.should.be(False)
 
     instance = ec2_resource.create_instances(
-        ImageId="ami-12345678", MaxCount=1, MinCount=1,
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1,
     )[0]
     instance.load()
     instance.ebs_optimized.should.be(False)
@@ -1594,7 +1642,7 @@ def test_run_multiple_instances_in_same_command():
     instance_count = 4
     client = boto3.client("ec2", region_name="us-east-1")
     client.run_instances(
-        ImageId="ami-1234abcd", MinCount=instance_count, MaxCount=instance_count
+        ImageId=EXAMPLE_AMI_ID, MinCount=instance_count, MaxCount=instance_count
     )
     reservations = client.describe_instances()["Reservations"]
 
@@ -1612,7 +1660,7 @@ def test_describe_instance_attribute():
         GroupName="test security group", Description="this is a test security group"
     )["GroupId"]
     client.run_instances(
-        ImageId="ami-1234abcd",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         SecurityGroupIds=[security_group_id],
@@ -1668,3 +1716,15 @@ def test_describe_instance_attribute():
             invalid_instance_attribute=invalid_instance_attribute
         )
         ex.value.response["Error"]["Message"].should.equal(message)
+
+
+@mock_ec2
+def test_warn_on_invalid_ami():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't capture warnings in server mode.")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match=r"Could not find AMI with image-id:invalid-ami.+",
+    ):
+        ec2.create_instances(ImageId="invalid-ami", MinCount=1, MaxCount=1)

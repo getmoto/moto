@@ -2,6 +2,9 @@ import boto3
 from moto import mock_cloudformation, mock_ecs, mock_autoscaling, mock_s3
 import json
 
+from moto.core import ACCOUNT_ID
+from tests import EXAMPLE_AMI_ID
+
 depends_on_template_list = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Resources": {
@@ -23,7 +26,11 @@ depends_on_template_list = {
         },
         "LaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Properties": {"LaunchConfigurationName": "test-launch-config",},
+            "Properties": {
+                "LaunchConfigurationName": "test-launch-config",
+                "ImageId": EXAMPLE_AMI_ID,
+                "InstanceType": "t2.medium",
+            },
         },
     },
 }
@@ -45,7 +52,11 @@ depends_on_template_string = {
         },
         "LaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Properties": {"LaunchConfigurationName": "test-launch-config",},
+            "Properties": {
+                "LaunchConfigurationName": "test-launch-config",
+                "ImageId": EXAMPLE_AMI_ID,
+                "InstanceType": "t2.medium",
+            },
         },
     },
 }
@@ -101,7 +112,9 @@ def test_create_stack_with_depends_on():
 
     ecs = boto3.client("ecs", region_name="us-east-1")
     cluster_arn = ecs.list_clusters()["clusterArns"][0]
-    assert cluster_arn == "arn:aws:ecs:us-east-1:012345678910:cluster/test-cluster"
+    assert cluster_arn == "arn:aws:ecs:us-east-1:{}:cluster/test-cluster".format(
+        ACCOUNT_ID
+    )
 
 
 @mock_cloudformation

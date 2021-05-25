@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import time
@@ -10,12 +9,14 @@ from botocore.exceptions import ClientError
 import sure  # noqa
 
 from moto import mock_ec2, mock_iam, mock_cloudformation
+from tests import EXAMPLE_AMI_ID
 
 
 def quick_instance_creation():
-    image_id = "ami-1234abcd"
     conn_ec2 = boto3.resource("ec2", "us-east-1")
-    test_instance = conn_ec2.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)
+    test_instance = conn_ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )
     # We only need instance id for this tests
     return test_instance[0].id
 
@@ -306,40 +307,3 @@ def test_invalid_disassociate():
         client.disassociate_iam_instance_profile(AssociationId="fake",)
     ex.value.response["Error"]["Code"].should.equal("InvalidAssociationID.NotFound")
     ex.value.response["Error"]["Message"].should.contain("An invalid association-id of")
-
-
-@mock_ec2
-@mock_cloudformation
-def test_cloudformation():
-    dummy_template_json = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "InstanceProfile": {
-                "Type": "AWS::IAM::InstanceProfile",
-                "Properties": {"Path": "/", "Roles": []},
-            },
-            "Ec2Instance": {
-                "Type": "AWS::EC2::Instance",
-                "Properties": {
-                    "IamInstanceProfile": {"Ref": "InstanceProfile"},
-                    "KeyName": "mykey1",
-                    "ImageId": "ami-7a11e213",
-                },
-            },
-        },
-    }
-
-    client = boto3.client("ec2", region_name="us-east-1")
-    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(dummy_template_json)
-    )
-    associations = client.describe_iam_instance_profile_associations()
-    associations["IamInstanceProfileAssociations"].should.have.length_of(1)
-    associations["IamInstanceProfileAssociations"][0]["IamInstanceProfile"][
-        "Arn"
-    ].should.contain("test_stack")
-
-    cf_conn.delete_stack(StackName="test_stack")
-    associations = client.describe_iam_instance_profile_associations()
-    associations["IamInstanceProfileAssociations"].should.have.length_of(0)

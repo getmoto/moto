@@ -218,6 +218,7 @@ def test_things():
     thing_type = client.create_thing_type(thingTypeName=type_name)
     thing_type.should.have.key("thingTypeName").which.should.equal(type_name)
     thing_type.should.have.key("thingTypeArn")
+    thing_type["thingTypeArn"].should.contain(type_name)
 
     res = client.list_thing_types()
     res.should.have.key("thingTypes").which.should.have.length_of(1)
@@ -228,6 +229,8 @@ def test_things():
     thing_type.should.have.key("thingTypeName").which.should.equal(type_name)
     thing_type.should.have.key("thingTypeProperties")
     thing_type.should.have.key("thingTypeMetadata")
+    thing_type.should.have.key("thingTypeArn")
+    thing_type["thingTypeArn"].should.contain(type_name)
 
     # thing
     thing = client.create_thing(thingName=name, thingTypeName=type_name)
@@ -844,8 +847,7 @@ def test_principal_thing():
 
     res = client.list_principal_things(principal=cert_arn)
     res.should.have.key("things").which.should.have.length_of(1)
-    for thing in res["things"]:
-        thing.should_not.be.none
+    res["things"][0].should.equal(thing_name)
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key("principals").which.should.have.length_of(1)
     for principal in res["principals"]:
@@ -1285,6 +1287,7 @@ def test_thing_groups():
     thing_group = client.create_thing_group(thingGroupName=group_name)
     thing_group.should.have.key("thingGroupName").which.should.equal(group_name)
     thing_group.should.have.key("thingGroupArn")
+    thing_group["thingGroupArn"].should.contain(group_name)
 
     res = client.list_thing_groups()
     res.should.have.key("thingGroups").which.should.have.length_of(1)
@@ -1297,6 +1300,8 @@ def test_thing_groups():
     thing_group.should.have.key("thingGroupProperties")
     thing_group.should.have.key("thingGroupMetadata")
     thing_group.should.have.key("version")
+    thing_group.should.have.key("thingGroupArn")
+    thing_group["thingGroupArn"].should.contain(group_name)
 
     # delete thing group
     client.delete_thing_group(thingGroupName=group_name)
@@ -1991,3 +1996,166 @@ def test_list_job_executions_for_thing():
     job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
         job_id
     )
+
+
+class TestTopicRules:
+    name = "my-rule"
+    payload = {
+        "sql": "SELECT * FROM 'topic/*' WHERE something > 0",
+        "actions": [
+            {"dynamoDBv2": {"putItem": {"tableName": "my-table"}, "roleArn": "my-role"}}
+        ],
+        "errorAction": {
+            "republish": {"qos": 0, "roleArn": "my-role", "topic": "other-topic"}
+        },
+        "description": "my-description",
+        "ruleDisabled": False,
+        "awsIotSqlVersion": "2016-03-23",
+    }
+
+    @mock_iot
+    def test_topic_rule_create(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        # duplicated rule name
+        with pytest.raises(ClientError) as ex:
+            client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceAlreadyExistsException")
+
+    @mock_iot
+    def test_topic_rule_list(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # empty response
+        res = client.list_topic_rules()
+        res.should.have.key("rules").which.should.have.length_of(0)
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+        client.create_topic_rule(ruleName="my-rule-2", topicRulePayload=self.payload)
+
+        res = client.list_topic_rules()
+        res.should.have.key("rules").which.should.have.length_of(2)
+        for rule, name in zip(res["rules"], [self.name, "my-rule-2"]):
+            rule.should.have.key("ruleName").which.should.equal(name)
+            rule.should.have.key("createdAt").which.should_not.be.none
+            rule.should.have.key("ruleArn").which.should_not.be.none
+            rule.should.have.key("ruleDisabled").which.should.equal(
+                self.payload["ruleDisabled"]
+            )
+            rule.should.have.key("topicPattern").which.should.equal("topic/*")
+
+    @mock_iot
+    def test_topic_rule_get(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.get_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        rule = client.get_topic_rule(ruleName=self.name)
+
+        rule.should.have.key("ruleArn").which.should_not.be.none
+        rule.should.have.key("rule")
+        rrule = rule["rule"]
+        rrule.should.have.key("actions").which.should.equal(self.payload["actions"])
+        rrule.should.have.key("awsIotSqlVersion").which.should.equal(
+            self.payload["awsIotSqlVersion"]
+        )
+        rrule.should.have.key("createdAt").which.should_not.be.none
+        rrule.should.have.key("description").which.should.equal(
+            self.payload["description"]
+        )
+        rrule.should.have.key("errorAction").which.should.equal(
+            self.payload["errorAction"]
+        )
+        rrule.should.have.key("ruleDisabled").which.should.equal(
+            self.payload["ruleDisabled"]
+        )
+        rrule.should.have.key("ruleName").which.should.equal(self.name)
+        rrule.should.have.key("sql").which.should.equal(self.payload["sql"])
+
+    @mock_iot
+    def test_topic_rule_replace(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.replace_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        payload = self.payload.copy()
+        payload["description"] = "new-description"
+        client.replace_topic_rule(
+            ruleName=self.name, topicRulePayload=payload,
+        )
+
+        rule = client.get_topic_rule(ruleName=self.name)
+        rule["rule"]["ruleName"].should.equal(self.name)
+        rule["rule"]["description"].should.equal(payload["description"])
+
+    @mock_iot
+    def test_topic_rule_disable(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.disable_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        client.disable_topic_rule(ruleName=self.name)
+
+        rule = client.get_topic_rule(ruleName=self.name)
+        rule["rule"]["ruleName"].should.equal(self.name)
+        rule["rule"]["ruleDisabled"].should.equal(True)
+
+    @mock_iot
+    def test_topic_rule_enable(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.enable_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        payload = self.payload.copy()
+        payload["ruleDisabled"] = True
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=payload)
+
+        client.enable_topic_rule(ruleName=self.name)
+
+        rule = client.get_topic_rule(ruleName=self.name)
+        rule["rule"]["ruleName"].should.equal(self.name)
+        rule["rule"]["ruleDisabled"].should.equal(False)
+
+    @mock_iot
+    def test_topic_rule_delete(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.delete_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        client.enable_topic_rule(ruleName=self.name)
+
+        client.delete_topic_rule(ruleName=self.name)
+
+        res = client.list_topic_rules()
+        res.should.have.key("rules").which.should.have.length_of(0)

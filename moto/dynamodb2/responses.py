@@ -8,10 +8,9 @@ import itertools
 import six
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores, amzn_request_id
+from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
 from .exceptions import (
     InvalidIndexNameError,
-    ItemSizeTooLarge,
     MockValidationException,
     TransactionCanceledException,
 )
@@ -80,6 +79,7 @@ class DynamoHandler(BaseResponse):
         """
         return dynamodb_backends[self.region]
 
+    @amz_crc32
     @amzn_request_id
     def call_action(self):
         self.body = json.loads(self.body or "{}")
@@ -295,9 +295,9 @@ class DynamoHandler(BaseResponse):
                 expression_attribute_values,
                 overwrite,
             )
-        except ItemSizeTooLarge:
+        except MockValidationException as mve:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(er, ItemSizeTooLarge.item_size_too_large_msg)
+            return self.error(er, mve.exception_msg)
         except KeyError as ke:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, ke.args[0])
@@ -348,6 +348,12 @@ class DynamoHandler(BaseResponse):
 
     def get_item(self):
         name = self.body["TableName"]
+        table = self.dynamodb_backend.get_table(name)
+        if table is None:
+            return self.error(
+                "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException",
+                "Requested resource not found",
+            )
         key = self.body["Key"]
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
@@ -503,7 +509,7 @@ class DynamoHandler(BaseResponse):
                 range_key_expression_components = range_key_expression.split()
                 range_comparison = range_key_expression_components[1]
 
-                if "AND" in range_key_expression:
+                if " and " in range_key_expression.lower():
                     range_comparison = "BETWEEN"
                     range_values = [
                         value_alias_map[range_key_expression_components[2]],
@@ -514,6 +520,18 @@ class DynamoHandler(BaseResponse):
                     range_values = [
                         value_alias_map[range_key_expression_components[-1]]
                     ]
+                elif "begins_with" in range_key_expression.lower():
+                    function_used = range_key_expression[
+                        range_key_expression.lower().index("begins_with") : len(
+                            "begins_with"
+                        )
+                    ]
+                    return self.error(
+                        "com.amazonaws.dynamodb.v20111205#ValidationException",
+                        "Invalid KeyConditionExpression: Invalid function name; function: {}".format(
+                            function_used
+                        ),
+                    )
                 else:
                     range_values = [value_alias_map[range_key_expression_components[2]]]
             else:

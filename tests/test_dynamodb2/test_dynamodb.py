@@ -11,11 +11,12 @@ import sure  # noqa
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from tests.helpers import requires_boto_gte
 
 import moto.dynamodb2.comparisons
 import moto.dynamodb2.models
+from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 import pytest
 
@@ -184,9 +185,8 @@ def test_list_not_found_table_tags():
         assert exception.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
-def test_item_add_empty_string_in_key_exception():
+def test_item_add_empty_string_hash_key_exception():
     name = "TestTable"
     conn = boto3.client(
         "dynamodb",
@@ -220,9 +220,49 @@ def test_item_add_empty_string_in_key_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
-def test_item_add_empty_string_no_exception():
+def test_item_add_empty_string_range_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                "forum_name": {"S": "LOLCat Forum"},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "someone@somewhere.edu"},
+                "ReceivedTime": {"S": ""},
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+    )
+
+
+@mock_dynamodb2
+def test_item_add_empty_string_attr_no_exception():
     name = "TestTable"
     conn = boto3.client(
         "dynamodb",
@@ -249,52 +289,8 @@ def test_item_add_empty_string_no_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
-def test_update_item_with_empty_string_in_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-        },
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.update_item(
-            TableName=name,
-            Key={"forum_name": {"S": "LOLCat Forum"}},
-            UpdateExpression="set forum_name=:NewName",
-            ExpressionAttributeValues={":NewName": {"S": ""}},
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
-    )
-
-
-@requires_boto_gte("2.9")
-@mock_dynamodb2
-def test_update_item_with_empty_string_no_exception():
+def test_update_item_with_empty_string_attr_no_exception():
     name = "TestTable"
     conn = boto3.client(
         "dynamodb",
@@ -325,6 +321,303 @@ def test_update_item_with_empty_string_no_exception():
         Key={"forum_name": {"S": "LOLCat Forum"}},
         UpdateExpression="set Body=:Body",
         ExpressionAttributeValues={":Body": {"S": ""}},
+    )
+
+
+@mock_dynamodb2
+def test_item_add_long_string_hash_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "x" * HASH_KEY_MAX_LENGTH},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+        },
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "test"},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+            },
+        )
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    # deliberately no space between "of" and "2048"
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
+    )
+
+
+@mock_dynamodb2
+def test_item_add_long_string_nonascii_hash_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    emoji_b = b"\xf0\x9f\x98\x83"  # smile emoji
+    emoji = emoji_b.decode("utf-8")  # 1 character, but 4 bytes
+    short_enough = emoji * int(HASH_KEY_MAX_LENGTH / len(emoji.encode("utf-8")))
+    too_long = "x" + short_enough
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": short_enough},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+        },
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                "forum_name": {"S": too_long},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "test"},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    # deliberately no space between "of" and "2048"
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
+    )
+
+
+@mock_dynamodb2
+def test_item_add_long_string_range_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "someone@somewhere.edu"},
+            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
+        },
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                "forum_name": {"S": "LOLCat Forum"},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "someone@somewhere.edu"},
+                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
+    )
+
+
+@mock_dynamodb2
+def test_item_add_long_string_range_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "someone@somewhere.edu"},
+            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
+        },
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                "forum_name": {"S": "LOLCat Forum"},
+                "subject": {"S": "Check this out!"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "someone@somewhere.edu"},
+                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
+    )
+
+
+@mock_dynamodb2
+def test_update_item_with_long_string_hash_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.update_item(
+        TableName=name,
+        Key={
+            "forum_name": {"S": "x" * HASH_KEY_MAX_LENGTH},
+            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+        },
+        UpdateExpression="set body=:New",
+        ExpressionAttributeValues={":New": {"S": "hello"}},
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.update_item(
+            TableName=name,
+            Key={
+                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+            },
+            UpdateExpression="set body=:New",
+            ExpressionAttributeValues={":New": {"S": "hello"}},
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    # deliberately no space between "of" and "2048"
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
+    )
+
+
+@mock_dynamodb2
+def test_update_item_with_long_string_range_key_exception():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    conn.update_item(
+        TableName=name,
+        Key={
+            "forum_name": {"S": "Lolcat Forum"},
+            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
+        },
+        UpdateExpression="set body=:New",
+        ExpressionAttributeValues={":New": {"S": "hello"}},
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.update_item(
+            TableName=name,
+            Key={
+                "forum_name": {"S": "Lolcat Forum"},
+                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
+            },
+            UpdateExpression="set body=:New",
+            ExpressionAttributeValues={":New": {"S": "hello"}},
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    # deliberately no space between "of" and "2048"
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
 
 
@@ -4158,35 +4451,6 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation_and_pro
     )
 
 
-@mock_dynamodb2
-def test_update_catches_invalid_list_append_operation():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-
-    client.create_table(
-        AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
-        TableName="TestTable",
-        KeySchema=[{"AttributeName": "SHA256", "KeyType": "HASH"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    client.put_item(
-        TableName="TestTable",
-        Item={"SHA256": {"S": "sha-of-file"}, "crontab": {"L": [{"S": "bar1"}]}},
-    )
-
-    # Update item using invalid list_append expression
-    with pytest.raises(ParamValidationError) as ex:
-        client.update_item(
-            TableName="TestTable",
-            Key={"SHA256": {"S": "sha-of-file"}},
-            UpdateExpression="SET crontab = list_append(crontab, :i)",
-            ExpressionAttributeValues={":i": [{"S": "bar2"}]},
-        )
-
-    # Verify correct error is returned
-    str(ex.value).should.match("Parameter validation failed:")
-    str(ex.value).should.match("Invalid type for parameter ExpressionAttributeValues.")
-
-
 def _create_user_table():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -5627,8 +5891,14 @@ def test_lsi_projection_type_keys_only():
 
 
 @mock_dynamodb2
-def test_set_attribute_is_dropped_if_empty_after_update_expression():
+@pytest.mark.parametrize(
+    "attr_name",
+    ["orders", "#placeholder"],
+    ids=["use attribute name", "use expression attribute name"],
+)
+def test_set_attribute_is_dropped_if_empty_after_update_expression(attr_name):
     table_name, item_key, set_item = "test-table", "test-id", "test-data"
+    expression_attribute_names = {"#placeholder": "orders"}
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
         TableName=table_name,
@@ -5640,7 +5910,8 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression():
     client.update_item(
         TableName=table_name,
         Key={"customer": {"S": item_key}},
-        UpdateExpression="ADD orders :order",
+        UpdateExpression="ADD {} :order".format(attr_name),
+        ExpressionAttributeNames=expression_attribute_names,
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
     resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
@@ -5651,7 +5922,8 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression():
     client.update_item(
         TableName=table_name,
         Key={"customer": {"S": item_key}},
-        UpdateExpression="DELETE orders :order",
+        UpdateExpression="DELETE {} :order".format(attr_name),
+        ExpressionAttributeNames=expression_attribute_names,
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
     resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
@@ -5704,3 +5976,35 @@ def test_dynamodb_update_item_fails_on_string_sets():
         Key={"record_id": {"S": "testrecord"}},
         AttributeUpdates=attribute,
     )
+
+
+@moto.mock_dynamodb2
+def test_update_item_add_to_list_using_legacy_attribute_updates():
+    resource = boto3.resource("dynamodb", region_name="us-west-2")
+    resource.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = resource.Table("TestTable")
+    table.wait_until_exists()
+    table.put_item(Item={"id": "list_add", "attr": ["a", "b", "c"]},)
+
+    table.update_item(
+        TableName="TestTable",
+        Key={"id": "list_add"},
+        AttributeUpdates={"attr": {"Action": "ADD", "Value": ["d", "e"]}},
+    )
+
+    resp = table.get_item(Key={"id": "list_add"})
+    resp["Item"]["attr"].should.equal(["a", "b", "c", "d", "e"])
+
+
+@mock_dynamodb2
+def test_get_item_for_non_existent_table_raises_error():
+    client = boto3.client("dynamodb", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_item(TableName="non-existent", Key={"site-id": {"S": "foo"}})
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")

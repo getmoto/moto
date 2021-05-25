@@ -6,13 +6,13 @@ import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID
 from moto.core import ACCOUNT_ID
+from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 
 
@@ -24,7 +24,7 @@ def test_ami_create_and_delete():
     conn.get_all_volumes().should.have.length_of(0)
     conn.get_all_snapshots().should.have.length_of(initial_ami_count)
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as ex:
@@ -103,7 +103,7 @@ def test_ami_copy():
     conn.get_all_volumes().should.have.length_of(0)
     conn.get_all_snapshots().should.have.length_of(initial_ami_count)
 
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
     source_image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
@@ -203,7 +203,7 @@ def test_copy_image_changes_owner_id():
 @mock_ec2_deprecated
 def test_ami_tagging():
     conn = boto.connect_vpc("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_all_images()[0]
@@ -243,7 +243,7 @@ def test_ami_create_from_missing_instance():
 @mock_ec2_deprecated
 def test_ami_pulls_attributes_from_instance():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     instance.modify_attribute("kernel", "test-kernel")
 
@@ -256,7 +256,7 @@ def test_ami_pulls_attributes_from_instance():
 def test_ami_uses_account_id_if_valid_access_key_is_supplied():
     access_key = "AKIAXXXXXXXXXXXXXXXX"
     conn = boto.connect_ec2(access_key, "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     instance.modify_attribute("kernel", "test-kernel")
 
@@ -269,7 +269,7 @@ def test_ami_uses_account_id_if_valid_access_key_is_supplied():
 def test_ami_filters():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    reservationA = conn.run_instances("ami-1234abcd")
+    reservationA = conn.run_instances(EXAMPLE_AMI_ID)
     instanceA = reservationA.instances[0]
     instanceA.modify_attribute("architecture", "i386")
     instanceA.modify_attribute("kernel", "k-1234abcd")
@@ -278,7 +278,7 @@ def test_ami_filters():
     imageA_id = conn.create_image(instanceA.id, "test-ami-A", "this is a test ami")
     imageA = conn.get_image(imageA_id)
 
-    reservationB = conn.run_instances("ami-abcd1234")
+    reservationB = conn.run_instances(EXAMPLE_AMI_ID)
     instanceB = reservationB.instances[0]
     instanceB.modify_attribute("architecture", "x86_64")
     instanceB.modify_attribute("kernel", "k-abcd1234")
@@ -330,13 +330,13 @@ def test_ami_filters():
 def test_ami_filtering_via_tag():
     conn = boto.connect_vpc("the_key", "the_secret")
 
-    reservationA = conn.run_instances("ami-1234abcd")
+    reservationA = conn.run_instances(EXAMPLE_AMI_ID)
     instanceA = reservationA.instances[0]
     imageA_id = conn.create_image(instanceA.id, "test-ami-A", "this is a test ami")
     imageA = conn.get_image(imageA_id)
     imageA.add_tag("a key", "some value")
 
-    reservationB = conn.run_instances("ami-abcd1234")
+    reservationB = conn.run_instances(EXAMPLE_AMI_ID)
     instanceB = reservationB.instances[0]
     imageB_id = conn.create_image(instanceB.id, "test-ami-B", "this is a test ami")
     imageB = conn.get_image(imageB_id)
@@ -374,7 +374,7 @@ def test_getting_malformed_ami():
 @mock_ec2_deprecated
 def test_ami_attribute_group_permissions():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
@@ -437,7 +437,7 @@ def test_ami_attribute_group_permissions():
 @mock_ec2_deprecated
 def test_ami_attribute_user_permissions():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
@@ -513,7 +513,7 @@ def test_ami_attribute_user_permissions():
 def test_ami_describe_executable_users():
     conn = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", "us-east-1")
-    ec2.create_instances(ImageId="", MinCount=1, MaxCount=1)
+    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     response = conn.describe_instances(
         Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
     )
@@ -546,7 +546,7 @@ def test_ami_describe_executable_users():
 def test_ami_describe_executable_users_negative():
     conn = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", "us-east-1")
-    ec2.create_instances(ImageId="", MinCount=1, MaxCount=1)
+    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     response = conn.describe_instances(
         Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
     )
@@ -580,7 +580,7 @@ def test_ami_describe_executable_users_negative():
 def test_ami_describe_executable_users_and_filter():
     conn = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", "us-east-1")
-    ec2.create_instances(ImageId="", MinCount=1, MaxCount=1)
+    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     response = conn.describe_instances(
         Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
     )
@@ -621,7 +621,7 @@ def test_ami_attribute_user_and_group_permissions():
       via user-specific and group-specific tests above.
     """
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
@@ -672,7 +672,7 @@ def test_ami_attribute_user_and_group_permissions():
 @mock_ec2_deprecated
 def test_ami_attribute_error_cases():
     conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances("ami-1234abcd")
+    reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
@@ -799,7 +799,7 @@ def test_ami_filter_wildcard():
     ec2_client = boto3.client("ec2", region_name="us-west-1")
 
     instance = ec2_resource.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
     instance.create_image(Name="test-image")
 
@@ -840,7 +840,7 @@ def test_ami_filter_by_self():
 
     # Create a new image
     instance = ec2_resource.create_instances(
-        ImageId="ami-1234abcd", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
     instance.create_image(Name="test-image")
 
@@ -875,3 +875,89 @@ def test_ami_snapshots_have_correct_owner():
 
         for snapshot in snapshots_rseponse["Snapshots"]:
             assert owner_id == snapshot["OwnerId"]
+
+
+@mock_ec2
+def test_create_image_with_tag_specification():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+    tag_specifications = [
+        {
+            "ResourceType": "image",
+            "Tags": [
+                {
+                    "Key": "Base_AMI_Name",
+                    "Value": "Deep Learning Base AMI (Amazon Linux 2) Version 31.0",
+                },
+                {"Key": "OS_Version", "Value": "AWS Linux 2",},
+            ],
+        },
+    ]
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    image_id = client.create_image(
+        InstanceId=instance.instance_id,
+        Name="test-image",
+        Description="test ami",
+        TagSpecifications=tag_specifications,
+    )["ImageId"]
+
+    image = client.describe_images(ImageIds=[image_id])["Images"][0]
+    image["Tags"].should.equal(tag_specifications[0]["Tags"])
+
+    with pytest.raises(ClientError) as ex:
+        client.create_image(
+            InstanceId=instance.instance_id,
+            Name="test-image",
+            Description="test ami",
+            TagSpecifications=[
+                {
+                    "ResourceType": "invalid-resource-type",
+                    "Tags": [{"Key": "key", "Value": "value"}],
+                }
+            ],
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["Error"]["Message"].should.equal(
+        "'invalid-resource-type' is not a valid taggable resource type for this operation."
+    )
+
+
+@mock_ec2
+def test_ami_filter_by_empty_tag():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    fake_images = []
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    for i in range(10):
+        image = client.create_image(
+            InstanceId=instance.instance_id,
+            Name="MyAMI{}".format(i),
+            Description="Test",
+        )
+
+        ec2.create_tags(
+            Resources=[image["ImageId"]],
+            Tags=[
+                {
+                    "Key": "Base_AMI_Name",
+                    "Value": "Deep Learning Base AMI (Amazon Linux 2) Version 31.0",
+                },
+                {"Key": "OS_Version", "Value": "AWS Linux 2"},
+            ],
+        )
+        fake_images.append(image)
+    # Add release tags to some of the images in the middle
+    for image in fake_images[3:6]:
+        ec2.create_tags(
+            Resources=[image["ImageId"]], Tags=[{"Key": "RELEASE", "Value": ""}]
+        )
+    images_filter = [
+        {
+            "Name": "tag:Base_AMI_Name",
+            "Values": ["Deep Learning Base AMI (Amazon Linux 2) Version 31.0"],
+        },
+        {"Name": "tag:OS_Version", "Values": ["AWS Linux 2"]},
+        {"Name": "tag:RELEASE", "Values": [""]},
+    ]
+    assert len(client.describe_images(Filters=images_filter)["Images"]) == 3

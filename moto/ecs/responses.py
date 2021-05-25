@@ -64,6 +64,12 @@ class EC2ContainerServiceResponse(BaseResponse):
         tags = self._get_param("tags")
         network_mode = self._get_param("networkMode")
         placement_constraints = self._get_param("placementConstraints")
+        requires_compatibilities = self._get_param("requiresCompatibilities")
+        cpu = self._get_param("cpu")
+        memory = self._get_param("memory")
+        task_role_arn = self._get_param("taskRoleArn")
+        execution_role_arn = self._get_param("executionRoleArn")
+
         task_definition = self.ecs_backend.register_task_definition(
             family,
             container_definitions,
@@ -71,6 +77,11 @@ class EC2ContainerServiceResponse(BaseResponse):
             network_mode=network_mode,
             tags=tags,
             placement_constraints=placement_constraints,
+            requires_compatibilities=requires_compatibilities,
+            cpu=cpu,
+            memory=memory,
+            task_role_arn=task_role_arn,
+            execution_role_arn=execution_role_arn,
         )
         return json.dumps({"taskDefinition": task_definition.response_object})
 
@@ -105,8 +116,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition_str = self._get_param("taskDefinition")
         count = self._get_int_param("count")
         started_by = self._get_param("startedBy")
+        tags = self._get_param("tags")
         tasks = self.ecs_backend.run_task(
-            cluster_str, task_definition_str, count, overrides, started_by
+            cluster_str, task_definition_str, count, overrides, started_by, tags
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}
@@ -166,6 +178,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         scheduling_strategy = self._get_param("schedulingStrategy")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
+        launch_type = self._get_param("launchType")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -175,6 +188,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             scheduling_strategy,
             tags,
             deployment_controller,
+            launch_type,
         )
         return json.dumps({"service": service.response_object})
 
@@ -193,10 +207,12 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_services(self):
         cluster_str = self._get_param("cluster", "default")
         service_names = self._get_param("services")
-        services = self.ecs_backend.describe_services(cluster_str, service_names)
+        services, failures = self.ecs_backend.describe_services(
+            cluster_str, service_names
+        )
         resp = {
             "services": [service.response_object for service in services],
-            "failures": [],
+            "failures": failures,
         }
         if "TAGS" in self._get_param("include", []):
             for i, service in enumerate(services):
@@ -218,7 +234,8 @@ class EC2ContainerServiceResponse(BaseResponse):
     def delete_service(self):
         service_name = self._get_param("service")
         cluster_name = self._get_param("cluster", "default")
-        service = self.ecs_backend.delete_service(cluster_name, service_name)
+        force = self._get_param("force", False)
+        service = self.ecs_backend.delete_service(cluster_name, service_name, force)
         return json.dumps({"service": service.response_object})
 
     def register_container_instance(self):

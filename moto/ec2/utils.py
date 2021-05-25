@@ -379,6 +379,7 @@ filter_dict_attribute_mapping = {
     "network-interface.private-dns-name": "private_dns",
     "private-dns-name": "private_dns",
     "owner-id": "owner_id",
+    "subnet-id": "subnet_id",
 }
 
 
@@ -458,7 +459,7 @@ def filter_internet_gateways(igws, filter_dict):
 def is_filter_matching(obj, filter, filter_value):
     value = obj.get_filter_value(filter)
 
-    if not filter_value:
+    if filter_value is None:
         return False
 
     if isinstance(value, six.string_types):

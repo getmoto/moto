@@ -18,6 +18,8 @@ from .exceptions import (
     InvalidModelName,
     RestAPINotFound,
     ModelNotFound,
+    ApiKeyValueMinLength,
+    InvalidRequestInput,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -33,20 +35,37 @@ class APIGatewayResponse(BaseResponse):
             json.dumps({"__type": type_, "message": message}),
         )
 
-    def _get_param(self, key):
-        return json.loads(self.body).get(key) if self.body else None
-
-    def _get_param_with_default_value(self, key, default):
-        jsonbody = json.loads(self.body)
-
-        if key in jsonbody:
-            return jsonbody.get(key)
-        else:
-            return default
-
     @property
     def backend(self):
         return apigateway_backends[self.region]
+
+    def __validate_api_key_source(self, api_key_source):
+        if api_key_source and api_key_source not in API_KEY_SOURCES:
+            return self.error(
+                "ValidationException",
+                (
+                    "1 validation error detected: "
+                    "Value '{api_key_source}' at 'createRestApiInput.apiKeySource' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "[AUTHORIZER, HEADER]"
+                ).format(api_key_source=api_key_source),
+            )
+
+    def __validate_endpoint_configuration(self, endpoint_configuration):
+        if endpoint_configuration and "types" in endpoint_configuration:
+            invalid_types = list(
+                set(endpoint_configuration["types"]) - set(ENDPOINT_CONFIGURATION_TYPES)
+            )
+            if invalid_types:
+                return self.error(
+                    "ValidationException",
+                    (
+                        "1 validation error detected: Value '{endpoint_type}' "
+                        "at 'createRestApiInput.endpointConfiguration.types' failed "
+                        "to satisfy constraint: Member must satisfy enum value set: "
+                        "[PRIVATE, EDGE, REGIONAL]"
+                    ).format(endpoint_type=invalid_types[0]),
+                )
 
     def restapis(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -63,32 +82,13 @@ class APIGatewayResponse(BaseResponse):
             policy = self._get_param("policy")
 
             # Param validation
-            if api_key_source and api_key_source not in API_KEY_SOURCES:
-                return self.error(
-                    "ValidationException",
-                    (
-                        "1 validation error detected: "
-                        "Value '{api_key_source}' at 'createRestApiInput.apiKeySource' failed "
-                        "to satisfy constraint: Member must satisfy enum value set: "
-                        "[AUTHORIZER, HEADER]"
-                    ).format(api_key_source=api_key_source),
-                )
+            response = self.__validate_api_key_source(api_key_source)
+            if response is not None:
+                return response
 
-            if endpoint_configuration and "types" in endpoint_configuration:
-                invalid_types = list(
-                    set(endpoint_configuration["types"])
-                    - set(ENDPOINT_CONFIGURATION_TYPES)
-                )
-                if invalid_types:
-                    return self.error(
-                        "ValidationException",
-                        (
-                            "1 validation error detected: Value '{endpoint_type}' "
-                            "at 'createRestApiInput.endpointConfiguration.types' failed "
-                            "to satisfy constraint: Member must satisfy enum value set: "
-                            "[PRIVATE, EDGE, REGIONAL]"
-                        ).format(endpoint_type=invalid_types[0]),
-                    )
+            response = self.__validate_endpoint_configuration(endpoint_configuration)
+            if response is not None:
+                return response
 
             rest_api = self.backend.create_rest_api(
                 name,
@@ -100,16 +100,38 @@ class APIGatewayResponse(BaseResponse):
             )
             return 200, {}, json.dumps(rest_api.to_dict())
 
+    def __validte_rest_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if "apiKeySource" in path:
+                return self.__validate_api_key_source(value)
+
     def restapis_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
         if self.method == "GET":
             rest_api = self.backend.get_rest_api(function_id)
-            return 200, {}, json.dumps(rest_api.to_dict())
         elif self.method == "DELETE":
             rest_api = self.backend.delete_rest_api(function_id)
-            return 200, {}, json.dumps(rest_api.to_dict())
+        elif self.method == "PATCH":
+            patch_operations = self._get_param("patchOperations")
+            response = self.__validte_rest_patch_operations(patch_operations)
+            if response is not None:
+                return response
+            try:
+                rest_api = self.backend.update_rest_api(function_id, patch_operations)
+            except RestAPINotFound as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
+
+        return 200, {}, json.dumps(rest_api.to_dict())
 
     def resources(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -197,18 +219,16 @@ class APIGatewayResponse(BaseResponse):
             name = self._get_param("name")
             authorizer_type = self._get_param("type")
 
-            provider_arns = self._get_param_with_default_value("providerARNs", None)
-            auth_type = self._get_param_with_default_value("authType", None)
-            authorizer_uri = self._get_param_with_default_value("authorizerUri", None)
-            authorizer_credentials = self._get_param_with_default_value(
-                "authorizerCredentials", None
+            provider_arns = self._get_param("providerARNs")
+            auth_type = self._get_param("authType")
+            authorizer_uri = self._get_param("authorizerUri")
+            authorizer_credentials = self._get_param("authorizerCredentials")
+            identity_source = self._get_param("identitySource")
+            identiy_validation_expression = self._get_param(
+                "identityValidationExpression"
             )
-            identity_source = self._get_param_with_default_value("identitySource", None)
-            identiy_validation_expression = self._get_param_with_default_value(
-                "identityValidationExpression", None
-            )
-            authorizer_result_ttl = self._get_param_with_default_value(
-                "authorizerResultTtlInSeconds", 300
+            authorizer_result_ttl = self._get_param(
+                "authorizerResultTtlInSeconds", if_none=300
             )
 
             # Param validation
@@ -278,14 +298,10 @@ class APIGatewayResponse(BaseResponse):
         if self.method == "POST":
             stage_name = self._get_param("stageName")
             deployment_id = self._get_param("deploymentId")
-            stage_variables = self._get_param_with_default_value("variables", {})
-            description = self._get_param_with_default_value("description", "")
-            cacheClusterEnabled = self._get_param_with_default_value(
-                "cacheClusterEnabled", False
-            )
-            cacheClusterSize = self._get_param_with_default_value(
-                "cacheClusterSize", None
-            )
+            stage_variables = self._get_param("variables", if_none={})
+            description = self._get_param("description", if_none="")
+            cacheClusterEnabled = self._get_param("cacheClusterEnabled", if_none=False)
+            cacheClusterSize = self._get_param("cacheClusterSize")
 
             stage_response = self.backend.create_stage(
                 function_id,
@@ -385,6 +401,9 @@ class APIGatewayResponse(BaseResponse):
                     function_id, resource_id, method_type, status_code
                 )
             elif self.method == "PUT":
+                if not self.body:
+                    raise InvalidRequestInput()
+
                 selection_pattern = self._get_param("selectionPattern")
                 response_templates = self._get_param("responseTemplates")
                 content_handling = self._get_param("contentHandling")
@@ -417,8 +436,8 @@ class APIGatewayResponse(BaseResponse):
                 return 200, {}, json.dumps({"item": deployments})
             elif self.method == "POST":
                 name = self._get_param("stageName")
-                description = self._get_param_with_default_value("description", "")
-                stage_variables = self._get_param_with_default_value("variables", {})
+                description = self._get_param("description", if_none="")
+                stage_variables = self._get_param("variables", if_none={})
                 deployment = self.backend.create_deployment(
                     function_id, name, description, stage_variables
                 )
@@ -445,7 +464,7 @@ class APIGatewayResponse(BaseResponse):
 
         if self.method == "POST":
             try:
-                apikey_response = self.backend.create_apikey(json.loads(self.body))
+                apikey_response = self.backend.create_api_key(json.loads(self.body))
             except ApiKeyAlreadyExists as error:
                 return (
                     error.code,
@@ -454,9 +473,20 @@ class APIGatewayResponse(BaseResponse):
                         error.message, error.error_type
                     ),
                 )
+
+            except ApiKeyValueMinLength as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
             return 201, {}, json.dumps(apikey_response)
+
         elif self.method == "GET":
-            apikeys_response = self.backend.get_apikeys()
+            include_values = self._get_bool_param("includeValues")
+            apikeys_response = self.backend.get_api_keys(include_values=include_values)
             return 200, {}, json.dumps({"item": apikeys_response})
 
     def apikey_individual(self, request, full_url, headers):
@@ -467,19 +497,21 @@ class APIGatewayResponse(BaseResponse):
 
         status_code = 200
         if self.method == "GET":
-            apikey_response = self.backend.get_apikey(apikey)
+            include_value = self._get_bool_param("includeValue")
+            apikey_response = self.backend.get_api_key(
+                apikey, include_value=include_value
+            )
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
-            apikey_response = self.backend.update_apikey(apikey, patch_operations)
+            apikey_response = self.backend.update_api_key(apikey, patch_operations)
         elif self.method == "DELETE":
-            apikey_response = self.backend.delete_apikey(apikey)
+            apikey_response = self.backend.delete_api_key(apikey)
             status_code = 202
 
         return status_code, {}, json.dumps(apikey_response)
 
     def usage_plans(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-
         if self.method == "POST":
             usage_plan_response = self.backend.create_usage_plan(json.loads(self.body))
         elif self.method == "GET":
@@ -507,6 +539,11 @@ class APIGatewayResponse(BaseResponse):
                 )
         elif self.method == "DELETE":
             usage_plan_response = self.backend.delete_usage_plan(usage_plan)
+        elif self.method == "PATCH":
+            patch_operations = self._get_param("patchOperations")
+            usage_plan_response = self.backend.update_usage_plan(
+                usage_plan, patch_operations
+            )
         return 200, {}, json.dumps(usage_plan_response)
 
     def usage_plan_keys(self, request, full_url, headers):

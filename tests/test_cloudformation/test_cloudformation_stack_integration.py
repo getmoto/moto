@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 import json
+import io
+import zipfile
 
 from decimal import Decimal
 
@@ -11,6 +13,7 @@ import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
 import boto.iam
+import boto.rds
 import boto.redshift
 import boto.sns
 import boto.sqs
@@ -45,6 +48,7 @@ from moto import (
 )
 from moto.core import ACCOUNT_ID
 
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
     fn_join,
@@ -208,7 +212,7 @@ def test_stack_ec2_integration():
         "Resources": {
             "WebServerGroup": {
                 "Type": "AWS::EC2::Instance",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             }
         },
     }
@@ -218,7 +222,7 @@ def test_stack_ec2_integration():
     conn.create_stack("ec2_stack", template_body=ec2_template_json)
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     stack = conn.describe_stacks()[0]
@@ -252,7 +256,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
             },
             "Ec2Instance1": {
                 "Type": "AWS::EC2::Instance",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             },
         },
     }
@@ -265,7 +269,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     load_balancer = elb_conn.get_all_load_balancers()[0]
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     load_balancer.instances[0].id.should.equal(ec2_instance.id)
@@ -418,7 +422,7 @@ def test_stack_security_groups():
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
                     "SecurityGroups": [{"Ref": "InstanceSecurityGroup"}],
-                    "ImageId": "ami-1234abcd",
+                    "ImageId": EXAMPLE_AMI_ID,
                 },
             },
             "InstanceSecurityGroup": {
@@ -461,7 +465,7 @@ def test_stack_security_groups():
         filters={"description": ["My other group"]}
     )[0]
 
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     ec2_instance.groups[0].id.should.equal(instance_group.id)
@@ -513,7 +517,11 @@ def test_autoscaling_group_with_elb():
             },
             "my-launch-config": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
+                    "UserData": "some user data",
+                },
             },
             "my-elb": {
                 "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
@@ -609,7 +617,11 @@ def test_autoscaling_group_update():
             },
             "my-launch-config": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
+                    "UserData": "some user data",
+                },
             },
         },
     }
@@ -680,7 +692,7 @@ def test_vpc_single_instance_in_subnet():
     subnet.vpc_id.should.equal(vpc.id)
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     instance = reservation.instances[0]
     instance.tags["Foo"].should.equal("Bar")
     # Check that the EIP is attached the the EC2 instance
@@ -844,7 +856,8 @@ def test_iam_roles():
             "my-launch-config": {
                 "Properties": {
                     "IamInstanceProfile": {"Ref": "my-instance-profile-with-path"},
-                    "ImageId": "ami-1234abcd",
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
                 },
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
             },
@@ -998,7 +1011,7 @@ def test_single_instance_with_ebs_volume():
     )
 
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
 
     volumes = ec2_conn.get_all_volumes()
@@ -1132,7 +1145,7 @@ def test_conditional_if_handling():
             "App1": {
                 "Properties": {
                     "ImageId": {
-                        "Fn::If": ["EnvEqualsPrd", "ami-00000000", "ami-ffffffff"]
+                        "Fn::If": ["EnvEqualsPrd", EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2]
                     }
                 },
                 "Type": "AWS::EC2::Instance",
@@ -1144,9 +1157,9 @@ def test_conditional_if_handling():
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack1", template_body=dummy_template_json)
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-ffffffff")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID2)
     ec2_instance.terminate()
 
     conn = boto.cloudformation.connect_to_region("us-west-2")
@@ -1154,9 +1167,9 @@ def test_conditional_if_handling():
         "test_stack1", template_body=dummy_template_json, parameters=[("ENV", "prd")]
     )
     ec2_conn = boto.ec2.connect_to_region("us-west-2")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-00000000")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
 
 @mock_cloudformation_deprecated()
@@ -1166,11 +1179,11 @@ def test_cloudformation_mapping():
         "AWSTemplateFormatVersion": "2010-09-09",
         "Mappings": {
             "RegionMap": {
-                "us-east-1": {"32": "ami-6411e20d", "64": "ami-7a11e213"},
-                "us-west-1": {"32": "ami-c9c7978c", "64": "ami-cfc7978a"},
-                "eu-west-1": {"32": "ami-37c2f643", "64": "ami-31c2f645"},
-                "ap-southeast-1": {"32": "ami-66f28c34", "64": "ami-60f28c32"},
-                "ap-northeast-1": {"32": "ami-9c03a89d", "64": "ami-a003a8a1"},
+                "us-east-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "us-west-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "eu-west-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "ap-southeast-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
+                "ap-northeast-1": {"32": EXAMPLE_AMI_ID, "64": EXAMPLE_AMI_ID2},
             }
         },
         "Resources": {
@@ -1182,7 +1195,6 @@ def test_cloudformation_mapping():
                     },
                     "InstanceType": "m1.small",
                 },
-                "Type": "AWS::EC2::Instance",
             }
         },
     }
@@ -1192,16 +1204,16 @@ def test_cloudformation_mapping():
     conn = boto.cloudformation.connect_to_region("us-east-1")
     conn.create_stack("test_stack1", template_body=dummy_template_json)
     ec2_conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-6411e20d")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
     conn = boto.cloudformation.connect_to_region("us-west-1")
     conn.create_stack("test_stack1", template_body=dummy_template_json)
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
-    reservation = ec2_conn.get_all_instances()[0]
+    reservation = ec2_conn.get_all_reservations()[0]
     ec2_instance = reservation.instances[0]
-    ec2_instance.image_id.should.equal("ami-c9c7978c")
+    ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
 
 @mock_cloudformation_deprecated()
@@ -1818,6 +1830,71 @@ def lambda_handler(event, context):
     result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(10)
 
 
+def _make_zipfile(func_str):
+    zip_output = io.BytesIO()
+    zip_file = zipfile.ZipFile(zip_output, "w", zipfile.ZIP_DEFLATED)
+    zip_file.writestr("lambda_function.py", func_str)
+    zip_file.close()
+    zip_output.seek(0)
+    return zip_output.read()
+
+
+@mock_cloudformation
+@mock_s3
+@mock_lambda
+def test_lambda_layer():
+    # switch this to python as backend lambda only supports python execution.
+    layer_code = """
+def lambda_handler(event, context):
+    return (event, context)
+"""
+    region = "us-east-1"
+    bucket_name = "test_bucket"
+    s3_conn = boto3.client("s3", region)
+    s3_conn.create_bucket(Bucket=bucket_name)
+
+    zip_content = _make_zipfile(layer_code)
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "lambdaTest": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": {"S3Bucket": bucket_name, "S3Key": "test.zip",},
+                    "LayerName": "testLayer",
+                    "Description": "Test Layer",
+                    "CompatibleRuntimes": ["python2.7", "python3.6"],
+                    "LicenseInfo": "MIT",
+                },
+            },
+        },
+    }
+
+    template_json = json.dumps(template)
+    cf_conn = boto3.client("cloudformation", region)
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=template_json)
+
+    lambda_conn = boto3.client("lambda", region)
+    result = lambda_conn.list_layers()
+    layer_name = result["Layers"][0]["LayerName"]
+    result = lambda_conn.list_layer_versions(LayerName=layer_name)
+    result["LayerVersions"][0].pop("CreatedDate")
+    result["LayerVersions"].should.equal(
+        [
+            {
+                "Version": 1,
+                "LayerVersionArn": "arn:aws:lambda:{}:{}:layer:{}:1".format(
+                    region, ACCOUNT_ID, layer_name
+                ),
+                "CompatibleRuntimes": ["python2.7", "python3.6"],
+                "Description": "Test Layer",
+                "LicenseInfo": "MIT",
+            }
+        ]
+    )
+
+
 @mock_cloudformation
 @mock_ec2
 def test_nat_gateway():
@@ -1863,13 +1940,23 @@ def test_nat_gateway():
 
     cf_conn = boto3.client("cloudformation", "us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    stack_resources = cf_conn.list_stack_resources(StackName="test_stack")
+    nat_gateway_resource = stack_resources.get("StackResourceSummaries")[0]
+    for resource in stack_resources["StackResourceSummaries"]:
+        if resource["ResourceType"] == "AWS::EC2::NatGateway":
+            nat_gateway_resource = resource
+        elif resource["ResourceType"] == "AWS::EC2::Route":
+            route_resource = resource
 
     result = ec2_conn.describe_nat_gateways()
-
     result["NatGateways"].should.have.length_of(1)
     result["NatGateways"][0]["VpcId"].should.equal(vpc_id)
     result["NatGateways"][0]["SubnetId"].should.equal(subnet_id)
     result["NatGateways"][0]["State"].should.equal("available")
+    result["NatGateways"][0]["NatGatewayId"].should.equal(
+        nat_gateway_resource.get("PhysicalResourceId")
+    )
+    route_resource.get("PhysicalResourceId").should.contain("rtb-")
 
 
 @mock_cloudformation()
@@ -1927,7 +2014,7 @@ def test_stack_spot_fleet():
                             {
                                 "EbsOptimized": "false",
                                 "InstanceType": "t2.small",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "SubnetId": subnet_id,
                                 "WeightedCapacity": "2",
                                 "SpotPrice": "0.13",
@@ -1935,7 +2022,7 @@ def test_stack_spot_fleet():
                             {
                                 "EbsOptimized": "true",
                                 "InstanceType": "t2.large",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "Monitoring": {"Enabled": "true"},
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
@@ -1984,7 +2071,7 @@ def test_stack_spot_fleet():
     launch_spec = spot_fleet_config["LaunchSpecifications"][0]
 
     launch_spec["EbsOptimized"].should.equal(False)
-    launch_spec["ImageId"].should.equal("ami-1234")
+    launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
     launch_spec["InstanceType"].should.equal("t2.small")
     launch_spec["SubnetId"].should.equal(subnet_id)
     launch_spec["SpotPrice"].should.equal("0.13")
@@ -2015,14 +2102,14 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                             {
                                 "EbsOptimized": "false",
                                 "InstanceType": "t2.small",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "SubnetId": subnet_id,
                                 "WeightedCapacity": "2",
                             },
                             {
                                 "EbsOptimized": "true",
                                 "InstanceType": "t2.large",
-                                "ImageId": "ami-1234",
+                                "ImageId": EXAMPLE_AMI_ID,
                                 "Monitoring": {"Enabled": "true"},
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
@@ -2165,7 +2252,7 @@ def test_stack_elbv2_resources_integration():
             },
             "ec2instance": {
                 "Type": "AWS::EC2::Instance",
-                "Properties": {"ImageId": "ami-1234abcd", "UserData": "some user data"},
+                "Properties": {"ImageId": EXAMPLE_AMI_ID, "UserData": "some user data"},
             },
         },
     }
@@ -2578,7 +2665,11 @@ def test_autoscaling_propagate_tags():
             },
             "LaunchConfig": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"LaunchConfigurationName": "test-launch-config"},
+                "Properties": {
+                    "LaunchConfigurationName": "test-launch-config",
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
+                },
             },
         },
     }

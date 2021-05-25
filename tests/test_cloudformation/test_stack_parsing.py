@@ -1,9 +1,10 @@
 from __future__ import unicode_literals
+import boto3
 import json
 import yaml
 
-from mock import patch
 import sure  # noqa
+from tests.compat import patch
 
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack
@@ -12,6 +13,7 @@ from moto.cloudformation.parsing import (
     parse_condition,
     Export,
 )
+from moto import mock_ssm, settings
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
@@ -70,6 +72,13 @@ parameters = {
         "NumberParam": {"Type": "Number"},
         "NumberListParam": {"Type": "List<Number>"},
         "NoEchoParam": {"Type": "String", "NoEcho": True},
+    }
+}
+
+ssm_parameter = {
+    "Parameters": {
+        "SingleParamCfn": {"Type": "AWS::SSM::Parameter::Value<String>"},
+        "ListParamCfn": {"Type": "AWS::SSM::Parameter::Value<List<String>>"},
     }
 }
 
@@ -143,6 +152,9 @@ get_availability_zones_template = dict(
 )
 
 parameters_template = dict(list(dummy_template.items()) + list(parameters.items()))
+ssm_parameter_template = dict(
+    list(dummy_template.items()) + list(ssm_parameter.items())
+)
 
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
@@ -151,6 +163,7 @@ bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(get_attribute_outputs_template)
 get_availability_zones_template_json = json.dumps(get_availability_zones_template)
 parameters_template_json = json.dumps(parameters_template)
+ssm_parameter_template_json = json.dumps(ssm_parameter_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
 export_value_template_json = json.dumps(export_value_template)
@@ -498,3 +511,29 @@ def test_short_form_func_in_yaml_teamplate():
     ]
     for k, v in key_and_expects:
         template_dict.should.have.key(k).which.should.be.equal(v)
+
+
+@mock_ssm
+def test_ssm_parameter_parsing():
+    client = boto3.client("ssm", region_name="us-west-1")
+    client.put_parameter(Name="/path/to/single/param", Value="string", Type="String")
+    client.put_parameter(
+        Name="/path/to/list/param", Value="comma,separated,string", Type="StringList"
+    )
+
+    if not settings.TEST_SERVER_MODE:
+        stack = FakeStack(
+            stack_id="test_id",
+            name="test_stack",
+            template=ssm_parameter_template_json,
+            parameters={
+                "SingleParamCfn": "/path/to/single/param",
+                "ListParamCfn": "/path/to/list/param",
+            },
+            region_name="us-west-1",
+        )
+
+        stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
+        stack.resource_map.resolved_parameters["ListParamCfn"].should.equal(
+            ["comma", "separated", "string"]
+        )

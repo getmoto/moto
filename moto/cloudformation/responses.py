@@ -232,8 +232,6 @@ class CloudFormationResponse(BaseResponse):
             if stack_resource.logical_resource_id == logical_resource_id:
                 resource = stack_resource
                 break
-        else:
-            raise ValidationError(logical_resource_id)
 
         template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
@@ -266,9 +264,6 @@ class CloudFormationResponse(BaseResponse):
     def list_stack_resources(self):
         stack_name_or_id = self._get_param("StackName")
         resources = self.cloudformation_backend.list_stack_resources(stack_name_or_id)
-
-        if resources is None:
-            raise ValidationError(stack_name_or_id)
 
         template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
         return template.render(resources=resources)
@@ -320,24 +315,6 @@ class CloudFormationResponse(BaseResponse):
             stack_body = self._get_stack_from_s3_url(template_url)
 
         incoming_params = self._get_list_prefix("Parameters.member")
-        parameters = dict(
-            [
-                (parameter["parameter_key"], parameter["parameter_value"])
-                for parameter in incoming_params
-                if "parameter_value" in parameter
-            ]
-        )
-        previous = dict(
-            [
-                (
-                    parameter["parameter_key"],
-                    stack.parameters[parameter["parameter_key"]],
-                )
-                for parameter in incoming_params
-                if "use_previous_value" in parameter
-            ]
-        )
-        parameters.update(previous)
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.
@@ -362,7 +339,7 @@ class CloudFormationResponse(BaseResponse):
             name=stack_name,
             template=stack_body,
             role_arn=role_arn,
-            parameters=parameters,
+            parameters=incoming_params,
             tags=tags,
         )
         if self.request_json:
@@ -443,7 +420,7 @@ class CloudFormationResponse(BaseResponse):
             return json.dumps(
                 {
                     "CreateStackSetResponse": {
-                        "CreateStackSetResult": {"StackSetId": stackset.stackset_id}
+                        "CreateStackSetResult": {"StackSetId": stackset.id}
                     }
                 }
             )
@@ -565,17 +542,12 @@ class CloudFormationResponse(BaseResponse):
             for item in self._get_list_prefix("Tags.member")
         )
         parameters_list = self._get_list_prefix("Parameters.member")
-        parameters = dict(
-            [
-                (parameter["parameter_key"], parameter["parameter_value"])
-                for parameter in parameters_list
-            ]
-        )
+
         operation = self.cloudformation_backend.update_stack_set(
             stackset_name=stackset_name,
             template=template_body,
             description=description,
-            parameters=parameters,
+            parameters=parameters_list,
             tags=tags,
             admin_role=admin_role,
             execution_role=execution_role,
@@ -931,7 +903,7 @@ LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.ama
 
 CREATE_STACK_SET_RESPONSE_TEMPLATE = """<CreateStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <CreateStackSetResult>
-    <StackSetId>{{ stackset.stackset_id }}</StackSetId>
+    <StackSetId>{{ stackset.id }}</StackSetId>
   </CreateStackSetResult>
   <ResponseMetadata>
     <RequestId>f457258c-391d-41d1-861f-example</RequestId>
@@ -1113,7 +1085,8 @@ STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE = """<StopStackSetOperationResponse x
   <StopStackSetOperationResult/>
   <ResponseMetadata>
     <RequestId>2188554a-07c6-4396-b2c5-example</RequestId>
-  </ResponseMetadata>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </StopStackSetOperationResponse>
+  </ResponseMetadata>
+</StopStackSetOperationResponse>
 """
 
 DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = (

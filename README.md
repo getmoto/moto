@@ -2,12 +2,13 @@
 
 [![Join the chat at https://gitter.im/awsmoto/Lobby](https://badges.gitter.im/awsmoto/Lobby.svg)](https://gitter.im/awsmoto/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Build Status](https://travis-ci.org/spulec/moto.svg?branch=master)](https://travis-ci.org/spulec/moto)
-[![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.svg?branch=master)](https://coveralls.io/r/spulec/moto)
+[![Build Status](https://github.com/spulec/moto/workflows/TestNDeploy/badge.svg)](https://github.com/spulec/moto/actions)
+[![Coverage Status](https://codecov.io/gh/spulec/moto/branch/master/graph/badge.svg)](https://codecov.io/gh/spulec/moto)
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
-![PyPI](https://img.shields.io/pypi/v/moto.svg)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
-![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PyPI](https://img.shields.io/pypi/v/moto.svg)](https://pypi.org/project/moto/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)](#)
+[![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)](https://pypistats.org/packages/moto)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
 ## Install
@@ -115,6 +116,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | Logs                      | @mock_logs            | basic endpoints done            |                             |
 | Organizations             | @mock_organizations   | some core endpoints done        |                             |
 | Polly                     | @mock_polly           | all endpoints done              |                             |
+| RAM                       | @mock_ram             | core endpoints done             |                             |
 | RDS                       | @mock_rds             | core endpoints done             |                             |
 | RDS2                      | @mock_rds2            | core endpoints done             |                             |
 | Redshift                  | @mock_redshift        | core endpoints done             |                             |
@@ -125,6 +127,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | SNS                       | @mock_sns             | all endpoints done              |                             |
 | SQS                       | @mock_sqs             | core endpoints done             |                             |
 | SSM                       | @mock_ssm             | core endpoints done             |                             |
+| Step Functions            | @mock_stepfunctions   | core endpoints done             |                             |
 | STS                       | @mock_sts             | core endpoints done             |                             |
 | SWF                       | @mock_swf             | basic endpoints done            |                             |
 | X-Ray                     | @mock_xray            | all endpoints done              |                             |
@@ -299,7 +302,7 @@ have altered some of the mock behavior. In short, you need to ensure that you _a
    This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
    See the pesky imports section below on how to work around this.
 
-### Example on usage?
+### Example on pytest usage?
 If you are a user of [pytest](https://pytest.org/en/latest/), you can leverage [pytest fixtures](https://pytest.org/en/latest/fixture.html#fixture)
 to help set up your mocks and other AWS resources that you would need.
 
@@ -348,6 +351,57 @@ def test_create_bucket(s3):
     assert len(result['Buckets']) == 1
     assert result['Buckets'][0]['Name'] == 'somebucket'
 ```
+
+### Example on unittest usage?
+
+If you use [`unittest`](https://docs.python.org/3/library/unittest.html) to run tests, and you want to use `moto` inside `setUp` or `setUpClass`, you can do it with `.start()` and `.stop()` like:
+
+```
+import unittest
+from moto import mock_s3
+import boto3
+
+def func_to_test(bucket_name, key, content):
+    s3 = boto3.resource('s3')
+    object = s3.Object(bucket_name, key)
+    object.put(Body=content)
+
+class MyTest(unittest.TestCase):
+    mock_s3 = mock_s3()
+    bucket_name = 'test-bucket'
+    def setUp(self):
+        self.mock_s3.start()
+
+        # you can use boto3.client('s3') if you prefer
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket(self.bucket_name)
+        bucket.create(
+            CreateBucketConfiguration={
+                'LocationConstraint': 'af-south-1'
+            })
+
+    def tearDown(self):
+        self.mock_s3.stop()
+
+    def test(self):
+        content = b"abc"
+        key = '/path/to/obj'
+
+        # run the file which uploads to S3
+        func_to_test(self.bucket_name, key, content)
+
+        # check the file was uploaded as expected
+        s3 = boto3.resource('s3')
+        object = s3.Object(self.bucket_name, key)
+        actual = object.get()['Body'].read()
+        self.assertEqual(actual, content)
+```
+
+If your test `unittest.TestCase` has only one test method,
+and you don't need to create AWS resources in `setUp`,
+you can use the context manager (`with mock_s3():`) within that function,
+or apply the decorator to that method, instead of `.start()` and `.stop()`.
+That is simpler, however you then cannot share resource setup code (e.g. S3 bucket creation) between tests.
 
 ### What about those pesky imports?
 Recall earlier, it was mentioned that mocks should be established __BEFORE__ the clients are set up. One way
@@ -436,12 +490,12 @@ require that you update your hosts file for your code to work properly:
 1. `s3-control`
 
 For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
-As a result, you need to add that entry to your host file for your tests to function properly. 
+As a result, you need to add that entry to your host file for your tests to function properly.
 
 ## Releases
 
-Releases are done from travisci. Fairly closely following this:
-https://docs.travis-ci.com/user/deployment/pypi/
+Releases are done from Gitlab Actions. Fairly closely following this:
+https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 
 - Commits to `master` branch do a dev deploy to pypi.
 - Commits to a tag do a real deploy to pypi.
