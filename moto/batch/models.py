@@ -310,7 +310,16 @@ class JobDefinition(CloudFormationModel):
 
 
 class Job(threading.Thread, BaseModel, DockerModel):
-    def __init__(self, name, job_def, job_queue, log_backend, container_overrides, depends_on, all_jobs):
+    def __init__(
+        self,
+        name,
+        job_def,
+        job_queue,
+        log_backend,
+        container_overrides,
+        depends_on,
+        all_jobs,
+    ):
         """
         Docker Job
 
@@ -361,13 +370,19 @@ class Job(threading.Thread, BaseModel, DockerModel):
             result["stoppedAt"] = datetime2int(self.job_stopped_at)
             result["container"] = {}
             result["container"]["command"] = self._get_container_property("command", [])
-            result["container"]["privileged"] = self._get_container_property("privileged", False)
-            result["container"]["readonlyRootFilesystem"] = self._get_container_property("readonlyRootFilesystem", False)
+            result["container"]["privileged"] = self._get_container_property(
+                "privileged", False
+            )
+            result["container"][
+                "readonlyRootFilesystem"
+            ] = self._get_container_property("readonlyRootFilesystem", False)
             result["container"]["ulimits"] = self._get_container_property("ulimits", {})
             result["container"]["vcpus"] = self._get_container_property("vcpus", 1)
             result["container"]["memory"] = self._get_container_property("memory", 512)
             result["container"]["volumes"] = self._get_container_property("volumes", [])
-            result["container"]["environment"] = self._get_container_property("environment", [])
+            result["container"]["environment"] = self._get_container_property(
+                "environment", []
+            )
             result["container"]["logStreamName"] = self.log_stream_name
         if self.job_stopped_reason is not None:
             result["statusReason"] = self.job_stopped_reason
@@ -1290,7 +1305,7 @@ class BatchBackend(BaseBackend):
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
             depends_on=depends_on,
-            all_jobs=self._jobs
+            all_jobs=self._jobs,
         )
         self._jobs[job.job_id] = job
 

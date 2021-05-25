@@ -998,7 +998,10 @@ def test_dependencies():
         {"jobId": job_id2, "type": "SEQUENTIAL"},
     ]
     resp = batch_client.submit_job(
-        jobName="test3", jobQueue=queue_arn, jobDefinition=job_def_arn, dependsOn=depends_on
+        jobName="test3",
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn,
+        dependsOn=depends_on,
     )
     job_id3 = resp["jobId"]
 
@@ -1092,7 +1095,10 @@ def test_failed_dependencies():
         {"jobId": job_id2, "type": "SEQUENTIAL"},
     ]
     resp = batch_client.submit_job(
-        jobName="test3", jobQueue=queue_arn, jobDefinition=job_def_arn_success, dependsOn=depends_on
+        jobName="test3",
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn_success,
+        dependsOn=depends_on,
     )
     job_id3 = resp["jobId"]
 
@@ -1156,8 +1162,10 @@ def test_container_overrides():
             "vcpus": 1,
             "memory": 512,
             "command": ["sleep", "10"],
-            "environment": [{"name": "TEST0", "value": "from job definition"},
-                            {"name": "TEST1", "value": "from job definition"}]
+            "environment": [
+                {"name": "TEST0", "value": "from job definition"},
+                {"name": "TEST1", "value": "from job definition"},
+            ],
         },
     )
 
@@ -1165,12 +1173,17 @@ def test_container_overrides():
 
     # The Job to run, including container overrides
     resp = batch_client.submit_job(
-        jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name,
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
         containerOverrides={
             "vcpus": 2,
             "memory": 1024,
             "command": ["printenv"],
-            "environment": [{"name": "TEST0", "value": "from job"}, {"name": "TEST2", "value": "from job"}]
+            "environment": [
+                {"name": "TEST0", "value": "from job"},
+                {"name": "TEST2", "value": "from job"},
+            ],
         },
     )
 
@@ -1214,10 +1227,18 @@ def test_container_overrides():
     resp_jobs["jobs"][0]["container"]["memory"].should.equal(1024)
     resp_jobs["jobs"][0]["container"]["command"].should.equal(["printenv"])
 
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST0", "value": "from job"})
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST1", "value": "from job definition"})
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST2", "value": "from job"})
-    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "AWS_BATCH_JOB_ID", "value": job_id})
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "TEST0", "value": "from job"}
+    )
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "TEST1", "value": "from job definition"}
+    )
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "TEST2", "value": "from job"}
+    )
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "AWS_BATCH_JOB_ID", "value": job_id}
+    )
 
     sure.expect(env_var).to.contain({"name": "TEST0", "value": "from job"})
     sure.expect(env_var).to.contain({"name": "TEST1", "value": "from job definition"})
