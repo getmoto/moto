@@ -259,6 +259,7 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def describe_rules(self):
         listener_arn = self._get_param("ListenerArn")
+        print(f'listener_arn in describe_rules: {listener_arn}')
         rule_arns = (
             self._get_multi_param("RuleArns.member")
             if any(
@@ -268,7 +269,11 @@ class ELBV2Response(BaseResponse):
             )
             else None
         )
+        print(f'listener_arn is: {listener_arn} and rule_arns is: {rule_arns}')
         all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
+        print(f'all rules: {all_rules}')
+        for rule in all_rules:
+            print(f'\nRULLLLEEEEEEEEE: {rule}')
         all_arns = [rule.arn for rule in all_rules]
         page_size = self._get_int_param("PageSize", 50)  # set 50 for temporary
 
@@ -309,13 +314,17 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def describe_listeners(self):
         load_balancer_arn = self._get_param("LoadBalancerArn")
+        print(f'load_balancer_arn in describe_listeners: {load_balancer_arn}')
         listener_arns = self._get_multi_param("ListenerArns.member")
+        print(f'describe_listeners in  listener_arns: {listener_arns}')
         if not load_balancer_arn and not listener_arns:
             raise LoadBalancerNotFoundError()
 
+        print(f'load_balancer_arn is: {load_balancer_arn} annnd listener_arns is: {listener_arns}')
         listeners = self.elbv2_backend.describe_listeners(
             load_balancer_arn, listener_arns
         )
+        print(f'isteners is: {listeners} nowww')
         template = self.response_template(DESCRIBE_LISTENERS_TEMPLATE)
         return template.render(listeners=listeners)
 

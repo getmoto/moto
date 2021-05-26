@@ -2234,6 +2234,24 @@ def test_stack_elbv2_resources_integration():
                     "Protocol": "HTTP",
                 },
             },
+            "listenerRule": {
+                "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+                "Properties": {
+                    "Actions": [
+                        {"Type": "forward"},
+                        #"ForwardConfig": {
+                            #"TargetGroups": [
+                                #{"TargetGroupArn": {"Ref": "mytargetgroup1"}}
+                            #},
+                        #],
+                    ],
+                    "Conditions": [
+                        {"Field": "path-pattern", "Values": "/*"}
+                    ],
+                    "ListenerArn": {"Ref": "listener"},
+                    "Priority": "1",
+                },
+            },
             "myvpc": {
                 "Type": "AWS::EC2::VPC",
                 "Properties": {"CidrBlock": "10.0.0.0/16"},
@@ -2304,6 +2322,8 @@ def test_stack_elbv2_resources_integration():
     listeners = elbv2_conn.describe_listeners(
         LoadBalancerArn=load_balancers[0]["LoadBalancerArn"]
     )["Listeners"]
+    print(f'LISSTTTTT: {load_balancers[0]["LoadBalancerArn"]}')
+    print(f'HEYYY: {elbv2_conn.describe_listeners(LoadBalancerArn=load_balancers[0]["LoadBalancerArn"])}')
     len(listeners).should.equal(1)
     listeners[0]["LoadBalancerArn"].should.equal(load_balancers[0]["LoadBalancerArn"])
     listeners[0]["Port"].should.equal(80)
@@ -2311,6 +2331,16 @@ def test_stack_elbv2_resources_integration():
     listeners[0]["DefaultActions"].should.equal(
         [{"Type": "forward", "TargetGroupArn": target_groups[0]["TargetGroupArn"]}]
     )
+
+    listener_arn = listeners[0].get("ListenerArn")
+    print(f'listeners are this: {listeners[0]["ListenerArn"]}')
+
+    '''listener_rules = elbv2_conn.describe_rules(
+        ListenerArn=listeners[0]["ListenerArn"]
+    )'''
+    obtained_rules = elbv2_conn.describe_rules(ListenerArn=listener_arn)
+
+    print(f'HEyyyy3: {listener_rules}')
 
     # test outputs
     stacks = cfn_conn.describe_stacks(StackName="elb_stack")["Stacks"]

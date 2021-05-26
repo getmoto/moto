@@ -19,13 +19,29 @@ class LoadBalancerNotFoundError(ELBClientError):
             "LoadBalancerNotFound", "The specified load balancer does not exist."
         )
 
-
 class ListenerNotFoundError(ELBClientError):
     def __init__(self):
         super(ListenerNotFoundError, self).__init__(
             "ListenerNotFound", "The specified listener does not exist."
         )
 
+class ActionsNotFoundError(ELBClientError):
+    def __init__(self):
+        super(ActionsNotFoundError, self).__init__(
+            "ActionsNotFound", "The specified listener rule does not have the required Actions property."
+        )
+
+class ConditionsNotFoundError(ELBClientError):
+    def __init__(self):
+        super(ConditionsNotFoundError, self).__init__(
+            "ConditionsNotFound", "The specified listener rule does not have the required Conditions property."
+        )
+
+class PriorityNotFoundError(ELBClientError):
+    def __init__(self):
+        super(PriorityNotFoundError, self).__init__(
+            "PriorityNotFound", "The specified listener rule does not have the required Priority property."
+        )
 
 class SubnetNotFoundError(ELBClientError):
     def __init__(self):

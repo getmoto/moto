@@ -22,6 +22,9 @@ from .exceptions import (
     DuplicateTargetGroupName,
     InvalidTargetError,
     ListenerNotFoundError,
+    ActionsNotFoundError,
+    ConditionsNotFoundError,
+    PriorityNotFoundError,
     LoadBalancerNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
@@ -214,31 +217,25 @@ class FakeListener(CloudFormationModel):
         self.certificate = certificate
         self.certificates = [certificate] if certificate is not None else []
         self.default_actions = default_actions
-        self._non_default_rules = []
-        self._default_rule = FakeRule(
-            listener_arn=self.arn,
-            conditions=[],
-            priority="default",
-            actions=default_actions,
-            is_default=True,
-        )
+        self.rules = OrderedDict()
+        #self._non_default_rules = []
 
     @property
     def physical_resource_id(self):
         return self.arn
 
-    @property
+    '''@property
     def rules(self):
-        return self._non_default_rules + [self._default_rule]
+        return self._non_default_rules'''
 
     def remove_rule(self, rule):
         self._non_default_rules.remove(rule)
 
-    def register(self, rule):
+    '''def register(self, rule):
         self._non_default_rules.append(rule)
         self._non_default_rules = sorted(
             self._non_default_rules, key=lambda x: x.priority
-        )
+        )'''
 
     @staticmethod
     def cloudformation_name_type():
@@ -306,6 +303,49 @@ class FakeListener(CloudFormationModel):
         return listener
 
 
+class FakeListenerRule(CloudFormationModel):
+    def __init__(
+        self,
+        listener_arn,
+        conditions,
+        priority,
+        actions,
+    ):
+        self.listener_arn = listener_arn
+        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
+            id(self)
+        )
+        self.conditions = conditions
+        self.actions = actions
+        self.priority = priority
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @staticmethod
+    def cloudformation_type():
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listenerrule.html
+        return "AWS::ElasticLoadBalancingV2::ListenerRule"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+
+        elbv2_backend = elbv2_backends[region_name]
+        listener_arn = properties.get("ListenerArn")
+        priority = properties.get("Priority")
+        actions = properties.get("Actions")
+        conditions = properties.get("Conditions")
+
+        listener_rule = elbv2_backend.create_rule(
+            listener_arn, conditions, priority, actions,
+        )
+        return listener_rule
+
+
 class FakeAction(BaseModel):
     def __init__(self, data):
         self.data = data
@@ -338,18 +378,6 @@ class FakeAction(BaseModel):
             """
         )
         return template.render(action=self)
-
-
-class FakeRule(BaseModel):
-    def __init__(self, listener_arn, conditions, priority, actions, is_default):
-        self.listener_arn = listener_arn
-        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
-            id(self)
-        )
-        self.conditions = conditions
-        self.priority = priority  # int or 'default'
-        self.actions = actions
-        self.is_default = is_default
 
 
 class FakeBackend(BaseModel):
@@ -492,6 +520,7 @@ class ELBv2Backend(BaseBackend):
         self.region_name = region_name
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
+        #self.listeners = OrderedDict()
 
     @property
     def ec2_backend(self):
@@ -564,14 +593,15 @@ class ELBv2Backend(BaseBackend):
 
         # validate conditions
         for condition in conditions:
-            field = condition["field"]
+            field = condition["Field"]
             if field not in ["path-pattern", "host-header"]:
                 raise InvalidConditionFieldError(field)
 
-            values = condition["values"]
+            values = condition["Values"]
             if len(values) == 0:
                 raise InvalidConditionValueError("A condition value must be specified")
-            if len(values) > 1:
+            if len(values) > 128:
+                print(values)
                 raise InvalidConditionValueError(
                     "The '%s' field contains too many values; the limit is '1'" % field
                 )
@@ -584,15 +614,23 @@ class ELBv2Backend(BaseBackend):
             if rule.priority == priority:
                 raise PriorityInUseError()
 
-        self._validate_actions(actions)
+        #self._validate_actions(actions)
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
 
         # create rule
-        rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
-        listener.register(rule)
-        return [rule]
+        #rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)    
+        rule = FakeListenerRule(
+            listener.arn,
+            conditions,
+            priority,
+            actions,
+        )
+
+        #listener.register(rule)
+        listener.rules[rule.arn] = rule
+        return rule
 
     def _validate_actions(self, actions):
         # validate Actions
@@ -611,6 +649,7 @@ class ELBv2Backend(BaseBackend):
             elif action_type in ["redirect", "authenticate-cognito"]:
                 pass
             else:
+                print(f'I am here: {action_type}')
                 raise InvalidActionTypeError(action_type, index)
 
     def _validate_fixed_response_action(self, action, i, index):
