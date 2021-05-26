@@ -310,7 +310,16 @@ class JobDefinition(CloudFormationModel):
 
 
 class Job(threading.Thread, BaseModel, DockerModel):
-    def __init__(self, name, job_def, job_queue, log_backend, container_overrides):
+    def __init__(
+        self,
+        name,
+        job_def,
+        job_queue,
+        log_backend,
+        container_overrides,
+        depends_on,
+        all_jobs,
+    ):
         """
         Docker Job
 
@@ -335,6 +344,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
         self.job_stopped_reason = None
+        self.depends_on = depends_on
+        self.all_jobs = all_jobs
 
         self.stop = False
 
@@ -351,27 +362,48 @@ class Job(threading.Thread, BaseModel, DockerModel):
             "jobName": self.job_name,
             "jobQueue": self.job_queue.arn,
             "status": self.job_state,
-            "dependsOn": [],
+            "dependsOn": self.depends_on if self.depends_on else [],
         }
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
             result["startedAt"] = datetime2int(self.job_started_at)
         if self.job_stopped:
             result["stoppedAt"] = datetime2int(self.job_stopped_at)
             result["container"] = {}
-            result["container"]["command"] = [
-                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"'
-            ]
-            result["container"]["privileged"] = False
-            result["container"]["readonlyRootFilesystem"] = False
-            result["container"]["ulimits"] = {}
-            result["container"]["vcpus"] = 1
-            result["container"]["volumes"] = ""
+            result["container"]["command"] = self._get_container_property("command", [])
+            result["container"]["privileged"] = self._get_container_property(
+                "privileged", False
+            )
+            result["container"][
+                "readonlyRootFilesystem"
+            ] = self._get_container_property("readonlyRootFilesystem", False)
+            result["container"]["ulimits"] = self._get_container_property("ulimits", {})
+            result["container"]["vcpus"] = self._get_container_property("vcpus", 1)
+            result["container"]["memory"] = self._get_container_property("memory", 512)
+            result["container"]["volumes"] = self._get_container_property("volumes", [])
+            result["container"]["environment"] = self._get_container_property(
+                "environment", []
+            )
             result["container"]["logStreamName"] = self.log_stream_name
         if self.job_stopped_reason is not None:
             result["statusReason"] = self.job_stopped_reason
         return result
 
     def _get_container_property(self, p, default):
+        if p == "environment":
+            job_env = self.container_overrides.get(p, default)
+            jd_env = self.job_definition.container_properties.get(p, default)
+
+            job_env_dict = {_env["name"]: _env["value"] for _env in job_env}
+            jd_env_dict = {_env["name"]: _env["value"] for _env in jd_env}
+
+            for key in jd_env_dict.keys():
+                if key not in job_env_dict.keys():
+                    job_env.append({"name": key, "value": jd_env_dict[key]})
+
+            job_env.append({"name": "AWS_BATCH_JOB_ID", "value": self.job_id})
+
+            return job_env
+
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
         )
@@ -392,6 +424,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
         """
         try:
             self.job_state = "PENDING"
+
+            if self.depends_on and not self._wait_for_dependencies():
+                return
 
             image = self.job_definition.container_properties.get(
                 "image", "alpine:latest"
@@ -497,7 +532,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
 
-                self.job_state = "SUCCEEDED" if not self.stop else "FAILED"
+                result = container.wait()
+                if self.stop or result["StatusCode"] != 0:
+                    self.job_state = "FAILED"
+                else:
+                    self.job_state = "SUCCEEDED"
 
             except Exception as err:
                 logger.error(
@@ -524,6 +563,30 @@ class Job(threading.Thread, BaseModel, DockerModel):
         if not self.stop:
             self.stop = True
             self.job_stopped_reason = reason
+
+    def _wait_for_dependencies(self):
+        dependent_ids = [dependency["jobId"] for dependency in self.depends_on]
+        successful_dependencies = set()
+        while len(successful_dependencies) != len(dependent_ids):
+            for dependent_id in dependent_ids:
+                if dependent_id in self.all_jobs:
+                    dependent_job = self.all_jobs[dependent_id]
+                    if dependent_job.job_state == "SUCCEEDED":
+                        successful_dependencies.add(dependent_id)
+                    if dependent_job.job_state == "FAILED":
+                        logger.error(
+                            "Terminating job {0} due to failed dependency {1}".format(
+                                self.name, dependent_job.name
+                            )
+                        )
+                        self.job_state = "FAILED"
+                        self.job_stopped = True
+                        self.job_stopped_at = datetime.datetime.now()
+                        return False
+
+            time.sleep(1)
+
+        return True
 
 
 class BatchBackend(BaseBackend):
@@ -1241,6 +1304,8 @@ class BatchBackend(BaseBackend):
             queue,
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
+            depends_on=depends_on,
+            all_jobs=self._jobs,
         )
         self._jobs[job.job_id] = job
 
