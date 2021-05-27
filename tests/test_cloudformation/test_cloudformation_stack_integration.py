@@ -2322,8 +2322,9 @@ def test_stack_elbv2_resources_integration():
     listeners = elbv2_conn.describe_listeners(
         LoadBalancerArn=load_balancers[0]["LoadBalancerArn"]
     )["Listeners"]
-    print(f'LISSTTTTT: {load_balancers[0]["LoadBalancerArn"]}')
-    print(f'HEYYY: {elbv2_conn.describe_listeners(LoadBalancerArn=load_balancers[0]["LoadBalancerArn"])}')
+    print(f'\nLISSTTTTT: {load_balancers[0]["LoadBalancerArn"]}')
+    print(f'\nlistenerssssssssssss: {listeners}')
+
     len(listeners).should.equal(1)
     listeners[0]["LoadBalancerArn"].should.equal(load_balancers[0]["LoadBalancerArn"])
     listeners[0]["Port"].should.equal(80)
@@ -2332,16 +2333,12 @@ def test_stack_elbv2_resources_integration():
         [{"Type": "forward", "TargetGroupArn": target_groups[0]["TargetGroupArn"]}]
     )
 
-    listener_arn = listeners[0].get("ListenerArn")
-    print(f'listeners are this: {listeners[0]["ListenerArn"]}')
-
-    '''listener_rules = elbv2_conn.describe_rules(
+    listener_rule = elbv2_conn.describe_rules(
         ListenerArn=listeners[0]["ListenerArn"]
-    )'''
-    obtained_rules = elbv2_conn.describe_rules(ListenerArn=listener_arn)
+    )["Rules"]
+    print(f'Please lord: {listener_rule}')
 
-    print(f'HEyyyy3: {listener_rules}')
-
+    en(listeners).should.equal(5)
     # test outputs
     stacks = cfn_conn.describe_stacks(StackName="elb_stack")["Stacks"]
     len(stacks).should.equal(1)

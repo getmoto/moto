@@ -274,7 +274,7 @@ class ELBV2Response(BaseResponse):
         print(f'all rules: {all_rules}')
         for rule in all_rules:
             print(f'\nRULLLLEEEEEEEEE: {rule}')
-        all_arns = [rule.arn for rule in all_rules]
+        all_arns = [rule for rule in all_rules]
         page_size = self._get_int_param("PageSize", 50)  # set 50 for temporary
 
         marker = self._get_param("Marker")
@@ -282,13 +282,38 @@ class ELBV2Response(BaseResponse):
             start = all_arns.index(marker) + 1
         else:
             start = 0
-        rules_resp = all_rules[start : start + page_size]
+        print(f'start: {start} and {page_size}')
+        rules_resp = all_rules#[start : start + page_size]
         next_marker = None
 
         if len(all_rules) > start + page_size:
             next_marker = rules_resp[-1].arn
         template = self.response_template(DESCRIBE_RULES_TEMPLATE)
+        print(f'\nCheck this: {rules_resp}')
         return template.render(rules=rules_resp, marker=next_marker)
+
+    '''@amzn_request_id
+    def describe_rules(self):
+        listener_arn = self._get_param("ListenerArn")
+
+        rule_arns = (
+            self._get_multi_param("RuleArns.member")
+            if any(
+                k
+                for k in list(self.querystring.keys())
+                if k.startswith("RuleArns.member")
+            )
+            else None
+        )
+
+        if not listener_arn and not rule_arns:
+            raise LoadBalancerNotFoundError()
+
+        all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
+
+        template = self.response_template(DESCRIBE_RULES_TEMPLATE)
+
+        return template.render(rules=all_rules)'''
 
     @amzn_request_id
     def describe_target_groups(self):

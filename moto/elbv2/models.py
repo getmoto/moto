@@ -307,14 +307,13 @@ class FakeListenerRule(CloudFormationModel):
     def __init__(
         self,
         listener_arn,
+        arn,
         conditions,
         priority,
         actions,
     ):
         self.listener_arn = listener_arn
-        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
-            id(self)
-        )
+        self.arn = arn
         self.conditions = conditions
         self.actions = actions
         self.priority = priority
@@ -520,7 +519,6 @@ class ELBv2Backend(BaseBackend):
         self.region_name = region_name
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
-        #self.listeners = OrderedDict()
 
     @property
     def ec2_backend(self):
@@ -614,15 +612,18 @@ class ELBv2Backend(BaseBackend):
             if rule.priority == priority:
                 raise PriorityInUseError()
 
-        #self._validate_actions(actions)
+        #self._validate_actions(actions) 
+        arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
+            id(self)
+        )
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
 
         # create rule
-        #rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)    
         rule = FakeListenerRule(
-            listener.arn,
+            listener_arn,
+            arn,
             conditions,
             priority,
             actions,
@@ -828,7 +829,10 @@ Member must satisfy regular expression pattern: {}".format(
             )
         if listener_arn:
             listener = self.describe_listeners(None, [listener_arn])[0]
-            return listener.rules
+            #print({listener})
+            #print(f'the other describe_rule: {listener.rules.values()}')
+            print(type(listener.rules.values()))
+            return [listener.rules.values()]
 
         # search for rule arns
         matched_rules = []
@@ -873,6 +877,7 @@ Member must satisfy regular expression pattern: {}".format(
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()
+            print(f'in LiStNeRs: {self.load_balancers.get(load_balancer_arn).listeners.values()}')
             return self.load_balancers.get(load_balancer_arn).listeners.values()
 
         matched = []
