@@ -87,7 +87,9 @@ def test_convert_to_tree():
 
 def test_convert_to_params():
     actual = convert_to_params(EXPECTED_TREE)
-    actual.should.equal(CONVERTED_PARAMS)
+    actual.should.have.length_of(len(CONVERTED_PARAMS))
+    for param in CONVERTED_PARAMS:
+        actual.should.contain(param)
 
 
 def test_input_is_correct():

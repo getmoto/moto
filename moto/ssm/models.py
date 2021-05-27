@@ -8,7 +8,6 @@ from pkg_resources import resource_filename
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
-from moto.settings import ssm_should_load_global_parameters
 from moto.utilities.utils import load_resource
 
 import datetime
@@ -43,10 +42,9 @@ class ParameterDict(defaultdict):
         super(ParameterDict, self).__init__(*args, **kwargs)
         self.parameters_loaded = False
 
-    def _check_loading_status(self):
-        if ssm_should_load_global_parameters():
-            if not self.parameters_loaded:
-                self._load_global_parameters()
+    def _check_loading_status(self, key):
+        if not self.parameters_loaded and key and str(key).startswith("/aws"):
+            self._load_global_parameters()
 
     def _load_global_parameters(self):
         regions = load_resource(resource_filename(__name__, "resources/regions.json"))
@@ -62,7 +60,7 @@ class ParameterDict(defaultdict):
             # Following were lost in translation/conversion - using sensible defaults
             _type = "String"
             version = 1
-            super().__getitem__(name).append(
+            super(ParameterDict, self).__getitem__(name).append(
                 Parameter(
                     name=name,
                     value=value,
@@ -77,16 +75,21 @@ class ParameterDict(defaultdict):
         self.parameters_loaded = True
 
     def __getitem__(self, item):
-        self._check_loading_status()
-        return super().__getitem__(item)
-
-    def __iter__(self):
-        self._check_loading_status()
-        return super().__iter__()
+        self._check_loading_status(item)
+        return super(ParameterDict, self).__getitem__(item)
 
     def __contains__(self, k):
-        self._check_loading_status()
-        return super().__contains__(k)
+        self._check_loading_status(k)
+        return super(ParameterDict, self).__contains__(k)
+
+    def get_keys_beginning_with(self, path, recursive):
+        self._check_loading_status(path)
+        for param_name in self:
+            if path != "/" and not param_name.startswith(path):
+                continue
+            if "/" in param_name[len(path) + 1 :] and not recursive:
+                continue
+            yield param_name
 
 
 class Parameter(BaseModel):
@@ -1154,16 +1157,11 @@ class SimpleSystemManagerBackend(BaseBackend):
         # path could be with or without a trailing /. we handle this
         # difference here.
         path = path.rstrip("/") + "/"
-        for param_name in self._parameters:
-            if path != "/" and not param_name.startswith(path):
+        for param_name in self._parameters.get_keys_beginning_with(path, recursive):
+            parameter = self.get_parameter(param_name, with_decryption)
+            if not self._match_filters(parameter, filters):
                 continue
-            if "/" in param_name[len(path) + 1 :] and not recursive:
-                continue
-            if not self._match_filters(
-                self.get_parameter(param_name, with_decryption), filters
-            ):
-                continue
-            result.append(self.get_parameter(param_name, with_decryption))
+            result.append(parameter)
 
         return self._get_values_nexttoken(result, max_results, next_token)
 

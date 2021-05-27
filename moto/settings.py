@@ -14,15 +14,6 @@ S3_IGNORE_SUBDOMAIN_BUCKETNAME = os.environ.get(
 ACM_VALIDATION_WAIT = int(os.environ.get("MOTO_ACM_VALIDATION_WAIT", "60"))
 
 
-def ssm_should_load_global_parameters():
-    """
-    SSM: Should we load the Global Infrastructure parameters
-    https://aws.amazon.com/blogs/aws/new-query-for-aws-regions-endpoints-and-more-using-aws-systems-manager-parameter-store/
-    :return:
-    """
-    return os.environ.get("MOTO_SSM_LOAD_GLOBAL_PARAMS", "0").lower() == "true"
-
-
 def get_sf_execution_history_type():
     """
     Determines which execution history events `get_execution_history` returns
