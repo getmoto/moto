@@ -2334,7 +2334,6 @@ def test_stack_elbv2_resources_integration():
     listener_rule[0]["Conditions"].should.equal(
         [{"Field": "path-pattern", "Values": ["/", "*"]}]
     )
-    listener_rule[0]["ListenerArn"].should.equal(listeners[0]["ListenerArn"])
 
     # test outputs
     stacks = cfn_conn.describe_stacks(StackName="elb_stack")["Stacks"]

@@ -806,6 +806,7 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
         {% endif %}
         <Port>{{ listener.port }}</Port>
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
+        <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
@@ -1000,6 +1001,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
         {% endif %}
         <Port>{{ listener.port }}</Port>
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
+        <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
@@ -1431,6 +1433,7 @@ MODIFY_LISTENER_TEMPLATE = """<ModifyListenerResponse xmlns="http://elasticloadb
         {% endif %}
         <Port>{{ listener.port }}</Port>
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
+        <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
