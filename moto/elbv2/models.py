@@ -22,9 +22,6 @@ from .exceptions import (
     DuplicateTargetGroupName,
     InvalidTargetError,
     ListenerNotFoundError,
-    ActionsNotFoundError,
-    ConditionsNotFoundError,
-    PriorityNotFoundError,
     PriorityOutOfBoundsError,
     InvalidValuesTypeError,
     LoadBalancerNotFoundError,
@@ -258,12 +255,7 @@ class FakeListener(CloudFormationModel):
 
 class FakeListenerRule(CloudFormationModel):
     def __init__(
-        self,
-        listener_arn,
-        arn,
-        conditions,
-        priority,
-        actions,
+        self, listener_arn, arn, conditions, priority, actions,
     ):
         self.listener_arn = listener_arn
         self.arn = arn
@@ -277,7 +269,7 @@ class FakeListenerRule(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listenerrule.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listenerrule.html
         return "AWS::ElasticLoadBalancingV2::ListenerRule"
 
     @classmethod
@@ -295,6 +287,7 @@ class FakeListenerRule(CloudFormationModel):
             listener_arn, conditions, priority, properties
         )
         return listener_rule
+
 
 class FakeAction(BaseModel):
     def __init__(self, data):
@@ -536,7 +529,9 @@ class ELBv2Backend(BaseBackend):
     def create_rule(self, listener_arn, conditions, priority, properties):
         # transform actions to confirm with the rest of the code and XML templates
         transformed_actions = []
-        transformed_actions = self._validate_and_transform_actions("Actions", properties)
+        transformed_actions = self._validate_and_transform_actions(
+            "Actions", properties
+        )
 
         actions = [FakeAction(action) for action in transformed_actions]
         listeners = self.describe_listeners(None, [listener_arn])
@@ -548,17 +543,30 @@ class ELBv2Backend(BaseBackend):
         for condition in conditions:
             if "Field" in condition:
                 field = condition["Field"]
-                if field not in ["http-header", "http-request-method", "host-header", "path-pattern", "query-string", "source-ip"]:
+                if field not in [
+                    "http-header",
+                    "http-request-method",
+                    "host-header",
+                    "path-pattern",
+                    "query-string",
+                    "source-ip",
+                ]:
                     raise InvalidConditionFieldError(field)
 
-                if field in ["host-header", "path-pattern"] and not "Values" in condition:
+                if (
+                    field in ["host-header", "path-pattern"]
+                    and not "Values" in condition
+                ):
                     InvalidValuesTypeError(field)
                 values = condition["Values"]
                 if len(values) == 0:
-                    raise InvalidConditionValueError("A condition value must be specified")
+                    raise InvalidConditionValueError(
+                        "A condition value must be specified"
+                    )
                 if len(values) > 128:
                     raise InvalidConditionValueError(
-                        "The '%s' field contains too many values; the limit is '1'" % field
+                        "The '%s' field contains too many values; the limit is '1'"
+                        % field
                     )
 
             # TODO: check pattern of value for 'host-header'
@@ -571,23 +579,14 @@ class ELBv2Backend(BaseBackend):
             if rule.priority < "1" or rule.priority > "50000":
                 raise PriorityOutOfBoundsError()
 
-
-        self._validate_actions(actions) 
-        arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
-            id(self)
-        )
+        self._validate_actions(actions)
+        arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (id(self))
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
 
         # create rule
-        rule = FakeListenerRule(
-            listener_arn,
-            arn,
-            conditions,
-            priority,
-            actions,
-        )
+        rule = FakeListenerRule(listener_arn, arn, conditions, priority, actions,)
 
         listener.rules[rule.arn] = rule
         return rule
@@ -617,10 +616,7 @@ class ELBv2Backend(BaseBackend):
             action_type = action["Type"]
             if action_type == "forward":
                 default_actions.append(
-                    {
-                        "type": action_type,
-                        "target_group_arn": action["TargetGroupArn"],
-                    }
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
                 )
             elif action_type in [
                 "redirect",
@@ -629,14 +625,10 @@ class ELBv2Backend(BaseBackend):
             ]:
                 redirect_action = {"type": action_type}
                 key = (
-                    underscores_to_camelcase(
-                        action_type.capitalize().replace("-", "_")
-                    )
+                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
                     + "Config"
                 )
-                for redirect_config_key, redirect_config_value in action[
-                    key
-                ].items():
+                for redirect_config_key, redirect_config_value in action[key].items():
                     # need to match the output of _get_list_prefix
                     redirect_action[
                         camelcase_to_underscores(key)
@@ -741,17 +733,13 @@ Member must satisfy regular expression pattern: {}".format(
         return target_group
 
     def create_listener(
-        self,
-        load_balancer_arn,
-        protocol,
-        port,
-        ssl_policy,
-        certificate,
-        properties
+        self, load_balancer_arn, protocol, port, ssl_policy, certificate, properties
     ):
         # transform actions to confirm with the rest of the code and XML templates
         transformed_default_actions = []
-        transformed_default_actions = self._validate_and_transform_actions("DefaultActions", properties)
+        transformed_default_actions = self._validate_and_transform_actions(
+            "DefaultActions", properties
+        )
         default_actions = [FakeAction(action) for action in transformed_default_actions]
         balancer = self.load_balancers.get(load_balancer_arn)
         if balancer is None:

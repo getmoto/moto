@@ -2240,9 +2240,7 @@ def test_stack_elbv2_resources_integration():
                     "Actions": [
                         {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup2"}}
                     ],
-                    "Conditions": [
-                        {"Field": "path-pattern", "Values": "/*"}
-                    ],
+                    "Conditions": [{"Field": "path-pattern", "Values": "/*"}],
                     "ListenerArn": {"Ref": "listener"},
                     "Priority": "2",
                 },
@@ -2325,9 +2323,9 @@ def test_stack_elbv2_resources_integration():
         [{"Type": "forward", "TargetGroupArn": target_groups[0]["TargetGroupArn"]}]
     )
 
-    listener_rule = elbv2_conn.describe_rules(
-        ListenerArn=listeners[0]["ListenerArn"]
-    )["Rules"]
+    listener_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])[
+        "Rules"
+    ]
     len(listener_rule).should.equal(1)
     listener_rule[0]["Priority"].should.equal("2")
     listener_rule[0]["Actions"].should.equal(

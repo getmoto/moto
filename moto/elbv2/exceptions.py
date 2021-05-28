@@ -30,21 +30,24 @@ class ListenerNotFoundError(ELBClientError):
 class ActionsNotFoundError(ELBClientError):
     def __init__(self):
         super(ActionsNotFoundError, self).__init__(
-            "ActionsNotFound", "The specified listener rule does not have the required Actions property."
+            "ActionsNotFound",
+            "The specified listener rule does not have the required Actions property.",
         )
 
 
 class ConditionsNotFoundError(ELBClientError):
     def __init__(self):
         super(ConditionsNotFoundError, self).__init__(
-            "ConditionsNotFound", "The specified listener rule does not have the required Conditions property."
+            "ConditionsNotFound",
+            "The specified listener rule does not have the required Conditions property.",
         )
 
 
 class PriorityNotFoundError(ELBClientError):
     def __init__(self):
         super(PriorityNotFoundError, self).__init__(
-            "PriorityNotFound", "The specified listener rule does not have the required Priority property."
+            "PriorityNotFound",
+            "The specified listener rule does not have the required Priority property.",
         )
 
 
@@ -126,7 +129,8 @@ class PriorityInUseError(ELBClientError):
 class PriorityOutOfBoundsError(ELBClientError):
     def __init__(self):
         super(PriorityOutOfBoundsError, self).__init__(
-            "PriorityOutOfBoundsError", "The specified priority should be within range 1 to 50000"
+            "PriorityOutOfBoundsError",
+            "The specified priority should be within range 1 to 50000",
         )
 
 

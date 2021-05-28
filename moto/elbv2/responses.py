@@ -268,9 +268,7 @@ class ELBV2Response(BaseResponse):
             )
             else None
         )
-        all_rules = list(
-            self.elbv2_backend.describe_rules(listener_arn, rule_arns)
-        )
+        all_rules = list(self.elbv2_backend.describe_rules(listener_arn, rule_arns))
         all_arns = [rule.arn for rule in all_rules]
         page_size = self._get_int_param("PageSize", 50)  # set 50 for temporary
 
@@ -284,9 +282,8 @@ class ELBV2Response(BaseResponse):
 
         if len(all_rules) > start + page_size:
             next_marker = rules_resp[-1].arn
-
         template = self.response_template(DESCRIBE_RULES_TEMPLATE)
-        return template.render(rules=all_rules, marker=next_marker)
+        return template.render(rules=rules_resp, marker=next_marker)
 
     @amzn_request_id
     def describe_target_groups(self):
@@ -352,7 +349,6 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def modify_rule(self):
-        print(f'GOTTTTHEREEEEEEEE')
         rule_arn = self._get_param("RuleArn")
         _conditions = self._get_list_prefix("Conditions.member")
         conditions = []
@@ -726,7 +722,6 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
     <Rules>
       {% for rule in rules %}
       <member>
-        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
@@ -753,7 +748,6 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Actions>
         <RuleArn>{{ rule.arn }}</RuleArn>
-        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
       </member>
       {% endfor %}
     </Rules>
@@ -812,7 +806,6 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
         {% endif %}
         <Port>{{ listener.port }}</Port>
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
-        <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
@@ -903,7 +896,6 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
     <Rules>
       {% for rule in rules %}
       <member>
-        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
@@ -1008,7 +1000,6 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
         {% endif %}
         <Port>{{ listener.port }}</Port>
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
-        <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
@@ -1045,7 +1036,6 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
     <Rules>
       {% for rule in rules %}
       <member>
-        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
@@ -1441,7 +1431,6 @@ MODIFY_LISTENER_TEMPLATE = """<ModifyListenerResponse xmlns="http://elasticloadb
         {% endif %}
         <Port>{{ listener.port }}</Port>
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
-        <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
