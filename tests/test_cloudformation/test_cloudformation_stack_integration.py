@@ -2234,7 +2234,7 @@ def test_stack_elbv2_resources_integration():
                     "Protocol": "HTTP",
                 },
             },
-            "listenerRule": {
+            "rule": {
                 "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
                 "Properties": {
                     "Actions": [
@@ -2249,7 +2249,7 @@ def test_stack_elbv2_resources_integration():
                         {"Field": "path-pattern", "Values": "/*"}
                     ],
                     "ListenerArn": {"Ref": "listener"},
-                    "Priority": "123232",
+                    "Priority": "2",
                 },
             },
             "myvpc": {
@@ -2333,10 +2333,16 @@ def test_stack_elbv2_resources_integration():
     listener_rule = elbv2_conn.describe_rules(
         ListenerArn=listeners[0]["ListenerArn"]
     )["Rules"]
-    print(f'shah: {elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])}')
-    print(f'\nListenerRule values: {listener_rule}')
     len(listener_rule).should.equal(1)
     listener_rule[0]["ListenerArn"].should.equal(listeners[0]["ListenerArn"])
+    listener_rule[0]["Priority"].should.equal("2")
+    listener_rule[0]["Actions"].should.equal(
+        [{"Type": "forward", "TargetGroupArn": ""}]
+    )
+    listener_rule[0]["Conditions"].should.equal(
+        [{"Field": "path-pattern", "Values": ["/", "*"]}]
+    )
+
     # test outputs
     stacks = cfn_conn.describe_stacks(StackName="elb_stack")["Stacks"]
     len(stacks).should.equal(1)

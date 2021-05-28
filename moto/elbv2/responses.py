@@ -268,15 +268,25 @@ class ELBV2Response(BaseResponse):
             )
             else None
         )
-        all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
-        for h in all_rules:
-            print(f'hhhhhhhhhh: {h.listener_arn}')
-        # ----------------- for abc in all_rules: abc.priority is right--------------------
+        all_rules = list(
+            self.elbv2_backend.describe_rules(listener_arn, rule_arns)
+        )
+        all_arns = [rule.arn for rule in all_rules]
+        page_size = self._get_int_param("PageSize", 50)  # set 50 for temporary
+
+        marker = self._get_param("Marker")
+        if marker:
+            start = all_arns.index(marker) + 1
+        else:
+            start = 0
+        rules_resp = all_rules[start : start + page_size]
+        next_marker = None
+
+        if len(all_rules) > start + page_size:
+            next_marker = rules_resp[-1].arn
 
         template = self.response_template(DESCRIBE_RULES_TEMPLATE)
-        a = template.render(rules=all_rules)
-        print(a)
-        return a
+        return template.render(rules=all_rules, marker=next_marker)
 
     @amzn_request_id
     def describe_target_groups(self):
@@ -302,20 +312,14 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def describe_listeners(self):
         load_balancer_arn = self._get_param("LoadBalancerArn")
-        print(f'load_balancer_arn in describe_listeners: {load_balancer_arn}')
         listener_arns = self._get_multi_param("ListenerArns.member")
-        print(f'describe_listeners in  listener_arns: {listener_arns}')
         if not load_balancer_arn and not listener_arns:
             raise LoadBalancerNotFoundError()
 
-        print(f'load_balancer_arn is: {load_balancer_arn} annnd listener_arns is: {listener_arns}')
         listeners = self.elbv2_backend.describe_listeners(
             load_balancer_arn, listener_arns
         )
-        print(f'isteners is: {listeners} nowww annd type: {type(listeners)}')
         template = self.response_template(DESCRIBE_LISTENERS_TEMPLATE)
-        for listener in listeners:
-            print(f'listener odict values: {listener.load_balancer_arn}')
         return template.render(listeners=listeners)
 
     @amzn_request_id
@@ -348,6 +352,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def modify_rule(self):
+        print(f'GOTTTTHEREEEEEEEE')
         rule_arn = self._get_param("RuleArn")
         _conditions = self._get_list_prefix("Conditions.member")
         conditions = []
@@ -735,7 +740,6 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Conditions>
         <Priority>{{ rule.priority }}</Priority>
-        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Actions>
           {% for action in rule.actions %}
           <member>
@@ -749,6 +753,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Actions>
         <RuleArn>{{ rule.arn }}</RuleArn>
+        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
       </member>
       {% endfor %}
     </Rules>
@@ -923,6 +928,9 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
       </member>
       {% endfor %}
     </Rules>
+    {% if marker %}
+    <NextMarker>{{ marker }}</NextMarker>
+    {% endif %}
   </DescribeRulesResult>
   <ResponseMetadata>
     <RequestId>{{ request_id }}</RequestId>
@@ -1051,7 +1059,6 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Conditions>
         <Priority>{{ rule.priority }}</Priority>
-        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Actions>
           {% for action in rule.actions %}
           <member>
