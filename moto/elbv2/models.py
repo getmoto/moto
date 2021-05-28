@@ -555,7 +555,7 @@ class ELBv2Backend(BaseBackend):
 
                 if (
                     field in ["host-header", "path-pattern"]
-                    and not "Values" in condition
+                    and "Values" not in condition
                 ):
                     InvalidValuesTypeError(field)
                 values = condition["Values"]
