@@ -2238,12 +2238,7 @@ def test_stack_elbv2_resources_integration():
                 "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
                 "Properties": {
                     "Actions": [
-                        {"type": "forward"},
-                        #"ForwardConfig": {
-                            #"TargetGroups": [
-                                #{"TargetGroupArn": {"Ref": "mytargetgroup1"}}
-                            #},
-                        #],
+                        {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup2"}}
                     ],
                     "Conditions": [
                         {"Field": "path-pattern", "Values": "/*"}
@@ -2334,14 +2329,14 @@ def test_stack_elbv2_resources_integration():
         ListenerArn=listeners[0]["ListenerArn"]
     )["Rules"]
     len(listener_rule).should.equal(1)
-    listener_rule[0]["ListenerArn"].should.equal(listeners[0]["ListenerArn"])
     listener_rule[0]["Priority"].should.equal("2")
     listener_rule[0]["Actions"].should.equal(
-        [{"Type": "forward", "TargetGroupArn": ""}]
+        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}]
     )
     listener_rule[0]["Conditions"].should.equal(
         [{"Field": "path-pattern", "Values": ["/", "*"]}]
     )
+    listener_rule[0]["ListenerArn"].should.equal(listeners[0]["ListenerArn"])
 
     # test outputs
     stacks = cfn_conn.describe_stacks(StackName="elb_stack")["Stacks"]

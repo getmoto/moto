@@ -25,6 +25,8 @@ from .exceptions import (
     ActionsNotFoundError,
     ConditionsNotFoundError,
     PriorityNotFoundError,
+    PriorityOutOfBoundsError,
+    InvalidValuesTypeError,
     LoadBalancerNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
@@ -218,24 +220,13 @@ class FakeListener(CloudFormationModel):
         self.certificates = [certificate] if certificate is not None else []
         self.default_actions = default_actions
         self.rules = OrderedDict()
-        #self._non_default_rules = []
 
     @property
     def physical_resource_id(self):
         return self.arn
 
-    '''@property
-    def rules(self):
-        return self._non_default_rules'''
-
     def remove_rule(self, rule):
         self._non_default_rules.remove(rule)
-
-    '''def register(self, rule):
-        self._non_default_rules.append(rule)
-        self._non_default_rules = sorted(
-            self._non_default_rules, key=lambda x: x.priority
-        )'''
 
     @staticmethod
     def cloudformation_name_type():
@@ -258,47 +249,9 @@ class FakeListener(CloudFormationModel):
         port = properties.get("Port")
         ssl_policy = properties.get("SslPolicy")
         certificates = properties.get("Certificates")
-        # transform default actions to confirm with the rest of the code and XML templates
-        if "DefaultActions" in properties:
-            default_actions = []
-            for i, action in enumerate(properties["DefaultActions"]):
-                action_type = action["Type"]
-                if action_type == "forward":
-                    default_actions.append(
-                        {
-                            "type": action_type,
-                            "target_group_arn": action["TargetGroupArn"],
-                        }
-                    )
-                elif action_type in [
-                    "redirect",
-                    "authenticate-cognito",
-                    "fixed-response",
-                ]:
-                    redirect_action = {"type": action_type}
-                    key = (
-                        underscores_to_camelcase(
-                            action_type.capitalize().replace("-", "_")
-                        )
-                        + "Config"
-                    )
-                    for redirect_config_key, redirect_config_value in action[
-                        key
-                    ].items():
-                        # need to match the output of _get_list_prefix
-                        redirect_action[
-                            camelcase_to_underscores(key)
-                            + "._"
-                            + camelcase_to_underscores(redirect_config_key)
-                        ] = redirect_config_value
-                    default_actions.append(redirect_action)
-                else:
-                    raise InvalidActionTypeError(action_type, i + 1)
-        else:
-            default_actions = None
 
         listener = elbv2_backend.create_listener(
-            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
+            load_balancer_arn, protocol, port, ssl_policy, certificates, properties
         )
         return listener
 
@@ -336,14 +289,12 @@ class FakeListenerRule(CloudFormationModel):
         elbv2_backend = elbv2_backends[region_name]
         listener_arn = properties.get("ListenerArn")
         priority = properties.get("Priority")
-        actions = properties.get("Actions")
         conditions = properties.get("Conditions")
 
         listener_rule = elbv2_backend.create_rule(
-            listener_arn, conditions, priority, actions,
+            listener_arn, conditions, priority, properties
         )
         return listener_rule
-
 
 class FakeAction(BaseModel):
     def __init__(self, data):
@@ -582,8 +533,12 @@ class ELBv2Backend(BaseBackend):
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
 
-    def create_rule(self, listener_arn, conditions, priority, actions):
-        actions = [FakeAction(action) for action in actions]
+    def create_rule(self, listener_arn, conditions, priority, properties):
+        # transform actions to confirm with the rest of the code and XML templates
+        transformed_actions = []
+        transformed_actions = self._validate_and_transform_actions("Actions", properties)
+
+        actions = [FakeAction(action) for action in transformed_actions]
         listeners = self.describe_listeners(None, [listener_arn])
         if not listeners:
             raise ListenerNotFoundError()
@@ -591,18 +546,20 @@ class ELBv2Backend(BaseBackend):
 
         # validate conditions
         for condition in conditions:
-            field = condition["Field"]
-            if field not in ["path-pattern", "host-header"]:
-                raise InvalidConditionFieldError(field)
+            if "Field" in condition:
+                field = condition["Field"]
+                if field not in ["http-header", "http-request-method", "host-header", "path-pattern", "query-string", "source-ip"]:
+                    raise InvalidConditionFieldError(field)
 
-            values = condition["Values"]
-            if len(values) == 0:
-                raise InvalidConditionValueError("A condition value must be specified")
-            if len(values) > 128:
-                print(values)
-                raise InvalidConditionValueError(
-                    "The '%s' field contains too many values; the limit is '1'" % field
-                )
+                if field in ["host-header", "path-pattern"] and not "Values" in condition:
+                    InvalidValuesTypeError(field)
+                values = condition["Values"]
+                if len(values) == 0:
+                    raise InvalidConditionValueError("A condition value must be specified")
+                if len(values) > 128:
+                    raise InvalidConditionValueError(
+                        "The '%s' field contains too many values; the limit is '1'" % field
+                    )
 
             # TODO: check pattern of value for 'host-header'
             # TODO: check pattern of value for 'path-pattern'
@@ -611,8 +568,11 @@ class ELBv2Backend(BaseBackend):
         for rule in listener.rules:
             if rule.priority == priority:
                 raise PriorityInUseError()
+            if rule.priority < "1" or rule.priority > "50000":
+                raise PriorityOutOfBoundsError()
 
-        #self._validate_actions(actions) 
+
+        self._validate_actions(actions) 
         arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
             id(self)
         )
@@ -621,7 +581,6 @@ class ELBv2Backend(BaseBackend):
         # TODO: check for error 'TooManyRules'
 
         # create rule
-        print(f'SAHILLLLLLL: {listener_arn}')
         rule = FakeListenerRule(
             listener_arn,
             arn,
@@ -629,9 +588,7 @@ class ELBv2Backend(BaseBackend):
             priority,
             actions,
         )
-        print(f'All values in order: {listener_arn}, {arn}, {conditions}, {priority}, {actions}')
 
-        #listener.register(rule)
         listener.rules[rule.arn] = rule
         return rule
 
@@ -652,8 +609,44 @@ class ELBv2Backend(BaseBackend):
             elif action_type in ["redirect", "authenticate-cognito"]:
                 pass
             else:
-                print(f'I am here: {action_type}')
                 raise InvalidActionTypeError(action_type, index)
+
+    def _validate_and_transform_actions(self, action_property, properties):
+        default_actions = []
+        for i, action in enumerate(properties[action_property]):
+            action_type = action["Type"]
+            if action_type == "forward":
+                default_actions.append(
+                    {
+                        "type": action_type,
+                        "target_group_arn": action["TargetGroupArn"],
+                    }
+                )
+            elif action_type in [
+                "redirect",
+                "authenticate-cognito",
+                "fixed-response",
+            ]:
+                redirect_action = {"type": action_type}
+                key = (
+                    underscores_to_camelcase(
+                        action_type.capitalize().replace("-", "_")
+                    )
+                    + "Config"
+                )
+                for redirect_config_key, redirect_config_value in action[
+                    key
+                ].items():
+                    # need to match the output of _get_list_prefix
+                    redirect_action[
+                        camelcase_to_underscores(key)
+                        + "._"
+                        + camelcase_to_underscores(redirect_config_key)
+                    ] = redirect_config_value
+                default_actions.append(redirect_action)
+            else:
+                raise InvalidActionTypeError(action_type, i + 1)
+        return default_actions
 
     def _validate_fixed_response_action(self, action, i, index):
         status_code = action.data.get("fixed_response_config._status_code")
@@ -754,9 +747,12 @@ Member must satisfy regular expression pattern: {}".format(
         port,
         ssl_policy,
         certificate,
-        default_actions,
+        properties
     ):
-        default_actions = [FakeAction(action) for action in default_actions]
+        # transform actions to confirm with the rest of the code and XML templates
+        transformed_default_actions = []
+        transformed_default_actions = self._validate_and_transform_actions("DefaultActions", properties)
+        default_actions = [FakeAction(action) for action in transformed_default_actions]
         balancer = self.load_balancers.get(load_balancer_arn)
         if balancer is None:
             raise LoadBalancerNotFoundError()

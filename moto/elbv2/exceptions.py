@@ -19,11 +19,13 @@ class LoadBalancerNotFoundError(ELBClientError):
             "LoadBalancerNotFound", "The specified load balancer does not exist."
         )
 
+
 class ListenerNotFoundError(ELBClientError):
     def __init__(self):
         super(ListenerNotFoundError, self).__init__(
             "ListenerNotFound", "The specified listener does not exist."
         )
+
 
 class ActionsNotFoundError(ELBClientError):
     def __init__(self):
@@ -31,17 +33,20 @@ class ActionsNotFoundError(ELBClientError):
             "ActionsNotFound", "The specified listener rule does not have the required Actions property."
         )
 
+
 class ConditionsNotFoundError(ELBClientError):
     def __init__(self):
         super(ConditionsNotFoundError, self).__init__(
             "ConditionsNotFound", "The specified listener rule does not have the required Conditions property."
         )
 
+
 class PriorityNotFoundError(ELBClientError):
     def __init__(self):
         super(PriorityNotFoundError, self).__init__(
             "PriorityNotFound", "The specified listener rule does not have the required Priority property."
         )
+
 
 class SubnetNotFoundError(ELBClientError):
     def __init__(self):
@@ -118,11 +123,27 @@ class PriorityInUseError(ELBClientError):
         )
 
 
+class PriorityOutOfBoundsError(ELBClientError):
+    def __init__(self):
+        super(PriorityOutOfBoundsError, self).__init__(
+            "PriorityOutOfBoundsError", "The specified priority should be within range 1 to 50000"
+        )
+
+
 class InvalidConditionFieldError(ELBClientError):
     def __init__(self, invalid_name):
         super(InvalidConditionFieldError, self).__init__(
             "ValidationError",
-            "Condition field '%s' must be one of '[path-pattern, host-header]"
+            "Condition field '%s' must be one of '[http-header, http-request-method, host-header, path-pattern, query-string, source-ip]"
+            % (invalid_name),
+        )
+
+
+class InvalidValuesTypeError(ELBClientError):
+    def __init__(self, invalid_name):
+        super(InvalidValuesTypeError, self).__init__(
+            "ValidationError",
+            "Condition values '%s' If Field value is: host-header or path-pattern, Values property must exist"
             % (invalid_name),
         )
 
