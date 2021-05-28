@@ -534,9 +534,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
                 result = container.wait()
                 if self.stop or result["StatusCode"] != 0:
-                    self.job_state = "FAILED"
+                    self._mark_stopped(success=False)
                 else:
-                    self.job_state = "SUCCEEDED"
+                    self._mark_stopped(success=True)
 
             except Exception as err:
                 logger.error(
@@ -544,7 +544,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                         self.name, err
                     )
                 )
-                self.job_state = "FAILED"
+                self._mark_stopped(success=False)
                 container.kill()
             finally:
                 container.remove()
@@ -554,10 +554,14 @@ class Job(threading.Thread, BaseModel, DockerModel):
                     self.name, err
                 )
             )
-            self.job_state = "FAILED"
+            self._mark_stopped(success=False)
 
+    def _mark_stopped(self, success=True):
+        # Ensure that job_stopped/job_stopped_at-attributes are set first
+        # The describe-method needs them immediately when job_state is set
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
+        self.job_state = "SUCCEEDED" if success else "FAILED"
 
     def terminate(self, reason):
         if not self.stop:
@@ -579,9 +583,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                                 self.name, dependent_job.name
                             )
                         )
-                        self.job_state = "FAILED"
-                        self.job_stopped = True
-                        self.job_stopped_at = datetime.datetime.now()
+                        self._mark_stopped(success=False)
                         return False
 
             time.sleep(1)
