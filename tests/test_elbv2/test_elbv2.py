@@ -1843,11 +1843,9 @@ def test_fixed_response_action_listener_rule():
     listener = response.get("Listeners")[0]
     listener.get("DefaultActions")[0].should.equal(action)
     listener_arn = listener.get("ListenerArn")
-    print(f"\n\n{listener_arn}")
 
     describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
-    print(describe_rules_response)
-    describe_rules_response["Rules"][0]["Actions"].should.equal(action)
+    describe_rules_response["Rules"][0]["Actions"][0].should.equal(action)
 
     describe_listener_response = conn.describe_listeners(ListenerArns=[listener_arn])
     describe_listener_actions = describe_listener_response["Listeners"][0][

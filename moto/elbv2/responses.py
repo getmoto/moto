@@ -284,8 +284,9 @@ class ELBV2Response(BaseResponse):
 
         if len(all_rules) > start + page_size:
             next_marker = rules_resp[-1].arn
+
         template = self.response_template(DESCRIBE_RULES_TEMPLATE)
-        return template.render(rules=rules_resp, marker=next_marker)
+        return template.render(rules=all_rules, marker=next_marker)
 
     @amzn_request_id
     def describe_target_groups(self):
@@ -351,6 +352,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def modify_rule(self):
+        print(f'GOTTTTHEREEEEEEEE')
         rule_arn = self._get_param("RuleArn")
         _conditions = self._get_list_prefix("Conditions.member")
         conditions = []
@@ -905,7 +907,12 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
-           {{ condition.to_xml() }}
+            <Field>{{ condition["Field"] }}</Field>
+            <Values>
+              {% for value in condition["Values"] %}
+              <member>{{ value }}</member>
+              {% endfor %}
+            </Values>
           </member>
           {% endfor %}
         </Conditions>

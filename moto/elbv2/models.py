@@ -24,14 +24,13 @@ from .exceptions import (
     ListenerNotFoundError,
     ActionsNotFoundError,
     ConditionsNotFoundError,
-    InvalidFieldTypeError,
-    InvalidValuesTypeError,
     PriorityNotFoundError,
     LoadBalancerNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
     TooManyTagsError,
     PriorityInUseError,
+    InvalidConditionFieldError,
     InvalidConditionValueError,
     InvalidActionTypeError,
     ActionTargetGroupNotFoundError,
@@ -339,36 +338,9 @@ class FakeListenerRule(CloudFormationModel):
         priority = properties.get("Priority")
         actions = properties.get("Actions")
         conditions = properties.get("Conditions")
-        # transform Conditions  to confirm with the rest of the code and XML templates
-        conditions_list = []
-        for i, rule_condition in enumerate(properties["Conditions"]):
-            print(rule_condition)
-            if "Field" in rule_condition:
-                print("HEREEEE\n")
-                conditions_field = rule_condition["Field"]
-                print(conditions_field)
-                if conditions_field in ["http-header", "http-request-method", "host-header", "path-pattern", "query-string", "source-ip"]:
-                    conditions_list.append(
-                        {
-                            "field": conditions_field,
-                        }
-                    )
-                else:
-                    InvalidFieldTypeError(conditions_fields, i + 1)
-                if conditions_field in ["host-header", "path-pattern"] and not "Values" in rule_condition:
-                    InvalidValuesTypeError(conditions_field, i + 1)
-                else:
-                    conditions_values = rule_condition["Values"]
-                    if len(conditions_values) == 0:
-                        raise InvalidConditionValueError("A condition value must be specified")
-                    conditions_list.append(
-                        {
-                            "values": conditions_values
-                        }
-                    )
 
         listener_rule = elbv2_backend.create_rule(
-            listener_arn, conditions_list, priority, actions,
+            listener_arn, conditions, priority, actions,
         )
         return listener_rule
 
@@ -617,9 +589,23 @@ class ELBv2Backend(BaseBackend):
             raise ListenerNotFoundError()
         listener = listeners[0]
 
+        # validate conditions
+        for condition in conditions:
+            field = condition["Field"]
+            if field not in ["path-pattern", "host-header"]:
+                raise InvalidConditionFieldError(field)
 
-        # TODO: check pattern of value for 'host-header'
-        # TODO: check pattern of value for 'path-pattern'
+            values = condition["Values"]
+            if len(values) == 0:
+                raise InvalidConditionValueError("A condition value must be specified")
+            if len(values) > 128:
+                print(values)
+                raise InvalidConditionValueError(
+                    "The '%s' field contains too many values; the limit is '1'" % field
+                )
+
+            # TODO: check pattern of value for 'host-header'
+            # TODO: check pattern of value for 'path-pattern'
 
         # validate Priority
         for rule in listener.rules:
@@ -635,6 +621,7 @@ class ELBv2Backend(BaseBackend):
         # TODO: check for error 'TooManyRules'
 
         # create rule
+        print(f'SAHILLLLLLL: {listener_arn}')
         rule = FakeListenerRule(
             listener_arn,
             arn,
@@ -642,7 +629,9 @@ class ELBv2Backend(BaseBackend):
             priority,
             actions,
         )
+        print(f'All values in order: {listener_arn}, {arn}, {conditions}, {priority}, {actions}')
 
+        #listener.register(rule)
         listener.rules[rule.arn] = rule
         return rule
 
@@ -663,6 +652,7 @@ class ELBv2Backend(BaseBackend):
             elif action_type in ["redirect", "authenticate-cognito"]:
                 pass
             else:
+                print(f'I am here: {action_type}')
                 raise InvalidActionTypeError(action_type, index)
 
     def _validate_fixed_response_action(self, action, i, index):

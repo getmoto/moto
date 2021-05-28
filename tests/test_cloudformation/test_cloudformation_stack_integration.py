@@ -2333,7 +2333,6 @@ def test_stack_elbv2_resources_integration():
     listener_rule = elbv2_conn.describe_rules(
         ListenerArn=listeners[0]["ListenerArn"]
     )["Rules"]
-    print(listener_rule)
     len(listener_rule).should.equal(1)
     listener_rule[0]["ListenerArn"].should.equal(listeners[0]["ListenerArn"])
     listener_rule[0]["Priority"].should.equal("2")

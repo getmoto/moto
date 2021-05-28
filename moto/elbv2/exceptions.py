@@ -19,13 +19,11 @@ class LoadBalancerNotFoundError(ELBClientError):
             "LoadBalancerNotFound", "The specified load balancer does not exist."
         )
 
-
 class ListenerNotFoundError(ELBClientError):
     def __init__(self):
         super(ListenerNotFoundError, self).__init__(
             "ListenerNotFound", "The specified listener does not exist."
         )
-
 
 class ActionsNotFoundError(ELBClientError):
     def __init__(self):
@@ -33,20 +31,17 @@ class ActionsNotFoundError(ELBClientError):
             "ActionsNotFound", "The specified listener rule does not have the required Actions property."
         )
 
-
 class ConditionsNotFoundError(ELBClientError):
     def __init__(self):
         super(ConditionsNotFoundError, self).__init__(
             "ConditionsNotFound", "The specified listener rule does not have the required Conditions property."
         )
 
-
 class PriorityNotFoundError(ELBClientError):
     def __init__(self):
         super(PriorityNotFoundError, self).__init__(
             "PriorityNotFound", "The specified listener rule does not have the required Priority property."
         )
-
 
 class SubnetNotFoundError(ELBClientError):
     def __init__(self):
@@ -123,6 +118,15 @@ class PriorityInUseError(ELBClientError):
         )
 
 
+class InvalidConditionFieldError(ELBClientError):
+    def __init__(self, invalid_name):
+        super(InvalidConditionFieldError, self).__init__(
+            "ValidationError",
+            "Condition field '%s' must be one of '[path-pattern, host-header]"
+            % (invalid_name),
+        )
+
+
 class InvalidConditionValueError(ELBClientError):
     def __init__(self, msg):
         super(InvalidConditionValueError, self).__init__("ValidationError", msg)
@@ -133,23 +137,6 @@ class InvalidActionTypeError(ELBClientError):
         super(InvalidActionTypeError, self).__init__(
             "ValidationError",
             "1 validation error detected: Value '%s' at 'actions.%s.member.type' failed to satisfy constraint: Member must satisfy enum value set: [forward, redirect, fixed-response]"
-            % (invalid_name, index),
-        )
-
-class InvalidFieldTypeError(ELBClientError):
-    def __init__(self, invalid_name, index):
-        super(InvalidFieldTypeError, self).__init__(
-            "ValidationError",
-            "1 validation error detected: Value '%s' at 'actions.%s.member.type' failed to satisfy constraint: Member must satisfy enum value set: [http-header, http-request-method, host-header, path-pattern, query-string, source-ip]"
-            % (invalid_name, index),
-        )
-
-
-class InvalidValuesTypeError(ELBClientError):
-    def __init__(self, invalid_name, index):
-        super(InvalidValuesTypeError, self).__init__(
-            "ValidationError",
-            "1 validation error detected: Value '%s' at 'actions.%s.member.type' failed to satisfy constraint: If Field value is: host-header or path-pattern, Values property must exist"
             % (invalid_name, index),
         )
 
