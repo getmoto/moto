@@ -151,7 +151,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_rule(self):
-        lister_arn = self._get_param("ListenerArn")
+        listener_arn = self._get_param("ListenerArn")
         _conditions = self._get_list_prefix("Conditions.member")
         conditions = []
         for _condition in _conditions:
@@ -166,7 +166,7 @@ class ELBV2Response(BaseResponse):
         priority = self._get_int_param("Priority")
         actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.create_rule(
-            listener_arn=lister_arn,
+            listener_arn=listener_arn,
             conditions=conditions,
             priority=priority,
             actions=actions,
@@ -259,7 +259,6 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def describe_rules(self):
         listener_arn = self._get_param("ListenerArn")
-        print(f'listener_arn in describe_rules: {listener_arn}')
         rule_arns = (
             self._get_multi_param("RuleArns.member")
             if any(
@@ -269,51 +268,15 @@ class ELBV2Response(BaseResponse):
             )
             else None
         )
-        print(f'listener_arn is: {listener_arn} and rule_arns is: {rule_arns}')
         all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
-        print(f'all rules: {all_rules}')
-        for rule in all_rules:
-            print(f'\nRULLLLEEEEEEEEE: {rule}')
-        all_arns = [rule for rule in all_rules]
-        page_size = self._get_int_param("PageSize", 50)  # set 50 for temporary
-
-        marker = self._get_param("Marker")
-        if marker:
-            start = all_arns.index(marker) + 1
-        else:
-            start = 0
-        print(f'start: {start} and {page_size}')
-        rules_resp = all_rules#[start : start + page_size]
-        next_marker = None
-
-        if len(all_rules) > start + page_size:
-            next_marker = rules_resp[-1].arn
-        template = self.response_template(DESCRIBE_RULES_TEMPLATE)
-        print(f'\nCheck this: {rules_resp}')
-        return template.render(rules=rules_resp, marker=next_marker)
-
-    '''@amzn_request_id
-    def describe_rules(self):
-        listener_arn = self._get_param("ListenerArn")
-
-        rule_arns = (
-            self._get_multi_param("RuleArns.member")
-            if any(
-                k
-                for k in list(self.querystring.keys())
-                if k.startswith("RuleArns.member")
-            )
-            else None
-        )
-
-        if not listener_arn and not rule_arns:
-            raise LoadBalancerNotFoundError()
-
-        all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
+        for h in all_rules:
+            print(f'hhhhhhhhhh: {h.listener_arn}')
+        # ----------------- for abc in all_rules: abc.priority is right--------------------
 
         template = self.response_template(DESCRIBE_RULES_TEMPLATE)
-
-        return template.render(rules=all_rules)'''
+        a = template.render(rules=all_rules)
+        print(a)
+        return a
 
     @amzn_request_id
     def describe_target_groups(self):
@@ -349,8 +312,10 @@ class ELBV2Response(BaseResponse):
         listeners = self.elbv2_backend.describe_listeners(
             load_balancer_arn, listener_arns
         )
-        print(f'isteners is: {listeners} nowww')
+        print(f'isteners is: {listeners} nowww annd type: {type(listeners)}')
         template = self.response_template(DESCRIBE_LISTENERS_TEMPLATE)
+        for listener in listeners:
+            print(f'listener odict values: {listener.load_balancer_arn}')
         return template.render(listeners=listeners)
 
     @amzn_request_id
@@ -756,7 +721,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
     <Rules>
       {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
@@ -770,6 +735,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Conditions>
         <Priority>{{ rule.priority }}</Priority>
+        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Actions>
           {% for action in rule.actions %}
           <member>
@@ -932,13 +898,13 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
     <Rules>
       {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
@@ -957,9 +923,6 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
       </member>
       {% endfor %}
     </Rules>
-    {% if marker %}
-    <NextMarker>{{ marker }}</NextMarker>
-    {% endif %}
   </DescribeRulesResult>
   <ResponseMetadata>
     <RequestId>{{ request_id }}</RequestId>
@@ -1074,7 +1037,7 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
     <Rules>
       {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
@@ -1088,6 +1051,7 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Conditions>
         <Priority>{{ rule.priority }}</Priority>
+        <ListenerArn>{{ rule.listener_arn }}</ListenerArn>
         <Actions>
           {% for action in rule.actions %}
           <member>

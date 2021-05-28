@@ -621,6 +621,7 @@ class ELBv2Backend(BaseBackend):
         # TODO: check for error 'TooManyRules'
 
         # create rule
+        print(f'SAHILLLLLLL: {listener_arn}')
         rule = FakeListenerRule(
             listener_arn,
             arn,
@@ -628,6 +629,7 @@ class ELBv2Backend(BaseBackend):
             priority,
             actions,
         )
+        print(f'All values in order: {listener_arn}, {arn}, {conditions}, {priority}, {actions}')
 
         #listener.register(rule)
         listener.rules[rule.arn] = rule
@@ -829,10 +831,7 @@ Member must satisfy regular expression pattern: {}".format(
             )
         if listener_arn:
             listener = self.describe_listeners(None, [listener_arn])[0]
-            #print({listener})
-            #print(f'the other describe_rule: {listener.rules.values()}')
-            print(type(listener.rules.values()))
-            return [listener.rules.values()]
+            return listener.rules.values()
 
         # search for rule arns
         matched_rules = []
@@ -877,7 +876,6 @@ Member must satisfy regular expression pattern: {}".format(
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()
-            print(f'in LiStNeRs: {self.load_balancers.get(load_balancer_arn).listeners.values()}')
             return self.load_balancers.get(load_balancer_arn).listeners.values()
 
         matched = []
