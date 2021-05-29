@@ -179,7 +179,7 @@ class MetricDatum(BaseModel):
         ]
         self.unit = unit
 
-    def filter(self, namespace, name, dimensions, already_present_metrics):
+    def filter(self, namespace, name, dimensions, already_present_metrics=[]):
         if namespace and namespace != self.namespace:
             return False
         if name and name != self.name:
@@ -455,7 +455,7 @@ class CloudWatchBackend(BaseBackend):
         return results
 
     def get_metric_statistics(
-        self, namespace, metric_name, start_time, end_time, period, stats, unit=None
+        self, namespace, metric_name, start_time, end_time, period, stats, unit=None, dimensions=None
     ):
         period_delta = timedelta(seconds=period)
         filtered_data = [
@@ -468,6 +468,8 @@ class CloudWatchBackend(BaseBackend):
 
         if unit:
             filtered_data = [md for md in filtered_data if md.unit == unit]
+        if dimensions:
+            filtered_data = [md for md in filtered_data if md.filter(None, None, dimensions)]
 
         # earliest to oldest
         filtered_data = sorted(filtered_data, key=lambda x: x.timestamp)

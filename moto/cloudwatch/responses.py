@@ -145,12 +145,12 @@ class CloudWatchResponse(BaseResponse):
         end_time = dtparse(self._get_param("EndTime"))
         period = int(self._get_param("Period"))
         statistics = self._get_multi_param("Statistics.member")
+        dimensions = self._get_multi_param("Dimensions.member")
 
         # Unsupported Parameters (To Be Implemented)
         unit = self._get_param("Unit")
         extended_statistics = self._get_param("ExtendedStatistics")
-        dimensions = self._get_param("Dimensions")
-        if extended_statistics or dimensions:
+        if extended_statistics:
             raise NotImplementedError()
 
         # TODO: this should instead throw InvalidParameterCombination
@@ -160,7 +160,7 @@ class CloudWatchResponse(BaseResponse):
             )
 
         datapoints = self.cloudwatch_backend.get_metric_statistics(
-            namespace, metric_name, start_time, end_time, period, statistics, unit
+            namespace, metric_name, start_time, end_time, period, statistics, unit, dimensions=dimensions
         )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
