@@ -42,6 +42,29 @@ class InstanceState(object):
         self.protected_from_scale_in = protected_from_scale_in
 
 
+class FakeLifeCycleHook(BaseModel):
+    def __init__(
+        self,
+        name,
+        as_name,
+        transition,
+        timeout,
+        result,
+    ):
+        self.name = name
+        self.as_name = as_name
+        if transition:
+            self.transition = transition
+        if timeout:
+            self.timeout = timeout
+        else:
+            self.timeout = 3600
+        if result:
+            self.result = result
+        else:
+            self.result = 'ABANDON'
+
+
 class FakeScalingPolicy(BaseModel):
     def __init__(
         self,
@@ -589,6 +612,7 @@ class AutoScalingBackend(BaseBackend):
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
         self.policies = {}
+        self.lifecycle_hooks = {}
         self.ec2_backend = ec2_backend
         self.elb_backend = elb_backend
         self.elbv2_backend = elbv2_backend
@@ -892,6 +916,32 @@ class AutoScalingBackend(BaseBackend):
         else:
             desired_capacity = int(desired_capacity)
         self.set_desired_capacity(group_name, desired_capacity)
+
+    def create_lifecycle_hook(
+        self, name, as_name, transition, timeout, result
+    ):
+        lifecycle_hook = FakeLifeCycleHook(
+            name,
+            as_name,
+            transition,
+            timeout,
+            result,
+        )
+
+        self.lifecycle_hooks[name] = lifecycle_hook
+        return lifecycle_hook
+
+    def describe_lifecycle_hooks(
+        self, autoscaling_group_name=None, lifecycle_hook_names=None):
+        return [
+            lifecycle_hook
+            for lifecycle_hook in self.lifecycle_hooks.values()
+            if (not autoscaling_group_name or lifecycle_hook.as_name == autoscaling_group_name)
+            and (not lifecycle_hook_names or lifecycle_hook.name in lifecycle_hook_names)
+        ]
+
+    def delete_lifecycle_hook(self, group_name):
+        self.lifecycle_hooks.pop(group_name, None)
 
     def create_autoscaling_policy(
         self, name, policy_type, adjustment_type, as_name, scaling_adjustment, cooldown
