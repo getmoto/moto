@@ -35,11 +35,14 @@ class InstanceState(object):
         lifecycle_state="InService",
         health_status="Healthy",
         protected_from_scale_in=False,
+        autoscaling_group=None,
     ):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
         self.health_status = health_status
         self.protected_from_scale_in = protected_from_scale_in
+        if not hasattr(self.instance, "autoscaling_group"):
+            self.instance.autoscaling_group = autoscaling_group
 
 
 class FakeScalingPolicy(BaseModel):
@@ -821,6 +824,7 @@ class AutoScalingBackend(BaseBackend):
                 InstanceState(
                     self.ec2_backend.get_instance(x),
                     protected_from_scale_in=group.new_instances_protected_from_scale_in,
+                    autoscaling_group=group,
                 )
                 for x in instance_ids
             ]
