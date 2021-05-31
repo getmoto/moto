@@ -17,7 +17,7 @@ class WAFV2Backend(BaseBackend):
     def __init__(self, region_name=None):
         super(WAFV2Backend, self).__init__()
         self.region_name = region_name
-        self.wacls = [WebACL("first-mock-webacl"), WebACL('second-mock-webacl')]
+        self.wacls = [WebACL("first-mock-webacl"), WebACL("second-mock-webacl")]
 
     def reset(self):
         region_name = self.region_name
@@ -48,7 +48,7 @@ class WebACL(BaseModel):
             "ARN": self.ARN,
             "Capacity": self.Capacity,
             "Description": self.Description,
-            "VisibilityConfig": self.VisibilityConfig.__dict__
+            "VisibilityConfig": self.VisibilityConfig.__dict__,
         }
 
 
@@ -63,4 +63,4 @@ class VisibilityConfig(BaseModel):
         self.MetricName = metric_name
 
 
-wafv2_backends = {'global': WAFV2Backend(GLOBAL_REGION)}
+wafv2_backends = {"global": WAFV2Backend(GLOBAL_REGION)}
