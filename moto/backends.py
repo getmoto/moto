@@ -82,6 +82,7 @@ BACKENDS = {
     "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
     "mediapackage": ("mediapackage", "mediapackage_backends"),
     "mediastore": ("mediastore", "mediastore_backends"),
+    "wafv2": ("wafv2", "wafv2_backends"),
 }
 
 
