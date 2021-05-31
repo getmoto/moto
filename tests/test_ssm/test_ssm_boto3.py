@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ec2, mock_ssm
+from moto.ssm.models import PARAMETER_VERSION_LIMIT
 from tests import EXAMPLE_AMI_ID
 
 
@@ -1755,3 +1756,56 @@ def test_get_command_invocations_by_instance_tag():
     for instance_id in instance_ids:
         resp = ssm.get_command_invocation(CommandId=command_id, InstanceId=instance_id)
         resp["Status"].should.equal("Success")
+
+
+@mock_ssm
+def test_parameter_version_limit():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    for i in range(PARAMETER_VERSION_LIMIT + 1):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+
+    paginator = client.get_paginator("get_parameter_history")
+    page_iterator = paginator.paginate(Name=parameter_name)
+    parameter_history = list(
+        item for page in page_iterator for item in page["Parameters"]
+    )
+
+    len(parameter_history).should.equal(PARAMETER_VERSION_LIMIT)
+    parameter_history[0]["Value"].should.equal("value-2")
+    latest_version_index = PARAMETER_VERSION_LIMIT - 1
+    latest_version_value = "value-%d" % (PARAMETER_VERSION_LIMIT + 1)
+    parameter_history[latest_version_index]["Value"].should.equal(latest_version_value)
+
+
+@mock_ssm
+def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_label():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    for i in range(PARAMETER_VERSION_LIMIT):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+    client.label_parameter_version(
+        Name=parameter_name, ParameterVersion=1, Labels=["test-label"]
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.put_parameter(
+            Name=parameter_name, Value="new-value", Type="String", Overwrite=True,
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ParameterMaxVersionLimitExceeded")
+    error["Message"].should.contain(parameter_name)
+    error["Message"].should.contain("Version 1")
+    error["Message"].should.match(
+        r"the oldest version, can't be deleted because it has a label associated with it. Move the label to another version of the parameter, and try again."
+    )

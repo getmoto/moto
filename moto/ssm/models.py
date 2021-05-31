@@ -34,6 +34,7 @@ from .exceptions import (
     InvalidDocumentVersion,
     DuplicateDocumentVersionName,
     DuplicateDocumentContent,
+    ParameterMaxVersionLimitExceeded,
 )
 
 
@@ -90,6 +91,9 @@ class ParameterDict(defaultdict):
             if "/" in param_name[len(path) + 1 :] and not recursive:
                 continue
             yield param_name
+
+
+PARAMETER_VERSION_LIMIT = 100
 
 
 class Parameter(BaseModel):
@@ -1333,6 +1337,18 @@ class SimpleSystemManagerBackend(BaseBackend):
                         parameter.labels.remove(label)
         return [invalid_labels, version]
 
+    def _check_for_parameter_version_limit_exception(self, name):
+        # https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html
+        parameter_versions = self._parameters[name]
+        oldest_parameter = parameter_versions[0]
+        if oldest_parameter.labels:
+            raise ParameterMaxVersionLimitExceeded(
+                "You attempted to create a new version of %s by calling the PutParameter API "
+                "with the overwrite flag. Version %d, the oldest version, can't be deleted "
+                "because it has a label associated with it. Move the label to another version "
+                "of the parameter, and try again." % (name, oldest_parameter.version)
+            )
+
     def put_parameter(
         self, name, description, value, type, allowed_pattern, keyid, overwrite, tags,
     ):
@@ -1368,6 +1384,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
             if not overwrite:
                 return
+
+            if len(previous_parameter_versions) >= PARAMETER_VERSION_LIMIT:
+                self._check_for_parameter_version_limit_exception(name)
+                previous_parameter_versions.pop(0)
 
         last_modified_date = time.time()
         self._parameters[name].append(
