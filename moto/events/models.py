@@ -542,16 +542,23 @@ class Replay(BaseModel):
         self.end_time = unix_time(datetime.utcnow())
 
 
-class Connections(BaseModel):
+class Connection(BaseModel):
     def __init__(
-        self, name, description, authorization_type, auth_parameters,
+        self, name, region_name, description, authorization_type, auth_parameters,
     ):
         self.name = name
+        self.region = (region_name,)
         self.description = description
         self.authorization_type = authorization_type
         self.auth_parameters = auth_parameters
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "CREATING"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:connection/{2}".format(
+            self.region[0], ACCOUNT_ID, self.name
+        )
 
 
 class EventPattern:
@@ -816,7 +823,6 @@ class EventsBackend(BaseBackend):
             raise ValidationException(
                 "ScheduleExpression is supported only on the default event bus."
             )
-
         if name in self.rules:
             self.update_rule(self.rules[name], **kwargs)
             new_rule = self.rules[name]
@@ -1296,12 +1302,14 @@ class EventsBackend(BaseBackend):
         return {"ReplayArn": replay.arn, "State": ReplayState.CANCELLING.value}
 
     def create_connection(self, name, description, authorization_type, auth_parameters):
-        connection = Connections(name, description, authorization_type, auth_parameters)
+        connection = Connection(
+            name, self.region_name, description, authorization_type, auth_parameters
+        )
         self.connections[name] = connection
         return connection
 
     def list_connections(self):
-        return self.connections
+        return self.connections.values()
 
 
 events_backends = {}

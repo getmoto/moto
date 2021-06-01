@@ -2138,3 +2138,28 @@ def test_start_replay_send_to_log_group():
     event_replay["resources"].should.be.empty
     event_replay["detail"].should.equal({"key": "value"})
     event_replay["replay-name"].should.equal("test-replay")
+
+
+@mock_events
+def test_create_and_list_connections():
+    client = boto3.client("events", "eu-central-1")
+    response = client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    assert (
+        response.get("ConnectionArn")
+        == "arn:aws:events:eu-central-1:000000000000:connection/test"
+    )
+
+    response = client.list_connections()
+
+    assert (
+        response[0].get("ConnectionArn")
+        == "arn:aws:events:eu-central-1:000000000000:connection/test"
+    )

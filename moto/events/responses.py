@@ -430,7 +430,7 @@ class EventsHandler(BaseResponse):
         return (
             json.dumps(
                 {
-                    "ConnectionArn": result,
+                    "ConnectionArn": result.arn,
                     "ConnectionState": "CREATING",
                     "CreationTime": result.creation_time,
                     "LastModifiedTime": result.creation_time,
@@ -438,3 +438,19 @@ class EventsHandler(BaseResponse):
             ),
             self.response_headers,
         )
+
+    def list_connections(self):
+        connections = self.events_backend.list_connections()
+        result = []
+        for connection in connections:
+            result.append(
+                {
+                    "ConnectionArn": connection.arn,
+                    "ConnectionState": "CREATING",
+                    "CreationTime": connection.creation_time,
+                    "LastModifiedTime": connection.creation_time,
+                    "AuthorizationType": connection.authorization_type,
+                }
+            )
+
+        return json.dumps(result), self.response_headers
