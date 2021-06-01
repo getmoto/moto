@@ -542,6 +542,18 @@ class Replay(BaseModel):
         self.end_time = unix_time(datetime.utcnow())
 
 
+class Connections(BaseModel):
+    def __init__(
+        self, name, description, authorization_type, auth_parameters,
+    ):
+        self.name = name
+        self.description = description
+        self.authorization_type = authorization_type
+        self.auth_parameters = auth_parameters
+        self.creation_time = unix_time(datetime.utcnow())
+        self.state = "CREATING"
+
+
 class EventPattern:
     def __init__(self, filter):
         self._filter = self._load_event_pattern(filter)
@@ -649,6 +661,7 @@ class EventsBackend(BaseBackend):
         self.tagger = TaggingService()
 
         self._add_default_event_bus()
+        self.connections = {}
 
     def reset(self):
         region_name = self.region_name
@@ -1281,6 +1294,14 @@ class EventsBackend(BaseBackend):
         replay.state = ReplayState.CANCELLED
 
         return {"ReplayArn": replay.arn, "State": ReplayState.CANCELLING.value}
+
+    def create_connection(self, name, description, authorization_type, auth_parameters):
+        connection = Connections(name, description, authorization_type, auth_parameters)
+        self.connections[name] = connection
+        return connection
+
+    def list_connections(self):
+        return self.connections
 
 
 events_backends = {}

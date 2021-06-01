@@ -409,3 +409,32 @@ class EventsHandler(BaseResponse):
         result = self.events_backend.cancel_replay(name)
 
         return json.dumps(result), self.response_headers
+
+    def create_connection(self):
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        authorization_type = self._get_param("AuthorizationType")
+        auth_parameters = self._get_param("AuthParameters")
+
+        if authorization_type != "API_KEY":
+            raise NotImplementedError(
+                "EventsBridge with authorization_type {0} is not yet implemented".format(
+                    authorization_type
+                )
+            )
+
+        result = self.events_backend.create_connection(
+            name, description, authorization_type, auth_parameters
+        )
+
+        return (
+            json.dumps(
+                {
+                    "ConnectionArn": result,
+                    "ConnectionState": "CREATING",
+                    "CreationTime": result.creation_time,
+                    "LastModifiedTime": result.creation_time,
+                }
+            ),
+            self.response_headers,
+        )
