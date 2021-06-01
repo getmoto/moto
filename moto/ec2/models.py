@@ -612,9 +612,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         snapshot_id=None,
         encrypted=False,
         delete_on_termination=False,
+        kms_key_id=None,
     ):
         volume = self.ec2_backend.create_volume(
-            size, self.region_name, snapshot_id, encrypted
+            size, self.region_name, snapshot_id, encrypted, kms_key_id
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination
@@ -967,6 +968,7 @@ class InstanceBackend(object):
 
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get("instance", {})
+        volume_tags = tags.get("volume", {})
 
         for index in range(count):
             kwargs["ami_launch_index"] = index
@@ -984,15 +986,22 @@ class InstanceBackend(object):
                     delete_on_termination = block_device["Ebs"].get(
                         "DeleteOnTermination", False
                     )
+                    kms_key_id = block_device["Ebs"].get("KmsKeyId")
                     new_instance.add_block_device(
                         volume_size,
                         device_name,
                         snapshot_id,
                         encrypted,
                         delete_on_termination,
+                        kms_key_id,
                     )
             else:
                 new_instance.setup_defaults()
+            # Tag all created volumes.
+            for _, device in new_instance.get_block_device_mapping:
+                volumes = self.describe_volumes(volume_ids=[device.volume_id])
+                for volume in volumes:
+                    volume.add_tags(volume_tags)
 
         return new_reservation
 

@@ -39,6 +39,34 @@ class APIGatewayResponse(BaseResponse):
     def backend(self):
         return apigateway_backends[self.region]
 
+    def __validate_api_key_source(self, api_key_source):
+        if api_key_source and api_key_source not in API_KEY_SOURCES:
+            return self.error(
+                "ValidationException",
+                (
+                    "1 validation error detected: "
+                    "Value '{api_key_source}' at 'createRestApiInput.apiKeySource' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "[AUTHORIZER, HEADER]"
+                ).format(api_key_source=api_key_source),
+            )
+
+    def __validate_endpoint_configuration(self, endpoint_configuration):
+        if endpoint_configuration and "types" in endpoint_configuration:
+            invalid_types = list(
+                set(endpoint_configuration["types"]) - set(ENDPOINT_CONFIGURATION_TYPES)
+            )
+            if invalid_types:
+                return self.error(
+                    "ValidationException",
+                    (
+                        "1 validation error detected: Value '{endpoint_type}' "
+                        "at 'createRestApiInput.endpointConfiguration.types' failed "
+                        "to satisfy constraint: Member must satisfy enum value set: "
+                        "[PRIVATE, EDGE, REGIONAL]"
+                    ).format(endpoint_type=invalid_types[0]),
+                )
+
     def restapis(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -54,32 +82,13 @@ class APIGatewayResponse(BaseResponse):
             policy = self._get_param("policy")
 
             # Param validation
-            if api_key_source and api_key_source not in API_KEY_SOURCES:
-                return self.error(
-                    "ValidationException",
-                    (
-                        "1 validation error detected: "
-                        "Value '{api_key_source}' at 'createRestApiInput.apiKeySource' failed "
-                        "to satisfy constraint: Member must satisfy enum value set: "
-                        "[AUTHORIZER, HEADER]"
-                    ).format(api_key_source=api_key_source),
-                )
+            response = self.__validate_api_key_source(api_key_source)
+            if response is not None:
+                return response
 
-            if endpoint_configuration and "types" in endpoint_configuration:
-                invalid_types = list(
-                    set(endpoint_configuration["types"])
-                    - set(ENDPOINT_CONFIGURATION_TYPES)
-                )
-                if invalid_types:
-                    return self.error(
-                        "ValidationException",
-                        (
-                            "1 validation error detected: Value '{endpoint_type}' "
-                            "at 'createRestApiInput.endpointConfiguration.types' failed "
-                            "to satisfy constraint: Member must satisfy enum value set: "
-                            "[PRIVATE, EDGE, REGIONAL]"
-                        ).format(endpoint_type=invalid_types[0]),
-                    )
+            response = self.__validate_endpoint_configuration(endpoint_configuration)
+            if response is not None:
+                return response
 
             rest_api = self.backend.create_rest_api(
                 name,
@@ -91,16 +100,38 @@ class APIGatewayResponse(BaseResponse):
             )
             return 200, {}, json.dumps(rest_api.to_dict())
 
+    def __validte_rest_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if "apiKeySource" in path:
+                return self.__validate_api_key_source(value)
+
     def restapis_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
         if self.method == "GET":
             rest_api = self.backend.get_rest_api(function_id)
-            return 200, {}, json.dumps(rest_api.to_dict())
         elif self.method == "DELETE":
             rest_api = self.backend.delete_rest_api(function_id)
-            return 200, {}, json.dumps(rest_api.to_dict())
+        elif self.method == "PATCH":
+            patch_operations = self._get_param("patchOperations")
+            response = self.__validte_rest_patch_operations(patch_operations)
+            if response is not None:
+                return response
+            try:
+                rest_api = self.backend.update_rest_api(function_id, patch_operations)
+            except RestAPINotFound as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
+
+        return 200, {}, json.dumps(rest_api.to_dict())
 
     def resources(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

@@ -801,6 +801,41 @@ def test_send_receive_message_with_attributes_with_labels():
 
 
 @mock_sqs
+def test_change_message_visibility_than_permitted():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+
+    with freeze_time("2015-01-01 12:00:00"):
+        conn.create_queue(QueueName="test-queue-visibility")
+        queue = sqs.Queue("test-queue-visibility")
+        queue.send_message(MessageBody="derp")
+        messages = conn.receive_message(QueueUrl=queue.url)
+        messages.get("Messages").should.have.length_of(1)
+
+        conn.change_message_visibility(
+            QueueUrl=queue.url,
+            ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
+            VisibilityTimeout=360,
+        )
+
+    with freeze_time("2015-01-01 12:05:00"):
+
+        with pytest.raises(ClientError) as err:
+            conn.change_message_visibility(
+                QueueUrl=queue.url,
+                ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
+                VisibilityTimeout=43200,
+            )
+
+        ex = err.value
+        ex.operation_name.should.equal("ChangeMessageVisibility")
+        ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
+
+
+@mock_sqs
 def test_send_receive_message_timestamps():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -1869,7 +1904,7 @@ def test_batch_change_message_visibility():
             {
                 "Id": str(uuid.uuid4()),
                 "ReceiptHandle": handle,
-                "VisibilityTimeout": 43200,
+                "VisibilityTimeout": 43000,
             }
             for handle in handles
         ]

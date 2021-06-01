@@ -67,8 +67,6 @@ install_requires += [
     "rsa<=4.0; python_version < '3'",
     "setuptools",
     "setuptools==44.0.0; python_version < '3'",
-    "zipp",
-    "zipp==0.6.0; python_version < '3'",
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
