@@ -1084,7 +1084,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         for name in names:
             if name in self._parameters:
-                result.append(self.get_parameter(name, with_decryption))
+                try:  
+                    result.append(self.get_parameter(name, with_decryption))
+                except ParameterVersionNotFound:
+                    pass 
         return result
 
     def get_parameters_by_path(
@@ -1217,7 +1220,11 @@ class SimpleSystemManagerBackend(BaseBackend):
                     )
                     if len(result) > 0:
                         return result[-1]
-
+                    elif len(parameters) > 0:
+                        raise ParameterVersionNotFound(
+                            "Systems Manager could not find version %s of %s. "
+                            "Verify the version and try again." % (version_or_label, name)
+                        )
                 result = list(
                     filter(lambda x: version_or_label in x.labels, parameters)
                 )
