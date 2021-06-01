@@ -465,8 +465,15 @@ def test_get_parameter_with_version_and_labels():
 
     with pytest.raises(ClientError) as ex:
         client.get_parameter(Name="test-2:2", WithDecryption=False)
+    ex.value.response["Error"]["Code"].should.equal("ParameterVersionNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Systems Manager could not find version 2 of test-2:2. Verify the version and try again."
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter(Name="test-3:2", WithDecryption=False)
     ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
-    ex.value.response["Error"]["Message"].should.equal("Parameter test-2:2 not found.")
+    ex.value.response["Error"]["Message"].should.equal("Parameter test-3:2 not found.")
 
 
 @mock_ssm
@@ -1808,4 +1815,27 @@ def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_lab
     error["Message"].should.contain("Version 1")
     error["Message"].should.match(
         r"the oldest version, can't be deleted because it has a label associated with it. Move the label to another version of the parameter, and try again."
+    )
+
+
+@mock_ssm
+def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_version():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    versions_to_create = 5
+
+    for i in range(versions_to_create):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+
+    response = client.get_parameters(Names=["test-param:%d" % (versions_to_create + 1)])
+
+    len(response["Parameters"]).should.equal(0)
+    len(response["InvalidParameters"]).should.equal(1)
+    response["InvalidParameters"][0].should.equal(
+        "test-param:%d" % (versions_to_create + 1)
     )
