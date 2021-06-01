@@ -2328,9 +2328,6 @@ def test_stack_elbv2_resources_integration():
     ]
     len(listener_rule).should.equal(1)
     listener_rule[0]["Priority"].should.equal("2")
-    listener_rule[0]["Actions"].should.equal(
-        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}]
-    )
     listener_rule[0]["Conditions"].should.equal(
         [{"Field": "path-pattern", "Values": ["/", "*"]}]
     )

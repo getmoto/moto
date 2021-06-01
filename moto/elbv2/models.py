@@ -22,8 +22,6 @@ from .exceptions import (
     DuplicateTargetGroupName,
     InvalidTargetError,
     ListenerNotFoundError,
-    PriorityOutOfBoundsError,
-    InvalidValuesTypeError,
     LoadBalancerNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
@@ -310,37 +308,10 @@ class FakeListenerRule(CloudFormationModel):
         listener_arn = properties.get("ListenerArn")
         priority = properties.get("Priority")
         conditions = properties.get("Conditions")
-
-        default_actions = []
-        for i, action in enumerate(properties["Actions"]):
-            action_type = action["Type"]
-            if action_type == "forward":
-                default_actions.append(
-                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
-                )
-            elif action_type in [
-                "redirect",
-                "authenticate-cognito",
-                "fixed-response",
-            ]:
-                redirect_action = {"type": action_type}
-                key = (
-                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
-                    + "Config"
-                )
-                for redirect_config_key, redirect_config_value in action[key].items():
-                    # need to match the output of _get_list_prefix
-                    redirect_action[
-                        camelcase_to_underscores(key)
-                        + "._"
-                        + camelcase_to_underscores(redirect_config_key)
-                    ] = redirect_config_value
-                default_actions.append(redirect_action)
-            else:
-                raise InvalidActionTypeError(action_type, i + 1)
+        actions = properties.get("Actions")
 
         listener_rule = elbv2_backend.create_rule(
-            listener_arn, conditions, priority, default_actions
+            listener_arn, conditions, priority, actions
         )
         return listener_rule
 
@@ -603,11 +574,6 @@ class ELBv2Backend(BaseBackend):
                 ]:
                     raise InvalidConditionFieldError(field)
 
-                if (
-                    field in ["host-header", "path-pattern"]
-                    and "Values" not in condition
-                ):
-                    InvalidValuesTypeError(field)
                 values = condition["Values"]
                 if len(values) == 0:
                     raise InvalidConditionValueError(
@@ -619,17 +585,15 @@ class ELBv2Backend(BaseBackend):
                         % field
                     )
 
-            # TODO: check pattern of value for 'host-header'
-            # TODO: check pattern of value for 'path-pattern'
+        # TODO: check pattern of value for 'host-header'
+        # TODO: check pattern of value for 'path-pattern'
 
         # validate Priority
         for rule in listener.rules:
             if rule.priority == priority:
                 raise PriorityInUseError()
-            if rule.priority < "1" or rule.priority > "50000":
-                raise PriorityOutOfBoundsError()
 
-        self._validate_actions(actions)
+        # self._validate_actions(actions)
         arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (id(self))
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
