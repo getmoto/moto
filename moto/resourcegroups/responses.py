@@ -90,17 +90,8 @@ class ResourceGroupsResponse(BaseResponse):
             {"Arn": arn, "Tags": self.resourcegroups_backend.get_tags(arn=arn)}
         )
 
-    def list_group_resources(self):
-        raise NotImplementedError(
-            "ResourceGroups.list_group_resources is not yet implemented"
-        )
-
     def list_groups(self):
         filters = self._get_param("Filters")
-        if filters:
-            raise NotImplementedError(
-                "ResourceGroups.list_groups with filter parameter is not yet implemented"
-            )
         max_results = self._get_int_param("MaxResults", 50)
         next_token = self._get_param("NextToken")
         groups = self.resourcegroups_backend.list_groups(
@@ -122,11 +113,6 @@ class ResourceGroupsResponse(BaseResponse):
                 ],
                 "NextToken": next_token,
             }
-        )
-
-    def search_resources(self):
-        raise NotImplementedError(
-            "ResourceGroups.search_resources is not yet implemented"
         )
 
     def tag(self):
@@ -192,3 +178,56 @@ class ResourceGroupsResponse(BaseResponse):
             group_name=group_name, configuration=configuration
         )
         return json.dumps({"GroupConfiguration": {"Configuration": configuration}})
+
+    def group_resources(self):
+        group_name = self._get_param("Group")
+        resource_arns = self._get_param("ResourceArns")
+
+        self.resourcegroups_backend.group_resources(
+            group_name=group_name, resource_arns=resource_arns
+        )
+        return json.dumps({"Succeeded": resource_arns})
+
+    def ungroup_resources(self):
+        group_name = self._get_param("Group")
+        resource_arns = self._get_param("ResourceArns")
+
+        self.resourcegroups_backend.ungroup_resources(
+            group_name=group_name, resource_arns=resource_arns
+        )
+        return json.dumps({"Succeeded": resource_arns})
+
+    def list_group_resources(self):
+        group_name = self._get_param("GroupName")
+        group_arn = self._get_param("Group")
+        if group_arn and not group_name:
+            group_name = group_arn.split(":")[-1]
+        resource_arns = self.resourcegroups_backend.list_group_resources(
+            group_name=group_name
+        )
+
+        resource_arn_details = []
+        for arn in resource_arns:
+            resource_arn_map = {
+                "ResourceArn": arn,
+                "ResourceType": self.resourcegroups_backend.get_resource_type(arn),
+            }
+            resource_arn_details = resource_arn_details.append(resource_arn_map)
+
+        return json.dumps({"ResourceIdentifiers": resource_arns})
+
+    def search_resources(self):
+        resource_query = self._get_param("ResourceQuery")
+        resource_arns = self.resourcegroups_backend.search_resources(
+            resource_query=resource_query
+        )
+
+        resource_arn_details = []
+        for arn in resource_arns:
+            resource_arn_map = {
+                "ResourceArn": arn,
+                "ResourceType": self.resourcegroups_backend.get_resource_type(arn),
+            }
+            resource_arn_details = resource_arn_details.append(resource_arn_map)
+
+        return json.dumps({"ResourceIdentifiers": resource_arns})

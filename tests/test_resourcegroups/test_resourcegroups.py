@@ -274,3 +274,56 @@ def test_update_group_query():
         Group=group_response.get("Group").get("GroupArn")
     )
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+
+
+@mock_resourcegroups
+def test_group_resources():
+
+    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+    group_response = test_get_group()
+
+    result = resource_groups.group_resources(
+        Group=group_response.get("Group"),
+        ResourceArns=["arn:aws:ec2:us-west-2:123456789012:instance/my-ec2-instance1"],
+    )
+    assert result.get("Succeeded") == [
+        "arn:aws:ec2:us-west-2:123456789012:instance/my-ec2-instance1"
+    ]
+
+
+@mock_resourcegroups
+def test_ungroup_resources():
+
+    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+    group_response = test_get_group()
+
+    result = resource_groups.ungroup_resources(
+        Group=group_response.get("Group"),
+        ResourceArns=["arn:aws:ec2:us-west-2:123456789012:instance/my-ec2-instance1"],
+    )
+    assert result.get("Succeeded") == [
+        "arn:aws:ec2:us-west-2:123456789012:instance/my-ec2-instance1"
+    ]
+
+
+@mock_resourcegroups
+def test_list_group_resources():
+
+    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+    group_response = test_get_group()
+
+    resource_groups.group_resources(
+        Group=group_response.get("Group"),
+        ResourceArns=["arn:aws:ec2:us-west-2:123456789012:instance/my-ec2-instance1"],
+    )
+
+    response = resource_groups.list_group_resources(Group=group_response.get("Group"))
+
+    assert (
+        response.get("ResourceIdentifiers")[0].get("ResourceArn")
+        == "arn:aws:ec2:us-west-2:123456789012:instance/my-ec2-instance1"
+    )
+    assert (
+        response.get("ResourceIdentifiers")[0].get("ResourceType")
+        == "AWS::EC2::Instance"
+    )

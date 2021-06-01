@@ -13,7 +13,13 @@ from .exceptions import BadRequestException
 
 class FakeResourceGroup(BaseModel):
     def __init__(
-        self, name, resource_query, description=None, tags=None, configuration=None
+        self,
+        name,
+        resource_query,
+        description=None,
+        tags=None,
+        configuration=None,
+        resource_arns=[],
     ):
         self.errors = []
         description = description or ""
@@ -31,6 +37,7 @@ class FakeResourceGroup(BaseModel):
             name=name, AccountId=ACCOUNT_ID
         )
         self.configuration = configuration
+        self.resource_arns = resource_arns
 
     @staticmethod
     def _format_error(key, value, constraint):
@@ -221,6 +228,14 @@ class ResourceGroups:
         return group
 
 
+def get_resource_type(arn):
+    if "instance/my-ec2" in arn:
+        return "AWS::EC2::Instance"
+    elif "db:mysql-db" in arn:
+        return "AWS::RDS::DBInstance"
+    return ""
+
+
 class ResourceGroupsBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(ResourceGroupsBackend, self).__init__()
@@ -367,6 +382,37 @@ class ResourceGroupsBackend(BaseBackend):
     def put_group_configuration(self, group_name, configuration):
         self.groups.by_name[group_name].configuration = configuration
         return self.groups.by_name[group_name]
+
+    def group_resources(self, group_name, resource_arns):
+        self.groups.by_name[group_name].resource_arns = resource_arns
+
+    def ungroup_resources(self, group_name, resource_arns):
+        actual_resource_arns = self.groups.by_name[group_name].resource_arns
+        for resource_arn in resource_arns:
+            actual_resource_arns.remove(resource_arn)
+        self.groups.by_name[group_name].resource_arns = actual_resource_arns
+
+    def list_group_resources(self, group_name):
+        return self.groups.by_name[group_name].resource_arns
+
+    def search_resources(self, resource_query):
+        query = resource_query.get("Query")
+        resource_type_filters = query.get("ResourceTypeFilters")
+        tag_filters = query.get("TagFilters")
+        resource_arns = []
+        for key, value in self.groups.by_name.items():
+            for arn in value.resource_arns:
+                if resource_type_filters in get_resource_type(arn):
+                    resource_arns = resource_arns.append(arn)
+
+                for tag in self.groups.by_arn.get(arn):
+                    for tag_filer in tag_filters:
+
+                        if tag.get("Key") == tag_filer.get("Key") and tag.get(
+                            "Value"
+                        ) in tag_filer.get("Values"):
+                            resource_arns = resource_arns.append(arn)
+        return resource_arns
 
 
 resourcegroups_backends = {}
