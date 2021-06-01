@@ -2242,7 +2242,7 @@ def test_stack_elbv2_resources_integration():
                     ],
                     "Conditions": [{"Field": "path-pattern", "Values": "/*"}],
                     "ListenerArn": {"Ref": "listener"},
-                    "Priority": "2",
+                    "Priority": 2,
                 },
             },
             "myvpc": {

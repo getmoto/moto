@@ -720,23 +720,22 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
 CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <CreateRuleResult>
     <Rules>
-      {% for rule in rules %}
       <member>
         <Conditions>
-          {% for condition in rule.conditions %}
+          {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
           </member>
           {% endfor %}
         </Conditions>
-        <Priority>{{ rule.priority }}</Priority>
+        <Priority>{{ rules.priority }}</Priority>
         <Actions>
-          {% for action in rule.actions %}
+          {% for action in rules.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
             {% if action["type"] == "forward" %}
@@ -747,9 +746,8 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
+        <RuleArn>{{ rules.arn }}</RuleArn>
       </member>
-      {% endfor %}
     </Rules>
   </CreateRuleResult>
   <ResponseMetadata>
@@ -1238,7 +1236,6 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
     <Rules>
       {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
