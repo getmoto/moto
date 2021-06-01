@@ -467,7 +467,7 @@ def test_get_parameter_with_version_and_labels():
         client.get_parameter(Name="test-2:2", WithDecryption=False)
     ex.value.response["Error"]["Code"].should.equal("ParameterVersionNotFound")
     ex.value.response["Error"]["Message"].should.equal(
-        "Systems Manager could not find version 2 of test-2:2. Verify the version and try again."
+        "Systems Manager could not find version 2 of test-2. Verify the version and try again."
     )
 
     with pytest.raises(ClientError) as ex:
