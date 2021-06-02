@@ -230,7 +230,7 @@ class FakeListener(CloudFormationModel):
 
     def register(self, arn, rule):
         self._non_default_rules[arn] = rule
-        self._non_default_rules.move_to_end(arn, last=False)
+        self._non_default_rules = OrderedDict(reversed(list(self._non_default_rules.items())))
 
     @staticmethod
     def cloudformation_name_type():
