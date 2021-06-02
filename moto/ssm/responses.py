@@ -178,13 +178,13 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         response = {"Parameters": [], "InvalidParameters": []}
 
-        for parameter in result:
+        for name, parameter in result.items():
             param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
-        param_names = [param.name for param in result]
+        valid_param_names = [name for name, parameter in result.items()]
         for name in names:
-            if name not in param_names:
+            if name not in valid_param_names:
                 response["InvalidParameters"].append(name)
         return json.dumps(response)
 

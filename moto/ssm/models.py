@@ -1071,7 +1071,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return result
 
     def get_parameters(self, names, with_decryption):
-        result = []
+        result = {}
 
         if len(names) > 10:
             raise ValidationException(
@@ -1082,9 +1082,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                 )
             )
 
-        for name in names:
-            if name in self._parameters:
-                result.append(self.get_parameter(name, with_decryption))
+        for name in set(names):
+            if name.split(":")[0] in self._parameters:
+                try:
+                    param = self.get_parameter(name, with_decryption)
+                
+                    if param is not None: 
+                        result[name] = param
+                except ParameterVersionNotFound:
+                    pass
         return result
 
     def get_parameters_by_path(

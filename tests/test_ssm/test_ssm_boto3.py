@@ -1816,3 +1816,69 @@ def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_lab
     error["Message"].should.match(
         r"the oldest version, can't be deleted because it has a label associated with it. Move the label to another version of the parameter, and try again."
     )
+
+@mock_ssm
+def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_version():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    versions_to_create = 5
+
+    for i in range(versions_to_create):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+
+    response = client.get_parameters(Names=["test-param:%d" % (versions_to_create + 1), "test-param:%d" % (versions_to_create - 1)])
+
+    len(response["InvalidParameters"]).should.equal(1)
+    response["InvalidParameters"][0].should.equal(
+        "test-param:%d" % (versions_to_create + 1)
+    )
+
+    len(response["Parameters"]).should.equal(1)
+    response["Parameters"][0]["Name"].should.equal("test-param")
+    response["Parameters"][0]["Value"].should.equal("value-4")
+    response["Parameters"][0]["Type"].should.equal("String")
+
+@mock_ssm
+def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_label():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    versions_to_create = 5
+
+    for i in range(versions_to_create):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+
+    client.label_parameter_version(
+        Name=parameter_name, ParameterVersion=1, Labels=["test-label"]
+    )
+
+    response = client.get_parameters(Names=["test-param:test-label", "test-param:invalid-label", "test-param", "test-param:2"])
+
+    len(response["InvalidParameters"]).should.equal(1)
+    response["InvalidParameters"][0].should.equal("test-param:invalid-label")
+
+    len(response["Parameters"]).should.equal(3)
+
+@mock_ssm
+def test_get_parameters_should_only_return_unique_requests():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+
+    client.put_parameter(
+            Name=parameter_name,
+            Value="value",
+            Type="String"
+        )
+
+    response = client.get_parameters(Names=["test-param", "test-param"])
+
+    len(response["Parameters"]).should.equal(1)
