@@ -1816,26 +1816,3 @@ def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_lab
     error["Message"].should.match(
         r"the oldest version, can't be deleted because it has a label associated with it. Move the label to another version of the parameter, and try again."
     )
-
-
-@mock_ssm
-def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_version():
-    client = boto3.client("ssm", region_name="us-east-1")
-    parameter_name = "test-param"
-    versions_to_create = 5
-
-    for i in range(versions_to_create):
-        client.put_parameter(
-            Name=parameter_name,
-            Value="value-%d" % (i + 1),
-            Type="String",
-            Overwrite=True,
-        )
-
-    response = client.get_parameters(Names=["test-param:%d" % (versions_to_create + 1)])
-
-    len(response["Parameters"]).should.equal(0)
-    len(response["InvalidParameters"]).should.equal(1)
-    response["InvalidParameters"][0].should.equal(
-        "test-param:%d" % (versions_to_create + 1)
-    )

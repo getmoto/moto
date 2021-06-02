@@ -1084,10 +1084,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         for name in names:
             if name in self._parameters:
-                try:
-                    result.append(self.get_parameter(name, with_decryption))
-                except ParameterVersionNotFound:
-                    pass
+                result.append(self.get_parameter(name, with_decryption))
         return result
 
     def get_parameters_by_path(
