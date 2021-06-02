@@ -1805,7 +1805,6 @@ def test_cognito_action_listener_rule():
         Priority=3,
         Actions=[action],
     )
-
     describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
     describe_rules_response["Rules"][0]["Actions"][0].should.equal(action)
 

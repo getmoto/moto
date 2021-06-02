@@ -631,7 +631,7 @@ class ELBv2Backend(BaseBackend):
         self._validate_actions(actions)
         arn = (
             listener_arn.replace(":listener/", ":listener-rule/")
-            + f"{random.randint(0, 50)}"
+            + "{}".format(random.randint(0, 50))
             + "/%s" % (id(self))
         )
 
