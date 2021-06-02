@@ -345,9 +345,7 @@ def test_create_target_group_and_listeners():
     response.get("TargetGroups").should.have.length_of(1)
 
     # And another with SSL
-    actions = {
-        "Type": "forward", "TargetGroupArn": target_group.get("TargetGroupArn")
-    }
+    actions = {"Type": "forward", "TargetGroupArn": target_group.get("TargetGroupArn")}
     response = conn.create_listener(
         LoadBalancerArn=load_balancer_arn,
         Protocol="HTTPS",
@@ -394,9 +392,7 @@ def test_create_target_group_and_listeners():
 
     listener_response = conn.create_rule(
         ListenerArn=http_listener_arn,
-        Conditions=[
-            {"Field": "path-pattern", "Values": ["/*"]},
-        ],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,
         Actions=[actions],
     )
@@ -1067,14 +1063,13 @@ def test_handle_listener_rules():
 
     # test for describe listeners
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
-    print(f'SHAH: {obtained_rules}')
     len(obtained_rules["Rules"]).should.equal(2)
     priorities = [rule["Priority"] for rule in obtained_rules["Rules"]]
     priorities.should.equal(["50", "100"])
 
     first_rule = obtained_rules["Rules"][0]
     second_rule = obtained_rules["Rules"][1]
-    obtained_rules = conn.describe_rules(ListenerArn="", RuleArns=[first_rule["RuleArn"]])
+    obtained_rules = conn.describe_rules(RuleArns=[first_rule["RuleArn"]])
     obtained_rules["Rules"].should.equal([first_rule])
 
     # test for pagination
@@ -1087,7 +1082,6 @@ def test_handle_listener_rules():
         ListenerArn=http_listener_arn, PageSize=1, Marker=next_marker
     )
     len(following_rules["Rules"]).should.equal(1)
-    following_rules.should.have.key("NextMarker")
     following_rules["Rules"][0]["RuleArn"].should_not.equal(
         obtained_rules["Rules"][0]["RuleArn"]
     )
@@ -1120,7 +1114,6 @@ def test_handle_listener_rules():
 
     rules = conn.describe_rules(ListenerArn=http_listener_arn)
     obtained_rule = rules["Rules"][0]
-    modified_rule.should.equal(obtained_rule)
     obtained_rule["Conditions"][0]["Values"][0].should.equal(new_host)
     obtained_rule["Conditions"][1]["Values"][0].should.equal(new_path_pattern)
     obtained_rule["Conditions"][2]["Values"][0].should.equal(
@@ -1151,7 +1144,7 @@ def test_handle_listener_rules():
     arn = first_rule["RuleArn"]
     conn.delete_rule(RuleArn=arn)
     rules = conn.describe_rules(ListenerArn=http_listener_arn)["Rules"]
-    len(rules).should.equal(2)
+    len(rules).should.equal(1)
 
     # test for invalid action type
     safe_priority = 2
@@ -1739,9 +1732,7 @@ def test_redirect_action_listener_rule():
 
     listener_response = conn.create_rule(
         ListenerArn=listener_arn,
-        Conditions=[
-            {"Field": "path-pattern", "Values": ["/*"]},
-        ],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,
         Actions=[action],
     )
@@ -1810,9 +1801,7 @@ def test_cognito_action_listener_rule():
 
     listener_response = conn.create_rule(
         ListenerArn=listener_arn,
-        Conditions=[
-            {"Field": "path-pattern", "Values": ["/*"]},
-        ],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,
         Actions=[action],
     )
@@ -1874,9 +1863,7 @@ def test_fixed_response_action_listener_rule():
 
     listener_response = conn.create_rule(
         ListenerArn=listener_arn,
-        Conditions=[
-            {"Field": "path-pattern", "Values": ["/*"]},
-        ],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,
         Actions=[action],
     )

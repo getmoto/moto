@@ -225,15 +225,12 @@ class FakeListener(CloudFormationModel):
     def rules(self):
         return self._non_default_rules
 
-    def remove_rule(self, rule):
-        self._non_default_rules.remove(rule)
+    def remove_rule(self, arn):
+        self._non_default_rules.pop(arn)
 
     def register(self, arn, rule):
         self._non_default_rules[arn] = rule
         self._non_default_rules.move_to_end(arn, last=False)
-        #self._non_default_rules = sorted(
-            #self._non_default_rules, key=lambda x: x.priority
-        #)
 
     @staticmethod
     def cloudformation_name_type():
@@ -319,7 +316,6 @@ class FakeListenerRule(CloudFormationModel):
         listener_arn = properties.get("ListenerArn")
         priority = properties.get("Priority")
         conditions = properties.get("Conditions")
-        actions = properties.get("Actions")
         # transform Actions to confirm with the rest of the code and XML templates
         default_actions = []
         for i, action in enumerate(properties["Actions"]):
@@ -601,8 +597,8 @@ class ELBv2Backend(BaseBackend):
 
         # validate conditions
         for condition in conditions:
-            if "Field" in condition:
-                field = condition["Field"]
+            if "field" in condition:
+                field = condition["field"]
                 if field not in [
                     "http-header",
                     "http-request-method",
@@ -613,12 +609,12 @@ class ELBv2Backend(BaseBackend):
                 ]:
                     raise InvalidConditionFieldError(field)
 
-                values = condition["Values"]
+                values = condition["values"]
                 if len(values) == 0:
                     raise InvalidConditionValueError(
                         "A condition value must be specified"
                     )
-                if len(values) > 128:
+                if len(values) > 1:
                     raise InvalidConditionValueError(
                         "The '%s' field contains too many values; the limit is '1'"
                         % field
@@ -628,12 +624,11 @@ class ELBv2Backend(BaseBackend):
         # TODO: check pattern of value for 'path-pattern'
 
         # validate Priority
-        rules = self.describe_rules(listener_arn=listener_arn, rule_arns=None)
-        for rule in rules:
+        for rule in listener.rules.values():
             if rule.priority == priority:
                 raise PriorityInUseError()
 
-        # self._validate_actions(actions)
+        self._validate_actions(actions)
         arn = (
             listener_arn.replace(":listener/", ":listener-rule/")
             + f"{random.randint(0, 50)}"
@@ -850,8 +845,7 @@ Member must satisfy regular expression pattern: {}".format(
         for load_balancer_arn in self.load_balancers:
             listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
             for listener in listeners:
-                rules = self.describe_rules(listener_arn=listener_arn, rule_arns=None)
-                for rule in listener.rules:
+                for rule in listener.rules.values():
                     if rule.arn in rule_arns:
                         matched_rules.append(rule)
         return matched_rules
@@ -908,9 +902,9 @@ Member must satisfy regular expression pattern: {}".format(
         for load_balancer_arn in self.load_balancers:
             listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
             for listener in listeners:
-                for rule in listener.rules:
+                for rule in listener.rules.values():
                     if rule.arn == arn:
-                        listener.remove_rule(rule)
+                        listener.remove_rule(rule.arn)
                         return
 
         # should raise RuleNotFound Error according to the AWS API doc
@@ -978,7 +972,7 @@ Member must satisfy regular expression pattern: {}".format(
             rule.conditions = conditions
         if actions:
             rule.actions = actions
-        return [rule]
+        return rule
 
     def register_targets(self, target_group_arn, instances):
         target_group = self.target_groups.get(target_group_arn)
@@ -1020,7 +1014,7 @@ Member must satisfy regular expression pattern: {}".format(
             given_rule = _given_rules[0]
             listeners = self.describe_listeners(None, [given_rule.listener_arn])
             listener = listeners[0]
-            for rule_in_listener in listener.rules:
+            for rule_in_listener in listener.rules.values():
                 if rule_in_listener.priority == priority:
                     raise PriorityInUseError()
         # modify
@@ -1256,8 +1250,7 @@ Member must satisfy regular expression pattern: {}".format(
     def _any_listener_using(self, target_group_arn):
         for load_balancer in self.load_balancers.values():
             for listener in load_balancer.listeners.values():
-                rules = self.describe_rules(listener_arn=listener.arn, rule_arns=None)
-                for rule in rules:
+                for rule in listener.rules.values():
                     for action in rule.actions:
                         if action.data.get("target_group_arn") == target_group_arn:
                             return True

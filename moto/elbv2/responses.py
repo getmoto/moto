@@ -724,9 +724,9 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["Field"] }}</Field>
+            <Field>{{ condition["field"] }}</Field>
             <Values>
-              {% for value in condition["Values"] %}
+              {% for value in condition["values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
@@ -898,9 +898,9 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
-            <Field>{{ condition["Field"] }}</Field>
+            <Field>{{ condition["field"] }}</Field>
             <Values>
-              {% for value in condition["Values"] %}
+              {% for value in condition["values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
@@ -1034,10 +1034,9 @@ CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http:/
 MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ModifyRuleResult>
     <Rules>
-      {% for rule in rules %}
       <member>
         <Conditions>
-          {% for condition in rule.conditions %}
+          {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["field"] }}</Field>
             <Values>
@@ -1048,17 +1047,16 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           </member>
           {% endfor %}
         </Conditions>
-        <Priority>{{ rule.priority }}</Priority>
+        <Priority>{{ rules.priority }}</Priority>
         <Actions>
-          {% for action in rule.actions %}
+          {% for action in rules.actions %}
           <member>
             {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
+        <RuleArn>{{ rules.arn }}</RuleArn>
       </member>
-      {% endfor %}
     </Rules>
   </ModifyRuleResult>
   <ResponseMetadata>
