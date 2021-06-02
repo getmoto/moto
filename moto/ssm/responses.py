@@ -266,8 +266,10 @@ class SimpleSystemManagerResponse(BaseResponse):
     def get_parameter_history(self):
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 50)
 
-        result = self.ssm_backend.get_parameter_history(name, with_decryption)
+        result, new_next_token = self.ssm_backend.get_parameter_history(name, with_decryption, next_token, max_results)
 
         if result is None:
             error = {
@@ -282,6 +284,9 @@ class SimpleSystemManagerResponse(BaseResponse):
                 decrypt=with_decryption, include_labels=True
             )
             response["Parameters"].append(param_data)
+        
+        if next_token is not None:
+            response["NextToken"] = next_token
 
         return json.dumps(response)
 
