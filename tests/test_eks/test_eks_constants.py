@@ -6,8 +6,13 @@ from enum import Enum
 
 from boto3 import Session
 
+from moto.eks import REGION as DEFAULT_REGION
+
+DEFAULT_ENCODING = "utf-8"
+DEFAULT_HTTP_HEADERS = {"Content-type": "application/json"}
+FROZEN_TIME = "2013-11-27T01:42:00Z"
 PARTITIONS = Session().get_available_partitions()
-REGION = Session().region_name
+REGION = Session().region_name or DEFAULT_REGION
 SERVICE = "eks"
 SUBNET_IDS = ["subnet-12345ab", "subnet-67890cd"]
 
@@ -95,12 +100,19 @@ TAGS = (TAGS_KEY, TAGS_VALUE)
 VERSION = (VERSION_KEY, VERSION_VALUE)
 
 
-class ResponseAttribute:
+class ResponseAttributes:
     CLUSTER = "cluster"
     CLUSTERS = "clusters"
+    MESSAGE = "message"
     NEXT_TOKEN = "nextToken"
     NODEGROUP = "nodegroup"
     NODEGROUPS = "nodegroups"
+
+
+class ErrorAttributes:
+    CODE = "Code"
+    ERROR = "Error"
+    MESSAGE = "Message"
 
 
 class ClusterInputs:
@@ -128,9 +140,13 @@ class NodegroupInputs:
     ]
 
 
-class TestResults(Enum):
+class PossibleTestResults(Enum):
     SUCCESS = "SUCCESS"
     FAILURE = "FAILURE"
+
+
+class AddonAttributes:
+    ADDON_NAME = "addonName"
 
 
 class ClusterAttributes:
@@ -142,6 +158,10 @@ class ClusterAttributes:
     ISSUER = "issuer"
     NAME = "name"
     OIDC = "oidc"
+
+
+class FargateAttributes:
+    PROFILE_NAME = "fargateProfileName"
 
 
 class NodegroupAttributes:
@@ -180,6 +200,9 @@ class RegExTemplates:
         + "cluster/"
         + "(?P<cluster_name>.+)"
     )
+    ISO8601_FORMAT = re.compile(
+        r"^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?(Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])?$"
+    )
     NODEGROUP_ARN = re.compile(
         "arn:"
         + "(?P<partition>.+):"
@@ -195,10 +218,20 @@ class RegExTemplates:
     NODEGROUP_SECURITY_GROUP_NAME_PATTERN = re.compile("sg-" + "([-0-9a-z]{17})")
 
 
-class MethodNames:
-    CREATE_CLUSTER = "CreateCluster"
-    CREATE_NODEGROUP = "CreateNodegroup"
-    DELETE_CLUSTER = "DeleteCluster"
-    DELETE_NODEGROUP = "DeleteNodegroup"
-    DESCRIBE_CLUSTER = "DescribeCluster"
-    DESCRIBE_NODEGROUP = "DescribeNodegroup"
+class Endpoints:
+    CREATE_CLUSTER = "/clusters"
+    CREATE_NODEGROUP = "/clusters/{clusterName}/node-groups"
+    DESCRIBE_CLUSTER = "/clusters/{clusterName}"
+    DESCRIBE_NODEGROUP = "/clusters/{clusterName}/node-groups/{nodegroupName}"
+    DELETE_CLUSTER = "/clusters/{clusterName}"
+    DELETE_NODEGROUP = "/clusters/{clusterName}/node-groups/{nodegroupName}"
+    LIST_CLUSTERS = "/clusters?maxResults={maxResults}&nextToken={nextToken}"
+    LIST_NODEGROUPS = "/clusters/{clusterName}/node-groups?maxResults={maxResults}&nextToken={nextToken}"
+
+
+class StatusCodes:
+    OK = 200
+
+
+class HttpHeaders:
+    ErrorType = "x-amzn-ErrorType"

@@ -1,17 +1,20 @@
 from __future__ import unicode_literals
 
-from boto3 import Session
 from datetime import datetime
-from moto.core import BaseBackend, ACCOUNT_ID
+
+from boto3 import Session
+
+from moto.core import ACCOUNT_ID, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from .exceptions import (
-    ResourceNotFoundException,
-    ResourceInUseException,
-    InvalidRequestException,
-    InvalidParameterException,
-)
-from .utils import set_partition, validate_role_arn, method_name
+
 from ..utilities.utils import random_string
+from .exceptions import (
+    InvalidParameterException,
+    InvalidRequestException,
+    ResourceInUseException,
+    ResourceNotFoundException,
+)
+from .utils import get_partition, validate_role_arn
 
 # String Templates
 CLUSTER_ARN_TEMPLATE = (
@@ -62,43 +65,39 @@ DEFAULT_REMOTE_ACCESS = {"ec2SshKey": "eksKeypair"}
 DEFAULT_SCALING_CONFIG = {"minSize": 2, "maxSize": 2, "desiredSize": 2}
 
 # Exception messages, also imported into testing
-# example: "An error occurred (ResourceInUseException) when calling the CreateNodegroup
-# operation: NodeGroup already exists with name ng1 and cluster name cluster"
-BASE_MSG = "An error occurred ({exception_name}) when calling the {method} operation: "
-CLUSTER_IN_USE_MSG = BASE_MSG + "Cluster has nodegroups attached"
-CLUSTER_EXISTS_MSG = BASE_MSG + "Cluster already exists with name: {cluster_name}"
-CLUSTER_NOT_FOUND_MSG = BASE_MSG + "No cluster found for name: {cluster_name}."
-CLUSTER_NOT_READY_MSG = BASE_MSG + "Cluster '{cluster_name}' is not in ACTIVE status"
+CLUSTER_IN_USE_MSG = "Cluster has nodegroups attached"
+CLUSTER_EXISTS_MSG = "Cluster already exists with name: {clusterName}"
+CLUSTER_NOT_FOUND_MSG = "No cluster found for name: {clusterName}."
+CLUSTER_NOT_READY_MSG = "Cluster '{clusterName}' is not in ACTIVE status"
 LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG = (
-    BASE_MSG + "Disk size must be specified within the launch template."
+    "Disk size must be specified within the launch template."
 )
 LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG = (
-    BASE_MSG + "Remote access configuration cannot be specified with a launch template."
+    "Remote access configuration cannot be specified with a launch template."
 )
 NODEGROUP_EXISTS_MSG = (
-    BASE_MSG
-    + "NodeGroup already exists with name {nodegroup_name} and cluster name {cluster_name}"
+    "NodeGroup already exists with name {nodegroupName} and cluster name {clusterName}"
 )
-NODEGROUP_NOT_FOUND_MSG = BASE_MSG + "No node group found for name: {nodegroup_name}."
+NODEGROUP_NOT_FOUND_MSG = "No node group found for name: {nodegroupName}."
 
 
 class Cluster:
     def __init__(
         self,
         name,
-        roleArn,
-        resourcesVpcConfig,
-        regionName,
-        awsPartition,
+        role_arn,
+        resources_vpc_config,
+        region_name,
+        aws_partition,
         version=None,
-        kubernetesNetworkConfig=None,
+        kubernetes_network_config=None,
         logging=None,
-        clientRequestToken=None,
+        client_request_token=None,
         tags=None,
-        encryptionConfig=None,
+        encryption_config=None,
     ):
-        if encryptionConfig is None:
-            encryptionConfig = dict()
+        if encryption_config is None:
+            encryption_config = dict()
         if tags is None:
             tags = dict()
 
@@ -106,26 +105,26 @@ class Cluster:
         self.nodegroup_count = 0
 
         self.arn = CLUSTER_ARN_TEMPLATE.format(
-            partition=awsPartition, region=regionName, name=name
+            partition=aws_partition, region=region_name, name=name
         )
         self.certificateAuthority = {"data": random_string(1400)}
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
-        self.identity = {"oidc": {"issuer": ISSUER_TEMPLATE.format(region=regionName)}}
-        self.endpoint = ENDPOINT_TEMPLATE.format(region=regionName)
+        self.identity = {"oidc": {"issuer": ISSUER_TEMPLATE.format(region=region_name)}}
+        self.endpoint = ENDPOINT_TEMPLATE.format(region=region_name)
 
         self.kubernetes_network_config = (
-            kubernetesNetworkConfig or DEFAULT_KUBERNETES_NETWORK_CONFIG
+            kubernetes_network_config or DEFAULT_KUBERNETES_NETWORK_CONFIG
         )
         self.logging = logging or DEFAULT_LOGGING
         self.platformVersion = DEFAULT_PLATFORM_VERSION
         self.status = DEFAULT_STATUS
         self.version = version or DEFAULT_KUBERNETES_VERSION
 
-        self.client_request_token = clientRequestToken
-        self.encryption_config = encryptionConfig
+        self.client_request_token = client_request_token
+        self.encryption_config = encryption_config
         self.name = name
-        self.resources_vpc_config = resourcesVpcConfig
-        self.role_arn = roleArn
+        self.resources_vpc_config = resources_vpc_config
+        self.role_arn = role_arn
         self.tags = tags
 
     def __iter__(self):
@@ -157,8 +156,8 @@ class ManagedNodegroup:
         node_role,
         nodegroup_name,
         subnets,
-        regionName,
-        awsPartition,
+        region_name,
+        aws_partition,
         scaling_config=None,
         disk_size=None,
         instance_types=None,
@@ -182,8 +181,8 @@ class ManagedNodegroup:
 
         self.uuid = "-".join([random_string(_) for _ in [8, 4, 4, 4, 12]]).lower()
         self.arn = NODEGROUP_ARN_TEMPLATE.format(
-            partition=awsPartition,
-            region=regionName,
+            partition=aws_partition,
+            region=region_name,
             cluster_name=cluster_name,
             nodegroup_name=nodegroup_name,
             uuid=self.uuid,
@@ -212,8 +211,8 @@ class ManagedNodegroup:
         self.launch_template = launch_template
         self.node_role = node_role
         self.nodegroup_name = nodegroup_name
-        self.partition = awsPartition
-        self.region = regionName
+        self.partition = aws_partition
+        self.region = region_name
         self.subnets = subnets
         self.tags = tags
         self.taints = taints
@@ -249,7 +248,7 @@ class EKSBackend(BaseBackend):
         self.clusters = dict()
         self.cluster_count = 0
         self.region_name = region_name
-        self.partition = set_partition(region_name)
+        self.partition = get_partition(region_name)
 
     def reset(self):
         region_name = self.region_name
@@ -276,21 +275,28 @@ class EKSBackend(BaseBackend):
         tags=None,
         encryption_config=None,
     ):
-        self.check_cluster_exists(name, throw_exception_on=True)
+        if name in self.clusters:
+            # Cluster exists.
+            raise ResourceInUseException(
+                clusterName=name,
+                nodegroupName=None,
+                addonName=None,
+                message=CLUSTER_EXISTS_MSG.format(clusterName=name),
+            )
         validate_role_arn(role_arn)
 
         cluster = Cluster(
             name=name,
-            roleArn=role_arn,
-            resourcesVpcConfig=resources_vpc_config,
+            role_arn=role_arn,
+            resources_vpc_config=resources_vpc_config,
             version=version,
-            kubernetesNetworkConfig=kubernetes_network_config,
+            kubernetes_network_config=kubernetes_network_config,
             logging=logging,
-            clientRequestToken=client_request_token,
+            client_request_token=client_request_token,
             tags=tags,
-            encryptionConfig=encryption_config,
-            regionName=self.region_name,
-            awsPartition=self.partition,
+            encryption_config=encryption_config,
+            region_name=self.region_name,
+            aws_partition=self.partition,
         )
         self.clusters[name] = cluster
         self.cluster_count += 1
@@ -316,11 +322,32 @@ class EKSBackend(BaseBackend):
         version=None,
         release_version=None,
     ):
-        self.check_cluster_exists(cluster_name, throw_exception_on=False)
-        self.check_nodegroup_exists(
-            cluster_name, nodegroup_name, throw_exception_on=True
-        )
-        validate_cluster_is_active(self.clusters[cluster_name])
+        try:
+            # Cluster exists.
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        if nodegroup_name in cluster.nodegroups:
+            # Nodegroup already exists.
+            raise ResourceInUseException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                addonName=None,
+                message=NODEGROUP_EXISTS_MSG.format(
+                    nodegroupName=nodegroup_name, clusterName=cluster_name
+                ),
+            )
+        if not cluster.isActive():
+            raise InvalidRequestException(
+                message=CLUSTER_NOT_READY_MSG.format(clusterName=cluster_name,)
+            )
         if launch_template:
             validate_launch_template_combination(disk_size, remote_access)
         validate_role_arn(node_role)
@@ -343,8 +370,8 @@ class EKSBackend(BaseBackend):
             capacity_type=capacity_type,
             version=version,
             release_version=release_version,
-            regionName=self.region_name,
-            awsPartition=self.partition,
+            region_name=self.region_name,
+            aws_partition=self.partition,
         )
         cluster = self.clusters[cluster_name]
         cluster.nodegroups[nodegroup_name] = nodegroup
@@ -352,32 +379,89 @@ class EKSBackend(BaseBackend):
         return nodegroup
 
     def describe_cluster(self, name):
-        self.check_cluster_exists(name, throw_exception_on=False)
-        return self.clusters[name]
+        try:
+            # Cluster exists.
+            return self.clusters[name]
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
+            )
 
     def describe_nodegroup(self, cluster_name, nodegroup_name):
-        self.check_cluster_exists(cluster_name, throw_exception_on=False)
-        self.check_nodegroup_exists(
-            cluster_name, nodegroup_name, throw_exception_on=False
-        )
-        return self.clusters[cluster_name].nodegroups[nodegroup_name]
+        try:
+            # Cluster exists.
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            # Nodegroup exists.
+            return cluster.nodegroups[nodegroup_name]
+        except KeyError:
+            # Nodegroup does not exist.
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                fargateProfileName=None,
+                addonName=None,
+                message=NODEGROUP_NOT_FOUND_MSG.format(nodegroupName=nodegroup_name),
+            )
 
     def delete_cluster(self, name):
-        self.check_cluster_exists(name, throw_exception_on=False)
-        validate_safe_to_delete(self.clusters[name])
+        try:
+            # Cluster exists.
+            validate_safe_to_delete(self.clusters[name])
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
+            )
 
         result = self.clusters.pop(name)
         self.cluster_count -= 1
         return result
 
     def delete_nodegroup(self, cluster_name, nodegroup_name):
-        self.check_cluster_exists(cluster_name, throw_exception_on=False)
-        self.check_nodegroup_exists(
-            cluster_name, nodegroup_name, throw_exception_on=False
-        )
-        cluster = self.clusters[cluster_name]
+        try:
+            # Cluster exists.
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            # Nodegroup exists.
+            result = cluster.nodegroups.pop(nodegroup_name)
+        except KeyError:
+            # Nodegroup does not exist.
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                fargateProfileName=None,
+                addonName=None,
+                message=NODEGROUP_NOT_FOUND_MSG.format(nodegroupName=nodegroup_name),
+            )
 
-        result = cluster.nodegroups.pop(nodegroup_name)
         cluster.nodegroup_count -= 1
         return result
 
@@ -390,57 +474,16 @@ class EKSBackend(BaseBackend):
 
         return nodegroup_names[start:end], new_next
 
-    def check_cluster_exists(self, cluster_name, throw_exception_on):
-        if (cluster_name in self.clusters) == throw_exception_on:
-            msg_args = dict(
-                method=method_name(use_parent=True), cluster_name=cluster_name,
-            )
-            if throw_exception_on is True:
-                exception = ResourceInUseException
-                msg = CLUSTER_EXISTS_MSG
-            else:
-                exception = ResourceNotFoundException
-                msg = CLUSTER_NOT_FOUND_MSG
-            raise exception(msg.format(exception_name=exception.TYPE, **msg_args))
-
-    def check_nodegroup_exists(self, cluster_name, nodegroup_name, throw_exception_on):
-        if (
-            nodegroup_name in self.clusters[cluster_name].nodegroups
-        ) == throw_exception_on:
-            msg_args = dict(
-                method=method_name(use_parent=True),
-                cluster_name=cluster_name,
-                nodegroup_name=nodegroup_name,
-            )
-            if throw_exception_on is True:
-                exception = ResourceInUseException
-                msg = NODEGROUP_EXISTS_MSG
-            else:
-                exception = ResourceNotFoundException
-                msg = NODEGROUP_NOT_FOUND_MSG
-            raise exception(msg.format(exception_name=exception.TYPE, **msg_args))
-
 
 def validate_safe_to_delete(cluster):
     # A cluster which has nodegroups attached can not be deleted.
     if cluster.nodegroup_count:
-        exception = ResourceInUseException
-        raise exception(
-            CLUSTER_IN_USE_MSG.format(
-                exception_name=exception.TYPE, method=method_name(use_parent=True)
-            )
-        )
-
-
-def validate_cluster_is_active(cluster):
-    if not cluster.isActive():
-        exception = InvalidRequestException
-        raise exception(
-            CLUSTER_NOT_READY_MSG.format(
-                exception_name=exception.TYPE,
-                method=method_name(use_parent=True),
-                cluster_name=cluster.name,
-            )
+        nodegroup_names = ",".join(list(cluster.nodegroups.keys()))
+        raise ResourceInUseException(
+            clusterName=cluster.name,
+            nodegroupName=nodegroup_names,
+            addonName=None,
+            message=CLUSTER_IN_USE_MSG,
         )
 
 
@@ -448,13 +491,10 @@ def validate_launch_template_combination(disk_size, remote_access):
     if not (disk_size or remote_access):
         return
 
-    exception = InvalidParameterException
-    if disk_size:
-        msg = LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG
-    elif remote_access:
-        msg = LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG
-    raise exception(
-        msg.format(exception_name=exception.TYPE, method=method_name(use_parent=True))
+    raise InvalidParameterException(
+        message=LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG
+        if disk_size
+        else LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG
     )
 
 

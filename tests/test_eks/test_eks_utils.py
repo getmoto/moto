@@ -1,14 +1,18 @@
 from copy import deepcopy
 from random import randint
-from urllib.parse import urlparse
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 from moto.utilities.utils import random_string
 from tests.test_eks.test_eks_constants import (
-    ClusterInputs,
     ClusterAttributes,
-    NodegroupInputs,
-    ResponseAttribute,
+    ClusterInputs,
     NodegroupAttributes,
+    NodegroupInputs,
+    ResponseAttributes,
     STATUS,
 )
 
@@ -37,7 +41,7 @@ def generate_clusters(client, num_clusters, minimal):
     return [
         client.create_cluster(
             name=generate_random_name(), **_input_builder(ClusterInputs, minimal)
-        )[ResponseAttribute.CLUSTER][ClusterAttributes.NAME]
+        )[ResponseAttributes.CLUSTER][ClusterAttributes.NAME]
         for _ in range(num_clusters)
     ]
 
@@ -53,7 +57,7 @@ def generate_nodegroups(client, cluster_name, num_nodegroups, minimal):
             nodegroupName=generate_random_name(),
             clusterName=cluster_name,
             **_input_builder(NodegroupInputs, minimal)
-        )[ResponseAttribute.NODEGROUP][NodegroupAttributes.NODEGROUP_NAME]
+        )[ResponseAttributes.NODEGROUP][NodegroupAttributes.NODEGROUP_NAME]
         for _ in range(num_nodegroups)
     ]
 

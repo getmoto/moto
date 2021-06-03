@@ -1,47 +1,35 @@
 from __future__ import unicode_literals
+
+import json
+
 from moto.core.exceptions import AWSError
 
 
-class ResourceInUseException(AWSError):
+class EKSError(AWSError):
+    def __init__(self, *args, **kwargs):
+        super(AWSError, self).__init__()
+        self.description = json.dumps(kwargs)
+        self.headers = {"status": self.STATUS, "x-amzn-ErrorType": self.TYPE}
+
+    def response(self):
+        return self.STATUS, self.headers, self.description
+
+
+class ResourceInUseException(EKSError):
     TYPE = "ResourceInUseException"
     STATUS = 409
 
 
-class ResourceNotFoundException(AWSError):
+class ResourceNotFoundException(EKSError):
     TYPE = "ResourceNotFoundException"
     STATUS = 404
 
 
-class ResourceLimitExceededException(AWSError):
-    TYPE = "ResourceLimitExceededException"
-    STATUS = 400
-
-
-class InvalidParameterException(AWSError):
+class InvalidParameterException(EKSError):
     TYPE = "InvalidParameterException"
     STATUS = 400
 
 
-class InvalidRequestException(AWSError):
+class InvalidRequestException(EKSError):
     TYPE = "InvalidRequestException"
-    STATUS = 400
-
-
-class ClientException(AWSError):
-    TYPE = "ClientException"
-    STATUS = 400
-
-
-class ServerException(AWSError):
-    TYPE = "ServerException"
-    STATUS = 500
-
-
-class ServiceUnavailableException(AWSError):
-    TYPE = "ServiceUnavailableException"
-    STATUS = 503
-
-
-class UnsupportedAvailabilityZoneException(AWSError):
-    TYPE = "UnsupportedAvailabilityZoneException"
     STATUS = 400

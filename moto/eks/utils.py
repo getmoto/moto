@@ -6,7 +6,7 @@ from boto3 import Session
 from moto.eks.exceptions import InvalidParameterException
 
 
-def set_partition(region):
+def get_partition(region):
     valid_matches = [
         # (region prefix, aws partition)
         ("cn-", "aws-cn"),
