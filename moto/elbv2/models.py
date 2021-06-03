@@ -256,43 +256,33 @@ class FakeListener(CloudFormationModel):
         ssl_policy = properties.get("SslPolicy")
         certificates = properties.get("Certificates")
         # transform default actions to confirm with the rest of the code and XML templates
-        if "DefaultActions" in properties:
-            default_actions = []
-            for i, action in enumerate(properties["DefaultActions"]):
-                action_type = action["Type"]
-                if action_type == "forward":
-                    default_actions.append(
-                        {
-                            "type": action_type,
-                            "target_group_arn": action["TargetGroupArn"],
-                        }
-                    )
-                elif action_type in [
-                    "redirect",
-                    "authenticate-cognito",
-                    "fixed-response",
-                ]:
-                    redirect_action = {"type": action_type}
-                    key = (
-                        underscores_to_camelcase(
-                            action_type.capitalize().replace("-", "_")
-                        )
-                        + "Config"
-                    )
-                    for redirect_config_key, redirect_config_value in action[
-                        key
-                    ].items():
-                        # need to match the output of _get_list_prefix
-                        redirect_action[
-                            camelcase_to_underscores(key)
-                            + "._"
-                            + camelcase_to_underscores(redirect_config_key)
-                        ] = redirect_config_value
-                    default_actions.append(redirect_action)
-                else:
-                    raise InvalidActionTypeError(action_type, i + 1)
-        else:
-            default_actions = None
+        default_actions = []
+        for i, action in enumerate(properties["DefaultActions"]):
+            action_type = action["Type"]
+            if action_type == "forward":
+                default_actions.append(
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
+                )
+            elif action_type in [
+                "redirect",
+                "authenticate-cognito",
+                "fixed-response",
+            ]:
+                redirect_action = {"type": action_type}
+                key = (
+                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
+                    + "Config"
+                )
+                for redirect_config_key, redirect_config_value in action[key].items():
+                    # need to match the output of _get_list_prefix
+                    redirect_action[
+                        camelcase_to_underscores(key)
+                        + "._"
+                        + camelcase_to_underscores(redirect_config_key)
+                    ] = redirect_config_value
+                default_actions.append(redirect_action)
+            else:
+                raise InvalidActionTypeError(action_type, i + 1)
 
         listener = elbv2_backend.create_listener(
             load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
