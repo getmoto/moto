@@ -1,6 +1,7 @@
 from moto.core.responses import BaseResponse
 from .models import logs_backends
 import json
+from .exceptions import InvalidParameterException
 
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
@@ -211,3 +212,22 @@ class LogsResponse(BaseResponse):
         self.logs_backend.delete_subscription_filter(log_group_name, filter_name)
 
         return ""
+
+    def start_query(self):
+        log_group_name = self._get_param("logGroupName")
+        log_group_names = self._get_param("logGroupNames")
+        start_time = self._get_param("startTime")
+        end_time = self._get_param("endTime")
+        query_string = self._get_param("queryString")
+
+        if log_group_name and log_group_names:
+            raise InvalidParameterException()
+
+        if log_group_name:
+            log_group_names = [log_group_name]
+
+        query_id = self.logs_backend.start_query(
+            log_group_names, start_time, end_time, query_string
+        )
+
+        return json.dumps({"queryId": query_id})
