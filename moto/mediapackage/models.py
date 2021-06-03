@@ -115,21 +115,21 @@ class MediaPackageBackend(BaseBackend):
         return channel.to_dict()
 
     def create_origin_endpoint(
-            self,
-            authorization,
-            channel_id,
-            cmaf_package,
-            dash_package,
-            description,
-            hls_package,
-            id,
-            manifest_name,
-            mss_package,
-            origination,
-            startover_window_seconds,
-            tags,
-            time_delay_seconds,
-            whitelist,
+        self,
+        authorization,
+        channel_id,
+        cmaf_package,
+        dash_package,
+        description,
+        hls_package,
+        id,
+        manifest_name,
+        mss_package,
+        origination,
+        startover_window_seconds,
+        tags,
+        time_delay_seconds,
+        whitelist,
     ):
         arn = "arn:aws:mediapackage:origin_endpoint:{}".format(id)
         url = "https://origin-endpoint.mediapackage.{}.amazonaws.com/{}".format(
@@ -171,19 +171,19 @@ class MediaPackageBackend(BaseBackend):
         return origin_endpoint.to_dict()
 
     def update_origin_endpoint(
-            self,
-            authorization,
-            cmaf_package,
-            dash_package,
-            description,
-            hls_package,
-            id,
-            manifest_name,
-            mss_package,
-            origination,
-            startover_window_seconds,
-            time_delay_seconds,
-            whitelist,
+        self,
+        authorization,
+        cmaf_package,
+        dash_package,
+        description,
+        hls_package,
+        id,
+        manifest_name,
+        mss_package,
+        origination,
+        startover_window_seconds,
+        time_delay_seconds,
+        whitelist,
     ):
         origin_endpoint = self._origin_endpoints[id]
         origin_endpoint.authorization = authorization
@@ -204,7 +204,7 @@ mediapackage_backends = {}
 for region in Session().get_available_regions("mediapackage"):
     mediapackage_backends[region] = MediaPackageBackend(region)
 for region in Session().get_available_regions(
-        "mediapackage", partition_name="aws-us-gov"
+    "mediapackage", partition_name="aws-us-gov"
 ):
     mediapackage_backends[region] = MediaPackageBackend(region)
 for region in Session().get_available_regions("mediapackage", partition_name="aws-cn"):
