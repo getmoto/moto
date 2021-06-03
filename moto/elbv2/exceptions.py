@@ -106,7 +106,7 @@ class InvalidConditionFieldError(ELBClientError):
     def __init__(self, invalid_name):
         super(InvalidConditionFieldError, self).__init__(
             "ValidationError",
-            "Condition field '%s' must be one of '[http-header, http-request-method, host-header, path-pattern, query-string, source-ip]"
+            "Condition field '%s' must be one of '[path-pattern, host-header]"
             % (invalid_name),
         )
 

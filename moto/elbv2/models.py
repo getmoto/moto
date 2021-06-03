@@ -601,14 +601,7 @@ class ELBv2Backend(BaseBackend):
         for condition in conditions:
             if "field" in condition:
                 field = condition["field"]
-                if field not in [
-                    "http-header",
-                    "http-request-method",
-                    "host-header",
-                    "path-pattern",
-                    "query-string",
-                    "source-ip",
-                ]:
+                if field not in ["path-pattern", "host-header"]:
                     raise InvalidConditionFieldError(field)
 
                 values = condition["values"]
