@@ -1004,7 +1004,9 @@ def test_tag_resource_organization_organization_root():
     response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
 
     # adding a tag with an existing key, will update the value
-    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}])
+    client.tag_resource(
+        ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}]
+    )
 
     response = client.list_tags_for_resource(ResourceId=resource_id)
     response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
