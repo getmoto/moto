@@ -547,17 +547,43 @@ class Connection(BaseModel):
         self, name, region_name, description, authorization_type, auth_parameters,
     ):
         self.name = name
-        self.region = (region_name,)
+        self.region = region_name
         self.description = description
         self.authorization_type = authorization_type
         self.auth_parameters = auth_parameters
         self.creation_time = unix_time(datetime.utcnow())
-        self.state = "CREATING"
+        self.state = "AUTHORIZED"
 
     @property
     def arn(self):
         return "arn:aws:events:{0}:{1}:connection/{2}".format(
-            self.region[0], ACCOUNT_ID, self.name
+            self.region, ACCOUNT_ID, self.name
+        )
+
+
+class Destination(BaseModel):
+    def __init__(
+        self,
+        name,
+        region_name,
+        description,
+        connection_arn,
+        invocation_endpoint,
+        http_method,
+    ):
+        self.name = name
+        self.region = region_name
+        self.description = description
+        self.connection_arn = connection_arn
+        self.invocation_endpoint = invocation_endpoint
+        self.creation_time = unix_time(datetime.utcnow())
+        self.http_method = http_method
+        self.state = "ENABLED"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:destination/{2}".format(
+            self.region, ACCOUNT_ID, self.name
         )
 
 
@@ -669,6 +695,7 @@ class EventsBackend(BaseBackend):
 
         self._add_default_event_bus()
         self.connections = {}
+        self.destinations = {}
 
     def reset(self):
         region_name = self.region_name
@@ -1310,6 +1337,28 @@ class EventsBackend(BaseBackend):
 
     def list_connections(self):
         return self.connections.values()
+
+    def create_api_destination(
+        self, name, description, connection_arn, invocation_endpoint, http_method
+    ):
+
+        destination = Destination(
+            name=name,
+            region_name=self.region,
+            description=description,
+            connection_arn=connection_arn,
+            invocation_endpoint=invocation_endpoint,
+            http_method=http_method,
+        )
+
+        self.destinations[name] = destination
+        return destination
+
+    def list_api_destinations(self):
+        return self.destinations.values()
+
+    def describe_api_destination(self, name):
+        return self.destinations.get(name)
 
 
 events_backends = {}
