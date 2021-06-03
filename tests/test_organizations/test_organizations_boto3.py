@@ -966,25 +966,81 @@ def test_list_targets_for_policy_exception():
 
 
 @mock_organizations
-def test_tag_resource():
+def test_tag_resource_account():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
-    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+    resource_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
 
-    client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
 
-    response = client.list_tags_for_resource(ResourceId=account_id)
+    response = client.list_tags_for_resource(ResourceId=resource_id)
     response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
 
     # adding a tag with an existing key, will update the value
     client.tag_resource(
-        ResourceId=account_id, Tags=[{"Key": "key", "Value": "new-value"}]
+        ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}]
     )
 
-    response = client.list_tags_for_resource(ResourceId=account_id)
+    response = client.list_tags_for_resource(ResourceId=resource_id)
     response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+    client.untag_resource(ResourceId=resource_id, TagKeys=["key"])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([])
+
+
+@mock_organizations
+def test_tag_resource_organization_organization_root():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    resource_id = client.list_roots()["Roots"][0]["Id"]
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # adding a tag with an existing key, will update the value
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+    client.untag_resource(ResourceId=resource_id, TagKeys=["key"])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([])
+
+
+@mock_organizations
+def test_tag_resource_organization_organizational_unit():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    resource_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # adding a tag with an existing key, will update the value
+    client.tag_resource(
+        ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}]
+    )
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+    client.untag_resource(ResourceId=resource_id, TagKeys=["key"])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([])
 
 
 @mock_organizations
@@ -994,7 +1050,7 @@ def test_tag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.tag_resource(
-            ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"},],
+            ResourceId="0A000000X000", Tags=[{"Key": "key", "Value": "value"},],
         )
     ex = e.value
     ex.operation_name.should.equal("TagResource")
@@ -1002,6 +1058,15 @@ def test_tag_resource_errors():
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
+    )
+    with pytest.raises(ClientError) as e:
+        client.list_tags_for_resource(ResourceId="000000000000")
+    ex = e.value
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a target that doesn't exist."
     )
 
 
@@ -1025,13 +1090,22 @@ def test_list_tags_for_resource_errors():
     client.create_organization(FeatureSet="ALL")
 
     with pytest.raises(ClientError) as e:
-        client.list_tags_for_resource(ResourceId="000000000000")
+        client.list_tags_for_resource(ResourceId="000x00000A00")
     ex = e.value
     ex.operation_name.should.equal("ListTagsForResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
+    )
+    with pytest.raises(ClientError) as e:
+        client.list_tags_for_resource(ResourceId="000000000000")
+    ex = e.value
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a target that doesn't exist."
     )
 
 
@@ -1062,13 +1136,22 @@ def test_untag_resource_errors():
     client.create_organization(FeatureSet="ALL")
 
     with pytest.raises(ClientError) as e:
-        client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
+        client.untag_resource(ResourceId="0X00000000A0", TagKeys=["key"])
     ex = e.value
     ex.operation_name.should.equal("UntagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
+    )
+    with pytest.raises(ClientError) as e:
+        client.list_tags_for_resource(ResourceId="000000000000")
+    ex = e.value
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a target that doesn't exist."
     )
 
 
