@@ -1087,8 +1087,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             if name.split(":")[0] in self._parameters:
                 try:
                     param = self.get_parameter(name, with_decryption)
-                
-                    if param is not None: 
+
+                    if param is not None:
                         result[name] = param
                 except ParameterVersionNotFound:
                     pass
@@ -1141,7 +1141,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         if max_results > PARAMETER_HISTORY_MAX_RESULTS:
             raise ValidationException(
                 "1 validation error detected: "
-                "Value '{}' at 'maxResults failed to satisfy constraint: "
+                "Value '{}' at 'maxResults' failed to satisfy constraint: "
                 "Member must have value less than or equal to {}.".format(
                     max_results, PARAMETER_HISTORY_MAX_RESULTS
                 )
@@ -1152,17 +1152,20 @@ class SimpleSystemManagerBackend(BaseBackend):
             return self._get_history_nexttoken(history, next_token, max_results)
 
         return None, None
-    
+
     def _get_history_nexttoken(self, history, next_token, max_results):
         if next_token is None:
             next_token = 0
         next_token = int(next_token)
         max_results = int(max_results)
         history_to_return = history[next_token : next_token + max_results]
-        if len(history_to_return) == max_results and len(history) > next_token + max_results:
+        if (
+            len(history_to_return) == max_results
+            and len(history) > next_token + max_results
+        ):
             new_next_token = next_token + max_results
-            return history_to_return, new_next_token
-        return history_to_return, None 
+            return history_to_return, str(new_next_token)
+        return history_to_return, None
 
     def _match_filters(self, parameter, filters=None):
         """Return True if the given parameter matches all the filters"""
