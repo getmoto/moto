@@ -1021,7 +1021,7 @@ def test_handle_listener_rules():
     rule["Priority"].should.equal("100")
 
     # check if rules is sorted by priority
-    priority = 50
+    priority = 500
     host = "yyy.example.com"
     path_pattern = "foobar"
     rules = conn.create_rule(
@@ -1065,7 +1065,7 @@ def test_handle_listener_rules():
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
     len(obtained_rules["Rules"]).should.equal(3)
     priorities = [rule["Priority"] for rule in obtained_rules["Rules"]]
-    priorities.should.equal(["50", "100", "default"])
+    priorities.should.equal(["100", "500", "default"])
 
     first_rule = obtained_rules["Rules"][0]
     second_rule = obtained_rules["Rules"][1]
