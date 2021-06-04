@@ -231,7 +231,9 @@ class FakeListener(CloudFormationModel):
 
     @property
     def rules(self):
-        return OrderedDict(list(self._non_default_rules.items()) + list(self._default_rule.items()))
+        return OrderedDict(
+            list(self._non_default_rules.items()) + list(self._default_rule.items())
+        )
 
     def remove_rule(self, arn):
         self._non_default_rules.pop(arn)
