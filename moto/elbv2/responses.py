@@ -721,6 +721,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
   <CreateRuleResult>
     <Rules>
       <member>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
@@ -895,6 +896,7 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
     <Rules>
       {% for rule in rules %}
       <member>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
@@ -1035,6 +1037,7 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
   <ModifyRuleResult>
     <Rules>
       <member>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
@@ -1234,6 +1237,7 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
     <Rules>
       {% for rule in rules %}
       <member>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>

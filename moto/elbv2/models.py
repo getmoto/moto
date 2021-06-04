@@ -216,6 +216,14 @@ class FakeListener(CloudFormationModel):
         self.certificates = [certificate] if certificate is not None else []
         self.default_actions = default_actions
         self._non_default_rules = OrderedDict()
+        self._default_rule = OrderedDict()
+        self._default_rule[0] = FakeRule(
+            listener_arn=self.arn,
+            conditions=[],
+            priority="default",
+            actions=default_actions,
+            is_default=True,
+        )
 
     @property
     def physical_resource_id(self):
@@ -223,7 +231,7 @@ class FakeListener(CloudFormationModel):
 
     @property
     def rules(self):
-        return self._non_default_rules
+        return OrderedDict(list(self._non_default_rules.items()) + list(self._default_rule.items()))
 
     def remove_rule(self, arn):
         self._non_default_rules.pop(arn)
@@ -351,6 +359,18 @@ class FakeListenerRule(CloudFormationModel):
             listener_arn, conditions, priority, default_actions
         )
         return listener_rule
+
+
+class FakeRule(BaseModel):
+    def __init__(self, listener_arn, conditions, priority, actions, is_default):
+        self.listener_arn = listener_arn
+        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
+            id(self)
+        )
+        self.conditions = conditions
+        self.priority = priority  # int or 'default'
+        self.actions = actions
+        self.is_default = is_default
 
 
 class FakeAction(BaseModel):

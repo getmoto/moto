@@ -1063,9 +1063,9 @@ def test_handle_listener_rules():
 
     # test for describe listeners
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
-    len(obtained_rules["Rules"]).should.equal(2)
+    len(obtained_rules["Rules"]).should.equal(3)
     priorities = [rule["Priority"] for rule in obtained_rules["Rules"]]
-    priorities.should.equal(["50", "100"])
+    priorities.should.equal(["50", "100", "default"])
 
     first_rule = obtained_rules["Rules"][0]
     second_rule = obtained_rules["Rules"][1]
@@ -1144,7 +1144,7 @@ def test_handle_listener_rules():
     arn = first_rule["RuleArn"]
     conn.delete_rule(RuleArn=arn)
     rules = conn.describe_rules(ListenerArn=http_listener_arn)["Rules"]
-    len(rules).should.equal(1)
+    len(rules).should.equal(2)
 
     # test for invalid action type
     safe_priority = 2
