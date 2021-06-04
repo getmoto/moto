@@ -4648,7 +4648,15 @@ def test_s3_acl_to_config_dict():
 
     # Get the config dict with nothing other than the owner details:
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
-    assert acls == {"grantSet": None, "owner": {"displayName": None, "id": OWNER}}
+    owner_acl = {
+        "grantee": {"id": OWNER, "displayName": None},
+        "permission": "FullControl",
+    }
+    assert acls == {
+        "grantSet": None,
+        "owner": {"displayName": None, "id": OWNER},
+        "grantList": [owner_acl],
+    }
 
     # Add some Log Bucket ACLs:
     log_acls = FakeAcl(
@@ -4672,6 +4680,13 @@ def test_s3_acl_to_config_dict():
         "grantList": [
             {"grantee": "LogDelivery", "permission": "Write"},
             {"grantee": "LogDelivery", "permission": "ReadAcp"},
+            {
+                "grantee": {
+                    "displayName": None,
+                    "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                },
+                "permission": "FullControl",
+            },
         ],
         "owner": {"displayName": None, "id": OWNER},
     }
@@ -4791,6 +4806,15 @@ def test_s3_config_dict():
         json.loads(bucket1_result["supplementaryConfiguration"]["AccessControlList"])
     ) == {
         "grantSet": None,
+        "grantList": [
+            {
+                "grantee": {
+                    "displayName": None,
+                    "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                },
+                "permission": "FullControl",
+            },
+        ],
         "owner": {
             "displayName": None,
             "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
