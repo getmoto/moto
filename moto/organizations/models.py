@@ -657,13 +657,13 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def _get_resource_for_tagging(self, resource_id):
-        if re.compile(utils.OU_ID_REGEX).fullmatch(resource_id) or re.fullmatch(
-            utils.ROOT_ID_REGEX, resource_id
-        ):
+        if utils.fullmatch(
+            re.compile(utils.OU_ID_REGEX), resource_id
+        ) or utils.fullmatch(utils.ROOT_ID_REGEX, resource_id):
             resource = next((a for a in self.ou if a.id == resource_id), None)
-        elif re.compile(utils.ACCOUNT_ID_REGEX).fullmatch(resource_id):
+        elif utils.fullmatch(re.compile(utils.ACCOUNT_ID_REGEX), resource_id):
             resource = next((a for a in self.accounts if a.id == resource_id), None)
-        elif re.compile(utils.POLICY_ID_REGEX).fullmatch(resource_id):
+        elif utils.fullmatch(re.compile(utils.POLICY_ID_REGEX), resource_id):
             resource = next((a for a in self.policies if a.id == resource_id), None)
         else:
             raise InvalidInputException(
