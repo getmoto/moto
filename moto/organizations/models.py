@@ -656,6 +656,25 @@ class OrganizationsBackend(BaseBackend):
             ]
         )
 
+    def _get_resource_for_tagging(self, resource_id):
+        if re.compile(utils.OU_ID_REGEX).fullmatch(resource_id) or re.fullmatch(
+            utils.ROOT_ID_REGEX, resource_id
+        ):
+            resource = next((a for a in self.ou if a.id == resource_id), None)
+        elif re.compile(utils.ACCOUNT_ID_REGEX).fullmatch(resource_id):
+            resource = next((a for a in self.accounts if a.id == resource_id), None)
+        elif re.compile(utils.POLICY_ID_REGEX).fullmatch(resource_id):
+            resource = next((a for a in self.policies if a.id == resource_id), None)
+        else:
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
+
+        if resource is None:
+            raise TargetNotFoundException
+
+        return resource
+
     def list_targets_for_policy(self, **kwargs):
         if re.compile(utils.POLICY_ID_REGEX).match(kwargs["PolicyId"]):
             policy = next(
@@ -674,37 +693,18 @@ class OrganizationsBackend(BaseBackend):
         ]
         return dict(Targets=objects)
 
-    def _get_resource_to_tag(self, resource_id):
-        if re.compile(utils.OU_ID_REGEX).match(resource_id) or re.match(
-            utils.ROOT_ID_REGEX, resource_id
-        ):
-            resource = next((a for a in self.ou if a.id == resource_id), None)
-        elif re.compile(utils.ACCOUNT_ID_REGEX).match(resource_id):
-            resource = next((a for a in self.accounts if a.id == resource_id), None)
-        elif re.compile(utils.POLICY_ID_REGEX).match(resource_id):
-            resource = next((a for a in self.policies if a.id == resource_id), None)
-        else:
-            raise InvalidInputException(
-                "You provided a value that does not match the required pattern."
-            )
-
-        if resource is None:
-            raise TargetNotFoundException
-
-        return resource
-
     def tag_resource(self, **kwargs):
-        resource = self._get_resource_to_tag(kwargs["ResourceId"])
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
         resource.tags.update(new_tags)
 
     def list_tags_for_resource(self, **kwargs):
-        resource = self._get_resource_to_tag(kwargs["ResourceId"])
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         tags = [{"Key": key, "Value": value} for key, value in resource.tags.items()]
         return dict(Tags=tags)
 
     def untag_resource(self, **kwargs):
-        resource = self._get_resource_to_tag(kwargs["ResourceId"])
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         for key in kwargs["TagKeys"]:
             resource.tags.pop(key, None)
 

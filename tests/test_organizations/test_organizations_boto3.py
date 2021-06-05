@@ -2,6 +2,16 @@ from __future__ import unicode_literals
 
 from datetime import datetime
 
+from moto.organizations.exceptions import InvalidInputException, TargetNotFoundException
+from moto.organizations.models import (
+    FakeAccount,
+    FakeOrganization,
+    FakeOrganizationalUnit,
+    FakePolicy,
+    FakeRoot,
+    OrganizationsBackend,
+)
+
 import boto3
 import json
 import six
@@ -1062,13 +1072,117 @@ def test_tag_resource_errors():
         "You provided a value that does not match the required pattern."
     )
     with pytest.raises(ClientError) as e:
-        client.list_tags_for_resource(ResourceId="000000000000")
+        client.tag_resource(
+            ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"}]
+        )
     ex = e.value
-    ex.operation_name.should.equal("ListTagsForResource")
+    ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
     ex.response["Error"]["Message"].should.equal(
         "You specified a target that doesn't exist."
+    )
+
+
+def test__get_resource_for_tagging_existing_root():
+    org = FakeOrganization("ALL")
+    root = FakeRoot(org)
+
+    org_backend = OrganizationsBackend()
+    org_backend.ou.append(root)
+    response = org_backend._get_resource_for_tagging(root.id)
+    response.id.should.equal(root.id)
+
+
+def test__get_resource_for_tagging_existing_non_root():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("r-abcd")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_for_tagging_existing_ou():
+    org = FakeOrganization("ALL")
+    ou = FakeOrganizationalUnit(org)
+    org_backend = OrganizationsBackend()
+
+    org_backend.ou.append(ou)
+    response = org_backend._get_resource_for_tagging(ou.id)
+    response.id.should.equal(ou.id)
+
+
+def test__get_resource_for_tagging_non_existing_ou():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("ou-9oyc-lv2q36ln")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_for_tagging_existing_account():
+    org = FakeOrganization("ALL")
+    org_backend = OrganizationsBackend()
+    account = FakeAccount(org, AccountName="test", Email="test@test.test")
+
+    org_backend.accounts.append(account)
+    response = org_backend._get_resource_for_tagging(account.id)
+    response.id.should.equal(account.id)
+
+
+def test__get_resource_for_tagging_non_existing_account():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("100326223992")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_for_tagging_existing_policy():
+    org = FakeOrganization("ALL")
+    org_backend = OrganizationsBackend()
+    policy = FakePolicy(org, Type="SERVICE_CONTROL_POLICY")
+
+    org_backend.policies.append(policy)
+    response = org_backend._get_resource_for_tagging(policy.id)
+    response.id.should.equal(policy.id)
+
+
+def test__get_resource_for_tagging_non_existing_policy():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("p-y1vas4da")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_for_tagging_non_existing_policy():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("p-y1vas4da")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_to_tag_incorrect_resource():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(InvalidInputException) as e:
+        org_backend._get_resource_for_tagging("10032622399200")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("InvalidInputException")
+    ex.message.should.equal(
+        "You provided a value that does not match the required pattern."
     )
 
 
@@ -1147,9 +1261,9 @@ def test_untag_resource_errors():
         "You provided a value that does not match the required pattern."
     )
     with pytest.raises(ClientError) as e:
-        client.list_tags_for_resource(ResourceId="000000000000")
+        client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
     ex = e.value
-    ex.operation_name.should.equal("ListTagsForResource")
+    ex.operation_name.should.equal("UntagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
     ex.response["Error"]["Message"].should.equal(
