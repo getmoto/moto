@@ -40,7 +40,6 @@ install_requires = [
     "Jinja2>=2.10.1",
     "more-itertools",
     "setuptools",
-    "zipp",
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"

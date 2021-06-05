@@ -128,8 +128,8 @@ def test_filter_logs_raises_if_filter_pattern():
 @mock_logs
 def test_filter_logs_paging():
     conn = boto3.client("logs", "us-west-2")
-    log_group_name = "dummy"
-    log_stream_name = "stream"
+    log_group_name = "/aws/dummy"
+    log_stream_name = "stream/stage"
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
     timestamp = int(time.time())
@@ -148,7 +148,7 @@ def test_filter_logs_paging():
     )
     events = res["events"]
     events.should.have.length_of(20)
-    res["nextToken"].should.equal("dummy/stream/" + events[-1]["eventId"])
+    res["nextToken"].should.equal("/aws/dummy@stream/stage@" + events[-1]["eventId"])
 
     res = conn.filter_log_events(
         logGroupName=log_group_name,
@@ -178,7 +178,7 @@ def test_filter_logs_paging():
         logGroupName=log_group_name,
         logStreamNames=[log_stream_name],
         limit=20,
-        nextToken="wrong-group/stream/999",
+        nextToken="wrong-group@stream@999",
     )
     res["events"].should.have.length_of(0)
     res.should_not.have.key("nextToken")

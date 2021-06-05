@@ -32,7 +32,12 @@ from .exceptions import (
     InvalidDocumentVersion,
     DuplicateDocumentVersionName,
     DuplicateDocumentContent,
+    ParameterMaxVersionLimitExceeded,
 )
+
+
+PARAMETER_VERSION_LIMIT = 100
+PARAMETER_HISTORY_MAX_RESULTS = 50
 
 
 class Parameter(BaseModel):
@@ -1067,7 +1072,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return result
 
     def get_parameters(self, names, with_decryption):
-        result = []
+        result = {}
 
         if len(names) > 10:
             raise ValidationException(
@@ -1078,9 +1083,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                 )
             )
 
-        for name in names:
-            if name in self._parameters:
-                result.append(self.get_parameter(name, with_decryption))
+        for name in set(names):
+            if name.split(":")[0] in self._parameters:
+                try:
+                    param = self.get_parameter(name, with_decryption)
+
+                    if param is not None:
+                        result[name] = param
+                except ParameterVersionNotFound:
+                    pass
         return result
 
     def get_parameters_by_path(
@@ -1125,10 +1136,36 @@ class SimpleSystemManagerBackend(BaseBackend):
             next_token = None
         return values, next_token
 
-    def get_parameter_history(self, name, with_decryption):
+    def get_parameter_history(self, name, with_decryption, next_token, max_results=50):
+
+        if max_results > PARAMETER_HISTORY_MAX_RESULTS:
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '{}' at 'maxResults' failed to satisfy constraint: "
+                "Member must have value less than or equal to {}.".format(
+                    max_results, PARAMETER_HISTORY_MAX_RESULTS
+                )
+            )
+
         if name in self._parameters:
-            return self._parameters[name]
-        return None
+            history = self._parameters[name]
+            return self._get_history_nexttoken(history, next_token, max_results)
+
+        return None, None
+
+    def _get_history_nexttoken(self, history, next_token, max_results):
+        if next_token is None:
+            next_token = 0
+        next_token = int(next_token)
+        max_results = int(max_results)
+        history_to_return = history[next_token : next_token + max_results]
+        if (
+            len(history_to_return) == max_results
+            and len(history) > next_token + max_results
+        ):
+            new_next_token = next_token + max_results
+            return history_to_return, str(new_next_token)
+        return history_to_return, None
 
     def _match_filters(self, parameter, filters=None):
         """Return True if the given parameter matches all the filters"""
@@ -1213,7 +1250,12 @@ class SimpleSystemManagerBackend(BaseBackend):
                     )
                     if len(result) > 0:
                         return result[-1]
-
+                    elif len(parameters) > 0:
+                        raise ParameterVersionNotFound(
+                            "Systems Manager could not find version %s of %s. "
+                            "Verify the version and try again."
+                            % (version_or_label, name_prefix)
+                        )
                 result = list(
                     filter(lambda x: version_or_label in x.labels, parameters)
                 )
@@ -1281,6 +1323,18 @@ class SimpleSystemManagerBackend(BaseBackend):
                         parameter.labels.remove(label)
         return [invalid_labels, version]
 
+    def _check_for_parameter_version_limit_exception(self, name):
+        # https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html
+        parameter_versions = self._parameters[name]
+        oldest_parameter = parameter_versions[0]
+        if oldest_parameter.labels:
+            raise ParameterMaxVersionLimitExceeded(
+                "You attempted to create a new version of %s by calling the PutParameter API "
+                "with the overwrite flag. Version %d, the oldest version, can't be deleted "
+                "because it has a label associated with it. Move the label to another version "
+                "of the parameter, and try again." % (name, oldest_parameter.version)
+            )
+
     def put_parameter(
         self, name, description, value, type, allowed_pattern, keyid, overwrite, tags,
     ):
@@ -1317,6 +1371,10 @@ class SimpleSystemManagerBackend(BaseBackend):
             if not overwrite:
                 return
 
+            if len(previous_parameter_versions) >= PARAMETER_VERSION_LIMIT:
+                self._check_for_parameter_version_limit_exception(name)
+                previous_parameter_versions.pop(0)
+
         last_modified_date = time.time()
         self._parameters[name].append(
             Parameter(
@@ -1331,6 +1389,11 @@ class SimpleSystemManagerBackend(BaseBackend):
                 tags or [],
             )
         )
+
+        if tags:
+            tags = {t["Key"]: t["Value"] for t in tags}
+            self.add_tags_to_resource(name, "Parameter", tags)
+
         return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):

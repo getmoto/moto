@@ -72,7 +72,7 @@ def parse_region_from_url(url):
 
 def metadata_from_headers(headers):
     metadata = CaseInsensitiveDict()
-    meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_]+)$", flags=re.IGNORECASE)
+    meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_.]+)$", flags=re.IGNORECASE)
     for header, value in headers.items():
         if isinstance(header, str):
             result = meta_regex.match(header)
