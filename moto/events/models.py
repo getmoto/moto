@@ -1344,7 +1344,7 @@ class EventsBackend(BaseBackend):
 
         destination = Destination(
             name=name,
-            region_name=self.region,
+            region_name=self.region_name,
             description=description,
             connection_arn=connection_arn,
             invocation_endpoint=invocation_endpoint,

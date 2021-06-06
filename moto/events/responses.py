@@ -446,7 +446,7 @@ class EventsHandler(BaseResponse):
                 }
             )
 
-        return json.dumps(result), self.response_headers
+        return json.dumps({"Connections": result}), self.response_headers
 
     def create_api_destination(self):
         name = self._get_param("Name")
