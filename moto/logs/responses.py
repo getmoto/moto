@@ -230,4 +230,4 @@ class LogsResponse(BaseResponse):
             log_group_names, start_time, end_time, query_string
         )
 
-        return json.dumps({"queryId": query_id})
+        return json.dumps({"queryId": "{0}".format(query_id)})

@@ -628,3 +628,18 @@ def test_start_query():
     )
 
     assert "queryId" in response
+
+    with pytest.raises(ClientError) as e:
+        client.start_query(
+            logGroupName="/aws/codebuild/lowercase-dev-invalid",
+            startTime=int(time.time()),
+            endTime=int(time.time()) + 300,
+            queryString="test",
+        )
+
+    # then
+    ex = e.value
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified log group does not exist"
+    )
