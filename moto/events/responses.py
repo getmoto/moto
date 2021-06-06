@@ -487,7 +487,7 @@ class EventsHandler(BaseResponse):
                 }
             )
 
-        return json.dumps(result), self.response_headers
+        return json.dumps({"ApiDestinations": result}), self.response_headers
 
     def describe_api_destination(self):
         name = self._get_param("Name")

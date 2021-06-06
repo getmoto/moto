@@ -2163,7 +2163,7 @@ def test_create_and_list_connections():
 
     response = client.list_connections()
 
-    assert response[0].get(
+    assert response.get("Connections")[0].get(
         "ConnectionArn"
     ) == "arn:aws:events:eu-central-1:{0}:connection/test".format(ACCOUNT_ID)
 
@@ -2204,9 +2204,12 @@ def test_create_and_list_api_destinations():
     assert destination_response.get("ApiDestinationState") == "ACTIVE"
 
     destination_response = client.list_api_destinations()
-    assert destination_response[0].get(
+    assert destination_response.get("ApiDestinations")[0].get(
         "ApiDestinationArn"
     ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
 
-    assert destination_response[0].get("Name") == "test"
-    assert destination_response[0].get("ApiDestinationState") == "ACTIVE"
+    assert destination_response.get("ApiDestinations")[0].get("Name") == "test"
+    assert (
+        destination_response.get("ApiDestinations")[0].get("ApiDestinationState")
+        == "ACTIVE"
+    )
