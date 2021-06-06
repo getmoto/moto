@@ -2146,7 +2146,7 @@ def test_create_and_list_connections():
 
     response = client.list_connections()
 
-    assert len(response) == 0
+    assert len(response.get("Connections")) == 0
 
     response = client.create_connection(
         Name="test",

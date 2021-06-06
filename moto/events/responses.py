@@ -424,7 +424,7 @@ class EventsHandler(BaseResponse):
             json.dumps(
                 {
                     "ConnectionArn": result.arn,
-                    "ConnectionState": "CREATING",
+                    "ConnectionState": "AUTHORIZED",
                     "CreationTime": result.creation_time,
                     "LastModifiedTime": result.creation_time,
                 }

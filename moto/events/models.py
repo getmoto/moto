@@ -578,7 +578,7 @@ class Destination(BaseModel):
         self.invocation_endpoint = invocation_endpoint
         self.creation_time = unix_time(datetime.utcnow())
         self.http_method = http_method
-        self.state = "ENABLED"
+        self.state = "ACTIVE"
 
     @property
     def arn(self):
