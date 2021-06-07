@@ -13,8 +13,6 @@ class WAFV2Response(BaseResponse):
     def wafv2_backend(self):
         return wafv2_backends[self.region]
 
-
-class WafV2Handler(BaseResponse):
     def list_web_ac_ls(self):
         wacl = wafv2_backends[GLOBAL_REGION]
         wacls = [w.to_dict() for w in wacl.wacls]
