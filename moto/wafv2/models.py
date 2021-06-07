@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import uuid
 
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 from moto.wafv2 import utils
 from moto.wafv2.utils import make_webacl_arn
@@ -64,4 +66,13 @@ class VisibilityConfig(BaseModel):
         self.MetricName = metric_name
 
 
-wafv2_backends = {"global": WAFV2Backend(GLOBAL_REGION)}
+wafv2_backends = {}
+wafv2_backends["global"] = WAFV2Backend(GLOBAL_REGION)
+for region in Session().get_available_regions("waf-regional"):
+    wafv2_backends[region] = WAFV2Backend(region)
+for region in Session().get_available_regions(
+    "waf-regional", partition_name="aws-us-gov"
+):
+    wafv2_backends[region] = WAFV2Backend(region)
+for region in Session().get_available_regions("waf-regional", partition_name="aws-cn"):
+    wafv2_backends[region] = WAFV2Backend(region)
