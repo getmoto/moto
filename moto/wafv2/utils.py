@@ -4,6 +4,10 @@ from collections import namedtuple
 ARN = namedtuple("ARN", ["region", "account", "function_name", "version"])
 
 
+def create_test_name(name):
+    return "{0}-{1}".format(name, uuid.uuid4())[0:128]
+
+
 def make_arn(service, region, name):
     return "arn:aws:wafv2:{0}:123456789012:regional/{1}/{2}/{3}".format(
         region, service, name, uuid.uuid4()

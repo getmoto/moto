@@ -1,4 +1,17 @@
+import random
+import string
+
+from moto.wafv2 import utils
 from moto.wafv2.utils import make_arn, make_webacl_arn
+
+
+def test_create_test_name_length_limit_128():
+    longname = "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(150)
+    )
+    assert len(longname) > 128
+    created_name = utils.create_test_name(longname)
+    assert len(created_name) == 128
 
 
 def test_make_arn_ipset():

@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import uuid
 
 from moto.core import BaseBackend, BaseModel
+from moto.wafv2 import utils
 from moto.wafv2.utils import make_webacl_arn
 
 US_EAST_1_REGION = "us-east-1"
@@ -31,7 +32,7 @@ class WebACL(BaseModel):
         """
         The name must have 1-128 characters. Valid characters: A-Z, a-z, 0-9, - (hyphen), and _ (underscore).
         """
-        self.Name = "{0}-{1}".format(name, uuid.uuid4())[0:128]
+        self.Name = utils.create_test_name(name)
         self.ARN = make_webacl_arn(US_EAST_1_REGION, self.Name)
         self.Capacity = 3
         self.Description = "Mock WebACL named {0}".format(self.Name)
