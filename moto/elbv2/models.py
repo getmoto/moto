@@ -347,7 +347,7 @@ class FakeListenerRule(CloudFormationModel):
                         "forward_config": {"target_groups": target_group_action},
                     }
                 )
-            elif action_type == "forward" and not "ForwardConfig" in action:
+            elif action_type == "forward" and "ForwardConfig" not in action:
                 default_actions.append(
                     {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
                 )
