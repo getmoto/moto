@@ -1,5 +1,6 @@
 import uuid
 from collections import namedtuple
+from moto.core import ACCOUNT_ID
 
 ARN = namedtuple("ARN", ["region", "account", "function_name", "version"])
 
@@ -9,8 +10,8 @@ def create_test_name(name):
 
 
 def make_arn(service, region, name):
-    return "arn:aws:wafv2:{0}:123456789012:regional/{1}/{2}/{3}".format(
-        region, service, name, uuid.uuid4()
+    return "arn:aws:wafv2:{0}:{1}:regional/{2}/{3}/{4}".format(
+        region, ACCOUNT_ID, service, name, uuid.uuid4()
     )
 
 
