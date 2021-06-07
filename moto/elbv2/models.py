@@ -330,7 +330,24 @@ class FakeListenerRule(CloudFormationModel):
         default_actions = []
         for i, action in enumerate(properties["Actions"]):
             action_type = action["Type"]
-            if action_type == "forward":
+            if action_type == "forward" and "ForwardConfig" in action:
+                action_forward_config = action["ForwardConfig"]
+                action_target_groups = action_forward_config["TargetGroups"]
+                target_group_action = []
+                for action_target_group in action_target_groups:
+                    target_group_action.append(
+                        {
+                            "target_group_arn": action_target_group["TargetGroupArn"],
+                            "weight": action_target_group["Weight"],
+                        }
+                    )
+                default_actions.append(
+                    {
+                        "type": action_type,
+                        "forward_config": {"target_groups": target_group_action},
+                    }
+                )
+            elif action_type == "forward" and not "ForwardConfig" in action:
                 default_actions.append(
                     {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
                 )
@@ -381,7 +398,19 @@ class FakeAction(BaseModel):
     def to_xml(self):
         template = Template(
             """<Type>{{ action.type }}</Type>
-            {% if action.type == "forward" %}
+            {% if action.type == "forward" and "forward_config" in action.data %}
+            <ForwardConfig>
+              <TargetGroups>
+                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                <member>
+                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
+                  <Weight>{{ target_group["weight"] }}</Weight>
+                </member>
+                {% endfor %}
+              </TargetGroups>
+            </ForwardConfig>
+            {% endif %}
+            {% if action.type == "forward" and "forward_config" not in action.data %}
             <TargetGroupArn>{{ action.data["target_group_arn"] }}</TargetGroupArn>
             {% elif action.type == "redirect" %}
             <RedirectConfig>
@@ -666,13 +695,21 @@ class ELBv2Backend(BaseBackend):
         for i, action in enumerate(actions):
             index = i + 1
             action_type = action.type
-            if action_type == "forward":
+            if action_type == "forward" and "target_group_arn" in action.data:
                 action_target_group_arn = action.data["target_group_arn"]
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
             elif action_type == "fixed-response":
                 self._validate_fixed_response_action(action, i, index)
             elif action_type in ["redirect", "authenticate-cognito"]:
+                pass
+            # pass if listener rule has forward_config as an Action property
+            elif (
+                action_type == "forward"
+                and "forward_config._target_groups.member.{}._target_group_arn".format(
+                    i
+                )
+            ):
                 pass
             else:
                 raise InvalidActionTypeError(action_type, index)
