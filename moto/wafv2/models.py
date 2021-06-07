@@ -20,7 +20,10 @@ class WAFV2Backend(BaseBackend):
     def __init__(self, region_name=None):
         super(WAFV2Backend, self).__init__()
         self.region_name = region_name
-        self.wacls = [WebACL("first-mock-webacl"), WebACL("second-mock-webacl")]
+        self.wacls = [
+            WebACL("first-mock-webacl-for-" + region_name),
+            WebACL("second-mock-webacl-for-" + region_name),
+        ]
 
     def reset(self):
         region_name = self.region_name
