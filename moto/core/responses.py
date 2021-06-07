@@ -502,7 +502,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 match = self.param_regex.search(name[len(param_prefix) :])
                 if match:
                     # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
-                    sub_attr = match.group(2)
+                    # sub_attr = match.group(2)  # TODO needed?
                     value = self._get_param(name)
                     value_dict[name] = value
                 else:

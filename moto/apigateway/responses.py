@@ -373,7 +373,7 @@ class APIGatewayResponse(BaseResponse):
                 uri = self._get_param('uri')
                 credentials = self._get_param('credentials')
                 request_templates = self._get_param('requestTemplates')
-                method = self.backend.get_method(function_id, resource_id, method_type)
+                self.backend.get_method(function_id, resource_id, method_type)
 
                 integration_http_method = self._get_param('httpMethod') or method_type
 
@@ -469,6 +469,7 @@ class APIGatewayResponse(BaseResponse):
         function_id = url_path_parts[2]
         deployment_id = url_path_parts[4]
 
+        deployment = None
         if self.method == "GET":
             deployment = self.backend.get_deployment(function_id, deployment_id)
         elif self.method == "DELETE":

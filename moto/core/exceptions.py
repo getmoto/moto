@@ -62,7 +62,7 @@ class JsonRESTError(RESTError):
         super(JsonRESTError, self).__init__(error_type, message, template, **kwargs)
 
     def get_headers(self, *args, **kwargs):
-        return [("Content-Type", "application/json")]
+        return [("Content-Type", "application/json"), ("X-Amzn-ErrorType", self.error_type or "UnknownError")]
 
     def get_body(self, *args, **kwargs):
         return self.description

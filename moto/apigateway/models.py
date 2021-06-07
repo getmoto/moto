@@ -88,7 +88,8 @@ class IntegrationResponse(BaseModel, dict):
         content_handling=None,
     ):
         if response_templates is None:
-            response_templates = {"application/json": None}
+            # response_templates = {"application/json": None}  # Note: removed for compatibility with TF
+            response_templates = {}
         self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
         if selection_pattern:
@@ -195,15 +196,6 @@ class Method(CloudFormationModel, dict):
 
     def delete_response(self, response_code):
         return self.method_responses.pop(response_code)
-
-    @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
-        spec = {
-            'method_type': properties['HttpMethod'],
-            'authorization_type': properties['AuthorizationType']
-        }
-        return Method(**spec)
 
 
 class Resource(CloudFormationModel):
@@ -315,22 +307,10 @@ class Resource(CloudFormationModel):
         return integration
 
     def get_integration(self, method_type):
-        return self.resource_methods.get(method_type, {}).get('methodIntegration')
+        return self.resource_methods.get(method_type, {}).get('methodIntegration', {})
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop("methodIntegration")
-
-    @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
-        spec = {
-            'id': create_id(),
-            'region_name': 'us-east-1',
-            'api_id': properties['RestApiId'],
-            'path_part': properties['PathPart'],
-            'parent_id': properties['ParentId']
-        }
-        return Resource(**spec)
 
 
 class Authorizer(BaseModel, dict):
@@ -675,9 +655,11 @@ class RestAPI(CloudFormationModel):
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-
-        if attribute_name == "RootResourceId":
-            return self.id
+        if attribute_name == 'RootResourceId':
+            for res_id, res_obj in self.resources.items():
+                if res_obj.path_part == '/' and not res_obj.parent_id:
+                    return res_id
+            raise Exception('Unable to find root resource for API %s' % self)
         raise UnformattedGetAttTemplateException()
 
     @property
@@ -854,26 +836,6 @@ class RestAPI(CloudFormationModel):
 
     def delete_deployment(self, deployment_id):
         return self.deployments.pop(deployment_id)
-
-    def get_cfn_attribute(self, attribute_name):
-        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'RootResourceId':
-            for res_id, res_obj in self.resources.items():
-                if res_obj.path_part == '/' and not res_obj.parent_id:
-                    return res_id
-            raise Exception('Unable to find root resource for API %s' % self)
-        raise UnformattedGetAttTemplateException()
-
-    @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
-        spec = {
-            'id': create_id(),
-            'region_name': 'us-east-1',
-            'name': properties['Name'],
-            'description': properties.get('Description')
-        }
-        return RestAPI(**spec)
 
 
 class DomainName(BaseModel, dict):
@@ -1366,7 +1328,7 @@ class APIGatewayBackend(BaseBackend):
     def _uri_validator(self, uri):
         try:
             result = urlparse(uri)
-            return all([result.scheme, result.netloc, result.path])
+            return all([result.scheme, result.netloc, result.path or '/'])
         except Exception:
             return False
 

@@ -674,18 +674,14 @@ class ELBv2Backend(BaseBackend):
             raise ListenerNotFoundError()
         listener = listeners[0]
 
-        condition_fields = ["path-pattern", "host-header", "http-request-method", "query-string"]
-
         # validate conditions
         for condition in conditions:
             if "field" in condition:
                 field = condition["field"]
-                if field not in condition_fields:
+                if field not in InvalidConditionFieldError.VALID_FIELDS:
                     raise InvalidConditionFieldError(field)
 
-            values = condition["values"]
-            if len(values) == 0:
-                raise InvalidConditionValueError("A condition value must be specified")
+            values = condition.get("values", [])
             if len(values) > 1 and field in ["path-pattern"]:
                 raise InvalidConditionValueError(
                     "The '%s' field contains too many values; the limit is '1'" % field

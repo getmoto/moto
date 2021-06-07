@@ -103,6 +103,10 @@ class PriorityInUseError(ELBClientError):
 
 
 class InvalidConditionFieldError(ELBClientError):
+    VALID_FIELDS = [
+        "path-pattern", "host-header", "http-header", "http-request-method", "query-string", "source-ip"
+    ]
+
     def __init__(self, invalid_name):
         super(InvalidConditionFieldError, self).__init__(
             "ValidationError",
