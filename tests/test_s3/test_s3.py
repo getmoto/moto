@@ -27,6 +27,7 @@ from boto.s3.key import Key
 from freezegun import freeze_time
 import six
 import requests
+from moto.s3 import models
 from moto.s3.responses import DEFAULT_REGION_NAME
 from unittest import SkipTest
 import pytest
@@ -1123,6 +1124,21 @@ def test_multipart_upload_from_file_to_presigned_url():
     assert data == b"test"
     # cleanup
     os.remove("text.txt")
+
+
+@mock_s3
+def test_default_key_buffer_size():
+    # DEFAULT_KEY_BUFFER_SIZE needs to be smaller than UPLOAD_PART_MIN_SIZE to avoid in memory caching of
+    # multipart uploads
+    assert models.DEFAULT_KEY_BUFFER_SIZE < models.UPLOAD_PART_MIN_SIZE
+
+    models.DEFAULT_KEY_BUFFER_SIZE = 2  # 2 bytes
+    fk = models.FakeKey("a", os.urandom(1))  # 1 byte string
+    assert fk._value_buffer._rolled == False
+
+    models.DEFAULT_KEY_BUFFER_SIZE = 2  # 1 byte
+    fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
+    assert fk._value_buffer._rolled == True
 
 
 @mock_s3
