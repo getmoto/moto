@@ -409,3 +409,102 @@ class EventsHandler(BaseResponse):
         result = self.events_backend.cancel_replay(name)
 
         return json.dumps(result), self.response_headers
+
+    def create_connection(self):
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        authorization_type = self._get_param("AuthorizationType")
+        auth_parameters = self._get_param("AuthParameters")
+
+        result = self.events_backend.create_connection(
+            name, description, authorization_type, auth_parameters
+        )
+
+        return (
+            json.dumps(
+                {
+                    "ConnectionArn": result.arn,
+                    "ConnectionState": "AUTHORIZED",
+                    "CreationTime": result.creation_time,
+                    "LastModifiedTime": result.creation_time,
+                }
+            ),
+            self.response_headers,
+        )
+
+    def list_connections(self):
+        connections = self.events_backend.list_connections()
+        result = []
+        for connection in connections:
+            result.append(
+                {
+                    "ConnectionArn": connection.arn,
+                    "ConnectionState": "AUTHORIZED",
+                    "CreationTime": connection.creation_time,
+                    "LastModifiedTime": connection.creation_time,
+                    "AuthorizationType": connection.authorization_type,
+                }
+            )
+
+        return json.dumps({"Connections": result}), self.response_headers
+
+    def create_api_destination(self):
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        connection_arn = self._get_param("ConnectionArn")
+        invocation_endpoint = self._get_param("InvocationEndpoint")
+        http_method = self._get_param("HttpMethod")
+
+        destination = self.events_backend.create_api_destination(
+            name, description, connection_arn, invocation_endpoint, http_method
+        )
+        return (
+            json.dumps(
+                {
+                    "ApiDestinationArn": destination.arn,
+                    "ApiDestinationState": "ACTIVE",
+                    "CreationTime": destination.creation_time,
+                    "LastModifiedTime": destination.creation_time,
+                }
+            ),
+            self.response_headers,
+        )
+
+    def list_api_destinations(self):
+        destinations = self.events_backend.list_api_destinations()
+        result = []
+        for destination in destinations:
+            result.append(
+                {
+                    "ApiDestinationArn": destination.arn,
+                    "Name": destination.name,
+                    "ApiDestinationState": destination.state,
+                    "ConnectionArn": destination.connection_arn,
+                    "InvocationEndpoint": destination.invocation_endpoint,
+                    "HttpMethod": destination.http_method,
+                    "CreationTime": destination.creation_time,
+                    "LastModifiedTime": destination.creation_time,
+                }
+            )
+
+        return json.dumps({"ApiDestinations": result}), self.response_headers
+
+    def describe_api_destination(self):
+        name = self._get_param("Name")
+        destination = self.events_backend.describe_api_destination(name)
+
+        return (
+            json.dumps(
+                {
+                    "ApiDestinationArn": destination.arn,
+                    "Name": destination.name,
+                    "ApiDestinationState": destination.state,
+                    "ConnectionArn": destination.connection_arn,
+                    "InvocationEndpoint": destination.invocation_endpoint,
+                    "HttpMethod": destination.http_method,
+                    "CreationTime": destination.creation_time,
+                    "LastModifiedTime": destination.creation_time,
+                }
+            ),
+            self.response_headers,
+        )

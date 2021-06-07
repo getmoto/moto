@@ -611,3 +611,35 @@ def test_describe_log_streams_paging():
     )
     resp["logStreams"].should.have.length_of(0)
     resp.should_not.have.key("nextToken")
+
+
+@mock_logs
+def test_start_query():
+    client = boto3.client("logs", "us-east-1")
+
+    log_group_name = "/aws/codebuild/lowercase-dev"
+    client.create_log_group(logGroupName=log_group_name)
+
+    response = client.start_query(
+        logGroupName=log_group_name,
+        startTime=int(time.time()),
+        endTime=int(time.time()) + 300,
+        queryString="test",
+    )
+
+    assert "queryId" in response
+
+    with pytest.raises(ClientError) as e:
+        client.start_query(
+            logGroupName="/aws/codebuild/lowercase-dev-invalid",
+            startTime=int(time.time()),
+            endTime=int(time.time()) + 300,
+            queryString="test",
+        )
+
+    # then
+    ex = e.value
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified log group does not exist"
+    )
