@@ -14,4 +14,11 @@ Test the different server responses
 def test_wafv2_list():
     backend = server.create_backend_app("wafv2")
     test_client = backend.test_client()
-    # do test
+    headers = {"X-Amz-Target": "AWSWAF_20190729.ListWebACLs"}
+    res = test_client.get("/", headers=headers)
+    actual_webacls = res.json["WebACLs"]
+    assert len(actual_webacls) == 2
+    assert "first-mock-webacl-" in actual_webacls[0]["Name"]
+    assert "Mock WebACL named first-mock-webacl-" in actual_webacls[0]["Description"]
+    assert "second-mock-webacl-" in actual_webacls[1]["Name"]
+    assert "Mock WebACL named second-mock-webacl-" in actual_webacls[1]["Description"]
