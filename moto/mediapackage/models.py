@@ -104,10 +104,9 @@ class MediaPackageBackend(BaseBackend):
         try:
             channel = self._channels[id]
             return channel.to_dict()
-        except Exception as e:
-            msg = str(e)
+        except KeyError:
             error = "NotFoundException"
-            raise ClientError(error, msg)
+            raise ClientError(error, "channel with id={} not found".format(id))
 
     def delete_channel(self, id):
         channel = self._channels[id]

@@ -90,9 +90,9 @@ def test_describe_unknown_channel_throws_error():
     channel_id = "unknown-channel"
     with pytest.raises(ClientError) as err:
         client.describe_channel(Id=channel_id)
-    assert err.value.response["Error"]["Code"] == "NotFoundException"
-    expected_msg = "'" + channel_id + "'"
-    assert err.value.response["Error"]["Message"] == expected_msg
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("channel with id={} not found".format(str(channel_id)))
 
 
 @mock_mediapackage
