@@ -1247,11 +1247,10 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
 SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <SetRulePrioritiesResult>
     <Rules>
-      {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
-          {% for condition in rule.conditions %}
+          {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["field"] }}</Field>
             <Values>
@@ -1262,7 +1261,7 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
           </member>
           {% endfor %}
         </Conditions>
-        <Priority>{{ rule.priority }}</Priority>
+        <Priority>{{ rules.priority }}</Priority>
         <Actions>
           {% for action in rules.actions %}
           <member>
@@ -1285,9 +1284,8 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
+        <RuleArn>{{ rules.arn }}</RuleArn>
       </member>
-      {% endfor %}
     </Rules>
   </SetRulePrioritiesResult>
   <ResponseMetadata>
