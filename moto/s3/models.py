@@ -59,7 +59,9 @@ STORAGE_CLASS = [
     "GLACIER",
     "DEEP_ARCHIVE",
 ]
-DEFAULT_KEY_BUFFER_SIZE = int(os.environ.get("DEFAULT_KEY_BUFFER_SIZE", UPLOAD_PART_MIN_SIZE - 1024))
+DEFAULT_KEY_BUFFER_SIZE = int(
+    os.environ.get("DEFAULT_KEY_BUFFER_SIZE", UPLOAD_PART_MIN_SIZE - 1024)
+)
 DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
@@ -117,7 +119,8 @@ class FakeKey(BaseModel):
         self.bucket_name = bucket_name
 
         self._value_buffer = tempfile.SpooledTemporaryFile(
-            max_size=max_buffer_size if max_buffer_size else DEFAULT_KEY_BUFFER_SIZE)
+            max_size=max_buffer_size if max_buffer_size else DEFAULT_KEY_BUFFER_SIZE
+        )
         self._max_buffer_size = max_buffer_size
         self.value = value
         self.lock = threading.Lock()
