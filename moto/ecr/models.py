@@ -120,7 +120,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id
         self.image_digest = digest
-        self.image_pushed_at = str(datetime.utcnow().isoformat())
+        self.image_pushed_at = str(datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S") + "Z")
 
     def _create_digest(self):
         image_contents = "docker_image{0}".format(int(random() * 10 ** 6))
