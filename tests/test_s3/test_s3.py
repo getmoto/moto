@@ -1149,9 +1149,8 @@ def test_default_key_buffer_size():
     del os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"]
     assert get_s3_default_key_buffer_size() < S3_UPLOAD_PART_MIN_SIZE
 
-    if (
-        original_default_key_buffer_size
-    ):  # restore original environment variable content
+    # restore original environment variable content
+    if original_default_key_buffer_size:
         os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
 
 
