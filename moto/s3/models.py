@@ -116,7 +116,9 @@ class FakeKey(BaseModel):
         self.multipart = multipart
         self.bucket_name = bucket_name
 
-        self._max_buffer_size = max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
+        self._max_buffer_size = (
+            max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
+        )
         self._value_buffer = tempfile.SpooledTemporaryFile(self._max_buffer_size)
         self.value = value
         self.lock = threading.Lock()
@@ -207,7 +209,7 @@ class FakeKey(BaseModel):
             value_md5 = hashlib.md5()
             self._value_buffer.seek(0)
             while True:
-                block = self._value_buffer.read(16*1024*1024)  # read in 16MB chunks
+                block = self._value_buffer.read(16 * 1024 * 1024)  # read in 16MB chunks
                 if not block:
                     break
                 value_md5.update(block)
