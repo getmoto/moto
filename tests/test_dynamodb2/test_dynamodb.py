@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function
 
+import uuid
 from datetime import datetime
 from decimal import Decimal
 
@@ -6264,46 +6265,47 @@ def test_delete_backup():
 @mock_dynamodb2
 def test_source_and_restored_table_items_are_not_linked():
     client = boto3.client("dynamodb", "us-east-1")
-    table_name = "source-table"
+
+    def add_guids_to_table(table, num_items):
+        guids = []
+        for i in range(num_items):
+            guid = str(uuid.uuid4())
+            client.put_item(TableName=table, Item={"id": {"S": guid}})
+            guids.append(guid)
+        return guids
+
+    source_table_name = "source-table"
     client.create_table(
-        TableName=table_name,
+        TableName=source_table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    for i in range(5):
-        client.put_item(
-            TableName=table_name, Item={"id": {"S": "item %s %d" % (table_name, i)}}
-        )
+    guids_original = add_guids_to_table(source_table_name, 5)
+
     backup_arn = (
-        client.create_backup(TableName=table_name, BackupName="backup")
+        client.create_backup(TableName=source_table_name, BackupName="backup")
         .get("BackupDetails")
         .get("BackupArn")
     )
+    guids_added_after_backup = add_guids_to_table(source_table_name, 5)
+
     restored_table_name = "restored-from-backup"
     client.restore_table_from_backup(
         TargetTableName=restored_table_name, BackupArn=backup_arn
     )
-    # Add 5 more items to each table.
-    for name in [table_name, restored_table_name]:
-        for i in range(5, 10):
-            client.put_item(
-                TableName=name, Item={"id": {"S": "item %s %d" % (name, i)}}
-            )
-    # Verify source table items.
-    source_table_items = client.scan(TableName=table_name)
+    guids_added_after_restore = add_guids_to_table(restored_table_name, 5)
+
+    source_table_items = client.scan(TableName=source_table_name)
     source_table_items.should.have.key("Count").should.equal(10)
-    source_items = sorted(source_table_items["Items"], key=lambda x: x["id"]["S"][-1])
-    for index, item in enumerate(source_items):
-        expected = {"id": {"S": "item %s %d" % (table_name, index)}}
-        item.should.equal(expected)
-    # Verify restored table items.
+    source_table_guids = [x["id"]["S"] for x in source_table_items["Items"]]
+    set(source_table_guids).should.equal(
+        set(guids_original) | set(guids_added_after_backup)
+    )
+
     restored_table_items = client.scan(TableName=restored_table_name)
     restored_table_items.should.have.key("Count").should.equal(10)
-    restored_items = sorted(
-        restored_table_items["Items"], key=lambda x: x["id"]["S"][-1]
+    restored_table_guids = [x["id"]["S"] for x in restored_table_items["Items"]]
+    set(restored_table_guids).should.equal(
+        set(guids_original) | set(guids_added_after_restore)
     )
-    for index, item in enumerate(restored_items):
-        name = table_name if index < 5 else restored_table_name
-        expected = {"id": {"S": "item %s %d" % (name, index)}}
-        item.should.equal(expected)
