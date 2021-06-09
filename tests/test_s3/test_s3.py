@@ -1144,9 +1144,8 @@ def test_default_key_buffer_size():
     fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
     assert fk._value_buffer._rolled == True
 
-    if (
-        original_default_key_buffer_size
-    ):  # restore original environment variable content
+    # restore original environment variable content
+    if original_default_key_buffer_size:
         os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
 
 
