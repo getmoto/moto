@@ -24,5 +24,11 @@ def get_sf_execution_history_type():
 
 
 S3_UPLOAD_PART_MIN_SIZE = 5242880
+
+
 def get_s3_default_key_buffer_size():
-    return int(os.environ.get("MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", S3_UPLOAD_PART_MIN_SIZE - 1024))
+    return int(
+        os.environ.get(
+            "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", S3_UPLOAD_PART_MIN_SIZE - 1024
+        )
+    )

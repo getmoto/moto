@@ -1130,7 +1130,9 @@ def test_multipart_upload_from_file_to_presigned_url():
 @mock_s3
 def test_default_key_buffer_size():
     # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
-    original_default_key_buffer_size = os.environ.get("MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", None)
+    original_default_key_buffer_size = os.environ.get(
+        "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", None
+    )
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
     assert get_s3_default_key_buffer_size() == 2
@@ -1147,8 +1149,11 @@ def test_default_key_buffer_size():
     del os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"]
     assert get_s3_default_key_buffer_size() < S3_UPLOAD_PART_MIN_SIZE
 
-    if original_default_key_buffer_size:  # restore original environment variable content
+    if (
+        original_default_key_buffer_size
+    ):  # restore original environment variable content
         os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
+
 
 @mock_s3
 def test_s3_object_in_private_bucket():
