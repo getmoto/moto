@@ -626,24 +626,17 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.logs_group_name, log_stream_name, log_events, None
             )
 
-            if exit_code != 0:
-                raise Exception("lambda invoke failed output: {}".format(output))
-
             # We only care about the response from the lambda
             # Which is the last line of the output, according to https://github.com/lambci/docker-lambda/issues/25
             resp = output.splitlines()[-1]
             logs = os.linesep.join(
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
-            return resp, False, logs
+            invocation_error = exit_code != 0
+            return resp, invocation_error, logs
         except docker.errors.DockerException as e:
             # Docker itself is probably not running - there will be no Lambda-logs to handle
             return "error running docker: {}".format(e), True, ""
-        except BaseException as e:
-            logs = os.linesep.join(
-                [line for line in self.convert(output).splitlines()[:-1]]
-            )
-            return "error running lambda: {}".format(e), True, logs
 
     def invoke(self, body, request_headers, response_headers):
 
