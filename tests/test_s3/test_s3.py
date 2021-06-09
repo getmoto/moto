@@ -39,7 +39,7 @@ from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import py2_strip_unicode_keys
-from moto.settings import get_default_key_buffer_size
+from moto.settings import get_s3_default_key_buffer_size
 
 if settings.TEST_SERVER_MODE:
     REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
@@ -1130,20 +1130,20 @@ def test_multipart_upload_from_file_to_presigned_url():
 @mock_s3
 def test_default_key_buffer_size():
     # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
-    original_default_key_buffer_size = os.environ.get("DEFAULT_KEY_BUFFER_SIZE", None)
+    original_default_key_buffer_size = os.environ.get("MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", None)
 
-    os.environ["DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
-    assert get_default_key_buffer_size() == 2
+    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
+    assert get_s3_default_key_buffer_size() == 2
     fk = models.FakeKey("a", os.urandom(1))  # 1 byte string
     assert fk._value_buffer._rolled == False
 
-    os.environ["DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
-    assert get_default_key_buffer_size() == 1
+    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
+    assert get_s3_default_key_buffer_size() == 1
     fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
     assert fk._value_buffer._rolled == True
 
     if original_default_key_buffer_size:  # restore original environment variable content
-        os.environ["DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
+        os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
 
 @mock_s3
 def test_s3_object_in_private_bucket():

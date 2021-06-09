@@ -23,5 +23,5 @@ def get_sf_execution_history_type():
     return os.environ.get("SF_EXECUTION_HISTORY_TYPE", "SUCCESS")
 
 
-def get_default_key_buffer_size():
-    return int(os.environ.get("DEFAULT_KEY_BUFFER_SIZE", 16 * 1024 * 1024))
+def get_s3_default_key_buffer_size():
+    return int(os.environ.get("MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", 16 * 1024 * 1024))

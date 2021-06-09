@@ -45,7 +45,7 @@ from .exceptions import (
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore
-from ..settings import get_default_key_buffer_size
+from ..settings import get_s3_default_key_buffer_size
 
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
@@ -116,7 +116,7 @@ class FakeKey(BaseModel):
         self.multipart = multipart
         self.bucket_name = bucket_name
 
-        self._max_buffer_size = max_buffer_size if max_buffer_size else get_default_key_buffer_size()
+        self._max_buffer_size = max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
         self._value_buffer = tempfile.SpooledTemporaryFile(self._max_buffer_size)
         self.value = value
         self.lock = threading.Lock()
