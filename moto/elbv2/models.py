@@ -707,8 +707,9 @@ class ELBv2Backend(BaseBackend):
             elif (
                 action_type == "forward"
                 and "forward_config._target_groups.member.{}._target_group_arn".format(
-                    i
+                    index
                 )
+                in action.data.keys()
             ):
                 pass
             else:
