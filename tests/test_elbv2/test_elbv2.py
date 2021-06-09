@@ -923,6 +923,84 @@ def test_target_group_attributes():
 
 @mock_elbv2
 @mock_ec2
+def test_create_target_group_invalid_protocol():
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+
+    # Can't create a target group with an invalid protocol
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+            Port=8080,
+            VpcId=vpc.id,
+            HealthCheckProtocol="/HTTP",
+            HealthCheckPort="8080",
+            HealthCheckPath="/",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+            Matcher={"HttpCode": "200"},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.contain(
+        "Value /HTTP at 'healthCheckProtocol' failed to satisfy constraint"
+    )
+
+
+@mock_elbv2
+@mock_ec2
+def test_create_rule_priority_in_use():
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    security_group = ec2.create_security_group(
+        GroupName="a-security-group", Description="First One"
+    )
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
+    )
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
+    )
+
+    response = elbv2.create_load_balancer(
+        Name="my-lb",
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme="internal",
+        Tags=[{"Key": "key_name", "Value": "a_value"}],
+    )
+
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    response = elbv2.create_listener(
+        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[],
+    )
+    http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
+
+    priority = 100
+    elbv2.create_rule(
+        ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[],
+    )
+
+    # test for PriorityInUse
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_rule(
+            ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("PriorityInUse")
+    err["Message"].should.equal("The specified priority is in use.")
+
+
+@mock_elbv2
+@mock_ec2
 def test_handle_listener_rules():
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -948,22 +1026,6 @@ def test_handle_listener_rules():
 
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
-    # Can't create a target group with an invalid protocol
-    with pytest.raises(ClientError):
-        conn.create_target_group(
-            Name="a-target",
-            Protocol="HTTP",
-            Port=8080,
-            VpcId=vpc.id,
-            HealthCheckProtocol="/HTTP",
-            HealthCheckPort="8080",
-            HealthCheckPath="/",
-            HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
-            HealthyThresholdCount=5,
-            UnhealthyThresholdCount=2,
-            Matcher={"HttpCode": "200"},
-        )
     response = conn.create_target_group(
         Name="a-target",
         Protocol="HTTP",
@@ -1040,30 +1102,9 @@ def test_handle_listener_rules():
         ],
     )
 
-    # test for PriorityInUse
-    with pytest.raises(ClientError):
-        conn.create_rule(
-            ListenerArn=http_listener_arn,
-            Priority=priority,
-            Conditions=[
-                {"Field": "host-header", "Values": [host]},
-                {"Field": "path-pattern", "Values": [path_pattern]},
-                {
-                    "Field": "path-pattern",
-                    "PathPatternConfig": {"Values": [pathpatternconfig_pattern]},
-                },
-            ],
-            Actions=[
-                {
-                    "TargetGroupArn": target_group.get("TargetGroupArn"),
-                    "Type": "forward",
-                }
-            ],
-        )
-
     # test for describe listeners
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
-    len(obtained_rules["Rules"]).should.equal(3)
+    obtained_rules["Rules"].should.have.length_of(3)
     priorities = [rule["Priority"] for rule in obtained_rules["Rules"]]
     priorities.should.equal(["100", "500", "default"])
 
