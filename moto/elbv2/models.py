@@ -710,6 +710,7 @@ class ELBv2Backend(BaseBackend):
                     index
                 )
                 in action.data.keys()
+                or "forward_config" in action.data.keys()
             ):
                 pass
             else:
