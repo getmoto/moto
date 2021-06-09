@@ -50,7 +50,6 @@ from ..settings import get_s3_default_key_buffer_size
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
-UPLOAD_PART_MIN_SIZE = 5242880
 STORAGE_CLASS = [
     "STANDARD",
     "REDUCED_REDUNDANCY",
@@ -318,7 +317,7 @@ class FakeMultipart(BaseModel):
                 etag = etag.replace('"', "")
             if part is None or part_etag != etag:
                 raise InvalidPart()
-            if last is not None and last.contentsize < UPLOAD_PART_MIN_SIZE:
+            if last is not None and last.contentsize < S3_UPLOAD_PART_MIN_SIZE:
                 raise EntityTooSmall()
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
