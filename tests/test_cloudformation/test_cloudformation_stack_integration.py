@@ -2307,11 +2307,36 @@ def test_stack_elbv2_resources_integration():
                 "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
                 "Properties": {
                     "Actions": [
-                        {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup2"}}
+                        {
+                            "Type": "forward",
+                            "ForwardConfig": {
+                                "TargetGroups": [
+                                    {
+                                        "TargetGroupArn": {"Ref": "mytargetgroup2"},
+                                        "Weight": 1,
+                                    },
+                                    {
+                                        "TargetGroupArn": {"Ref": "mytargetgroup1"},
+                                        "Weight": 2,
+                                    },
+                                ]
+                            },
+                        }
                     ],
                     "Conditions": [{"field": "path-pattern", "values": ["/*"]}],
                     "ListenerArn": {"Ref": "listener"},
                     "Priority": 2,
+                },
+            },
+            "rule2": {
+                "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+                "Properties": {
+                    "Actions": [
+                        {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup2"}}
+                    ],
+                    "Conditions": [{"field": "host-header", "values": ["example.com"]}],
+                    "ListenerArn": {"Ref": "listener"},
+                    "Priority": 30,
                 },
             },
             "myvpc": {
@@ -2395,13 +2420,37 @@ def test_stack_elbv2_resources_integration():
     listener_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])[
         "Rules"
     ]
-    len(listener_rule).should.equal(2)
+    len(listener_rule).should.equal(3)
     listener_rule[0]["Priority"].should.equal("2")
     listener_rule[0]["Actions"].should.equal(
-        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}]
+        [
+            {
+                "Type": "forward",
+                "ForwardConfig": {
+                    "TargetGroups": [
+                        {
+                            "TargetGroupArn": target_groups[1]["TargetGroupArn"],
+                            "Weight": 1,
+                        },
+                        {
+                            "TargetGroupArn": target_groups[0]["TargetGroupArn"],
+                            "Weight": 2,
+                        },
+                    ]
+                },
+            }
+        ]
     )
     listener_rule[0]["Conditions"].should.equal(
         [{"Field": "path-pattern", "Values": ["/*"]}]
+    )
+
+    listener_rule[1]["Priority"].should.equal("30")
+    listener_rule[1]["Actions"].should.equal(
+        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}]
+    )
+    listener_rule[1]["Conditions"].should.equal(
+        [{"Field": "host-header", "Values": ["example.com"]}]
     )
 
     # test outputs
