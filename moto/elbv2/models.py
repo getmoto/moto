@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import random
 
 import datetime
 import re
@@ -12,6 +11,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     underscores_to_camelcase,
     iso_8601_datetime_with_milliseconds,
+    get_random_hex,
 )
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
@@ -673,11 +673,8 @@ class ELBv2Backend(BaseBackend):
                 raise PriorityInUseError()
 
         self._validate_actions(actions)
-        arn = (
-            listener_arn.replace(":listener/", ":listener-rule/")
-            + "{}".format(random.randint(0, 50))
-            + "/%s" % (id(self))
-        )
+        arn = listener_arn.replace(":listener/", ":listener-rule/")
+        arn += "/%s" % (get_random_hex(16))
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
