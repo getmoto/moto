@@ -3127,18 +3127,18 @@
 
 ## dynamodb
 <details>
-<summary>44% implemented</summary>
+<summary>54% implemented</summary>
 
 - [ ] batch_execute_statement
 - [X] batch_get_item
 - [X] batch_write_item
-- [ ] create_backup
+- [X] create_backup
 - [ ] create_global_table
 - [X] create_table
-- [ ] delete_backup
+- [X] delete_backup
 - [X] delete_item
 - [X] delete_table
-- [ ] describe_backup
+- [X] describe_backup
 - [X] describe_continuous_backups
 - [ ] describe_contributor_insights
 - [ ] describe_endpoints
@@ -3156,7 +3156,7 @@
 - [ ] execute_transaction
 - [ ] export_table_to_point_in_time
 - [X] get_item
-- [ ] list_backups
+- [X] list_backups
 - [ ] list_contributor_insights
 - [ ] list_exports
 - [ ] list_global_tables
@@ -3164,7 +3164,7 @@
 - [X] list_tags_of_resource
 - [X] put_item
 - [X] query
-- [ ] restore_table_from_backup
+- [X] restore_table_from_backup
 - [ ] restore_table_to_point_in_time
 - [X] scan
 - [X] tag_resource

@@ -12,6 +12,7 @@ import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
 from boto.exception import BotoServerError
+from botocore.exceptions import ClientError
 import boto.iam
 import boto.rds
 import boto.redshift
@@ -2157,6 +2158,74 @@ def test_stack_spot_fleet_should_figure_out_default_price():
 @mock_ec2
 @mock_elbv2
 @mock_cloudformation
+def test_invalid_action_type_listener_rule():
+
+    invalid_listener_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "alb": {
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "myelbv2",
+                    "Scheme": "internet-facing",
+                    "Subnets": [{"Ref": "mysubnet"}],
+                },
+            },
+            "mytargetgroup1": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {"Name": "mytargetgroup1",},
+            },
+            "mytargetgroup2": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {"Name": "mytargetgroup2",},
+            },
+            "listener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "DefaultActions": [
+                        {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup1"}}
+                    ],
+                    "LoadBalancerArn": {"Ref": "alb"},
+                    "Port": "80",
+                    "Protocol": "HTTP",
+                },
+            },
+            "rule": {
+                "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+                "Properties": {
+                    "Actions": [
+                        {
+                            "Type": "forward2",
+                            "TargetGroupArn": {"Ref": "mytargetgroup2"},
+                        }
+                    ],
+                    "Conditions": [{"field": "path-pattern", "values": ["/*"]}],
+                    "ListenerArn": {"Ref": "listener"},
+                    "Priority": 2,
+                },
+            },
+            "myvpc": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {"CidrBlock": "10.0.0.0/16"},
+            },
+            "mysubnet": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {"CidrBlock": "10.0.0.0/27", "VpcId": {"Ref": "myvpc"}},
+            },
+        },
+    }
+
+    listener_template_json = json.dumps(invalid_listener_template)
+
+    cfn_conn = boto3.client("cloudformation", "us-west-1")
+    cfn_conn.create_stack.when.called_with(
+        StackName="listener_stack", TemplateBody=listener_template_json
+    ).should.throw(ClientError)
+
+
+@mock_ec2
+@mock_elbv2
+@mock_cloudformation
 def test_stack_elbv2_resources_integration():
     alb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -2232,6 +2301,42 @@ def test_stack_elbv2_resources_integration():
                     "LoadBalancerArn": {"Ref": "alb"},
                     "Port": "80",
                     "Protocol": "HTTP",
+                },
+            },
+            "rule": {
+                "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+                "Properties": {
+                    "Actions": [
+                        {
+                            "Type": "forward",
+                            "ForwardConfig": {
+                                "TargetGroups": [
+                                    {
+                                        "TargetGroupArn": {"Ref": "mytargetgroup2"},
+                                        "Weight": 1,
+                                    },
+                                    {
+                                        "TargetGroupArn": {"Ref": "mytargetgroup1"},
+                                        "Weight": 2,
+                                    },
+                                ]
+                            },
+                        }
+                    ],
+                    "Conditions": [{"field": "path-pattern", "values": ["/*"]}],
+                    "ListenerArn": {"Ref": "listener"},
+                    "Priority": 2,
+                },
+            },
+            "rule2": {
+                "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+                "Properties": {
+                    "Actions": [
+                        {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup2"}}
+                    ],
+                    "Conditions": [{"field": "host-header", "values": ["example.com"]}],
+                    "ListenerArn": {"Ref": "listener"},
+                    "Priority": 30,
                 },
             },
             "myvpc": {
@@ -2310,6 +2415,42 @@ def test_stack_elbv2_resources_integration():
     listeners[0]["Protocol"].should.equal("HTTP")
     listeners[0]["DefaultActions"].should.equal(
         [{"Type": "forward", "TargetGroupArn": target_groups[0]["TargetGroupArn"]}]
+    )
+
+    listener_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])[
+        "Rules"
+    ]
+    len(listener_rule).should.equal(3)
+    listener_rule[0]["Priority"].should.equal("2")
+    listener_rule[0]["Actions"].should.equal(
+        [
+            {
+                "Type": "forward",
+                "ForwardConfig": {
+                    "TargetGroups": [
+                        {
+                            "TargetGroupArn": target_groups[1]["TargetGroupArn"],
+                            "Weight": 1,
+                        },
+                        {
+                            "TargetGroupArn": target_groups[0]["TargetGroupArn"],
+                            "Weight": 2,
+                        },
+                    ]
+                },
+            }
+        ]
+    )
+    listener_rule[0]["Conditions"].should.equal(
+        [{"Field": "path-pattern", "Values": ["/*"]}]
+    )
+
+    listener_rule[1]["Priority"].should.equal("30")
+    listener_rule[1]["Actions"].should.equal(
+        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}]
+    )
+    listener_rule[1]["Conditions"].should.equal(
+        [{"Field": "host-header", "Values": ["example.com"]}]
     )
 
     # test outputs

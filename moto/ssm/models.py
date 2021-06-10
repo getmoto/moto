@@ -37,6 +37,7 @@ from .exceptions import (
 
 
 PARAMETER_VERSION_LIMIT = 100
+PARAMETER_HISTORY_MAX_RESULTS = 50
 
 
 class Parameter(BaseModel):
@@ -1071,7 +1072,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return result
 
     def get_parameters(self, names, with_decryption):
-        result = []
+        result = {}
 
         if len(names) > 10:
             raise ValidationException(
@@ -1082,9 +1083,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                 )
             )
 
-        for name in names:
-            if name in self._parameters:
-                result.append(self.get_parameter(name, with_decryption))
+        for name in set(names):
+            if name.split(":")[0] in self._parameters:
+                try:
+                    param = self.get_parameter(name, with_decryption)
+
+                    if param is not None:
+                        result[name] = param
+                except ParameterVersionNotFound:
+                    pass
         return result
 
     def get_parameters_by_path(
@@ -1129,10 +1136,36 @@ class SimpleSystemManagerBackend(BaseBackend):
             next_token = None
         return values, next_token
 
-    def get_parameter_history(self, name, with_decryption):
+    def get_parameter_history(self, name, with_decryption, next_token, max_results=50):
+
+        if max_results > PARAMETER_HISTORY_MAX_RESULTS:
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '{}' at 'maxResults' failed to satisfy constraint: "
+                "Member must have value less than or equal to {}.".format(
+                    max_results, PARAMETER_HISTORY_MAX_RESULTS
+                )
+            )
+
         if name in self._parameters:
-            return self._parameters[name]
-        return None
+            history = self._parameters[name]
+            return self._get_history_nexttoken(history, next_token, max_results)
+
+        return None, None
+
+    def _get_history_nexttoken(self, history, next_token, max_results):
+        if next_token is None:
+            next_token = 0
+        next_token = int(next_token)
+        max_results = int(max_results)
+        history_to_return = history[next_token : next_token + max_results]
+        if (
+            len(history_to_return) == max_results
+            and len(history) > next_token + max_results
+        ):
+            new_next_token = next_token + max_results
+            return history_to_return, str(new_next_token)
+        return history_to_return, None
 
     def _match_filters(self, parameter, filters=None):
         """Return True if the given parameter matches all the filters"""
