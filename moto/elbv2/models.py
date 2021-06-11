@@ -277,7 +277,6 @@ class FakeListener(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[region_name]
-        load_balancer_arn = properties.get("LoadBalancerArn")
         protocol = properties.get("Protocol")
         port = properties.get("Port")
         ssl_policy = properties.get("SslPolicy")
@@ -339,8 +338,6 @@ class FakeListenerRule(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[region_name]
-        listener_arn = properties.get("ListenerArn")
-        listener_rule_arn = properties.get("RuleArn")
         conditions = properties.get("Conditions")
 
         actions = elbv2_backend.convert_and_validate_action_properties(properties)
@@ -665,7 +662,6 @@ class ELBv2Backend(BaseBackend):
 
         conditions = []
         for i, condition in enumerate(properties["Conditions"]):
-            condition_field = condition["Field"]
             conditions.append(
                 {"field": condition["Field"], "values": condition["Values"],}
             )
