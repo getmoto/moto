@@ -247,7 +247,7 @@ def test_put_parameter(name):
     response["Parameters"][0]["Version"].should.equal(1)
     response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameters"][0]["ARN"].should.equal(
-        f"arn:aws:ssm:us-east-1:1234567890:parameter/{name}"
+        "arn:aws:ssm:us-east-1:1234567890:parameter/{}".format(name)
     )
     initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
 
@@ -258,7 +258,9 @@ def test_put_parameter(name):
         raise RuntimeError("Should fail")
     except botocore.exceptions.ClientError as err:
         err.operation_name.should.equal("PutParameter")
-        err.response["Error"]["Message"].should.equal(f"Parameter {name} already exists.")
+        err.response["Error"]["Message"].should.equal(
+            "Parameter {} already exists.".format(name)
+        )
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
 
@@ -272,7 +274,7 @@ def test_put_parameter(name):
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        f"arn:aws:ssm:us-east-1:1234567890:parameter/{name}"
+        "arn:aws:ssm:us-east-1:1234567890:parameter/{}".format(name)
     )
 
     response = client.put_parameter(
@@ -293,7 +295,7 @@ def test_put_parameter(name):
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        f"arn:aws:ssm:us-east-1:1234567890:parameter/{name}"
+        "arn:aws:ssm:us-east-1:1234567890:parameter/{}".format(name)
     )
 
 
