@@ -179,12 +179,22 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == 'PUT':
             authorization_type = self._get_param('authorizationType')
             api_key_required = self._get_param("apiKeyRequired")
+            request_models = self._get_param("requestModels")
+            operation_name = self._get_param("operationName")
+            authorizer_id = self._get_param("authorizerId")
+            authorization_scopes = self._get_param("authorizationScopes")
+            request_validator_id = self._get_param("requestValidatorId")
             method = self.backend.create_method(
                 function_id,
                 resource_id,
                 method_type,
                 authorization_type,
                 api_key_required,
+                request_models=request_models,
+                operation_name=operation_name,
+                authorizer_id=authorizer_id,
+                authorization_scopes=authorization_scopes,
+                request_validator_id=request_validator_id
             )
             return 200, {}, json.dumps(method)
 
@@ -192,8 +202,13 @@ class APIGatewayResponse(BaseResponse):
             self.backend.delete_method(
                 function_id, resource_id, method_type
             )
-
             return 200, {}, ""
+
+        elif self.method == 'PATCH':
+            patch_operations = self._get_param("patchOperations")
+            self.backend.update_method(
+                function_id, resource_id, method_type, patch_operations
+            )
 
         return 200, {}, ""
 
@@ -210,13 +225,22 @@ class APIGatewayResponse(BaseResponse):
                 function_id, resource_id, method_type, response_code
             )
         elif self.method == "PUT":
+            response_models = self._get_param("responseModels")
+            response_parameters = self._get_param("responseParameters")
             method_response = self.backend.create_method_response(
-                function_id, resource_id, method_type, response_code
+                function_id, resource_id, method_type, response_code, response_models, response_parameters
             )
         elif self.method == "DELETE":
             method_response = self.backend.delete_method_response(
                 function_id, resource_id, method_type, response_code
             )
+        elif self.method == "PATCH":
+            patch_operations = self._get_param("patchOperations")
+            method_response = self.backend.update_method_response(
+                function_id, resource_id, method_type, response_code, patch_operations
+            )
+        else:
+            raise Exception('Unexpected HTTP method "%s"' % self.method)
         return 200, {}, json.dumps(method_response)
 
     def restapis_authorizers(self, request, full_url, headers):

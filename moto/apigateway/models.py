@@ -126,9 +126,11 @@ class Integration(BaseModel, dict):
 
 
 class MethodResponse(BaseModel, dict):
-    def __init__(self, status_code):
+    def __init__(self, status_code, response_models=None, response_parameters=None):
         super(MethodResponse, self).__init__()
         self["statusCode"] = status_code
+        self["responseModels"] = response_models
+        self["responseParameters"] = response_parameters
 
 
 class Method(CloudFormationModel, dict):
@@ -138,11 +140,14 @@ class Method(CloudFormationModel, dict):
             dict(
                 httpMethod=method_type,
                 authorizationType=authorization_type,
-                authorizerId=None,
+                authorizerId=kwargs.get("authorizer_id"),
+                authorizationScopes=kwargs.get("authorization_scopes"),
                 apiKeyRequired=kwargs.get("api_key_required") or False,
                 requestParameters=None,
-                requestModels=None,
+                requestModels=kwargs.get("request_models"),
                 methodIntegration=None,
+                operationName=kwargs.get("operation_name"),
+                requestValidatorId=kwargs.get("request_validator_id")
             )
         )
         self.method_responses = {}
@@ -186,16 +191,16 @@ class Method(CloudFormationModel, dict):
         )
         return m
 
-    def create_response(self, response_code):
-        method_response = MethodResponse(response_code)
+    def create_response(self, response_code, response_models, response_parameters):
+        method_response = MethodResponse(response_code, response_models, response_parameters)
         self.method_responses[response_code] = method_response
         return method_response
 
     def get_response(self, response_code):
-        return self.method_responses[response_code]
+        return self.method_responses.get(response_code)
 
     def delete_response(self, response_code):
-        return self.method_responses.pop(response_code)
+        return self.method_responses.pop(response_code, None)
 
 
 class Resource(CloudFormationModel):
@@ -281,11 +286,19 @@ class Resource(CloudFormationModel):
             )
         return response.status_code, response.text
 
-    def add_method(self, method_type, authorization_type, api_key_required):
+    def add_method(self, method_type, authorization_type, api_key_required, request_models=None,
+            operation_name=None, authorizer_id=None, authorization_scopes=None, request_validator_id=None):
+        if authorization_scopes and not isinstance(authorization_scopes, list):
+            authorization_scopes = [authorization_scopes]
         method = Method(
             method_type=method_type,
             authorization_type=authorization_type,
             api_key_required=api_key_required,
+            request_models=request_models,
+            operation_name=operation_name,
+            authorizer_id=authorizer_id,
+            authorization_scopes=authorization_scopes,
+            request_validator_id=request_validator_id
         )
         self.resource_methods[method_type] = method
         return method
@@ -981,12 +994,26 @@ class APIGatewayBackend(BaseBackend):
         method_type,
         authorization_type,
         api_key_required=None,
+        request_models=None,
+        operation_name=None,
+        authorizer_id=None,
+        authorization_scopes=None,
+        request_validator_id=None
     ):
         resource = self.get_resource(function_id, resource_id)
         method = resource.add_method(
-            method_type, authorization_type, api_key_required=api_key_required
+            method_type, authorization_type, api_key_required=api_key_required,
+            request_models=request_models, operation_name=operation_name, authorizer_id=authorizer_id,
+            authorization_scopes=authorization_scopes, request_validator_id=request_validator_id
         )
         return method
+
+    def update_method(
+        self, function_id, resource_id, method_type, patch_operations
+    ):
+        resource = self.get_resource(function_id, resource_id)
+        method = resource.get_method(method_type)
+        return method.apply_operations(patch_operations)
 
     def get_authorizer(self, restapi_id, authorizer_id):
         api = self.get_rest_api(restapi_id)
@@ -1079,10 +1106,18 @@ class APIGatewayBackend(BaseBackend):
         return method_response
 
     def create_method_response(
-        self, function_id, resource_id, method_type, response_code
+        self, function_id, resource_id, method_type, response_code, response_models, response_parameters
     ):
         method = self.get_method(function_id, resource_id, method_type)
-        method_response = method.create_response(response_code)
+        method_response = method.create_response(response_code, response_models, response_parameters)
+        return method_response
+
+    def update_method_response(
+        self, function_id, resource_id, method_type, response_code, patch_operations
+    ):
+        method = self.get_method(function_id, resource_id, method_type)
+        method_response = method.get_response(response_code)
+        method_response.apply_operations(patch_operations)
         return method_response
 
     def delete_method_response(
