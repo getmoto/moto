@@ -227,78 +227,78 @@ def test_get_parameters_by_path():
     )
 
 
+@pytest.mark.parametrize("name", ["test", "/my-cool-parameter"])
 @mock_ssm
-def test_put_parameter():
+def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
 
-    for name in ["test", "/my-cool-parameter"]:
-        response = client.put_parameter(
-            Name=name, Description="A test parameter", Value="value", Type="String"
+    response = client.put_parameter(
+        Name=name, Description="A test parameter", Value="value", Type="String"
+    )
+
+    response["Version"].should.equal(1)
+
+    response = client.get_parameters(Names=[name], WithDecryption=False)
+
+    len(response["Parameters"]).should.equal(1)
+    response["Parameters"][0]["Name"].should.equal(name)
+    response["Parameters"][0]["Value"].should.equal("value")
+    response["Parameters"][0]["Type"].should.equal("String")
+    response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameters"][0]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
+    initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
+
+    try:
+        client.put_parameter(
+            Name=name, Description="desc 2", Value="value 2", Type="String"
         )
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("PutParameter")
+        err.response["Error"]["Message"].should.equal("Parameter test already exists.")
 
-        response["Version"].should.equal(1)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
-        response = client.get_parameters(Names=[name], WithDecryption=False)
+    # without overwrite nothing change
+    len(response["Parameters"]).should.equal(1)
+    response["Parameters"][0]["Name"].should.equal(name)
+    response["Parameters"][0]["Value"].should.equal("value")
+    response["Parameters"][0]["Type"].should.equal("String")
+    response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["LastModifiedDate"].should.equal(
+        initial_modification_date
+    )
+    response["Parameters"][0]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
 
-        len(response["Parameters"]).should.equal(1)
-        response["Parameters"][0]["Name"].should.equal(name)
-        response["Parameters"][0]["Value"].should.equal("value")
-        response["Parameters"][0]["Type"].should.equal("String")
-        response["Parameters"][0]["Version"].should.equal(1)
-        response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
-        response["Parameters"][0]["ARN"].should.equal(
-            "arn:aws:ssm:us-east-1:1234567890:parameter/test"
-        )
-        initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
+    response = client.put_parameter(
+        Name=name,
+        Description="desc 3",
+        Value="value 3",
+        Type="String",
+        Overwrite=True,
+    )
 
-        try:
-            client.put_parameter(
-                Name=name, Description="desc 2", Value="value 2", Type="String"
-            )
-            raise RuntimeError("Should fail")
-        except botocore.exceptions.ClientError as err:
-            err.operation_name.should.equal("PutParameter")
-            err.response["Error"]["Message"].should.equal("Parameter test already exists.")
+    response["Version"].should.equal(2)
 
-        response = client.get_parameters(Names=[name], WithDecryption=False)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
-        # without overwrite nothing change
-        len(response["Parameters"]).should.equal(1)
-        response["Parameters"][0]["Name"].should.equal(name)
-        response["Parameters"][0]["Value"].should.equal("value")
-        response["Parameters"][0]["Type"].should.equal("String")
-        response["Parameters"][0]["Version"].should.equal(1)
-        response["Parameters"][0]["LastModifiedDate"].should.equal(
-            initial_modification_date
-        )
-        response["Parameters"][0]["ARN"].should.equal(
-            "arn:aws:ssm:us-east-1:1234567890:parameter/test"
-        )
-
-        response = client.put_parameter(
-            Name=name,
-            Description="desc 3",
-            Value="value 3",
-            Type="String",
-            Overwrite=True,
-        )
-
-        response["Version"].should.equal(2)
-
-        response = client.get_parameters(Names=[name], WithDecryption=False)
-
-        # without overwrite nothing change
-        len(response["Parameters"]).should.equal(1)
-        response["Parameters"][0]["Name"].should.equal(name)
-        response["Parameters"][0]["Value"].should.equal("value 3")
-        response["Parameters"][0]["Type"].should.equal("String")
-        response["Parameters"][0]["Version"].should.equal(2)
-        response["Parameters"][0]["LastModifiedDate"].should_not.equal(
-            initial_modification_date
-        )
-        response["Parameters"][0]["ARN"].should.equal(
-            "arn:aws:ssm:us-east-1:1234567890:parameter/test"
-        )
+    # without overwrite nothing change
+    len(response["Parameters"]).should.equal(1)
+    response["Parameters"][0]["Name"].should.equal(name)
+    response["Parameters"][0]["Value"].should.equal("value 3")
+    response["Parameters"][0]["Type"].should.equal("String")
+    response["Parameters"][0]["Version"].should.equal(2)
+    response["Parameters"][0]["LastModifiedDate"].should_not.equal(
+        initial_modification_date
+    )
+    response["Parameters"][0]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
 
 
 @mock_ssm
