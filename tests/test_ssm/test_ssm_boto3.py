@@ -227,7 +227,7 @@ def test_get_parameters_by_path():
     )
 
 
-@pytest.mark.parametrize("name", ["test", "/my-cool-parameter"])
+@pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
 @mock_ssm
 def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
@@ -247,7 +247,7 @@ def test_put_parameter(name):
     response["Parameters"][0]["Version"].should.equal(1)
     response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        f"arn:aws:ssm:us-east-1:1234567890:parameter/{name}"
     )
     initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
 
@@ -258,7 +258,7 @@ def test_put_parameter(name):
         raise RuntimeError("Should fail")
     except botocore.exceptions.ClientError as err:
         err.operation_name.should.equal("PutParameter")
-        err.response["Error"]["Message"].should.equal("Parameter test already exists.")
+        err.response["Error"]["Message"].should.equal(f"Parameter {name} already exists.")
 
     response = client.get_parameters(Names=[name], WithDecryption=False)
 
@@ -272,7 +272,7 @@ def test_put_parameter(name):
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        f"arn:aws:ssm:us-east-1:1234567890:parameter/{name}"
     )
 
     response = client.put_parameter(
@@ -293,7 +293,7 @@ def test_put_parameter(name):
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        f"arn:aws:ssm:us-east-1:1234567890:parameter/{name}"
     )
 
 
