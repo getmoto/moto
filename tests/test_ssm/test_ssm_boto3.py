@@ -1394,7 +1394,7 @@ def test_label_parameter_version_invalid_name():
 
     test_parameter_name = "test"
 
-    response = client.label_parameter_version.when.called_with(
+    client.label_parameter_version.when.called_with(
         Name=test_parameter_name, Labels=["test-label"]
     ).should.throw(
         ClientError,
@@ -1415,7 +1415,7 @@ def test_label_parameter_version_invalid_parameter_version():
         Type="String",
     )
 
-    response = client.label_parameter_version.when.called_with(
+    client.label_parameter_version.when.called_with(
         Name=test_parameter_name, Labels=["test-label"], ParameterVersion=5
     ).should.throw(
         ClientError,
