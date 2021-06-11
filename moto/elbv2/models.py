@@ -1062,7 +1062,6 @@ Member must satisfy regular expression pattern: {}".format(
 
         if conditions:
             for condition in conditions:
-
                 field = condition["field"]
                 if field not in ["path-pattern", "host-header"]:
                     raise InvalidConditionFieldError(field)
@@ -1292,7 +1291,6 @@ Member must satisfy regular expression pattern: {}".format(
         default_actions=None,
     ):
         default_actions = [FakeAction(action) for action in default_actions]
-
         for load_balancer in self.load_balancers.values():
             if arn in load_balancer.listeners:
                 break
