@@ -2226,6 +2226,109 @@ def test_invalid_action_type_listener_rule():
 @mock_ec2
 @mock_elbv2
 @mock_cloudformation
+@mock_events
+def test_update_stack_listener_and_rule():
+
+    initial_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "alb": {
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "myelbv2",
+                    "Scheme": "internet-facing",
+                    "Subnets": [{"Ref": "mysubnet"}],
+                    "SecurityGroups": [{"Ref": "mysg"}],
+                    "Type": "application",
+                    "IpAddressType": "ipv4",
+                },
+            },
+            "mytargetgroup1": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {"Name": "mytargetgroup1",},
+            },
+            "mytargetgroup2": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {"Name": "mytargetgroup2",},
+            },
+            "listener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "DefaultActions": [
+                        {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup1"}}
+                    ],
+                    "LoadBalancerArn": {"Ref": "alb"},
+                    "Port": "80",
+                    "Protocol": "HTTP",
+                },
+            },
+            "rule": {
+                "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+                "Properties": {
+                    "Actions": [
+                        {
+                            "Type": "forward",
+                            "TargetGroupArn": {"Ref": "mytargetgroup2"},
+                        }
+                    ],
+                    "Conditions": [{"Field": "path-pattern", "Values": ["/*"]}],
+                    "ListenerArn": {"Ref": "listener"},
+                    "Priority": 2,
+                },
+            },
+            "myvpc": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {"CidrBlock": "10.0.0.0/16"},
+            },
+            "mysubnet": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {"CidrBlock": "10.0.0.0/27", "VpcId": {"Ref": "myvpc"}},
+            },
+            "mysg": {
+                "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupName": "mysg",
+                    "GroupDescription": "test security group",
+                    "VpcId": {"Ref": "myvpc"},
+                },
+            },
+        },
+    }
+
+    initial_template_json = json.dumps(initial_template)
+
+    cfn_conn = boto3.client("cloudformation", "us-west-1")
+    cfn_conn.create_stack(StackName="initial_stack", TemplateBody=initial_template_json)
+
+    elbv2_conn = boto3.client("elbv2", "us-west-1")
+
+    initial_template["Resources"]["rule"]["Properties"]["Conditions"][0][
+        "Field"
+    ] = "host-header"
+    initial_template["Resources"]["rule"]["Properties"]["Conditions"][0]["Values"] = "*"
+    initial_template["Resources"]["listener"]["Properties"]["Port"] = 90
+
+    initial_template_json = json.dumps(initial_template)
+    cfn_conn.update_stack(StackName="initial_stack", TemplateBody=initial_template_json)
+
+    load_balancers = elbv2_conn.describe_load_balancers()["LoadBalancers"]
+    listeners = elbv2_conn.describe_listeners(
+        LoadBalancerArn=load_balancers[0]["LoadBalancerArn"]
+    )["Listeners"]
+    listeners[0]["Port"].should.equal(90)
+
+    listener_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])[
+        "Rules"
+    ]
+
+    listener_rule[0]["Conditions"].should.equal(
+        [{"Field": "host-header", "Values": ["*"],}]
+    )
+
+
+@mock_ec2
+@mock_elbv2
+@mock_cloudformation
 def test_stack_elbv2_resources_integration():
     alb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -2323,7 +2426,7 @@ def test_stack_elbv2_resources_integration():
                             },
                         }
                     ],
-                    "Conditions": [{"field": "path-pattern", "values": ["/*"]}],
+                    "Conditions": [{"Field": "path-pattern", "Values": ["/*"]}],
                     "ListenerArn": {"Ref": "listener"},
                     "Priority": 2,
                 },
@@ -2334,7 +2437,7 @@ def test_stack_elbv2_resources_integration():
                     "Actions": [
                         {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup2"}}
                     ],
-                    "Conditions": [{"field": "host-header", "values": ["example.com"]}],
+                    "Conditions": [{"Field": "host-header", "Values": ["example.com"]}],
                     "ListenerArn": {"Ref": "listener"},
                     "Priority": 30,
                 },
