@@ -276,11 +276,7 @@ def test_put_parameter(name):
     )
 
     response = client.put_parameter(
-        Name=name,
-        Description="desc 3",
-        Value="value 3",
-        Type="String",
-        Overwrite=True,
+        Name=name, Description="desc 3", Value="value 3", Type="String", Overwrite=True,
     )
 
     response["Version"].should.equal(2)
