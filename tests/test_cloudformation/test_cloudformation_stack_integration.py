@@ -2323,7 +2323,7 @@ def test_stack_elbv2_resources_integration():
                             },
                         }
                     ],
-                    "Conditions": [{"field": "path-pattern", "values": ["/*"]}],
+                    "Conditions": [{"Field": "path-pattern", "Values": ["/*"]}],
                     "ListenerArn": {"Ref": "listener"},
                     "Priority": 2,
                 },
@@ -2334,7 +2334,7 @@ def test_stack_elbv2_resources_integration():
                     "Actions": [
                         {"Type": "forward", "TargetGroupArn": {"Ref": "mytargetgroup2"}}
                     ],
-                    "Conditions": [{"field": "host-header", "values": ["example.com"]}],
+                    "Conditions": [{"Field": "host-header", "Values": ["example.com"]}],
                     "ListenerArn": {"Ref": "listener"},
                     "Priority": 30,
                 },
