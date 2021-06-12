@@ -946,10 +946,10 @@ class AutoScalingBackend(BaseBackend):
         for elb in elbs:
             elb_instace_ids = set(elb.instance_ids)
             self.elb_backend.register_instances(
-                elb.name, group_instance_ids - elb_instace_ids
+                elb.name, group_instance_ids - elb_instace_ids, from_autoscaling=True,
             )
             self.elb_backend.deregister_instances(
-                elb.name, elb_instace_ids - group_instance_ids
+                elb.name, elb_instace_ids - group_instance_ids, from_autoscaling=True,
             )
 
     def update_attached_target_groups(self, group_name):
@@ -1007,7 +1007,9 @@ class AutoScalingBackend(BaseBackend):
         group_instance_ids = set(state.instance.id for state in group.instance_states)
         elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
         for elb in elbs:
-            self.elb_backend.deregister_instances(elb.name, group_instance_ids)
+            self.elb_backend.deregister_instances(
+                elb.name, group_instance_ids, from_autoscaling=True
+            )
         group.load_balancers = [
             x for x in group.load_balancers if x not in load_balancer_names
         ]

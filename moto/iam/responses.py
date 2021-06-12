@@ -484,9 +484,9 @@ class IamResponse(BaseResponse):
                 user = User("default_user")
         else:
             user = iam_backend.get_user(user_name)
-
+        tags = iam_backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])
         template = self.response_template(USER_TEMPLATE)
-        return template.render(action="Get", user=user)
+        return template.render(action="Get", user=user, tags=tags)
 
     def list_users(self):
         path_prefix = self._get_param("PathPrefix")
@@ -1414,6 +1414,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
+        <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
         {% if role.permissions_boundary %}
         <PermissionsBoundary>
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>

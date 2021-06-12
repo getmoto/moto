@@ -1,12 +1,12 @@
 from __future__ import unicode_literals
 import logging
-import os
 
 import re
 import six
 from six.moves.urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
 import sys
+from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
 
 log = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ user_settable_fields = {
 
 
 def bucket_name_from_url(url):
-    if os.environ.get("S3_IGNORE_SUBDOMAIN_BUCKETNAME", "") in ["1", "true"]:
+    if S3_IGNORE_SUBDOMAIN_BUCKETNAME:
         return None
     domain = urlparse(url).netloc
 
@@ -73,7 +73,7 @@ def parse_region_from_url(url):
 
 def metadata_from_headers(headers):
     metadata = CaseInsensitiveDict()
-    meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_]+)$", flags=re.IGNORECASE)
+    meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_.]+)$", flags=re.IGNORECASE)
     for header, value in headers.items():
         if isinstance(header, six.string_types):
             result = meta_regex.match(header)

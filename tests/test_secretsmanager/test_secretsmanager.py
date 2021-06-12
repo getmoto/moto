@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import boto3
 
-from moto import mock_secretsmanager
+from moto import mock_secretsmanager, mock_lambda, settings
 from botocore.exceptions import ClientError
 import string
 import pytz
@@ -628,6 +628,131 @@ def test_rotate_secret_rotation_period_too_long():
         )
 
 
+def get_rotation_zip_file():
+    from tests.test_awslambda.test_lambda import _process_lambda
+
+    func_str = """
+import boto3
+import json
+
+def lambda_handler(event, context):
+    arn = event['SecretId']
+    token = event['ClientRequestToken']
+    step = event['Step']
+    
+    client = boto3.client("secretsmanager", region_name="us-west-2", endpoint_url="http://motoserver:5000")
+    metadata = client.describe_secret(SecretId=arn)
+    value = client.get_secret_value(SecretId=arn, VersionId=token, VersionStage="AWSPENDING")
+
+    if not metadata['RotationEnabled']:
+        print("Secret %s is not enabled for rotation." % arn)
+        raise ValueError("Secret %s is not enabled for rotation." % arn)
+    versions = metadata['VersionIdsToStages']
+    if token not in versions:
+        print("Secret version %s has no stage for rotation of secret %s." % (token, arn))
+        raise ValueError("Secret version %s has no stage for rotation of secret %s." % (token, arn))
+    if "AWSCURRENT" in versions[token]:
+        print("Secret version %s already set as AWSCURRENT for secret %s." % (token, arn))
+        return
+    elif "AWSPENDING" not in versions[token]:
+        print("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
+        raise ValueError("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
+    
+    if step == 'createSecret':
+        try:
+            client.get_secret_value(SecretId=arn, VersionId=token, VersionStage='AWSPENDING')
+        except client.exceptions.ResourceNotFoundException:
+            client.put_secret_value(
+                SecretId=arn, 
+                ClientRequestToken=token, 
+                SecretString=json.dumps({'create': True}), 
+                VersionStages=['AWSPENDING']
+            )
+
+    if step == 'setSecret':
+        client.put_secret_value(
+            SecretId=arn, 
+            ClientRequestToken=token, 
+            SecretString='UpdatedValue', 
+            VersionStages=["AWSPENDING"],
+        )
+    
+    elif step == 'finishSecret':
+        current_version = next(
+            version
+            for version, stages in metadata['VersionIdsToStages'].items()
+            if 'AWSCURRENT' in stages 
+        )
+        print("current: %s new: %s" % (current_version, token))
+        client.update_secret_version_stage(
+            SecretId=arn,
+            VersionStage='AWSCURRENT',
+            MoveToVersionId=token,
+            RemoveFromVersionId=current_version,
+        )
+        client.update_secret_version_stage(
+            SecretId=arn,
+            VersionStage='AWSPENDING',
+            RemoveFromVersionId=token,
+        )
+    """
+    return _process_lambda(func_str)
+
+
+if settings.TEST_SERVER_MODE:
+
+    @mock_lambda
+    @mock_secretsmanager
+    def test_rotate_secret_using_lambda():
+        from tests.test_awslambda.test_lambda import get_role_name
+
+        # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
+        lambda_conn = boto3.client(
+            "lambda", region_name="us-west-2", endpoint_url="http://localhost:5000",
+        )
+        func = lambda_conn.create_function(
+            FunctionName="testFunction",
+            Runtime="python3.8",
+            Role=get_role_name(),
+            Handler="lambda_function.lambda_handler",
+            Code={"ZipFile": get_rotation_zip_file()},
+            Description="Secret rotator",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
+
+        secrets_conn = boto3.client(
+            "secretsmanager",
+            region_name="us-west-2",
+            endpoint_url="http://localhost:5000",
+        )
+        secret = secrets_conn.create_secret(
+            Name=DEFAULT_SECRET_NAME, SecretString="InitialValue",
+        )
+        initial_version = secret["VersionId"]
+
+        rotated_secret = secrets_conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME,
+            RotationLambdaARN=func["FunctionArn"],
+            RotationRules=dict(AutomaticallyAfterDays=30,),
+        )
+
+        # Ensure we received an updated VersionId from `rotate_secret`
+        assert rotated_secret["VersionId"] != initial_version
+
+        updated_secret = secrets_conn.get_secret_value(
+            SecretId=DEFAULT_SECRET_NAME, VersionStage="AWSCURRENT",
+        )
+        rotated_version = updated_secret["VersionId"]
+
+        assert initial_version != rotated_version
+        metadata = secrets_conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
+        assert metadata["VersionIdsToStages"][initial_version] == ["AWSPREVIOUS"]
+        assert metadata["VersionIdsToStages"][rotated_version] == ["AWSCURRENT"]
+        assert updated_secret["SecretString"] == "UpdatedValue"
+
+
 @mock_secretsmanager
 def test_put_secret_value_on_non_existing_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
@@ -942,6 +1067,35 @@ def test_tag_resource():
         conn.tag_resource(
             SecretId="dummy-test-secret",
             Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        )
+
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
+
+
+@mock_secretsmanager
+def test_untag_resource():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    conn.tag_resource(
+        SecretId="test-secret",
+        Tags=[
+            {"Key": "FirstTag", "Value": "SomeValue"},
+            {"Key": "SecondTag", "Value": "SomeValue"},
+        ],
+    )
+
+    conn.untag_resource(SecretId="test-secret", TagKeys=["FirstTag"])
+    secrets = conn.list_secrets()
+    assert secrets["SecretList"][0].get("Tags") == [
+        {"Key": "SecondTag", "Value": "SomeValue"},
+    ]
+
+    with pytest.raises(ClientError) as cm:
+        conn.untag_resource(
+            SecretId="dummy-test-secret", TagKeys=["FirstTag"],
         )
 
     assert (

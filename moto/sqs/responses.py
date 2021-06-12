@@ -3,7 +3,12 @@ from __future__ import unicode_literals
 import re
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import amz_crc32, amzn_request_id
+from moto.core.utils import (
+    amz_crc32,
+    amzn_request_id,
+    underscores_to_camelcase,
+    camelcase_to_pascal,
+)
 from six.moves.urllib.parse import urlparse
 
 from .exceptions import (
@@ -223,6 +228,9 @@ class SQSResponse(BaseResponse):
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
 
         message_attributes = parse_message_attributes(self.querystring)
+        system_message_attributes = parse_message_attributes(
+            self.querystring, key="MessageSystemAttribute"
+        )
 
         queue_name = self._get_queue_name()
 
@@ -241,6 +249,7 @@ class SQSResponse(BaseResponse):
             delay_seconds=delay_seconds,
             deduplication_id=message_dedupe_id,
             group_id=message_group_id,
+            system_attributes=system_message_attributes,
         )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
@@ -354,7 +363,9 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         message_attributes = self._get_multi_param("message_attributes")
         if not message_attributes:
-            message_attributes = extract_input_message_attributes(self.querystring,)
+            message_attributes = extract_input_message_attributes(self.querystring)
+
+        attribute_names = self._get_multi_param("AttributeName")
 
         queue = self.sqs_backend.get_queue(queue_name)
 
@@ -396,8 +407,24 @@ class SQSResponse(BaseResponse):
         messages = self.sqs_backend.receive_messages(
             queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
+
+        attributes = {
+            "approximate_first_receive_timestamp": False,
+            "approximate_receive_count": False,
+            "message_deduplication_id": False,
+            "message_group_id": False,
+            "sender_id": False,
+            "sent_timestamp": False,
+            "sequence_number": False,
+        }
+
+        for attribute in attributes:
+            pascalcase_name = camelcase_to_pascal(underscores_to_camelcase(attribute))
+            if any(x in ["All", pascalcase_name] for x in attribute_names):
+                attributes[attribute] = True
+
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
-        return template.render(messages=messages)
+        return template.render(messages=messages, attributes=attributes)
 
     def list_dead_letter_source_queues(self):
         request_url = urlparse(self.uri)
@@ -537,32 +564,52 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
           <ReceiptHandle>{{ message.receipt_handle }}</ReceiptHandle>
           <MD5OfBody>{{ message.body_md5 }}</MD5OfBody>
           <Body>{{ message.body }}</Body>
+          {% if attributes.sender_id %}
           <Attribute>
             <Name>SenderId</Name>
             <Value>{{ message.sender_id }}</Value>
           </Attribute>
+          {% endif %}
+          {% if attributes.sent_timestamp %}
           <Attribute>
             <Name>SentTimestamp</Name>
             <Value>{{ message.sent_timestamp }}</Value>
           </Attribute>
+          {% endif %}
+          {% if attributes.approximate_receive_count %}
           <Attribute>
             <Name>ApproximateReceiveCount</Name>
             <Value>{{ message.approximate_receive_count }}</Value>
           </Attribute>
+          {% endif %}
+          {% if attributes.approximate_first_receive_timestamp %}
           <Attribute>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
-          {% if message.deduplication_id is not none %}
+          {% endif %}
+          {% if attributes.message_deduplication_id and message.deduplication_id is not none %}
           <Attribute>
             <Name>MessageDeduplicationId</Name>
             <Value>{{ message.deduplication_id }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.group_id is not none %}
+          {% if attributes.message_group_id and message.group_id is not none %}
           <Attribute>
             <Name>MessageGroupId</Name>
             <Value>{{ message.group_id }}</Value>
+          </Attribute>
+          {% endif %}
+          {% if message.system_attributes and message.system_attributes.get('AWSTraceHeader') is not none %}
+          <Attribute>
+            <Name>AWSTraceHeader</Name>
+            <Value>{{ message.system_attributes.get('AWSTraceHeader',{}).get('string_value') }}</Value>
+          </Attribute>
+          {% endif %}
+          {% if attributes.sequence_number and message.sequence_number is not none %}
+          <Attribute>
+            <Name>SequenceNumber</Name>
+            <Value>{{ message.sequence_number }}</Value>
           </Attribute>
           {% endif %}
           {% if message.message_attributes.items()|count > 0 %}

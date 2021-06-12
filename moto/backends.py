@@ -21,6 +21,7 @@ BACKENDS = {
     "config": ("config", "config_backends"),
     "datapipeline": ("datapipeline", "datapipeline_backends"),
     "datasync": ("datasync", "datasync_backends"),
+    "dms": ("dms", "dms_backends"),
     "dynamodb": ("dynamodb", "dynamodb_backends"),
     "dynamodb2": ("dynamodb2", "dynamodb_backends2"),
     "dynamodbstreams": ("dynamodbstreams", "dynamodbstreams_backends"),
@@ -79,6 +80,8 @@ BACKENDS = {
     "forecast": ("forecast", "forecast_backends"),
     "support": ("support", "support_backends"),
     "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
+    "mediapackage": ("mediapackage", "mediapackage_backends"),
+    "mediastore": ("mediastore", "mediastore_backends"),
 }
 
 

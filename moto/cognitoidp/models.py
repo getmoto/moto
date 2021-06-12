@@ -83,6 +83,10 @@ class CognitoIdpUserPool(BaseModel):
         self.creation_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
 
+        self.mfa_config = "OFF"
+        self.sms_mfa_config = None
+        self.token_mfa_config = None
+
         self.clients = OrderedDict()
         self.identity_providers = OrderedDict()
         self.groups = OrderedDict()
@@ -105,6 +109,7 @@ class CognitoIdpUserPool(BaseModel):
             "Status": self.status,
             "CreationDate": time.mktime(self.creation_date.timetuple()),
             "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
+            "MfaConfiguration": self.mfa_config,
         }
 
     def to_json(self, extended=False):
@@ -390,6 +395,25 @@ class CognitoIdpBackend(BaseBackend):
         user_pool = CognitoIdpUserPool(self.region, name, extended_config)
         self.user_pools[user_pool.id] = user_pool
         return user_pool
+
+    def set_user_pool_mfa_config(
+        self, user_pool_id, sms_config, token_config, mfa_config
+    ):
+        user_pool = self.describe_user_pool(user_pool_id)
+        user_pool.mfa_config = mfa_config
+        user_pool.sms_mfa_config = sms_config
+        user_pool.token_mfa_config = token_config
+
+        return self.get_user_pool_mfa_config(user_pool_id)
+
+    def get_user_pool_mfa_config(self, user_pool_id):
+        user_pool = self.describe_user_pool(user_pool_id)
+
+        return {
+            "SmsMfaConfiguration": user_pool.sms_mfa_config,
+            "SoftwareTokenMfaConfiguration": user_pool.token_mfa_config,
+            "MfaConfiguration": user_pool.mfa_config,
+        }
 
     @paginate(60)
     def list_user_pools(self, max_results=None, next_token=None):
@@ -883,6 +907,8 @@ class CognitoIdpBackend(BaseBackend):
                 user_pool = p
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
+        elif username in user_pool.users:
+            raise UsernameExistsException(username)
 
         user = CognitoIdpUser(
             user_pool_id=user_pool.id,
