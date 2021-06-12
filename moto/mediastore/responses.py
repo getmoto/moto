@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
+
+import json
+
 from moto.core.responses import BaseResponse
 from .models import mediastore_backends
-import json
 
 
 class MediaStoreResponse(BaseResponse):
@@ -17,6 +19,11 @@ class MediaStoreResponse(BaseResponse):
         container = self.mediastore_backend.create_container(name=name, tags=tags)
         return json.dumps(dict(Container=container.to_dict()))
 
+    def delete_container(self):
+        name = self._get_param("ContainerName")
+        result = self.mediastore_backend.delete_container(name=name)
+        return json.dumps(result)
+
     def describe_container(self):
         name = self._get_param("ContainerName")
         container = self.mediastore_backend.describe_container(name=name)
@@ -29,6 +36,11 @@ class MediaStoreResponse(BaseResponse):
             next_token=next_token, max_results=max_results,
         )
         return json.dumps(dict(dict(Containers=containers), NextToken=next_token))
+
+    def list_tags_for_resource(self):
+        name = self._get_param("Resource")
+        tags = self.mediastore_backend.list_tags_for_resource(name)
+        return json.dumps(dict(Tags=tags))
 
     def put_lifecycle_policy(self):
         container_name = self._get_param("ContainerName")

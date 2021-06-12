@@ -376,7 +376,7 @@
 - [ ] update_model
 - [ ] update_request_validator
 - [ ] update_resource
-- [ ] update_rest_api
+- [X] update_rest_api
 - [X] update_stage
 - [ ] update_usage
 - [X] update_usage_plan
@@ -2053,7 +2053,7 @@
 
 ## cognito-idp
 <details>
-<summary>45% implemented</summary>
+<summary>47% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -2119,7 +2119,7 @@
 - [ ] get_ui_customization
 - [ ] get_user
 - [ ] get_user_attribute_verification_code
-- [ ] get_user_pool_mfa_config
+- [X] get_user_pool_mfa_config
 - [ ] global_sign_out
 - [X] initiate_auth
 - [ ] list_devices
@@ -2137,7 +2137,7 @@
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [X] set_user_mfa_preference
-- [ ] set_user_pool_mfa_config
+- [X] set_user_pool_mfa_config
 - [ ] set_user_settings
 - [X] sign_up
 - [ ] start_user_import_job
@@ -2951,7 +2951,7 @@
 
 ## dms
 <details>
-<summary>0% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2960,14 +2960,14 @@
 - [ ] create_event_subscription
 - [ ] create_replication_instance
 - [ ] create_replication_subnet_group
-- [ ] create_replication_task
+- [X] create_replication_task
 - [ ] delete_certificate
 - [ ] delete_connection
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
 - [ ] delete_replication_instance
 - [ ] delete_replication_subnet_group
-- [ ] delete_replication_task
+- [X] delete_replication_task
 - [ ] delete_replication_task_assessment_run
 - [ ] describe_account_attributes
 - [ ] describe_applicable_individual_assessments
@@ -2987,7 +2987,7 @@
 - [ ] describe_replication_task_assessment_results
 - [ ] describe_replication_task_assessment_runs
 - [ ] describe_replication_task_individual_assessments
-- [ ] describe_replication_tasks
+- [X] describe_replication_tasks
 - [ ] describe_schemas
 - [ ] describe_table_statistics
 - [ ] import_certificate
@@ -3002,10 +3002,10 @@
 - [ ] refresh_schemas
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
-- [ ] start_replication_task
+- [X] start_replication_task
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
-- [ ] stop_replication_task
+- [X] stop_replication_task
 - [ ] test_connection
 </details>
 
@@ -4086,7 +4086,7 @@
 
 ## emr
 <details>
-<summary>42% implemented</summary>
+<summary>44% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -4112,7 +4112,7 @@
 - [X] list_clusters
 - [ ] list_instance_fleets
 - [X] list_instance_groups
-- [ ] list_instances
+- [X] list_instances
 - [ ] list_notebook_executions
 - [ ] list_security_configurations
 - [X] list_steps
@@ -7056,25 +7056,25 @@
 
 ## mediastore
 <details>
-<summary>0% implemented</summary>
+<summary>42% implemented</summary>
 
-- [ ] create_container
+- [X] create_container
 - [ ] delete_container
 - [ ] delete_container_policy
 - [ ] delete_cors_policy
 - [ ] delete_lifecycle_policy
 - [ ] delete_metric_policy
-- [ ] describe_container
-- [ ] get_container_policy
+- [X] describe_container
+- [X] get_container_policy
 - [ ] get_cors_policy
-- [ ] get_lifecycle_policy
-- [ ] get_metric_policy
-- [ ] list_containers
+- [X] get_lifecycle_policy
+- [X] get_metric_policy
+- [X] list_containers
 - [ ] list_tags_for_resource
-- [ ] put_container_policy
+- [X] put_container_policy
 - [ ] put_cors_policy
-- [ ] put_lifecycle_policy
-- [ ] put_metric_policy
+- [X] put_lifecycle_policy
+- [X] put_metric_policy
 - [ ] start_access_logging
 - [ ] stop_access_logging
 - [ ] tag_resource
@@ -9080,7 +9080,7 @@
 
 ## secretsmanager
 <details>
-<summary>63% implemented</summary>
+<summary>68% implemented</summary>
 
 - [ ] cancel_rotate_secret
 - [X] create_secret
@@ -9102,7 +9102,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_secret
-- [ ] update_secret_version_stage
+- [X] update_secret_version_stage
 - [ ] validate_resource_policy
 </details>
 
@@ -10055,7 +10055,7 @@
 
 ## support
 <details>
-<summary>14% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case

@@ -5,6 +5,7 @@ import os
 
 from moto.core.responses import BaseResponse
 from .models import cognitoidp_backends, find_region_by_value, UserStatus
+from .exceptions import InvalidParameterException
 
 
 class CognitoIdpResponse(BaseResponse):
@@ -19,6 +20,40 @@ class CognitoIdpResponse(BaseResponse):
             name, self.parameters
         )
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
+
+    def set_user_pool_mfa_config(self):
+        user_pool_id = self._get_param("UserPoolId")
+        sms_config = self._get_param("SmsMfaConfiguration", None)
+        token_config = self._get_param("SoftwareTokenMfaConfiguration", None)
+        mfa_config = self._get_param("MfaConfiguration")
+
+        if mfa_config not in ["ON", "OFF", "OPTIONAL"]:
+            raise InvalidParameterException(
+                "[MfaConfiguration] must be one of 'ON', 'OFF', or 'OPTIONAL'."
+            )
+
+        if mfa_config in ["ON", "OPTIONAL"]:
+            if sms_config is None and token_config is None:
+                raise InvalidParameterException(
+                    "At least one of [SmsMfaConfiguration] or [SoftwareTokenMfaConfiguration] must be provided."
+                )
+            if sms_config is not None:
+                if "SmsConfiguration" not in sms_config:
+                    raise InvalidParameterException(
+                        "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
+                    )
+
+        response = cognitoidp_backends[self.region].set_user_pool_mfa_config(
+            user_pool_id, sms_config, token_config, mfa_config
+        )
+        return json.dumps(response)
+
+    def get_user_pool_mfa_config(self):
+        user_pool_id = self._get_param("UserPoolId")
+        response = cognitoidp_backends[self.region].get_user_pool_mfa_config(
+            user_pool_id
+        )
+        return json.dumps(response)
 
     def list_user_pools(self):
         max_results = self._get_param("MaxResults")

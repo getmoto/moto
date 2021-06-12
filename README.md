@@ -356,7 +356,7 @@ def test_create_bucket(s3):
 
 If you use [`unittest`](https://docs.python.org/3/library/unittest.html) to run tests, and you want to use `moto` inside `setUp` or `setUpClass`, you can do it with `.start()` and `.stop()` like:
 
-```
+```python
 import unittest
 from moto import mock_s3
 import boto3

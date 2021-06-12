@@ -301,6 +301,7 @@ class InstanceResponse(BaseResponse):
             device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
                 device_mapping.get("ebs._encrypted", False)
             )
+            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("ebs._kms_key_id")
             mappings.append(device_template)
 
         return mappings

@@ -33,7 +33,7 @@ class Rule(CloudFormationModel):
     def __init__(self, name, region_name, **kwargs):
         self.name = name
         self.region_name = region_name
-        self.event_pattern = kwargs.get("EventPattern")
+        self.event_pattern = EventPattern(kwargs.get("EventPattern"))
         self.schedule_exp = kwargs.get("ScheduleExpression")
         self.state = kwargs.get("State") or "ENABLED"
         self.description = kwargs.get("Description")
@@ -100,7 +100,7 @@ class Rule(CloudFormationModel):
         if event_bus_name != self.event_bus_name:
             return
 
-        if not self._validate_event(event):
+        if not self.event_pattern.matches_event(event):
             return
 
         # supported targets
@@ -122,23 +122,6 @@ class Rule(CloudFormationModel):
                 self._send_to_sqs_queue(arn.resource_id, event, group_id)
             else:
                 raise NotImplementedError("Expr not defined for {0}".format(type(self)))
-
-    def _validate_event(self, event):
-        for field, pattern in json.loads(self.event_pattern).items():
-            if not isinstance(pattern, list):
-                # to keep it simple at the beginning only pattern with 1 level of depth are validated
-                continue
-
-            if isinstance(pattern[0], dict):
-                if "exists" in pattern[0]:
-                    if pattern[0]["exists"] and field not in event:
-                        return False
-                    elif not pattern[0]["exists"] and field in event:
-                        return False
-            elif event.get(field) not in pattern:
-                return False
-
-        return True
 
     def _parse_arn(self, arn):
         # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -191,8 +174,7 @@ class Rule(CloudFormationModel):
         archive_name, archive_uuid = resource_id.split(":")
         archive = events_backends[self.region_name].archives.get(archive_name)
         if archive.uuid == archive_uuid:
-            if archive.event_pattern.matches_event(event):
-                archive.events.append(event)
+            archive.events.append(event)
 
     def _send_to_sqs_queue(self, resource_id, event, group_id=None):
         from moto.sqs import sqs_backends
@@ -413,7 +395,7 @@ class Archive(CloudFormationModel):
         if description:
             self.description = description
         if event_pattern:
-            self.event_pattern = event_pattern
+            self.event_pattern = EventPattern(event_pattern)
         if retention:
             self.retention = retention
 
@@ -560,12 +542,82 @@ class Replay(BaseModel):
         self.end_time = unix_time(datetime.utcnow())
 
 
+class Connection(BaseModel):
+    def __init__(
+        self, name, region_name, description, authorization_type, auth_parameters,
+    ):
+        self.name = name
+        self.region = region_name
+        self.description = description
+        self.authorization_type = authorization_type
+        self.auth_parameters = auth_parameters
+        self.creation_time = unix_time(datetime.utcnow())
+        self.state = "AUTHORIZED"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:connection/{2}".format(
+            self.region, ACCOUNT_ID, self.name
+        )
+
+
+class Destination(BaseModel):
+    def __init__(
+        self,
+        name,
+        region_name,
+        description,
+        connection_arn,
+        invocation_endpoint,
+        http_method,
+    ):
+        self.name = name
+        self.region = region_name
+        self.description = description
+        self.connection_arn = connection_arn
+        self.invocation_endpoint = invocation_endpoint
+        self.creation_time = unix_time(datetime.utcnow())
+        self.http_method = http_method
+        self.state = "ACTIVE"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:destination/{2}".format(
+            self.region, ACCOUNT_ID, self.name
+        )
+
+
 class EventPattern:
     def __init__(self, filter):
-        self._filter = json.loads(filter) if filter else None
+        self._filter = self._load_event_pattern(filter)
+        if not self._validate_event_pattern(self._filter):
+            raise InvalidEventPatternException
 
     def __str__(self):
         return json.dumps(self._filter)
+
+    def _load_event_pattern(self, pattern):
+        try:
+            return json.loads(pattern) if pattern else None
+        except ValueError:
+            raise InvalidEventPatternException
+
+    def _validate_event_pattern(self, pattern):
+        # values in the event pattern have to be either a dict or an array
+        if pattern is None:
+            return True
+
+        dicts_valid = [
+            self._validate_event_pattern(value)
+            for value in pattern.values()
+            if isinstance(value, dict)
+        ]
+        non_dicts_valid = [
+            isinstance(value, list)
+            for value in pattern.values()
+            if not isinstance(value, dict)
+        ]
+        return all(dicts_valid) and all(non_dicts_valid)
 
     def matches_event(self, event):
         if not self._filter:
@@ -600,9 +652,10 @@ class EventPattern:
     def _does_item_match_named_filter(self, item, filter):
         filter_name, filter_value = list(filter.items())[0]
         if filter_name == "exists":
-            item_exists = item is not None
+            is_leaf_node = not isinstance(item, dict)
+            leaf_exists = is_leaf_node and item is not None
             should_exist = filter_value
-            return item_exists if should_exist else not item_exists
+            return leaf_exists if should_exist else not leaf_exists
         if filter_name == "prefix":
             prefix = filter_value
             return item.startswith(prefix)
@@ -641,6 +694,8 @@ class EventsBackend(BaseBackend):
         self.tagger = TaggingService()
 
         self._add_default_event_bus()
+        self.connections = {}
+        self.destinations = {}
 
     def reset(self):
         region_name = self.region_name
@@ -795,7 +850,6 @@ class EventsBackend(BaseBackend):
             raise ValidationException(
                 "ScheduleExpression is supported only on the default event bus."
             )
-
         if name in self.rules:
             self.update_rule(self.rules[name], **kwargs)
             new_rule = self.rules[name]
@@ -1052,9 +1106,6 @@ class EventsBackend(BaseBackend):
                 "Member must have length less than or equal to 48".format(name)
             )
 
-        if event_pattern:
-            self._validate_event_pattern(event_pattern)
-
         event_bus = self._get_event_bus(source_arn)
 
         if name in self.archives:
@@ -1104,26 +1155,6 @@ class EventsBackend(BaseBackend):
 
         return archive
 
-    def _validate_event_pattern(self, pattern):
-        try:
-            json_pattern = json.loads(pattern)
-        except ValueError:  # json.JSONDecodeError exists since Python 3.5
-            raise InvalidEventPatternException
-
-        if not self._is_event_value_an_array(json_pattern):
-            raise InvalidEventPatternException
-
-    def _is_event_value_an_array(self, pattern):
-        # the values of a key in the event pattern have to be either a dict or an array
-        for value in pattern.values():
-            if isinstance(value, dict):
-                if not self._is_event_value_an_array(value):
-                    return False
-            elif not isinstance(value, list):
-                return False
-
-        return True
-
     def describe_archive(self, name):
         archive = self.archives.get(name)
 
@@ -1167,9 +1198,6 @@ class EventsBackend(BaseBackend):
 
         if not archive:
             raise ResourceNotFoundException("Archive {} does not exist.".format(name))
-
-        if event_pattern:
-            self._validate_event_pattern(event_pattern)
 
         archive.update(description, event_pattern, retention)
 
@@ -1299,6 +1327,38 @@ class EventsBackend(BaseBackend):
         replay.state = ReplayState.CANCELLED
 
         return {"ReplayArn": replay.arn, "State": ReplayState.CANCELLING.value}
+
+    def create_connection(self, name, description, authorization_type, auth_parameters):
+        connection = Connection(
+            name, self.region_name, description, authorization_type, auth_parameters
+        )
+        self.connections[name] = connection
+        return connection
+
+    def list_connections(self):
+        return self.connections.values()
+
+    def create_api_destination(
+        self, name, description, connection_arn, invocation_endpoint, http_method
+    ):
+
+        destination = Destination(
+            name=name,
+            region_name=self.region_name,
+            description=description,
+            connection_arn=connection_arn,
+            invocation_endpoint=invocation_endpoint,
+            http_method=http_method,
+        )
+
+        self.destinations[name] = destination
+        return destination
+
+    def list_api_destinations(self):
+        return self.destinations.values()
+
+    def describe_api_destination(self, name):
+        return self.destinations.get(name)
 
 
 events_backends = {}

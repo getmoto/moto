@@ -12,7 +12,9 @@ from .exceptions import BadRequestException
 
 
 class FakeResourceGroup(BaseModel):
-    def __init__(self, name, resource_query, description=None, tags=None):
+    def __init__(
+        self, name, resource_query, description=None, tags=None, configuration=None
+    ):
         self.errors = []
         description = description or ""
         tags = tags or {}
@@ -28,6 +30,7 @@ class FakeResourceGroup(BaseModel):
         self.arn = "arn:aws:resource-groups:us-west-1:{AccountId}:{name}".format(
             name=name, AccountId=ACCOUNT_ID
         )
+        self.configuration = configuration
 
     @staticmethod
     def _format_error(key, value, constraint):
@@ -297,10 +300,16 @@ class ResourceGroupsBackend(BaseBackend):
             if tag.lower().startswith("aws:"):
                 raise BadRequestException("Tag keys must not start with 'aws:'")
 
-    def create_group(self, name, resource_query, description=None, tags=None):
+    def create_group(
+        self, name, resource_query, description=None, tags=None, configuration=None
+    ):
         tags = tags or {}
         group = FakeResourceGroup(
-            name=name, resource_query=resource_query, description=description, tags=tags
+            name=name,
+            resource_query=resource_query,
+            description=description,
+            tags=tags,
+            configuration=configuration,
         )
         if name in self.groups:
             raise BadRequestException("Cannot create group: group already exists")
@@ -348,6 +357,15 @@ class ResourceGroupsBackend(BaseBackend):
     def update_group_query(self, group_name, resource_query):
         self._validate_resource_query(resource_query)
         self.groups.by_name[group_name].resource_query = resource_query
+        return self.groups.by_name[group_name]
+
+    def get_group_configuration(self, group_name):
+        group = self.groups.by_name.get(group_name)
+        configuration = group.configuration
+        return configuration
+
+    def put_group_configuration(self, group_name, configuration):
+        self.groups.by_name[group_name].configuration = configuration
         return self.groups.by_name[group_name]
 
 

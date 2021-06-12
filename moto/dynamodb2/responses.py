@@ -11,7 +11,6 @@ from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
 from .exceptions import (
     InvalidIndexNameError,
-    ItemSizeTooLarge,
     MockValidationException,
     TransactionCanceledException,
 )
@@ -296,9 +295,9 @@ class DynamoHandler(BaseResponse):
                 expression_attribute_values,
                 overwrite,
             )
-        except ItemSizeTooLarge:
+        except MockValidationException as mve:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(er, ItemSizeTooLarge.item_size_too_large_msg)
+            return self.error(er, mve.exception_msg)
         except KeyError as ke:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, ke.args[0])

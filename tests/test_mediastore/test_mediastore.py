@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
 import boto3
-import sure  # noqa
 import pytest
-from moto import mock_mediastore
+import sure  # noqa
 from botocore.exceptions import ClientError
+
+from moto import mock_mediastore
 
 region = "eu-west-1"
 
@@ -192,3 +193,51 @@ def test_get_metric_policy_raises_error_if_container_does_not_have_metric_policy
     with pytest.raises(ClientError) as ex:
         client.get_metric_policy(ContainerName="container-name")
     ex.value.response["Error"]["Code"].should.equal("PolicyNotFoundException")
+
+
+@mock_mediastore
+def test_list_tags_for_resource():
+    client = boto3.client("mediastore", region_name=region)
+    tags = [{"Key": "customer"}]
+
+    create_response = client.create_container(
+        ContainerName="Awesome container!", Tags=tags
+    )
+    container = create_response["Container"]
+    response = client.list_tags_for_resource(Resource=container["Name"])
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["Tags"].should.equal(tags)
+
+
+@mock_mediastore
+def test_list_tags_for_resource_return_none_if_no_tags():
+    client = boto3.client("mediastore", region_name=region)
+
+    create_response = client.create_container(ContainerName="Awesome container!")
+    container = create_response["Container"]
+    response = client.list_tags_for_resource(Resource=container["Name"])
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response.get("Tags").should.equal(None)
+
+
+@mock_mediastore
+def test_delete_container():
+    client = boto3.client("mediastore", region_name=region)
+    container_name = "Awesome container!"
+    create_response = client.create_container(ContainerName=container_name)
+    container = create_response["Container"]
+    response = client.delete_container(ContainerName=container["Name"])
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    containers = client.list_containers(NextToken="next-token")["Containers"]
+    container_exists = any(d["Name"] == container_name for d in containers)
+    container_exists.should.equal(False)
+
+
+@mock_mediastore
+def test_delete_container_raise_error_if_container_not_found():
+    client = boto3.client("mediastore", region_name=region)
+    client.create_container(ContainerName="Awesome container!")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_container(ContainerName="notAvailable")
+    ex.value.response["Error"]["Code"].should.equal("ContainerNotFoundException")

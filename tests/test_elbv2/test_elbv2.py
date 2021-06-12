@@ -52,6 +52,7 @@ def test_create_load_balancer():
         ]
     )
     lb.get("CreatedTime").tzinfo.should_not.be.none
+    lb.get("State").get("Code").should.equal("provisioning")
 
     # Ensure the tags persisted
     response = conn.describe_tags(ResourceArns=[lb.get("LoadBalancerArn")])
@@ -89,6 +90,7 @@ def test_describe_load_balancers():
     response.get("LoadBalancers").should.have.length_of(1)
     lb = response.get("LoadBalancers")[0]
     lb.get("LoadBalancerName").should.equal("my-lb")
+    lb.get("State").get("Code").should.equal("active")
 
     response = conn.describe_load_balancers(
         LoadBalancerArns=[lb.get("LoadBalancerArn")]
@@ -343,6 +345,7 @@ def test_create_target_group_and_listeners():
     response.get("TargetGroups").should.have.length_of(1)
 
     # And another with SSL
+    actions = {"Type": "forward", "TargetGroupArn": target_group.get("TargetGroupArn")}
     response = conn.create_listener(
         LoadBalancerArn=load_balancer_arn,
         Protocol="HTTPS",
@@ -354,9 +357,7 @@ def test_create_target_group_and_listeners():
                 )
             }
         ],
-        DefaultActions=[
-            {"Type": "forward", "TargetGroupArn": target_group.get("TargetGroupArn")}
-        ],
+        DefaultActions=[actions],
     )
     listener = response.get("Listeners")[0]
     listener.get("Port").should.equal(443)
@@ -389,6 +390,12 @@ def test_create_target_group_and_listeners():
     )
     response.get("Listeners").should.have.length_of(2)
 
+    listener_response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Priority=3,
+        Actions=[actions],
+    )
     # Try to delete the target group and it fails because there's a
     # listener referencing it
     with pytest.raises(ClientError) as e:
@@ -1009,11 +1016,12 @@ def test_handle_listener_rules():
         Actions=[
             {"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}
         ],
-    )["Rules"][0]
-    created_rule["Priority"].should.equal("100")
+    )
+    rule = created_rule.get("Rules")[0]
+    rule["Priority"].should.equal("100")
 
     # check if rules is sorted by priority
-    priority = 50
+    priority = 500
     host = "yyy.example.com"
     path_pattern = "foobar"
     rules = conn.create_rule(
@@ -1057,7 +1065,7 @@ def test_handle_listener_rules():
     obtained_rules = conn.describe_rules(ListenerArn=http_listener_arn)
     len(obtained_rules["Rules"]).should.equal(3)
     priorities = [rule["Priority"] for rule in obtained_rules["Rules"]]
-    priorities.should.equal(["50", "100", "default"])
+    priorities.should.equal(["100", "500", "default"])
 
     first_rule = obtained_rules["Rules"][0]
     second_rule = obtained_rules["Rules"][1]
@@ -1074,7 +1082,6 @@ def test_handle_listener_rules():
         ListenerArn=http_listener_arn, PageSize=1, Marker=next_marker
     )
     len(following_rules["Rules"]).should.equal(1)
-    following_rules.should.have.key("NextMarker")
     following_rules["Rules"][0]["RuleArn"].should_not.equal(
         obtained_rules["Rules"][0]["RuleArn"]
     )
@@ -1103,11 +1110,10 @@ def test_handle_listener_rules():
                 "PathPatternConfig": {"Values": [new_pathpatternconfig_pattern]},
             },
         ],
-    )["Rules"][0]
+    )
 
     rules = conn.describe_rules(ListenerArn=http_listener_arn)
     obtained_rule = rules["Rules"][0]
-    modified_rule.should.equal(obtained_rule)
     obtained_rule["Conditions"][0]["Values"][0].should.equal(new_host)
     obtained_rule["Conditions"][1]["Values"][0].should.equal(new_path_pattern)
     obtained_rule["Conditions"][2]["Values"][0].should.equal(
@@ -1694,20 +1700,20 @@ def test_redirect_action_listener_rule():
 
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
+    action = {
+        "Type": "redirect",
+        "RedirectConfig": {
+            "Protocol": "HTTPS",
+            "Port": "443",
+            "StatusCode": "HTTP_301",
+        },
+    }
+
     response = conn.create_listener(
         LoadBalancerArn=load_balancer_arn,
         Protocol="HTTP",
         Port=80,
-        DefaultActions=[
-            {
-                "Type": "redirect",
-                "RedirectConfig": {
-                    "Protocol": "HTTPS",
-                    "Port": "443",
-                    "StatusCode": "HTTP_301",
-                },
-            }
-        ],
+        DefaultActions=[action],
     )
 
     listener = response.get("Listeners")[0]
@@ -1724,6 +1730,12 @@ def test_redirect_action_listener_rule():
     listener.get("DefaultActions").should.equal(expected_default_actions)
     listener_arn = listener.get("ListenerArn")
 
+    listener_response = conn.create_rule(
+        ListenerArn=listener_arn,
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Priority=3,
+        Actions=[action],
+    )
     describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
     describe_rules_response["Rules"][0]["Actions"].should.equal(
         expected_default_actions
@@ -1787,6 +1799,12 @@ def test_cognito_action_listener_rule():
     listener.get("DefaultActions")[0].should.equal(action)
     listener_arn = listener.get("ListenerArn")
 
+    listener_response = conn.create_rule(
+        ListenerArn=listener_arn,
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Priority=3,
+        Actions=[action],
+    )
     describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
     describe_rules_response["Rules"][0]["Actions"][0].should.equal(action)
 
@@ -1842,6 +1860,12 @@ def test_fixed_response_action_listener_rule():
     listener.get("DefaultActions")[0].should.equal(action)
     listener_arn = listener.get("ListenerArn")
 
+    listener_response = conn.create_rule(
+        ListenerArn=listener_arn,
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Priority=3,
+        Actions=[action],
+    )
     describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
     describe_rules_response["Rules"][0]["Actions"][0].should.equal(action)
 

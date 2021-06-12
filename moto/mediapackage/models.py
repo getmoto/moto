@@ -1,7 +1,11 @@
 from __future__ import unicode_literals
-from boto3 import Session
-from moto.core import BaseBackend, BaseModel
+
 from collections import OrderedDict
+
+from boto3 import Session
+
+from moto.core import BaseBackend, BaseModel
+from .exceptions import ClientError
 
 
 class Channel(BaseModel):
@@ -97,8 +101,12 @@ class MediaPackageBackend(BaseBackend):
         return response_channels
 
     def describe_channel(self, id):
-        channel = self._channels[id]
-        return channel.to_dict()
+        try:
+            channel = self._channels[id]
+            return channel.to_dict()
+        except KeyError:
+            error = "NotFoundException"
+            raise ClientError(error, "channel with id={} not found".format(id))
 
     def delete_channel(self, id):
         channel = self._channels[id]

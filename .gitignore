@@ -24,3 +24,4 @@ tests/file.tmp
 *.tmp
 .venv/
 htmlcov/
+.~c9_*

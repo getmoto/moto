@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ec2, mock_ssm
+from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
 from tests import EXAMPLE_AMI_ID
 
 
@@ -464,8 +465,15 @@ def test_get_parameter_with_version_and_labels():
 
     with pytest.raises(ClientError) as ex:
         client.get_parameter(Name="test-2:2", WithDecryption=False)
+    ex.value.response["Error"]["Code"].should.equal("ParameterVersionNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Systems Manager could not find version 2 of test-2. Verify the version and try again."
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter(Name="test-3:2", WithDecryption=False)
     ex.value.response["Error"]["Code"].should.equal("ParameterNotFound")
-    ex.value.response["Error"]["Message"].should.equal("Parameter test-2:2 not found.")
+    ex.value.response["Error"]["Message"].should.equal("Parameter test-3:2 not found.")
 
 
 @mock_ssm
@@ -998,6 +1006,24 @@ def test_describe_parameters_tags():
     parameters.should.have.length_of(1)
 
     parameters[0]["Name"].should.equal("/spam/eggs")
+
+
+@mock_ssm
+def test_tags_in_list_tags_from_resource():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.put_parameter(
+        Name="/spam/eggs",
+        Value="eggs",
+        Type="String",
+        Tags=[{"Key": "spam", "Value": "eggs"}],
+    )
+
+    tags = client.list_tags_for_resource(
+        ResourceId="/spam/eggs", ResourceType="Parameter"
+    )
+
+    assert tags.get("TagList") == [{"Key": "spam", "Value": "eggs"}]
 
 
 @mock_ssm
@@ -1737,3 +1763,198 @@ def test_get_command_invocations_by_instance_tag():
     for instance_id in instance_ids:
         resp = ssm.get_command_invocation(CommandId=command_id, InstanceId=instance_id)
         resp["Status"].should.equal("Success")
+
+
+@mock_ssm
+def test_parameter_version_limit():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    for i in range(PARAMETER_VERSION_LIMIT + 1):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+
+    paginator = client.get_paginator("get_parameter_history")
+    page_iterator = paginator.paginate(Name=parameter_name)
+    parameter_history = list(
+        item for page in page_iterator for item in page["Parameters"]
+    )
+
+    len(parameter_history).should.equal(PARAMETER_VERSION_LIMIT)
+    parameter_history[0]["Value"].should.equal("value-2")
+    latest_version_index = PARAMETER_VERSION_LIMIT - 1
+    latest_version_value = "value-%d" % (PARAMETER_VERSION_LIMIT + 1)
+    parameter_history[latest_version_index]["Value"].should.equal(latest_version_value)
+
+
+@mock_ssm
+def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_label():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    for i in range(PARAMETER_VERSION_LIMIT):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+    client.label_parameter_version(
+        Name=parameter_name, ParameterVersion=1, Labels=["test-label"]
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.put_parameter(
+            Name=parameter_name, Value="new-value", Type="String", Overwrite=True,
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ParameterMaxVersionLimitExceeded")
+    error["Message"].should.contain(parameter_name)
+    error["Message"].should.contain("Version 1")
+    error["Message"].should.match(
+        r"the oldest version, can't be deleted because it has a label associated with it. Move the label to another version of the parameter, and try again."
+    )
+
+
+@mock_ssm
+def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_version():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    versions_to_create = 5
+
+    for i in range(versions_to_create):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+
+    response = client.get_parameters(
+        Names=[
+            "test-param:%d" % (versions_to_create + 1),
+            "test-param:%d" % (versions_to_create - 1),
+        ]
+    )
+
+    len(response["InvalidParameters"]).should.equal(1)
+    response["InvalidParameters"][0].should.equal(
+        "test-param:%d" % (versions_to_create + 1)
+    )
+
+    len(response["Parameters"]).should.equal(1)
+    response["Parameters"][0]["Name"].should.equal("test-param")
+    response["Parameters"][0]["Value"].should.equal("value-4")
+    response["Parameters"][0]["Type"].should.equal("String")
+
+
+@mock_ssm
+def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_label():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+    versions_to_create = 5
+
+    for i in range(versions_to_create):
+        client.put_parameter(
+            Name=parameter_name,
+            Value="value-%d" % (i + 1),
+            Type="String",
+            Overwrite=True,
+        )
+
+    client.label_parameter_version(
+        Name=parameter_name, ParameterVersion=1, Labels=["test-label"]
+    )
+
+    response = client.get_parameters(
+        Names=[
+            "test-param:test-label",
+            "test-param:invalid-label",
+            "test-param",
+            "test-param:2",
+        ]
+    )
+
+    len(response["InvalidParameters"]).should.equal(1)
+    response["InvalidParameters"][0].should.equal("test-param:invalid-label")
+
+    len(response["Parameters"]).should.equal(3)
+
+
+@mock_ssm
+def test_get_parameters_should_only_return_unique_requests():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+
+    client.put_parameter(Name=parameter_name, Value="value", Type="String")
+
+    response = client.get_parameters(Names=["test-param", "test-param"])
+
+    len(response["Parameters"]).should.equal(1)
+
+
+@mock_ssm
+def test_get_parameter_history_should_throw_exception_when_MaxResults_is_too_large():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+
+    for _ in range(100):
+        client.put_parameter(
+            Name=parameter_name, Value="value", Type="String", Overwrite=True
+        )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter_history(
+            Name=parameter_name, MaxResults=PARAMETER_HISTORY_MAX_RESULTS + 1
+        )
+
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ValidationException")
+    error["Message"].should.equal(
+        "1 validation error detected: "
+        "Value '{}' at 'maxResults' failed to satisfy constraint: "
+        "Member must have value less than or equal to 50.".format(
+            PARAMETER_HISTORY_MAX_RESULTS + 1
+        )
+    )
+
+
+@mock_ssm
+def test_get_parameter_history_NextTokenImplementation():
+    client = boto3.client("ssm", region_name="us-east-1")
+    parameter_name = "test-param"
+
+    for _ in range(100):
+        client.put_parameter(
+            Name=parameter_name, Value="value", Type="String", Overwrite=True
+        )
+
+    response = client.get_parameter_history(
+        Name=parameter_name, MaxResults=PARAMETER_HISTORY_MAX_RESULTS
+    )  # fetch first 50
+
+    param_history = response["Parameters"]
+    next_token = response.get("NextToken", None)
+
+    while next_token is not None:
+        response = client.get_parameter_history(
+            Name=parameter_name, MaxResults=7, NextToken=next_token
+        )  # fetch small amounts to test MaxResults can change
+        param_history.extend(response["Parameters"])
+        next_token = response.get("NextToken", None)
+
+    len(param_history).should.equal(100)
+
+
+@mock_ssm
+def test_get_parameter_history_exception_when_requesting_invalid_parameter():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_parameter_history(Name="invalid_parameter_name")
+
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ParameterNotFound")
+    error["Message"].should.equal("Parameter invalid_parameter_name not found.")

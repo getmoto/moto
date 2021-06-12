@@ -6,6 +6,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2_deprecated, mock_ec2
+from moto.ec2.models import OWNER_ID
 
 
 @mock_ec2_deprecated
@@ -296,6 +297,11 @@ def test_describe_network_acls():
 
     resp2 = conn.describe_network_acls()["NetworkAcls"]
     resp2.should.have.length_of(3)
+
+    resp3 = conn.describe_network_acls(
+        Filters=[{"Name": "owner-id", "Values": [OWNER_ID]}]
+    )["NetworkAcls"]
+    resp3.should.have.length_of(3)
 
     with pytest.raises(ClientError) as ex:
         conn.describe_network_acls(NetworkAclIds=["1"])
