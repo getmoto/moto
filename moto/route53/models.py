@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import itertools
 from collections import defaultdict
 
 import string
@@ -264,20 +265,21 @@ class FakeZone(CloudFormationModel):
         ]
 
     def get_record_sets(self, start_type, start_name):
-        record_sets = list(self.rrsets)  # Copy the list
+        def predicate(rrset):
+            rrset_name_reversed = reverse_domain_name(rrset.name)
+            start_name_reversed = reverse_domain_name(start_name)
+            return rrset_name_reversed < start_name_reversed or (
+                rrset_name_reversed == start_name_reversed and rrset.type_ < start_type
+            )
+
+        record_sets = sorted(
+            self.rrsets,
+            key=lambda rrset: (reverse_domain_name(rrset.name), rrset.type_),
+        )
+
         if start_name:
-            record_sets = [
-                record_set
-                for record_set in record_sets
-                if reverse_domain_name(record_set.name)
-                >= reverse_domain_name(start_name)
-            ]
-        if start_type:
-            record_sets = [
-                record_set
-                for record_set in record_sets
-                if record_set.type_ >= start_type
-            ]
+            start_type = start_type or ""
+            record_sets = itertools.dropwhile(predicate, record_sets)
 
         return record_sets
 

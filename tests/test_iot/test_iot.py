@@ -847,8 +847,7 @@ def test_principal_thing():
 
     res = client.list_principal_things(principal=cert_arn)
     res.should.have.key("things").which.should.have.length_of(1)
-    for thing in res["things"]:
-        thing.should_not.be.none
+    res["things"][0].should.equal(thing_name)
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key("principals").which.should.have.length_of(1)
     for principal in res["principals"]:

@@ -133,7 +133,7 @@ def test_elastic_network_interfaces_modify_attribute():
 
     with pytest.raises(EC2ResponseError) as ex:
         conn.modify_network_interface_attribute(
-            eni.id, "groupset", [security_group2.id], dry_run=True
+            eni.id, "groupset", [security_group1.id, security_group2.id], dry_run=True
         )
     ex.value.error_code.should.equal("DryRunOperation")
     ex.value.status.should.equal(400)
@@ -141,14 +141,17 @@ def test_elastic_network_interfaces_modify_attribute():
         "An error occurred (DryRunOperation) when calling the ModifyNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    conn.modify_network_interface_attribute(eni.id, "groupset", [security_group2.id])
+    conn.modify_network_interface_attribute(
+        eni.id, "groupset", [security_group1.id, security_group2.id]
+    )
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(1)
 
     eni = all_enis[0]
-    eni.groups.should.have.length_of(1)
-    eni.groups[0].id.should.equal(security_group2.id)
+    eni.groups.should.have.length_of(2)
+    eni.groups[0].id.should.equal(security_group1.id)
+    eni.groups[1].id.should.equal(security_group2.id)
 
 
 @mock_ec2_deprecated

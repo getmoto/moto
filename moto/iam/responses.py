@@ -484,9 +484,9 @@ class IamResponse(BaseResponse):
                 user = User("default_user")
         else:
             user = iam_backend.get_user(user_name)
-
+        tags = iam_backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])
         template = self.response_template(USER_TEMPLATE)
-        return template.render(action="Get", user=user)
+        return template.render(action="Get", user=user, tags=tags)
 
     def list_users(self):
         path_prefix = self._get_param("PathPrefix")

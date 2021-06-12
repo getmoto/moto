@@ -479,10 +479,10 @@ class NetworkInterfaceBackend(object):
 
         found_eni.instance.detach_eni(found_eni)
 
-    def modify_network_interface_attribute(self, eni_id, group_id):
+    def modify_network_interface_attribute(self, eni_id, group_ids):
         eni = self.get_network_interface(eni_id)
-        group = self.get_security_group_from_id(group_id)
-        eni._group_set = [group]
+        groups = [self.get_security_group_from_id(group_id) for group_id in group_ids]
+        eni._group_set = groups
 
     def get_all_network_interfaces(self, eni_ids=None, filters=None):
         enis = self.enis.values()
@@ -612,9 +612,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         snapshot_id=None,
         encrypted=False,
         delete_on_termination=False,
+        kms_key_id=None,
     ):
         volume = self.ec2_backend.create_volume(
-            size, self.region_name, snapshot_id, encrypted
+            size, self.region_name, snapshot_id, encrypted, kms_key_id
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination
@@ -967,6 +968,7 @@ class InstanceBackend(object):
 
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get("instance", {})
+        volume_tags = tags.get("volume", {})
 
         for index in range(count):
             kwargs["ami_launch_index"] = index
@@ -984,15 +986,22 @@ class InstanceBackend(object):
                     delete_on_termination = block_device["Ebs"].get(
                         "DeleteOnTermination", False
                     )
+                    kms_key_id = block_device["Ebs"].get("KmsKeyId")
                     new_instance.add_block_device(
                         volume_size,
                         device_name,
                         snapshot_id,
                         encrypted,
                         delete_on_termination,
+                        kms_key_id,
                     )
             else:
                 new_instance.setup_defaults()
+            # Tag all created volumes.
+            for _, device in new_instance.get_block_device_mapping:
+                volumes = self.describe_volumes(volume_ids=[device.volume_id])
+                for volume in volumes:
+                    volume.add_tags(volume_tags)
 
         return new_reservation
 
@@ -1984,10 +1993,11 @@ class SecurityRule(object):
         self.ip_protocol = ip_protocol
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
+        self.from_port = self.to_port = None
 
         if ip_protocol != "-1":
-            self.from_port = from_port
-            self.to_port = to_port
+            self.from_port = int(from_port)
+            self.to_port = int(to_port)
 
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
@@ -2151,10 +2161,11 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def add_ingress_rule(self, rule):
         if rule in self.ingress_rules:
             raise InvalidPermissionDuplicateError()
-        else:
-            self.ingress_rules.append(rule)
+        self.ingress_rules.append(rule)
 
     def add_egress_rule(self, rule):
+        if rule in self.egress_rules:
+            raise InvalidPermissionDuplicateError()
         self.egress_rules.append(rule)
 
     def get_number_of_ingress_rules(self):
@@ -2264,6 +2275,8 @@ class SecurityGroupBackend(object):
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges:
             if isinstance(ip_ranges, str) or (
                 six.PY2 and isinstance(ip_ranges, unicode)  # noqa
@@ -2352,6 +2365,8 @@ class SecurityGroupBackend(object):
     ):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges and not isinstance(ip_ranges, list):
 
             if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
@@ -5661,10 +5676,13 @@ class NetworkAclAssociation(object):
 
 
 class NetworkAcl(TaggedEC2Resource):
-    def __init__(self, ec2_backend, network_acl_id, vpc_id, default=False):
+    def __init__(
+        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID,
+    ):
         self.ec2_backend = ec2_backend
         self.id = network_acl_id
         self.vpc_id = vpc_id
+        self.owner_id = owner_id
         self.network_acl_entries = []
         self.associations = {}
         self.default = "true" if default is True else "false"
@@ -5678,6 +5696,8 @@ class NetworkAcl(TaggedEC2Resource):
             return self.id
         elif filter_name == "association.subnet-id":
             return [assoc.subnet_id for assoc in self.associations.values()]
+        elif filter_name == "owner-id":
+            return self.owner_id
         else:
             return super(NetworkAcl, self).get_filter_value(
                 filter_name, "DescribeNetworkAcls"
