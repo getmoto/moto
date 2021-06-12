@@ -1007,7 +1007,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                     if (
                         "//" in value
                         or not value.startswith("/")
-                        or not re.match("^[a-zA-Z0-9_.-/]*$", value)
+                        or not re.match(r"^[a-zA-Z0-9_.\-/]*$", value)
                     ):
                         raise ValidationException(
                             'The parameter doesn\'t meet the parameter name requirements. The parameter name must begin with a forward slash "/". '

@@ -735,11 +735,24 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Conditions>
         <Priority>{{ rules.priority }}</Priority>
+        <RuleArn>{{ rules.arn }}</RuleArn>
         <Actions>
           {% for action in rules.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" %}
+            {% if action["type"] == "forward" and "forward_config" in action.data %}
+            <ForwardConfig>
+              <TargetGroups>
+                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                <member>
+                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
+                  <Weight>{{ target_group["weight"] }}</Weight>
+                </member>
+                {% endfor %}
+              </TargetGroups>
+            </ForwardConfig>
+            {% endif %}
+            {% if action["type"] == "forward" and "forward_config" not in action.data %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
             {% elif action["type"] == "redirect" %}
             <RedirectConfig>{{ action["redirect_config"] }}</RedirectConfig>
@@ -747,7 +760,6 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rules.arn }}</RuleArn>
       </member>
     </Rules>
   </CreateRuleResult>
@@ -910,6 +922,7 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
           {% endfor %}
         </Conditions>
         <Priority>{{ rule.priority }}</Priority>
+        <RuleArn>{{ rule.arn }}</RuleArn>
         <Actions>
           {% for action in rule.actions %}
           <member>
@@ -917,7 +930,6 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
       </member>
       {% endfor %}
     </Rules>
@@ -1051,6 +1063,7 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           {% endfor %}
         </Conditions>
         <Priority>{{ rules.priority }}</Priority>
+        <RuleArn>{{ rules.arn }}</RuleArn>
         <Actions>
           {% for action in rules.actions %}
           <member>
@@ -1058,7 +1071,6 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rules.arn }}</RuleArn>
       </member>
     </Rules>
   </ModifyRuleResult>
@@ -1235,11 +1247,10 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
 SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <SetRulePrioritiesResult>
     <Rules>
-      {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
-          {% for condition in rule.conditions %}
+          {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["field"] }}</Field>
             <Values>
@@ -1250,18 +1261,31 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
           </member>
           {% endfor %}
         </Conditions>
-        <Priority>{{ rule.priority }}</Priority>
+        <Priority>{{ rules.priority }}</Priority>
+        <RuleArn>{{ rules.arn }}</RuleArn>
         <Actions>
-          {% for action in rule.actions %}
+          {% for action in rules.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
+            {% if action["type"] == "forward" and "forward_config" in action.data %}
+            <ForwardConfig>
+              <TargetGroups>
+                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                <member>
+                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
+                  <Weight>{{ target_group["weight"] }}</Weight>
+                </member>
+                {% endfor %}
+              </TargetGroups>
+            </ForwardConfig>
+            {% endif %}
+            {% if action["type"] == "forward" and "forward_config" not in action.data %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% endif %}
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
       </member>
-      {% endfor %}
     </Rules>
   </SetRulePrioritiesResult>
   <ResponseMetadata>

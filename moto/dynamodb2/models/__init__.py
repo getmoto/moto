@@ -9,8 +9,9 @@ import uuid
 
 from boto3 import Session
 from moto.compat import OrderedDict
+from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, unix_time_millis
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb2.comparisons import get_filter_expression
 from moto.dynamodb2.comparisons import get_expected
@@ -970,10 +971,112 @@ class Table(CloudFormationModel):
         dynamodb_backends[region_name].delete_table(self.name)
 
 
+class RestoredTable(Table):
+    def __init__(self, name, backup):
+        params = self._parse_params_from_backup(backup)
+        super(RestoredTable, self).__init__(name, **params)
+        self.indexes = copy.deepcopy(backup.table.indexes)
+        self.global_indexes = copy.deepcopy(backup.table.global_indexes)
+        self.items = copy.deepcopy(backup.table.items)
+        # Restore Attrs
+        self.source_backup_arn = backup.arn
+        self.source_table_arn = backup.table.table_arn
+        self.restore_date_time = self.created_at
+
+    @staticmethod
+    def _parse_params_from_backup(backup):
+        params = {
+            "schema": copy.deepcopy(backup.table.schema),
+            "attr": copy.deepcopy(backup.table.attr),
+            "throughput": copy.deepcopy(backup.table.throughput),
+        }
+        return params
+
+    def describe(self, base_key="TableDescription"):
+        result = super(RestoredTable, self).describe(base_key=base_key)
+        result[base_key]["RestoreSummary"] = {
+            "SourceBackupArn": self.source_backup_arn,
+            "SourceTableArn": self.source_table_arn,
+            "RestoreDateTime": unix_time(self.restore_date_time),
+            "RestoreInProgress": False,
+        }
+        return result
+
+
+class Backup(object):
+    def __init__(
+        self, backend, name, table, status=None, type_=None,
+    ):
+        self.backend = backend
+        self.name = name
+        self.table = copy.deepcopy(table)
+        self.status = status or "AVAILABLE"
+        self.type = type_ or "USER"
+        self.creation_date_time = datetime.datetime.utcnow()
+        self.identifier = self._make_identifier()
+
+    def _make_identifier(self):
+        timestamp = int(unix_time_millis(self.creation_date_time))
+        timestamp_padded = str("0" + str(timestamp))[-16:16]
+        guid = str(uuid.uuid4())
+        guid_shortened = guid[:8]
+        return "{}-{}".format(timestamp_padded, guid_shortened)
+
+    @property
+    def arn(self):
+        return "arn:aws:dynamodb:{region}:{account}:table/{table_name}/backup/{identifier}".format(
+            region=self.backend.region_name,
+            account=ACCOUNT_ID,
+            table_name=self.table.name,
+            identifier=self.identifier,
+        )
+
+    @property
+    def details(self):
+        details = {
+            "BackupArn": self.arn,
+            "BackupName": self.name,
+            "BackupSizeBytes": 123,
+            "BackupStatus": self.status,
+            "BackupType": self.type,
+            "BackupCreationDateTime": unix_time(self.creation_date_time),
+        }
+        return details
+
+    @property
+    def summary(self):
+        summary = {
+            "TableName": self.table.name,
+            # 'TableId': 'string',
+            "TableArn": self.table.table_arn,
+            "BackupArn": self.arn,
+            "BackupName": self.name,
+            "BackupCreationDateTime": unix_time(self.creation_date_time),
+            # 'BackupExpiryDateTime': datetime(2015, 1, 1),
+            "BackupStatus": self.status,
+            "BackupType": self.type,
+            "BackupSizeBytes": 123,
+        }
+        return summary
+
+    @property
+    def description(self):
+        source_table_details = self.table.describe()["TableDescription"]
+        source_table_details["TableCreationDateTime"] = source_table_details[
+            "CreationDateTime"
+        ]
+        description = {
+            "BackupDetails": self.details,
+            "SourceTableDetails": source_table_details,
+        }
+        return description
+
+
 class DynamoDBBackend(BaseBackend):
     def __init__(self, region_name=None):
         self.region_name = region_name
         self.tables = OrderedDict()
+        self.backups = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -1505,6 +1608,48 @@ class DynamoDBBackend(BaseBackend):
             }
 
         return table.continuous_backups
+
+    def get_backup(self, backup_arn):
+        return self.backups.get(backup_arn)
+
+    def list_backups(self, table_name):
+        backups = list(self.backups.values())
+        if table_name is not None:
+            backups = [backup for backup in backups if backup.table.name == table_name]
+        return backups
+
+    def create_backup(self, table_name, backup_name):
+        table = self.get_table(table_name)
+        if table is None:
+            raise KeyError()
+        backup = Backup(self, backup_name, table)
+        self.backups[backup.arn] = backup
+        return backup
+
+    def delete_backup(self, backup_arn):
+        backup = self.get_backup(backup_arn)
+        if backup is None:
+            raise KeyError()
+        backup_deleted = self.backups.pop(backup_arn)
+        backup_deleted.status = "DELETED"
+        return backup_deleted
+
+    def describe_backup(self, backup_arn):
+        backup = self.get_backup(backup_arn)
+        if backup is None:
+            raise KeyError()
+        return backup
+
+    def restore_table_from_backup(self, target_table_name, backup_arn):
+        backup = self.get_backup(backup_arn)
+        if backup is None:
+            raise KeyError()
+        existing_table = self.get_table(target_table_name)
+        if existing_table is not None:
+            raise ValueError()
+        new_table = RestoredTable(target_table_name, backup)
+        self.tables[target_table_name] = new_table
+        return new_table
 
     ######################
     # LIST of methods where the logic completely resides in responses.py
