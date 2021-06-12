@@ -402,6 +402,35 @@ def test_put_targets_error_unknown_rule():
 
 
 @mock_events
+def test_put_targets_error_missing_parameter_sqs_fifo():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule="unknown",
+            Targets=[
+                {
+                    "Id": "sqs-fifo",
+                    "Arn": "arn:aws:sqs:eu-central-1:{}:test-queue.fifo".format(
+                        ACCOUNT_ID
+                    ),
+                }
+            ],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter(s) SqsParameters must be specified for target: sqs-fifo."
+    )
+
+
+@mock_events
 def test_permissions():
     client = boto3.client("events", "eu-central-1")
 
@@ -2109,3 +2138,78 @@ def test_start_replay_send_to_log_group():
     event_replay["resources"].should.be.empty
     event_replay["detail"].should.equal({"key": "value"})
     event_replay["replay-name"].should.equal("test-replay")
+
+
+@mock_events
+def test_create_and_list_connections():
+    client = boto3.client("events", "eu-central-1")
+
+    response = client.list_connections()
+
+    assert len(response.get("Connections")) == 0
+
+    response = client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    assert response.get(
+        "ConnectionArn"
+    ) == "arn:aws:events:eu-central-1:{0}:connection/test".format(ACCOUNT_ID)
+
+    response = client.list_connections()
+
+    assert response.get("Connections")[0].get(
+        "ConnectionArn"
+    ) == "arn:aws:events:eu-central-1:{0}:connection/test".format(ACCOUNT_ID)
+
+
+@mock_events
+def test_create_and_list_api_destinations():
+    client = boto3.client("events", "eu-central-1")
+
+    response = client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    destination_response = client.create_api_destination(
+        Name="test",
+        Description="test-description",
+        ConnectionArn=response.get("ConnectionArn"),
+        InvocationEndpoint="www.google.com",
+        HttpMethod="GET",
+    )
+
+    assert destination_response.get(
+        "ApiDestinationArn"
+    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+    assert destination_response.get("ApiDestinationState") == "ACTIVE"
+
+    destination_response = client.describe_api_destination(Name="test")
+
+    assert destination_response.get(
+        "ApiDestinationArn"
+    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+
+    assert destination_response.get("Name") == "test"
+    assert destination_response.get("ApiDestinationState") == "ACTIVE"
+
+    destination_response = client.list_api_destinations()
+    assert destination_response.get("ApiDestinations")[0].get(
+        "ApiDestinationArn"
+    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+
+    assert destination_response.get("ApiDestinations")[0].get("Name") == "test"
+    assert (
+        destination_response.get("ApiDestinations")[0].get("ApiDestinationState")
+        == "ACTIVE"
+    )

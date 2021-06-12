@@ -389,6 +389,7 @@ class CloudWatchBackend(BaseBackend):
                     float(metric_member.get("Value", 0)),
                     metric_member.get("Dimensions.member", _EMPTY_LIST),
                     timestamp,
+                    metric_member.get("Unit"),
                 )
             )
 
@@ -460,8 +461,8 @@ class CloudWatchBackend(BaseBackend):
         end_time,
         period,
         stats,
-        unit,
         dimensions,
+        unit=None,
     ):
         period_delta = timedelta(seconds=period)
         # TODO: Also filter by unit and dimensions
@@ -472,6 +473,9 @@ class CloudWatchBackend(BaseBackend):
             and md.name == metric_name
             and start_time <= md.timestamp <= end_time
         ]
+
+        if unit:
+            filtered_data = [md for md in filtered_data if md.unit == unit]
 
         # earliest to oldest
         filtered_data = sorted(filtered_data, key=lambda x: x.timestamp)

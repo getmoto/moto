@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 
 import boto3
+import pytest
 import sure  # noqa
+from botocore.exceptions import ClientError  # Boto3 will always throw this exception
+
 from moto import mock_mediapackage
 
 region = "eu-west-1"
@@ -11,7 +14,7 @@ def _create_channel_config(**kwargs):
     id = kwargs.get("id", "channel-id")
     description = kwargs.get("description", "Awesome channel!")
     tags = kwargs.get("tags", {"Customer": "moto"})
-    channel_config = dict(Description=description, Id=id, Tags=tags,)
+    channel_config = dict(Description=description, Id=id, Tags=tags)
     return channel_config
 
 
@@ -79,6 +82,17 @@ def test_describe_channel_succeeds():
     )
     describe_response["Description"].should.equal(channel_config["Description"])
     describe_response["Tags"]["Customer"].should.equal("moto")
+
+
+@mock_mediapackage
+def test_describe_unknown_channel_throws_error():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_id = "unknown-channel"
+    with pytest.raises(ClientError) as err:
+        client.describe_channel(Id=channel_id)
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("channel with id={} not found".format(str(channel_id)))
 
 
 @mock_mediapackage

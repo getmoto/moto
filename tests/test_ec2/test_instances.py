@@ -338,6 +338,35 @@ def test_create_with_tags():
     len(instances["Instances"][0]["Tags"]).should.equal(3)
 
 
+@mock_ec2
+def test_create_with_volume_tags():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    volume_tags = [
+        {"Key": "MY_TAG1", "Value": "MY_VALUE1"},
+        {"Key": "MY_TAG2", "Value": "MY_VALUE2"},
+    ]
+    instances = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=2,
+        MaxCount=2,
+        InstanceType="t2.micro",
+        TagSpecifications=[{"ResourceType": "volume", "Tags": volume_tags}],
+    ).get("Instances")
+    instance_ids = [i["InstanceId"] for i in instances]
+    instances = (
+        ec2.describe_instances(InstanceIds=instance_ids)
+        .get("Reservations")[0]
+        .get("Instances")
+    )
+    for instance in instances:
+        instance_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+        volumes = ec2.describe_volumes(VolumeIds=[instance_volume["VolumeId"]]).get(
+            "Volumes"
+        )
+        for volume in volumes:
+            sorted(volume["Tags"], key=lambda i: i["Key"]).should.equal(volume_tags)
+
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()

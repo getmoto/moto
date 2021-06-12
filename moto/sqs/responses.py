@@ -228,6 +228,9 @@ class SQSResponse(BaseResponse):
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
 
         message_attributes = parse_message_attributes(self.querystring)
+        system_message_attributes = parse_message_attributes(
+            self.querystring, key="MessageSystemAttribute"
+        )
 
         queue_name = self._get_queue_name()
 
@@ -246,6 +249,7 @@ class SQSResponse(BaseResponse):
             delay_seconds=delay_seconds,
             deduplication_id=message_dedupe_id,
             group_id=message_group_id,
+            system_attributes=system_message_attributes,
         )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
@@ -594,6 +598,12 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
           <Attribute>
             <Name>MessageGroupId</Name>
             <Value>{{ message.group_id }}</Value>
+          </Attribute>
+          {% endif %}
+          {% if message.system_attributes and message.system_attributes.get('AWSTraceHeader') is not none %}
+          <Attribute>
+            <Name>AWSTraceHeader</Name>
+            <Value>{{ message.system_attributes.get('AWSTraceHeader',{}).get('string_value') }}</Value>
           </Attribute>
           {% endif %}
           {% if attributes.sequence_number and message.sequence_number is not none %}

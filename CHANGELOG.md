@@ -4,6 +4,107 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.8
+-----
+    General Changes:
+        * Moto is now compatible with Flask/werkzeug 2.0
+
+    New Methods:
+        * MediaStore:
+            * delete_container()
+            * list_tags_for_resource()
+        * Resource Groups:
+            * get_group_configuration()
+            * put_group_configuration()
+
+    Miscellaneous:
+        * APIGateway:update_usage_plan() now also supports the '/name', '/description' and '/productCode' paths.
+        * CloudWatch:get_metric_statistics() now supports the 'unit'-parameter
+        * EC2:run_instances() now supports the 'KmsKeyId'-parameter
+        * EC2:run_instances() now supports TagSpecifications with ResourceType: 'Volume'
+        * SES:test_render_template() now throws an exception if not all attributes are supplied
+        * SSM:put_parameter() now supports the 'tags'-parameter
+        * SQS:change_message_visibility() now throws an exception if the VisibilityTimeout is too large (> 43200 seconds)
+        * SQS:receive_messages() has a bugfix: it now calculates the MessageRetentionPeriod from when the message was send, rather than from when the queue was created
+
+
+2.0.7
+-----
+    General Changes:
+        * When running Moto Server inside Docker, it is now possible to specify the service you want to run, using an environment variable (MOTO_SERVICE)
+        * CloudWatchLogs models now appear in the Moto API dashboard
+
+    New Services:
+        * DMS
+            * create_replication_task()
+            * delete_replication_task()
+            * describe_replication_tasks()
+            * start_replication_task()
+            * stop_replication_task()
+
+    New Methods:
+        * AWSLambda:
+            * update_secret_version_stage()
+        * CognitoIDP:
+            * get_user_pool_mfa_config()
+            * set_user_pool_mfa_config()
+
+    Miscellaneous:
+        * CloudWatchLogs:filter_log_events() now supports pagination
+        * CloudWatchLogs:describe_log_streams() now supports pagination
+        * EC2:describe_network_acls() now supports the filter 'owner-id'
+        * EC2:modify_network_interface_attribute() now allows multiple security groups to be specified
+        * SecretsManager:rotate_secret() now triggers the Lambda that is specified
+
+
+2.0.6
+-----
+    New Methods:
+        * EMR
+            * list_instances()
+
+    Miscellaneous:
+        * API Gateway:put_integration_response() - Fixed a bug where an error would be thrown if the responseTemplates-parameter was not specified
+        * Autoscaling - Fixed a bug where creating an ASG would remove manually created EC2-instances
+        * CloudFormation support for:
+            * AWS::SageMaker::Endpoint
+            * AWS::SageMaker::EndpointConfig
+            * AWS::SageMaker::Model
+            * AWS::SageMaker::NotebookInstanceLifecycleConfig
+        * CloudWatchLogs:filter_log_events() now supports pagination
+        * DynamoDB: Now enforces Hash and Range key size limits
+        * ECS:register_task_definition() now persists the taskRoleArn and executionRoleArn-parameters
+        * EMR:describe_cluster() now returns the ClusterArn-attribute
+        * EMR:run_job_flow() now returns the ClusterArn-attribute
+        * EMR:describe_job_flows() now returns the ClusterArn-attribute
+        * IOT:list_principal_thigns() now returns the name, instead of the ARN
+        * Route53:get_all_rrsets() now returns the record sets in the right sort order
+        * S3:get_object() now returns the NoSuchVersion-exception when the versionId was not found (instead of the InvalidVersion)
+        * SQS:send_message() now supports the MessageSystemAttributes-parameter
+
+2.0.5
+-----
+    New Services:
+        * MediaStore
+            * create_container()
+            * describe_container()
+            * list_containers()
+            * put_lifecycle_policy()
+            * get_lifecycle_policy()
+            * put_container_policy()
+            * get_container_policy()
+            * put_metric_policy()
+            * get_metric_policy
+
+    Miscellaneous:
+        * ACM now supports the MOTO_ACM_VALIDATION_WAIT-environment variable, to configure the wait time before the status on new certificates move from PENDING_VALIDATION to ISSUED
+        * CloudFormation support for AWS::SageMaker::NotebookInstance
+        * EMR:run_job_flow() now creates the appropriate EC2 security groups in a private subnet
+        * Events:put_events() has improved support for the EventPattern-parameter in create_archive/put_rule
+        * Events:put_targets() now support SQS queues
+        * IAM:get_user() now returns the Tags-attribute
+        * Fixed a bug where Moto would break on systems with a default encoding other than UTF-8
+
 2.0.4
 -----
     Miscelleaneous:

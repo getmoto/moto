@@ -19,10 +19,10 @@ from distutils.version import LooseVersion
 from six.moves.urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
-import mock
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
+from moto.compat import patch
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
@@ -56,7 +56,7 @@ class BaseMockAWS(object):
             "AWS_SECRET_ACCESS_KEY": "foobar_secret",
         }
         self.ORIG_KEYS = {}
-        self.default_session_mock = mock.patch("boto3.DEFAULT_SESSION", None)
+        self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
 
         if self.__class__.nested_count == 0:
             self.reset()
@@ -94,7 +94,12 @@ class BaseMockAWS(object):
 
         if self.__class__.nested_count == 0:
             if self.__class__.mocks_active:
-                self.default_session_mock.stop()
+                try:
+                    self.default_session_mock.stop()
+                except RuntimeError:
+                    # We only need to check for this exception in Python 3.6 and 3.7
+                    # https://bugs.python.org/issue36366
+                    pass
                 self.unmock_env_variables()
                 self.__class__.mocks_active = False
             self.disable_patching()
@@ -456,7 +461,6 @@ class ServerModeMockAWS(BaseMockAWS):
             self.reset()
 
         from boto3 import client as real_boto3_client, resource as real_boto3_resource
-        import mock
 
         def fake_boto3_client(*args, **kwargs):
             region = self._get_region(*args, **kwargs)
@@ -501,10 +505,10 @@ class ServerModeMockAWS(BaseMockAWS):
             if message_body is not None:
                 self.send(message_body)
 
-        self._client_patcher = mock.patch("boto3.client", fake_boto3_client)
-        self._resource_patcher = mock.patch("boto3.resource", fake_boto3_resource)
+        self._client_patcher = patch("boto3.client", fake_boto3_client)
+        self._resource_patcher = patch("boto3.resource", fake_boto3_resource)
         if six.PY2:
-            self._httplib_patcher = mock.patch(
+            self._httplib_patcher = patch(
                 "httplib.HTTPConnection._send_output", fake_httplib_send_output
             )
 

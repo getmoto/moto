@@ -442,10 +442,6 @@ class FakeAcl(BaseModel):
             )
             for permission in permissions:
                 for grantee in grant.grantees:
-                    # Config does not add the owner if its permissions are FULL_CONTROL:
-                    if permission == "FULL_CONTROL" and grantee.id == OWNER:
-                        continue
-
                     if grantee.uri:
                         grant_list.append(
                             {

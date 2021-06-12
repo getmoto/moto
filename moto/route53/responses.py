@@ -166,6 +166,10 @@ class Route53(BaseResponse):
             template = Template(LIST_RRSET_RESPONSE)
             start_type = querystring.get("type", [None])[0]
             start_name = querystring.get("name", [None])[0]
+
+            if start_type and not start_name:
+                return 400, headers, "The input is not valid"
+
             record_sets = the_zone.get_record_sets(start_type, start_name)
             return 200, headers, template.render(record_sets=record_sets)
 

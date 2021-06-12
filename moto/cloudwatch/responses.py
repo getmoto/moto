@@ -119,7 +119,6 @@ class CloudWatchResponse(BaseResponse):
     def put_metric_data(self):
         namespace = self._get_param("Namespace")
         metric_data = self._get_multi_param("MetricData.member")
-
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
@@ -165,8 +164,8 @@ class CloudWatchResponse(BaseResponse):
             end_time,
             period,
             statistics,
-            unit,
-            dimensions,
+            unit=unit,
+            dimensions=dimensions,
         )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
@@ -519,7 +518,9 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
               {% endif %}
 
               <Timestamp>{{ datapoint.timestamp }}</Timestamp>
+              {% if datapoint.unit is not none %}
               <Unit>{{ datapoint.unit }}</Unit>
+              {% endif %}
             </member>
         {% endfor %}
       </Datapoints>

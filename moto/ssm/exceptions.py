@@ -115,3 +115,12 @@ class DuplicateDocumentContent(JsonRESTError):
         super(DuplicateDocumentContent, self).__init__(
             "DuplicateDocumentContent", message
         )
+
+
+class ParameterMaxVersionLimitExceeded(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ParameterMaxVersionLimitExceeded, self).__init__(
+            "ParameterMaxVersionLimitExceeded", message
+        )
