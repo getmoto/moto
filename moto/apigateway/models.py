@@ -1246,7 +1246,7 @@ class APIGatewayBackend(BaseBackend):
         return api.delete_deployment(deployment_id)
 
     def create_api_key(self, payload):
-        if payload.get("value") is not None:
+        if payload.get("value"):
             if len(payload.get("value", [])) < 20:
                 raise ApiKeyValueMinLength()
             for api_key in self.get_api_keys(include_values=True):
@@ -1270,7 +1270,9 @@ class APIGatewayBackend(BaseBackend):
         return api_keys
 
     def get_api_key(self, api_key_id, include_value=False):
-        api_key = self.keys[api_key_id]
+        api_key = self.keys.get(api_key_id)
+        if not api_key:
+            raise ApiKeyNotFoundException()
 
         if not include_value:
             new_key = copy(api_key)
