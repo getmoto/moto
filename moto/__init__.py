@@ -130,7 +130,7 @@ mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.0.3.21"
+__version__ = "2.0.3.22"
 
 
 try:

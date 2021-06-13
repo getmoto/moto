@@ -53,8 +53,9 @@ class IamResponse(BaseResponse):
         path = self._get_param("Path")
         policy_document = self._get_param("PolicyDocument")
         policy_name = self._get_param("PolicyName")
+        tags = self._get_multi_param("Tags.member")
         policy = iam_backend.create_policy(
-            description, path, policy_document, policy_name
+            description, path, policy_document, policy_name, tags
         )
         template = self.response_template(CREATE_POLICY_TEMPLATE)
         return template.render(policy=policy)
@@ -320,8 +321,9 @@ class IamResponse(BaseResponse):
     def create_instance_profile(self):
         profile_name = self._get_param("InstanceProfileName")
         path = self._get_param("Path", "/")
+        tags = self._get_multi_param("Tags.member")
 
-        profile = iam_backend.create_instance_profile(profile_name, path, role_ids=[])
+        profile = iam_backend.create_instance_profile(profile_name, path, role_ids=[], tags=tags)
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
 
@@ -460,6 +462,12 @@ class IamResponse(BaseResponse):
         policy_result = iam_backend.get_group_policy(group_name, policy_name)
         template = self.response_template(GET_GROUP_POLICY_TEMPLATE)
         return template.render(name="GetGroupPolicyResponse", **policy_result)
+
+    def delete_group_policy(self):
+        group_name = self._get_param("GroupName")
+        policy_name = self._get_param("PolicyName")
+        policy_result = iam_backend.delete_group_policy(group_name, policy_name)
+        return ''
 
     def delete_group(self):
         group_name = self._get_param("GroupName")
@@ -1093,6 +1101,14 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
       <PolicyId>{{ policy.id }}</PolicyId>
       <PolicyName>{{ policy.name }}</PolicyName>
       <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
+      <Tags>
+        {% for tag_key, tag_value in policy.tags.items() %}
+        <member>
+          <Key>{{ tag_key }}</Key>
+          <Value>{{ tag_value }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
     </Policy>
   </CreatePolicyResult>
   <ResponseMetadata>
@@ -1112,6 +1128,14 @@ GET_POLICY_TEMPLATE = """<GetPolicyResponse>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
       <CreateDate>{{ policy.created_iso_8601 }}</CreateDate>
       <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
+      <Tags>
+        {% for tag_key, tag_value in policy.tags.items() %}
+        <member>
+          <Key>{{ tag_key }}</Key>
+          <Value>{{ tag_value }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
     </Policy>
   </GetPolicyResult>
   <ResponseMetadata>
@@ -1223,11 +1247,30 @@ CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="http
   <CreateInstanceProfileResult>
     <InstanceProfile>
       <InstanceProfileId>{{ profile.id }}</InstanceProfileId>
-      <Roles/>
+      <Roles>
+        {% for role in profile.roles %}
+        <member>
+          <Path>{{ role.path }}</Path>
+          <Arn>{{ role.arn }}</Arn>
+          <RoleName>{{ role.name }}</RoleName>
+          <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+          <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
+          <RoleId>{{ role.id }}</RoleId>
+        </member>
+        {% endfor %}
+      </Roles>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
       <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
+      <Tags>
+        {% for tag_key, tag_value in profile.tags.items() %}
+        <member>
+          <Key>{{ tag_key }}</Key>
+          <Value>{{ tag_value }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
     </InstanceProfile>
   </CreateInstanceProfileResult>
   <ResponseMetadata>
@@ -1261,6 +1304,14 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
       <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
+      <Tags>
+        {% for tag_key, tag_value in profile.tags.items() %}
+        <member>
+          <Key>{{ tag_key }}</Key>
+          <Value>{{ tag_value }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
     </InstanceProfile>
   </GetInstanceProfileResult>
   <ResponseMetadata>
