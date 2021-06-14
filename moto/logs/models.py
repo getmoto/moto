@@ -8,6 +8,15 @@ from .exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
+import uuid
+
+
+class LogQuery(BaseModel):
+    def __init__(self, id, start_time, end_time, query):
+        self.id = id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.query = query
 
 
 class LogEvent(BaseModel):
@@ -500,6 +509,7 @@ class LogsBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.groups = dict()  # { logGroupName: LogGroup}
+        self.queries = dict()
 
     def reset(self):
         region_name = self.region_name
@@ -724,6 +734,16 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
 
         log_group.delete_subscription_filter(filter_name)
+
+    def start_query(self, log_group_names, start_time, end_time, query_string):
+
+        for log_group_name in log_group_names:
+            if log_group_name not in self.groups:
+                raise ResourceNotFoundException()
+
+        query_id = uuid.uuid1()
+        self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
+        return query_id
 
 
 logs_backends = {}

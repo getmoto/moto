@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 
 from boto3 import Session
-from moto.core import BaseBackend, BaseModel
 
+from moto.core import BaseBackend, BaseModel
 from .exceptions import ClientError
 
 

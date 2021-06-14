@@ -70,7 +70,8 @@ install_requires += [
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
-_dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
+_dep_python_jose_py2 = "python-jose[cryptography]>=3.1.0,<3.3.0; python_version<'3'"
+_dep_python_jose_py3 = "python-jose[cryptography]>=3.1.0,<4.0.0; python_version>'3'"
 _dep_python_jose_ecdsa_pin = (
     "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
 )
@@ -85,7 +86,8 @@ _dep_sshpubkeys_py3 = "sshpubkeys>=3.1.0; python_version>'3'"
 
 all_extra_deps = [
     _dep_PyYAML,
-    _dep_python_jose,
+    _dep_python_jose_py2,
+    _dep_python_jose_py3,
     _dep_python_jose_ecdsa_pin,
     _dep_docker,
     _dep_jsondiff,
@@ -102,11 +104,11 @@ all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 # i.e. even those without extra dependencies.
 # Would be good for future-compatibility, I guess.
 extras_per_service = {
-    "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+    "apigateway": [_dep_python_jose_py2, _dep_python_jose_py3, _dep_python_jose_ecdsa_pin],
     "awslambda": [_dep_docker],
     "batch": [_dep_docker],
     "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint, _dep_decorator],
-    "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+    "cognitoidp": [_dep_python_jose_py2, _dep_python_jose_py3, _dep_python_jose_ecdsa_pin],
     "dynamodb2": [_dep_docker],
     "dynamodbstreams": [_dep_docker],
     "ec2": [_dep_docker, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
