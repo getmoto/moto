@@ -127,6 +127,7 @@ mock_mediapackage = lazy_load(".mediapackage", "mock_mediapackage")
 mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
 mock_eks = lazy_load(".eks", "mock_eks")
 mock_mediastoredata = lazy_load(".mediastoredata", "mock_mediastoredata")
+mock_efs = lazy_load(".efs", "mock_efs")
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
