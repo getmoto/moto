@@ -151,7 +151,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_rule(self):
-        lister_arn = self._get_param("ListenerArn")
+        listener_arn = self._get_param("ListenerArn")
         _conditions = self._get_list_prefix("Conditions.member")
         conditions = []
         for _condition in _conditions:
@@ -166,7 +166,7 @@ class ELBV2Response(BaseResponse):
         priority = self._get_int_param("Priority")
         actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.create_rule(
-            listener_arn=lister_arn,
+            listener_arn=listener_arn,
             conditions=conditions,
             priority=priority,
             actions=actions,
@@ -268,7 +268,7 @@ class ELBV2Response(BaseResponse):
             )
             else None
         )
-        all_rules = self.elbv2_backend.describe_rules(listener_arn, rule_arns)
+        all_rules = list(self.elbv2_backend.describe_rules(listener_arn, rule_arns))
         all_arns = [rule.arn for rule in all_rules]
         page_size = self._get_int_param("PageSize", 50)  # set 50 for temporary
 
@@ -720,11 +720,10 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
 CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <CreateRuleResult>
     <Rules>
-      {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
-          {% for condition in rule.conditions %}
+          {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["field"] }}</Field>
             <Values>
@@ -735,12 +734,25 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           </member>
           {% endfor %}
         </Conditions>
-        <Priority>{{ rule.priority }}</Priority>
+        <Priority>{{ rules.priority }}</Priority>
+        <RuleArn>{{ rules.arn }}</RuleArn>
         <Actions>
-          {% for action in rule.actions %}
+          {% for action in rules.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" %}
+            {% if action["type"] == "forward" and "forward_config" in action.data %}
+            <ForwardConfig>
+              <TargetGroups>
+                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                <member>
+                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
+                  <Weight>{{ target_group["weight"] }}</Weight>
+                </member>
+                {% endfor %}
+              </TargetGroups>
+            </ForwardConfig>
+            {% endif %}
+            {% if action["type"] == "forward" and "forward_config" not in action.data %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
             {% elif action["type"] == "redirect" %}
             <RedirectConfig>{{ action["redirect_config"] }}</RedirectConfig>
@@ -748,9 +760,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
       </member>
-      {% endfor %}
     </Rules>
   </CreateRuleResult>
   <ResponseMetadata>
@@ -898,7 +908,7 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
     <Rules>
       {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
@@ -912,6 +922,7 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
           {% endfor %}
         </Conditions>
         <Priority>{{ rule.priority }}</Priority>
+        <RuleArn>{{ rule.arn }}</RuleArn>
         <Actions>
           {% for action in rule.actions %}
           <member>
@@ -919,7 +930,6 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
       </member>
       {% endfor %}
     </Rules>
@@ -1038,11 +1048,10 @@ CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http:/
 MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ModifyRuleResult>
     <Rules>
-      {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
-          {% for condition in rule.conditions %}
+          {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["field"] }}</Field>
             <Values>
@@ -1053,17 +1062,16 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           </member>
           {% endfor %}
         </Conditions>
-        <Priority>{{ rule.priority }}</Priority>
+        <Priority>{{ rules.priority }}</Priority>
+        <RuleArn>{{ rules.arn }}</RuleArn>
         <Actions>
-          {% for action in rule.actions %}
+          {% for action in rules.actions %}
           <member>
             {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
       </member>
-      {% endfor %}
     </Rules>
   </ModifyRuleResult>
   <ResponseMetadata>
@@ -1239,11 +1247,10 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
 SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <SetRulePrioritiesResult>
     <Rules>
-      {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
         <Conditions>
-          {% for condition in rule.conditions %}
+          {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["field"] }}</Field>
             <Values>
@@ -1254,18 +1261,31 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
           </member>
           {% endfor %}
         </Conditions>
-        <Priority>{{ rule.priority }}</Priority>
+        <Priority>{{ rules.priority }}</Priority>
+        <RuleArn>{{ rules.arn }}</RuleArn>
         <Actions>
-          {% for action in rule.actions %}
+          {% for action in rules.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
+            {% if action["type"] == "forward" and "forward_config" in action.data %}
+            <ForwardConfig>
+              <TargetGroups>
+                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                <member>
+                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
+                  <Weight>{{ target_group["weight"] }}</Weight>
+                </member>
+                {% endfor %}
+              </TargetGroups>
+            </ForwardConfig>
+            {% endif %}
+            {% if action["type"] == "forward" and "forward_config" not in action.data %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% endif %}
           </member>
           {% endfor %}
         </Actions>
-        <RuleArn>{{ rule.arn }}</RuleArn>
       </member>
-      {% endfor %}
     </Rules>
   </SetRulePrioritiesResult>
   <ResponseMetadata>

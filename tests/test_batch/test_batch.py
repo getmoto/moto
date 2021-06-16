@@ -886,3 +886,367 @@ def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
                 status=status, last_status=last_job_status
             )
         )
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_failed_job():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = "test_compute_env"
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName="test_job_queue",
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName="sayhellotomylittlefriend",
+        type="container",
+        containerProperties={
+            "image": "busybox:latest",
+            "vcpus": 1,
+            "memory": 128,
+            "command": ["exit", "1"],
+        },
+    )
+    job_def_arn = resp["jobDefinitionArn"]
+
+    resp = batch_client.submit_job(
+        jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    job_id = resp["jobId"]
+
+    future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    while datetime.datetime.now() < future:
+        resp = batch_client.describe_jobs(jobs=[job_id])
+
+        if resp["jobs"][0]["status"] == "FAILED":
+            break
+        if resp["jobs"][0]["status"] == "SUCCEEDED":
+            raise RuntimeError("Batch job succeeded even though it had exit code 1")
+        time.sleep(0.5)
+    else:
+        raise RuntimeError("Batch job timed out")
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_dependencies():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = "test_compute_env"
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName="test_job_queue",
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName="sayhellotomylittlefriend",
+        type="container",
+        containerProperties={
+            "image": "busybox:latest",
+            "vcpus": 1,
+            "memory": 128,
+            "command": ["echo", "hello"],
+        },
+    )
+    job_def_arn = resp["jobDefinitionArn"]
+
+    resp = batch_client.submit_job(
+        jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    job_id1 = resp["jobId"]
+
+    resp = batch_client.submit_job(
+        jobName="test2", jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    job_id2 = resp["jobId"]
+
+    depends_on = [
+        {"jobId": job_id1, "type": "SEQUENTIAL"},
+        {"jobId": job_id2, "type": "SEQUENTIAL"},
+    ]
+    resp = batch_client.submit_job(
+        jobName="test3",
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn,
+        dependsOn=depends_on,
+    )
+    job_id3 = resp["jobId"]
+
+    future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    while datetime.datetime.now() < future:
+        resp = batch_client.describe_jobs(jobs=[job_id1, job_id2, job_id3])
+
+        if any([job["status"] == "FAILED" for job in resp["jobs"]]):
+            raise RuntimeError("Batch job failed")
+        if all([job["status"] == "SUCCEEDED" for job in resp["jobs"]]):
+            break
+        time.sleep(0.5)
+    else:
+        raise RuntimeError("Batch job timed out")
+
+    resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
+    len(resp["logStreams"]).should.equal(3)
+    for log_stream in resp["logStreams"]:
+        ls_name = log_stream["logStreamName"]
+
+        resp = logs_client.get_log_events(
+            logGroupName="/aws/batch/job", logStreamName=ls_name
+        )
+        [event["message"] for event in resp["events"]].should.equal(["hello"])
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_failed_dependencies():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = "test_compute_env"
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName="test_job_queue",
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName="sayhellotomylittlefriend",
+        type="container",
+        containerProperties={
+            "image": "busybox:latest",
+            "vcpus": 1,
+            "memory": 128,
+            "command": ["echo", "hello"],
+        },
+    )
+    job_def_arn_success = resp["jobDefinitionArn"]
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName="sayhellotomylittlefriend_failed",
+        type="container",
+        containerProperties={
+            "image": "busybox:latest",
+            "vcpus": 1,
+            "memory": 128,
+            "command": ["exi1", "1"],
+        },
+    )
+    job_def_arn_failure = resp["jobDefinitionArn"]
+
+    resp = batch_client.submit_job(
+        jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn_success
+    )
+
+    job_id1 = resp["jobId"]
+
+    resp = batch_client.submit_job(
+        jobName="test2", jobQueue=queue_arn, jobDefinition=job_def_arn_failure
+    )
+    job_id2 = resp["jobId"]
+
+    depends_on = [
+        {"jobId": job_id1, "type": "SEQUENTIAL"},
+        {"jobId": job_id2, "type": "SEQUENTIAL"},
+    ]
+    resp = batch_client.submit_job(
+        jobName="test3",
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn_success,
+        dependsOn=depends_on,
+    )
+    job_id3 = resp["jobId"]
+
+    future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    # Query batch jobs until all jobs have run.
+    # Job 2 is supposed to fail and in consequence Job 3 should never run
+    # and status should change directly from PENDING to FAILED
+    while datetime.datetime.now() < future:
+        resp = batch_client.describe_jobs(jobs=[job_id2, job_id3])
+
+        assert resp["jobs"][0]["status"] != "SUCCEEDED", "Job 2 cannot succeed"
+        assert resp["jobs"][1]["status"] != "SUCCEEDED", "Job 3 cannot succeed"
+
+        if resp["jobs"][1]["status"] == "FAILED":
+            break
+
+        time.sleep(0.5)
+    else:
+        raise RuntimeError("Batch job timed out")
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_container_overrides():
+    """
+    Test if container overrides have any effect.
+    Overwrites should be reflected in container description.
+    Environment variables should be accessible inside docker container
+    """
+
+    # Set up environment
+
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = "test_compute_env"
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName="test_job_queue",
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    job_definition_name = "sleep10"
+
+    # Set up Job Definition
+    # We will then override the container properties in the actual job
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type="container",
+        containerProperties={
+            "image": "busybox",
+            "vcpus": 1,
+            "memory": 512,
+            "command": ["sleep", "10"],
+            "environment": [
+                {"name": "TEST0", "value": "from job definition"},
+                {"name": "TEST1", "value": "from job definition"},
+            ],
+        },
+    )
+
+    job_definition_arn = resp["jobDefinitionArn"]
+
+    # The Job to run, including container overrides
+    resp = batch_client.submit_job(
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+        containerOverrides={
+            "vcpus": 2,
+            "memory": 1024,
+            "command": ["printenv"],
+            "environment": [
+                {"name": "TEST0", "value": "from job"},
+                {"name": "TEST2", "value": "from job"},
+            ],
+        },
+    )
+
+    job_id = resp["jobId"]
+
+    # Wait until Job finishes
+    future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    while datetime.datetime.now() < future:
+        resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+
+        if resp_jobs["jobs"][0]["status"] == "FAILED":
+            raise RuntimeError("Batch job failed")
+        if resp_jobs["jobs"][0]["status"] == "SUCCEEDED":
+            break
+        time.sleep(0.5)
+    else:
+        raise RuntimeError("Batch job timed out")
+
+    # Getting the log stream to read out env variables inside container
+    resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
+
+    env_var = list()
+    for stream in resp["logStreams"]:
+        ls_name = stream["logStreamName"]
+
+        stream_resp = logs_client.get_log_events(
+            logGroupName="/aws/batch/job", logStreamName=ls_name
+        )
+
+        for event in stream_resp["events"]:
+            if "TEST" in event["message"] or "AWS" in event["message"]:
+                key, value = tuple(event["message"].split("="))
+                env_var.append({"name": key, "value": value})
+
+    len(resp_jobs["jobs"]).should.equal(1)
+    resp_jobs["jobs"][0]["jobId"].should.equal(job_id)
+    resp_jobs["jobs"][0]["jobQueue"].should.equal(queue_arn)
+    resp_jobs["jobs"][0]["jobDefinition"].should.equal(job_definition_arn)
+    resp_jobs["jobs"][0]["container"]["vcpus"].should.equal(2)
+    resp_jobs["jobs"][0]["container"]["memory"].should.equal(1024)
+    resp_jobs["jobs"][0]["container"]["command"].should.equal(["printenv"])
+
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "TEST0", "value": "from job"}
+    )
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "TEST1", "value": "from job definition"}
+    )
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "TEST2", "value": "from job"}
+    )
+    sure.expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain(
+        {"name": "AWS_BATCH_JOB_ID", "value": job_id}
+    )
+
+    sure.expect(env_var).to.contain({"name": "TEST0", "value": "from job"})
+    sure.expect(env_var).to.contain({"name": "TEST1", "value": "from job definition"})
+    sure.expect(env_var).to.contain({"name": "TEST2", "value": "from job"})
+
+    sure.expect(env_var).to.contain({"name": "AWS_BATCH_JOB_ID", "value": job_id})

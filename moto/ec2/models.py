@@ -968,6 +968,7 @@ class InstanceBackend(object):
 
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get("instance", {})
+        volume_tags = tags.get("volume", {})
 
         for index in range(count):
             kwargs["ami_launch_index"] = index
@@ -996,6 +997,11 @@ class InstanceBackend(object):
                     )
             else:
                 new_instance.setup_defaults()
+            # Tag all created volumes.
+            for _, device in new_instance.get_block_device_mapping:
+                volumes = self.describe_volumes(volume_ids=[device.volume_id])
+                for volume in volumes:
+                    volume.add_tags(volume_tags)
 
         return new_reservation
 
