@@ -176,6 +176,7 @@ def test_describe_origin_endpoint_succeeds():
         )
     )
 
+
 @mock_mediapackage
 def test_describe_unknown_origin_endpoint_throws_error():
     client = boto3.client("mediapackage", region_name=region)
@@ -205,6 +206,7 @@ def test_delete_origin_endpoint_succeeds():
         len(origin_endpoints_list) - 1
     )
 
+
 @mock_mediapackage
 def test_delete_unknown_origin_endpoint_throws_error():
     client = boto3.client("mediapackage", region_name=region)
@@ -230,6 +232,7 @@ def test_update_origin_endpoint_succeeds():
     )
     update_response["Description"].should.equal("updated-channel-description")
     update_response["ManifestName"].should.equal("updated-manifest-name")
+
 
 @mock_mediapackage
 def test_update_unknown_origin_endpoint_throws_error():
