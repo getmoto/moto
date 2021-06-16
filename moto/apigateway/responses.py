@@ -29,10 +29,10 @@ ENDPOINT_CONFIGURATION_TYPES = ["PRIVATE", "EDGE", "REGIONAL"]
 
 class APIGatewayResponse(BaseResponse):
     def error(self, type_, message, status=400):
+        headers = self.response_headers or {}
+        headers['X-Amzn-Errortype'] = type_
         return (
-            status,
-            self.response_headers,
-            json.dumps({"__type": type_, "message": message}),
+            status, headers, json.dumps({"__type": type_, "message": message}),
         )
 
     @property
@@ -163,7 +163,7 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps(resource.to_dict())
         except BadRequestException as e:
             return self.error(
-                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
+                "BadRequestException", e.message
             )
 
     def resource_methods(self, request, full_url, headers):
@@ -397,6 +397,8 @@ class APIGatewayResponse(BaseResponse):
                 uri = self._get_param('uri')
                 credentials = self._get_param('credentials')
                 request_templates = self._get_param('requestTemplates')
+                tls_config = self._get_param('tlsConfig')
+                cache_namespace = self._get_param('cacheNamespace')
                 self.backend.get_method(function_id, resource_id, method_type)
 
                 integration_http_method = self._get_param('httpMethod') or method_type
@@ -410,6 +412,8 @@ class APIGatewayResponse(BaseResponse):
                     credentials=credentials,
                     integration_method=integration_http_method,
                     request_templates=request_templates,
+                    tls_config=tls_config,
+                    cache_namespace=cache_namespace
                 )
             elif self.method == "DELETE":
                 integration_response = self.backend.delete_integration(
@@ -420,11 +424,11 @@ class APIGatewayResponse(BaseResponse):
 
         except BadRequestException as e:
             return self.error(
-                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
+                "BadRequestException", e.message
             )
         except CrossAccountNotAllowed as e:
             return self.error(
-                "com.amazonaws.dynamodb.v20111205#AccessDeniedException", e.message
+                "AccessDeniedException", e.message
             )
 
     def integration_responses(self, request, full_url, headers):

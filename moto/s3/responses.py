@@ -2379,7 +2379,7 @@ S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<BucketEncryptionStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01">
+<ServerSideEncryptionConfiguration xmlns="http://doc.s3.amazonaws.com/2006-03-01">
     {% for entry in encryption %}
         <Rule>
             <ApplyServerSideEncryptionByDefault>
@@ -2388,9 +2388,10 @@ S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
                 <KMSMasterKeyID>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
                 {% endif %}
             </ApplyServerSideEncryptionByDefault>
+            <BucketKeyEnabled>{{ 'true' if entry["Rule"].get("BucketKeyEnabled") else 'false' }}</BucketKeyEnabled>
         </Rule>
     {% endfor %}
-</BucketEncryptionStatus>
+</ServerSideEncryptionConfiguration>
 """
 
 S3_INVALID_PRESIGNED_PARAMETERS = """<?xml version="1.0" encoding="UTF-8"?>

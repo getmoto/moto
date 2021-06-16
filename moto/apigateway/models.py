@@ -33,6 +33,7 @@ from .exceptions import (
     StageNotFoundException,
     RoleNotSpecified,
     NoIntegrationDefined,
+    NoIntegrationResponseDefined,
     NoMethodDefined,
     ApiKeyAlreadyExists,
     DomainNameNotFound,
@@ -99,13 +100,16 @@ class IntegrationResponse(BaseModel, dict):
 
 
 class Integration(BaseModel, dict):
-    def __init__(self, integration_type, uri, http_method, request_templates=None):
+    def __init__(self, integration_type, uri, http_method, request_templates=None,
+            tls_config=None, cache_namespace=None):
         super(Integration, self).__init__()
         self["type"] = integration_type
         self["uri"] = uri
         self["httpMethod"] = http_method
         self["requestTemplates"] = request_templates
         self["integrationResponses"] = {"200": IntegrationResponse(200)}
+        self["tlsConfig"] = tls_config
+        self["cacheNamespace"] = cache_namespace
 
     def create_integration_response(
         self, status_code, selection_pattern, response_templates, content_handling
@@ -119,10 +123,13 @@ class Integration(BaseModel, dict):
         return integration_response
 
     def get_integration_response(self, status_code):
-        return self["integrationResponses"][status_code]
+        result = self["integrationResponses"].get(status_code)
+        if not result:
+            raise NoIntegrationResponseDefined(status_code)
+        return result
 
     def delete_integration_response(self, status_code):
-        return self["integrationResponses"].pop(status_code)
+        return self["integrationResponses"].pop(status_code, None)
 
 
 class MethodResponse(BaseModel, dict):
@@ -310,11 +317,13 @@ class Resource(CloudFormationModel):
         return method
 
     def add_integration(
-        self, method_type, integration_type, uri, request_templates=None, integration_method=None
+        self, method_type, integration_type, uri, request_templates=None,
+        integration_method=None, tls_config=None, cache_namespace=None
     ):
         integration_method = integration_method or method_type
         integration = Integration(
-            integration_type, uri, integration_method, request_templates=request_templates
+            integration_type, uri, integration_method, request_templates=request_templates,
+            tls_config=tls_config, cache_namespace=cache_namespace
         )
         self.resource_methods[method_type]["methodIntegration"] = integration
         return integration
@@ -642,7 +651,7 @@ class RestAPI(CloudFormationModel):
             "description": self.description,
             "version": self.version,
             "binaryMediaTypes": self.binaryMediaTypes,
-            "createdDate": int(time.time()),
+            "createdDate": self.create_date,
             "apiKeySource": self.api_key_source,
             "endpointConfiguration": self.endpoint_configuration,
             "tags": self.tags,
@@ -1137,6 +1146,8 @@ class APIGatewayBackend(BaseBackend):
         integration_method=None,
         credentials=None,
         request_templates=None,
+        tls_config=None,
+        cache_namespace=None
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1169,7 +1180,7 @@ class APIGatewayBackend(BaseBackend):
         ):
             raise InvalidIntegrationArn()
         integration = resource.add_integration(
-            method_type, integration_type, uri, integration_method=integration_method, request_templates=request_templates
+            method_type, integration_type, uri, integration_method=integration_method, request_templates=request_templates, tls_config=tls_config, cache_namespace=cache_namespace
         )
         return integration
 

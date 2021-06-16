@@ -71,10 +71,17 @@ class InvalidRequestInput(BadRequestException):
         )
 
 
-class NoIntegrationDefined(BadRequestException):
+class NoIntegrationDefined(RESTError):
     def __init__(self):
         super(NoIntegrationDefined, self).__init__(
-            "BadRequestException", "No integration defined for method"
+            "NotFoundException", "No integration defined for method"
+        )
+
+
+class NoIntegrationResponseDefined(BadRequestException):
+    def __init__(self, code=None):
+        super(NoIntegrationResponseDefined, self).__init__(
+            "BadRequestException", "No integration defined for method, code '%s'" % code
         )
 
 
