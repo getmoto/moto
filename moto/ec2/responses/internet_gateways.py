@@ -51,6 +51,24 @@ class InternetGateways(BaseResponse):
             template = self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE)
             return template.render()
 
+    def create_egress_only_internet_gateway(self):
+        vpc_id = self._get_param("VpcId")
+        eigw = self.ec2_backend.create_egress_only_internet_gateway(vpc_id)
+        template = self.response_template(CREATE_EGRESS_ONLY_INTERNET_GATEWAY_RESPONSE)
+        return template.render(internet_gateway=eigw)
+
+    def describe_egress_only_internet_gateway(self):
+        if "EgressOnlyInternetGatewayId.1" in self.querystring:
+            eigw_ids = self._get_multi_param("EgressOnlyInternetGatewayId")
+            eigws = self.ec2_backend.describe_egress_only_internet_gateway(eigw_ids,)
+        else:
+            eigws = self.ec2_backend.describe_egress_only_internet_gateway()
+
+        template = self.response_template(
+            DESCRIBE_EGRESS_ONLY_INTERNET_GATEWAYS_RESPONSE
+        )
+        return template.render(internet_gateways=eigws)
+
 
 ATTACH_INTERNET_GATEWAY_RESPONSE = """<AttachInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
@@ -116,3 +134,38 @@ DETACH_INTERNET_GATEWAY_RESPONSE = """<DetachInternetGatewayResponse xmlns="http
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </DetachInternetGatewayResponse>"""
+
+CREATE_EGRESS_ONLY_INTERNET_GATEWAY_RESPONSE = """<EgressOnlyInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <EgressOnlyInternetGateway>
+    <EgressOnlyInternetGatewayId>{{ internet_gateway.id }}</EgressOnlyInternetGatewayId>
+    <attachmentSet>
+          <item>
+            <vpcId>{{ internet_gateway.vpc.id }}</vpcId>
+            <state>attached</state>
+          </item>
+    </attachmentSet>
+  </EgressOnlyInternetGateway>
+</EgressOnlyInternetGatewayResponse>"""
+
+DESCRIBE_EGRESS_ONLY_INTERNET_GATEWAYS_RESPONSE = """<EgressOnlyInternetGatewaysResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-
+15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <EgressOnlyInternetGatewaySet>
+    {% for igw in internet_gateways %}
+    <item>
+      <EgressOnlyInternetGatewayId>{{ igw.id }}</EgressOnlyInternetGatewayId>
+      {% if igw.vpc  %}
+        <attachmentSet>
+          <item>
+            <vpcId>{{ igw.vpc.id }}</vpcId>
+            <state>attached</state>
+          </item>
+        </attachmentSet>
+      {% else %}
+        <attachmentSet/>
+      {% endif %}
+    </item>
+    {% endfor %}
+  </EgressOnlyInternetGatewaySet>
+</EgressOnlyInternetGatewaysResponse>"""

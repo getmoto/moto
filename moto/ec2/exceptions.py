@@ -404,6 +404,16 @@ class InvalidInternetGatewayIdError(EC2ClientError):
         )
 
 
+class InvalidEgressOnlyInternetGatewayIdError(EC2ClientError):
+    def __init__(self, internet_gateway_id):
+        super(InvalidEgressOnlyInternetGatewayIdError, self).__init__(
+            "InvalidEgressOnlyInternetGatewayID.NotFound",
+            "EgressOnlyInternetGatewayID {0} does not exist.".format(
+                internet_gateway_id
+            ),
+        )
+
+
 class GatewayNotAttachedError(EC2ClientError):
     def __init__(self, internet_gateway_id, vpc_id):
         super(GatewayNotAttachedError, self).__init__(

@@ -111,6 +111,7 @@ from .exceptions import (
     InvalidAssociationIDIamProfileAssociationError,
     InvalidVpcEndPointIdError,
     InvalidTaggableResourceType,
+    InvalidEgressOnlyInternetGatewayIdError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -167,6 +168,7 @@ from .utils import (
     tag_filter_matches,
     rsa_public_key_parse,
     rsa_public_key_fingerprint,
+    random_egress_only_internet_gateway_id,
 )
 
 
@@ -4486,9 +4488,16 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
             return "detached"
 
 
+class EgressOnlyInternetGateway(TaggedEC2Resource, CloudFormationModel):
+    def __init__(self, vpc_id):
+        self.vpc_id = vpc_id
+        self.id = random_egress_only_internet_gateway_id()
+
+
 class InternetGatewayBackend(object):
     def __init__(self):
         self.internet_gateways = {}
+        self.egress_only_internet_gateways = {}
         super(InternetGatewayBackend, self).__init__()
 
     def create_internet_gateway(self, tags=[]):
@@ -4539,6 +4548,24 @@ class InternetGatewayBackend(object):
     def get_internet_gateway(self, internet_gateway_id):
         igw_ids = [internet_gateway_id]
         return self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+
+    def create_egress_only_internet_gateway(self, vpc_id):
+        eigw = EgressOnlyInternetGateway(vpc_id)
+        self.egress_only_internet_gateways[eigw.id] = eigw
+        return eigw
+
+    def describe_egress_only_internet_gateway(self, egress_internet_gateway_ids=None):
+        eigws = []
+        if egress_internet_gateway_ids is None:
+            eigws = self.egress_only_internet_gateways.values()
+        else:
+            for eigw_id in egress_internet_gateway_ids:
+                if eigw_id in self.egress_only_internet_gateways:
+                    eigws.append(self.egress_only_internet_gateways[eigw_id])
+                else:
+                    raise InvalidEgressOnlyInternetGatewayIdError(eigw_id)
+
+        return eigws
 
 
 class VPCGatewayAttachment(CloudFormationModel):

@@ -285,3 +285,20 @@ def test_create_internet_gateway_with_tags():
     )
     igw.tags.should.have.length_of(1)
     igw.tags.should.equal([{"Key": "test", "Value": "TestRouteTable"}])
+
+
+@mock_ec2
+def test_create_egress_only_internet_gateway():
+    ec2 = boto3.resource("ec2", region_name="eu-central-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    igw = ec2.create_egress_only_internet_gateway(VpcId=vpc["Vpc"]["VpcId"])
+    assert "EgressOnlyInternetGatewayId" in igw.get("EgressOnlyInternetGateway")
+
+    eigws = ec2.describe_egress_only_internet_gateway()
+
+    assert len(eigws.get("EgressOnlyInternetGateways")) == 1
+    assert eigws.get("EgressOnlyInternetGateways")[0].get(
+        "EgressOnlyInternetGatewayId"
+    ) == igw.get("EgressOnlyInternetGatewayId")

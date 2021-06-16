@@ -21,6 +21,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "image": "ami",
     "instance": "i",
     "internet-gateway": "igw",
+    "egress-only-internet-gateway": "eigw",
     "launch-template": "lt",
     "nat-gateway": "nat",
     "network-acl": "acl",
@@ -46,7 +47,6 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpn-gateway": "vgw",
     "iam-instance-profile-association": "iip-assoc",
 }
-
 
 EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
 
@@ -143,6 +143,10 @@ def random_eip_association_id():
 
 def random_internet_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["internet-gateway"])
+
+
+def random_egress_only_internet_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"])
 
 
 def random_route_table_id():
