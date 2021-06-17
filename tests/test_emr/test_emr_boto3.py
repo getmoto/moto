@@ -709,6 +709,25 @@ def test_set_termination_protection():
 
 
 @mock_emr
+def test_terminate_protected_job_flow_raises_error():
+    client = boto3.client("emr", region_name="us-east-1")
+    resp = client.run_job_flow(**run_job_flow_args)
+    cluster_id = resp["JobFlowId"]
+    client.set_termination_protection(
+        JobFlowIds=[cluster_id], TerminationProtected=True
+    )
+    with pytest.raises(ClientError) as ex:
+        client.terminate_job_flows(
+            JobFlowIds=[cluster_id,]
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ValidationException")
+    error["Message"].should.equal(
+        "Could not shut down one or more job flows since they are termination protected."
+    )
+
+
+@mock_emr
 def test_set_visible_to_all_users():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
