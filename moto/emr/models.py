@@ -8,7 +8,7 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError, InvalidRequestException
+from moto.emr.exceptions import EmrError, InvalidRequestException, ValidationException
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
@@ -624,12 +624,20 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.set_termination_protection(value)
 
     def terminate_job_flows(self, job_flow_ids):
-        clusters = []
+        clusters_terminated = []
+        clusters_protected = []
         for job_flow_id in job_flow_ids:
             cluster = self.clusters[job_flow_id]
+            if cluster.termination_protected:
+                clusters_protected.append(cluster)
+                continue
             cluster.terminate()
-            clusters.append(cluster)
-        return clusters
+            clusters_terminated.append(cluster)
+        if clusters_protected:
+            raise ValidationException(
+                "Could not shut down one or more job flows since they are termination protected."
+            )
+        return clusters_terminated
 
     def put_auto_scaling_policy(self, instance_group_id, auto_scaling_policy):
         instance_groups = self.get_instance_groups(
