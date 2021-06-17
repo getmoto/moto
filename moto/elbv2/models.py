@@ -59,16 +59,18 @@ class FakeHealthStatus(BaseModel):
 class TaggedElbv2Resource(BaseModel):
     def get_tags(self, *args, **kwargs):
         tags = []
-        if self.id:
-            tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
+        if self.arn:
+            tags = self.elbv2_backend.describe_tags(filters={"resource-id": [self.arn]})
         return tags
 
     def add_tag(self, key, value):
-        self.elbv2_backend.create_tags([self.id], {key: value})
+        print("Key: ", key)
+        print("Value: ", value)
+        self.elbv2_backend.create_tags([self.arn], {key: value})
 
     def add_tags(self, tag_map):
         for key, value in tag_map.items():
-            self.elbv2_backend.create_tags([self.id], {key: value})
+            self.elbv2_backend.create_tags([self.arn], {key: value})
 
     def get_filter_value(self, filter_name, method_name=None):
         tags = self.get_tags()
@@ -93,6 +95,7 @@ class FakeTargetGroup(TaggedElbv2Resource, CloudFormationModel):
 
     def __init__(
         self,
+        elbv2_backend,
         name,
         arn,
         vpc_id,
@@ -110,6 +113,7 @@ class FakeTargetGroup(TaggedElbv2Resource, CloudFormationModel):
     ):
 
         # TODO: default values differs when you add Network Load balancer
+        self.elbv2_backend = elbv2_backend
         self.name = name
         self.arn = arn
         self.vpc_id = vpc_id
@@ -158,11 +162,6 @@ class FakeTargetGroup(TaggedElbv2Resource, CloudFormationModel):
         for target_id in list(self.targets.keys()):
             if target_id in instance_ids:
                 del self.targets[target_id]
-
-    def add_tag(self, key, value):
-        if len(self.tags) >= 10 and key not in self.tags:
-            raise TooManyTagsError()
-        self.tags[key] = value
 
     def health_for(self, target, ec2_backend):
         t = self.targets.get(target["id"])
@@ -227,12 +226,14 @@ class FakeTargetGroup(TaggedElbv2Resource, CloudFormationModel):
             target_type=target_type,
         )
 
-        print("\n\nTAGGGGGGG: ", properties.get("Tags"))
-        for tag in properties.get("Tags", []):
+        print("\n\n\n\n\n\n\nCheck the tags: ", elbv2_backend.describe_tags())
+        tags = elbv2_backend.describe_tags()
+
+        for tag in tags:
             print("\n\nG TAG: ", tag)
-            tag_key = tag["Key"]
-            tag_value = tag["Value"]
-            #add_tag()
+            tag_key = tag["key"]
+            tag_value = tag["value"]
+            target_group.add_tag(tag_key, tag_value)
 
         return target_group
 
@@ -550,7 +551,6 @@ class FakeLoadBalancer(CloudFormationModel):
         load_balancer = elbv2_backend.create_load_balancer(
             resource_name, security_groups, subnet_ids, scheme=scheme
         )
-        #elbv2_backend.add_tags(load_balancer)
         return load_balancer
 
     def get_cfn_attribute(self, attribute_name):
@@ -628,6 +628,7 @@ class TagBackend(object):
                 raise "Too many tags error"
         for resource_id in resource_ids:
             for tag in tags:
+                print("\n\nTag created is: ", tag)
                 self.tags[resource_id][tag] = tags[tag]
         return True
 
@@ -641,6 +642,79 @@ class TagBackend(object):
                         self.tags[resource_id].pop(tag)
         return True
 
+    def describe_tags(self, filters=None):
+        import re
+
+        results = []
+        key_filters = []
+        resource_id_filters = []
+        resource_type_filters = []
+        value_filters = []
+        if filters is not None:
+            for tag_filter in filters:
+                if tag_filter in self.VALID_TAG_FILTERS:
+                    if tag_filter == "key":
+                        for value in filters[tag_filter]:
+                            key_filters.append(
+                                re.compile(simple_aws_filter_to_re(value))
+                            )
+                    if tag_filter == "resource-id":
+                        for value in filters[tag_filter]:
+                            resource_id_filters.append(
+                                re.compile(simple_aws_filter_to_re(value))
+                            )
+                    if tag_filter == "resource-type":
+                        for value in filters[tag_filter]:
+                            resource_type_filters.append(value)
+                    if tag_filter == "value":
+                        for value in filters[tag_filter]:
+                            value_filters.append(
+                                re.compile(simple_aws_filter_to_re(value))
+                            )
+        for resource_id, tags in self.tags.items():
+            for key, value in tags.items():
+                add_result = False
+                if filters is None:
+                    add_result = True
+                else:
+                    key_pass = False
+                    id_pass = False
+                    type_pass = False
+                    value_pass = False
+                    if key_filters:
+                        for pattern in key_filters:
+                            if pattern.match(key) is not None:
+                                key_pass = True
+                    else:
+                        key_pass = True
+                    if resource_id_filters:
+                        for pattern in resource_id_filters:
+                            if pattern.match(resource_id) is not None:
+                                id_pass = True
+                    else:
+                        id_pass = True
+                    if resource_type_filters:
+                        for resource_type in resource_type_filters:
+                            type_pass = True
+                    else:
+                        type_pass = True
+                    if value_filters:
+                        for pattern in value_filters:
+                            if pattern.match(value) is not None:
+                                value_pass = True
+                    else:
+                        value_pass = True
+                    if key_pass and id_pass and type_pass and value_pass:
+                        add_result = True
+                        # If we're not filtering, or we are filtering and this
+                if add_result:
+                    result = {
+                        "resource_id": resource_id,
+                        "key": key,
+                        "value": value,
+                    }
+                    results.append(result)
+        return results
 
 class ELBv2Backend(BaseBackend, TagBackend):
     def __init__(self, region_name=None):
@@ -932,7 +1006,16 @@ Member must satisfy regular expression pattern: {}".format(
         arn = make_arn_for_target_group(
             account_id=1, name=name, region_name=self.region_name
         )
-        target_group = FakeTargetGroup(name, arn, **kwargs)
+        target_group = FakeTargetGroup(self, name, arn, **kwargs)
+
+        elbv2_backend = elbv2_backends[self.region_name]
+        tags = elbv2_backend.describe_tags()
+        for tag in tags:
+            print("\n\nG TAG: ", tag)
+            tag_key = tag["key"]
+            tag_value = tag["value"]
+            target_group.add_tag(tag_key, tag_value)
+
         self.target_groups[target_group.arn] = target_group
 
         return target_group
