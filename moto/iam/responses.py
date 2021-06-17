@@ -492,9 +492,10 @@ class IamResponse(BaseResponse):
         path_prefix = self._get_param("PathPrefix")
         marker = self._get_param("Marker")
         max_items = self._get_param("MaxItems")
+        is_truncated = self._get_bool_param("IsTruncated", False)
         users = iam_backend.list_users(path_prefix, marker, max_items)
         template = self.response_template(LIST_USERS_TEMPLATE)
-        return template.render(action="List", users=users)
+        return template.render(action="List", users=users, isTruncated=is_truncated)
 
     def update_user(self):
         user_name = self._get_param("UserName")
@@ -1725,6 +1726,7 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
 
 LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
    <{{ action }}UsersResult>
+    <IsTruncated>{{ isTruncated }}</IsTruncated>
       <Users>
          {% for user in users %}
          <member>
