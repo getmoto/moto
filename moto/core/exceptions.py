@@ -59,8 +59,13 @@ class RESTError(HTTPException):
             error_type=error_type, message=message, start_tag=start_tag, end_tag=end_tag, **kwargs
         )
 
+        self.content_type = 'application/xml'
+
     def get_headers(self, *args, **kwargs):
-        return [("X-Amzn-ErrorType", self.error_type or "UnknownError")]
+        return [("X-Amzn-ErrorType", self.error_type or "UnknownError"), ("Content-Type", self.content_type)]
+
+    def get_body(self, *args, **kwargs) -> str:
+        return self.description
 
 
 class DryRunClientError(RESTError):
@@ -70,10 +75,7 @@ class DryRunClientError(RESTError):
 class JsonRESTError(RESTError):
     def __init__(self, error_type, message, template="error_json", **kwargs):
         super(JsonRESTError, self).__init__(error_type, message, template, **kwargs)
-
-    def get_headers(self, *args, **kwargs):
-        super_headers = super(JsonRESTError, self).get_headers(*args, **kwargs) or []
-        return super_headers + [("Content-Type", "application/json")]
+        self.content_type = 'application/json'
 
     def get_body(self, *args, **kwargs):
         return self.description
