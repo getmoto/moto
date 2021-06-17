@@ -542,6 +542,51 @@ class Replay(BaseModel):
         self.end_time = unix_time(datetime.utcnow())
 
 
+class Connection(BaseModel):
+    def __init__(
+        self, name, region_name, description, authorization_type, auth_parameters,
+    ):
+        self.name = name
+        self.region = region_name
+        self.description = description
+        self.authorization_type = authorization_type
+        self.auth_parameters = auth_parameters
+        self.creation_time = unix_time(datetime.utcnow())
+        self.state = "AUTHORIZED"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:connection/{2}".format(
+            self.region, ACCOUNT_ID, self.name
+        )
+
+
+class Destination(BaseModel):
+    def __init__(
+        self,
+        name,
+        region_name,
+        description,
+        connection_arn,
+        invocation_endpoint,
+        http_method,
+    ):
+        self.name = name
+        self.region = region_name
+        self.description = description
+        self.connection_arn = connection_arn
+        self.invocation_endpoint = invocation_endpoint
+        self.creation_time = unix_time(datetime.utcnow())
+        self.http_method = http_method
+        self.state = "ACTIVE"
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{0}:{1}:destination/{2}".format(
+            self.region, ACCOUNT_ID, self.name
+        )
+
+
 class EventPattern:
     def __init__(self, filter):
         self._filter = self._load_event_pattern(filter)
@@ -649,6 +694,8 @@ class EventsBackend(BaseBackend):
         self.tagger = TaggingService()
 
         self._add_default_event_bus()
+        self.connections = {}
+        self.destinations = {}
 
     def reset(self):
         region_name = self.region_name
@@ -803,7 +850,6 @@ class EventsBackend(BaseBackend):
             raise ValidationException(
                 "ScheduleExpression is supported only on the default event bus."
             )
-
         if name in self.rules:
             self.update_rule(self.rules[name], **kwargs)
             new_rule = self.rules[name]
@@ -1281,6 +1327,38 @@ class EventsBackend(BaseBackend):
         replay.state = ReplayState.CANCELLED
 
         return {"ReplayArn": replay.arn, "State": ReplayState.CANCELLING.value}
+
+    def create_connection(self, name, description, authorization_type, auth_parameters):
+        connection = Connection(
+            name, self.region_name, description, authorization_type, auth_parameters
+        )
+        self.connections[name] = connection
+        return connection
+
+    def list_connections(self):
+        return self.connections.values()
+
+    def create_api_destination(
+        self, name, description, connection_arn, invocation_endpoint, http_method
+    ):
+
+        destination = Destination(
+            name=name,
+            region_name=self.region_name,
+            description=description,
+            connection_arn=connection_arn,
+            invocation_endpoint=invocation_endpoint,
+            http_method=http_method,
+        )
+
+        self.destinations[name] = destination
+        return destination
+
+    def list_api_destinations(self):
+        return self.destinations.values()
+
+    def describe_api_destination(self, name):
+        return self.destinations.get(name)
 
 
 events_backends = {}
