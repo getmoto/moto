@@ -134,6 +134,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_load_balancer(self):
+        print("HEREEEEE")
         load_balancer_name = self._get_param("Name")
         subnet_ids = self._get_multi_param("Subnets.member")
         security_groups = self._get_multi_param("SecurityGroups.member")
@@ -203,7 +204,6 @@ class ELBV2Response(BaseResponse):
             unhealthy_threshold_count=unhealthy_threshold_count,
             matcher=matcher,
         )
-
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
         return template.render(target_group=target_group)
 
@@ -423,7 +423,7 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def add_tags(self):
         resource_arns = self._get_multi_param("ResourceArns.member")
-
+        print("ADDING TAGGGSSSS")
         for arn in resource_arns:
             if ":targetgroup" in arn:
                 resource = self.elbv2_backend.target_groups.get(arn)
@@ -464,14 +464,19 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def describe_tags(self):
         resource_arns = self._get_multi_param("ResourceArns.member")
+        print("\n\nresource_arns: ", resource_arns)
         resources = []
         for arn in resource_arns:
+            print("\n\narn: ", arn)
             if ":targetgroup" in arn:
                 resource = self.elbv2_backend.target_groups.get(arn)
+                print("\n\nresoruce: ", resource)
                 if not resource:
                     raise TargetGroupNotFoundError()
             elif ":loadbalancer" in arn:
+                print("\n\nHere")
                 resource = self.elbv2_backend.load_balancers.get(arn)
+                print("\n\n\nLB_RESOURCE: ", resource.tags)
                 if not resource:
                     raise LoadBalancerNotFoundError()
             else:
@@ -479,6 +484,7 @@ class ELBV2Response(BaseResponse):
             resources.append(resource)
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
+        print("\n\ntemplate: ", template.render(resources=resources))
         return template.render(resources=resources)
 
     @amzn_request_id
@@ -622,7 +628,7 @@ class ELBV2Response(BaseResponse):
     def _add_tags(self, resource):
         tag_values = []
         tag_keys = []
-
+        print("\n\nTAGSSS: ", resource)
         for t_key, t_val in sorted(self.querystring.items()):
             if t_key.startswith("Tags.member."):
                 if t_key.split(".")[3] == "Key":
