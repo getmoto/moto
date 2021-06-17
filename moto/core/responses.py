@@ -149,7 +149,7 @@ class ActionAuthenticatorMixin(object):
                 if settings.TEST_SERVER_MODE:
                     response = requests.post(
                         "http://localhost:5000/moto-api/reset-auth",
-                        data=str(initial_no_auth_action_count).encode(),
+                        data=str(initial_no_auth_action_count).encode("utf-8"),
                     )
                     original_initial_no_auth_action_count = response.json()[
                         "PREVIOUS_INITIAL_NO_AUTH_ACTION_COUNT"
@@ -167,7 +167,9 @@ class ActionAuthenticatorMixin(object):
                     if settings.TEST_SERVER_MODE:
                         requests.post(
                             "http://localhost:5000/moto-api/reset-auth",
-                            data=str(original_initial_no_auth_action_count).encode(),
+                            data=str(original_initial_no_auth_action_count).encode(
+                                "utf-8"
+                            ),
                         )
                     else:
                         ActionAuthenticatorMixin.request_count = original_request_count

@@ -11,6 +11,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     underscores_to_camelcase,
     iso_8601_datetime_with_milliseconds,
+    get_random_hex,
 )
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
@@ -214,8 +215,9 @@ class FakeListener(CloudFormationModel):
         self.certificate = certificate
         self.certificates = [certificate] if certificate is not None else []
         self.default_actions = default_actions
-        self._non_default_rules = []
-        self._default_rule = FakeRule(
+        self._non_default_rules = OrderedDict()
+        self._default_rule = OrderedDict()
+        self._default_rule[0] = FakeRule(
             listener_arn=self.arn,
             conditions=[],
             priority="default",
@@ -229,16 +231,16 @@ class FakeListener(CloudFormationModel):
 
     @property
     def rules(self):
-        return self._non_default_rules + [self._default_rule]
-
-    def remove_rule(self, rule):
-        self._non_default_rules.remove(rule)
-
-    def register(self, rule):
-        self._non_default_rules.append(rule)
-        self._non_default_rules = sorted(
-            self._non_default_rules, key=lambda x: x.priority
+        return OrderedDict(
+            list(self._non_default_rules.items()) + list(self._default_rule.items())
         )
+
+    def remove_rule(self, arn):
+        self._non_default_rules.pop(arn)
+
+    def register(self, arn, rule):
+        self._non_default_rules[arn] = rule
+        sorted(self._non_default_rules.values(), key=lambda x: x.priority)
 
     @staticmethod
     def cloudformation_name_type():
@@ -261,49 +263,101 @@ class FakeListener(CloudFormationModel):
         port = properties.get("Port")
         ssl_policy = properties.get("SslPolicy")
         certificates = properties.get("Certificates")
-        # transform default actions to confirm with the rest of the code and XML templates
-        if "DefaultActions" in properties:
-            default_actions = []
-            for i, action in enumerate(properties["DefaultActions"]):
-                action_type = action["Type"]
-                if action_type == "forward":
-                    default_actions.append(
-                        {
-                            "type": action_type,
-                            "target_group_arn": action["TargetGroupArn"],
-                        }
-                    )
-                elif action_type in [
-                    "redirect",
-                    "authenticate-cognito",
-                    "fixed-response",
-                ]:
-                    redirect_action = {"type": action_type}
-                    key = (
-                        underscores_to_camelcase(
-                            action_type.capitalize().replace("-", "_")
-                        )
-                        + "Config"
-                    )
-                    for redirect_config_key, redirect_config_value in action[
-                        key
-                    ].items():
-                        # need to match the output of _get_list_prefix
-                        redirect_action[
-                            camelcase_to_underscores(key)
-                            + "._"
-                            + camelcase_to_underscores(redirect_config_key)
-                        ] = redirect_config_value
-                    default_actions.append(redirect_action)
-                else:
-                    raise InvalidActionTypeError(action_type, i + 1)
-        else:
-            default_actions = None
 
+        default_actions = elbv2_backend.convert_and_validate_properties(properties)
         listener = elbv2_backend.create_listener(
             load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
         )
         return listener
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+
+        elbv2_backend = elbv2_backends[region_name]
+        protocol = properties.get("Protocol")
+        port = properties.get("Port")
+        ssl_policy = properties.get("SslPolicy")
+        certificates = properties.get("Certificates")
+
+        default_actions = elbv2_backend.convert_and_validate_properties(properties)
+        listener = elbv2_backend.modify_listener(
+            original_resource.arn,
+            port,
+            protocol,
+            ssl_policy,
+            certificates,
+            default_actions,
+        )
+        return listener
+
+
+class FakeListenerRule(CloudFormationModel):
+    def __init__(
+        self, listener_arn, arn, conditions, priority, actions,
+    ):
+        self.listener_arn = listener_arn
+        self.arn = arn
+        self.conditions = conditions
+        self.actions = actions
+        self.priority = priority
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listenerrule.html
+        return "AWS::ElasticLoadBalancingV2::ListenerRule"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        elbv2_backend = elbv2_backends[region_name]
+        listener_arn = properties.get("ListenerArn")
+        priority = properties.get("Priority")
+        conditions = properties.get("Conditions")
+
+        actions = elbv2_backend.convert_and_validate_action_properties(properties)
+        conditions = elbv2_backend.convert_and_validate_condition_properties(properties)
+        listener_rule = elbv2_backend.create_rule(
+            listener_arn, conditions, priority, actions
+        )
+        return listener_rule
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+
+        properties = cloudformation_json["Properties"]
+
+        elbv2_backend = elbv2_backends[region_name]
+        conditions = properties.get("Conditions")
+
+        actions = elbv2_backend.convert_and_validate_action_properties(properties)
+        conditions = elbv2_backend.convert_and_validate_condition_properties(properties)
+        listener_rule = elbv2_backend.modify_rule(
+            original_resource.arn, conditions, actions
+        )
+        return listener_rule
+
+
+class FakeRule(BaseModel):
+    def __init__(self, listener_arn, conditions, priority, actions, is_default):
+        self.listener_arn = listener_arn
+        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
+            id(self)
+        )
+        self.conditions = conditions
+        self.priority = priority  # int or 'default'
+        self.actions = actions
+        self.is_default = is_default
 
 
 class FakeAction(BaseModel):
@@ -314,7 +368,19 @@ class FakeAction(BaseModel):
     def to_xml(self):
         template = Template(
             """<Type>{{ action.type }}</Type>
-            {% if action.type == "forward" %}
+            {% if action.type == "forward" and "forward_config" in action.data %}
+            <ForwardConfig>
+              <TargetGroups>
+                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                <member>
+                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
+                  <Weight>{{ target_group["weight"] }}</Weight>
+                </member>
+                {% endfor %}
+              </TargetGroups>
+            </ForwardConfig>
+            {% endif %}
+            {% if action.type == "forward" and "forward_config" not in action.data %}
             <TargetGroupArn>{{ action.data["target_group_arn"] }}</TargetGroupArn>
             {% elif action.type == "redirect" %}
             <RedirectConfig>
@@ -338,18 +404,6 @@ class FakeAction(BaseModel):
             """
         )
         return template.render(action=self)
-
-
-class FakeRule(BaseModel):
-    def __init__(self, listener_arn, conditions, priority, actions, is_default):
-        self.listener_arn = listener_arn
-        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
-            id(self)
-        )
-        self.conditions = conditions
-        self.priority = priority  # int or 'default'
-        self.actions = actions
-        self.is_default = is_default
 
 
 class FakeBackend(BaseModel):
@@ -381,6 +435,7 @@ class FakeLoadBalancer(CloudFormationModel):
         vpc_id,
         arn,
         dns_name,
+        state,
         scheme="internet-facing",
     ):
         self.name = name
@@ -393,6 +448,7 @@ class FakeLoadBalancer(CloudFormationModel):
         self.tags = {}
         self.arn = arn
         self.dns_name = dns_name
+        self.state = state
 
         self.stack = "ipv4"
         self.attrs = {
@@ -418,6 +474,10 @@ class FakeLoadBalancer(CloudFormationModel):
     def remove_tag(self, key):
         if key in self.tags:
             del self.tags[key]
+
+    def activate(self):
+        if self.state == "provisioning":
+            self.state = "active"
 
     def delete(self, region):
         """ Not exposed as part of the ELB API - used for CloudFormation. """
@@ -517,6 +577,8 @@ class ELBv2Backend(BaseBackend):
     ):
         vpc_id = None
         subnets = []
+        state = "provisioning"
+
         if not subnet_ids:
             raise SubnetNotFoundError()
         for subnet_id in subnet_ids:
@@ -542,9 +604,68 @@ class ELBv2Backend(BaseBackend):
             subnets=subnets,
             vpc_id=vpc_id,
             dns_name=dns_name,
+            state=state,
         )
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
+
+    def convert_and_validate_action_properties(self, properties):
+
+        # transform Actions to confirm with the rest of the code and XML templates
+        default_actions = []
+        for i, action in enumerate(properties["Actions"]):
+            action_type = action["Type"]
+            if action_type == "forward" and "ForwardConfig" in action:
+                action_forward_config = action["ForwardConfig"]
+                action_target_groups = action_forward_config["TargetGroups"]
+                target_group_action = []
+                for action_target_group in action_target_groups:
+                    target_group_action.append(
+                        {
+                            "target_group_arn": action_target_group["TargetGroupArn"],
+                            "weight": action_target_group["Weight"],
+                        }
+                    )
+                default_actions.append(
+                    {
+                        "type": action_type,
+                        "forward_config": {"target_groups": target_group_action},
+                    }
+                )
+            elif action_type == "forward" and "ForwardConfig" not in action:
+                default_actions.append(
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
+                )
+            elif action_type in [
+                "redirect",
+                "authenticate-cognito",
+                "fixed-response",
+            ]:
+                redirect_action = {"type": action_type}
+                key = (
+                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
+                    + "Config"
+                )
+                for redirect_config_key, redirect_config_value in action[key].items():
+                    # need to match the output of _get_list_prefix
+                    redirect_action[
+                        camelcase_to_underscores(key)
+                        + "._"
+                        + camelcase_to_underscores(redirect_config_key)
+                    ] = redirect_config_value
+                default_actions.append(redirect_action)
+            else:
+                raise InvalidActionTypeError(action_type, i + 1)
+        return default_actions
+
+    def convert_and_validate_condition_properties(self, properties):
+
+        conditions = []
+        for i, condition in enumerate(properties["Conditions"]):
+            conditions.append(
+                {"field": condition["Field"], "values": condition["Values"],}
+            )
+        return conditions
 
     def create_rule(self, listener_arn, conditions, priority, actions):
         actions = [FakeAction(action) for action in actions]
@@ -555,35 +676,41 @@ class ELBv2Backend(BaseBackend):
 
         # validate conditions
         for condition in conditions:
-            field = condition["field"]
-            if field not in ["path-pattern", "host-header"]:
-                raise InvalidConditionFieldError(field)
+            if "field" in condition:
+                field = condition["field"]
+                if field not in ["path-pattern", "host-header"]:
+                    raise InvalidConditionFieldError(field)
 
-            values = condition["values"]
-            if len(values) == 0:
-                raise InvalidConditionValueError("A condition value must be specified")
-            if len(values) > 1:
-                raise InvalidConditionValueError(
-                    "The '%s' field contains too many values; the limit is '1'" % field
-                )
+                values = condition["values"]
+                if len(values) == 0:
+                    raise InvalidConditionValueError(
+                        "A condition value must be specified"
+                    )
+                if len(values) > 1:
+                    raise InvalidConditionValueError(
+                        "The '%s' field contains too many values; the limit is '1'"
+                        % field
+                    )
 
-            # TODO: check pattern of value for 'host-header'
-            # TODO: check pattern of value for 'path-pattern'
+        # TODO: check pattern of value for 'host-header'
+        # TODO: check pattern of value for 'path-pattern'
 
         # validate Priority
-        for rule in listener.rules:
+        for rule in listener.rules.values():
             if rule.priority == priority:
                 raise PriorityInUseError()
 
         self._validate_actions(actions)
+        arn = listener_arn.replace(":listener/", ":listener-rule/")
+        arn += "/%s" % (get_random_hex(16))
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
 
         # create rule
-        rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
-        listener.register(rule)
-        return [rule]
+        rule = FakeListenerRule(listener.arn, arn, conditions, priority, actions,)
+        listener.register(arn, rule)
+        return rule
 
     def _validate_actions(self, actions):
         # validate Actions
@@ -593,13 +720,23 @@ class ELBv2Backend(BaseBackend):
         for i, action in enumerate(actions):
             index = i + 1
             action_type = action.type
-            if action_type == "forward":
+            if action_type == "forward" and "target_group_arn" in action.data:
                 action_target_group_arn = action.data["target_group_arn"]
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
             elif action_type == "fixed-response":
                 self._validate_fixed_response_action(action, i, index)
             elif action_type in ["redirect", "authenticate-cognito"]:
+                pass
+            # pass if listener rule has forward_config as an Action property
+            elif (
+                action_type == "forward"
+                and "forward_config._target_groups.member.{}._target_group_arn".format(
+                    index
+                )
+                in action.data.keys()
+                or "forward_config" in action.data.keys()
+            ):
                 pass
             else:
                 raise InvalidActionTypeError(action_type, index)
@@ -696,6 +833,38 @@ Member must satisfy regular expression pattern: {}".format(
         self.target_groups[target_group.arn] = target_group
         return target_group
 
+    def convert_and_validate_properties(self, properties):
+
+        # transform default actions to confirm with the rest of the code and XML templates
+        default_actions = []
+        for i, action in enumerate(properties["DefaultActions"]):
+            action_type = action["Type"]
+            if action_type == "forward":
+                default_actions.append(
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
+                )
+            elif action_type in [
+                "redirect",
+                "authenticate-cognito",
+                "fixed-response",
+            ]:
+                redirect_action = {"type": action_type}
+                key = (
+                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
+                    + "Config"
+                )
+                for redirect_config_key, redirect_config_value in action[key].items():
+                    # need to match the output of _get_list_prefix
+                    redirect_action[
+                        camelcase_to_underscores(key)
+                        + "._"
+                        + camelcase_to_underscores(redirect_config_key)
+                    ] = redirect_config_value
+                default_actions.append(redirect_action)
+            else:
+                raise InvalidActionTypeError(action_type, i + 1)
+        return default_actions
+
     def create_listener(
         self,
         load_balancer_arn,
@@ -740,6 +909,8 @@ Member must satisfy regular expression pattern: {}".format(
         arns = arns or []
         names = names or []
         if not arns and not names:
+            for balancer in balancers:
+                balancer.activate()
             return balancers
 
         matched_balancers = []
@@ -747,6 +918,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         for arn in arns:
             for balancer in balancers:
+                balancer.activate()
                 if balancer.arn == arn:
                     matched_balancer = balancer
             if matched_balancer is None:
@@ -756,6 +928,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         for name in names:
             for balancer in balancers:
+                balancer.activate()
                 if balancer.name == name:
                     matched_balancer = balancer
             if matched_balancer is None:
@@ -776,14 +949,14 @@ Member must satisfy regular expression pattern: {}".format(
             )
         if listener_arn:
             listener = self.describe_listeners(None, [listener_arn])[0]
-            return listener.rules
+            return listener.rules.values()
 
         # search for rule arns
         matched_rules = []
         for load_balancer_arn in self.load_balancers:
             listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
             for listener in listeners:
-                for rule in listener.rules:
+                for rule in listener.rules.values():
                     if rule.arn in rule_arns:
                         matched_rules.append(rule)
         return matched_rules
@@ -840,9 +1013,9 @@ Member must satisfy regular expression pattern: {}".format(
         for load_balancer_arn in self.load_balancers:
             listeners = self.load_balancers.get(load_balancer_arn).listeners.values()
             for listener in listeners:
-                for rule in listener.rules:
+                for rule in listener.rules.values():
                     if rule.arn == arn:
-                        listener.remove_rule(rule)
+                        listener.remove_rule(rule.arn)
                         return
 
         # should raise RuleNotFound Error according to the AWS API doc
@@ -910,7 +1083,7 @@ Member must satisfy regular expression pattern: {}".format(
             rule.conditions = conditions
         if actions:
             rule.actions = actions
-        return [rule]
+        return rule
 
     def register_targets(self, target_group_arn, instances):
         target_group = self.target_groups.get(target_group_arn)
@@ -952,7 +1125,7 @@ Member must satisfy regular expression pattern: {}".format(
             given_rule = _given_rules[0]
             listeners = self.describe_listeners(None, [given_rule.listener_arn])
             listener = listeners[0]
-            for rule_in_listener in listener.rules:
+            for rule_in_listener in listener.rules.values():
                 if rule_in_listener.priority == priority:
                     raise PriorityInUseError()
         # modify
@@ -1123,8 +1296,6 @@ Member must satisfy regular expression pattern: {}".format(
             for listener_arn, current_listener in load_balancer.listeners.items():
                 if listener_arn == arn:
                     continue
-                if listener.port == port:
-                    raise DuplicateListenerError()
 
             listener.port = port
 
@@ -1188,7 +1359,7 @@ Member must satisfy regular expression pattern: {}".format(
     def _any_listener_using(self, target_group_arn):
         for load_balancer in self.load_balancers.values():
             for listener in load_balancer.listeners.values():
-                for rule in listener.rules:
+                for rule in listener.rules.values():
                     for action in rule.actions:
                         if action.data.get("target_group_arn") == target_group_arn:
                             return True

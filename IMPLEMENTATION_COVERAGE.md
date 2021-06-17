@@ -257,7 +257,7 @@
 
 ## apigateway
 <details>
-<summary>38% implemented</summary>
+<summary>40% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -374,7 +374,7 @@
 - [ ] update_model
 - [ ] update_request_validator
 - [ ] update_resource
-- [ ] update_rest_api
+- [X] update_rest_api
 - [X] update_stage
 - [ ] update_usage
 - [X] update_usage_plan
@@ -2040,7 +2040,7 @@
 
 ## cognito-idp
 <details>
-<summary>45% implemented</summary>
+<summary>47% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -2106,7 +2106,7 @@
 - [ ] get_ui_customization
 - [ ] get_user
 - [ ] get_user_attribute_verification_code
-- [ ] get_user_pool_mfa_config
+- [X] get_user_pool_mfa_config
 - [ ] global_sign_out
 - [X] initiate_auth
 - [ ] list_devices
@@ -2124,7 +2124,7 @@
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [X] set_user_mfa_preference
-- [ ] set_user_pool_mfa_config
+- [X] set_user_pool_mfa_config
 - [ ] set_user_settings
 - [X] sign_up
 - [ ] start_user_import_job
@@ -2922,7 +2922,7 @@
 
 ## dms
 <details>
-<summary>0% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2931,14 +2931,14 @@
 - [ ] create_event_subscription
 - [ ] create_replication_instance
 - [ ] create_replication_subnet_group
-- [ ] create_replication_task
+- [X] create_replication_task
 - [ ] delete_certificate
 - [ ] delete_connection
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
 - [ ] delete_replication_instance
 - [ ] delete_replication_subnet_group
-- [ ] delete_replication_task
+- [X] delete_replication_task
 - [ ] delete_replication_task_assessment_run
 - [ ] describe_account_attributes
 - [ ] describe_applicable_individual_assessments
@@ -2958,7 +2958,7 @@
 - [ ] describe_replication_task_assessment_results
 - [ ] describe_replication_task_assessment_runs
 - [ ] describe_replication_task_individual_assessments
-- [ ] describe_replication_tasks
+- [X] describe_replication_tasks
 - [ ] describe_schemas
 - [ ] describe_table_statistics
 - [ ] import_certificate
@@ -2973,10 +2973,10 @@
 - [ ] refresh_schemas
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
-- [ ] start_replication_task
+- [X] start_replication_task
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
-- [ ] stop_replication_task
+- [X] stop_replication_task
 - [ ] test_connection
 </details>
 
@@ -3098,18 +3098,18 @@
 
 ## dynamodb
 <details>
-<summary>44% implemented</summary>
+<summary>54% implemented</summary>
 
 - [ ] batch_execute_statement
 - [X] batch_get_item
 - [X] batch_write_item
-- [ ] create_backup
+- [X] create_backup
 - [ ] create_global_table
 - [X] create_table
-- [ ] delete_backup
+- [X] delete_backup
 - [X] delete_item
 - [X] delete_table
-- [ ] describe_backup
+- [X] describe_backup
 - [X] describe_continuous_backups
 - [ ] describe_contributor_insights
 - [ ] describe_endpoints
@@ -3127,7 +3127,7 @@
 - [ ] execute_transaction
 - [ ] export_table_to_point_in_time
 - [X] get_item
-- [ ] list_backups
+- [X] list_backups
 - [ ] list_contributor_insights
 - [ ] list_exports
 - [ ] list_global_tables
@@ -3135,7 +3135,7 @@
 - [X] list_tags_of_resource
 - [X] put_item
 - [X] query
-- [ ] restore_table_from_backup
+- [X] restore_table_from_backup
 - [ ] restore_table_to_point_in_time
 - [X] scan
 - [X] tag_resource
@@ -4046,7 +4046,7 @@
 
 ## emr
 <details>
-<summary>43% implemented</summary>
+<summary>45% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -4072,7 +4072,7 @@
 - [X] list_clusters
 - [ ] list_instance_fleets
 - [X] list_instance_groups
-- [ ] list_instances
+- [X] list_instances
 - [ ] list_notebook_executions
 - [ ] list_security_configurations
 - [X] list_steps
@@ -4164,10 +4164,10 @@
 
 ## events
 <details>
-<summary>65% implemented</summary>
+<summary>75% implemented</summary>
 
 - [ ] activate_event_source
-- [ ] cancel_replay
+- [X] cancel_replay
 - [X] create_archive
 - [X] create_event_bus
 - [ ] create_partner_event_source
@@ -4180,7 +4180,7 @@
 - [X] describe_event_bus
 - [ ] describe_event_source
 - [ ] describe_partner_event_source
-- [ ] describe_replay
+- [X] describe_replay
 - [X] describe_rule
 - [X] disable_rule
 - [X] enable_rule
@@ -4189,7 +4189,7 @@
 - [ ] list_event_sources
 - [ ] list_partner_event_source_accounts
 - [ ] list_partner_event_sources
-- [ ] list_replays
+- [X] list_replays
 - [X] list_rule_names_by_target
 - [X] list_rules
 - [X] list_tags_for_resource
@@ -4201,7 +4201,7 @@
 - [X] put_targets
 - [X] remove_permission
 - [X] remove_targets
-- [ ] start_replay
+- [X] start_replay
 - [X] tag_resource
 - [X] test_event_pattern
 - [X] untag_resource
@@ -6511,7 +6511,7 @@
 
 ## logs
 <details>
-<summary>40% implemented</summary>
+<summary>42% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -6550,7 +6550,7 @@
 - [ ] put_resource_policy
 - [X] put_retention_policy
 - [X] put_subscription_filter
-- [ ] start_query
+- [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
 - [ ] test_metric_filter
@@ -6738,30 +6738,30 @@
 
 ## mediaconnect
 <details>
-<summary>30% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] add_flow_outputs
 - [ ] add_flow_sources
 - [ ] add_flow_vpc_interfaces
-- [x] create_flow
-- [x] delete_flow
-- [x] describe_flow
+- [X] create_flow
+- [X] delete_flow
+- [X] describe_flow
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] grant_flow_entitlements
 - [ ] list_entitlements
-- [x] list_flows
+- [X] list_flows
 - [ ] list_offerings
 - [ ] list_reservations
-- [x] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] purchase_offering
 - [ ] remove_flow_output
 - [ ] remove_flow_source
 - [ ] remove_flow_vpc_interface
 - [ ] revoke_flow_entitlement
-- [x] start_flow
-- [x] stop_flow
-- [x] tag_resource
+- [X] start_flow
+- [X] stop_flow
+- [X] tag_resource
 - [ ] untag_resource
 - [ ] update_flow
 - [ ] update_flow_entitlement
@@ -6863,27 +6863,27 @@
 
 ## mediapackage
 <details>
-<summary>0% implemented</summary>
+<summary>47% implemented</summary>
 
 - [ ] configure_logs
-- [ ] create_channel
+- [X] create_channel
 - [ ] create_harvest_job
-- [ ] create_origin_endpoint
-- [ ] delete_channel
-- [ ] delete_origin_endpoint
-- [ ] describe_channel
+- [X] create_origin_endpoint
+- [X] delete_channel
+- [X] delete_origin_endpoint
+- [X] describe_channel
 - [ ] describe_harvest_job
-- [ ] describe_origin_endpoint
-- [ ] list_channels
+- [X] describe_origin_endpoint
+- [X] list_channels
 - [ ] list_harvest_jobs
-- [ ] list_origin_endpoints
+- [X] list_origin_endpoints
 - [ ] list_tags_for_resource
 - [ ] rotate_channel_credentials
 - [ ] rotate_ingest_endpoint_credentials
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_channel
-- [ ] update_origin_endpoint
+- [X] update_origin_endpoint
 </details>
 
 ## mediapackage-vod
@@ -6910,25 +6910,25 @@
 
 ## mediastore
 <details>
-<summary>0% implemented</summary>
+<summary>52% implemented</summary>
 
-- [ ] create_container
-- [ ] delete_container
+- [X] create_container
+- [X] delete_container
 - [ ] delete_container_policy
 - [ ] delete_cors_policy
 - [ ] delete_lifecycle_policy
 - [ ] delete_metric_policy
-- [ ] describe_container
-- [ ] get_container_policy
+- [X] describe_container
+- [X] get_container_policy
 - [ ] get_cors_policy
-- [ ] get_lifecycle_policy
-- [ ] get_metric_policy
-- [ ] list_containers
-- [ ] list_tags_for_resource
-- [ ] put_container_policy
+- [X] get_lifecycle_policy
+- [X] get_metric_policy
+- [X] list_containers
+- [X] list_tags_for_resource
+- [X] put_container_policy
 - [ ] put_cors_policy
-- [ ] put_lifecycle_policy
-- [ ] put_metric_policy
+- [X] put_lifecycle_policy
+- [X] put_metric_policy
 - [ ] start_access_logging
 - [ ] stop_access_logging
 - [ ] tag_resource
@@ -8025,10 +8025,10 @@
 
 ## redshift
 <details>
-<summary>29% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
-- [ ] authorize_cluster_security_group_ingress
+- [X] authorize_cluster_security_group_ingress
 - [ ] authorize_snapshot_access
 - [ ] batch_delete_cluster_snapshots
 - [ ] batch_modify_cluster_snapshots
@@ -8192,18 +8192,18 @@
 
 ## resource-groups
 <details>
-<summary>56% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] create_group
 - [X] delete_group
 - [X] get_group
-- [ ] get_group_configuration
+- [X] get_group_configuration
 - [ ] get_group_query
 - [X] get_tags
 - [ ] group_resources
 - [ ] list_group_resources
 - [X] list_groups
-- [ ] put_group_configuration
+- [X] put_group_configuration
 - [ ] search_resources
 - [X] tag
 - [ ] ungroup_resources
@@ -8933,7 +8933,7 @@
 
 ## secretsmanager
 <details>
-<summary>68% implemented</summary>
+<summary>78% implemented</summary>
 
 - [ ] cancel_rotate_secret
 - [X] create_secret
@@ -8950,9 +8950,9 @@
 - [X] restore_secret
 - [X] rotate_secret
 - [X] tag_resource
-- [ ] untag_resource
+- [X] untag_resource
 - [X] update_secret
-- [ ] update_secret_version_stage
+- [X] update_secret_version_stage
 - [ ] validate_resource_policy
 </details>
 
@@ -9901,22 +9901,22 @@
 
 ## support
 <details>
-<summary>0% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] add_attachments_to_set
 - [ ] add_communication_to_case
-- [ ] create_case
+- [X] create_case
 - [ ] describe_attachment
-- [ ] describe_cases
+- [X] describe_cases
 - [ ] describe_communications
 - [ ] describe_services
 - [ ] describe_severity_levels
 - [ ] describe_trusted_advisor_check_refresh_statuses
 - [ ] describe_trusted_advisor_check_result
 - [ ] describe_trusted_advisor_check_summaries
-- [ ] describe_trusted_advisor_checks
-- [ ] refresh_trusted_advisor_check
-- [ ] resolve_case
+- [X] describe_trusted_advisor_checks
+- [X] refresh_trusted_advisor_check
+- [X] resolve_case
 </details>
 
 ## swf

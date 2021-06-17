@@ -23,6 +23,10 @@ class Flow(BaseModel):
         self.description = None
         self.flow_arn = None
         self.egress_ip = None
+        if self.source and not self.sources:
+            self.sources = [
+                self.source,
+            ]
 
     def to_dict(self, include=None):
         data = {
@@ -92,6 +96,10 @@ class MediaConnectBackend(BaseBackend):
         sources,
         vpc_interfaces,
     ):
+        if isinstance(source, dict) and source.get("name"):
+            source["sourceArn"] = "arn:aws:mediaconnect:source:{}".format(
+                source["name"]
+            )
         flow = Flow(
             availability_zone=availability_zone,
             entitlements=entitlements,

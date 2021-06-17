@@ -196,10 +196,10 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                {% for rule in group.ingress_rules %}
                     <item>
                        <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-                       {% if rule.from_port %}
+                       {% if rule.from_port is not none %}
                        <fromPort>{{ rule.from_port }}</fromPort>
                        {% endif %}
-                       {% if rule.to_port %}
+                       {% if rule.to_port is not none %}
                        <toPort>{{ rule.to_port }}</toPort>
                        {% endif %}
                        <groups>
@@ -230,10 +230,10 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                {% for rule in group.egress_rules %}
                     <item>
                        <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-                       {% if rule.from_port %}
+                       {% if rule.from_port is not none %}
                        <fromPort>{{ rule.from_port }}</fromPort>
                        {% endif %}
-                       {% if rule.to_port %}
+                       {% if rule.to_port is not none %}
                        <toPort>{{ rule.to_port }}</toPort>
                        {% endif %}
                        <groups>

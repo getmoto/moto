@@ -2,7 +2,7 @@ import re
 
 
 def bytesize(val):
-    return len(str(val).encode("utf-8"))
+    return len(val.encode("utf-8"))
 
 
 def attribute_is_list(attr):
