@@ -466,7 +466,7 @@ class IamResponse(BaseResponse):
     def delete_group_policy(self):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
-        policy_result = iam_backend.delete_group_policy(group_name, policy_name)
+        iam_backend.delete_group_policy(group_name, policy_name)
         return ''
 
     def delete_group(self):

@@ -536,7 +536,7 @@ class LifecycleAndFilter(BaseModel):
 
         for key, value in self.tags.items():
             data.append(
-                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value},}
+                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value}}
             )
 
         return data

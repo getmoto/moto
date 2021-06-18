@@ -101,7 +101,7 @@ class IntegrationResponse(BaseModel, dict):
 
 class Integration(BaseModel, dict):
     def __init__(self, integration_type, uri, http_method, request_templates=None,
-            tls_config=None, cache_namespace=None):
+                 tls_config=None, cache_namespace=None):
         super(Integration, self).__init__()
         self["type"] = integration_type
         self["uri"] = uri
@@ -294,7 +294,7 @@ class Resource(CloudFormationModel):
         return response.status_code, response.text
 
     def add_method(self, method_type, authorization_type, api_key_required, request_models=None,
-            operation_name=None, authorizer_id=None, authorization_scopes=None, request_validator_id=None):
+                   operation_name=None, authorizer_id=None, authorization_scopes=None, request_validator_id=None):
         if authorization_scopes and not isinstance(authorization_scopes, list):
             authorization_scopes = [authorization_scopes]
         method = Method(

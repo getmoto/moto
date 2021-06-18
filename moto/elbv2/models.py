@@ -634,7 +634,7 @@ class ELBv2Backend(BaseBackend):
                 )
             elif action_type == "forward" and "ForwardConfig" not in action:
                 default_actions.append(
-                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"]}
                 )
             elif action_type in [
                 "redirect",
@@ -663,7 +663,7 @@ class ELBv2Backend(BaseBackend):
         conditions = []
         for i, condition in enumerate(properties["Conditions"]):
             conditions.append(
-                {"field": condition["Field"], "values": condition["Values"],}
+                {"field": condition["Field"], "values": condition["Values"]}
             )
         return conditions
 
@@ -847,7 +847,7 @@ Member must satisfy regular expression pattern: {}".format(
             action_type = action["Type"]
             if action_type == "forward":
                 default_actions.append(
-                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"]}
                 )
             elif action_type in [
                 "redirect",

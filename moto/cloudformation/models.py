@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import json
 import yaml
 import uuid
-import boto3
 
 from boto3 import Session
 

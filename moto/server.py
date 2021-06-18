@@ -5,7 +5,6 @@ import io
 import json
 import os
 import re
-import signal
 import sys
 from threading import Lock
 

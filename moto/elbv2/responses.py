@@ -172,8 +172,10 @@ class ELBV2Response(BaseResponse):
                     prefix = snake_to_camels(prefix, cap_start=False, cap_arn=False)
                     condition[prefix] = condition.get(prefix) or {'values': []}
                     if entry[0].endswith('._key'):
-                        condition[prefix]['values'].append({'Key': entry[1],
-                            'Value': _condition.get(entry[0].replace('._key', '._value'))})
+                        condition[prefix]['values'].append({
+                            'Key': entry[1],
+                            'Value': _condition.get(entry[0].replace('._key', '._value'))
+                        })
                     elif entry[0].endswith('._value'):
                         pass  # skip, already covered above
                     else:

@@ -1555,9 +1555,9 @@ class IAMBackend(BaseBackend):
     def set_default_policy_version(self, policy_arn, version_id):
         import re
 
-        if re.match("v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
+        if re.match(r"v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
             raise ValidationError(
-                "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?".format(
+                "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\\.[A-Za-z0-9-]*)?".format(
                     version_id
                 )
             )
