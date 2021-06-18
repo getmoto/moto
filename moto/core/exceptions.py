@@ -64,7 +64,7 @@ class RESTError(HTTPException):
     def get_headers(self, *args, **kwargs):
         return [("X-Amzn-ErrorType", self.error_type or "UnknownError"), ("Content-Type", self.content_type)]
 
-    def get_body(self, *args, **kwargs) -> str:
+    def get_body(self, *args, **kwargs):
         return self.description
 
 
