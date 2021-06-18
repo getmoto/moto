@@ -332,6 +332,15 @@ class FakeCluster(BaseModel):
             if self.master_instance_group_id:
                 raise Exception("Cannot add another master instance group")
             self.master_instance_group_id = instance_group.id
+            num_master_nodes = instance_group.num_instances
+            if num_master_nodes > 1:
+                # Cluster is HA
+                if num_master_nodes != 3:
+                    raise ValidationException(
+                        "Master instance group must have exactly 3 instances for HA clusters."
+                    )
+                self.keep_job_flow_alive_when_no_steps = True
+                self.termination_protected = True
         if instance_group.role == "CORE":
             if self.core_instance_group_id:
                 raise Exception("Cannot add another core instance group")
