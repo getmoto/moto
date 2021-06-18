@@ -483,5 +483,9 @@ class InvalidFilterRuleName(InvalidArgumentError):
 
     def __init__(self, value, *args, **kwargs):
         super(InvalidFilterRuleName, self).__init__(
-            "filter rule name must be either prefix or suffix", "FilterRule.Name", value, *args, **kwargs
+            "filter rule name must be either prefix or suffix",
+            "FilterRule.Name",
+            value,
+            *args,
+            **kwargs
         )

@@ -8,7 +8,9 @@ class IAMNotFoundException(RESTError):
     code = 404
 
     def __init__(self, message):
-        super(IAMNotFoundException, self).__init__("NoSuchEntity", message, xmlns=XMLNS_IAM)
+        super(IAMNotFoundException, self).__init__(
+            "NoSuchEntity", message, xmlns=XMLNS_IAM, template="wrapped_single_error"
+        )
 
 
 class IAMConflictException(RESTError):
@@ -136,4 +138,6 @@ class NoSuchEntity(RESTError):
     code = 404
 
     def __init__(self, message):
-        super(NoSuchEntity, self).__init__("NoSuchEntity", message, xmlns=XMLNS_IAM)
+        super(NoSuchEntity, self).__init__(
+            "NoSuchEntity", message, xmlns=XMLNS_IAM, template="wrapped_single_error"
+        )

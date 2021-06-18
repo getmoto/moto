@@ -6,13 +6,23 @@ import json
 
 
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-{{ start_tag }}<Error>
+<Error>
     <Code>{{error_type}}</Code>
     <Message>{{message}}</Message>
     {% block extra %}{% endblock %}
     <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
-</Error>{{ end_tag }}
+</Error>
 """
+
+WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ErrorResponse{% if xmlns is defined %} xmlns="{{xmlns}}"{% endif %}>
+    <Error>
+        <Code>{{error_type}}</Code>
+        <Message>{{message}}</Message>
+        {% block extra %}{% endblock %}
+        <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
+    </Error>
+<ErrorResponse>"""
 
 ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ErrorResponse>
@@ -39,30 +49,27 @@ class RESTError(HTTPException):
 
     templates = {
         "single_error": SINGLE_ERROR_RESPONSE,
+        "wrapped_single_error": WRAPPED_SINGLE_ERROR_RESPONSE,
         "error": ERROR_RESPONSE,
         "error_json": ERROR_JSON_RESPONSE,
     }
 
     def __init__(self, error_type, message, template="error", **kwargs):
         super(RESTError, self).__init__()
-        xmlns = kwargs.get("xmlns")
-        start_tag = ""
-        end_tag = ""
-        if xmlns:
-            start_tag = '<ErrorResponse xmlns="%s">' % xmlns
-            end_tag = "</ErrorResponse>"
-            template = "single_error"
         env = Environment(loader=DictLoader(self.templates))
         self.error_type = error_type
         self.message = message
         self.description = env.get_template(template).render(
-            error_type=error_type, message=message, start_tag=start_tag, end_tag=end_tag, **kwargs
+            error_type=error_type, message=message, **kwargs
         )
 
-        self.content_type = 'application/xml'
+        self.content_type = "application/xml"
 
     def get_headers(self, *args, **kwargs):
-        return [("X-Amzn-ErrorType", self.error_type or "UnknownError"), ("Content-Type", self.content_type)]
+        return [
+            ("X-Amzn-ErrorType", self.error_type or "UnknownError"),
+            ("Content-Type", self.content_type),
+        ]
 
     def get_body(self, *args, **kwargs):
         return self.description
@@ -75,7 +82,7 @@ class DryRunClientError(RESTError):
 class JsonRESTError(RESTError):
     def __init__(self, error_type, message, template="error_json", **kwargs):
         super(JsonRESTError, self).__init__(error_type, message, template, **kwargs)
-        self.content_type = 'application/json'
+        self.content_type = "application/json"
 
     def get_body(self, *args, **kwargs):
         return self.description
