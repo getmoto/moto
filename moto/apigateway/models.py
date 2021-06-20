@@ -634,6 +634,7 @@ class RestAPI(CloudFormationModel):
         self.disableExecuteApiEndpoint = (
             kwargs.get("disableExecuteApiEndpoint") or False
         )
+        self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments = {}
         self.authorizers = {}
         self.stages = {}
@@ -657,6 +658,7 @@ class RestAPI(CloudFormationModel):
             "tags": self.tags,
             "policy": self.policy,
             "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
+            "minimumCompressionSize": self.minimum_compression_size
         }
 
     def apply_patch_operations(self, patch_operations):
@@ -936,6 +938,7 @@ class APIGatewayBackend(BaseBackend):
         endpoint_configuration=None,
         tags=None,
         policy=None,
+        minimum_compression_size=None
     ):
         api_id = create_id()
         rest_api = RestAPI(
@@ -947,6 +950,7 @@ class APIGatewayBackend(BaseBackend):
             endpoint_configuration=endpoint_configuration,
             tags=tags,
             policy=policy,
+            minimum_compression_size=minimum_compression_size
         )
         self.apis[api_id] = rest_api
         return rest_api
