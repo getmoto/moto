@@ -17,16 +17,16 @@ class VPCs(BaseResponse):
         cidr_block = self._get_param("CidrBlock")
         tags = self._get_multi_param("TagSpecification")
         instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
-        amazon_provided_ipv6_cidr_blocks = self._get_param(
+        amazon_provided_ipv6_cidr_block = self._get_param(
             "AmazonProvidedIpv6CidrBlock"
-        )
+        ) in ['true', 'True']
         if tags:
             tags = tags[0].get("Tag")
 
         vpc = self.ec2_backend.create_vpc(
             cidr_block,
             instance_tenancy,
-            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_blocks,
+            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
             tags=tags,
         )
         doc_date = self._get_doc_date()
@@ -178,7 +178,7 @@ class VPCs(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
         tag_specifications = self._get_param("TagSpecifications")
-        private_dns_enabled = self._get_bool_param("PrivateDNSEnabled", if_none=True)
+        private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
         # TODO: change to self._get_multi_param("SecurityGroupId") below!
         security_group = self._get_param("SecurityGroup")
 
