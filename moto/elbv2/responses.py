@@ -151,24 +151,12 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_rule(self):
-        listener_arn = self._get_param("ListenerArn")
-        _conditions = self._get_list_prefix("Conditions.member")
-        conditions = []
-        for _condition in _conditions:
-            condition = {}
-            condition["field"] = _condition["field"]
-            values = sorted(
-                [e for e in _condition.items() if "values.member" in e[0]],
-                key=lambda x: x[0],
-            )
-            condition["values"] = [e[1] for e in values]
-            conditions.append(condition)
-        priority = self._get_int_param("Priority")
+        params = self._get_params()
         actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.create_rule(
-            listener_arn=listener_arn,
-            conditions=conditions,
-            priority=priority,
+            listener_arn=params["ListenerArn"],
+            conditions=params["Conditions"],
+            priority=params["Priority"],
             actions=actions,
         )
         template = self.response_template(CREATE_RULE_TEMPLATE)
@@ -350,17 +338,8 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def modify_rule(self):
         rule_arn = self._get_param("RuleArn")
-        _conditions = self._get_list_prefix("Conditions.member")
-        conditions = []
-        for _condition in _conditions:
-            condition = {}
-            condition["field"] = _condition["field"]
-            values = sorted(
-                [e for e in _condition.items() if "values.member" in e[0]],
-                key=lambda x: x[0],
-            )
-            condition["values"] = [e[1] for e in values]
-            conditions.append(condition)
+        params = self._get_params()
+        conditions = params["Conditions"]
         actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
@@ -725,9 +704,9 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
@@ -912,9 +891,9 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
@@ -1053,9 +1032,9 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
