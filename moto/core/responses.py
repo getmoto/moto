@@ -334,7 +334,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 .replace("-", "_")
             )
             if is_last:
-                return "(?P<%s>[^/]*)" % name
+                return "(?P<%s>[^/]+)" % name
             return "(?P<%s>.*)" % name
 
         elems = uri.split("/")
