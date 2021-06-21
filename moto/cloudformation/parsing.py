@@ -25,6 +25,7 @@ from moto.dynamodb2 import models as dynamodb2_models  # noqa
 from moto.ec2 import models as ec2_models
 from moto.ecr import models as ecr_models  # noqa
 from moto.ecs import models as ecs_models  # noqa
+from moto.efs import models as efs_models  # noqa
 from moto.elb import models as elb_models  # noqa
 from moto.elbv2 import models as elbv2_models  # noqa
 from moto.events import models as events_models  # noqa
