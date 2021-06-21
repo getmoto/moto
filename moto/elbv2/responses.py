@@ -203,6 +203,7 @@ class ELBV2Response(BaseResponse):
             unhealthy_threshold_count=unhealthy_threshold_count,
             matcher=matcher,
         )
+
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
         return template.render(target_group=target_group)
 
@@ -422,6 +423,7 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def add_tags(self):
         resource_arns = self._get_multi_param("ResourceArns.member")
+
         for arn in resource_arns:
             if ":targetgroup" in arn:
                 resource = self.elbv2_backend.target_groups.get(arn)

@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+
 import datetime
 import re
 from jinja2 import Template
@@ -769,7 +770,6 @@ class ELBv2Backend(BaseBackend, TagBackend):
             dns_name=dns_name,
             state=state,
         )
-
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
 
@@ -1003,7 +1003,6 @@ Member must satisfy regular expression pattern: {}".format(
             target_group.add_tag(tag_key, tag_value)
 
         self.target_groups[target_group.arn] = target_group
-
         return target_group
 
     def convert_and_validate_properties(self, properties):
