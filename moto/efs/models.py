@@ -3,10 +3,11 @@ from __future__ import unicode_literals
 import string
 import time
 import random
+from copy import deepcopy
 
 from boto3 import Session
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import underscores_to_camelcase
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+from moto.core.utils import underscores_to_camelcase, camelcase_to_underscores
 from moto.efs.exceptions import FileSystemAlreadyExists, BadRequest
 
 
@@ -22,12 +23,14 @@ class FileSystem(CloudFormationModel):
         provisioned_throughput_in_mibps=None,
         availability_zone_name=None,
         backup=False,
+        lifecycle_policies=None,
+        file_system_policy=None,
         tags=None,
     ):
         if availability_zone_name:
             backup = True
         if kms_key_id and not encrypted:
-            raise BadRequest('If kms_key_id given, "ecnrypted" must be True.')
+            raise BadRequest('If kms_key_id given, "encrypted" must be True.')
 
         # Save given parameters
         self.creation_token = creation_token
@@ -38,17 +41,27 @@ class FileSystem(CloudFormationModel):
         self.provisioned_throughput_in_mibps = provisioned_throughput_in_mibps
         self.availability_zone_name = availability_zone_name
         self.backup = backup
+        self.lifecycle_policies = lifecycle_policies
+        self.file_system_policy = file_system_policy
+
+        # Validate tag structure.
         if tags is None:
             self.tags = []
+        else:
+            if (
+                not isinstance(tags, list)
+                or not all(isinstance(tag, dict) for tag in tags)
+                or not all(set(tag.keys()) == {"Key", "Value"} for tag in tags)
+            ):
+                raise ValueError("Invalid tags: {}".format(tags))
 
         # Generate AWS-assigned parameters
-
         self.file_system_id = file_system_id
         self.file_system_arn = "arn:aws:elasticfilesystem:{region}:{user_id}:file-system/{file_system_id}".format(
             region=None, user_id=None, file_system_id=self.file_system_id
         )
         self.creation_time = time.time()
-        self.user_id = NotImplemented  # TODO
+        self.user_id = ACCOUNT_ID
 
     def info_json(self):
         return {
@@ -59,26 +72,47 @@ class FileSystem(CloudFormationModel):
 
     @staticmethod
     def cloudformation_name_type():
-        return "FileSystemId"
+        return
 
     @staticmethod
     def cloudformation_type():
         return "AWS::EFS::FileSystem"
 
+    @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        pass
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-filesystem.html
+        props = deepcopy(cloudformation_json["Properties"])
+        props = {camelcase_to_underscores(k): v for k, v in props.items()}
+        if "file_system_tags" in props:
+            props["tags"] = props.pop("file_system_tags")
+        if "backup_policy" in props:
+            if "status" not in props["backup_policy"]:
+                raise ValueError("BackupPolicy must be of type BackupPolicy.")
+            status = props.pop("backup_policy")["status"]
+            if status not in ["ENABLED", "DISABLED"]:
+                raise ValueError('Invalid status: "{}".'.format(status))
+            props["backup"] = status == "ENABLED"
+        if "bypass_policy_lockout_safety_check" in props:
+            raise ValueError(
+                "BypassPolicyLockoutSafetyCheck not currently "
+                "supported by AWS Cloudformation."
+            )
 
+        return efs_backends[region_name].create_file_system(resource_name, **props)
+
+    @classmethod
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        pass
+        return
 
+    @classmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        pass
+        return
 
 
 class EFSBackend(BaseBackend):
@@ -109,7 +143,7 @@ class EFSBackend(BaseBackend):
             fsid = make_id()
         self.file_systems_by_id[fsid] = FileSystem(creation_token, fsid, **params)
         self.creation_tokens.add(creation_token)
-        return self.file_systems_by_id[fsid].info_json()
+        return self.file_systems_by_id[fsid]
 
     # add methods from here
 

@@ -23,7 +23,7 @@ class EFSResponse(BaseResponse):
         availability_zone_name = self._get_param("AvailabilityZoneName")
         backup = self._get_param("Backup")
         tags = self._get_list_prefix("Tags.member")
-        info_json = self.efs_backend.create_file_system(
+        resource = self.efs_backend.create_file_system(
             creation_token=creation_token,
             performance_mode=performance_mode,
             encrypted=encrypted,
@@ -34,9 +34,4 @@ class EFSResponse(BaseResponse):
             backup=backup,
             tags=tags,
         )
-        return json.dumps(info_json)
-
-    # add methods from here
-
-
-# add templates from here
+        return json.dumps(resource.info_json())
