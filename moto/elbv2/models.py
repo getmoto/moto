@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-
 import datetime
 import re
 from jinja2 import Template
@@ -42,6 +41,7 @@ from .exceptions import (
     InvalidLoadBalancerActionException,
 )
 from collections import defaultdict
+from .utils import simple_aws_filter_to_re
 
 
 class FakeHealthStatus(BaseModel):
@@ -64,9 +64,8 @@ class TaggedElbv2Resource(BaseModel):
         return tags
 
     def add_tag(self, key, value):
-        print("Key: ", key)
-        print("Value: ", value)
         self.elbv2_backend.create_tags([self.arn], {key: value})
+        tags = self.elbv2_backend.describe_tags()
 
     def add_tags(self, tag_map):
         for key, value in tag_map.items():
@@ -225,16 +224,6 @@ class FakeTargetGroup(TaggedElbv2Resource, CloudFormationModel):
             matcher=matcher,
             target_type=target_type,
         )
-
-        print("\n\n\n\n\n\n\nCheck the tags: ", elbv2_backend.describe_tags())
-        tags = elbv2_backend.describe_tags()
-
-        for tag in tags:
-            print("\n\nG TAG: ", tag)
-            tag_key = tag["key"]
-            tag_value = tag["value"]
-            target_group.add_tag(tag_key, tag_value)
-
         return target_group
 
 
@@ -538,7 +527,6 @@ class FakeLoadBalancer(CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        print("\n\ncloudformation_json: ", cloudformation_json)
         properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[region_name]
@@ -546,7 +534,6 @@ class FakeLoadBalancer(CloudFormationModel):
         security_groups = properties.get("SecurityGroups")
         subnet_ids = properties.get("Subnets")
         scheme = properties.get("Scheme", "internet-facing")
-        print("\n\nproperties: ", properties)
 
         load_balancer = elbv2_backend.create_load_balancer(
             resource_name, security_groups, subnet_ids, scheme=scheme
@@ -628,9 +615,9 @@ class TagBackend(object):
                 raise "Too many tags error"
         for resource_id in resource_ids:
             for tag in tags:
-                print("\n\nTag created is: ", tag)
                 self.tags[resource_id][tag] = tags[tag]
         return True
+
 
     def delete_tags(self, resource_ids, tags):
         for resource_id in resource_ids:
@@ -1011,7 +998,6 @@ Member must satisfy regular expression pattern: {}".format(
         elbv2_backend = elbv2_backends[self.region_name]
         tags = elbv2_backend.describe_tags()
         for tag in tags:
-            print("\n\nG TAG: ", tag)
             tag_key = tag["key"]
             tag_value = tag["value"]
             target_group.add_tag(tag_key, tag_value)
