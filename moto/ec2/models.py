@@ -1993,12 +1993,12 @@ class RegionsAndZonesBackend(object):
 
 class SecurityRule(object):
     def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
-        self.ip_protocol = ip_protocol
+        self.ip_protocol = str(ip_protocol)
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
         self.from_port = self.to_port = None
 
-        if ip_protocol != "-1":
+        if self.ip_protocol != "-1":
             self.from_port = int(from_port)
             self.to_port = int(to_port)
 
