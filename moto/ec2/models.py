@@ -2105,7 +2105,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             security_group.delete(region_name)
 
     def delete(self, region_name):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
 
     @property
