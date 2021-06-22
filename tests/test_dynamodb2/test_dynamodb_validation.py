@@ -19,6 +19,29 @@ from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
 
 
+def test_valid_update_expression(table):
+    update_expression = "set forum_name=:NewName, forum_type=:NewType"
+    update_expression_values = {
+        ":NewName": {"S": "AmazingForum"},
+        ":NewType": {"S": "BASIC"},
+    }
+    update_expression_ast = UpdateExpressionParser.make(update_expression)
+    item = Item(
+        hash_key=DynamoType({"S": "forum_name"}),
+        hash_key_type="TYPE",
+        range_key=DynamoType({"S": "forum_type"}),
+        range_key_type="TYPE",
+        attrs={"forum_name": {"S": "hello"}},
+    )
+    UpdateExpressionValidator(
+        update_expression_ast,
+        expression_attribute_names=None,
+        expression_attribute_values=update_expression_values,
+        item=item,
+        table=table,
+    ).validate()
+
+
 def test_validation_of_empty_string_key_val(table):
     with pytest.raises(EmptyKeyAttributeException):
         update_expression = "set forum_name=:NewName"
