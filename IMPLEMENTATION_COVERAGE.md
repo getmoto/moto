@@ -3779,26 +3779,26 @@
 
 ## eks
 <details>
-<summary>0% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] create_addon
-- [ ] create_cluster
+- [X] create_cluster
 - [ ] create_fargate_profile
-- [ ] create_nodegroup
+- [X] create_nodegroup
 - [ ] delete_addon
-- [ ] delete_cluster
+- [X] delete_cluster
 - [ ] delete_fargate_profile
-- [ ] delete_nodegroup
+- [X] delete_nodegroup
 - [ ] describe_addon
 - [ ] describe_addon_versions
-- [ ] describe_cluster
+- [X] describe_cluster
 - [ ] describe_fargate_profile
-- [ ] describe_nodegroup
+- [X] describe_nodegroup
 - [ ] describe_update
 - [ ] list_addons
-- [ ] list_clusters
+- [X] list_clusters
 - [ ] list_fargate_profiles
-- [ ] list_nodegroups
+- [X] list_nodegroups
 - [ ] list_tags_for_resource
 - [ ] list_updates
 - [ ] tag_resource
