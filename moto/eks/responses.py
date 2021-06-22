@@ -136,6 +136,23 @@ class EKSResponse(BaseResponse):
 
         return 200, {}, json.dumps(dict(clusters=clusters, nextToken=next_token))
 
+    def list_fargate_profiles(self):
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        fargate_profile_names, next_token = self.eks_backend.list_fargate_profiles(
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token,
+        )
+
+        return (
+            200,
+            {},
+            json.dumps(
+                dict(fargateProfileNames=fargate_profile_names, nextToken=next_token)
+            ),
+        )
+
     def list_nodegroups(self):
         cluster_name = self._get_param("name")
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)

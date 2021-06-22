@@ -103,6 +103,7 @@ VERSION = (VERSION_KEY, VERSION_VALUE)
 class ResponseAttributes:
     CLUSTER = "cluster"
     CLUSTERS = "clusters"
+    FARGATE_PROFILE_NAMES = "fargateProfileNames"
     MESSAGE = "message"
     NEXT_TOKEN = "nextToken"
     NODEGROUP = "nodegroup"

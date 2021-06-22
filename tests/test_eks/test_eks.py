@@ -797,6 +797,17 @@ def test_create_nodegroup_handles_launch_template_combinations(
         assert_expected_exception(raised_exception, expected_exception, expected_msg)
 
 
+@mock_eks
+def test_list_fargate_returns_empty_by_default(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder()
+
+    result = client.list_fargate_profiles(
+        clusterName=generated_test_data.existing_cluster_name
+    )[ResponseAttributes.FARGATE_PROFILE_NAMES]
+
+    result.should.be.empty
+
+
 def all_arn_values_should_be_valid(expected_arn_values, pattern, arn_under_test):
     """
     Applies regex `pattern` to `arn_under_test` and asserts

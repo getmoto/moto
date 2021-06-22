@@ -46,3 +46,5 @@ def validate_role_arn(arn):
 
     if not all({arn, match, valid_partition}):
         raise InvalidParameterException("Invalid Role Arn: '" + arn + "'")
+
+

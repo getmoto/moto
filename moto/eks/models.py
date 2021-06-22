@@ -104,6 +104,9 @@ class Cluster:
         self.nodegroups = dict()
         self.nodegroup_count = 0
 
+        self.fargate_profiles = dict()
+        self.fargate_profile_count = 0
+
         self.arn = CLUSTER_ARN_TEMPLATE.format(
             partition=aws_partition, region=region_name, name=name
         )
@@ -460,10 +463,13 @@ class EKSBackend(BaseBackend):
     def list_clusters(self, max_results, next_token):
         return paginated_list(self.clusters.keys(), max_results, next_token)
 
+    def list_fargate_profiles(self, cluster_name, max_results, next_token):
+        cluster = self.clusters[cluster_name]
+        return paginated_list(cluster.fargate_profiles.keys(), max_results, next_token)
+
     def list_nodegroups(self, cluster_name, max_results, next_token):
         cluster = self.clusters[cluster_name]
         return paginated_list(cluster.nodegroups.keys(), max_results, next_token)
-
 
 def paginated_list(full_list, max_results, next_token):
     """
@@ -481,7 +487,6 @@ def paginated_list(full_list, max_results, next_token):
     new_next = None if end == list_len else sorted_list[end]
 
     return sorted_list[start:end], new_next
-
 
 def validate_safe_to_delete(cluster):
     # A cluster which has nodegroups attached can not be deleted.
@@ -504,6 +509,24 @@ def validate_launch_template_combination(disk_size, remote_access):
         if disk_size
         else LAUNCH_TEMPLATE_WITH_REMOTE_ACCESS_MSG
     )
+
+
+def paginated_list(full_list, max_results, next_token):
+    """
+    Returns a tuple containing a slice of the full list
+    starting at next_token and ending with at most the
+    max_results number of elements, and the new
+    next_token which can be passed back in for the next
+    segment of the full list.
+    """
+    sorted_list = sorted(full_list)
+    list_len = len(sorted_list)
+
+    start = sorted_list.index(next_token) if next_token else 0
+    end = min(start + max_results, list_len)
+    new_next = "null" if end == list_len else sorted_list[end]
+
+    return sorted_list[start:end], new_next
 
 
 eks_backends = {}
