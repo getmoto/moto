@@ -1327,7 +1327,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       {% if role.description is not none %}
-      <Description>{{role.description}}</Description>
+      <Description>{{ role.description_escaped }}</Description>
       {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
@@ -1381,7 +1381,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <Description>{{role.description}}</Description>
+      <Description>{{ role.description_escaped }}</Description>
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
@@ -1409,8 +1409,8 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      {% if role.description %}
-      <Description>{{role.description}}</Description>
+      {% if role.description is defined %}
+      <Description>{{ role.description_escaped }}</Description>
       {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
@@ -1473,7 +1473,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         </PermissionsBoundary>
         {% endif %}
         {% if role.description is not none %}
-        <Description>{{ role.description }}</Description>
+        <Description>{{ role.description_escaped }}</Description>
         {% endif %}
       </member>
       {% endfor %}
@@ -2294,7 +2294,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
                 <Arn>{{ role.arn }}</Arn>
                 <RoleName>{{ role.name }}</RoleName>
                 <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-                <Description>{{role.description}}</Description>
+                <Description>{{ role.description_escaped }}</Description>
                 <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
                 <RoleId>{{ role.id }}</RoleId>
                 {% if role.permissions_boundary %}

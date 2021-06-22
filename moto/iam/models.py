@@ -649,6 +649,11 @@ class Role(CloudFormationModel):
     def get_tags(self):
         return [self.tags[tag] for tag in self.tags]
 
+    @property
+    def description_escaped(self):
+        import html
+        return html.escape(self.description or '')
+
 
 class InstanceProfile(CloudFormationModel):
     def __init__(self, instance_profile_id, name, path, roles, tags=None):
@@ -1414,7 +1419,7 @@ class IAMBackend(BaseBackend):
         self.account_aliases = []
         self.saml_providers = {}
         self.open_id_providers = {}
-        self.policy_arn_regex = re.compile(r"^arn:aws:iam::[0-9]*:policy/.*$")
+        self.policy_arn_regex = re.compile(r"^arn:aws:iam::(aws|[0-9]*):policy/.*$")
         self.virtual_mfa_devices = {}
         self.account_password_policy = None
         self.account_summary = AccountSummary(self)
