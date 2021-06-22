@@ -605,12 +605,6 @@ class ResourceMap(collections_abc.Mapping):
                 ec2_models.ec2_backends[self._region_name].create_tags(
                     [self[resource].physical_resource_id], self.tags
                 )
-            if isinstance(self[resource], elbv2_models.TaggedElbv2Resource):
-                print("\n\nGot IN HERE")
-                self.tags["aws:cloudformation:logical-id"] = resource
-                elbv2_models.elbv2_backends[self._region_name].create_tags(
-                    [self[resource].physical_resource_id], self.tags
-                )
 
     def diff(self, template, parameters=None):
         if parameters:

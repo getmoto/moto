@@ -41,7 +41,6 @@ from .exceptions import (
     InvalidStatusCodeActionTypeError,
     InvalidLoadBalancerActionException,
 )
-from collections import defaultdict
 
 
 class FakeHealthStatus(BaseModel):
@@ -56,39 +55,7 @@ class FakeHealthStatus(BaseModel):
         self.description = description
 
 
-class TaggedElbv2Resource(BaseModel):
-    def get_tags(self, *args, **kwargs):
-        tags = []
-        if self.id:
-            tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
-        return tags
-
-    def add_tag(self, key, value):
-        self.elbv2_backend.create_tags([self.id], {key: value})
-
-    def add_tags(self, tag_map):
-        for key, value in tag_map.items():
-            self.elbv2_backend.create_tags([self.id], {key: value})
-
-    def get_filter_value(self, filter_name, method_name=None):
-        tags = self.get_tags()
-
-        if filter_name.startswith("tag:"):
-            tagname = filter_name.replace("tag:", "", 1)
-            for tag in tags:
-                if tag["key"] == tagname:
-                    return tag["value"]
-
-            return None
-        elif filter_name == "tag-key":
-            return [tag["key"] for tag in tags]
-        elif filter_name == "tag-value":
-            return [tag["value"] for tag in tags]
-        else:
-            raise "Some shitty error"
-
-
-class FakeTargetGroup(TaggedElbv2Resource, CloudFormationModel):
+class FakeTargetGroup(CloudFormationModel):
     HTTP_CODE_REGEX = re.compile(r"(?:(?:\d+-\d+|\d+),?)+")
 
     def __init__(
@@ -226,14 +193,6 @@ class FakeTargetGroup(TaggedElbv2Resource, CloudFormationModel):
             matcher=matcher,
             target_type=target_type,
         )
-
-        print("\n\nTAGGGGGGG: ", properties.get("Tags"))
-        for tag in properties.get("Tags", []):
-            print("\n\nG TAG: ", tag)
-            tag_key = tag["Key"]
-            tag_value = tag["Value"]
-            #add_tag()
-
         return target_group
 
 
@@ -537,7 +496,6 @@ class FakeLoadBalancer(CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        print("\n\ncloudformation_json: ", cloudformation_json)
         properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[region_name]
@@ -545,12 +503,10 @@ class FakeLoadBalancer(CloudFormationModel):
         security_groups = properties.get("SecurityGroups")
         subnet_ids = properties.get("Subnets")
         scheme = properties.get("Scheme", "internet-facing")
-        print("\n\nproperties: ", properties)
 
         load_balancer = elbv2_backend.create_load_balancer(
             resource_name, security_groups, subnet_ids, scheme=scheme
         )
-        #elbv2_backend.add_tags(load_balancer)
         return load_balancer
 
     def get_cfn_attribute(self, attribute_name):
@@ -585,69 +541,11 @@ class FakeLoadBalancer(CloudFormationModel):
             raise UnformattedGetAttTemplateException()
 
 
-class TagBackend(object):
-    VALID_TAG_FILTERS = ["key", "resource-id", "resource-type", "value"]
-
-    VALID_TAG_RESOURCE_FILTER_TYPES = [
-        "customer-gateway",
-        "dhcp-options",
-        "image",
-        "instance",
-        "internet-gateway",
-        "network-acl",
-        "network-interface",
-        "reserved-instances",
-        "route-table",
-        "security-group",
-        "snapshot",
-        "spot-instances-request",
-        "subnet",
-        "volume",
-        "vpc",
-        "vpc-flow-log",
-        "vpc-peering-connection" "vpn-connection",
-        "vpn-gateway",
-    ]
-
-    def __init__(self):
-        self.tags = defaultdict(dict)
-        super(TagBackend, self).__init__()
-
-    def create_tags(self, resource_ids, tags):
-        if None in set([tags[tag] for tag in tags]):
-            raise "Invalid"
-        for resource_id in resource_ids:
-            if resource_id in self.tags:
-                if (
-                    len(self.tags[resource_id])
-                    + len([tag for tag in tags if not tag.startswith("aws:")])
-                    > 50
-                ):
-                    raise "Too many tags error"
-            elif len([tag for tag in tags if not tag.startswith("aws:")]) > 50:
-                raise "Too many tags error"
-        for resource_id in resource_ids:
-            for tag in tags:
-                self.tags[resource_id][tag] = tags[tag]
-        return True
-
-    def delete_tags(self, resource_ids, tags):
-        for resource_id in resource_ids:
-            for tag in tags:
-                if tag in self.tags[resource_id]:
-                    if tags[tag] is None:
-                        self.tags[resource_id].pop(tag)
-                    elif tags[tag] == self.tags[resource_id][tag]:
-                        self.tags[resource_id].pop(tag)
-        return True
-
-
-class ELBv2Backend(BaseBackend, TagBackend):
+class ELBv2Backend(BaseBackend):
     def __init__(self, region_name=None):
         self.region_name = region_name
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
-        self.tags = defaultdict(dict)
 
     @property
     def ec2_backend(self):
@@ -708,7 +606,6 @@ class ELBv2Backend(BaseBackend, TagBackend):
             dns_name=dns_name,
             state=state,
         )
-
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
 
@@ -934,7 +831,6 @@ Member must satisfy regular expression pattern: {}".format(
         )
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
-
         return target_group
 
     def convert_and_validate_properties(self, properties):
