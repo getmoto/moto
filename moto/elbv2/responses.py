@@ -6,7 +6,7 @@ from .models import elbv2_backends
 from .exceptions import DuplicateTagKeysError
 from .exceptions import LoadBalancerNotFoundError
 from .exceptions import TargetGroupNotFoundError
-from .utils import filters_from_querystring
+
 
 SSL_POLICIES = [
     {
@@ -134,6 +134,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_load_balancer(self):
+        print("HEREEEEE")
         load_balancer_name = self._get_param("Name")
         subnet_ids = self._get_multi_param("Subnets.member")
         security_groups = self._get_multi_param("SecurityGroups.member")
@@ -422,6 +423,7 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def add_tags(self):
         resource_arns = self._get_multi_param("ResourceArns.member")
+        print("ADDING TAGGGSSSS")
         for arn in resource_arns:
             if ":targetgroup" in arn:
                 resource = self.elbv2_backend.target_groups.get(arn)
@@ -461,11 +463,6 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def describe_tags(self):
-        filters = filters_from_querystring(querystring_dict=self.querystring)
-        tags = self.elbv2_backend.describe_tags(filters=filters)
-        template = self.response_template(DESCRIBE_RESPONSE_T)
-        return template.render(tags=tags)
-    '''def describe_tags(self):
         resource_arns = self._get_multi_param("ResourceArns.member")
         print("\n\nresource_arns: ", resource_arns)
         resources = []
@@ -473,11 +470,13 @@ class ELBV2Response(BaseResponse):
             print("\n\narn: ", arn)
             if ":targetgroup" in arn:
                 resource = self.elbv2_backend.target_groups.get(arn)
-                print("\n\nresorurce: ", resource.tags)
+                print("\n\nresoruce: ", resource)
                 if not resource:
                     raise TargetGroupNotFoundError()
             elif ":loadbalancer" in arn:
+                print("\n\nHere")
                 resource = self.elbv2_backend.load_balancers.get(arn)
+                print("\n\n\nLB_RESOURCE: ", resource.tags)
                 if not resource:
                     raise LoadBalancerNotFoundError()
             else:
@@ -486,7 +485,7 @@ class ELBV2Response(BaseResponse):
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
         print("\n\ntemplate: ", template.render(resources=resources))
-        return template.render(resources=resources)'''
+        return template.render(resources=resources)
 
     @amzn_request_id
     def describe_account_limits(self):
@@ -629,6 +628,7 @@ class ELBV2Response(BaseResponse):
     def _add_tags(self, resource):
         tag_values = []
         tag_keys = []
+        print("\n\nTAGSSS: ", resource)
         for t_key, t_val in sorted(self.querystring.items()):
             if t_key.startswith("Tags.member."):
                 if t_key.split(".")[3] == "Key":
@@ -649,25 +649,6 @@ class ELBV2Response(BaseResponse):
         for tag_key, tag_value in zip(tag_keys, tag_values):
             resource.add_tag(tag_key, tag_value)
 
-
-DESCRIBE_RESPONSE_T = """<DescribeTagsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <DescribeTagsResult>
-     <TagDescriptions>
-     <member>
-       <Tags>
-         {% for tag in tags %}
-         <member>
-           <resourceId>{{ tag.resource_id }}</resourceId>
-           <resourceType>{{ tag.resource_type }}</resourceType>
-           <Key>{{ tag.key }}</Key>
-           <Value>{{ tag.value }}</Value>
-         </member>
-         {% endfor %}
-       </Tags>
-     </member>
-     </TagDescriptions>
-   </DescribeTagsResult>
-</DescribeTagsResponse>"""
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <AddTagsResult/>
