@@ -4,13 +4,15 @@ from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 import json
 
+# TODO: add "<Type>Sender</Type>" to error responses below?
+
 
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
     <Code>{{error_type}}</Code>
     <Message>{{message}}</Message>
     {% block extra %}{% endblock %}
-    <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
 </Error>
 """
 
@@ -20,9 +22,9 @@ WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         <Code>{{error_type}}</Code>
         <Message>{{message}}</Message>
         {% block extra %}{% endblock %}
-        <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
+        <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
     </Error>
-<ErrorResponse>"""
+</ErrorResponse>"""
 
 ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ErrorResponse>
@@ -33,7 +35,7 @@ ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         {% block extra %}{% endblock %}
       </Error>
     </Errors>
-  <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
+  <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
 </ErrorResponse>
 """
 
