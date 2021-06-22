@@ -16,17 +16,27 @@ def test_put_object():
     response = client.put_object(Body="011001", Path="foo")
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["StorageClass"].should.equal('TEMPORAL')
-    # TODO: Why List_items is executing moto get_object instead list_items implementation?
-    items = client.list_items()
-    # object_exists = any(d["Name"] == "foo" for d in items)
-    # object_exists.should.equal(True)
+    # TODO:  Why Only ETag is available on Items
+    items = client.list_items()['Items']
+    object_exists = any(d["Path"] == "foo" for d in items)
+    object_exists.should.equal(True)
+
+
+@mock_mediastoredata
+def test_get_object_throws_not_found_error():
+    client = boto3.client("mediastore-data", region_name=region)
+    with pytest.raises(ClientError) as ex:
+        client.get_object(Path="foo")
+    ex.value.response["Error"]["Code"].should.equal("ObjectNotFoundException")
 
 
 @mock_mediastoredata
 def test_get_object():
     client = boto3.client("mediastore-data", region_name=region)
+    client.put_object(Body="011001", Path="foo")
     response = client.get_object(Path="foo")
-    pass
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    # TODO:  Why  the object is not included on the response?
 
 
 @mock_mediastoredata
@@ -44,7 +54,9 @@ def test_delete_object_succeeds():
     new_object = client.put_object(Body="011001", Path=object_path)
     response = client.delete_object(Path=object_path)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    items = client.list_items(NextToken="next-token")["Containers"]
+    # TODO:  Why Only ResponseMetadata is included on items?
+    # TODO : Add Path parameter
+    items = client.list_items()
     # object_exists = any(d["Name"] == object_path for d in items)
     # object_exists.should.equal(False)
 
@@ -52,6 +64,7 @@ def test_delete_object_succeeds():
 @mock_mediastoredata
 def test_list_items():
     client = boto3.client("mediastore-data", region_name=region)
-    # TODO: Why List_items is executing moto get_object instead list_items implementation?
+    # TODO:  Why Only ResponseMetadata is included on items?
+    # TODO : Add Path parameter
     items = client.list_items()
     items.should.equal(False)

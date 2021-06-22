@@ -13,12 +13,14 @@ from .exceptions import (
 
 class CreatedObject(BaseModel):
     def __init__(self, *args, **kwargs):
+        self.path = kwargs.get("Path")
         self.content_sha256 = kwargs.get("ContentSHA256")
         self.etag = kwargs.get("ETag")
         self.storage_class = kwargs.get("StorageClass")
 
     def to_dict(self, exclude=None):
         data = {
+            "Path": self.path,
             "ContentSHA256": self.content_sha256,
             "ETag": self.etag,
             "StorageClass": self.storage_class
@@ -68,6 +70,7 @@ class MediaStoreDataBackend(BaseBackend):
                    StorageClass='TEMPORAL',
                    UploadAvailability='STANDARD'):
         new_object = CreatedObject(
+            Path=Path,
             ContentSHA256=Body,
             ETag="etag",
             StorageClass="TEMPORAL"
@@ -83,26 +86,16 @@ class MediaStoreDataBackend(BaseBackend):
         return {}
 
     def get_object(self, Path, Range=None):
-        # TO IMPLEMENT REALISTICALLY
-        return {
-            'Path': Path
-        }
+        objects_found = [item for item in self._objects.values() if item.path == Path]
+        if len(objects_found) == 0:
+            error = "ObjectNotFoundException"
+            raise ClientError(error, "Object with id={} not found".format(Path))
+        return objects_found[0]
 
-    def list_items(self, Path, MaxResults=1000, NextToken=None):
-        # {
-        #     'Items': [
-        #         {
-        #             'Name': 'string',
-        #             'Type': 'OBJECT' | 'FOLDER',
-        #             'ETag': 'string',
-        #             'LastModified': datetime(2015, 1, 1),
-        #             'ContentType': 'string',
-        #             'ContentLength': 123
-        #         },
-        #     ],
-        #     'NextToken': 'string'
-        # }
-        return {'Items': self._objects}
+    def list_items(self, Path, MaxResults=1000, NextToken=None) -> []:
+        items = self._objects.values()
+        response_items = [c.to_dict() for c in items]
+        return response_items
 
 
 mediastoredata_backends = {}
