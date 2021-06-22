@@ -6012,6 +6012,52 @@ def test_get_item_for_non_existent_table_raises_error():
 
 
 @mock_dynamodb2
+def test_gsi_key_can_be_updated():
+    name = "TestTable"
+    conn = boto3.client("dynamodb", region_name="eu-west-2")
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "main_key", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "main_key", "AttributeType": "S"},
+            {"AttributeName": "index_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_index",
+                "KeySchema": [{"AttributeName": "index_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL",},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "main_key": {"S": "testkey1"},
+            "extra_data": {"S": "testdata"},
+            "index_key": {"S": "indexkey1"},
+        },
+    )
+
+    conn.update_item(
+        TableName=name,
+        Key={"main_key": {"S": "testkey1"}},
+        UpdateExpression="set index_key=:new_index_key",
+        ExpressionAttributeValues={":new_index_key": {"S": "new_value"}},
+    )
+
+    item = conn.scan(TableName=name)["Items"][0]
+    item["index_key"].should.equal({"S": "new_value"})
+    item["main_key"].should.equal({"S": "testkey1"})
+
+
+@mock_dynamodb2
 def test_create_backup_for_non_existent_table_raises_error():
     client = boto3.client("dynamodb", "us-east-1")
     with pytest.raises(ClientError) as ex:

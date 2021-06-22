@@ -4,6 +4,25 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.10
+------
+
+    New Services:
+        * EKS
+            * create_cluster
+            * create_nodegroup
+            * delete_cluster
+            * delete_nodegroup
+            * list_clusters
+            * list_nodegroup
+
+    Miscellaneous:
+        * DynamoDB: Fixed a bug where it's not possible to call update_item on a GSI
+        * EMR: now supports clusters with multiple master nodes
+        * EMR:terminate_job_flows() now throws an exception when trying to terminate; protected job flows
+        * MediaPackage: Implement NotFoundExceptions for delete_channel/describe_origin_endpoint/delete_origin_endpoint/update_origin_endpoint
+        * S3:list_users_response() now returns the IsTruncated-attribute
+
 2.0.9
 -----
     General Changes:
