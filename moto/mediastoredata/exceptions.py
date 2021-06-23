@@ -28,9 +28,10 @@ class InternalServerError(MediaStoreDataClientError):
     def __init__(self, msg=None):
         self.code = 500
         super(InternalServerError, self).__init__(
-            "InternalServerError",
-            msg or "An Internal Error occurred",
+            "InternalServerError", msg or "An Internal Error occurred",
         )
+
+
 # AWS service exceptions are caught with the underlying botocore exception, ClientError
 class ClientError(MediaStoreDataClientError):
     def __init__(self, error, message):

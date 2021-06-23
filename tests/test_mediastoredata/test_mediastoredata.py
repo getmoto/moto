@@ -15,10 +15,9 @@ def test_put_object():
     client = boto3.client("mediastore-data", region_name=region)
     response = client.put_object(Body="011001", Path="foo")
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["StorageClass"].should.equal('TEMPORAL')
-    # TODO:  Why Only ETag is available on Items
-    items = client.list_items()['Items']
-    object_exists = any(d["Path"] == "foo" for d in items)
+    response["StorageClass"].should.equal("TEMPORAL")
+    items = client.list_items()["Items"]
+    object_exists = any(d["Name"] == "foo" for d in items)
     object_exists.should.equal(True)
 
 
@@ -36,7 +35,7 @@ def test_get_object():
     client.put_object(Body="011001", Path="foo")
     response = client.get_object(Path="foo")
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    # TODO:  Why  the object is not included on the response?
+    response["ResponseMetadata"]["HTTPHeaders"]["path"].should.equal("foo")
 
 
 @mock_mediastoredata
@@ -51,20 +50,19 @@ def test_delete_object_error():
 def test_delete_object_succeeds():
     client = boto3.client("mediastore-data", region_name=region)
     object_path = "foo"
-    new_object = client.put_object(Body="011001", Path=object_path)
+    client.put_object(Body="011001", Path=object_path)
     response = client.delete_object(Path=object_path)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    # TODO:  Why Only ResponseMetadata is included on items?
-    # TODO : Add Path parameter
-    items = client.list_items()
-    # object_exists = any(d["Name"] == object_path for d in items)
-    # object_exists.should.equal(False)
+    items = client.list_items()["Items"]
+    len(items).should.equal(0)
 
 
 @mock_mediastoredata
 def test_list_items():
     client = boto3.client("mediastore-data", region_name=region)
-    # TODO:  Why Only ResponseMetadata is included on items?
-    # TODO : Add Path parameter
-    items = client.list_items()
-    items.should.equal(False)
+    object_path = "foo"
+    client.put_object(Body="011001", Path=object_path)
+    items = client.list_items()["Items"]
+    len(items).should.equal(1)
+    object_exists = any(d["Name"] == object_path for d in items)
+    object_exists.should.equal(True)

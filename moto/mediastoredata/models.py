@@ -6,9 +6,7 @@ from collections import OrderedDict
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
-from .exceptions import (
-    ClientError
-)
+from .exceptions import ClientError
 
 
 class CreatedObject(BaseModel):
@@ -20,10 +18,13 @@ class CreatedObject(BaseModel):
 
     def to_dict(self, exclude=None):
         data = {
+            "ETag": self.etag,
+            "Name": self.path,
+            "Type": "FILE",
+            "ContentLength": 123,
+            "StorageClass": self.storage_class,
             "Path": self.path,
             "ContentSHA256": self.content_sha256,
-            "ETag": self.etag,
-            "StorageClass": self.storage_class
         }
         if exclude:
             for key in exclude:
@@ -45,7 +46,7 @@ class Object(BaseModel):
             "ContentType": self.content_type,
             "ContentLength": self.content_length,
             "CacheControl": self.cache_control,
-            "LastModified": self.last_modified
+            "LastModified": self.last_modified,
         }
         if exclude:
             for key in exclude:
@@ -64,16 +65,17 @@ class MediaStoreDataBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def put_object(self, Body, Path,
-                   ContentType=None,
-                   CacheControl=None,
-                   StorageClass='TEMPORAL',
-                   UploadAvailability='STANDARD'):
+    def put_object(
+        self,
+        Body,
+        Path,
+        ContentType=None,
+        CacheControl=None,
+        StorageClass="TEMPORAL",
+        UploadAvailability="STANDARD",
+    ):
         new_object = CreatedObject(
-            Path=Path,
-            ContentSHA256=Body,
-            ETag="etag",
-            StorageClass="TEMPORAL"
+            Path=Path, ContentSHA256=Body, ETag="etag", StorageClass="TEMPORAL"
         )
         self._objects[Path] = new_object
         return new_object
@@ -102,8 +104,10 @@ mediastoredata_backends = {}
 for region in Session().get_available_regions("mediastore-data"):
     mediastoredata_backends[region] = MediaStoreDataBackend(region)
 for region in Session().get_available_regions(
-        "mediastore-data", partition_name="aws-us-gov"
+    "mediastore-data", partition_name="aws-us-gov"
 ):
     mediastoredata_backends[region] = MediaStoreDataBackend(region)
-for region in Session().get_available_regions("mediastore-data", partition_name="aws-cn"):
+for region in Session().get_available_regions(
+    "mediastore-data", partition_name="aws-cn"
+):
     mediastoredata_backends[region] = MediaStoreDataBackend(region)

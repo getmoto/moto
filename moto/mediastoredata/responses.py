@@ -17,7 +17,8 @@ class MediaStoreDataResponse(BaseResponse):
         path = self._get_param("Path")
         range = self._get_param("Range")
         result = self.mediastoredata_backend.get_object(Path=path, Range=range)
-        return json.dumps(result.to_dict())
+        headers = {"Path": result.path}
+        return "body of item", headers
 
     def put_object(self):
         body = self.body
@@ -35,8 +36,8 @@ class MediaStoreDataResponse(BaseResponse):
         path = self._get_param("Path")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
-
-        items = self.mediastoredata_backend.list_items(Path=path, MaxResults=max_results, NextToken=next_token)
+        items = self.mediastoredata_backend.list_items(
+            Path=path, MaxResults=max_results, NextToken=next_token
+        )
         response_items = json.dumps(dict(Items=items))
         return response_items
-
