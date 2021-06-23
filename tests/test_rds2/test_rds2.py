@@ -31,7 +31,7 @@ def test_create_database():
     db_instance["MasterUsername"].should.equal("root")
     db_instance["DBSecurityGroups"][0]["DBSecurityGroupName"].should.equal("my_sg")
     db_instance["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
     db_instance["DBInstanceStatus"].should.equal("available")
     db_instance["DBName"].should.equal("staging-postgres")
@@ -312,7 +312,7 @@ def test_get_databases():
     list(instances["DBInstances"]).should.have.length_of(1)
     instances["DBInstances"][0]["DBInstanceIdentifier"].should.equal("db-master-1")
     instances["DBInstances"][0]["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
 
 

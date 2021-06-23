@@ -244,6 +244,11 @@ def test_register_scalable_target_resource_id_variations():
             "keyspace/mykeyspace/table/mytable",
             "cassandra:table:ReadCapacityUnits",
         ),
+        (
+            "custom-resource",
+            "https://test-endpoint.amazon.com/ScalableDimension/test-resource",
+            "custom-resource:ResourceType:Property",
+        ),
     ]
 
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)

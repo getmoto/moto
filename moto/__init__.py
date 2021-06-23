@@ -131,7 +131,7 @@ mock_eks = lazy_load(".eks", "mock_eks")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.0.3.29"
+__version__ = "2.0.3.30"
 
 
 try:

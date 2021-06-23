@@ -265,7 +265,7 @@ class FakeLoadBalancer(CloudFormationModel):
             del self.tags[key]
 
     def delete(self, region):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         elb_backends[region].delete_load_balancer(self.name)
 
 
