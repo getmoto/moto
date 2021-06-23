@@ -5,6 +5,8 @@ import string
 import six
 import re
 
+from moto.core import ACCOUNT_ID
+
 
 def random_password(
     password_length,
@@ -68,8 +70,8 @@ def random_password(
 
 def secret_arn(region, secret_id):
     id_string = "".join(random.choice(string.ascii_letters) for _ in range(5))
-    return "arn:aws:secretsmanager:{0}:1234567890:secret:{1}-{2}".format(
-        region, secret_id, id_string
+    return "arn:aws:secretsmanager:{0}:{1}:secret:{2}-{3}".format(
+        region, ACCOUNT_ID, secret_id, id_string
     )
 
 

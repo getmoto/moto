@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import boto3
 
 from moto import mock_secretsmanager, mock_lambda, settings
+from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError
 import string
 import pytz
@@ -30,11 +31,15 @@ def test_get_secret_value():
 def test_get_secret_value_by_arn():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
+    name = "java-util-test-password"
     secret_value = "test_get_secret_value_by_arn"
-    result = conn.create_secret(
-        Name="java-util-test-password", SecretString=secret_value
+    result = conn.create_secret(Name=name, SecretString=secret_value)
+    arn = result["ARN"]
+    arn.should.match(
+        "^arn:aws:secretsmanager:us-west-2:{}:secret:{}".format(ACCOUNT_ID, name)
     )
-    result = conn.get_secret_value(SecretId=result["ARN"])
+
+    result = conn.get_secret_value(SecretId=arn)
     assert result["SecretString"] == secret_value
 
 
