@@ -2020,7 +2020,7 @@ class SecurityRule(object):
 
 
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, ec2_backend, group_id, name, description, vpc_id=None):
+    def __init__(self, ec2_backend, group_id, name, description, vpc_id=None, tags=None):
         self.ec2_backend = ec2_backend
         self.id = group_id
         self.name = name
@@ -2032,6 +2032,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
+        self.add_tags(tags or {})
 
         # Append default IPv6 egress rule for VPCs with IPv6 support
         if vpc_id:
@@ -2193,7 +2194,7 @@ class SecurityGroupBackend(object):
 
         super(SecurityGroupBackend, self).__init__()
 
-    def create_security_group(self, name, description, vpc_id=None, force=False):
+    def create_security_group(self, name, description, vpc_id=None, tags=None, force=False):
         if not description:
             raise MissingParameterError("GroupDescription")
 
@@ -2202,7 +2203,7 @@ class SecurityGroupBackend(object):
             existing_group = self.get_security_group_from_name(name, vpc_id)
             if existing_group:
                 raise InvalidSecurityGroupDuplicateError(name)
-        group = SecurityGroup(self, group_id, name, description, vpc_id=vpc_id)
+        group = SecurityGroup(self, group_id, name, description, vpc_id=vpc_id, tags=tags)
 
         self.groups[vpc_id][group_id] = group
         return group

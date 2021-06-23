@@ -107,7 +107,8 @@ class Integration(BaseModel, dict):
         self["uri"] = uri
         self["httpMethod"] = http_method
         self["requestTemplates"] = request_templates
-        self["integrationResponses"] = {"200": IntegrationResponse(200)}
+        # self["integrationResponses"] = {"200": IntegrationResponse(200)}  # commented out (tf-compat)
+        self["integrationResponses"] = {}
         self["tlsConfig"] = tls_config
         self["cacheNamespace"] = cache_namespace
 
