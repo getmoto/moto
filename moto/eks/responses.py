@@ -56,6 +56,34 @@ class EKSResponse(BaseResponse):
             # Backend will capture this and re-raise it as a ClientError.
             return e.response()
 
+    def create_fargate_profile(self):
+        fargate_profile_name = self._get_param("fargateProfileName")
+        cluster_name = self._get_param("name")
+        pod_execution_role_arn = self._get_param("podExecutionRoleArn")
+        subnets = self._get_param("subnets")
+        selectors = self._get_param("selectors")
+        client_request_token = self._get_param("clientRequestToken")
+        tags = self._get_param("tags")
+
+        try:
+            fargate_profile = self.eks_backend.create_fargate_profile(
+                fargate_profile_name=fargate_profile_name,
+                cluster_name=cluster_name,
+                pod_execution_role_arn=pod_execution_role_arn,
+                subnets=subnets,
+                selectors=selectors,
+                client_request_token=client_request_token,
+                tags=tags,
+            )
+
+            return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
+        except (
+            ResourceNotFoundException,
+            ResourceInUseException,
+            InvalidParameterException,
+        ) as e:
+            return e.response()
+
     def create_nodegroup(self):
         cluster_name = self._get_param("name")
         nodegroup_name = self._get_param("nodegroupName")

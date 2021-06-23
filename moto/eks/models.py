@@ -20,6 +20,11 @@ from .utils import get_partition, validate_role_arn
 CLUSTER_ARN_TEMPLATE = (
     "arn:{partition}:eks:{region}:" + str(ACCOUNT_ID) + ":cluster/{name}"
 )
+FARGATE_PROFILE_ARN_TEMPLATE = (
+    "arn:{partition}:eks:{region}:"
+    + str(ACCOUNT_ID)
+    + ":fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
+)
 NODEGROUP_ARN_TEMPLATE = (
     "arn:{partition}:eks:{region}:"
     + str(ACCOUNT_ID)
@@ -52,7 +57,7 @@ DEFAULT_LOGGING = {
     ]
 }
 DEFAULT_PLATFORM_VERSION = "eks.4"
-DEFAULT_STATUS = "ACTIVE"
+ACTIVE_STATUS = "ACTIVE"
 
 # Defaults used for creating a Managed Nodegroup
 DEFAULT_AMI_TYPE = "AL2_x86_64"
@@ -64,11 +69,23 @@ DEFAULT_RELEASE_VERSION = "1.19.8-20210414"
 DEFAULT_REMOTE_ACCESS = {"ec2SshKey": "eksKeypair"}
 DEFAULT_SCALING_CONFIG = {"minSize": 2, "maxSize": 2, "desiredSize": 2}
 
-# Exception messages, also imported into testing
+# Exception messages, also imported into testing.
+# Obtained through cURL responses from the actual APIs.
 CLUSTER_IN_USE_MSG = "Cluster has nodegroups attached"
 CLUSTER_EXISTS_MSG = "Cluster already exists with name: {clusterName}"
 CLUSTER_NOT_FOUND_MSG = "No cluster found for name: {clusterName}."
 CLUSTER_NOT_READY_MSG = "Cluster '{clusterName}' is not in ACTIVE status"
+FARGATE_PROFILE_EXISTS_MSG = (
+    "A Fargate Profile already exists with this name in this cluster."
+)
+FARGATE_PROFILE_NEEDS_SELECTOR_MSG = "Fargate Profile requires at least one selector."
+FARGATE_PROFILE_NOT_FOUND_MSG = "No Fargate Profile found with name: {fargateName}."
+FARGATE_PROFILE_SELECTOR_NEEDS_NAMESPACE = (
+    "Fargate Profile must have at least one selector with at least one namespace value."
+)
+FARGATE_PROFILE_TOO_MANY_LABELS = (
+    "Request contains Selector with more than 5 Label pairs"
+)
 LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG = (
     "Disk size must be specified within the launch template."
 )
@@ -120,7 +137,7 @@ class Cluster:
         )
         self.logging = logging or DEFAULT_LOGGING
         self.platformVersion = DEFAULT_PLATFORM_VERSION
-        self.status = DEFAULT_STATUS
+        self.status = ACTIVE_STATUS
         self.version = version or DEFAULT_KUBERNETES_VERSION
 
         self.client_request_token = client_request_token
@@ -150,6 +167,55 @@ class Cluster:
 
     def isActive(self):
         return self.status == "ACTIVE"
+
+
+class FargateProfile:
+    def __init__(
+        self,
+        cluster_name,
+        fargate_profile_name,
+        pod_execution_role_arn,
+        selectors,
+        region_name,
+        aws_partition,
+        client_request_token=None,
+        subnets=None,
+        tags=None,
+    ):
+        if subnets is None:
+            subnets = list()
+        if tags is None:
+            tags = dict()
+
+        self.created_at = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.uuid = generate_uuid()
+        self.fargate_profile_arn = FARGATE_PROFILE_ARN_TEMPLATE.format(
+            partition=aws_partition,
+            region=region_name,
+            cluster_name=cluster_name,
+            fargate_profile_name=fargate_profile_name,
+            uuid=self.uuid,
+        )
+
+        self.status = ACTIVE_STATUS
+        self.cluster_name = cluster_name
+        self.fargate_profile_name = fargate_profile_name
+        self.pod_execution_role_arn = pod_execution_role_arn
+        self.client_request_token = client_request_token
+        self.selectors = selectors
+        self.subnets = subnets
+        self.tags = tags
+
+    def __iter__(self):
+        yield "clusterName", self.cluster_name
+        yield "createdAt", self.created_at
+        yield "fargateProfileArn", self.fargate_profile_arn
+        yield "fargateProfileName", self.fargate_profile_name
+        yield "podExecutionRoleArn", self.pod_execution_role_arn
+        yield "selectors", self.selectors
+        yield "subnets", self.subnets
+        yield "status", self.status
+        yield "tags", self.tags
 
 
 class ManagedNodegroup:
@@ -182,7 +248,7 @@ class ManagedNodegroup:
         if taints is None:
             taints = dict()
 
-        self.uuid = "-".join([random_string(_) for _ in [8, 4, 4, 4, 12]]).lower()
+        self.uuid = generate_uuid()
         self.arn = NODEGROUP_ARN_TEMPLATE.format(
             partition=aws_partition,
             region=region_name,
@@ -205,7 +271,7 @@ class ManagedNodegroup:
         self.release_version = release_version or DEFAULT_RELEASE_VERSION
         self.remote_access = remote_access or DEFAULT_REMOTE_ACCESS
         self.scaling_config = scaling_config or DEFAULT_SCALING_CONFIG
-        self.status = DEFAULT_STATUS
+        self.status = ACTIVE_STATUS
         self.version = version or DEFAULT_KUBERNETES_VERSION
 
         self.client_request_token = client_request_token
@@ -297,6 +363,59 @@ class EKSBackend(BaseBackend):
         self.cluster_count += 1
         return cluster
 
+    def create_fargate_profile(
+        self,
+        fargate_profile_name,
+        cluster_name,
+        selectors,
+        pod_execution_role_arn,
+        subnets=None,
+        client_request_token=None,
+        tags=None,
+    ):
+        try:
+            # Cluster exists.
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        if fargate_profile_name in cluster.fargate_profiles:
+            # Fargate Profile already exists.
+            raise ResourceInUseException(
+                clusterName=None,
+                nodegroupName=None,
+                addonName=None,
+                message=FARGATE_PROFILE_EXISTS_MSG,
+            )
+        if not cluster.isActive():
+            raise InvalidRequestException(
+                message=CLUSTER_NOT_READY_MSG.format(clusterName=cluster_name,)
+            )
+
+        _validate_fargate_profile_selectors(selectors)
+
+        fargate_profile = FargateProfile(
+            cluster_name=cluster_name,
+            fargate_profile_name=fargate_profile_name,
+            pod_execution_role_arn=pod_execution_role_arn,
+            client_request_token=client_request_token,
+            selectors=selectors,
+            subnets=subnets,
+            tags=tags,
+            region_name=self.region_name,
+            aws_partition=self.partition,
+        )
+
+        cluster.fargate_profiles[fargate_profile_name] = fargate_profile
+        cluster.fargate_profile_count += 1
+        return fargate_profile
+
     def create_nodegroup(
         self,
         cluster_name,
@@ -368,7 +487,7 @@ class EKSBackend(BaseBackend):
             region_name=self.region_name,
             aws_partition=self.partition,
         )
-        cluster = self.clusters[cluster_name]
+
         cluster.nodegroups[nodegroup_name] = nodegroup
         cluster.nodegroup_count += 1
         return nodegroup
@@ -527,6 +646,33 @@ def paginated_list(full_list, max_results, next_token):
     new_next = "null" if end == list_len else sorted_list[end]
 
     return sorted_list[start:end], new_next
+
+
+def _validate_fargate_profile_selectors(selectors):
+    def raise_exception(message):
+        raise InvalidParameterException(
+            clusterName=None,
+            nodegroupName=None,
+            fargateProfileName=None,
+            addonName=None,
+            message=message,
+        )
+
+    # At least one Selector must exist
+    if not selectors:
+        raise_exception(message=FARGATE_PROFILE_NEEDS_SELECTOR_MSG)
+
+    for selector in selectors:
+        # Every existing Selector must have a namespace
+        if "namespace" not in selector:
+            raise_exception(message=FARGATE_PROFILE_SELECTOR_NEEDS_NAMESPACE)
+        # If a selector has labels, it can not have more than 5
+        if len(selector.get("labels", {})) > 5:
+            raise_exception(message=FARGATE_PROFILE_TOO_MANY_LABELS)
+
+
+def generate_uuid():
+    return "-".join([random_string(_) for _ in [8, 4, 4, 4, 12]]).lower()
 
 
 eks_backends = {}

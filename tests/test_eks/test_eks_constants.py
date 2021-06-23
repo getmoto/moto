@@ -10,7 +10,9 @@ from moto.eks import REGION as DEFAULT_REGION
 
 DEFAULT_ENCODING = "utf-8"
 DEFAULT_HTTP_HEADERS = {"Content-type": "application/json"}
+DEFAULT_NAMESPACE = "namespace_1"
 FROZEN_TIME = "2013-11-27T01:42:00Z"
+MAX_FARGATE_LABELS = 5
 PARTITIONS = Session().get_available_partitions()
 REGION = Session().region_name or DEFAULT_REGION
 SERVICE = "eks"
@@ -49,6 +51,9 @@ LOGGING_VALUE = {"clusterLogging": [{"types": ["api"], "enabled": True}]}
 NODEROLE_ARN_KEY = "nodeRole"
 NODEROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
 
+POD_EXECUTION_ROLE_ARN_KEY = "podExecutionRoleArn"
+POD_EXECUTION_ROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
+
 REMOTE_ACCESS_KEY = "remoteAccess"
 REMOTE_ACCESS_VALUE = {"ec2SshKey": "eksKeypair"}
 
@@ -64,6 +69,9 @@ ROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
 
 SCALING_CONFIG_KEY = "scalingConfig"
 SCALING_CONFIG_VALUE = {"minSize": 2, "maxSize": 3, "desiredSize": 2}
+
+SELECTORS_KEY = "selectors"
+SELECTORS_VALUE = [{"namespace": "profile-namespace"}]
 
 STATUS_KEY = "status"
 STATUS_VALUE = "ACTIVE"
@@ -90,10 +98,12 @@ LABELS = (LABELS_KEY, LABELS_VALUE)
 LAUNCH_TEMPLATE = (LAUNCH_TEMPLATE_KEY, LAUNCH_TEMPLATE_VALUE)
 LOGGING = (LOGGING_KEY, LOGGING_VALUE)
 NODEROLE_ARN = (NODEROLE_ARN_KEY, NODEROLE_ARN_VALUE)
+POD_EXECUTION_ROLE_ARN = (POD_EXECUTION_ROLE_ARN_KEY, POD_EXECUTION_ROLE_ARN_VALUE)
 REMOTE_ACCESS = (REMOTE_ACCESS_KEY, REMOTE_ACCESS_VALUE)
 RESOURCES_VPC_CONFIG = (RESOURCES_VPC_CONFIG_KEY, RESOURCES_VPC_CONFIG_VALUE)
 ROLE_ARN = (ROLE_ARN_KEY, ROLE_ARN_VALUE)
 SCALING_CONFIG = (SCALING_CONFIG_KEY, SCALING_CONFIG_VALUE)
+SELECTORS = (SELECTORS_KEY, SELECTORS_VALUE)
 STATUS = (STATUS_KEY, STATUS_VALUE)
 SUBNETS = (SUBNETS_KEY, SUBNETS_VALUE)
 TAGS = (TAGS_KEY, TAGS_VALUE)
@@ -104,6 +114,7 @@ class ResponseAttributes:
     CLUSTER = "cluster"
     CLUSTERS = "clusters"
     FARGATE_PROFILE_NAMES = "fargateProfileNames"
+    FARGATE_PROFILE = "fargateProfile"
     MESSAGE = "message"
     NEXT_TOKEN = "nextToken"
     NODEGROUP = "nodegroup"
@@ -126,6 +137,11 @@ class ClusterInputs:
         TAGS,
         VERSION,
     ]
+
+
+class FargateInputs:
+    REQUIRED = [POD_EXECUTION_ROLE_ARN, SELECTORS]
+    OPTIONAL = [CLIENT_REQUEST_TOKEN, SUBNETS, TAGS]
 
 
 class NodegroupInputs:
@@ -161,8 +177,11 @@ class ClusterAttributes:
     OIDC = "oidc"
 
 
-class FargateAttributes:
-    PROFILE_NAME = "fargateProfileName"
+class FargateProfileAttributes:
+    FARGATE_PROFILE_NAME = "fargateProfileName"
+    LABELS = "labels"
+    NAMESPACE = "namespace"
+    SELECTORS = "selectors"
 
 
 class NodegroupAttributes:
