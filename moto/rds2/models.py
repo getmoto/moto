@@ -151,8 +151,8 @@ class Database(CloudFormationModel):
 
     @property
     def db_instance_arn(self):
-        return "arn:aws:rds:{0}:1234567890:db:{1}".format(
-            self.region, self.db_instance_identifier
+        return "arn:aws:rds:{0}:{1}:db:{2}".format(
+            self.region, ACCOUNT_ID, self.db_instance_identifier
         )
 
     @property
@@ -551,8 +551,8 @@ class Snapshot(BaseModel):
 
     @property
     def snapshot_arn(self):
-        return "arn:aws:rds:{0}:1234567890:snapshot:{1}".format(
-            self.database.region, self.snapshot_id
+        return "arn:aws:rds:{0}:{1}:snapshot:{2}".format(
+            self.database.region, ACCOUNT_ID, self.snapshot_id
         )
 
     def to_xml(self):
@@ -614,7 +614,7 @@ class SecurityGroup(CloudFormationModel):
         self.ip_ranges = []
         self.ec2_security_groups = []
         self.tags = tags
-        self.owner_id = "1234567890"
+        self.owner_id = ACCOUNT_ID
         self.vpc_id = None
 
     def to_xml(self):
