@@ -1646,7 +1646,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_set_obj
 
     def update_service_primary_task_set(self, cluster, service, primary_task_set):
-        """ Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets """
+        """Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets"""
         cluster_name = cluster.split("/")[-1]
         service_name = service.split("/")[-1]
         task_set_obj = self.describe_task_sets(
