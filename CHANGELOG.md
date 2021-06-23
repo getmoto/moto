@@ -4,6 +4,74 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.10
+------
+
+    New Services:
+        * EKS
+            * create_cluster
+            * create_nodegroup
+            * delete_cluster
+            * delete_nodegroup
+            * list_clusters
+            * list_nodegroup
+
+    Miscellaneous:
+        * DynamoDB: Fixed a bug where it's not possible to call update_item on a GSI
+        * EMR: now supports clusters with multiple master nodes
+        * EMR:terminate_job_flows() now throws an exception when trying to terminate; protected job flows
+        * MediaPackage: Implement NotFoundExceptions for delete_channel/describe_origin_endpoint/delete_origin_endpoint/update_origin_endpoint
+        * S3:list_users_response() now returns the IsTruncated-attribute
+
+2.0.9
+-----
+    General Changes:
+        * Introduction of a new environment variable: MOTO_S3_DEFAULT_KEY_BUFFER_SIZE
+          This allows you to set the in-memory buffer size for multipart uploads. The default size is (and always was) 16MB.
+          Exceeding this buffer size will cause the contents to be written/saved to a temporary file.
+
+    New Methods:
+        * API Gateway:
+            * update_rest_api()
+        * DynamoDB:
+            * create_backup()
+            * delete_backup()
+            * describe_backup()
+            * list_backups()
+            * restore_table_from_backup()
+        * Events:
+            * create_api_destination()
+            * create_connection()
+            * describe_api_destination()
+            * list_api_destinations()
+            * list_connections()
+        * Logs
+            * start_query()
+            
+    Miscellaneous:
+        * Batch:
+            * Now uses the exit code of the Docker-container to decide job status
+            * Supports job-dependencies
+        * CloudFormation:
+            * Create/Update support for AWS::ElasticLoadBalancingV2::ListenerRule
+            * Update support for AWS::ElasticLoadBalancingV2::Listener
+        * Glacier:
+            * Vault names can now contain special characters
+        * MediaPackage:
+            * describe_channel() now throws a NotFoundException for unknown channels
+        * Organisations:
+            * Improve tagging support 
+        * S3:
+            * Now supports '.' as a metadata character
+        * S3 Config:
+            * Fixed the response format for ACLs
+        * SSM:
+            * get_parameter() now throws correct exception for unknown parameters/versions
+            * get_parameters() can now fetch specific versions and labeled parameters
+            * get_parameter_history() now supports pagination
+            * Parameter-names can now contain hyphens
+            * Only the last 100 parameter versions are now kept, as per AWS' behaviour
+
 2.0.8
 -----
     General Changes:

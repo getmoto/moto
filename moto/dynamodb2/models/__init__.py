@@ -119,11 +119,12 @@ class Item(BaseModel):
 
     def validate_no_empty_key_values(self, attribute_updates, key_attributes):
         for attribute_name, update_action in attribute_updates.items():
-            if attribute_name in key_attributes:
-                action = update_action.get("Action") or "PUT"  # PUT is default
-                new_value = next(iter(update_action["Value"].values()))
-                if action == "PUT" and new_value == "":
-                    raise EmptyKeyAttributeException
+            action = update_action.get("Action") or "PUT"  # PUT is default
+            if action == "DELETE":
+                continue
+            new_value = next(iter(update_action["Value"].values()))
+            if action == "PUT" and new_value == "" and attribute_name in key_attributes:
+                raise EmptyKeyAttributeException
 
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():

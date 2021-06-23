@@ -1,5 +1,7 @@
-"""
-Get InstanceTypeOfferings from AWS
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Get InstanceTypeOfferings from AWS
 Stores result in moto/ec2/resources/instance_type_offerings/{location_type}/{region}.json
 Where {location_type} is one of region/availability-zone/availability-zone-id
 
@@ -7,6 +9,7 @@ Note that you will get the following error if a region is not available to you:
   An error occurred (AuthFailure) when calling the DescribeInstanceTypeOfferings operation:
   AWS was not able to validate the provided access credentials
 """
+
 import boto3
 import json
 import os
