@@ -6740,9 +6740,9 @@
 <details>
 <summary>29% implemented</summary>
 
-- [ ] add_flow_outputs
+- [X] add_flow_outputs
 - [ ] add_flow_sources
-- [ ] add_flow_vpc_interfaces
+- [X] add_flow_vpc_interfaces
 - [X] create_flow
 - [X] delete_flow
 - [X] describe_flow
