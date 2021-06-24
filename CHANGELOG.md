@@ -4,6 +4,224 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.10
+------
+
+    New Services:
+        * EKS
+            * create_cluster
+            * create_nodegroup
+            * delete_cluster
+            * delete_nodegroup
+            * list_clusters
+            * list_nodegroup
+
+    Miscellaneous:
+        * DynamoDB: Fixed a bug where it's not possible to call update_item on a GSI
+        * EMR: now supports clusters with multiple master nodes
+        * EMR:terminate_job_flows() now throws an exception when trying to terminate; protected job flows
+        * MediaPackage: Implement NotFoundExceptions for delete_channel/describe_origin_endpoint/delete_origin_endpoint/update_origin_endpoint
+        * S3:list_users_response() now returns the IsTruncated-attribute
+
+2.0.9
+-----
+    General Changes:
+        * Introduction of a new environment variable: MOTO_S3_DEFAULT_KEY_BUFFER_SIZE
+          This allows you to set the in-memory buffer size for multipart uploads. The default size is (and always was) 16MB.
+          Exceeding this buffer size will cause the contents to be written/saved to a temporary file.
+
+    New Methods:
+        * API Gateway:
+            * update_rest_api()
+        * DynamoDB:
+            * create_backup()
+            * delete_backup()
+            * describe_backup()
+            * list_backups()
+            * restore_table_from_backup()
+        * Events:
+            * create_api_destination()
+            * create_connection()
+            * describe_api_destination()
+            * list_api_destinations()
+            * list_connections()
+        * Logs
+            * start_query()
+            
+    Miscellaneous:
+        * Batch:
+            * Now uses the exit code of the Docker-container to decide job status
+            * Supports job-dependencies
+        * CloudFormation:
+            * Create/Update support for AWS::ElasticLoadBalancingV2::ListenerRule
+            * Update support for AWS::ElasticLoadBalancingV2::Listener
+        * Glacier:
+            * Vault names can now contain special characters
+        * MediaPackage:
+            * describe_channel() now throws a NotFoundException for unknown channels
+        * Organisations:
+            * Improve tagging support 
+        * S3:
+            * Now supports '.' as a metadata character
+        * S3 Config:
+            * Fixed the response format for ACLs
+        * SSM:
+            * get_parameter() now throws correct exception for unknown parameters/versions
+            * get_parameters() can now fetch specific versions and labeled parameters
+            * get_parameter_history() now supports pagination
+            * Parameter-names can now contain hyphens
+            * Only the last 100 parameter versions are now kept, as per AWS' behaviour
+
+2.0.8
+-----
+    General Changes:
+        * Moto is now compatible with Flask/werkzeug 2.0
+
+    New Methods:
+        * MediaStore:
+            * delete_container()
+            * list_tags_for_resource()
+        * Resource Groups:
+            * get_group_configuration()
+            * put_group_configuration()
+
+    Miscellaneous:
+        * APIGateway:update_usage_plan() now also supports the '/name', '/description' and '/productCode' paths.
+        * CloudWatch:get_metric_statistics() now supports the 'unit'-parameter
+        * EC2:run_instances() now supports the 'KmsKeyId'-parameter
+        * EC2:run_instances() now supports TagSpecifications with ResourceType: 'Volume'
+        * SES:test_render_template() now throws an exception if not all attributes are supplied
+        * SSM:put_parameter() now supports the 'tags'-parameter
+        * SQS:change_message_visibility() now throws an exception if the VisibilityTimeout is too large (> 43200 seconds)
+        * SQS:receive_messages() has a bugfix: it now calculates the MessageRetentionPeriod from when the message was send, rather than from when the queue was created
+
+
+2.0.7
+-----
+    General Changes:
+        * When running Moto Server inside Docker, it is now possible to specify the service you want to run, using an environment variable (MOTO_SERVICE)
+        * CloudWatchLogs models now appear in the Moto API dashboard
+
+    New Services:
+        * DMS
+            * create_replication_task()
+            * delete_replication_task()
+            * describe_replication_tasks()
+            * start_replication_task()
+            * stop_replication_task()
+
+    New Methods:
+        * AWSLambda:
+            * update_secret_version_stage()
+        * CognitoIDP:
+            * get_user_pool_mfa_config()
+            * set_user_pool_mfa_config()
+
+    Miscellaneous:
+        * CloudWatchLogs:filter_log_events() now supports pagination
+        * CloudWatchLogs:describe_log_streams() now supports pagination
+        * EC2:describe_network_acls() now supports the filter 'owner-id'
+        * EC2:modify_network_interface_attribute() now allows multiple security groups to be specified
+        * SecretsManager:rotate_secret() now triggers the Lambda that is specified
+
+
+2.0.6
+-----
+    New Methods:
+        * EMR
+            * list_instances()
+
+    Miscellaneous:
+        * API Gateway:put_integration_response() - Fixed a bug where an error would be thrown if the responseTemplates-parameter was not specified
+        * Autoscaling - Fixed a bug where creating an ASG would remove manually created EC2-instances
+        * CloudFormation support for:
+            * AWS::SageMaker::Endpoint
+            * AWS::SageMaker::EndpointConfig
+            * AWS::SageMaker::Model
+            * AWS::SageMaker::NotebookInstanceLifecycleConfig
+        * CloudWatchLogs:filter_log_events() now supports pagination
+        * DynamoDB: Now enforces Hash and Range key size limits
+        * ECS:register_task_definition() now persists the taskRoleArn and executionRoleArn-parameters
+        * EMR:describe_cluster() now returns the ClusterArn-attribute
+        * EMR:run_job_flow() now returns the ClusterArn-attribute
+        * EMR:describe_job_flows() now returns the ClusterArn-attribute
+        * IOT:list_principal_thigns() now returns the name, instead of the ARN
+        * Route53:get_all_rrsets() now returns the record sets in the right sort order
+        * S3:get_object() now returns the NoSuchVersion-exception when the versionId was not found (instead of the InvalidVersion)
+        * SQS:send_message() now supports the MessageSystemAttributes-parameter
+
+2.0.5
+-----
+    New Services:
+        * MediaStore
+            * create_container()
+            * describe_container()
+            * list_containers()
+            * put_lifecycle_policy()
+            * get_lifecycle_policy()
+            * put_container_policy()
+            * get_container_policy()
+            * put_metric_policy()
+            * get_metric_policy
+
+    Miscellaneous:
+        * ACM now supports the MOTO_ACM_VALIDATION_WAIT-environment variable, to configure the wait time before the status on new certificates move from PENDING_VALIDATION to ISSUED
+        * CloudFormation support for AWS::SageMaker::NotebookInstance
+        * EMR:run_job_flow() now creates the appropriate EC2 security groups in a private subnet
+        * Events:put_events() has improved support for the EventPattern-parameter in create_archive/put_rule
+        * Events:put_targets() now support SQS queues
+        * IAM:get_user() now returns the Tags-attribute
+        * Fixed a bug where Moto would break on systems with a default encoding other than UTF-8
+
+2.0.4
+-----
+    Miscelleaneous:
+        * Events:put_targets() now supports SQS queues
+        * Support:describe_cases() no longer requires the caseIdList-parameter
+
+2.0.3
+-----
+    New Methods:
+        * Support
+            * create_case
+            * describe_cases
+            * resolve_case
+    Miscelleaneous:
+        * CF now returns the PhysicalResourceId-attributes for AWS::EC2::NatGateway/AWS::EC2::Route/AWS::EC2::SubnetRouteTableAssociation
+        * CognitoIDP:sign_up() now throws an UsernameExistsException if appropriate
+        * DynamoDB now validates the case sensitivity for begins_with/between operators
+        * EC2:associate_route_table() now supports the GatewayId-parameter
+        * EC2:authorize_egress() now throws a InvalidPermission.Duplicate-exception if appropriate
+        * EC2:authorize_security_group_egress() now throws a InvalidGroup.NotFound-exception
+        * EC2:authorize_security_group_ingress() now throws a InvalidGroup.NotFound-exception
+        * Events:describe_rule() now returns the ManagedBy/CreatedBy-parameters
+        * Events:put_events() now supports providing an ARN for the EventBusName-parameter
+        * Route53:list_hosted_zones_by_name() now returns the DNSName-parameter
+        * S3:put_object_acl() now throws a NoSuchKey-exception if the object does not exist
+        * SES:send_templated_email() now throws a TemplateDoesNotExist-exception if the template has not been created first
+        * SSM:put_parameter() now throws an exception for empty values
+    Known bugs:
+        * Support:describe_cases() throws an exception when called without the caseIdList-parameter
+
+
+2.0.2
+-----
+    General Changes:
+        * New Osaka region is now supported
+
+    New Services:
+        * MediaPackage
+
+    New Methods:
+        * Redshift
+            * authorize_cluster_security_group_ingress
+        * Secrets Manager:
+            * untag_resource
+
+    Miscellaneous:
+        * IAM:list_roles() now contains the MaxSessionDuration-attribute
+        * Kinesis:get_records(): Fix formatting of the ApproximateArrivalTimestamp-parameter
+        * SQS:receive_message(): Fix behaviour of the AttributeNames-parameter
 
 2.0.1
 -----

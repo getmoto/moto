@@ -8,7 +8,7 @@ from six.moves.email_mime_text import MIMEText
 import pytest
 
 
-import sure  # noqa
+# import sure  # noqa
 
 from moto import mock_ses
 
@@ -132,6 +132,21 @@ def test_send_templated_email():
     conn.send_templated_email.when.called_with(**kwargs).should.throw(ClientError)
 
     conn.verify_domain_identity(Domain="example.com")
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+
+    conn.create_template(
+        Template={
+            "TemplateName": "test_template",
+            "SubjectPart": "lalala",
+            "HtmlPart": "",
+            "TextPart": "",
+        }
+    )
+
     conn.send_templated_email(**kwargs)
 
     too_many_addresses = list("to%s@example.com" % i for i in range(51))
@@ -515,6 +530,40 @@ def test_render_template():
     result["RenderedTemplate"].should.contain("Dear John,")
     result["RenderedTemplate"].should.contain("<h1>Hello John,</h1>")
     result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
+
+    kwargs = dict(
+        TemplateName="MyTestTemplate",
+        TemplateData=json.dumps({"name": "John", "favoriteanimal": "Lion"}),
+    )
+
+    conn.create_template(
+        Template={
+            "TemplateName": "MyTestTemplate1",
+            "SubjectPart": "Greetings, {{name}}!",
+            "TextPart": "Dear {{name}},"
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "HtmlPart": "<h1>Hello {{name}},"
+            "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
+        }
+    )
+
+    result = conn.test_render_template(**kwargs)
+    result["RenderedTemplate"].should.contain("Subject: Greetings, John!")
+    result["RenderedTemplate"].should.contain("Dear John,")
+    result["RenderedTemplate"].should.contain("<h1>Hello John,</h1>")
+    result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
+
+    kwargs = dict(
+        TemplateName="MyTestTemplate", TemplateData=json.dumps({"name": "John"}),
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.test_render_template(**kwargs)
+    assert ex.value.response["Error"]["Code"] == "MissingRenderingAttributeException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Attribute 'favoriteanimal' is not present in the rendering data."
+    )
 
 
 @mock_ses

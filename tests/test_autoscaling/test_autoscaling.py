@@ -31,10 +31,29 @@ from tests import EXAMPLE_AMI_ID
 
 @mock_autoscaling_deprecated
 @mock_elb_deprecated
+@mock_ec2_deprecated
 def test_create_autoscaling_group():
     mocked_networking = setup_networking_deprecated()
     elb_conn = boto.ec2.elb.connect_to_region("us-east-1")
     elb_conn.create_load_balancer("test_lb", zones=[], listeners=[(80, 8080, "http")])
+
+    # we attach a couple of machines to the load balancer
+    # that are not managed by the auto scaling group
+    INSTANCE_COUNT_START = 3
+    INSTANCE_COUNT_GROUP = 2
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    instances = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t1.micro",
+        MaxCount=INSTANCE_COUNT_START,
+        MinCount=INSTANCE_COUNT_START,
+        SubnetId=mocked_networking["subnet1"],
+    )
+
+    instances_ids = [_.id for _ in instances]
+    elb_conn.register_instances(
+        "test_lb", instances_ids,
+    )
 
     conn = boto.ec2.autoscale.connect_to_region("us-east-1")
     config = LaunchConfiguration(
@@ -46,11 +65,11 @@ def test_create_autoscaling_group():
         name="tester_group",
         availability_zones=["us-east-1a", "us-east-1b"],
         default_cooldown=60,
-        desired_capacity=2,
+        desired_capacity=INSTANCE_COUNT_GROUP,
         health_check_period=100,
         health_check_type="EC2",
-        max_size=2,
-        min_size=2,
+        max_size=INSTANCE_COUNT_GROUP,
+        min_size=INSTANCE_COUNT_GROUP,
         launch_config=config,
         load_balancers=["test_lb"],
         placement_group="test_placement",
@@ -73,9 +92,9 @@ def test_create_autoscaling_group():
     group.name.should.equal("tester_group")
     set(group.availability_zones).should.equal(set(["us-east-1a", "us-east-1b"]))
     group.desired_capacity.should.equal(2)
-    group.max_size.should.equal(2)
-    group.min_size.should.equal(2)
-    group.instances.should.have.length_of(2)
+    group.max_size.should.equal(INSTANCE_COUNT_GROUP)
+    group.min_size.should.equal(INSTANCE_COUNT_GROUP)
+    group.instances.should.have.length_of(INSTANCE_COUNT_GROUP)
     group.vpc_zone_identifier.should.equal(
         "{subnet1},{subnet2}".format(
             subnet1=mocked_networking["subnet1"], subnet2=mocked_networking["subnet2"]
@@ -94,6 +113,9 @@ def test_create_autoscaling_group():
     tag.key.should.equal("test_key")
     tag.value.should.equal("test_value")
     tag.propagate_at_launch.should.equal(True)
+
+    instances_attached = elb_conn.describe_instance_health("test_lb")
+    len(instances_attached).should.equal(INSTANCE_COUNT_START + INSTANCE_COUNT_GROUP)
 
 
 @mock_autoscaling_deprecated

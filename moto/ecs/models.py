@@ -129,6 +129,8 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         requires_compatibilities=None,
         cpu=None,
         memory=None,
+        task_role_arn=None,
+        execution_role_arn=None,
     ):
         self.family = family
         self.revision = revision
@@ -168,6 +170,11 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             self.network_mode = "awsvpc"
         else:
             self.network_mode = network_mode
+
+        if task_role_arn is not None:
+            self.task_role_arn = task_role_arn
+        if execution_role_arn is not None:
+            self.execution_role_arn = execution_role_arn
 
         self.placement_constraints = (
             placement_constraints if placement_constraints is not None else []
@@ -737,6 +744,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         requires_compatibilities=None,
         cpu=None,
         memory=None,
+        task_role_arn=None,
+        execution_role_arn=None,
     ):
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
@@ -756,6 +765,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             requires_compatibilities=requires_compatibilities,
             cpu=cpu,
             memory=memory,
+            task_role_arn=task_role_arn,
+            execution_role_arn=execution_role_arn,
         )
         self.task_definitions[family][revision] = task_definition
 
@@ -1635,7 +1646,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_set_obj
 
     def update_service_primary_task_set(self, cluster, service, primary_task_set):
-        """ Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets """
+        """Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets"""
         cluster_name = cluster.split("/")[-1]
         service_name = service.split("/")[-1]
         task_set_obj = self.describe_task_sets(

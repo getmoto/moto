@@ -808,6 +808,7 @@ def test_list_users():
     user["UserName"].should.equal("my-user")
     user["Path"].should.equal("/")
     user["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    response["IsTruncated"].should.equal(False)
 
     conn.create_user(UserName="my-user-1", Path="myUser")
     response = conn.list_users(PathPrefix="my")
@@ -4053,6 +4054,17 @@ def test_list_roles_without_description():
 
 
 @mock_iam()
+def test_list_roles_includes_max_session_duration():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy",
+    )
+
+    # Ensure the MaxSessionDuration is included in the role listing
+    conn.list_roles().get("Roles")[0].should.have.key("MaxSessionDuration")
+
+
+@mock_iam()
 def test_create_user_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     user_name = "test-user"
@@ -4064,7 +4076,8 @@ def test_create_user_with_tags():
     assert resp["User"]["Tags"] == tags
     resp = conn.list_user_tags(UserName=user_name)
     assert resp["Tags"] == tags
-
+    resp = conn.get_user(UserName=user_name)
+    assert resp["User"]["Tags"] == tags
     resp = conn.create_user(UserName="test-create-user-no-tags")
     assert "Tags" not in resp["User"]
 

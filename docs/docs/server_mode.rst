@@ -61,7 +61,27 @@ You don't need to use Python to use Moto; it can be used with any language. Here
 * `Ruby`_
 * `Javascript`_
 
+Install with Homebrew
+---------------------
+
+Moto is also available to install using `Homebrew`_, which makes it much easier
+to manage if you're not using Python as your primary development language.
+
+Once Homebrew is installed, you can install Moto by running:
+
+.. code-block:: bash
+
+    brew install moto
+
+To make the Moto server start up automatically when you log into your computer,
+you can run:
+
+.. code-block:: bash
+
+    brew services start moto
+
 .. _Java: https://github.com/spulec/moto/blob/master/other_langs/sqsSample.java
 .. _Ruby: https://github.com/spulec/moto/blob/master/other_langs/test.rb
 .. _Javascript: https://github.com/spulec/moto/blob/master/other_langs/test.js
 .. _localhost: http://localhost:5000/?Action=DescribeInstances
+.. _Homebrew: https://brew.sh

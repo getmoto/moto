@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
-from mock import patch
+
 import sure  # noqa
 
+from tests.compat import patch
 from moto.server import main, create_backend_app, DomainDispatcherApplication
 
 

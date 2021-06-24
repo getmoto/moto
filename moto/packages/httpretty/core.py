@@ -212,7 +212,7 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
         return result
 
     def parse_request_body(self, body):
-        """ Attempt to parse the post based on the content-type passed. Return the regular body if not """
+        """Attempt to parse the post based on the content-type passed. Return the regular body if not"""
 
         PARSING_FUNCTIONS = {
             "application/json": json.loads,

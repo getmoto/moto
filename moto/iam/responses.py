@@ -484,9 +484,9 @@ class IamResponse(BaseResponse):
                 user = User("default_user")
         else:
             user = iam_backend.get_user(user_name)
-
+        tags = iam_backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])
         template = self.response_template(USER_TEMPLATE)
-        return template.render(action="Get", user=user)
+        return template.render(action="Get", user=user, tags=tags)
 
     def list_users(self):
         path_prefix = self._get_param("PathPrefix")
@@ -494,7 +494,7 @@ class IamResponse(BaseResponse):
         max_items = self._get_param("MaxItems")
         users = iam_backend.list_users(path_prefix, marker, max_items)
         template = self.response_template(LIST_USERS_TEMPLATE)
-        return template.render(action="List", users=users)
+        return template.render(action="List", users=users, isTruncated=False)
 
     def update_user(self):
         user_name = self._get_param("UserName")
@@ -1414,6 +1414,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
+        <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
         {% if role.permissions_boundary %}
         <PermissionsBoundary>
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
@@ -1724,6 +1725,7 @@ USER_TEMPLATE = """<{{ action }}UserResponse>
 
 LIST_USERS_TEMPLATE = """<{{ action }}UsersResponse>
    <{{ action }}UsersResult>
+    <IsTruncated>{{ isTruncated }}</IsTruncated>
       <Users>
          {% for user in users %}
          <member>
