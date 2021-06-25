@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
 
 import boto3
+import botocore
+import pytest
 import sure  # noqa
-from moto import mock_mediaconnect
+from botocore.exceptions import ClientError
 
+from moto import mock_mediaconnect
 
 region = "eu-west-1"
 
@@ -172,22 +175,37 @@ def test_add_flow_vpc_interfaces_succeeds():
                 "Name": "VPCInterface",
                 "SubnetId": "",
                 "SecurityGroupIds": [],
-                "RoleArn": ""
+                "RoleArn": "",
             }
         ],
     )
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]['HTTPStatusCode'].should.equal(200)
+    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     describe_response["Flow"]["VpcInterfaces"].should.equal(
         [
             {
                 "Name": "VPCInterface",
                 "RoleArn": "",
                 "SecurityGroupIds": [],
-                "SubnetId": ""
+                "SubnetId": "",
             }
         ]
+    )
+
+
+@mock_mediaconnect
+def test_add_flow_vpc_interfaces_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    flow_arn = "unknown-flow"
+    with pytest.raises(ClientError) as err:
+        client.add_flow_vpc_interfaces(
+            FlowArn=flow_arn, VpcInterfaces=[],
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal(
+        "flow with arn=unknown-flow not found".format(str(flow_arn))
     )
 
 
@@ -210,6 +228,21 @@ def test_add_flow_outputs_succeeds():
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
     describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    describe_response["Flow"]["Outputs"].should.equal([{
-        "Description": "string", "Name": "string", "Port": 123
-    }])
+    describe_response["Flow"]["Outputs"].should.equal(
+        [{"Description": "string", "Name": "string", "Port": 123}]
+    )
+
+
+@mock_mediaconnect
+def test_add_flow_outputs_fails():
+    client = boto3.client("mediaconnect", region_name=region)
+    flow_arn = "unknown-flow"
+    with pytest.raises(ClientError) as err:
+        client.add_flow_outputs(
+            FlowArn=flow_arn, Outputs=[],
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal(
+        "flow with arn=unknown-flow not found".format(str(flow_arn))
+    )
