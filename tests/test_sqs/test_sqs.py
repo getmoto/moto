@@ -808,8 +808,8 @@ def test_change_message_visibility_than_permitted():
     conn = boto3.client("sqs", region_name="us-east-1")
 
     with freeze_time("2015-01-01 12:00:00"):
-        conn.create_queue(QueueName="test-queue-visibility")
-        queue = sqs.Queue("test-queue-visibility")
+        q_resp = conn.create_queue(QueueName="test-queue-visibility")
+        queue = sqs.Queue(q_resp["QueueUrl"])
         queue.send_message(MessageBody="derp")
         messages = conn.receive_message(QueueUrl=queue.url)
         messages.get("Messages").should.have.length_of(1)
@@ -936,8 +936,8 @@ def test_send_receive_message_timestamps():
 def test_send_receive_message_with_attribute_name(attribute_name, expected):
     sqs = boto3.resource("sqs", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
-    client.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = client.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -2836,8 +2836,8 @@ def test_receive_message_should_not_accept_invalid_urls():
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
     body_one = "this is a test message"
 
     queue.send_message(
