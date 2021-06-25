@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-import datetime
+import hashlib
 from collections import OrderedDict
 
 from boto3 import Session
@@ -9,12 +9,13 @@ from moto.core import BaseBackend, BaseModel
 from .exceptions import ClientError
 
 
-class CreatedObject(BaseModel):
-    def __init__(self, *args, **kwargs):
-        self.path = kwargs.get("Path")
-        self.content_sha256 = kwargs.get("ContentSHA256")
-        self.etag = kwargs.get("ETag")
-        self.storage_class = kwargs.get("StorageClass")
+class Object(BaseModel):
+    def __init__(self, Path, Body, ETag, StorageClass="TEMPORAL"):
+        self.path = Path
+        self.body = Body
+        self.content_sha256 = hashlib.sha256(Body.encode("utf-8")).hexdigest()
+        self.etag = ETag
+        self.storage_class = StorageClass
 
     def to_dict(self, exclude=None):
         data = {
@@ -25,28 +26,6 @@ class CreatedObject(BaseModel):
             "StorageClass": self.storage_class,
             "Path": self.path,
             "ContentSHA256": self.content_sha256,
-        }
-        if exclude:
-            for key in exclude:
-                del data[key]
-        return data
-
-
-class Object(BaseModel):
-    def __init__(self, *args, **kwargs):
-        self.etag = kwargs.get("ETag")
-        self.content_type = kwargs.get("ContentType")
-        self.content_length = kwargs.get("ContentLength")
-        self.cache_control = kwargs.get("CacheControl")
-        self.last_modified = datetime.datetime.now()
-
-    def to_dict(self, exclude=None):
-        data = {
-            "ETag": self.etag,
-            "ContentType": self.content_type,
-            "ContentLength": self.content_length,
-            "CacheControl": self.cache_control,
-            "LastModified": self.last_modified,
         }
         if exclude:
             for key in exclude:
@@ -67,17 +46,17 @@ class MediaStoreDataBackend(BaseBackend):
 
     def put_object(
         self,
-        Body,
-        Path,
-        ContentType=None,
-        CacheControl=None,
-        StorageClass="TEMPORAL",
-        UploadAvailability="STANDARD",
+        body,
+        path,
+        content_type=None,
+        cache_control=None,
+        storage_class="TEMPORAL",
+        upload_availability="STANDARD",
     ):
-        new_object = CreatedObject(
-            Path=Path, ContentSHA256=Body, ETag="etag", StorageClass="TEMPORAL"
+        new_object = Object(
+            Path=path, Body=body, ETag="etag", StorageClass=storage_class
         )
-        self._objects[Path] = new_object
+        self._objects[path] = new_object
         return new_object
 
     def delete_object(self, path):
