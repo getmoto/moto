@@ -185,6 +185,26 @@ class MediaConnectBackend(BaseBackend):
             raise NotFoundException(message="Resource not found.")
         return resource.tags
 
+    def add_flow_vpc_interfaces(self, flow_arn, vpc_interfaces):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.vpc_interfaces = vpc_interfaces
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, flow.vpc_interfaces
+
+    def add_flow_outputs(self, flow_arn, outputs):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.outputs = outputs
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, flow.outputs
+
     # add methods from here
 
 
