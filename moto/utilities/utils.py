@@ -15,7 +15,7 @@ def random_string(length=None):
     return random_str
 
 
-def load_resource(filename):
+def load_resource(filename, as_json=True):
     """
     Open a file, and return the contents as JSON.
     Usage:
@@ -23,4 +23,4 @@ def load_resource(filename):
     load_resource(resource_filename(__name__, "resources/file.json"))
     """
     with open(filename, "r", encoding="utf-8") as f:
-        return json.load(f)
+        return json.load(f) if as_json else f.read()
