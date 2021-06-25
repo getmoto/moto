@@ -141,6 +141,18 @@ class EKSResponse(BaseResponse):
         except (ResourceInUseException, ResourceNotFoundException) as e:
             return e.response()
 
+    def describe_fargate_profile(self):
+        cluster_name = self._get_param("name")
+        fargate_profile_name = self._get_param("fargateProfileName")
+
+        try:
+            fargate_profile = self.eks_backend.describe_fargate_profile(
+                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name,
+            )
+            return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
+        except (ResourceInUseException, ResourceNotFoundException) as e:
+            return e.response()
+
     def describe_nodegroup(self):
         cluster_name = self._get_param("name")
         nodegroup_name = self._get_param("nodegroupName")

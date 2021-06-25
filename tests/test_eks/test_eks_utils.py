@@ -10,8 +10,8 @@ from moto.utilities.utils import random_string
 from tests.test_eks.test_eks_constants import (
     ClusterAttributes,
     ClusterInputs,
-    FargateInputs,
     FargateProfileAttributes,
+    FargateProfileInputs,
     NodegroupAttributes,
     NodegroupInputs,
     ResponseAttributes,
@@ -59,7 +59,7 @@ def generate_fargate_profiles(client, cluster_name, num_profiles, minimal):
         client.create_fargate_profile(
             fargateProfileName=generate_random_name(),
             clusterName=cluster_name,
-            **_input_builder(FargateInputs, minimal)
+            **_input_builder(FargateProfileInputs, minimal)
         )[ResponseAttributes.FARGATE_PROFILE][
             FargateProfileAttributes.FARGATE_PROFILE_NAME
         ]

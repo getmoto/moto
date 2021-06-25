@@ -79,7 +79,9 @@ FARGATE_PROFILE_EXISTS_MSG = (
     "A Fargate Profile already exists with this name in this cluster."
 )
 FARGATE_PROFILE_NEEDS_SELECTOR_MSG = "Fargate Profile requires at least one selector."
-FARGATE_PROFILE_NOT_FOUND_MSG = "No Fargate Profile found with name: {fargateName}."
+FARGATE_PROFILE_NOT_FOUND_MSG = (
+    "No Fargate Profile found with name: {fargateProfileName}."
+)
 FARGATE_PROFILE_SELECTOR_NEEDS_NAMESPACE = (
     "Fargate Profile must have at least one selector with at least one namespace value."
 )
@@ -504,6 +506,34 @@ class EKSBackend(BaseBackend):
                 fargateProfileName=None,
                 addonName=None,
                 message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
+            )
+
+    def describe_fargate_profile(self, cluster_name, fargate_profile_name):
+        try:
+            # Cluster exists.
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            # Fargate Profile exists.
+            return cluster.fargate_profiles[fargate_profile_name]
+        except KeyError:
+            # Fargate Profile does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=FARGATE_PROFILE_NOT_FOUND_MSG.format(
+                    fargateProfileName=fargate_profile_name
+                ),
             )
 
     def describe_nodegroup(self, cluster_name, nodegroup_name):

@@ -26,6 +26,7 @@ from moto.eks.models import (
     CLUSTER_NOT_READY_MSG,
     FARGATE_PROFILE_EXISTS_MSG,
     FARGATE_PROFILE_NEEDS_SELECTOR_MSG,
+    FARGATE_PROFILE_NOT_FOUND_MSG,
     FARGATE_PROFILE_SELECTOR_NEEDS_NAMESPACE,
     FARGATE_PROFILE_TOO_MANY_LABELS,
     LAUNCH_TEMPLATE_WITH_DISK_SIZE_MSG,
@@ -43,8 +44,8 @@ from .test_eks_constants import (
     DEFAULT_NAMESPACE,
     DISK_SIZE,
     ErrorAttributes,
-    FargateInputs,
     FargateProfileAttributes,
+    FargateProfileInputs,
     FROZEN_TIME,
     INSTANCE_TYPES,
     LAUNCH_TEMPLATE,
@@ -106,8 +107,8 @@ def ClusterBuilder():
 
 
 @pytest.fixture(scope="function")
-def FargateBuilder(ClusterBuilder):
-    class FargateTestDataFactory:
+def FargateProfileBuilder(ClusterBuilder):
+    class FargateProfileTestDataFactory:
         def __init__(self, client, cluster, count, minimal):
             self.cluster_name = cluster.existing_cluster_name
 
@@ -116,7 +117,15 @@ def FargateBuilder(ClusterBuilder):
                 client, self.cluster_name, count, minimal
             )
 
-            # Pick a random Fargate Profile Name from the list and a name guaranteed not to be on the list.
+            # Get the name of the first generated profile.
+            first_name = self.fargate_profile_names[0]
+
+            # Collect the output of describe_fargate_profiles() for the first profile.
+            self.fargate_describe_output = client.describe_fargate_profile(
+                clusterName=self.cluster_name, fargateProfileName=first_name
+            )[ResponseAttributes.FARGATE_PROFILE]
+
+            # Pick a random profile name from the list and a name guaranteed not to be on the list.
             (
                 self.existing_fargate_profile_name,
                 self.nonexistent_fargate_profile_name,
@@ -125,12 +134,12 @@ def FargateBuilder(ClusterBuilder):
 
             # Generate a list of the Fargate Profile attributes to be tested when validating results.
             self.attributes_to_test = attributes_to_test(
-                FargateInputs, self.existing_fargate_profile_name
+                FargateProfileInputs, self.existing_fargate_profile_name
             )
 
     def _execute(count=1, minimal=True):
         client, cluster = ClusterBuilder()
-        return client, FargateTestDataFactory(client, cluster, count, minimal)
+        return client, FargateProfileTestDataFactory(client, cluster, count, minimal)
 
     return _execute
 
@@ -839,7 +848,7 @@ def test_create_nodegroup_handles_launch_template_combinations(
 
 
 @mock_eks
-def test_list_fargate_returns_empty_by_default(ClusterBuilder):
+def test_list_fargate_profile_returns_empty_by_default(ClusterBuilder):
     client, generated_test_data = ClusterBuilder()
 
     result = client.list_fargate_profiles(
@@ -850,8 +859,10 @@ def test_list_fargate_returns_empty_by_default(ClusterBuilder):
 
 
 @mock_eks
-def test_list_fargate_returns_sorted_fargate_profile_names(FargateBuilder):
-    client, generated_test_data = FargateBuilder(BatchCountSize.SMALL)
+def test_list_fargate_profile_returns_sorted_fargate_profile_names(
+    FargateProfileBuilder,
+):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL)
     expected_result = sorted(generated_test_data.fargate_profile_names)
 
     result = client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[
@@ -862,8 +873,8 @@ def test_list_fargate_returns_sorted_fargate_profile_names(FargateBuilder):
 
 
 @mock_eks
-def test_list_fargate_returns_default_max_results(FargateBuilder):
-    client, generated_test_data = FargateBuilder(BatchCountSize.LARGE)
+def test_list_fargate_profile_returns_default_max_results(FargateProfileBuilder):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.LARGE)
     expected_len = DEFAULT_MAX_RESULTS
     expected_result = (sorted(generated_test_data.fargate_profile_names))[:expected_len]
 
@@ -875,8 +886,8 @@ def test_list_fargate_returns_default_max_results(FargateBuilder):
 
 
 @mock_eks
-def test_list_fargate_returns_custom_max_results(FargateBuilder):
-    client, generated_test_data = FargateBuilder(BatchCountSize.LARGE)
+def test_list_fargate_profile_returns_custom_max_results(FargateProfileBuilder):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.LARGE)
     expected_len = BatchCountSize.LARGE
     expected_result = (sorted(generated_test_data.fargate_profile_names))[:expected_len]
 
@@ -888,8 +899,8 @@ def test_list_fargate_returns_custom_max_results(FargateBuilder):
 
 
 @mock_eks
-def test_list_fargate_returns_second_page_results(FargateBuilder):
-    client, generated_test_data = FargateBuilder(BatchCountSize.MEDIUM)
+def test_list_fargate_profile_returns_second_page_results(FargateProfileBuilder):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.MEDIUM)
     page1_len = PageCount.LARGE
     expected_len = BatchCountSize.MEDIUM - page1_len
     expected_result = (sorted(generated_test_data.fargate_profile_names))[page1_len:]
@@ -905,8 +916,8 @@ def test_list_fargate_returns_second_page_results(FargateBuilder):
 
 
 @mock_eks
-def test_list_fargate_returns_custom_second_page_results(FargateBuilder):
-    client, generated_test_data = FargateBuilder(BatchCountSize.MEDIUM)
+def test_list_fargate_profile_returns_custom_second_page_results(FargateProfileBuilder):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.MEDIUM)
     page1_len = PageCount.LARGE
     expected_len = PageCount.SMALL
     expected_result = (sorted(generated_test_data.fargate_profile_names))[
@@ -926,7 +937,7 @@ def test_list_fargate_returns_custom_second_page_results(FargateBuilder):
 
 
 @mock_eks
-def test_create_fargate_throws_exception_when_cluster_not_found():
+def test_create_fargate_profile_throws_exception_when_cluster_not_found():
     client = boto3.client(SERVICE, region_name=REGION)
     non_existent_cluster_name = random_string()
     expected_exception = ResourceNotFoundException
@@ -936,15 +947,17 @@ def test_create_fargate_throws_exception_when_cluster_not_found():
         client.create_fargate_profile(
             clusterName=non_existent_cluster_name,
             fargateProfileName=random_string(),
-            **dict(FargateInputs.REQUIRED)
+            **dict(FargateProfileInputs.REQUIRED)
         )
 
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
 
 
 @mock_eks
-def test_create_fargate_throws_exception_when_fargate_already_exists(FargateBuilder):
-    client, generated_test_data = FargateBuilder(BatchCountSize.SMALL)
+def test_create_fargate_profile_throws_exception_when_fargate_profile_already_exists(
+    FargateProfileBuilder,
+):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL)
     expected_exception = ResourceInUseException
     expected_msg = FARGATE_PROFILE_EXISTS_MSG
 
@@ -952,7 +965,7 @@ def test_create_fargate_throws_exception_when_fargate_already_exists(FargateBuil
         client.create_fargate_profile(
             clusterName=generated_test_data.cluster_name,
             fargateProfileName=generated_test_data.existing_fargate_profile_name,
-            **dict(FargateInputs.REQUIRED)
+            **dict(FargateProfileInputs.REQUIRED)
         )
     count_profiles_after_test = len(
         client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[
@@ -961,6 +974,90 @@ def test_create_fargate_throws_exception_when_fargate_already_exists(FargateBuil
     )
 
     count_profiles_after_test.should.equal(BatchCountSize.SMALL)
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_eks
+def test_create_fargate_profile_generates_valid_profile_arn(FargateProfileBuilder):
+    _, generated_test_data = FargateProfileBuilder()
+    expected_arn_values = [
+        PARTITIONS,
+        REGION,
+        ACCOUNT_ID,
+        generated_test_data.cluster_name,
+        generated_test_data.fargate_profile_names,
+        None,
+    ]
+
+    all_arn_values_should_be_valid(
+        expected_arn_values=expected_arn_values,
+        pattern=RegExTemplates.FARGATE_PROFILE_ARN,
+        arn_under_test=generated_test_data.fargate_describe_output[
+            FargateProfileAttributes.ARN
+        ],
+    )
+
+
+@freeze_time(FROZEN_TIME)
+@mock_eks
+def test_create_fargate_profile_generates_valid_created_timestamp(
+    FargateProfileBuilder,
+):
+    _, generated_test_data = FargateProfileBuilder()
+
+    result_time = iso_8601_datetime_without_milliseconds(
+        generated_test_data.fargate_describe_output[FargateProfileAttributes.CREATED_AT]
+    )
+
+    if settings.TEST_SERVER_MODE:
+        RegExTemplates.ISO8601_FORMAT.match(result_time).should.be.true
+    else:
+        result_time.should.equal(FROZEN_TIME)
+
+
+@mock_eks
+def test_create_fargate_profile_saves_provided_parameters(FargateProfileBuilder):
+    _, generated_test_data = FargateProfileBuilder(minimal=False)
+
+    for key, expected_value in generated_test_data.attributes_to_test:
+        generated_test_data.fargate_describe_output[key].should.equal(expected_value)
+
+
+@mock_eks
+def test_describe_fargate_profile_throws_exception_when_cluster_not_found(
+    FargateProfileBuilder,
+):
+    client, generated_test_data = FargateProfileBuilder()
+    expected_exception = ResourceNotFoundException
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(
+        clusterName=generated_test_data.nonexistent_cluster_name,
+    )
+
+    with pytest.raises(ClientError) as raised_exception:
+        client.describe_fargate_profile(
+            clusterName=generated_test_data.nonexistent_cluster_name,
+            fargateProfileName=generated_test_data.existing_fargate_profile_name,
+        )
+
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_eks
+def test_describe_fargate_profile_throws_exception_when_profile_not_found(
+    FargateProfileBuilder,
+):
+    client, generated_test_data = FargateProfileBuilder()
+    expected_exception = ResourceNotFoundException
+    expected_msg = FARGATE_PROFILE_NOT_FOUND_MSG.format(
+        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+    )
+
+    with pytest.raises(ClientError) as raised_exception:
+        client.describe_fargate_profile(
+            clusterName=generated_test_data.cluster_name,
+            fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+        )
+
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
 
 

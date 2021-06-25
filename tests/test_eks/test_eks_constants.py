@@ -139,9 +139,9 @@ class ClusterInputs:
     ]
 
 
-class FargateInputs:
+class FargateProfileInputs:
     REQUIRED = [POD_EXECUTION_ROLE_ARN, SELECTORS]
-    OPTIONAL = [CLIENT_REQUEST_TOKEN, SUBNETS, TAGS]
+    OPTIONAL = [SUBNETS, TAGS]
 
 
 class NodegroupInputs:
@@ -178,6 +178,8 @@ class ClusterAttributes:
 
 
 class FargateProfileAttributes:
+    ARN = "fargateProfileArn"
+    CREATED_AT = "createdAt"
     FARGATE_PROFILE_NAME = "fargateProfileName"
     LABELS = "labels"
     NAMESPACE = "namespace"
@@ -207,6 +209,7 @@ class PageCount:
     LARGE = 10
 
 
+FARGATE_PROFILE_UUID_PATTERN = "(?P<fargate_uuid>[-0-9a-z]{8}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{12})"
 NODEGROUP_UUID_PATTERN = "(?P<nodegroup_uuid>[-0-9a-z]{8}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{12})"
 
 
@@ -219,6 +222,17 @@ class RegExTemplates:
         + "(?P<account_id>[0-9]{12}):"
         + "cluster/"
         + "(?P<cluster_name>.+)"
+    )
+    FARGATE_PROFILE_ARN = re.compile(
+        "arn:"
+        + "(?P<partition>.+):"
+        + "eks:"
+        + "(?P<region>[-0-9a-zA-Z]+):"
+        + "(?P<account_id>[0-9]{12}):"
+        + "fargateprofile/"
+        + "(?P<cluster_name>.+)/"
+        + "(?P<fargate_name>.+)/"
+        + FARGATE_PROFILE_UUID_PATTERN
     )
     ISO8601_FORMAT = re.compile(
         r"^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?(Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])?$"
