@@ -689,8 +689,7 @@ def test_delete_keys_invalid():
     # non-existing key case
     result = bucket.delete_keys(["abc", "file3"])
 
-    result.deleted.should.have.length_of(1)
-    result.errors.should.have.length_of(1)
+    result.deleted.should.have.length_of(2)
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal("file1")
@@ -4213,6 +4212,22 @@ def test_delete_objects_with_url_encoded_key(key):
     put_object()
     s3.delete_objects(Bucket=bucket_name, Delete={"Objects": [{"Key": key}]})
     assert_deleted()
+
+
+@mock_s3
+def test_delete_objects_unknown_key():
+    bucket_name = "test-moto-issue-1581"
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket_name)
+    client.put_object(Bucket=bucket_name, Key="file1", Body="body")
+
+    s = client.delete_objects(
+        Bucket=bucket_name, Delete={"Objects": [{"Key": "file1"}, {"Key": "file2"}]}
+    )
+    s["Deleted"].should.have.length_of(2)
+    s["Deleted"].should.contain({"Key": "file1"})
+    s["Deleted"].should.contain({"Key": "file2"})
+    client.delete_bucket(Bucket=bucket_name)
 
 
 @mock_s3
