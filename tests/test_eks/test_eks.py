@@ -978,6 +978,35 @@ def test_create_fargate_profile_throws_exception_when_fargate_profile_already_ex
 
 
 @mock_eks
+def test_create_fargate_profile_throws_exception_when_cluster_not_active(
+    FargateProfileBuilder, monkeypatch
+):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant patch Cluster attributes in server mode.")
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL)
+    expected_exception = InvalidRequestException
+    expected_msg = CLUSTER_NOT_READY_MSG.format(
+        clusterName=generated_test_data.cluster_name,
+    )
+
+    with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
+        with pytest.raises(ClientError) as raised_exception:
+            client.create_fargate_profile(
+                clusterName=generated_test_data.cluster_name,
+                fargateProfileName=random_string(),
+                **dict(FargateProfileInputs.REQUIRED)
+            )
+    count_fargate_profiles_after_test = len(
+        client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[
+            ResponseAttributes.FARGATE_PROFILE_NAMES
+        ]
+    )
+
+    count_fargate_profiles_after_test.should.equal(BatchCountSize.SMALL)
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_eks
 def test_create_fargate_profile_generates_valid_profile_arn(FargateProfileBuilder):
     _, generated_test_data = FargateProfileBuilder()
     expected_arn_values = [
@@ -1054,6 +1083,73 @@ def test_describe_fargate_profile_throws_exception_when_profile_not_found(
 
     with pytest.raises(ClientError) as raised_exception:
         client.describe_fargate_profile(
+            clusterName=generated_test_data.cluster_name,
+            fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+        )
+
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_eks
+def test_delete_fargate_profile_removes_deleted_fargate_profile(FargateProfileBuilder):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL)
+
+    client.delete_fargate_profile(
+        clusterName=generated_test_data.cluster_name,
+        fargateProfileName=generated_test_data.existing_fargate_profile_name,
+    )
+    result = client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[
+        ResponseAttributes.FARGATE_PROFILE_NAMES
+    ]
+
+    len(result).should.equal(BatchCountSize.SMALL - 1)
+    result.should_not.contain(generated_test_data.existing_fargate_profile_name)
+
+
+@mock_eks
+def test_delete_fargate_profile_returns_deleted_fargate_profile(FargateProfileBuilder):
+    client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL, False)
+
+    result = client.delete_fargate_profile(
+        clusterName=generated_test_data.cluster_name,
+        fargateProfileName=generated_test_data.existing_fargate_profile_name,
+    )[ResponseAttributes.FARGATE_PROFILE]
+
+    for key, expected_value in generated_test_data.attributes_to_test:
+        result[key].should.equal(expected_value)
+
+
+@mock_eks
+def test_delete_fargate_profile_throws_exception_when_cluster_not_found(
+    FargateProfileBuilder,
+):
+    client, generated_test_data = FargateProfileBuilder()
+    expected_exception = ResourceNotFoundException
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(
+        clusterName=generated_test_data.nonexistent_cluster_name,
+    )
+
+    with pytest.raises(ClientError) as raised_exception:
+        client.delete_fargate_profile(
+            clusterName=generated_test_data.nonexistent_cluster_name,
+            fargateProfileName=generated_test_data.existing_fargate_profile_name,
+        )
+
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_eks
+def test_delete_fargate_profile_throws_exception_when_fargate_profile_not_found(
+    FargateProfileBuilder,
+):
+    client, generated_test_data = FargateProfileBuilder()
+    expected_exception = ResourceNotFoundException
+    expected_msg = FARGATE_PROFILE_NOT_FOUND_MSG.format(
+        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+    )
+
+    with pytest.raises(ClientError) as raised_exception:
+        client.delete_fargate_profile(
             clusterName=generated_test_data.cluster_name,
             fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
         )

@@ -81,6 +81,7 @@ class EKSResponse(BaseResponse):
             ResourceNotFoundException,
             ResourceInUseException,
             InvalidParameterException,
+            InvalidRequestException,
         ) as e:
             return e.response()
 
@@ -216,6 +217,19 @@ class EKSResponse(BaseResponse):
 
             return 200, {}, json.dumps({"cluster": dict(cluster)})
         except (ResourceInUseException, ResourceNotFoundException) as e:
+            return e.response()
+
+    def delete_fargate_profile(self):
+        cluster_name = self._get_param("name")
+        fargate_profile_name = self._get_param("fargateProfileName")
+
+        try:
+            fargate_profile = self.eks_backend.delete_fargate_profile(
+                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name,
+            )
+
+            return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
+        except ResourceNotFoundException as e:
             return e.response()
 
     def delete_nodegroup(self):

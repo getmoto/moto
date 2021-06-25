@@ -580,6 +580,37 @@ class EKSBackend(BaseBackend):
         self.cluster_count -= 1
         return result
 
+    def delete_fargate_profile(self, cluster_name, fargate_profile_name):
+        try:
+            # Cluster exists.
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            # Fargate Profile exists.
+            deleted_fargate_profile = cluster.fargate_profiles.pop(fargate_profile_name)
+        except KeyError:
+            # Fargate Profile does not exist.
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=fargate_profile_name,
+                addonName=None,
+                message=FARGATE_PROFILE_NOT_FOUND_MSG.format(
+                    fargateProfileName=fargate_profile_name
+                ),
+            )
+
+        cluster.fargate_profile_count -= 1
+        return deleted_fargate_profile
+
     def delete_nodegroup(self, cluster_name, nodegroup_name):
         try:
             # Cluster exists.
