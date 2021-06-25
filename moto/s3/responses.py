@@ -943,13 +943,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             key_name = object_["Key"]
             version_id = object_.get("VersionId", None)
 
-            success, _ = self.backend.delete_object(
+            self.backend.delete_object(
                 bucket_name, undo_clean_key_name(key_name), version_id=version_id
             )
-            if success:
-                deleted_objects.append((key_name, version_id))
-            else:
-                error_names.append(key_name)
+            deleted_objects.append((key_name, version_id))
 
         return (
             200,

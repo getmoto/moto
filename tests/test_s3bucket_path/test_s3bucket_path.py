@@ -315,8 +315,8 @@ def test_delete_keys_with_invalid():
 
     result = bucket.delete_keys(["abc", "file3"])
 
-    result.deleted.should.have.length_of(1)
-    result.errors.should.have.length_of(1)
+    result.deleted.should.have.length_of(2)
+    result.errors.should.have.length_of(0)
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal("file1")
