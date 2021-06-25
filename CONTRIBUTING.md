@@ -52,8 +52,8 @@ If you want more control over incoming requests or their bodies, it is possible 
 
 ### Generating template code of services.
 
-By using `scripts/scaffold.py`, you can automatically generate template code of new services and new method of existing service. The script looks up API specification of given boto3 method and adds necessary codes includng request parameters and response parameters. In some cases, it fails to generate codes.
-Please try out by runninig `python scripts/scaffold.py`
+By using `scripts/scaffold.py`, you can automatically generate template code of new services and new method of existing service. The script looks up API specification of given boto3 method and adds necessary codes including request parameters and response parameters. In some cases, it fails to generate codes.
+Please try out by running `python scripts/scaffold.py`
 
 ```bash
 $ python scripts/scaffold.py
