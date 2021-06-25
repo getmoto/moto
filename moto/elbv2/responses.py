@@ -7,6 +7,7 @@ from .exceptions import DuplicateTagKeysError
 from .exceptions import LoadBalancerNotFoundError
 from .exceptions import TargetGroupNotFoundError
 from .exceptions import ListenerNotFoundError
+from .exceptions import ListenerOrBalancerMissingError
 
 SSL_POLICIES = [
     {
@@ -336,7 +337,7 @@ class ELBV2Response(BaseResponse):
         load_balancer_arn = self._get_param("LoadBalancerArn")
         listener_arns = self._get_multi_param("ListenerArns.member")
         if not load_balancer_arn and not listener_arns:
-            raise LoadBalancerNotFoundError()
+            raise ListenerOrBalancerMissingError()
 
         listeners = self.elbv2_backend.describe_listeners(
             load_balancer_arn, listener_arns

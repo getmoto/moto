@@ -107,6 +107,7 @@ class FakeAlarm(BaseModel):
         unit,
         actions_enabled,
         region="us-east-1",
+        rule=None
     ):
         self.name = name
         self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
@@ -123,7 +124,7 @@ class FakeAlarm(BaseModel):
         self.dimensions = [
             Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
         ]
-        self.actions_enabled = actions_enabled
+        self.actions_enabled = True if actions_enabled is None else actions_enabled
         self.alarm_actions = alarm_actions
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
@@ -136,6 +137,9 @@ class FakeAlarm(BaseModel):
         self.state_reason_data = "{}"
         self.state_value = "OK"
         self.state_updated_timestamp = datetime.utcnow()
+
+        # only used for composite alarms
+        self.rule = rule
 
     def update_state(self, reason, reason_data, state_value):
         # History type, that then decides what the rest of the items are, can be one of ConfigurationUpdate | StateUpdate | Action
@@ -306,6 +310,7 @@ class CloudWatchBackend(BaseBackend):
         unit,
         actions_enabled,
         region="us-east-1",
+        rule=None
     ):
         alarm = FakeAlarm(
             name,
@@ -326,6 +331,7 @@ class CloudWatchBackend(BaseBackend):
             unit,
             actions_enabled,
             region,
+            rule=rule
         )
 
         self.alarms[name] = alarm

@@ -62,6 +62,7 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member"
         )
         unit = self._get_param("Unit")
+        rule = self._get_param("AlarmRule")  # fetch AlarmRule to re-use this method for composite alarms as well
         alarm = self.cloudwatch_backend.put_metric_alarm(
             name,
             namespace,
@@ -81,6 +82,7 @@ class CloudWatchResponse(BaseResponse):
             unit,
             actions_enabled,
             self.region,
+            rule=rule
         )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
@@ -105,8 +107,11 @@ class CloudWatchResponse(BaseResponse):
         else:
             alarms = self.cloudwatch_backend.get_all_alarms()
 
+        metric_alarms = [a for a in alarms if a.rule is None]
+        composite_alarms = [a for a in alarms if a.rule is not None]
+
         template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
-        return template.render(alarms=alarms)
+        return template.render(metric_alarms=metric_alarms, composite_alarms=composite_alarms)
 
     @amzn_request_id
     def delete_alarms(self):
@@ -292,7 +297,8 @@ PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.
 
 DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <DescribeAlarmsResult>
-        <MetricAlarms>
+        {% for tag_name, alarms in (('MetricAlarms', metric_alarms), ('CompositeAlarms', composite_alarms)) %}
+        <{{tag_name}}>
             {% for alarm in alarms %}
             <member>
                 <ActionsEnabled>{{ alarm.actions_enabled }}</ActionsEnabled>
@@ -303,7 +309,7 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 </AlarmActions>
                 <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
                 <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
-                <AlarmDescription>{{ alarm.description }}</AlarmDescription>
+                <AlarmDescription>{{ alarm.description or '' }}</AlarmDescription>
                 <AlarmName>{{ alarm.name }}</AlarmName>
                 <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
                 {% if alarm.dimensions is not none %}
@@ -388,13 +394,19 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 {% if alarm.statistic is not none %}
                 <Statistic>{{ alarm.statistic }}</Statistic>
                 {% endif %}
+                {% if alarm.threshold is not none %}
                 <Threshold>{{ alarm.threshold }}</Threshold>
+                {% endif %}
                 {% if alarm.unit is not none %}
                 <Unit>{{ alarm.unit }}</Unit>
                 {% endif %}
+                {% if alarm.rule is not none %}
+                <AlarmRule>{{ alarm.rule }}</AlarmRule>
+                {% endif %}
             </member>
             {% endfor %}
-        </MetricAlarms>
+        </{{tag_name}}>
+        {% endfor %}
     </DescribeAlarmsResult>
 </DescribeAlarmsResponse>"""
 
@@ -441,7 +453,9 @@ DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="htt
                 <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
                 <StateValue>{{ alarm.state_value }}</StateValue>
                 <Statistic>{{ alarm.statistic }}</Statistic>
+                {% if alarm.threshold is not none %}
                 <Threshold>{{ alarm.threshold }}</Threshold>
+                {% endif %}
                 <Unit>{{ alarm.unit }}</Unit>
             </member>
             {% endfor %}

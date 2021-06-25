@@ -212,7 +212,7 @@ class FakeListener(CloudFormationModel):
     ):
         self.load_balancer_arn = load_balancer_arn
         self.arn = arn
-        self.protocol = protocol.upper()
+        self.protocol = (protocol or '').upper()
         self.port = port
         self.ssl_policy = ssl_policy
         self.certificate = certificate
