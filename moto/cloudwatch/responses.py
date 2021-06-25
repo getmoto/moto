@@ -119,7 +119,6 @@ class CloudWatchResponse(BaseResponse):
     def put_metric_data(self):
         namespace = self._get_param("Namespace")
         metric_data = self._get_multi_param("MetricData.member")
-
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
@@ -151,7 +150,7 @@ class CloudWatchResponse(BaseResponse):
         unit = self._get_param("Unit")
         extended_statistics = self._get_param("ExtendedStatistics")
         dimensions = self._get_param("Dimensions")
-        if unit or extended_statistics or dimensions:
+        if extended_statistics or dimensions:
             raise NotImplementedError()
 
         # TODO: this should instead throw InvalidParameterCombination
@@ -161,7 +160,7 @@ class CloudWatchResponse(BaseResponse):
             )
 
         datapoints = self.cloudwatch_backend.get_metric_statistics(
-            namespace, metric_name, start_time, end_time, period, statistics
+            namespace, metric_name, start_time, end_time, period, statistics, unit
         )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
@@ -455,11 +454,6 @@ PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.am
 </PutMetricDataResponse>"""
 
 GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
    <GetMetricDataResult>
        <MetricDataResults>
            {% for result in results %}
@@ -481,15 +475,14 @@ GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.am
             {% endfor %}
        </MetricDataResults>
    </GetMetricDataResult>
+   <ResponseMetadata>
+       <RequestId>
+            {{ request_id }}
+       </RequestId>
+   </ResponseMetadata>
 </GetMetricDataResponse>"""
 
 GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
-
   <GetMetricStatisticsResult>
       <Label>{{ label }}</Label>
       <Datapoints>
@@ -520,11 +513,18 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
               {% endif %}
 
               <Timestamp>{{ datapoint.timestamp }}</Timestamp>
+              {% if datapoint.unit is not none %}
               <Unit>{{ datapoint.unit }}</Unit>
+              {% endif %}
             </member>
         {% endfor %}
       </Datapoints>
     </GetMetricStatisticsResult>
+    <ResponseMetadata>
+      <RequestId>
+        {{ request_id }}
+      </RequestId>
+    </ResponseMetadata>
 </GetMetricStatisticsResponse>"""
 
 LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">

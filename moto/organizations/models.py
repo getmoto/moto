@@ -71,7 +71,7 @@ class FakeAccount(BaseModel):
         self.joined_method = "CREATED"
         self.parent_id = organization.root_id
         self.attached_policies = []
-        self.tags = {}
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     @property
     def arn(self):
@@ -114,6 +114,7 @@ class FakeOrganizationalUnit(BaseModel):
         self.parent_id = kwargs.get("ParentId")
         self._arn_format = utils.OU_ARN_FORMAT
         self.attached_policies = []
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     @property
     def arn(self):
@@ -143,6 +144,7 @@ class FakeRoot(FakeOrganizationalUnit):
         self.policy_types = [{"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}]
         self._arn_format = utils.ROOT_ARN_FORMAT
         self.attached_policies = []
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     def describe(self):
         return {
@@ -459,6 +461,27 @@ class OrganizationsBackend(BaseBackend):
         )
         return account.create_account_status
 
+    def list_create_account_status(self, **kwargs):
+        requested_states = kwargs.get("States")
+        if not requested_states:
+            requested_states = ["IN_PROGRESS", "SUCCEEDED", "FAILED"]
+        accountStatuses = []
+        for account in self.accounts:
+            create_account_status = account.create_account_status["CreateAccountStatus"]
+            if create_account_status["State"] in requested_states:
+                accountStatuses.append(create_account_status)
+        token = kwargs.get("NextToken")
+        if token:
+            start = int(token)
+        else:
+            start = 0
+        max_results = int(kwargs.get("MaxResults", 123))
+        accounts_resp = accountStatuses[start : start + max_results]
+        next_token = None
+        if max_results and len(accountStatuses) > (start + max_results):
+            next_token = str(len(accounts_resp))
+        return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
+
     def list_accounts(self):
         return dict(Accounts=[account.describe() for account in self.accounts])
 
@@ -633,6 +656,25 @@ class OrganizationsBackend(BaseBackend):
             ]
         )
 
+    def _get_resource_for_tagging(self, resource_id):
+        if utils.fullmatch(
+            re.compile(utils.OU_ID_REGEX), resource_id
+        ) or utils.fullmatch(utils.ROOT_ID_REGEX, resource_id):
+            resource = next((a for a in self.ou if a.id == resource_id), None)
+        elif utils.fullmatch(re.compile(utils.ACCOUNT_ID_REGEX), resource_id):
+            resource = next((a for a in self.accounts if a.id == resource_id), None)
+        elif utils.fullmatch(re.compile(utils.POLICY_ID_REGEX), resource_id):
+            resource = next((a for a in self.policies if a.id == resource_id), None)
+        else:
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
+
+        if resource is None:
+            raise TargetNotFoundException
+
+        return resource
+
     def list_targets_for_policy(self, **kwargs):
         if re.compile(utils.POLICY_ID_REGEX).match(kwargs["PolicyId"]):
             policy = next(
@@ -652,37 +694,19 @@ class OrganizationsBackend(BaseBackend):
         return dict(Targets=objects)
 
     def tag_resource(self, **kwargs):
-        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
-
-        if account is None:
-            raise InvalidInputException(
-                "You provided a value that does not match the required pattern."
-            )
-
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
-        account.tags.update(new_tags)
+        resource.tags.update(new_tags)
 
     def list_tags_for_resource(self, **kwargs):
-        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
-
-        if account is None:
-            raise InvalidInputException(
-                "You provided a value that does not match the required pattern."
-            )
-
-        tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
+        tags = [{"Key": key, "Value": value} for key, value in resource.tags.items()]
         return dict(Tags=tags)
 
     def untag_resource(self, **kwargs):
-        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
-
-        if account is None:
-            raise InvalidInputException(
-                "You provided a value that does not match the required pattern."
-            )
-
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         for key in kwargs["TagKeys"]:
-            account.tags.pop(key, None)
+            resource.tags.pop(key, None)
 
     def enable_aws_service_access(self, **kwargs):
         service = FakeServiceAccess(**kwargs)

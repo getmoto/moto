@@ -34,6 +34,7 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
+from moto.utilities.utils import load_resource
 from os import listdir
 
 from .exceptions import (
@@ -169,12 +170,7 @@ from .utils import (
 )
 
 
-def _load_resource(filename):
-    with open(filename, "r") as f:
-        return json.load(f)
-
-
-INSTANCE_TYPES = _load_resource(
+INSTANCE_TYPES = load_resource(
     resource_filename(__name__, "resources/instance_types.json")
 )
 
@@ -190,10 +186,10 @@ for location_type in listdir(resource_filename(__name__, offerings_path)):
         )
         INSTANCE_TYPE_OFFERINGS[location_type][
             region.replace(".json", "")
-        ] = _load_resource(full_path)
+        ] = load_resource(full_path)
 
 
-AMIS = _load_resource(
+AMIS = load_resource(
     os.environ.get("MOTO_AMIS_PATH")
     or resource_filename(__name__, "resources/amis.json"),
 )
@@ -483,10 +479,10 @@ class NetworkInterfaceBackend(object):
 
         found_eni.instance.detach_eni(found_eni)
 
-    def modify_network_interface_attribute(self, eni_id, group_id):
+    def modify_network_interface_attribute(self, eni_id, group_ids):
         eni = self.get_network_interface(eni_id)
-        group = self.get_security_group_from_id(group_id)
-        eni._group_set = [group]
+        groups = [self.get_security_group_from_id(group_id) for group_id in group_ids]
+        eni._group_set = groups
 
     def get_all_network_interfaces(self, eni_ids=None, filters=None):
         enis = self.enis.values()
@@ -616,9 +612,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         snapshot_id=None,
         encrypted=False,
         delete_on_termination=False,
+        kms_key_id=None,
     ):
         volume = self.ec2_backend.create_volume(
-            size, self.region_name, snapshot_id, encrypted
+            size, self.region_name, snapshot_id, encrypted, kms_key_id
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination
@@ -971,6 +968,7 @@ class InstanceBackend(object):
 
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get("instance", {})
+        volume_tags = tags.get("volume", {})
 
         for index in range(count):
             kwargs["ami_launch_index"] = index
@@ -988,15 +986,22 @@ class InstanceBackend(object):
                     delete_on_termination = block_device["Ebs"].get(
                         "DeleteOnTermination", False
                     )
+                    kms_key_id = block_device["Ebs"].get("KmsKeyId")
                     new_instance.add_block_device(
                         volume_size,
                         device_name,
                         snapshot_id,
                         encrypted,
                         delete_on_termination,
+                        kms_key_id,
                     )
             else:
                 new_instance.setup_defaults()
+            # Tag all created volumes.
+            for _, device in new_instance.get_block_device_mapping:
+                volumes = self.describe_volumes(volume_ids=[device.volume_id])
+                for volume in volumes:
+                    volume.add_tags(volume_tags)
 
         return new_reservation
 
@@ -1160,9 +1165,11 @@ class InstanceTypeBackend(object):
     def describe_instance_types(self, instance_types=None):
         matches = INSTANCE_TYPES.values()
         if instance_types:
-            matches = [t for t in matches if t.get("apiname") in instance_types]
+            matches = [t for t in matches if t.get("InstanceType") in instance_types]
             if len(instance_types) > len(matches):
-                unknown_ids = set(instance_types) - set(matches)
+                unknown_ids = set(instance_types) - set(
+                    t.get("InstanceType") for t in matches
+                )
                 raise InvalidInstanceTypeError(unknown_ids)
         return matches
 
@@ -1780,9 +1787,19 @@ class RegionsAndZonesBackend(object):
         "ap-northeast-3": [
             Zone(
                 region_name="ap-northeast-3",
-                name="ap-northeast-2a",
+                name="ap-northeast-3a",
                 zone_id="apne3-az1",
-            )
+            ),
+            Zone(
+                region_name="ap-northeast-3",
+                name="ap-northeast-3b",
+                zone_id="apne3-az2",
+            ),
+            Zone(
+                region_name="ap-northeast-3",
+                name="ap-northeast-3c",
+                zone_id="apne3-az3",
+            ),
         ],
         "ap-northeast-2": [
             Zone(
@@ -1792,8 +1809,18 @@ class RegionsAndZonesBackend(object):
             ),
             Zone(
                 region_name="ap-northeast-2",
+                name="ap-northeast-2b",
+                zone_id="apne2-az2",
+            ),
+            Zone(
+                region_name="ap-northeast-2",
                 name="ap-northeast-2c",
                 zone_id="apne2-az3",
+            ),
+            Zone(
+                region_name="ap-northeast-2",
+                name="ap-northeast-2d",
+                zone_id="apne2-az4",
             ),
         ],
         "ap-northeast-1": [
@@ -1966,10 +1993,11 @@ class SecurityRule(object):
         self.ip_protocol = ip_protocol
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
+        self.from_port = self.to_port = None
 
         if ip_protocol != "-1":
-            self.from_port = from_port
-            self.to_port = to_port
+            self.from_port = int(from_port)
+            self.to_port = int(to_port)
 
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
@@ -2077,7 +2105,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             security_group.delete(region_name)
 
     def delete(self, region_name):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
 
     @property
@@ -2133,10 +2161,11 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def add_ingress_rule(self, rule):
         if rule in self.ingress_rules:
             raise InvalidPermissionDuplicateError()
-        else:
-            self.ingress_rules.append(rule)
+        self.ingress_rules.append(rule)
 
     def add_egress_rule(self, rule):
+        if rule in self.egress_rules:
+            raise InvalidPermissionDuplicateError()
         self.egress_rules.append(rule)
 
     def get_number_of_ingress_rules(self):
@@ -2246,6 +2275,8 @@ class SecurityGroupBackend(object):
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges:
             if isinstance(ip_ranges, str) or (
                 six.PY2 and isinstance(ip_ranges, unicode)  # noqa
@@ -2334,6 +2365,8 @@ class SecurityGroupBackend(object):
     ):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges and not isinstance(ip_ranges, list):
 
             if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
@@ -4012,6 +4045,10 @@ class SubnetRouteTableAssociation(CloudFormationModel):
         self.route_table_id = route_table_id
         self.subnet_id = subnet_id
 
+    @property
+    def physical_resource_id(self):
+        return self.route_table_id
+
     @staticmethod
     def cloudformation_name_type():
         return None
@@ -4161,7 +4198,7 @@ class RouteTableBackend(object):
         self.route_tables.pop(route_table_id)
         return True
 
-    def associate_route_table(self, route_table_id, subnet_id):
+    def associate_route_table(self, route_table_id, gateway_id=None, subnet_id=None):
         # Idempotent if association already exists.
         route_tables_by_subnet = self.get_all_route_tables(
             filters={"association.subnet-id": [subnet_id]}
@@ -4175,10 +4212,15 @@ class RouteTableBackend(object):
 
         # Association does not yet exist, so create it.
         route_table = self.get_route_table(route_table_id)
-        self.get_subnet(subnet_id)  # Validate subnet exists
-        association_id = random_subnet_association_id()
-        route_table.associations[association_id] = subnet_id
-        return association_id
+        if gateway_id is None:
+            self.get_subnet(subnet_id)  # Validate subnet exists
+            association_id = random_subnet_association_id()
+            route_table.associations[association_id] = subnet_id
+            return association_id
+        if subnet_id is None:
+            association_id = random_subnet_association_id()
+            route_table.associations[association_id] = gateway_id
+            return association_id
 
     def disassociate_route_table(self, association_id):
         for route_table in self.route_tables.values():
@@ -4230,6 +4272,10 @@ class Route(CloudFormationModel):
         self.nat_gateway = nat_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     @staticmethod
     def cloudformation_name_type():
@@ -5630,10 +5676,13 @@ class NetworkAclAssociation(object):
 
 
 class NetworkAcl(TaggedEC2Resource):
-    def __init__(self, ec2_backend, network_acl_id, vpc_id, default=False):
+    def __init__(
+        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID,
+    ):
         self.ec2_backend = ec2_backend
         self.id = network_acl_id
         self.vpc_id = vpc_id
+        self.owner_id = owner_id
         self.network_acl_entries = []
         self.associations = {}
         self.default = "true" if default is True else "false"
@@ -5647,6 +5696,8 @@ class NetworkAcl(TaggedEC2Resource):
             return self.id
         elif filter_name == "association.subnet-id":
             return [assoc.subnet_id for assoc in self.associations.values()]
+        elif filter_name == "owner-id":
+            return self.owner_id
         else:
             return super(NetworkAcl, self).get_filter_value(
                 filter_name, "DescribeNetworkAcls"
@@ -5819,6 +5870,10 @@ class NatGateway(CloudFormationModel):
         # associate allocation with ENI
         self._backend.associate_address(eni=self._eni, allocation_id=self.allocation_id)
         self.tags = tags
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     @property
     def vpc_id(self):

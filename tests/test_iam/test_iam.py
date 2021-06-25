@@ -674,20 +674,15 @@ def test_get_aws_managed_policy_version():
 
 
 @mock_iam
-def test_get_aws_managed_policy_v4_version():
+def test_get_aws_managed_policy_v6_version():
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = "arn:aws:iam::aws:policy/job-function/SystemAdministrator"
-    managed_policy_version_create_date = datetime.strptime(
-        "2018-10-08T21:33:45+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
-    )
     with pytest.raises(ClientError):
         conn.get_policy_version(
             PolicyArn=managed_policy_arn, VersionId="v2-does-not-exist"
         )
-    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v4")
-    retrieved["PolicyVersion"]["CreateDate"].replace(tzinfo=None).should.equal(
-        managed_policy_version_create_date
-    )
+    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v6")
+    retrieved["PolicyVersion"]["CreateDate"].replace(tzinfo=None).should.be.an(datetime)
     retrieved["PolicyVersion"]["Document"].should.be.an(dict)
 
 
@@ -813,6 +808,7 @@ def test_list_users():
     user["UserName"].should.equal("my-user")
     user["Path"].should.equal("/")
     user["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    response["IsTruncated"].should.equal(False)
 
     conn.create_user(UserName="my-user-1", Path="myUser")
     response = conn.list_users(PathPrefix="my")
@@ -4034,6 +4030,40 @@ def test_list_roles_none_found_returns_empty_list():
     assert len(roles) == 0
 
 
+@pytest.mark.parametrize("desc", ["", "Test Description"])
+@mock_iam()
+def test_list_roles_with_description(desc):
+    conn = boto3.client("iam", region_name="us-east-1")
+    resp = conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Description=desc,
+    )
+    resp.get("Role").get("Description").should.equal(desc)
+
+    # Ensure the Description is included in role listing as well
+    conn.list_roles().get("Roles")[0].get("Description").should.equal(desc)
+
+
+@mock_iam()
+def test_list_roles_without_description():
+    conn = boto3.client("iam", region_name="us-east-1")
+    resp = conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy",)
+    resp.get("Role").should_not.have.key("Description")
+
+    # Ensure the Description is not included in role listing as well
+    conn.list_roles().get("Roles")[0].should_not.have.key("Description")
+
+
+@mock_iam()
+def test_list_roles_includes_max_session_duration():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy",
+    )
+
+    # Ensure the MaxSessionDuration is included in the role listing
+    conn.list_roles().get("Roles")[0].should.have.key("MaxSessionDuration")
+
+
 @mock_iam()
 def test_create_user_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -4046,7 +4076,8 @@ def test_create_user_with_tags():
     assert resp["User"]["Tags"] == tags
     resp = conn.list_user_tags(UserName=user_name)
     assert resp["Tags"] == tags
-
+    resp = conn.get_user(UserName=user_name)
+    assert resp["User"]["Tags"] == tags
     resp = conn.create_user(UserName="test-create-user-no-tags")
     assert "Tags" not in resp["User"]
 

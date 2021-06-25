@@ -62,6 +62,11 @@ def pascal_to_camelcase(argument):
     return argument[0].lower() + argument[1:]
 
 
+def camelcase_to_pascal(argument):
+    """Converts a camelCase param to the PascalCase equivalent"""
+    return argument[0].upper() + argument[1:]
+
+
 def method_names_from_class(clazz):
     # On Python 2, methods are different from functions, and the `inspect`
     # predicates distinguish between them. On Python 3, methods are just
@@ -225,12 +230,16 @@ def unix_time_millis(dt=None):
 
 def gen_amz_crc32(response, headerdict=None):
     if not isinstance(response, bytes):
-        response = response.encode()
+        response = response.encode("utf-8")
 
-    crc = str(binascii.crc32(response))
+    crc = binascii.crc32(response)
+    if six.PY2:
+        # https://python.readthedocs.io/en/v2.7.2/library/binascii.html
+        # TLDR: Use bitshift to match Py3 behaviour
+        crc = crc & 0xFFFFFFFF
 
     if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amz-crc32": crc})
+        headerdict.update({"x-amz-crc32": str(crc)})
 
     return crc
 

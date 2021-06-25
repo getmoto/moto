@@ -7,6 +7,7 @@ import os
 from boto3 import Session
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import urlparse, parse_qs
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
@@ -26,6 +27,8 @@ from boto.s3.key import Key
 from freezegun import freeze_time
 import six
 import requests
+
+from moto.s3 import models
 from moto.s3.responses import DEFAULT_REGION_NAME
 from unittest import SkipTest
 import pytest
@@ -36,7 +39,7 @@ from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import py2_strip_unicode_keys
-
+from moto.settings import get_s3_default_key_buffer_size
 
 if settings.TEST_SERVER_MODE:
     REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
@@ -64,13 +67,16 @@ def reduced_min_part_size(f):
 
 
 class MyModel(object):
-    def __init__(self, name, value):
+    def __init__(self, name, value, metadata={}):
         self.name = name
         self.value = value
+        self.metadata = metadata
 
     def save(self):
         s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-        s3.put_object(Bucket="mybucket", Key=self.name, Body=self.value)
+        s3.put_object(
+            Bucket="mybucket", Key=self.name, Body=self.value, Metadata=self.metadata
+        )
 
 
 @mock_s3
@@ -130,6 +136,24 @@ def test_my_model_save():
     body = conn.Object("mybucket", "steve").get()["Body"].read().decode()
 
     assert body == "is awesome"
+
+
+@mock_s3
+def test_object_metadata():
+    """Metadata keys can contain certain special characters like dash and dot"""
+    # Create Bucket so that test can run
+    conn = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    conn.create_bucket(Bucket="mybucket")
+    ####################################
+
+    metadata = {"meta": "simple", "my-meta": "dash", "meta.data": "namespaced"}
+
+    model_instance = MyModel("steve", "is awesome", metadata=metadata)
+    model_instance.save()
+
+    meta = conn.Object("mybucket", "steve").get()["Metadata"]
+
+    assert meta == metadata
 
 
 @mock_s3
@@ -978,6 +1002,17 @@ def test_acl_switching():
     ), grants
 
 
+@mock_s3
+def test_acl_switching_nonexistent_key():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    with pytest.raises(ClientError) as e:
+        s3.put_object_acl(Bucket="mybucket", Key="nonexistent", ACL="private")
+
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
+
+
 @mock_s3_deprecated
 def test_bucket_acl_setting():
     conn = boto.connect_s3()
@@ -1090,6 +1125,28 @@ def test_multipart_upload_from_file_to_presigned_url():
     assert data == b"test"
     # cleanup
     os.remove("text.txt")
+
+
+@mock_s3
+def test_default_key_buffer_size():
+    # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
+    original_default_key_buffer_size = os.environ.get(
+        "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", None
+    )
+
+    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
+    assert get_s3_default_key_buffer_size() == 2
+    fk = models.FakeKey("a", os.urandom(1))  # 1 byte string
+    assert fk._value_buffer._rolled == False
+
+    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
+    assert get_s3_default_key_buffer_size() == 1
+    fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
+    assert fk._value_buffer._rolled == True
+
+    # restore original environment variable content
+    if original_default_key_buffer_size:
+        os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
 
 
 @mock_s3
@@ -2253,7 +2310,12 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
         client.abort_multipart_upload(
             Bucket="blah", Key="foobar", UploadId="dummy_upload_id"
         )
-    err.value.response["Error"]["Code"].should.equal("NoSuchUpload")
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NoSuchUpload")
+    err["Message"].should.equal(
+        "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed."
+    )
+    err["UploadId"].should.equal("dummy_upload_id")
 
 
 @mock_s3
@@ -4615,7 +4677,15 @@ def test_s3_acl_to_config_dict():
 
     # Get the config dict with nothing other than the owner details:
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
-    assert acls == {"grantSet": None, "owner": {"displayName": None, "id": OWNER}}
+    owner_acl = {
+        "grantee": {"id": OWNER, "displayName": None},
+        "permission": "FullControl",
+    }
+    assert acls == {
+        "grantSet": None,
+        "owner": {"displayName": None, "id": OWNER},
+        "grantList": [owner_acl],
+    }
 
     # Add some Log Bucket ACLs:
     log_acls = FakeAcl(
@@ -4639,6 +4709,13 @@ def test_s3_acl_to_config_dict():
         "grantList": [
             {"grantee": "LogDelivery", "permission": "Write"},
             {"grantee": "LogDelivery", "permission": "ReadAcp"},
+            {
+                "grantee": {
+                    "displayName": None,
+                    "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                },
+                "permission": "FullControl",
+            },
         ],
         "owner": {"displayName": None, "id": OWNER},
     }
@@ -4758,6 +4835,15 @@ def test_s3_config_dict():
         json.loads(bucket1_result["supplementaryConfiguration"]["AccessControlList"])
     ) == {
         "grantSet": None,
+        "grantList": [
+            {
+                "grantee": {
+                    "displayName": None,
+                    "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
+                },
+                "permission": "FullControl",
+            },
+        ],
         "owner": {
             "displayName": None,
             "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
@@ -4814,9 +4900,11 @@ def test_creating_presigned_post():
         {"success_action_redirect": success_url},
     ]
     conditions.append(["content-length-range", 1, 30])
+
+    real_key = "{file_uid}.txt".format(file_uid=file_uid)
     data = s3.generate_presigned_post(
         Bucket=bucket,
-        Key="{file_uid}.txt".format(file_uid=file_uid),
+        Key=real_key,
         Fields={
             "content-type": "text/plain",
             "success_action_redirect": success_url,
@@ -4828,14 +4916,15 @@ def test_creating_presigned_post():
     resp = requests.post(
         data["url"], data=data["fields"], files={"file": fdata}, allow_redirects=False
     )
-    assert resp.headers["Location"] == success_url
     assert resp.status_code == 303
-    assert (
-        s3.get_object(Bucket=bucket, Key="{file_uid}.txt".format(file_uid=file_uid))[
-            "Body"
-        ].read()
-        == fdata
-    )
+    redirect = resp.headers["Location"]
+    assert redirect.startswith(success_url)
+    parts = urlparse(redirect)
+    args = parse_qs(parts.query)
+    assert args["key"][0] == real_key
+    assert args["bucket"][0] == bucket
+
+    assert s3.get_object(Bucket=bucket, Key=real_key)["Body"].read() == fdata
 
 
 @mock_s3
@@ -4998,10 +5087,10 @@ def test_get_unknown_version_should_throw_specific_error():
 
     with pytest.raises(ClientError) as e:
         client.get_object(Bucket=bucket_name, Key=object_key, VersionId="unknown")
-    e.value.response["Error"]["Code"].should.equal("InvalidArgument")
-    e.value.response["Error"]["Message"].should.equal("Invalid version id specified")
-    e.value.response["Error"]["ArgumentName"].should.equal("versionId")
-    e.value.response["Error"]["ArgumentValue"].should.equal("unknown")
+    e.value.response["Error"]["Code"].should.equal("NoSuchVersion")
+    e.value.response["Error"]["Message"].should.equal(
+        "The specified version does not exist."
+    )
 
 
 @mock_s3

@@ -83,6 +83,10 @@ class CognitoIdpUserPool(BaseModel):
         self.creation_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
 
+        self.mfa_config = "OFF"
+        self.sms_mfa_config = None
+        self.token_mfa_config = None
+
         self.clients = OrderedDict()
         self.identity_providers = OrderedDict()
         self.groups = OrderedDict()
@@ -105,6 +109,7 @@ class CognitoIdpUserPool(BaseModel):
             "Status": self.status,
             "CreationDate": time.mktime(self.creation_date.timetuple()),
             "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
+            "MfaConfiguration": self.mfa_config,
         }
 
     def to_json(self, extended=False):
@@ -195,7 +200,8 @@ class CognitoIdpUserPoolDomain(BaseModel):
                 self.custom_domain_config["CertificateArn"].encode("utf-8")
             ).hexdigest()
             return "{hash}.cloudfront.net".format(hash=hash[:16])
-        return None
+        hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
+        return "{hash}.amazoncognito.com".format(hash=hash[:16])
 
     def to_json(self, extended=True):
         distribution = self._distribution_name()
@@ -389,6 +395,25 @@ class CognitoIdpBackend(BaseBackend):
         user_pool = CognitoIdpUserPool(self.region, name, extended_config)
         self.user_pools[user_pool.id] = user_pool
         return user_pool
+
+    def set_user_pool_mfa_config(
+        self, user_pool_id, sms_config, token_config, mfa_config
+    ):
+        user_pool = self.describe_user_pool(user_pool_id)
+        user_pool.mfa_config = mfa_config
+        user_pool.sms_mfa_config = sms_config
+        user_pool.token_mfa_config = token_config
+
+        return self.get_user_pool_mfa_config(user_pool_id)
+
+    def get_user_pool_mfa_config(self, user_pool_id):
+        user_pool = self.describe_user_pool(user_pool_id)
+
+        return {
+            "SmsMfaConfiguration": user_pool.sms_mfa_config,
+            "SoftwareTokenMfaConfiguration": user_pool.token_mfa_config,
+            "MfaConfiguration": user_pool.mfa_config,
+        }
 
     @paginate(60)
     def list_user_pools(self, max_results=None, next_token=None):
@@ -699,28 +724,7 @@ class CognitoIdpBackend(BaseBackend):
         if not client:
             raise ResourceNotFoundError(client_id)
 
-        if auth_flow == "ADMIN_NO_SRP_AUTH":
-            username = auth_parameters.get("USERNAME")
-            password = auth_parameters.get("PASSWORD")
-            user = user_pool.users.get(username)
-            if not user:
-                raise UserNotFoundError(username)
-
-            if user.password != password:
-                raise NotAuthorizedError(username)
-
-            if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
-                session = str(uuid.uuid4())
-                self.sessions[session] = user_pool
-
-                return {
-                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
-                    "ChallengeParameters": {},
-                    "Session": session,
-                }
-
-            return self._log_user_in(user_pool, client, username)
-        elif auth_flow == "ADMIN_USER_PASSWORD_AUTH":
+        if auth_flow in ("ADMIN_USER_PASSWORD_AUTH", "ADMIN_NO_SRP_AUTH"):
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
             user = user_pool.users.get(username)
@@ -903,6 +907,8 @@ class CognitoIdpBackend(BaseBackend):
                 user_pool = p
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
+        elif username in user_pool.users:
+            raise UsernameExistsException(username)
 
         user = CognitoIdpUser(
             user_pool_id=user_pool.id,

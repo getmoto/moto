@@ -36,6 +36,29 @@ class TemplateNameAlreadyExists(RESTError):
         )
 
 
+class ValidationError(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ValidationError, self).__init__("ValidationError", message)
+
+
+class InvalidParameterValue(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidParameterValue, self).__init__("InvalidParameterValue", message)
+
+
+class InvalidRenderingParameterException:
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidRenderingParameterException, self).__init__(
+            "InvalidRenderingParameterException", message
+        )
+
+
 class TemplateDoesNotExist(RESTError):
     code = 400
 
@@ -64,3 +87,13 @@ class RuleSetDoesNotExist(RESTError):
 
     def __init__(self, message):
         super(RuleSetDoesNotExist, self).__init__("RuleSetDoesNotExist", message)
+
+
+class MissingRenderingAttributeException(RESTError):
+    code = 400
+
+    def __init__(self, var):
+        super(MissingRenderingAttributeException, self).__init__(
+            "MissingRenderingAttributeException",
+            "Attribute '{0}' is not present in the rendering data.".format(var),
+        )

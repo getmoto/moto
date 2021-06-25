@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from botocore.exceptions import ClientError
 import boto3
+import pytest
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
 from moto.core import ACCOUNT_ID
@@ -30,7 +31,7 @@ def test_create_database():
     db_instance["MasterUsername"].should.equal("root")
     db_instance["DBSecurityGroups"][0]["DBSecurityGroupName"].should.equal("my_sg")
     db_instance["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
     db_instance["DBInstanceStatus"].should.equal("available")
     db_instance["DBName"].should.equal("staging-postgres")
@@ -311,7 +312,7 @@ def test_get_databases():
     list(instances["DBInstances"]).should.have.length_of(1)
     instances["DBInstances"][0]["DBInstanceIdentifier"].should.equal("db-master-1")
     instances["DBInstances"][0]["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
 
 
@@ -469,14 +470,6 @@ def test_delete_database():
         "DBSnapshots"
     )
     snapshots[0].get("Engine").should.equal("postgres")
-
-
-@mock_rds2
-def test_delete_non_existent_database():
-    conn = boto3.client("rds2", region_name="us-west-2")
-    conn.delete_db_instance.when.called_with(
-        DBInstanceIdentifier="not-a-db"
-    ).should.throw(ClientError)
 
 
 @mock_rds2
@@ -793,9 +786,12 @@ def test_modify_non_existent_option_group():
 @mock_rds2
 def test_delete_non_existent_database():
     conn = boto3.client("rds", region_name="us-west-2")
-    conn.delete_db_instance.when.called_with(
-        DBInstanceIdentifier="not-a-db"
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.delete_db_instance(DBInstanceIdentifier="non-existent")
+    ex.value.response["Error"]["Code"].should.equal("DBInstanceNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "DBInstance non-existent not found."
+    )
 
 
 @mock_rds2

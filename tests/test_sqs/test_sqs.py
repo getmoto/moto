@@ -275,6 +275,63 @@ def test_message_send_with_attributes():
 
 
 @mock_sqs
+def test_message_retention_period():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName="blah", Attributes={"MessageRetentionPeriod": "3"}
+    )
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    messages = queue.receive_messages()
+    assert len(messages) == 1
+
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    time.sleep(5)
+    messages = queue.receive_messages()
+    assert len(messages) == 0
+
+
+@mock_sqs
+def test_queue_retention_period():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName="blah", Attributes={"MessageRetentionPeriod": "3"}
+    )
+
+    time.sleep(5)
+
+    queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "SOME_Valid.attribute-Name": {
+                "StringValue": "1493147359900",
+                "DataType": "Number",
+            }
+        },
+    )
+
+    messages = queue.receive_messages()
+    assert len(messages) == 1
+
+
+@mock_sqs
 def test_message_with_invalid_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
@@ -403,7 +460,9 @@ def test_send_message_with_message_group_id():
         MessageGroupId="group_id_1",
     )
 
-    messages = queue.receive_messages()
+    messages = queue.receive_messages(
+        AttributeNames=["MessageDeduplicationId", "MessageGroupId"]
+    )
     messages.should.have.length_of(1)
 
     message_attributes = messages[0].attributes
@@ -635,6 +694,9 @@ def test_send_receive_message_without_attributes():
     message1.shouldnt.have.key("MD5OfMessageAttributes")
     message2.shouldnt.have.key("MD5OfMessageAttributes")
 
+    message1.should_not.have.key("Attributes")
+    message2.should_not.have.key("Attributes")
+
 
 @mock_sqs
 def test_send_receive_message_with_attributes():
@@ -738,6 +800,41 @@ def test_send_receive_message_with_attributes_with_labels():
 
 
 @mock_sqs
+def test_change_message_visibility_than_permitted():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+
+    with freeze_time("2015-01-01 12:00:00"):
+        conn.create_queue(QueueName="test-queue-visibility")
+        queue = sqs.Queue("test-queue-visibility")
+        queue.send_message(MessageBody="derp")
+        messages = conn.receive_message(QueueUrl=queue.url)
+        messages.get("Messages").should.have.length_of(1)
+
+        conn.change_message_visibility(
+            QueueUrl=queue.url,
+            ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
+            VisibilityTimeout=360,
+        )
+
+    with freeze_time("2015-01-01 12:05:00"):
+
+        with pytest.raises(ClientError) as err:
+            conn.change_message_visibility(
+                QueueUrl=queue.url,
+                ReceiptHandle=messages.get("Messages")[0].get("ReceiptHandle"),
+                VisibilityTimeout=43200,
+            )
+
+        ex = err.value
+        ex.operation_name.should.equal("ChangeMessageVisibility")
+        ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
+
+
+@mock_sqs
 def test_send_receive_message_timestamps():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -747,9 +844,11 @@ def test_send_receive_message_timestamps():
     response = queue.send_message(MessageBody="derp")
     assert response["ResponseMetadata"]["RequestId"]
 
-    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=1)[
-        "Messages"
-    ]
+    messages = conn.receive_message(
+        QueueUrl=queue.url,
+        AttributeNames=["ApproximateFirstReceiveTimestamp", "SentTimestamp"],
+        MaxNumberOfMessages=1,
+    )["Messages"]
 
     message = messages[0]
     sent_timestamp = message.get("Attributes").get("SentTimestamp")
@@ -759,6 +858,283 @@ def test_send_receive_message_timestamps():
 
     int.when.called_with(sent_timestamp).shouldnt.throw(ValueError)
     int.when.called_with(approximate_first_receive_timestamp).shouldnt.throw(ValueError)
+
+
+@mock_sqs
+@pytest.mark.parametrize(
+    "attribute_name,expected",
+    [
+        (
+            "All",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
+                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should_not.be.empty,
+                "SentTimestamp": lambda x: x.should_not.be.empty,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "ApproximateFirstReceiveTimestamp",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "ApproximateReceiveCount",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "SenderId",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should_not.be.empty,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "SentTimestamp",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should_not.be.empty,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+    ],
+    ids=[
+        "All",
+        "ApproximateFirstReceiveTimestamp",
+        "ApproximateReceiveCount",
+        "SenderId",
+        "SentTimestamp",
+    ],
+)
+def test_send_receive_message_with_attribute_name(attribute_name, expected):
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    client = boto3.client("sqs", region_name="us-east-1")
+    client.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    body_one = "this is a test message"
+    body_two = "this is another test message"
+
+    queue.send_message(MessageBody=body_one)
+    queue.send_message(MessageBody=body_two)
+
+    messages = client.receive_message(
+        QueueUrl=queue.url, AttributeNames=[attribute_name], MaxNumberOfMessages=2
+    )["Messages"]
+
+    message1 = messages[0]
+    message2 = messages[1]
+
+    message1["Body"].should.equal(body_one)
+    message2["Body"].should.equal(body_two)
+
+    message1.shouldnt.have.key("MD5OfMessageAttributes")
+    message2.shouldnt.have.key("MD5OfMessageAttributes")
+
+    expected["ApproximateFirstReceiveTimestamp"](
+        message1["Attributes"].get("ApproximateFirstReceiveTimestamp")
+    )
+    expected["ApproximateReceiveCount"](
+        message1["Attributes"].get("ApproximateReceiveCount")
+    )
+    expected["MessageDeduplicationId"](
+        message1["Attributes"].get("MessageDeduplicationId")
+    )
+    expected["MessageGroupId"](message1["Attributes"].get("MessageGroupId"))
+    expected["SenderId"](message1["Attributes"].get("SenderId"))
+    expected["SentTimestamp"](message1["Attributes"].get("SentTimestamp"))
+    expected["SequenceNumber"](message1["Attributes"].get("SequenceNumber"))
+
+    expected["ApproximateFirstReceiveTimestamp"](
+        message2["Attributes"].get("ApproximateFirstReceiveTimestamp")
+    )
+    expected["ApproximateReceiveCount"](
+        message2["Attributes"].get("ApproximateReceiveCount")
+    )
+    expected["MessageDeduplicationId"](
+        message2["Attributes"].get("MessageDeduplicationId")
+    )
+    expected["MessageGroupId"](message2["Attributes"].get("MessageGroupId"))
+    expected["SenderId"](message2["Attributes"].get("SenderId"))
+    expected["SentTimestamp"](message2["Attributes"].get("SentTimestamp"))
+    expected["SequenceNumber"](message2["Attributes"].get("SequenceNumber"))
+
+
+@mock_sqs
+@pytest.mark.parametrize(
+    "attribute_name,expected",
+    [
+        (
+            "All",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
+                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
+                "MessageDeduplicationId": lambda x: x.should.equal("123"),
+                "MessageGroupId": lambda x: x.should.equal("456"),
+                "SenderId": lambda x: x.should_not.be.empty,
+                "SentTimestamp": lambda x: x.should_not.be.empty,
+                "SequenceNumber": lambda x: x.should_not.be.empty,
+            },
+        ),
+        (
+            "ApproximateFirstReceiveTimestamp",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "ApproximateReceiveCount",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "MessageDeduplicationId",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.equal("123"),
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "MessageGroupId",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.equal("456"),
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "SenderId",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should_not.be.empty,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "SentTimestamp",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should_not.be.empty,
+                "SequenceNumber": lambda x: x.should.be.none,
+            },
+        ),
+        (
+            "SequenceNumber",
+            {
+                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
+                "ApproximateReceiveCount": lambda x: x.should.be.none,
+                "MessageDeduplicationId": lambda x: x.should.be.none,
+                "MessageGroupId": lambda x: x.should.be.none,
+                "SenderId": lambda x: x.should.be.none,
+                "SentTimestamp": lambda x: x.should.be.none,
+                "SequenceNumber": lambda x: x.should_not.be.empty,
+            },
+        ),
+    ],
+    ids=[
+        "All",
+        "ApproximateFirstReceiveTimestamp",
+        "ApproximateReceiveCount",
+        "MessageDeduplicationId",
+        "MessageGroupId",
+        "SenderId",
+        "SentTimestamp",
+        "SequenceNumber",
+    ],
+)
+def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected):
+    client = boto3.client("sqs", region_name="us-east-1")
+    queue_url = client.create_queue(
+        QueueName="test-queue.fifo", Attributes={"FifoQueue": "true"}
+    )["QueueUrl"]
+
+    body = "this is a test message"
+
+    client.send_message(
+        QueueUrl=queue_url,
+        MessageBody=body,
+        MessageDeduplicationId="123",
+        MessageGroupId="456",
+    )
+
+    message = client.receive_message(
+        QueueUrl=queue_url, AttributeNames=[attribute_name], MaxNumberOfMessages=2
+    )["Messages"][0]
+
+    message["Body"].should.equal(body)
+
+    message.should_not.have.key("MD5OfMessageAttributes")
+
+    expected["ApproximateFirstReceiveTimestamp"](
+        message["Attributes"].get("ApproximateFirstReceiveTimestamp")
+    )
+    expected["ApproximateReceiveCount"](
+        message["Attributes"].get("ApproximateReceiveCount")
+    )
+    expected["MessageDeduplicationId"](
+        message["Attributes"].get("MessageDeduplicationId")
+    )
+    expected["MessageGroupId"](message["Attributes"].get("MessageGroupId"))
+    expected["SenderId"](message["Attributes"].get("SenderId"))
+    expected["SentTimestamp"](message["Attributes"].get("SentTimestamp"))
+    expected["SequenceNumber"](message["Attributes"].get("SequenceNumber"))
 
 
 @mock_sqs
@@ -978,7 +1354,7 @@ def test_message_attributes():
 
     queue.count().should.equal(1)
 
-    messages = conn.receive_message(queue, number_messages=1)
+    messages = conn.receive_message(queue, number_messages=1, attributes=["All"])
     queue.count().should.equal(0)
 
     assert len(messages) == 1
@@ -1312,6 +1688,7 @@ def test_send_message_batch():
         QueueUrl=queue_url,
         MaxNumberOfMessages=10,
         MessageAttributeNames=["attribute_name_1", "attribute_name_2"],
+        AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
     )
 
     response["Messages"][0]["Body"].should.equal("body_1")
@@ -1526,7 +1903,7 @@ def test_batch_change_message_visibility():
             {
                 "Id": str(uuid.uuid4()),
                 "ReceiptHandle": handle,
-                "VisibilityTimeout": 43200,
+                "VisibilityTimeout": 43000,
             }
             for handle in handles
         ]
@@ -1934,29 +2311,30 @@ def test_queue_with_dlq():
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        resp["Messages"][0]["Body"].should.equal("msg1")
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     with freeze_time("2015-01-01 13:01:00"):
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        resp["Messages"][0]["Body"].should.equal("msg1")
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     with freeze_time("2015-01-01 13:02:00"):
         resp = sqs.receive_message(
             QueueUrl=queue_url2, VisibilityTimeout=30, WaitTimeSeconds=0
         )
-        len(resp["Messages"]).should.equal(1)
+        assert len(resp["Messages"]) == 1
 
-    resp = sqs.receive_message(
-        QueueUrl=queue_url1, VisibilityTimeout=30, WaitTimeSeconds=0
-    )
-    resp["Messages"][0]["Body"].should.equal("msg1")
+    with freeze_time("2015-01-01 13:02:00"):
+        resp = sqs.receive_message(
+            QueueUrl=queue_url1, VisibilityTimeout=30, WaitTimeSeconds=0
+        )
+        assert resp["Messages"][0]["Body"] == "msg1"
 
     # Might as well test list source queues
 
     resp = sqs.list_dead_letter_source_queues(QueueUrl=queue_url1)
-    resp["queueUrls"][0].should.equal(queue_url2)
+    assert resp["queueUrls"][0] == queue_url2
 
 
 @mock_sqs
@@ -2062,7 +2440,9 @@ def test_receive_messages_with_message_group_id():
     queue.send_message(MessageBody="message-3", MessageGroupId="group")
     queue.send_message(MessageBody="separate-message", MessageGroupId="anothergroup")
 
-    messages = queue.receive_messages(MaxNumberOfMessages=2)
+    messages = queue.receive_messages(
+        MaxNumberOfMessages=2, AttributeNames=["MessageGroupId"]
+    )
     messages.should.have.length_of(2)
     messages[0].attributes["MessageGroupId"].should.equal("group")
 
@@ -2348,7 +2728,7 @@ def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 @mock_sqs
 def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise SkipTest("Cant patch env variables in server mode")
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     msg_queue = sqs.create_queue(
@@ -2449,4 +2829,32 @@ def test_receive_message_should_not_accept_invalid_urls():
     err["Code"].should.equal("InvalidAddress")
     err["Message"].should.equal(
         "The address test-queue is not valid for this endpoint."
+    )
+
+
+@mock_sqs
+def test_message_attributes_in_receive_message():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageSystemAttributes={
+            "AWSTraceHeader": {
+                "StringValue": "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1",
+                "DataType": "String",
+            }
+        },
+    )
+
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
+    )["Messages"]
+
+    assert (
+        messages[0]["Attributes"]["AWSTraceHeader"]
+        == "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1"
     )

@@ -178,13 +178,13 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         response = {"Parameters": [], "InvalidParameters": []}
 
-        for parameter in result:
+        for name, parameter in result.items():
             param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
-        param_names = [param.name for param in result]
+        valid_param_names = [name for name, parameter in result.items()]
         for name in names:
-            if name not in param_names:
+            if name not in valid_param_names:
                 response["InvalidParameters"].append(name)
         return json.dumps(response)
 
@@ -247,9 +247,10 @@ class SimpleSystemManagerResponse(BaseResponse):
         allowed_pattern = self._get_param("AllowedPattern")
         keyid = self._get_param("KeyId")
         overwrite = self._get_param("Overwrite", False)
+        tags = self._get_param("Tags", [])
 
         result = self.ssm_backend.put_parameter(
-            name, description, value, type_, allowed_pattern, keyid, overwrite
+            name, description, value, type_, allowed_pattern, keyid, overwrite, tags
         )
 
         if result is None:
@@ -265,8 +266,12 @@ class SimpleSystemManagerResponse(BaseResponse):
     def get_parameter_history(self):
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 50)
 
-        result = self.ssm_backend.get_parameter_history(name, with_decryption)
+        result, new_next_token = self.ssm_backend.get_parameter_history(
+            name, with_decryption, next_token, max_results
+        )
 
         if result is None:
             error = {
@@ -281,6 +286,9 @@ class SimpleSystemManagerResponse(BaseResponse):
                 decrypt=with_decryption, include_labels=True
             )
             response["Parameters"].append(param_data)
+
+        if new_next_token is not None:
+            response["NextToken"] = new_next_token
 
         return json.dumps(response)
 

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import re
 import sys
 
@@ -11,7 +12,14 @@ from moto.core.utils import (
     py2_strip_unicode_keys,
     unix_time_millis,
 )
-from six.moves.urllib.parse import parse_qs, urlparse, unquote, parse_qsl
+from six.moves.urllib.parse import (
+    parse_qs,
+    parse_qsl,
+    urlparse,
+    unquote,
+    urlencode,
+    urlunparse,
+)
 
 import xmltodict
 
@@ -19,6 +27,7 @@ from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
 from moto.core import ACCOUNT_ID
+from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
@@ -178,6 +187,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return template.render(buckets=all_buckets)
 
     def subdomain_based_buckets(self, request):
+        if S3_IGNORE_SUBDOMAIN_BUCKETNAME:
+            return False
         host = request.headers.get("host", request.headers.get("Host"))
         if not host:
             host = urlparse(request.url).netloc
@@ -859,10 +870,28 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if "file" in form:
             f = form["file"]
         else:
-            f = request.files["file"].stream.read()
+            fobj = request.files["file"]
+            f = fobj.stream.read()
+            key = key.replace("${filename}", os.path.basename(fobj.filename))
 
         if "success_action_redirect" in form:
-            response_headers["Location"] = form["success_action_redirect"]
+            redirect = form["success_action_redirect"]
+            parts = urlparse(redirect)
+            queryargs = parse_qs(parts.query)
+            queryargs["key"] = key
+            queryargs["bucket"] = bucket_name
+            redirect_queryargs = urlencode(queryargs, doseq=True)
+            newparts = (
+                parts.scheme,
+                parts.netloc,
+                parts.path,
+                parts.params,
+                redirect_queryargs,
+                parts.fragment,
+            )
+            fixed_redirect = urlunparse(newparts)
+
+            response_headers["Location"] = fixed_redirect
 
         if "success_action_status" in form:
             status_code = form["success_action_status"]
@@ -1181,7 +1210,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if key is None and version_id is None:
             raise MissingKey(key_name)
         elif key is None:
-            raise MissingVersion(version_id)
+            raise MissingVersion()
 
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
@@ -1279,8 +1308,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if "acl" in query:
             key = self.backend.get_object(bucket_name, key_name)
             # TODO: Support the XML-based ACL format
-            key.set_acl(acl)
-            return 200, response_headers, ""
+            if key is not None:
+                key.set_acl(acl)
+                return 200, response_headers, ""
+            else:
+                raise MissingKey(key_name)
 
         if "tagging" in query:
             if "versionId" in query:

@@ -616,7 +616,19 @@ class AutoScalingBackend(BaseBackend):
         ebs_optimized,
         associate_public_ip_address,
         block_device_mappings,
+        instance_id=None,
     ):
+        valid_requests = [
+            instance_id is not None,
+            image_id is not None and instance_type is not None,
+        ]
+        if not any(valid_requests):
+            raise ValidationError(
+                "Valid requests must contain either the InstanceID parameter or both the ImageId and InstanceType parameters."
+            )
+        if instance_id is not None:
+            # TODO: https://docs.aws.amazon.com/autoscaling/ec2/userguide/create-lc-with-instanceID.html
+            pass
         launch_configuration = FakeLaunchConfiguration(
             name=name,
             image_id=image_id,
@@ -934,10 +946,10 @@ class AutoScalingBackend(BaseBackend):
         for elb in elbs:
             elb_instace_ids = set(elb.instance_ids)
             self.elb_backend.register_instances(
-                elb.name, group_instance_ids - elb_instace_ids
+                elb.name, group_instance_ids - elb_instace_ids, from_autoscaling=True,
             )
             self.elb_backend.deregister_instances(
-                elb.name, elb_instace_ids - group_instance_ids
+                elb.name, elb_instace_ids - group_instance_ids, from_autoscaling=True,
             )
 
     def update_attached_target_groups(self, group_name):
@@ -995,7 +1007,9 @@ class AutoScalingBackend(BaseBackend):
         group_instance_ids = set(state.instance.id for state in group.instance_states)
         elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
         for elb in elbs:
-            self.elb_backend.deregister_instances(elb.name, group_instance_ids)
+            self.elb_backend.deregister_instances(
+                elb.name, group_instance_ids, from_autoscaling=True
+            )
         group.load_balancers = [
             x for x in group.load_balancers if x not in load_balancer_names
         ]

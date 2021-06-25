@@ -15,6 +15,10 @@ ERROR_WITH_ARGUMENT = """{% extends 'single_error' %}
 <ArgumentValue>{{ value }}</ArgumentValue>{% endblock %}
 """
 
+ERROR_WITH_UPLOADID = """{% extends 'single_error' %}
+{% block extra %}<UploadId>{{ upload_id }}</UploadId>{% endblock %}
+"""
+
 ERROR_WITH_CONDITION_NAME = """{% extends 'single_error' %}
 {% block extra %}<Condition>{{ condition }}</Condition>{% endblock %}
 """
@@ -76,12 +80,21 @@ class MissingKey(S3ClientError):
 class MissingVersion(S3ClientError):
     code = 404
 
+    def __init__(self, *args, **kwargs):
+        super(MissingVersion, self).__init__(
+            "NoSuchVersion", "The specified version does not exist.", *args, **kwargs
+        )
+
+
+class InvalidVersion(S3ClientError):
+    code = 400
+
     def __init__(self, version_id, *args, **kwargs):
         kwargs.setdefault("template", "argument_error")
         kwargs["name"] = "versionId"
         kwargs["value"] = version_id
         self.templates["argument_error"] = ERROR_WITH_ARGUMENT
-        super(MissingVersion, self).__init__(
+        super(InvalidVersion, self).__init__(
             "InvalidArgument", "Invalid version id specified", *args, **kwargs
         )
 
@@ -409,9 +422,15 @@ class NoSystemTags(S3ClientError):
 class NoSuchUpload(S3ClientError):
     code = 404
 
-    def __init__(self):
+    def __init__(self, upload_id, *args, **kwargs):
+        kwargs.setdefault("template", "error_uploadid")
+        kwargs["upload_id"] = upload_id
+        self.templates["error_uploadid"] = ERROR_WITH_UPLOADID
         super(NoSuchUpload, self).__init__(
-            "NoSuchUpload", "The specified multipart upload does not exist."
+            "NoSuchUpload",
+            "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed.",
+            *args,
+            **kwargs
         )
 
 

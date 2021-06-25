@@ -1083,6 +1083,72 @@ def test_boto3_conditions():
 
 
 @mock_dynamodb2
+def test_boto3_conditions_ignorecase():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    dynamodb.put_item(
+        TableName="users",
+        Item={"forum_name": {"S": "the-key"}, "subject": {"S": "100"}},
+    )
+    dynamodb.put_item(
+        TableName="users",
+        Item={"forum_name": {"S": "the-key"}, "subject": {"S": "199"}},
+    )
+    dynamodb.put_item(
+        TableName="users",
+        Item={"forum_name": {"S": "the-key"}, "subject": {"S": "250"}},
+    )
+
+    between_expressions = [
+        "BETWEEN :start  AND  :end",
+        "between :start  and  :end",
+        "Between :start  and  :end",
+        "between :start  AnD  :end",
+    ]
+    for expr in between_expressions:
+        results = dynamodb.query(
+            TableName="users",
+            KeyConditionExpression="forum_name = :forum_name and subject {}".format(
+                expr
+            ),
+            ExpressionAttributeValues={
+                ":forum_name": {"S": "the-key"},
+                ":start": {"S": "100"},
+                ":end": {"S": "200"},
+            },
+        )
+        results["Count"].should.equal(2)
+
+    with pytest.raises(ClientError) as ex:
+        dynamodb.query(
+            TableName="users",
+            KeyConditionExpression="forum_name = :forum_name and BegIns_WiTh(subject, :subject )",
+            ExpressionAttributeValues={
+                ":forum_name": {"S": "the-key"},
+                ":subject": {"S": "1"},
+            },
+        )
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid KeyConditionExpression: Invalid function name; function: BegIns_WiTh"
+    )
+
+
+@mock_dynamodb2
 def test_boto3_put_item_with_conditions():
     import botocore
 

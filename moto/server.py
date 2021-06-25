@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import argparse
 import io
 import json
+import os
 import re
 import signal
 import sys
@@ -113,7 +114,7 @@ class DomainDispatcherApplication(object):
                 if dynamo_api_version > "20111205":
                     host = "dynamodb2"
         elif service == "sagemaker":
-            host = "api.sagemaker.{region}.amazonaws.com".format(
+            host = "api.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
         else:
@@ -262,7 +263,7 @@ def main(argv=sys.argv[1:]):
         "service",
         type=str,
         nargs="?",  # http://stackoverflow.com/a/4480202/731592
-        default=None,
+        default=os.environ.get("MOTO_SERVICE"),
     )
     parser.add_argument(
         "-H", "--host", type=str, help="Which host to bind", default="127.0.0.1"

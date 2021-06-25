@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 from botocore.exceptions import ClientError
 
 import pytest
@@ -339,6 +338,35 @@ def test_create_with_tags():
     len(instances["Instances"][0]["Tags"]).should.equal(3)
 
 
+@mock_ec2
+def test_create_with_volume_tags():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    volume_tags = [
+        {"Key": "MY_TAG1", "Value": "MY_VALUE1"},
+        {"Key": "MY_TAG2", "Value": "MY_VALUE2"},
+    ]
+    instances = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=2,
+        MaxCount=2,
+        InstanceType="t2.micro",
+        TagSpecifications=[{"ResourceType": "volume", "Tags": volume_tags}],
+    ).get("Instances")
+    instance_ids = [i["InstanceId"] for i in instances]
+    instances = (
+        ec2.describe_instances(InstanceIds=instance_ids)
+        .get("Reservations")[0]
+        .get("Instances")
+    )
+    for instance in instances:
+        instance_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+        volumes = ec2.describe_volumes(VolumeIds=[instance_volume["VolumeId"]]).get(
+            "Volumes"
+        )
+        for volume in volumes:
+            sorted(volume["Tags"], key=lambda i: i["Key"]).should.equal(volume_tags)
+
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()
@@ -605,6 +633,29 @@ def test_get_instances_filtering_by_instance_group_id():
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
     )["Reservations"]
     reservations[0]["Instances"].should.have.length_of(1)
+
+
+@mock_ec2
+def test_get_instances_filtering_by_subnet_id():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    vpc_cidr = ipaddress.ip_network("192.168.42.0/24")
+    subnet_cidr = ipaddress.ip_network("192.168.42.0/25")
+
+    resp = client.create_vpc(CidrBlock=str(vpc_cidr),)
+    vpc_id = resp["Vpc"]["VpcId"]
+
+    resp = client.create_subnet(CidrBlock=str(subnet_cidr), VpcId=vpc_id)
+    subnet_id = resp["Subnet"]["SubnetId"]
+
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id,
+    )
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "subnet-id", "Values": [subnet_id]}]
+    )["Reservations"]
+    reservations.should.have.length_of(1)
 
 
 @mock_ec2_deprecated
