@@ -1,22 +1,24 @@
 from __future__ import unicode_literals
 
+import base64
+import boto3
 import json
 import os
 import random
 import re
+
+import moto.cognitoidp.models
+import requests
 import hmac
 import hashlib
-import base64
-
-import requests
 import uuid
 
-import boto3
 
 # noinspection PyUnresolvedReferences
 import sure  # noqa
 from botocore.exceptions import ClientError, ParamValidationError
 from jose import jws, jwk, jwt
+from unittest import SkipTest
 import pytest
 
 from moto import mock_cognitoidp, settings
@@ -1042,9 +1044,17 @@ def test_admin_create_user():
 
     result["User"]["Username"].should.equal(username)
     result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
-    result["User"]["Attributes"].should.have.length_of(1)
-    result["User"]["Attributes"][0]["Name"].should.equal("thing")
-    result["User"]["Attributes"][0]["Value"].should.equal(value)
+    result["User"]["Attributes"].should.have.length_of(5)
+
+    def _verify_attribute(name, v):
+        attr = [a for a in result["User"]["Attributes"] if a["Name"] == name]
+        attr.should.have.length_of(1)
+        attr[0]["Value"].should.equal(v)
+
+    _verify_attribute("thing", value)
+    _verify_attribute("name", "")
+    _verify_attribute("family_name", "")
+    _verify_attribute("email_verified", True)
     result["User"]["Enabled"].should.equal(True)
 
 
@@ -1138,9 +1148,7 @@ def test_admin_get_user():
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(1)
-    result["UserAttributes"][0]["Name"].should.equal("thing")
-    result["UserAttributes"][0]["Value"].should.equal(value)
+    result["UserAttributes"].should.have.length_of(5)
 
 
 @mock_cognitoidp
@@ -1157,6 +1165,34 @@ def test_admin_get_missing_user():
         caught = True
 
     caught.should.be.true
+
+
+@mock_cognitoidp
+def test_get_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    result = conn.get_user(AccessToken=outputs["access_token"])
+    result["Username"].should.equal(outputs["username"])
+    result["UserAttributes"].should.have.length_of(5)
+
+    def _verify_attribute(name, v):
+        attr = [a for a in result["UserAttributes"] if a["Name"] == name]
+        attr.should.have.length_of(1)
+        attr[0]["Value"].should.equal(v)
+
+    _verify_attribute("name", "")
+    _verify_attribute("family_name", "")
+    _verify_attribute("email_verified", True)
+
+
+@mock_cognitoidp
+def test_get_user_unknown_accesstoken():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(AccessToken="n/a")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("Invalid token")
 
 
 @mock_cognitoidp
@@ -1188,6 +1224,24 @@ def test_list_users():
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
+
+
+@mock_cognitoidp
+def test_get_user_unconfirmed():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant patch attributes in server mode.")
+    conn = boto3.client("cognito-idp", "us-west-2")
+    outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+
+    backend = moto.cognitoidp.models.cognitoidp_backends["us-west-2"]
+    user_pool = backend.user_pools[outputs["user_pool_id"]]
+    user_pool.users[outputs["username"]].status = "UNCONFIRMED"
+
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(AccessToken=outputs["access_token"])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("username")
 
 
 @mock_cognitoidp
@@ -1967,9 +2021,7 @@ def test_admin_set_user_password():
     )
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(1)
-    result["UserAttributes"][0]["Name"].should.equal("thing")
-    result["UserAttributes"][0]["Value"].should.equal(value)
+    result["UserAttributes"].should.have.length_of(5)
     result["UserStatus"].should.equal("CONFIRMED")
 
 
