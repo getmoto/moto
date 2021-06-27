@@ -37,7 +37,7 @@ def test_get_object():
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["ResponseMetadata"]["HTTPHeaders"]["path"].should.equal("foo")
     data = response["Body"].read()
-    data.should.equal(b"body of item")
+    data.should.equal(b"011001")
 
 
 @mock_mediastoredata
@@ -57,6 +57,19 @@ def test_delete_object_succeeds():
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     items = client.list_items()["Items"]
     len(items).should.equal(0)
+
+
+@mock_mediastoredata
+def test_list_items():
+    client = boto3.client("mediastore-data", region_name=region)
+    items = client.list_items()["Items"]
+    len(items).should.equal(0)
+    object_path = "foo"
+    client.put_object(Body="011001", Path=object_path)
+    items = client.list_items()["Items"]
+    len(items).should.equal(1)
+    object_exists = any(d["Name"] == object_path for d in items)
+    object_exists.should.equal(True)
 
 
 @mock_mediastoredata
