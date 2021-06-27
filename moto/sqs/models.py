@@ -635,7 +635,8 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not len(attribute_names):
-            attribute_names.append("All")
+            # this should empty dict in case if the attributes names are not specified
+            return {}
 
         valid_names = (
             ["All"]

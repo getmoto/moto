@@ -74,7 +74,9 @@ def test_create_queue_with_same_attributes():
     sqs = boto3.client("sqs", region_name="us-east-1")
 
     dlq_url = sqs.create_queue(QueueName="test-queue-dlq")["QueueUrl"]
-    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url)["Attributes"]["QueueArn"]
+    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url, AttributeNames=["All"])[
+        "Attributes"
+    ]["QueueArn"]
 
     attributes = {
         "DelaySeconds": "900",
@@ -124,7 +126,7 @@ def test_create_fifo_queue():
     )
     queue_url = resp["QueueUrl"]
 
-    response = sqs.get_queue_attributes(QueueUrl=queue_url)
+    response = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
     response["Attributes"].should.contain("FifoQueue")
     response["Attributes"]["FifoQueue"].should.equal("true")
 
@@ -568,9 +570,9 @@ def test_get_queue_attributes():
     client = boto3.client("sqs", region_name="us-east-1")
 
     dlq_resp = client.create_queue(QueueName="test-dlr-queue")
-    dlq_arn1 = client.get_queue_attributes(QueueUrl=dlq_resp["QueueUrl"])["Attributes"][
-        "QueueArn"
-    ]
+    dlq_arn1 = client.get_queue_attributes(
+        QueueUrl=dlq_resp["QueueUrl"], AttributeNames=["All"]
+    )["Attributes"]["QueueArn"]
 
     response = client.create_queue(
         QueueName="test-queue",
@@ -583,6 +585,10 @@ def test_get_queue_attributes():
     queue_url = response["QueueUrl"]
 
     response = client.get_queue_attributes(QueueUrl=queue_url)
+
+    assert len(response["Attributes"]) == 0
+
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
 
     response["Attributes"]["ApproximateNumberOfMessages"].should.equal("0")
     response["Attributes"]["ApproximateNumberOfMessagesDelayed"].should.equal("0")
@@ -2243,13 +2249,17 @@ def test_create_fifo_queue_with_dlq():
         QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
     )
     queue_url1 = resp["QueueUrl"]
-    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)["Attributes"]["QueueArn"]
+    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1, AttributeNames=["All"])[
+        "Attributes"
+    ]["QueueArn"]
 
     resp = sqs.create_queue(
         QueueName="test-dlr-queue", Attributes={"FifoQueue": "false"}
     )
     queue_url2 = resp["QueueUrl"]
-    queue_arn2 = sqs.get_queue_attributes(QueueUrl=queue_url2)["Attributes"]["QueueArn"]
+    queue_arn2 = sqs.get_queue_attributes(QueueUrl=queue_url2, AttributeNames=["All"])[
+        "Attributes"
+    ]["QueueArn"]
 
     sqs.create_queue(
         QueueName="test-queue.fifo",
@@ -2286,9 +2296,9 @@ def test_queue_with_dlq():
             QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
         )
         queue_url1 = resp["QueueUrl"]
-        queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)["Attributes"][
-            "QueueArn"
-        ]
+        queue_arn1 = sqs.get_queue_attributes(
+            QueueUrl=queue_url1, AttributeNames=["All"]
+        )["Attributes"]["QueueArn"]
 
         resp = sqs.create_queue(
             QueueName="test-queue.fifo",
@@ -2344,7 +2354,9 @@ def test_redrive_policy_available():
 
     resp = sqs.create_queue(QueueName="test-deadletter")
     queue_url1 = resp["QueueUrl"]
-    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)["Attributes"]["QueueArn"]
+    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1, AttributeNames=["All"])[
+        "Attributes"
+    ]["QueueArn"]
     redrive_policy = {"deadLetterTargetArn": queue_arn1, "maxReceiveCount": 1}
 
     resp = sqs.create_queue(
@@ -2352,7 +2364,9 @@ def test_redrive_policy_available():
     )
 
     queue_url2 = resp["QueueUrl"]
-    attributes = sqs.get_queue_attributes(QueueUrl=queue_url2)["Attributes"]
+    attributes = sqs.get_queue_attributes(QueueUrl=queue_url2, AttributeNames=["All"])[
+        "Attributes"
+    ]
     assert "RedrivePolicy" in attributes
     assert json.loads(attributes["RedrivePolicy"]) == redrive_policy
 
