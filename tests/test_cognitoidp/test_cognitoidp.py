@@ -1,22 +1,24 @@
 from __future__ import unicode_literals
 
+import base64
+import boto3
 import json
 import os
 import random
 import re
+
+import moto.cognitoidp.models
+import requests
 import hmac
 import hashlib
-import base64
-
-import requests
 import uuid
 
-import boto3
 
 # noinspection PyUnresolvedReferences
 import sure  # noqa
 from botocore.exceptions import ClientError, ParamValidationError
 from jose import jws, jwk, jwt
+from unittest import SkipTest
 import pytest
 
 from moto import mock_cognitoidp, settings
@@ -1184,6 +1186,16 @@ def test_get_user():
 
 
 @mock_cognitoidp
+def test_get_user_unknown_accesstoken():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(AccessToken="n/a")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("Invalid token")
+
+
+@mock_cognitoidp
 def test_list_users():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1212,6 +1224,24 @@ def test_list_users():
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
+
+
+@mock_cognitoidp
+def test_get_user_unconfirmed():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant patch attributes in server mode.")
+    conn = boto3.client("cognito-idp", "us-west-2")
+    outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+
+    backend = moto.cognitoidp.models.cognitoidp_backends["us-west-2"]
+    user_pool = backend.user_pools[outputs["user_pool_id"]]
+    user_pool.users[outputs["username"]].status = "UNCONFIRMED"
+
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(AccessToken=outputs["access_token"])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("username")
 
 
 @mock_cognitoidp
