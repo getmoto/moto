@@ -483,7 +483,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     delete_marker_list=delete_marker_list,
                     latest_versions=latest_versions,
                     bucket=bucket,
-                    prefix="",
+                    prefix=prefix,
                     max_keys=1000,
                     delimiter="",
                     is_truncated="false",
