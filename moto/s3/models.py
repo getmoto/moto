@@ -333,7 +333,7 @@ class FakeMultipart(BaseModel):
 
     def set_part(self, part_id, value):
         if part_id < 1:
-            return
+            raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(part_id, value)
         self.parts[part_id] = key
