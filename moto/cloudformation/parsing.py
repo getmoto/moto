@@ -511,10 +511,8 @@ class ResourceMap(collections_abc.Mapping):
         # actual value from parameter store
         parameter = ssm_backends[self._region_name].get_parameter(value, False)
         actual_value = parameter.value
-
         if value_type.find("List") > 0:
             return actual_value.split(",")
-
         return actual_value
 
     def load_parameters(self):

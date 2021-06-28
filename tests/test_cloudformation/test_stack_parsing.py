@@ -80,7 +80,7 @@ ssm_parameter = {
         "SingleParamCfn": {"Type": "AWS::SSM::Parameter::Value<String>"},
         "ListParamCfn": {
             "Type": "AWS::SSM::Parameter::Value<List<String>>",
-            "Default": ["some", "default", "value"],
+            "Default": "/path/to/list/param",
         },
     }
 }
