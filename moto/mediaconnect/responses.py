@@ -81,3 +81,21 @@ class MediaConnectResponse(BaseResponse):
             resource_arn=resource_arn,
         )
         return json.dumps(dict(tags=tags))
+
+    def add_flow_vpc_interfaces(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        vpc_interfaces = self._get_param("vpcInterfaces")
+        flow_arn, vpc_interfaces = self.mediaconnect_backend.add_flow_vpc_interfaces(
+            flow_arn=flow_arn, vpc_interfaces=vpc_interfaces
+        )
+        return json.dumps(dict(flow_arn=flow_arn, vpc_interfaces=vpc_interfaces))
+
+    def add_flow_outputs(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        outputs = self._get_param("outputs")
+        flow_arn, outputs = self.mediaconnect_backend.add_flow_outputs(
+            flow_arn=flow_arn, outputs=outputs
+        )
+        return json.dumps(dict(flow_arn=flow_arn, outputs=outputs))
+
+    # add methods from here

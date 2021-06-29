@@ -480,7 +480,7 @@ class FakeLoadBalancer(CloudFormationModel):
             self.state = "active"
 
     def delete(self, region):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         elbv2_backends[region].delete_load_balancer(self.arn)
 
     @staticmethod

@@ -33,7 +33,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
         return json.dumps({"ScalableTargets": targets, "NextToken": next_token})
 
     def register_scalable_target(self):
-        """ Registers or updates a scalable target. """
+        """Registers or updates a scalable target."""
         self._validate_params()
         self.applicationautoscaling_backend.register_scalable_target(
             self._get_param("ServiceNamespace"),
@@ -47,7 +47,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
         return json.dumps({})
 
     def deregister_scalable_target(self):
-        """ Deregisters a scalable target. """
+        """Deregisters a scalable target."""
         self._validate_params()
         self.applicationautoscaling_backend.deregister_scalable_target(
             self._get_param("ServiceNamespace"),

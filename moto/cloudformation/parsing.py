@@ -504,11 +504,26 @@ class ResourceMap(collections_abc.Mapping):
                     key = s3_backend.get_object(bucket_name, name)
                     self._parsed_resources.update(json.loads(key.value))
 
+    def parse_ssm_parameter(self, value, value_type):
+
+        # The Value in SSM parameters is the SSM parameter path
+        # we need to use ssm_backend to retreive the
+        # actual value from parameter store
+        parameter = ssm_backends[self._region_name].get_parameter(value, False)
+        actual_value = parameter.value
+        if value_type.find("List") > 0:
+            return actual_value.split(",")
+        return actual_value
+
     def load_parameters(self):
         parameter_slots = self._template.get("Parameters", {})
         for parameter_name, parameter in parameter_slots.items():
             # Set the default values.
-            self.resolved_parameters[parameter_name] = parameter.get("Default")
+            value = parameter.get("Default")
+            value_type = parameter.get("Type")
+            if value_type.startswith("AWS::SSM::Parameter::") and value:
+                value = self.parse_ssm_parameter(value, value_type)
+            self.resolved_parameters[parameter_name] = value
 
         # Set any input parameters that were passed
         self.no_echo_parameter_keys = []
@@ -517,23 +532,8 @@ class ResourceMap(collections_abc.Mapping):
                 parameter_slot = parameter_slots[key]
 
                 value_type = parameter_slot.get("Type", "String")
-
-                def _parse_ssm_parameter(value, value_type):
-                    # The Value in SSM parameters is the SSM parameter path
-                    # we need to use ssm_backend to retreive the
-                    # actual value from parameter store
-                    parameter = ssm_backends[self._region_name].get_parameter(
-                        value, False
-                    )
-                    actual_value = parameter.value
-
-                    if value_type.find("List") > 0:
-                        return actual_value.split(",")
-
-                    return actual_value
-
                 if value_type.startswith("AWS::SSM::Parameter::"):
-                    value = _parse_ssm_parameter(value, value_type)
+                    value = self.parse_ssm_parameter(value, value_type)
                 if value_type == "CommaDelimitedList" or value_type.startswith("List"):
                     value = value.split(",")
 

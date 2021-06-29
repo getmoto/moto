@@ -333,7 +333,7 @@ class FakeMultipart(BaseModel):
 
     def set_part(self, part_id, value):
         if part_id < 1:
-            return
+            raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(part_id, value)
         self.parts[part_id] = key
@@ -1604,11 +1604,13 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         multipart_data = bucket.multiparts.get(multipart_id, None)
         if not multipart_data:
-            raise NoSuchUpload()
+            raise NoSuchUpload(upload_id=multipart_id)
         del bucket.multiparts[multipart_id]
 
     def list_multipart(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
+        if multipart_id not in bucket.multiparts:
+            raise NoSuchUpload(upload_id=multipart_id)
         return list(bucket.multiparts[multipart_id].list_parts())
 
     def get_all_multiparts(self, bucket_name):
