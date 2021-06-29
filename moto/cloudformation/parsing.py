@@ -521,7 +521,7 @@ class ResourceMap(collections_abc.Mapping):
             # Set the default values.
             value = parameter.get("Default")
             value_type = parameter.get("Type")
-            if parameter.get("Type").startswith("AWS::SSM::Parameter::") and value:
+            if value_type.startswith("AWS::SSM::Parameter::") and value:
                 value = self.parse_ssm_parameter(value, value_type)
             self.resolved_parameters[parameter_name] = value
 
