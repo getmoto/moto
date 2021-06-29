@@ -333,7 +333,7 @@ class LogGroup(BaseModel):
         self, log_group_name, log_stream_name, log_events, sequence_token
     ):
         if log_stream_name not in self.streams:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("The specified log stream does not exist.")
         stream = self.streams[log_stream_name]
         return stream.put_log_events(
             log_group_name, log_stream_name, log_events, sequence_token
