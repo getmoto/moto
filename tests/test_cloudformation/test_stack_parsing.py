@@ -551,6 +551,7 @@ def test_ssm_parameter_parsing():
             region_name="us-west-1",
         )
 
+        stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
         stack.resource_map.resolved_parameters["ListParamCfn"].should.equal(
             ["comma", "separated", "string"]
         )
