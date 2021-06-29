@@ -46,12 +46,15 @@ def test_exceptions():
         logEvents=[{"timestamp": 0, "message": "line"}],
     )
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         conn.put_log_events(
             logGroupName=log_group_name,
             logStreamName="invalid-stream",
             logEvents=[{"timestamp": 0, "message": "line"}],
         )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ResourceNotFoundException")
+    error["Message"].should.equal("The specified log stream does not exist.")
 
 
 @mock_logs
