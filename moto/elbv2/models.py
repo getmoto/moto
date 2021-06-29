@@ -294,6 +294,37 @@ class FakeListener(CloudFormationModel):
         return listener
 
 
+class FakeListenerCertificate(CloudFormationModel):
+    def __init__(
+        self, listener_arn, arn, certificates,
+     ):
+        self.listener_arn = listener_arn
+        self.arn = arn
+        self.certificates = certificates
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listenercertificate.html
+        return "AWS::ElasticLoadBalancingV2::ListenerCertificate"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        elbv2_backend = elbv2_backends[region_name]
+        listener_arn = properties.get("ListenerArn")
+        certificates = properties.get("Certificates")
+
+        listener_certificate = elbv2_backend.create_certificate()
+
+        return listener_certificate
+
+
 class FakeListenerRule(CloudFormationModel):
     def __init__(
         self, listener_arn, arn, conditions, priority, actions,
