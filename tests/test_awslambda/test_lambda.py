@@ -157,6 +157,9 @@ def test_invoke_requestresponse_function(invocation_type):
         assert False, success_result["Payload"].read().decode("utf-8")
 
     success_result["StatusCode"].should.equal(200)
+    success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
+        "application/json"
+    )
     logs = base64.b64decode(success_result["LogResult"]).decode("utf-8")
 
     logs.should.contain("START RequestId:")
@@ -172,6 +175,9 @@ def test_invoke_requestresponse_function(invocation_type):
     )
 
     success_result["StatusCode"].should.equal(200)
+    success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
+        "application/json"
+    )
     assert "LogResult" not in success_result
 
 
