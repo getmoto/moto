@@ -121,8 +121,40 @@ def test_lambda_regions(region):
 @mock_lambda
 def test_list_functions():
     conn = boto3.client("lambda", _lambda_region)
-    result = conn.list_functions()
-    result["Functions"].should.have.length_of(0)
+    conn.list_functions()["Functions"].should.have.length_of(0)
+
+    function_name = "testFunction"
+
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file1()},
+    )
+    conn.list_functions()["Functions"].should.have.length_of(1)
+    conn.publish_version(FunctionName=function_name, Description="v2")
+    conn.list_functions()["Functions"].should.have.length_of(1)
+
+    # FunctionVersion=ALL means we should get a list of all versions
+    result = conn.list_functions(FunctionVersion="ALL")["Functions"]
+    result.should.have.length_of(2)
+
+    v1 = [f for f in result if f["Version"] == "1"][0]
+    v1["Description"].should.equal("v2")
+    v1["FunctionArn"].should.equal(
+        "arn:aws:lambda:{}:{}:function:{}:1".format(
+            _lambda_region, ACCOUNT_ID, function_name
+        )
+    )
+
+    latest = [f for f in result if f["Version"] == "$LATEST"][0]
+    latest["Description"].should.equal("")
+    latest["FunctionArn"].should.equal(
+        "arn:aws:lambda:{}:{}:function:{}:$LATEST".format(
+            _lambda_region, ACCOUNT_ID, function_name
+        )
+    )
 
 
 @pytest.mark.network
@@ -772,14 +804,14 @@ def test_publish():
         Publish=False,
     )
 
-    function_list = conn.list_functions()
+    function_list = conn.list_functions(FunctionVersion="ALL")
     function_list["Functions"].should.have.length_of(1)
     latest_arn = function_list["Functions"][0]["FunctionArn"]
 
     res = conn.publish_version(FunctionName="testFunction")
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
 
-    function_list = conn.list_functions()
+    function_list = conn.list_functions(FunctionVersion="ALL")
     function_list["Functions"].should.have.length_of(2)
 
     # #SetComprehension ;-)
@@ -815,8 +847,9 @@ def test_list_create_list_get_delete_list():
 
     conn.list_functions()["Functions"].should.have.length_of(0)
 
+    function_name = "testFunction"
     conn.create_function(
-        FunctionName="testFunction",
+        FunctionName=function_name,
         Runtime="python2.7",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
@@ -837,10 +870,7 @@ def test_list_create_list_get_delete_list():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:{}:{}:function:testFunction".format(
-                _lambda_region, ACCOUNT_ID
-            ),
-            "FunctionName": "testFunction",
+            "FunctionName": function_name,
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
             "Role": get_role_name(),
@@ -853,16 +883,48 @@ def test_list_create_list_get_delete_list():
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
-    func = conn.list_functions()["Functions"][0]
-    func.pop("LastModified")
-    func.should.equal(expected_function_result["Configuration"])
+    functions = conn.list_functions()["Functions"]
+    functions.should.have.length_of(1)
+    functions[0]["FunctionArn"].should.equal(
+        "arn:aws:lambda:{}:{}:function:{}".format(
+            _lambda_region, ACCOUNT_ID, function_name
+        )
+    )
+    functions = conn.list_functions(FunctionVersion="ALL")["Functions"]
+    functions.should.have.length_of(2)
 
-    func = conn.get_function(FunctionName="testFunction")
+    latest = [f for f in functions if f["Version"] == "$LATEST"][0]
+    latest["FunctionArn"].should.equal(
+        "arn:aws:lambda:{}:{}:function:{}:$LATEST".format(
+            _lambda_region, ACCOUNT_ID, function_name
+        )
+    )
+    latest.pop("FunctionArn")
+    latest.pop("LastModified")
+    latest.should.equal(expected_function_result["Configuration"])
+
+    published = [f for f in functions if f["Version"] != "$LATEST"][0]
+    published["Version"].should.equal("1")
+    published["FunctionArn"].should.equal(
+        "arn:aws:lambda:{}:{}:function:{}:1".format(
+            _lambda_region, ACCOUNT_ID, function_name
+        )
+    )
+
+    func = conn.get_function(FunctionName=function_name)
+
+    func["Configuration"]["FunctionArn"].should.equal(
+        "arn:aws:lambda:{}:{}:function:{}".format(
+            _lambda_region, ACCOUNT_ID, function_name
+        )
+    )
+
     # this is hard to match against, so remove it
     func["ResponseMetadata"].pop("HTTPHeaders", None)
     # Botocore inserts retry attempts not seen in Python27
     func["ResponseMetadata"].pop("RetryAttempts", None)
     func["Configuration"].pop("LastModified")
+    func["Configuration"].pop("FunctionArn")
 
     func.should.equal(expected_function_result)
     conn.delete_function(FunctionName="testFunction")

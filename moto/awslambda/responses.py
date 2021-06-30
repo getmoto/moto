@@ -236,11 +236,12 @@ class LambdaResponse(BaseResponse):
             return 404, response_headers, "{}"
 
     def _list_functions(self, request, full_url, headers):
+        querystring = self.querystring
+        func_version = querystring.get("FunctionVersion", [None])[0]
         result = {"Functions": []}
 
-        for fn in self.lambda_backend.list_functions():
+        for fn in self.lambda_backend.list_functions(func_version):
             json_data = fn.get_configuration()
-            json_data["Version"] = "$LATEST"
             result["Functions"].append(json_data)
 
         return 200, {}, json.dumps(result)
@@ -298,8 +299,9 @@ class LambdaResponse(BaseResponse):
 
     def _publish_function(self, request, full_url, headers):
         function_name = self.path.rsplit("/", 2)[-2]
+        description = self._get_param("Description")
 
-        fn = self.lambda_backend.publish_function(function_name)
+        fn = self.lambda_backend.publish_function(function_name, description)
         if fn:
             config = fn.get_configuration()
             return 201, {}, json.dumps(config)
