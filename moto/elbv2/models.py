@@ -265,6 +265,8 @@ class FakeListener(CloudFormationModel):
         certificates = properties.get("Certificates")
 
         default_actions = elbv2_backend.convert_and_validate_properties(properties)
+        if certificates:
+            certificates = elbv2_backend.convert_and_validate_certificates(certificates)
         listener = elbv2_backend.create_listener(
             load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
         )
@@ -283,6 +285,8 @@ class FakeListener(CloudFormationModel):
         certificates = properties.get("Certificates")
 
         default_actions = elbv2_backend.convert_and_validate_properties(properties)
+        if certificates:
+            certificates = elbv2_backend.convert_and_validate_certificates(certificates)
         listener = elbv2_backend.modify_listener(
             original_resource.arn,
             port,
@@ -832,6 +836,11 @@ Member must satisfy regular expression pattern: {}".format(
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
         return target_group
+
+    def convert_and_validate_certificates(self, certificate):
+
+        # transform default certificate  to confirm with the rest of the code and XML templates
+        default_cert = {"certificate_arn": certificate[0]["CertificateArn"]}
 
     def convert_and_validate_properties(self, properties):
 
