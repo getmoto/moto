@@ -1328,14 +1328,15 @@ Member must satisfy regular expression pattern: {}".format(
                     except Exception:
                         raise RESTError(
                             "CertificateNotFound",
-                            "Certificate {0} not found".format(
-                                default_cert_arn
-                            ),
+                            "Certificate {0} not found".format(default_cert_arn),
                         )
                     listener.certificate = default_cert_arn
                     listener.certificates = certificates
                 else:
-                    raise RESTError("CertificateWereNotPassed", "You must provide a list containing exactly one certificate if the listener protocol is HTTPS.")
+                    raise RESTError(
+                        "CertificateWereNotPassed",
+                        "You must provide a list containing exactly one certificate if the listener protocol is HTTPS.",
+                    )
 
             listener.protocol = protocol
 
