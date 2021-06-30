@@ -839,7 +839,7 @@ Member must satisfy regular expression pattern: {}".format(
 
     def convert_and_validate_certificates(self, certificate):
 
-        # transform default certificate  to confirm with the rest of the code and XML templates
+        # transform default certificate  to conform with the rest of the code and XML templates
         default_cert = {"certificate_arn": certificate[0]["CertificateArn"]}
 
     def convert_and_validate_properties(self, properties):
