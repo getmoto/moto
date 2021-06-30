@@ -1767,10 +1767,7 @@ def test_modify_listener_http_to_https():
         Port=443,
         Protocol="HTTPS",
         SslPolicy="ELBSecurityPolicy-TLS-1-2-2017-01",
-        Certificates=[
-            {"CertificateArn": google_arn, "IsDefault": False},
-            {"CertificateArn": yahoo_arn, "IsDefault": True},
-        ],
+        Certificates=[{"CertificateArn": yahoo_arn,},],
         DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
     )
     response["Listeners"][0]["Port"].should.equal(443)
@@ -1778,7 +1775,7 @@ def test_modify_listener_http_to_https():
     response["Listeners"][0]["SslPolicy"].should.equal(
         "ELBSecurityPolicy-TLS-1-2-2017-01"
     )
-    len(response["Listeners"][0]["Certificates"]).should.equal(2)
+    len(response["Listeners"][0]["Certificates"]).should.equal(1)
 
     # Check default cert, can't do this in server mode
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "false":
@@ -1796,7 +1793,7 @@ def test_modify_listener_http_to_https():
             Port=443,
             Protocol="HTTPS",
             SslPolicy="ELBSecurityPolicy-TLS-1-2-2017-01",
-            Certificates=[{"CertificateArn": google_arn, "IsDefault": False}],
+            Certificates=[],
             DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
         )
 
