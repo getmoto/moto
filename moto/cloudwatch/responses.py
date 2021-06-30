@@ -19,7 +19,7 @@ class CloudWatchResponse(BaseResponse):
         name = self._get_param("AlarmName")
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
-        metrics = self._get_multi_param("Metrics.member")
+        metrics = self._get_multi_param("Metrics.member", skip_result_conversion=True)
         metric_data_queries = None
         if metrics:
             metric_data_queries = [

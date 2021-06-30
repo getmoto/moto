@@ -194,7 +194,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
     param_list_regex = re.compile(r"^(\.?[^.]*(\.member)?)\.(\d+)\.")
-    param_regex = re.compile(r"(.*)\.(\w+)")
+    param_regex = re.compile(r"([^\.]*)\.(\w+)(\..+)?")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
@@ -470,9 +470,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_helper(self, param_prefix, skip_result_conversion=False):
+    def _get_multi_param_helper(self, param_prefix, skip_result_conversion=False, tracked_prefixes=None):
         value_dict = dict()
-        tracked_prefixes = set()  # prefixes which have already been processed
+        tracked_prefixes = tracked_prefixes or set()  # prefixes which have already been processed
 
         def is_tracked(name_param):
             for prefix_loop in tracked_prefixes:
@@ -504,8 +504,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 match = self.param_regex.search(name[len(param_prefix) :])
                 if match:
                     # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
-                    # sub_attr = match.group(2)  # TODO needed?
-                    value = self._get_param(name)
+                    attr_name = match.group(2)
+                    sub_attr = '%s%s.%s' % (name[:len(param_prefix)], match.group(1), match.group(2))
+                    if match.group(3):
+                        value = self._get_multi_param_helper(sub_attr, tracked_prefixes=tracked_prefixes,
+                            skip_result_conversion=skip_result_conversion)
+                    else:
+                        value = self._get_param(sub_attr)
+                    tracked_prefixes.add(sub_attr)
                     value_dict[name] = value
                 else:
                     value_dict[name] = value[0]
@@ -516,7 +522,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if skip_result_conversion or len(value_dict) > 1:
             # strip off period prefix
             value_dict = {
-                name[len(param_prefix) + 1 :]: value
+                name[len(param_prefix) + 1 :].split('.')[0]: value
                 for name, value in value_dict.items()
             }
         else:
