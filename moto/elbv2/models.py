@@ -837,10 +837,13 @@ Member must satisfy regular expression pattern: {}".format(
         self.target_groups[target_group.arn] = target_group
         return target_group
 
-    def convert_and_validate_certificates(self, certificate):
+    def convert_and_validate_certificates(self, certificates):
 
-        # transform default certificate  to confirm with the rest of the code and XML templates
-        default_cert = {"certificate_arn": certificate[0]["CertificateArn"]}
+        # transform default certificate to confirm with the rest of the code and XML templates
+        for cert in certificates:
+            cert["certificate_arn"] = cert["CertificateArn"]
+
+        return certificates
 
     def convert_and_validate_properties(self, properties):
 
@@ -1317,41 +1320,25 @@ Member must satisfy regular expression pattern: {}".format(
 
             # HTTPS checks
             if protocol == "HTTPS":
-                # HTTPS
-
-                # Might already be HTTPS so may not provide certs
-                if certificates is None and listener.protocol != "HTTPS":
-                    raise RESTError(
-                        "InvalidConfigurationRequest",
-                        "Certificates must be provided for HTTPS",
-                    )
 
                 # Check certificates exist
                 if certificates is not None:
-                    default_cert = None
-                    all_certs = set()  # for SNI
-                    for cert in certificates:
-                        if cert["is_default"] == "true":
-                            default_cert = cert["certificate_arn"]
-                        try:
-                            self.acm_backend.get_certificate(cert["certificate_arn"])
-                        except Exception:
-                            raise RESTError(
-                                "CertificateNotFound",
-                                "Certificate {0} not found".format(
-                                    cert["certificate_arn"]
-                                ),
-                            )
-
-                        all_certs.add(cert["certificate_arn"])
-
-                    if default_cert is None:
+                    default_cert = certificates[0]
+                    default_cert_arn = default_cert["certificate_arn"]
+                    try:
+                        self.acm_backend.get_certificate(default_cert_arn)
+                    except Exception:
                         raise RESTError(
-                            "InvalidConfigurationRequest", "No default certificate"
+                            "CertificateNotFound",
+                            "Certificate {0} not found".format(
+                                default_cert_arn
+                            ),
                         )
 
-                    listener.certificate = default_cert
-                    listener.certificates = list(all_certs)
+                    listener.certificate = default_cert_arn
+                    listener.certificates = certificates
+                else:
+                    raise RESTError("CertificateWereNotPassed", "You must provide exactly one certificate if the listener protocol is HTTPS.")
 
             listener.protocol = protocol
 
