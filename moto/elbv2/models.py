@@ -1320,7 +1320,7 @@ Member must satisfy regular expression pattern: {}".format(
             # HTTPS checks
             if protocol == "HTTPS":
                 # Check certificates exist
-                if certificates is not None:
+                if certificates:
                     default_cert = certificates[0]
                     default_cert_arn = default_cert["certificate_arn"]
                     try:
