@@ -838,9 +838,8 @@ Member must satisfy regular expression pattern: {}".format(
     def convert_and_validate_certificates(self, certificates):
 
         # transform default certificate to conform with the rest of the code and XML templates
-        if certificates:
-            for cert in certificates:
-                cert["certificate_arn"] = cert["CertificateArn"]
+        for cert in certificates or []:
+            cert["certificate_arn"] = cert["CertificateArn"]
 
         return certificates
 
