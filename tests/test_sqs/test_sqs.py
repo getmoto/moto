@@ -2555,7 +2555,7 @@ def test_list_queues_limits_to_1000_queues():
 
 
 @mock_sqs
-def test_send_messages_to_fifo_without_message_group_id():
+def test_send_message_to_fifo_without_message_group_id():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(
         QueueName="blah.fifo",
@@ -2564,6 +2564,25 @@ def test_send_messages_to_fifo_without_message_group_id():
 
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="message-1")
+    ex = e.value
+    ex.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter MessageGroupId."
+    )
+
+
+@mock_sqs
+def test_send_messages_to_fifo_without_message_group_id():
+    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    queue = sqs.create_queue(
+        QueueName="blah.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
+
+    with pytest.raises(Exception) as e:
+        queue.send_messages(
+            Entries=[{"Id": "id_1", "MessageBody": "body_1",},]
+        )
     ex = e.value
     ex.response["Error"]["Code"].should.equal("MissingParameter")
     ex.response["Error"]["Message"].should.equal(
