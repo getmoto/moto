@@ -137,7 +137,8 @@ class SESBackend(BaseBackend):
         self.email_addresses.append(address)
 
     def verify_domain(self, domain):
-        self.domains.append(domain)
+        if domain.lower() not in self.domains:
+            self.domains.append(domain.lower())
 
     def list_identities(self):
         return self.domains + self.addresses
