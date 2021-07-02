@@ -1715,6 +1715,26 @@ def test_send_message_batch():
 
 
 @mock_sqs
+def test_delete_message_batch_with_duplicates():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName="test-queue")
+    queue_url = response["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="coucou")
+
+    messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0)["Messages"]
+    assert messages, "at least one msg"
+    entries = [
+        {"Id": msg["MessageId"], "ReceiptHandle": msg["ReceiptHandle"]}
+        for msg in [messages[0], messages[0]]
+    ]
+
+    with pytest.raises(ClientError) as e:
+        client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+    ex = e.value
+    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+
+
+@mock_sqs
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
