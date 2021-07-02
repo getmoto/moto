@@ -602,7 +602,7 @@ def test_update_ses_template():
 
 @mock_ses
 def test_domains_are_case_insensitive():
-    client = boto3.client("ses")
+    client = boto3.client("ses", region_name="us-east-1")
     duplicate_domains = [
         "EXAMPLE.COM",
         "EXAMple.Com",
