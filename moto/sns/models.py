@@ -588,7 +588,9 @@ class SNSBackend(BaseBackend):
             if token == endpoint.token:
                 if attributes == endpoint.attributes:
                     return endpoint
-                raise DuplicateSnsEndpointError("Duplicate endpoint token with different attributes: %s" % token)
+                raise DuplicateSnsEndpointError(
+                    "Duplicate endpoint token with different attributes: %s" % token
+                )
         platform_endpoint = PlatformEndpoint(
             region, application, custom_user_data, token, attributes
         )
