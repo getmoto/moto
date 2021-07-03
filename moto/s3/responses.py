@@ -110,6 +110,7 @@ ACTION_MAP = {
         "DELETE": {
             "lifecycle": "PutLifecycleConfiguration",
             "policy": "DeleteBucketPolicy",
+            "website": "DeleteBucketWebsite",
             "tagging": "PutBucketTagging",
             "cors": "PutBucketCORS",
             "public_access_block": "DeletePublicAccessBlock",
@@ -815,6 +816,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 204, {}, ""
         elif "tagging" in querystring:
             self.backend.delete_bucket_tagging(bucket_name)
+            return 204, {}, ""
+        elif "website" in querystring:
+            self.backend.delete_bucket_website(bucket_name)
             return 204, {}, ""
         elif "cors" in querystring:
             self.backend.delete_bucket_cors(bucket_name)
