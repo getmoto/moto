@@ -586,7 +586,7 @@ class SNSBackend(BaseBackend):
     ):
         for endpoint in self.platform_endpoints.values():
             if token == endpoint.token:
-                if attributes == endpoint.attributes:
+                if attributes["Enabled"].lower() == endpoint.attributes["Enabled"]:
                     return endpoint
                 raise DuplicateSnsEndpointError(
                     "Duplicate endpoint token with different attributes: %s" % token
