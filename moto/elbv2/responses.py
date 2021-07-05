@@ -722,6 +722,18 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
               </Values>
             </HttpHeaderConfig>
             {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
             {% if "PathPatternConfig" in condition %}
             <PathPatternConfig>
               <Values>
@@ -932,6 +944,18 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
               </Values>
             </HttpHeaderConfig>
             {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
             {% if "PathPatternConfig" in condition %}
             <PathPatternConfig>
               <Values>
@@ -1120,6 +1144,18 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
                 {% endfor %}
               </Values>
             </HttpHeaderConfig>
+            {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
             {% endif %}
             {% if "Values" in condition %}
             <Values>

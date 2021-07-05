@@ -775,7 +775,26 @@ class ELBv2Backend(BaseBackend):
         pass
 
     def _validate_query_string_condition(self, condition):
-        pass
+        if "QueryStringConfig" in condition:
+            config = condition["QueryStringConfig"]
+            values = config["Values"]
+            for value in values:
+                if "Value" not in value:
+                    raise InvalidConditionValueError(
+                        "A 'Value' must be specified in 'QueryStringKeyValuePair'"
+                    )
+                if "Key" in value and len(value["Key"]) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'Key' value is too long; the limit is '128'"
+                    )
+                if len(value["Value"]) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'Value' value is too long; the limit is '128'"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'QueryStringConfig' must be specified with 'query-string'"
+            )
 
     def _validate_actions(self, actions):
         # validate Actions

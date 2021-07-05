@@ -362,6 +362,74 @@ def test_create_rule_with_http_header_condition():
 
 @mock_elbv2
 @mock_ec2
+def test_create_rule_with_query_string_condition():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+
+    # create_rule
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[
+            {
+                "Field": "query-string",
+                "QueryStringConfig": {
+                    "Values": [
+                        {
+                            "Key": "hello",
+                            "Value": "world"
+                        }
+                    ]
+                }
+            },
+        ],
+        Actions=[default_action],
+    )
+
+    # assert create_rule response
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("100")
+    rule["Conditions"].should.equal([
+        {
+            "Field": "query-string",
+            "QueryStringConfig": {
+                "Values": [
+                    {
+                        "Key": "hello",
+                        "Value": "world"
+                    }
+                ]
+            }
+        }
+    ])
+
+    # assert describe_rules response
+    response = conn.describe_rules(ListenerArn=http_listener_arn)
+    response["Rules"].should.have.length_of(2)
+
+    # assert describe_rules with arn filter response
+    rule = response["Rules"][0]
+    rule["Conditions"].should.equal([
+        {
+            "Field": "query-string",
+            "QueryStringConfig": {
+                "Values": [
+                    {
+                        "Key": "hello",
+                        "Value": "world"
+                    }
+                ]
+            }
+        }
+    ])
+    response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
+    response["Rules"].should.equal([rule])
+
+
+@mock_elbv2
+@mock_ec2
 def test_create_rule_validate_host_header_condition():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -557,6 +625,87 @@ def test_create_rule_validate_http_header_condition():
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal(
-        "The 'http-header' value is too long; the limit is '128'"
-    )
+    err["Message"].should.equal("The 'http-header' value is too long; the limit is '128'")
+
+
+@mock_elbv2
+@mock_ec2
+def test_create_rule_validate_query_string_condition():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+
+    # create_rule with long key
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[
+                {
+                    "Field": "query-string",
+                    "QueryStringConfig": {
+                        "Values": [
+                            {
+                                "Key": "x" * 256,
+                                "Value": "world"
+                            }
+                        ]
+                    }
+                }
+            ],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal("The 'Key' value is too long; the limit is '128'")
+
+    # create_rule with long value
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[
+                {
+                    "Field": "query-string",
+                    "QueryStringConfig": {
+                        "Values": [
+                            {
+                                "Key": "hello",
+                                "Value": "x" * 256
+                            }
+                        ]
+                    }
+                }
+            ],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal("The 'Value' value is too long; the limit is '128'")
+
+    # create_rule without value
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[
+                {
+                    "Field": "query-string",
+                    "QueryStringConfig": {
+                        "Values": [
+                            {
+                                "Key": "hello"
+                            }
+                        ]
+                    }
+                }
+            ],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal("A 'Value' must be specified in 'QueryStringKeyValuePair'")
+>>>>>>> 8766acba (ELBv2 - add support for query-string)
