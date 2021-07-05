@@ -721,6 +721,15 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
               </Values>
             </PathPatternConfig>
             {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
@@ -912,6 +921,15 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
               </Values>
             </PathPatternConfig>
             {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
             {% if "Values" in condition %}
             <Values>
               {% for value in condition["Values"] %}
@@ -1063,6 +1081,15 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
                 {% endfor %}
               </Values>
             </PathPatternConfig>
+            {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
             {% endif %}
             {% if "Values" in condition %}
             <Values>

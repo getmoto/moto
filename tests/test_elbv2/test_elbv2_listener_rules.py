@@ -189,15 +189,7 @@ def test_create_rule_with_one_host_header_condition():
         ListenerArn=http_listener_arn,
         Priority=100,
         Conditions=[{"Field": "host-header", "Values": ["example.com"]}],
-        Actions=[
-            {
-                "FixedResponseConfig": {
-                    "StatusCode": "200",
-                    "ContentType": "text/plain",
-                },
-                "Type": "fixed-response",
-            }
-        ],
+        Actions=[default_action],
     )
 
     # assert create_rule response
@@ -238,15 +230,7 @@ def test_create_rule_with_many_host_header_condition():
                 "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
             },
         ],
-        Actions=[
-            {
-                "FixedResponseConfig": {
-                    "StatusCode": "200",
-                    "ContentType": "text/plain",
-                },
-                "Type": "fixed-response",
-            }
-        ],
+        Actions=[default_action],
     )
 
     # assert create_rule response
@@ -278,6 +262,42 @@ def test_create_rule_with_many_host_header_condition():
     )
     response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
     response["Rules"].should.equal([rule])
+
+
+@mock_elbv2
+@mock_ec2
+def test_modify_rule_host_header_condition():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[{"Field": "host-header", "Values": ["example.com"]}],
+        Actions=[default_action],
+    )
+    rule = response.get("Rules")[0]
+
+    # modify_rule
+    response = conn.modify_rule(
+        RuleArn=rule["RuleArn"],
+        Conditions=[
+            {
+                "Field": "host-header",
+                "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
+            }
+        ],
+    )
+    response["Rules"].should.have.length_of(1)
+    modified_rule = response.get("Rules")[0]
+    modified_rule["Conditions"].should.equal(
+        [
+            {
+                "Field": "host-header",
+                "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
+            }
+        ]
+    )
 
 
 @mock_elbv2

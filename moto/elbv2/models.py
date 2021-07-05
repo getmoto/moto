@@ -714,7 +714,22 @@ class ELBv2Backend(BaseBackend):
                     func(condition)
 
     def _validate_host_header_condition(self, condition):
-        pass
+        values = None
+        if "HostHeaderConfig" in condition:
+            values = condition["HostHeaderConfig"]["Values"]
+        elif "Values" in condition:
+            values = condition["Values"]
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The 'host-header' field contains too many values; the limit is '1'"
+                )
+        if values is None or len(values) == 0:
+            raise InvalidConditionValueError("A condition value must be specified")
+        for value in values:
+            if len(value) > 128:
+                raise InvalidConditionValueError(
+                    "The 'host-header' value is too long; the limit is '128'"
+                )
 
     def _validate_http_header_condition(self, condition):
         pass
