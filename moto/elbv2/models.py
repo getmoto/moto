@@ -732,7 +732,23 @@ class ELBv2Backend(BaseBackend):
                 )
 
     def _validate_http_header_condition(self, condition):
-        pass
+        if "HttpHeaderConfig" in condition:
+            config = condition["HttpHeaderConfig"]
+            name = config.get("HttpHeaderName")
+            if len(name) > 40:
+                raise InvalidConditionValueError(
+                    "The 'HttpHeaderName' value is too long; the limit is '40'"
+                )
+            values = config["Values"]
+            for value in values:
+                if len(value) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'http-header' value is too long; the limit is '128'"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'HttpHeaderConfig' must be specified with 'http-header'"
+            )
 
     def _validate_http_request_method_condition(self, condition):
         pass

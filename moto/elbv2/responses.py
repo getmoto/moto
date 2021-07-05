@@ -712,6 +712,16 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
               {% endfor %}
             </Values>
             {% endif %}
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
             {% if "PathPatternConfig" in condition %}
             <PathPatternConfig>
               <Values>
@@ -912,6 +922,16 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
           {% for condition in rule.conditions %}
           <member>
             <Field>{{ condition["Field"] }}</Field>
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                  <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
             {% if "PathPatternConfig" in condition %}
             <PathPatternConfig>
               <Values>
@@ -1090,6 +1110,16 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
                 {% endfor %}
               </Values>
             </HostHeaderConfig>
+            {% endif %}
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
             {% endif %}
             {% if "Values" in condition %}
             <Values>
