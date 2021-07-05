@@ -723,7 +723,22 @@ class ELBv2Backend(BaseBackend):
         pass
 
     def _validate_path_pattern_condition(self, condition):
-        pass
+        values = None
+        if "PathPatternConfig" in condition:
+            values = condition["PathPatternConfig"]["Values"]
+        elif "Values" in condition:
+            values = condition["Values"]
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The 'path-pattern' field contains too many values; the limit is '1'"
+                )
+        if values is None or len(values) == 0:
+            raise InvalidConditionValueError("A condition value must be specified")
+        for value in values:
+            if len(value) > 128:
+                raise InvalidConditionValueError(
+                    "The 'path-pattern' value is too long; the limit is '128'"
+                )
 
     def _validate_source_ip_condition(self, condition):
         pass

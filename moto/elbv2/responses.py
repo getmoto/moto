@@ -705,11 +705,22 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["Field"] }}</Field>
+            {% if "Values" in condition %}
             <Values>
               {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
@@ -892,11 +903,22 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
           {% for condition in rule.conditions %}
           <member>
             <Field>{{ condition["Field"] }}</Field>
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "Values" in condition %}
             <Values>
               {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
@@ -1033,11 +1055,22 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           {% for condition in rules.conditions %}
           <member>
             <Field>{{ condition["Field"] }}</Field>
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "Values" in condition %}
             <Values>
               {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
