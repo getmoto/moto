@@ -228,10 +228,15 @@ class CloudFormationResponse(BaseResponse):
         stack = self.cloudformation_backend.get_stack(stack_name)
         logical_resource_id = self._get_param("LogicalResourceId")
 
+        resource = None
         for stack_resource in stack.stack_resources:
             if stack_resource.logical_resource_id == logical_resource_id:
                 resource = stack_resource
                 break
+
+        if not resource:
+            message = "Resource {0} does not exist for stack {1}".format(logical_resource_id, stack_name)
+            raise ValidationError(stack_name, message)
 
         template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
@@ -305,16 +310,20 @@ class CloudFormationResponse(BaseResponse):
 
     def update_stack(self):
         stack_name = self._get_param("StackName")
+        print("\n\nstack_name: ", stack_name)
         role_arn = self._get_param("RoleARN")
         template_url = self._get_param("TemplateURL")
         stack_body = self._get_param("TemplateBody")
+        print("\n\nstack_body: ", stack_body)
         stack = self.cloudformation_backend.get_stack(stack_name)
         if self._get_param("UsePreviousTemplate") == "true":
+            print("\n\nTHE BODYYYYYY: ", stack_body)
             stack_body = stack.template
         elif not stack_body and template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
 
         incoming_params = self._get_list_prefix("Parameters.member")
+        print("\n\n SELF: ", incoming_params)
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.

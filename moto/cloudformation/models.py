@@ -346,6 +346,7 @@ class FakeStack(BaseModel):
         )
         self.template = template
         self._parse_template()
+        print("\n\nSELF.TEMPLATE_DICT", parameters)
         self.resource_map.update(self.template_dict, parameters)
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
@@ -740,6 +741,7 @@ class CloudFormationBackend(BaseBackend):
 
     def update_stack(self, name, template, role_arn=None, parameters=None, tags=None):
         stack = self.get_stack(name)
+        print("\n\n pARAMETERS BeforE: ", parameters)
         resolved_parameters = self._resolve_update_parameters(
             instance=stack, incoming_params=parameters
         )

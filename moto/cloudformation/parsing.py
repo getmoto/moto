@@ -93,6 +93,7 @@ def clean_json(resource_json, resources_map):
     if isinstance(resource_json, dict):
         if "Ref" in resource_json:
             # Parse resource reference
+            print("\n\nLAST_RESORUCE: ", resources_map[resource_json["Ref"]])
             resource = resources_map[resource_json["Ref"]]
             if hasattr(resource, "physical_resource_id"):
                 return resource.physical_resource_id
@@ -280,6 +281,7 @@ def parse_resource(
 def parse_resource_and_generate_name(
     logical_id, resource_json, resources_map,
 ):
+    print("\n\nR_JSON: ", resource_json)
     resource_tuple = parse_resource(resource_json, resources_map)
     if not resource_tuple:
         return None
@@ -311,6 +313,7 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
         return None
 
     resource_type = resource_json["Type"]
+    print("\n\nresource_type: ", resource_type, logical_id)
     resource_tuple = parse_resource_and_generate_name(
         logical_id, resource_json, resources_map
     )
@@ -437,6 +440,7 @@ class ResourceMap(collections_abc.Mapping):
 
     def __getitem__(self, key):
         resource_logical_id = key
+        print("\nrosource json map: ", self._resource_json_map)
 
         if resource_logical_id in self._parsed_resources:
             return self._parsed_resources[resource_logical_id]
@@ -609,6 +613,7 @@ class ResourceMap(collections_abc.Mapping):
     def diff(self, template, parameters=None):
         if parameters:
             self.input_parameters = parameters
+        print("\n\ninput_parmaters: ", self.input_parameters)
         self.load_mapping()
         self.load_parameters()
         self.load_conditions()
@@ -656,6 +661,7 @@ class ResourceMap(collections_abc.Mapping):
 
         for resource_name, resource in resources_by_action["Add"].items():
             resource_json = new_template[resource_name]
+            print("\n\nparse_and_create_resource: ", resource_name)
             new_resource = parse_and_create_resource(
                 resource_name, resource_json, self, self._region_name
             )
