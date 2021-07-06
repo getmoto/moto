@@ -648,7 +648,7 @@ class ResourceMap(collections_abc.Mapping):
         return resources_by_action
 
     def update(self, template, parameters=None):
-        self._template = template
+        # self._template = template
         resources_by_action = self.diff(template, parameters)
 
         old_template = self._resource_json_map
