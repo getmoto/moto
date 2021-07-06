@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import logging
 
+import os
 import re
 import six
 from six.moves.urllib.parse import urlparse, unquote, quote
@@ -149,22 +150,27 @@ class _VersionedKeyStore(dict):
         super(_VersionedKeyStore, self).__setitem__(key, list_)
 
     def _iteritems(self):
-        for key in self:
+        for key in self._self_iterable():
             yield key, self[key]
 
     def _itervalues(self):
-        for key in self:
+        for key in self._self_iterable():
             yield self[key]
 
     def _iterlists(self):
-        for key in self:
+        for key in self._self_iterable():
             yield key, self.getlist(key)
 
     def item_size(self):
         size = 0
-        for val in self.values():
+        for val in self._self_iterable().values():
             size += sys.getsizeof(val)
         return size
+
+    def _self_iterable(self):
+        # to enable concurrency, return a copy, to avoid "dictionary changed size during iteration"
+        # TODO: look into replacing with a locking mechanism, potentially
+        return dict(self)
 
     items = iteritems = _iteritems
     lists = iterlists = _iterlists
