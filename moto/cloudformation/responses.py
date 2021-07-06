@@ -91,6 +91,7 @@ class CloudFormationResponse(BaseResponse):
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
         stack_notification_arns = self._get_multi_param("NotificationARNs.member")
+
         stack = self.cloudformation_backend.create_stack(
             name=stack_name,
             template=stack_body,

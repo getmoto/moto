@@ -261,7 +261,6 @@ class FakeStack(BaseModel):
             self.template_dict,
             self.cross_stack_resources,
         )
-
         resource_map.load()
         return resource_map
 
@@ -347,7 +346,7 @@ class FakeStack(BaseModel):
         )
         self.template = template
         self._parse_template()
-        self.resource_map.update(self.template_dict, parameters) # to parsing(651)
+        self.resource_map.update(self.template_dict, parameters)
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
