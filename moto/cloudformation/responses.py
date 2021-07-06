@@ -70,6 +70,8 @@ class CloudFormationResponse(BaseResponse):
         template_url = self._get_param("TemplateURL")
         role_arn = self._get_param("RoleARN")
         parameters_list = self._get_list_prefix("Parameters.member")
+        # print('\n\n parameters_list: ', parameters_list)
+        # print('\n\n')
         tags = dict(
             (item["key"], item["value"])
             for item in self._get_list_prefix("Tags.member")
@@ -92,6 +94,10 @@ class CloudFormationResponse(BaseResponse):
             stack_body = self._get_stack_from_s3_url(template_url)
         stack_notification_arns = self._get_multi_param("NotificationARNs.member")
 
+        # print('\n\n parameters_list(2): ', parameters_list)
+        # print('\n\n')
+
+        # breakpoint()
         stack = self.cloudformation_backend.create_stack(
             name=stack_name,
             template=stack_body,
@@ -101,6 +107,7 @@ class CloudFormationResponse(BaseResponse):
             tags=tags,
             role_arn=role_arn,
         )
+        # breakpoint()
         if self.request_json:
             return json.dumps(
                 {
@@ -310,20 +317,16 @@ class CloudFormationResponse(BaseResponse):
 
     def update_stack(self):
         stack_name = self._get_param("StackName")
-        print("\n\nstack_name: ", stack_name)
         role_arn = self._get_param("RoleARN")
         template_url = self._get_param("TemplateURL")
         stack_body = self._get_param("TemplateBody")
-        print("\n\nstack_body: ", stack_body)
         stack = self.cloudformation_backend.get_stack(stack_name)
         if self._get_param("UsePreviousTemplate") == "true":
-            print("\n\nTHE BODYYYYYY: ", stack_body)
             stack_body = stack.template
         elif not stack_body and template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
 
         incoming_params = self._get_list_prefix("Parameters.member")
-        print("\n\n SELF: ", incoming_params)
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.
@@ -344,13 +347,15 @@ class CloudFormationResponse(BaseResponse):
                 ),
             )
 
+        # breakpoint()
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,
             template=stack_body,
             role_arn=role_arn,
             parameters=incoming_params,
             tags=tags,
-        )
+        ) # to models(744)
+        # breakpoint()
         if self.request_json:
             stack_body = {
                 "UpdateStackResponse": {"UpdateStackResult": {"StackId": stack.name}}
