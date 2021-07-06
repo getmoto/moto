@@ -251,8 +251,6 @@ class FakeStack(BaseModel):
             self._add_stack_event("CREATE_COMPLETE")
         self.creation_time = datetime.utcnow()
 
-    # IMPORTANT: gets called on create to setup resource map which has the parameters
-    # see parsing(519)
     def _create_resource_map(self):
         resource_map = ResourceMap(
             self.stack_id,
@@ -262,9 +260,9 @@ class FakeStack(BaseModel):
             self.region_name,
             self.template_dict,
             self.cross_stack_resources,
-        ) # to parsing(410)
+        )
 
-        resource_map.load() # to parsing(585)
+        resource_map.load()
         return resource_map
 
     def _create_output_map(self):
@@ -349,8 +347,6 @@ class FakeStack(BaseModel):
         )
         self.template = template
         self._parse_template()
-        # PROBLEMO HERE
-        # breakpoint()
         self.resource_map.update(self.template_dict, parameters) # to parsing(651)
         self.output_map = self._create_output_map()
         self._add_stack_event("UPDATE_COMPLETE")
@@ -745,13 +741,10 @@ class CloudFormationBackend(BaseBackend):
 
     def update_stack(self, name, template, role_arn=None, parameters=None, tags=None):
         stack = self.get_stack(name)
-        # breakpoint()
         resolved_parameters = self._resolve_update_parameters(
             instance=stack, incoming_params=parameters
         )
-        # breakpoint()
         stack.update(template, role_arn, parameters=resolved_parameters, tags=tags)
-        # breakpoint()
         return stack
 
     def list_stack_resources(self, stack_name_or_id):

@@ -199,7 +199,6 @@ def clean_json(resource_json, resources_map):
             return result
 
         cleaned_json = {}
-        # breakpoint()
         for key, value in resource_json.items():
             cleaned_val = clean_json(value, resources_map)
             if cleaned_val is None:
@@ -585,7 +584,7 @@ class ResourceMap(collections_abc.Mapping):
     def load(self):
         self.load_mapping()
         self.transform_mapping()
-        self.load_parameters() # to parsing(519)
+        self.load_parameters()
         self.load_conditions()
 
     def create(self, template):
