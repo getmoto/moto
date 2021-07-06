@@ -1721,7 +1721,9 @@ def test_delete_message_batch_with_duplicates():
     queue_url = response["QueueUrl"]
     client.send_message(QueueUrl=queue_url, MessageBody="coucou")
 
-    messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0)["Messages"]
+    messages = client.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=0, VisibilityTimeout=0
+    )["Messages"]
     assert messages, "at least one msg"
     entries = [
         {"Id": msg["MessageId"], "ReceiptHandle": msg["ReceiptHandle"]}
@@ -1732,6 +1734,12 @@ def test_delete_message_batch_with_duplicates():
         client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
     ex = e.value
     assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+
+    # no messages are deleted
+    messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
+        "Messages", []
+    )
+    assert messages, "message still in the queue"
 
 
 @mock_sqs

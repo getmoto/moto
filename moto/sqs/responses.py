@@ -334,8 +334,8 @@ class SQSResponse(BaseResponse):
         """
         queue_name = self._get_queue_name()
 
-        message_ids = []
-        receipt_seen = set()
+        receipts = []
+
         for index in range(1, 11):
             # Loop through looking for messages
             receipt_key = "DeleteMessageBatchRequestEntry.{0}.ReceiptHandle".format(
@@ -348,14 +348,23 @@ class SQSResponse(BaseResponse):
 
             message_user_id_key = "DeleteMessageBatchRequestEntry.{0}.Id".format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
-            if receipt_handle[0] in receipt_seen:
-                raise BatchEntryIdsNotDistinct(message_user_id)
-            else:
-                receipt_seen.add(receipt_handle[0])
+            receipts.append(
+                {"receipt_handle": receipt_handle[0], "msg_user_id": message_user_id}
+            )
 
-            self.sqs_backend.delete_message(queue_name, receipt_handle[0])
-            message_ids.append(message_user_id)
+        receipt_seen = set()
+        for receipt_and_id in receipts:
+            receipt = receipt_and_id["receipt_handle"]
+            if receipt in receipt_seen:
+                raise BatchEntryIdsNotDistinct(receipt_and_id["msg_user_id"])
+            receipt_seen.add(receipt)
 
+        for receipt_and_id in receipts:
+            self.sqs_backend.delete_message(
+                queue_name, receipt_and_id["receipt_handle"]
+            )
+
+        message_ids = [r["msg_user_id"] for r in receipts]
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(message_ids=message_ids)
 
