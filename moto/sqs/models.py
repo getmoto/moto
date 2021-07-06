@@ -707,7 +707,13 @@ class SQSBackend(BaseBackend):
             message.sequence_number = "".join(
                 random.choice(string.digits) for _ in range(20)
             )
-        if group_id is not None:
+
+        if group_id is None:
+            # MessageGroupId is a mandatory parameter for all
+            # messages in a fifo queue
+            if queue.fifo_queue:
+                raise MissingParameter("MessageGroupId")
+        else:
             message.group_id = group_id
 
         if message_attributes:
@@ -926,7 +932,7 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not actions:
-            raise MissingParameter()
+            raise MissingParameter("Actions")
 
         if not account_ids:
             raise InvalidParameterValue(
@@ -999,14 +1005,11 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not len(tags):
-            raise RESTError(
-                "MissingParameter", "The request must contain the parameter Tags."
-            )
+            raise MissingParameter("Tags")
 
         if len(tags) > 50:
-            raise RESTError(
-                "InvalidParameterValue",
-                "Too many tags added for queue {}.".format(queue_name),
+            raise InvalidParameterValue(
+                "Too many tags added for queue {}.".format(queue_name)
             )
 
         queue.tags.update(tags)

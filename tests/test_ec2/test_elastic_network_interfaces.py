@@ -499,3 +499,64 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
         eni1.private_ip_address
     )
     response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+
+
+@mock_ec2
+def test_elastic_network_interfaces_filter_by_tag():
+    ec2 = boto3.resource("ec2", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    eni_dev = ec2.create_network_interface(
+        SubnetId=subnet.id,
+        PrivateIpAddress="10.0.10.5",
+        Description="dev interface",
+        TagSpecifications=[
+            {
+                "ResourceType": "network-interface",
+                "Tags": [{"Key": "environment", "Value": "dev"}],
+            },
+        ],
+    )
+
+    eni_prod = ec2.create_network_interface(
+        SubnetId=subnet.id,
+        PrivateIpAddress="10.0.10.6",
+        Description="prod interface",
+        TagSpecifications=[
+            {
+                "ResourceType": "network-interface",
+                "Tags": [{"Key": "environment", "Value": "prod"}],
+            },
+        ],
+    )
+
+    for eni in [eni_dev, eni_prod]:
+        waiter = ec2_client.get_waiter("network_interface_available")
+        waiter.wait(NetworkInterfaceIds=[eni.id])
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["staging"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(0)
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["dev"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(1)
+    resp["NetworkInterfaces"][0]["Description"].should.equal("dev interface")
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["prod"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(1)
+    resp["NetworkInterfaces"][0]["Description"].should.equal("prod interface")
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["dev", "prod"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(2)

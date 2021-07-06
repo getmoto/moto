@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 
+from moto.core.exceptions import RESTError
 from moto.core.responses import BaseResponse
 from moto.core.utils import (
     amz_crc32,
@@ -234,23 +235,19 @@ class SQSResponse(BaseResponse):
 
         queue_name = self._get_queue_name()
 
-        if not message_group_id:
-            queue = self.sqs_backend.get_queue(queue_name)
-            if queue.fifo_queue:
-                return self._error(
-                    "MissingParameter",
-                    "The request must contain the parameter MessageGroupId.",
-                )
+        try:
+            message = self.sqs_backend.send_message(
+                queue_name,
+                message,
+                message_attributes=message_attributes,
+                delay_seconds=delay_seconds,
+                deduplication_id=message_dedupe_id,
+                group_id=message_group_id,
+                system_attributes=system_message_attributes,
+            )
+        except RESTError as err:
+            return self._error(err.error_type, err.message)
 
-        message = self.sqs_backend.send_message(
-            queue_name,
-            message,
-            message_attributes=message_attributes,
-            delay_seconds=delay_seconds,
-            deduplication_id=message_dedupe_id,
-            group_id=message_group_id,
-            system_attributes=system_message_attributes,
-        )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
 

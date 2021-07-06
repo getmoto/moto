@@ -408,6 +408,7 @@ class NetworkInterfaceBackend(object):
         private_ip_addresses=None,
         group_ids=None,
         description=None,
+        tags=None,
         **kwargs
     ):
         eni = NetworkInterface(
@@ -419,6 +420,8 @@ class NetworkInterfaceBackend(object):
             description=description,
             **kwargs
         )
+        if tags:
+            eni.add_tags(tags)
         self.enis[eni.id] = eni
         return eni
 
