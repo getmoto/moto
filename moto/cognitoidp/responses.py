@@ -329,10 +329,9 @@ class CognitoIdpResponse(BaseResponse):
         if filt:
             name, value = filt.replace('"', "").replace(" ", "").split("=")
             users = [
-                user
-                for user in users
-                for attribute in user.attributes
-                if attribute["Name"] == name and attribute["Value"] == value
+                user for user in users if
+                    [attr for attr in user.attributes
+                        if attr["Name"] == name and attr["Value"] == value]
             ]
         response = {"Users": [user.to_json(extended=True) for user in users]}
         if token:
