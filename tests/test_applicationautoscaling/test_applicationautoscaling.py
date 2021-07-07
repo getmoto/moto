@@ -179,7 +179,7 @@ def test_describe_scalable_targets_next_token_success():
 
 
 def register_scalable_target(client, **kwargs):
-    """ Build a default scalable target object for use in tests. """
+    """Build a default scalable target object for use in tests."""
     return client.register_scalable_target(
         ServiceNamespace=kwargs.get("ServiceNamespace", DEFAULT_SERVICE_NAMESPACE),
         ResourceId=kwargs.get("ResourceId", DEFAULT_RESOURCE_ID),
@@ -315,8 +315,34 @@ def test_register_scalable_target_updates_existing_target():
     )
 
 
+@pytest.mark.parametrize(
+    ["policy_type", "policy_body_kwargs"],
+    [
+        [
+            "TargetTrackingScaling",
+            {
+                "TargetTrackingScalingPolicyConfiguration": {
+                    "TargetValue": 70.0,
+                    "PredefinedMetricSpecification": {
+                        "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
+                    },
+                }
+            },
+        ],
+        [
+            "TargetTrackingScaling",
+            {
+                "StepScalingPolicyConfiguration": {
+                    "AdjustmentType": "ChangeCapacity",
+                    "StepAdjustments": [{"ScalingAdjustment": 10,},],
+                    "MinAdjustmentMagnitude": 2,
+                },
+            },
+        ],
+    ],
+)
 @mock_applicationautoscaling
-def test_put_scaling_policy():
+def test_put_scaling_policy(policy_type, policy_body_kwargs):
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     namespace = "sagemaker"
     resource_id = "endpoint/MyEndPoint/variant/MyVariant"
@@ -331,13 +357,6 @@ def test_put_scaling_policy():
     )
 
     policy_name = "MyPolicy"
-    policy_type = "TargetTrackingScaling"
-    policy_body = {
-        "TargetValue": 70.0,
-        "PredefinedMetricSpecification": {
-            "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
-        },
-    }
 
     with pytest.raises(client.exceptions.ValidationException) as e:
         client.put_scaling_policy(
@@ -346,7 +365,7 @@ def test_put_scaling_policy():
             ResourceId=resource_id,
             ScalableDimension=scalable_dimension,
             PolicyType="ABCDEFG",
-            TargetTrackingScalingPolicyConfiguration=policy_body,
+            **policy_body_kwargs
         )
     e.value.response["Error"]["Message"].should.match(
         r"Unknown policy type .* specified."
@@ -358,7 +377,7 @@ def test_put_scaling_policy():
         ResourceId=resource_id,
         ScalableDimension=scalable_dimension,
         PolicyType=policy_type,
-        TargetTrackingScalingPolicyConfiguration=policy_body,
+        **policy_body_kwargs
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["PolicyARN"].should.match(

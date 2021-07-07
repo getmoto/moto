@@ -205,6 +205,34 @@ class MediaConnectBackend(BaseBackend):
             )
         return flow_arn, flow.outputs
 
+    def remove_flow_vpc_interface(self, flow_arn, vpc_interface_name):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.vpc_interfaces = [
+                vpc_interface
+                for vpc_interface in self._flows[flow_arn].vpc_interfaces
+                if vpc_interface["name"] != vpc_interface_name
+            ]
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, vpc_interface_name
+
+    def remove_flow_output(self, flow_arn, output_name):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.outputs = [
+                output
+                for output in self._flows[flow_arn].outputs
+                if output["name"] != output_name
+            ]
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, output_name
+
     # add methods from here
 
 
