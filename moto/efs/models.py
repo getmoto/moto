@@ -63,6 +63,9 @@ class FileSystem(CloudFormationModel):
         self.creation_time = time.time()
         self.user_id = ACCOUNT_ID
 
+        # Assign the physical reasource ID, used internally
+        self.physical_resource_id = file_system_id
+
     def info_json(self):
         return {
             underscores_to_camelcase(k): v
