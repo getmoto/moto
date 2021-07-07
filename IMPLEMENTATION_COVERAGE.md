@@ -6755,9 +6755,9 @@
 - [ ] list_reservations
 - [X] list_tags_for_resource
 - [ ] purchase_offering
-- [ ] remove_flow_output
+- [X] remove_flow_output
 - [ ] remove_flow_source
-- [ ] remove_flow_vpc_interface
+- [X] remove_flow_vpc_interface
 - [ ] revoke_flow_entitlement
 - [X] start_flow
 - [X] stop_flow
