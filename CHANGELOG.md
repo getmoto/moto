@@ -4,6 +4,43 @@ Moto Changelog
 Unreleased
 -----
 
+2.0.11
+------
+    New Services:
+        * MediaStoreData
+            * delete_object
+            * get_object
+            * list_items
+            * put_object
+
+    New Methods:
+        * CognitoIDP
+            * get_user
+        * MediaConnect
+            * add_flow_outputs
+            * add_flow_vpc_interfaces
+            * remove_flow_output
+            * remove_flow_vpc_interface
+
+    Miscellaneous:
+        * ApplicationAutoscaling:put_scaling_policy() now supports StepScaling
+        * ApplicationAutoscaling:register_scalable_target() now supports custom resources
+        * CloudFormation: Now resolves default SSM parameters (AWS::SSM::Parameter::Value<>)
+        * DynamoDB:update_item(): Fix bug for Action:DELETE without value supplied
+        * EC2:create_network_interface() now supports the TagSpecification-parameter
+        * ELBv2:modify_listener(): improved behaviour for the Certificates-parameter
+        * Lambda:invoke() now returns header: content-type=application/json
+        * Logs:put_log_events() now returns the correct error message when the stream does not exist
+        * IOT:update_thing_shadow() now properly maintains state
+        * S3: Listing parts on an aborted upload now throws the correct error
+        * S3:delete_objects() now correctly ignores unknown keys
+        * S3:list_object_versions() now returns the Prefix-attribute
+        * S3:upload_part() now throws the correct error when providing a negative part number
+        * SES:verify_domain_identity() and verify_domain_identity() are now idempotent
+        * SNS:create_platform_endpoint() now returns an existing endpoint if the token and attributes are the same
+        * SQS:delete_message_batch() now throws an error when duplicate messages are supplied
+        * SQS:send_messages() now throws an error for FIFO queues if the MessageGroupId-parameter is not supplied
+
 2.0.10
 ------
 
