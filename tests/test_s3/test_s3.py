@@ -39,10 +39,10 @@ from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import py2_strip_unicode_keys
-from moto.settings import get_s3_default_key_buffer_size
+from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
 if settings.TEST_SERVER_MODE:
-    REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
+    REDUCED_PART_SIZE = S3_UPLOAD_PART_MIN_SIZE
     EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
 else:
     REDUCED_PART_SIZE = 256
@@ -53,15 +53,15 @@ def reduced_min_part_size(f):
     """speed up tests by temporarily making the multipart minimum part size
     small
     """
-    orig_size = s3model.UPLOAD_PART_MIN_SIZE
+    orig_size = S3_UPLOAD_PART_MIN_SIZE
 
     @wraps(f)
     def wrapped(*args, **kwargs):
         try:
-            s3model.UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
+            s3model.S3_UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
             return f(*args, **kwargs)
         finally:
-            s3model.UPLOAD_PART_MIN_SIZE = orig_size
+            s3model.S3_UPLOAD_PART_MIN_SIZE = orig_size
 
     return wrapped
 
@@ -1142,6 +1142,11 @@ def test_default_key_buffer_size():
     assert get_s3_default_key_buffer_size() == 1
     fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
     assert fk._value_buffer._rolled == True
+
+    # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the buffer size should be less than
+    # S3_UPLOAD_PART_MIN_SIZE to prevent in memory caching of multi part uploads
+    del os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"]
+    assert get_s3_default_key_buffer_size() < S3_UPLOAD_PART_MIN_SIZE
 
     # restore original environment variable content
     if original_default_key_buffer_size:
