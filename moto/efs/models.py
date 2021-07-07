@@ -148,6 +148,10 @@ class EFSBackend(BaseBackend):
         self.creation_tokens.add(creation_token)
         return self.file_systems_by_id[fsid]
 
+    def describe_file_systems(self, max_items, creation_token, file_system_id):
+        # implement here
+        return marker, file_systems
+    
     # add methods from here
 
 
