@@ -1217,7 +1217,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
             if key.last_modified > if_unmodified_since:
                 raise PreconditionFailed("If-Unmodified-Since")
-        if if_match and key.etag != if_match:
+        if if_match and key.etag != '"{0}"'.format(if_match):
             raise PreconditionFailed("If-Match")
 
         if if_modified_since:
