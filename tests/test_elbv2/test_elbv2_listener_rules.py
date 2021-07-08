@@ -464,6 +464,44 @@ def test_create_rule_with_query_string_condition():
 
 @mock_elbv2
 @mock_ec2
+def test_create_rule_with_source_ip_condition():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+
+    # create_rule
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[
+            {"Field": "source-ip", "SourceIpConfig": {"Values": ["172.28.7.0/24"]}}
+        ],
+        Actions=[default_action],
+    )
+
+    # assert create_rule response
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("100")
+    rule["Conditions"].should.equal(
+        [{"Field": "source-ip", "SourceIpConfig": {"Values": ["172.28.7.0/24"]}}]
+    )
+
+    # assert describe_rules response
+    response = conn.describe_rules(ListenerArn=http_listener_arn)
+    response["Rules"].should.have.length_of(2)
+
+    # assert describe_rules with arn filter response
+    rule = response["Rules"][0]
+    rule["Conditions"].should.equal(
+        [{"Field": "source-ip", "SourceIpConfig": {"Values": ["172.28.7.0/24"]}}]
+    )
+    response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
+    response["Rules"].should.equal([rule])
+
+
+@mock_elbv2
+@mock_ec2
 def test_create_rule_validate_host_header_condition():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -793,3 +831,37 @@ def test_create_rule_validate_query_string_condition():
     err["Message"].should.equal(
         "A 'Value' must be specified in 'QueryStringKeyValuePair'"
     )
+
+
+@mock_elbv2
+@mock_ec2
+def test_create_rule_validate_source_ip_condition():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+
+    # create_rule with long host header
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[{"Field": "source-ip", "SourceIpConfig": {"Values": []}}],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal("A 'source-ip' value must be specified")
+
+    # create_rule with no config
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[{"Field": "source-ip",}],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal("A 'SourceIpConfig' must be specified with 'source-ip'")

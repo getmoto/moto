@@ -743,6 +743,15 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
               </Values>
             </QueryStringConfig>
             {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
             {% if "PathPatternConfig" in condition %}
             <PathPatternConfig>
               <Values>
@@ -974,6 +983,15 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
               </Values>
             </QueryStringConfig>
             {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
             {% if "PathPatternConfig" in condition %}
             <PathPatternConfig>
               <Values>
@@ -1183,6 +1201,15 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
                 {% endfor %}
               </Values>
             </QueryStringConfig>
+            {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
             {% endif %}
             {% if "Values" in condition %}
             <Values>

@@ -785,7 +785,16 @@ class ELBv2Backend(BaseBackend):
                 )
 
     def _validate_source_ip_condition(self, condition):
-        pass
+        if "SourceIpConfig" in condition:
+            values = condition["SourceIpConfig"].get("Values", [])
+            if len(values) == 0:
+                raise InvalidConditionValueError(
+                    "A 'source-ip' value must be specified"
+                )
+        else:
+            raise InvalidConditionValueError(
+                "A 'SourceIpConfig' must be specified with 'source-ip'"
+            )
 
     def _validate_query_string_condition(self, condition):
         if "QueryStringConfig" in condition:
