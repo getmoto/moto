@@ -53,3 +53,16 @@ class EFSResponse(BaseResponse):
         if next_marker:
             resp_json["NextMarker"] = next_marker
         return json.dumps(resp_json)
+
+    def create_mount_target(self):
+        file_system_id = self._get_param("FileSystemId")
+        subnet_id = self._get_param("SubnetId")
+        ip_address = self._get_param("IpAddress")
+        security_groups = self._get_list_prefix("SecurityGroups.member")
+        mount_target = self.efs_backend.create_mount_target(
+            file_system_id=file_system_id,
+            subnet_id=subnet_id,
+            ip_address=ip_address,
+            security_groups=security_groups,
+        )
+        return json.dumps(mount_target.info_json())

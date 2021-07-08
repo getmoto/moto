@@ -8,7 +8,11 @@ from copy import deepcopy
 
 from boto3 import Session
 from moto.core import BaseBackend, CloudFormationModel, ACCOUNT_ID
-from moto.core.utils import underscores_to_camelcase, camelcase_to_underscores
+from moto.core.utils import (
+    underscores_to_camelcase,
+    camelcase_to_underscores,
+    get_random_hex,
+)
 from moto.ec2 import ec2_backends
 from moto.efs.exceptions import (
     FileSystemAlreadyExists,
@@ -70,7 +74,7 @@ class FileSystem(CloudFormationModel):
             region=None, user_id=None, file_system_id=self.file_system_id
         )
         self.creation_time = time.time()
-        self.user_id = ACCOUNT_ID
+        self.owner_id = ACCOUNT_ID
 
         # Initialize some state parameters
         self.life_cycle_state = "available"
@@ -160,6 +164,7 @@ class MountTarget(CloudFormationModel):
         # Set the simple given parameters.
         self.file_system_id = file_system_id
         self.subnet_id = subnet.id
+        self.vpc_id = subnet.vpc_id
         self.security_groups = security_groups
 
         # Get an IP address if needed, otherwise validate the one we're given.
@@ -170,12 +175,27 @@ class MountTarget(CloudFormationModel):
         self.ip_address = ip_address
 
         # Init non-user-assigned values.
+        self.owner_id = ACCOUNT_ID
+        self.mounted_target_id = "fsmt-{}".format(get_random_hex())
+        self.life_cycle_state = "available"
         self.network_interface_id = None
         self.availability_zone_id = subnet.availability_zone_id
         self.availability_zone_name = subnet.availability_zone
 
     def set_network_interface(self, network_interface):
         self.network_interface_id = network_interface.id
+
+    def info_json(self):
+        ret = {
+            underscores_to_camelcase(k.capitalize()): v
+            for k, v in self.__dict__.items()
+            if not k.startswith("_")
+        }
+        return ret
+
+    @property
+    def physical_resource_id(self):
+        return self.mounted_target_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -233,13 +253,7 @@ class EFSBackend(BaseBackend):
 
         # Create a new file system ID:
         def make_id():
-            fsid = "fs-" + "".join(
-                [
-                    random.choice(string.ascii_lowercase + string.digits)
-                    for _ in range(15)
-                ]
-            )
-            return fsid
+            return "fs-{}".format(get_random_hex())
 
         fsid = make_id()
         while fsid in self.file_systems_by_id:
@@ -252,7 +266,7 @@ class EFSBackend(BaseBackend):
         # Restrict the possible corpus of resules based on inputs.
         if creation_token and file_system_id:
             raise BadRequest(
-                "Request cannot contain both a file system ID and a " "creation token."
+                "Request cannot contain both a file system ID and a creation token."
             )
         elif creation_token:
             # Handle the creation token case.
