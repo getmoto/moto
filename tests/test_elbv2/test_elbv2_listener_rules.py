@@ -362,6 +362,57 @@ def test_create_rule_with_http_header_condition():
 
 @mock_elbv2
 @mock_ec2
+def test_create_rule_with_http_request_method_condition():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+
+    # create_rule
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[
+            {
+                "Field": "http-request-method",
+                "HttpRequestMethodConfig": {"Values": ["GET", "POST"]},
+            }
+        ],
+        Actions=[default_action],
+    )
+
+    # assert create_rule response
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("100")
+    rule["Conditions"].should.equal(
+        [
+            {
+                "Field": "http-request-method",
+                "HttpRequestMethodConfig": {"Values": ["GET", "POST"]},
+            }
+        ]
+    )
+
+    # assert describe_rules response
+    response = conn.describe_rules(ListenerArn=http_listener_arn)
+    response["Rules"].should.have.length_of(2)
+
+    # assert describe_rules with arn filter response
+    rule = response["Rules"][0]
+    rule["Conditions"].should.equal(
+        [
+            {
+                "Field": "http-request-method",
+                "HttpRequestMethodConfig": {"Values": ["GET", "POST"]},
+            }
+        ]
+    )
+    response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
+    response["Rules"].should.equal([rule])
+
+
+@mock_elbv2
+@mock_ec2
 def test_create_rule_with_query_string_condition():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -374,14 +425,7 @@ def test_create_rule_with_query_string_condition():
         Conditions=[
             {
                 "Field": "query-string",
-                "QueryStringConfig": {
-                    "Values": [
-                        {
-                            "Key": "hello",
-                            "Value": "world"
-                        }
-                    ]
-                }
+                "QueryStringConfig": {"Values": [{"Key": "hello", "Value": "world"}]},
             },
         ],
         Actions=[default_action],
@@ -391,19 +435,14 @@ def test_create_rule_with_query_string_condition():
     response["Rules"].should.have.length_of(1)
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("100")
-    rule["Conditions"].should.equal([
-        {
-            "Field": "query-string",
-            "QueryStringConfig": {
-                "Values": [
-                    {
-                        "Key": "hello",
-                        "Value": "world"
-                    }
-                ]
+    rule["Conditions"].should.equal(
+        [
+            {
+                "Field": "query-string",
+                "QueryStringConfig": {"Values": [{"Key": "hello", "Value": "world"}]},
             }
-        }
-    ])
+        ]
+    )
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
@@ -411,19 +450,14 @@ def test_create_rule_with_query_string_condition():
 
     # assert describe_rules with arn filter response
     rule = response["Rules"][0]
-    rule["Conditions"].should.equal([
-        {
-            "Field": "query-string",
-            "QueryStringConfig": {
-                "Values": [
-                    {
-                        "Key": "hello",
-                        "Value": "world"
-                    }
-                ]
+    rule["Conditions"].should.equal(
+        [
+            {
+                "Field": "query-string",
+                "QueryStringConfig": {"Values": [{"Key": "hello", "Value": "world"}]},
             }
-        }
-    ])
+        ]
+    )
     response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
     response["Rules"].should.equal([rule])
 
@@ -625,7 +659,72 @@ def test_create_rule_validate_http_header_condition():
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal("The 'http-header' value is too long; the limit is '128'")
+    err["Message"].should.equal(
+        "The 'http-header' value is too long; the limit is '128'"
+    )
+
+
+@mock_elbv2
+@mock_ec2
+def test_create_rule_validate_http_request_method_condition():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+
+    # create_rule with long host header
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[
+                {
+                    "Field": "http-request-method",
+                    "HttpRequestMethodConfig": {"Values": ["get"]},
+                }
+            ],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        "The 'http-request-method' value is invalid; the allowed characters are A-Z, hyphen and underscore"
+    )
+
+    # create_rule with long host header
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[
+                {
+                    "Field": "http-request-method",
+                    "HttpRequestMethodConfig": {"Values": ["X" * 50]},
+                }
+            ],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        "The 'http-request-method' value is too long; the limit is '40'"
+    )
+
+    # create_rule with no config
+    with pytest.raises(ClientError) as ex:
+        response = conn.create_rule(
+            ListenerArn=http_listener_arn,
+            Priority=100,
+            Conditions=[{"Field": "http-request-method",}],
+            Actions=[default_action],
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        "A 'HttpRequestMethodConfig' must be specified with 'http-request-method'"
+    )
 
 
 @mock_elbv2
@@ -644,13 +743,8 @@ def test_create_rule_validate_query_string_condition():
                 {
                     "Field": "query-string",
                     "QueryStringConfig": {
-                        "Values": [
-                            {
-                                "Key": "x" * 256,
-                                "Value": "world"
-                            }
-                        ]
-                    }
+                        "Values": [{"Key": "x" * 256, "Value": "world"}]
+                    },
                 }
             ],
             Actions=[default_action],
@@ -669,13 +763,8 @@ def test_create_rule_validate_query_string_condition():
                 {
                     "Field": "query-string",
                     "QueryStringConfig": {
-                        "Values": [
-                            {
-                                "Key": "hello",
-                                "Value": "x" * 256
-                            }
-                        ]
-                    }
+                        "Values": [{"Key": "hello", "Value": "x" * 256}]
+                    },
                 }
             ],
             Actions=[default_action],
@@ -693,13 +782,7 @@ def test_create_rule_validate_query_string_condition():
             Conditions=[
                 {
                     "Field": "query-string",
-                    "QueryStringConfig": {
-                        "Values": [
-                            {
-                                "Key": "hello"
-                            }
-                        ]
-                    }
+                    "QueryStringConfig": {"Values": [{"Key": "hello"}]},
                 }
             ],
             Actions=[default_action],
@@ -707,5 +790,6 @@ def test_create_rule_validate_query_string_condition():
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal("A 'Value' must be specified in 'QueryStringKeyValuePair'")
->>>>>>> 8766acba (ELBv2 - add support for query-string)
+    err["Message"].should.equal(
+        "A 'Value' must be specified in 'QueryStringKeyValuePair'"
+    )

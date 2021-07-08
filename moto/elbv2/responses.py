@@ -722,6 +722,15 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
               </Values>
             </HttpHeaderConfig>
             {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
             {% if "QueryStringConfig" in condition %}
             <QueryStringConfig>
               <Values>
@@ -944,6 +953,15 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
               </Values>
             </HttpHeaderConfig>
             {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
             {% if "QueryStringConfig" in condition %}
             <QueryStringConfig>
               <Values>
@@ -1144,6 +1162,15 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
                 {% endfor %}
               </Values>
             </HttpHeaderConfig>
+            {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
             {% endif %}
             {% if "QueryStringConfig" in condition %}
             <QueryStringConfig>

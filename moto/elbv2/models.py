@@ -751,7 +751,20 @@ class ELBv2Backend(BaseBackend):
             )
 
     def _validate_http_request_method_condition(self, condition):
-        pass
+        if "HttpRequestMethodConfig" in condition:
+            for value in condition["HttpRequestMethodConfig"]["Values"]:
+                if len(value) > 40:
+                    raise InvalidConditionValueError(
+                        "The 'http-request-method' value is too long; the limit is '40'"
+                    )
+                if not re.match("[A-Z_-]+", value):
+                    raise InvalidConditionValueError(
+                        "The 'http-request-method' value is invalid; the allowed characters are A-Z, hyphen and underscore"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'HttpRequestMethodConfig' must be specified with 'http-request-method'"
+            )
 
     def _validate_path_pattern_condition(self, condition):
         values = None
