@@ -146,6 +146,12 @@ class EFSBackend(BaseBackend):
         self.file_systems_by_id = {}
         self.next_markers = {}
 
+    def reset(self):
+        # preserve region
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
+
     def create_file_system(self, creation_token, **params):
         if not creation_token:
             raise ValueError("No creation token given.")
