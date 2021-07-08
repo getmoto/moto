@@ -9,7 +9,13 @@ from copy import deepcopy
 from boto3 import Session
 from moto.core import BaseBackend, CloudFormationModel, ACCOUNT_ID
 from moto.core.utils import underscores_to_camelcase, camelcase_to_underscores
-from moto.efs.exceptions import FileSystemAlreadyExists, BadRequest, FileSystemNotFound
+from moto.ec2 import ec2_backends
+from moto.efs.exceptions import (
+    FileSystemAlreadyExists,
+    BadRequest,
+    FileSystemNotFound,
+    MountTargetConflict,
+)
 
 
 class FileSystem(CloudFormationModel):
@@ -68,7 +74,7 @@ class FileSystem(CloudFormationModel):
 
         # Initialize some state parameters
         self.life_cycle_state = "available"
-        self.number_of_mount_targets = 0
+        self._mount_targets = {}
         self._size_value = 0
 
     @property
@@ -84,14 +90,25 @@ class FileSystem(CloudFormationModel):
     def physical_resource_id(self):
         return self.file_system_id
 
+    @property
+    def number_of_mount_targets(self):
+        return len(self._mount_targets)
+
     def info_json(self):
         ret = {
             underscores_to_camelcase(k.capitalize()): v
             for k, v in self.__dict__.items()
             if not k.startswith("_")
         }
-        ret['SizeInBytes'] = self.size_in_bytes
+        ret["SizeInBytes"] = self.size_in_bytes
+        ret["NumberOfMountTargets"] = self.number_of_mount_targets
         return ret
+
+    def add_mount_target(self, subnet, mount_target):
+        self._mount_targets[subnet.availability_zone] = mount_target
+
+    def has_mount_target(self, subnet):
+        return subnet.availability_zone in self._mount_targets
 
     @staticmethod
     def cloudformation_name_type():
@@ -138,6 +155,58 @@ class FileSystem(CloudFormationModel):
         return
 
 
+class MountTarget(CloudFormationModel):
+    def __init__(self, file_system_id, subnet, ip_address, security_groups):
+        # Set the simple given parameters.
+        self.file_system_id = file_system_id
+        self.subnet_id = subnet.id
+        self.security_groups = security_groups
+
+        # Get an IP address if needed, otherwise validate the one we're given.
+        if ip_address is None:
+            ip_address = subnet.get_available_subnet_ip(self)
+        else:
+            subnet.request_ip(ip_address, self)
+        self.ip_address = ip_address
+
+        # Init non-user-assigned values.
+        self.network_interface_id = None
+        self.availability_zone_id = subnet.availability_zone_id
+        self.availability_zone_name = subnet.availability_zone
+
+    def set_network_interface(self, network_interface):
+        self.network_interface_id = network_interface.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        pass
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::EFS::MountTarget"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-mounttarget.html
+        props = deepcopy(cloudformation_json["Properties"])
+        props = {camelcase_to_underscores(k): v for k, v in props.items()}
+        return efs_backends[region_name].create_mount_target(**props)
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        pass
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        pass
+
+
 class EFSBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(EFSBackend, self).__init__()
@@ -151,6 +220,10 @@ class EFSBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @property
+    def ec2_backend(self):
+        return ec2_backends[self.region_name]
 
     def create_file_system(self, creation_token, **params):
         if not creation_token:
@@ -211,13 +284,39 @@ class EFSBackend(BaseBackend):
             next_marker = None
         return next_marker, file_systems
 
+    def create_mount_target(
+        self, file_system_id, subnet_id, ip_address=None, security_groups=None
+    ):
+        # Get the relevant existing resources
+        subnet = self.ec2_backend.get_subnet(subnet_id)
+        file_system = self.file_systems_by_id[file_system_id]
+
+        # Check that the mount target doesn't violate constraints.
+        if file_system.has_mount_target(subnet):
+            raise MountTargetConflict("Mount Target already exists in AZ")
+
+        # Create the new mount target
+        new_mount_target = MountTarget(
+            file_system_id, subnet, ip_address, security_groups
+        )
+
+        # Establish the network interface.
+        network_interface = self.ec2_backend.create_network_interface(
+            subnet, [new_mount_target.ip_address], group_ids=security_groups
+        )
+        new_mount_target.set_network_interface(network_interface)
+
+        # Record the new mount target
+        file_system.add_mount_target(subnet, new_mount_target)
+        return new_mount_target
+
     # add methods from here
 
 
 efs_backends = {}
 for region in Session().get_available_regions("efs"):
-    efs_backends[region] = EFSBackend()
+    efs_backends[region] = EFSBackend(region)
 for region in Session().get_available_regions("efs", partition_name="aws-us-gov"):
-    efs_backends[region] = EFSBackend()
+    efs_backends[region] = EFSBackend(region)
 for region in Session().get_available_regions("efs", partition_name="aws-cn"):
-    efs_backends[region] = EFSBackend()
+    efs_backends[region] = EFSBackend(region)

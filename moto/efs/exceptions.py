@@ -30,6 +30,15 @@ class FileSystemNotFound(EFSError):
         )
 
 
+class MountTargetConflict(EFSError):
+    code = 409
+
+    def __init__(self, msg, *args, **kwargs):
+        super(MountTargetConflict, self).__init__(
+            "MountTargetConflict", msg, *args, **kwargs
+        )
+
+
 class BadRequest(EFSError):
     code = 400
 

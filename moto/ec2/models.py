@@ -3534,6 +3534,10 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         return self._availability_zone.name
 
     @property
+    def availability_zone_id(self):
+        return self._availability_zone.zone_id
+
+    @property
     def physical_resource_id(self):
         return self.id
 
