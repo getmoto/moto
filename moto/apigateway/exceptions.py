@@ -78,10 +78,12 @@ class NoIntegrationDefined(RESTError):
         )
 
 
-class NoIntegrationResponseDefined(BadRequestException):
+class NoIntegrationResponseDefined(RESTError):
+    code = 404
+
     def __init__(self, code=None):
         super(NoIntegrationResponseDefined, self).__init__(
-            "BadRequestException", "No integration defined for method, code '%s'" % code
+            "NotFoundException", "No integration defined for method, code '%s'" % code
         )
 
 

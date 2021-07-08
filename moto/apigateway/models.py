@@ -91,6 +91,8 @@ class IntegrationResponse(BaseModel, dict):
         if response_templates is None:
             # response_templates = {"application/json": None}  # Note: removed for compatibility with TF
             response_templates = {}
+        for key in response_templates.keys():
+            response_templates[key] = response_templates[key] or None  # required for compatibility with TF
         self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
         if selection_pattern:
