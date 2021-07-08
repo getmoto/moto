@@ -7,7 +7,7 @@ import random
 from copy import deepcopy
 
 from boto3 import Session
-from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+from moto.core import BaseBackend, CloudFormationModel, ACCOUNT_ID
 from moto.core.utils import underscores_to_camelcase, camelcase_to_underscores
 from moto.efs.exceptions import FileSystemAlreadyExists, BadRequest, FileSystemNotFound
 
@@ -55,6 +55,8 @@ class FileSystem(CloudFormationModel):
                 or not all(set(tag.keys()) == {"Key", "Value"} for tag in tags)
             ):
                 raise ValueError("Invalid tags: {}".format(tags))
+            else:
+                self.tags = tags
 
         # Generate AWS-assigned parameters
         self.file_system_id = file_system_id
@@ -64,16 +66,32 @@ class FileSystem(CloudFormationModel):
         self.creation_time = time.time()
         self.user_id = ACCOUNT_ID
 
+        # Initialize some state parameters
+        self.life_cycle_state = "available"
+        self.number_of_mount_targets = 0
+        self._size_value = 0
+
+    @property
+    def size_in_bytes(self):
+        return {
+            "Value": self._size_value,
+            "ValueInIA": 0,
+            "ValueInStandard": self._size_value,
+            "Timestamp": time.time(),
+        }
+
     @property
     def physical_resource_id(self):
         return self.file_system_id
 
     def info_json(self):
-        return {
+        ret = {
             underscores_to_camelcase(k.capitalize()): v
             for k, v in self.__dict__.items()
             if not k.startswith("_")
         }
+        ret['SizeInBytes'] = self.size_in_bytes
+        return ret
 
     @staticmethod
     def cloudformation_name_type():
