@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import json
 import string
 import time
 import random
@@ -8,7 +9,7 @@ from copy import deepcopy
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.core.utils import underscores_to_camelcase, camelcase_to_underscores
-from moto.efs.exceptions import FileSystemAlreadyExists, BadRequest
+from moto.efs.exceptions import FileSystemAlreadyExists, BadRequest, FileSystemNotFound
 
 
 class FileSystem(CloudFormationModel):
@@ -63,12 +64,13 @@ class FileSystem(CloudFormationModel):
         self.creation_time = time.time()
         self.user_id = ACCOUNT_ID
 
-        # Assign the physical reasource ID, used internally
-        self.physical_resource_id = file_system_id
+    @property
+    def physical_resource_id(self):
+        return self.file_system_id
 
     def info_json(self):
         return {
-            underscores_to_camelcase(k): v
+            underscores_to_camelcase(k.capitalize()): v
             for k, v in self.__dict__.items()
             if not k.startswith("_")
         }
@@ -124,6 +126,7 @@ class EFSBackend(BaseBackend):
         self.region_name = region_name
         self.creation_tokens = set()
         self.file_systems_by_id = {}
+        self.next_markers = {}
 
     def create_file_system(self, creation_token, **params):
         if not creation_token:
@@ -148,10 +151,42 @@ class EFSBackend(BaseBackend):
         self.creation_tokens.add(creation_token)
         return self.file_systems_by_id[fsid]
 
-    def describe_file_systems(self, max_items, creation_token, file_system_id):
-        # implement here
-        return marker, file_systems
-    
+    def describe_file_systems(self, marker, max_items, creation_token, file_system_id):
+        # Restrict the possible corpus of resules based on inputs.
+        if creation_token and file_system_id:
+            raise BadRequest(
+                "Request cannot contain both a file system ID and a " "creation token."
+            )
+        elif creation_token:
+            # Handle the creation token case.
+            corpus = []
+            for fs in self.file_systems_by_id.values():
+                if fs.creation_token == creation_token:
+                    corpus.append(fs.info_json())
+        elif file_system_id:
+            # Handle the case that a file_system_id is given.
+            if file_system_id not in self.file_systems_by_id:
+                raise FileSystemNotFound(file_system_id)
+            corpus = [self.file_systems_by_id[file_system_id]]
+        elif marker is not None:
+            # Handle the case that a marker is given.
+            if marker not in self.next_markers:
+                raise BadRequest("Invalid Marker")
+            corpus = self.next_markers[marker]
+        else:
+            # Handle the vanilla case.
+            corpus = [fs.info_json() for fs in self.file_systems_by_id.values()]
+
+        # Handle the max_items parameter.
+        file_systems = corpus[:max_items]
+        if max_items < len(self.next_markers):
+            new_corpus = self.next_markers[marker][max_items:]
+            next_marker = str(hash(json.dumps(new_corpus)))
+            self.next_markers[next_marker] = new_corpus
+        else:
+            next_marker = None
+        return next_marker, file_systems
+
     # add methods from here
 
 

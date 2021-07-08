@@ -18,6 +18,18 @@ class FileSystemAlreadyExists(EFSError):
         )
 
 
+class FileSystemNotFound(EFSError):
+    code = 404
+
+    def __init__(self, file_system_id, *args, **kwargs):
+        super(FileSystemNotFound, self).__init__(
+            "FileSystemNotFound",
+            "File system {} does not exist.".format(file_system_id),
+            *args,
+            **kwargs
+        )
+
+
 class BadRequest(EFSError):
     code = 400
 

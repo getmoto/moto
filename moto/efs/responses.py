@@ -35,16 +35,21 @@ class EFSResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps(resource.info_json())
-    
+
     def describe_file_systems(self):
-        max_items = self._get_int_param("MaxItems")
+        max_items = self._get_int_param("MaxItems", 10)
         marker = self._get_param("Marker")
         creation_token = self._get_param("CreationToken")
         file_system_id = self._get_param("FileSystemId")
-        marker, file_systems = self.efs_backend.describe_file_systems(
+        next_marker, file_systems = self.efs_backend.describe_file_systems(
+            marker=marker,
             max_items=max_items,
             creation_token=creation_token,
             file_system_id=file_system_id,
         )
-        # TODO: adjust response
-        return json.dumps(dict(marker=marker, fileSystems=file_systems))
+        resp_json = {"FileSystems": file_systems}
+        if marker:
+            resp_json["Marker"] = marker
+        if next_marker:
+            resp_json["NextMarker"] = next_marker
+        return json.dumps(resp_json)
