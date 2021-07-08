@@ -395,6 +395,8 @@ class Stage(BaseModel, dict):
         description="",
         cacheClusterEnabled=False,
         cacheClusterSize=None,
+        tags=None,
+        tracing_enabled=None
     ):
         super(Stage, self).__init__()
         if variables is None:
@@ -409,6 +411,10 @@ class Stage(BaseModel, dict):
             self["cacheClusterSize"] = str(0.5)
         if cacheClusterSize is not None:
             self["cacheClusterSize"] = str(cacheClusterSize)
+        if tags is not None:
+            self["tags"] = tags
+        if tracing_enabled is not None:
+            self["tracingEnabled"] = tracing_enabled
 
     def apply_operations(self, patch_operations):
         for op in patch_operations:
@@ -821,6 +827,8 @@ class RestAPI(CloudFormationModel):
         description="",
         cacheClusterEnabled=None,
         cacheClusterSize=None,
+        tags=None,
+        tracing_enabled=None
     ):
         if variables is None:
             variables = {}
@@ -831,6 +839,8 @@ class RestAPI(CloudFormationModel):
             description=description,
             cacheClusterSize=cacheClusterSize,
             cacheClusterEnabled=cacheClusterEnabled,
+            tags=tags,
+            tracing_enabled=tracing_enabled,
         )
         self.stages[name] = stage
         self.update_integration_mocks(name)
@@ -1091,6 +1101,8 @@ class APIGatewayBackend(BaseBackend):
         description="",
         cacheClusterEnabled=None,
         cacheClusterSize=None,
+        tags=None,
+        tracing_enabled=None
     ):
         if variables is None:
             variables = {}
@@ -1102,6 +1114,8 @@ class APIGatewayBackend(BaseBackend):
             description=description,
             cacheClusterEnabled=cacheClusterEnabled,
             cacheClusterSize=cacheClusterSize,
+            tags=tags,
+            tracing_enabled=tracing_enabled
         )
         return api.stages.get(stage_name)
 
@@ -1114,7 +1128,9 @@ class APIGatewayBackend(BaseBackend):
 
     def delete_stage(self, function_id, stage_name):
         api = self.get_rest_api(function_id)
-        del api.stages[stage_name]
+        deleted = api.stages.pop(stage_name, None)
+        if not deleted:
+            raise StageNotFoundException()
 
     def get_method_response(self, function_id, resource_id, method_type, response_code):
         method = self.get_method(function_id, resource_id, method_type)

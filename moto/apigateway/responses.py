@@ -337,6 +337,8 @@ class APIGatewayResponse(BaseResponse):
             description = self._get_param("description", if_none="")
             cacheClusterEnabled = self._get_param("cacheClusterEnabled", if_none=False)
             cacheClusterSize = self._get_param("cacheClusterSize")
+            tags = self._get_param("tags")
+            tracing_enabled = self._get_param("tracingEnabled")
 
             stage_response = self.backend.create_stage(
                 function_id,
@@ -346,6 +348,8 @@ class APIGatewayResponse(BaseResponse):
                 description=description,
                 cacheClusterEnabled=cacheClusterEnabled,
                 cacheClusterSize=cacheClusterSize,
+                tags=tags,
+                tracing_enabled=tracing_enabled
             )
         elif self.method == "GET":
             stages = self.backend.get_stages(function_id)
