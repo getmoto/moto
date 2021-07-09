@@ -2157,15 +2157,15 @@ def test_create_and_list_connections():
         },
     )
 
-    assert response.get(
-        "ConnectionArn"
-    ) == "arn:aws:events:eu-central-1:{0}:connection/test".format(ACCOUNT_ID)
+    response.get("ConnectionArn").should.contain(
+        "arn:aws:events:eu-central-1:{0}:connection/test/".format(ACCOUNT_ID)
+    )
 
     response = client.list_connections()
 
-    assert response.get("Connections")[0].get(
-        "ConnectionArn"
-    ) == "arn:aws:events:eu-central-1:{0}:connection/test".format(ACCOUNT_ID)
+    response.get("Connections")[0].get("ConnectionArn").should.contain(
+        "arn:aws:events:eu-central-1:{0}:connection/test/".format(ACCOUNT_ID)
+    )
 
 
 @mock_events
@@ -2189,24 +2189,23 @@ def test_create_and_list_api_destinations():
         HttpMethod="GET",
     )
 
-    assert destination_response.get(
-        "ApiDestinationArn"
-    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+    arn_without_uuid = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:api-destination/test/"
+    assert destination_response.get("ApiDestinationArn").startswith(arn_without_uuid)
     assert destination_response.get("ApiDestinationState") == "ACTIVE"
 
     destination_response = client.describe_api_destination(Name="test")
 
-    assert destination_response.get(
-        "ApiDestinationArn"
-    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+    assert destination_response.get("ApiDestinationArn").startswith(arn_without_uuid)
 
     assert destination_response.get("Name") == "test"
     assert destination_response.get("ApiDestinationState") == "ACTIVE"
 
     destination_response = client.list_api_destinations()
-    assert destination_response.get("ApiDestinations")[0].get(
-        "ApiDestinationArn"
-    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+    assert (
+        destination_response.get("ApiDestinations")[0]
+        .get("ApiDestinationArn")
+        .startswith(arn_without_uuid)
+    )
 
     assert destination_response.get("ApiDestinations")[0].get("Name") == "test"
     assert (
