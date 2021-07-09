@@ -91,3 +91,8 @@ class EFSResponse(BaseResponse):
         file_system_id = self._get_param("FileSystemId")
         self.efs_backend.delete_file_system(file_system_id=file_system_id,)
         return json.dumps(dict())
+
+    def delete_mount_target(self):
+        mount_target_id = self._get_param("MountTargetId")
+        self.efs_backend.delete_mount_target(mount_target_id=mount_target_id,)
+        return json.dumps(dict())

@@ -30,6 +30,13 @@ class FileSystemNotFound(EFSError):
         )
 
 
+class FileSystemInUse(EFSError):
+    code = 409
+
+    def __init__(self, msg, *args, **kwargs):
+        super(FileSystemInUse, self).__init__("FileSystemInUse", msg, *args, **kwargs)
+
+
 class MountTargetConflict(EFSError):
     code = 409
 
@@ -39,11 +46,13 @@ class MountTargetConflict(EFSError):
         )
 
 
-class FileSystemInUse(EFSError):
-    code = 409
+class MountTargetNotFound(EFSError):
+    code = 404
 
     def __init__(self, msg, *args, **kwargs):
-        super(FileSystemInUse, self).__init__("FileSystemInUse", msg, *args, **kwargs)
+        super(MountTargetNotFound, self).__init__(
+            "MountTargetNotFound", msg, *args, **kwargs
+        )
 
 
 class BadRequest(EFSError):

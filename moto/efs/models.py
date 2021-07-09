@@ -22,7 +22,9 @@ from moto.efs.exceptions import (
     FileSystemAlreadyExists,
     BadRequest,
     FileSystemNotFound,
-    MountTargetConflict, FileSystemInUse,
+    MountTargetConflict,
+    FileSystemInUse,
+    MountTargetNotFound,
 )
 
 
@@ -124,6 +126,9 @@ class FileSystem(CloudFormationModel):
         for mt in self._mount_targets.values():
             yield mt
 
+    def remove_mount_target(self, subnet):
+        del self._mount_targets[subnet.availability_zone]
+
     @staticmethod
     def cloudformation_name_type():
         return
@@ -173,9 +178,14 @@ class MountTarget(CloudFormationModel):
     """A model for an EFS Mount Target."""
 
     def __init__(self, file_system, subnet, ip_address, security_groups):
+        # Check that the mount target doesn't violate constraints.
+        if file_system.has_mount_target(subnet):
+            raise MountTargetConflict("Mount Target already exists in AZ")
+
         # Set the simple given parameters.
         self.file_system_id = file_system.file_system_id
         self._file_system = file_system
+        self._file_system.add_mount_target(subnet, self)
         self.subnet_id = subnet.id
         self._subnet = subnet
         self.vpc_id = subnet.vpc_id
@@ -195,6 +205,10 @@ class MountTarget(CloudFormationModel):
         self.network_interface_id = None
         self.availability_zone_id = subnet.availability_zone_id
         self.availability_zone_name = subnet.availability_zone
+
+    def __del__(self):
+        self._file_system.remove_mount_target(self._subnet)
+        self._subnet.del_subnet_ip(self.ip_address)
 
     def set_network_interface(self, network_interface):
         self.network_interface_id = network_interface.id
@@ -346,10 +360,6 @@ class EFSBackend(BaseBackend):
         subnet = self.ec2_backend.get_subnet(subnet_id)
         file_system = self.file_systems_by_id[file_system_id]
 
-        # Check that the mount target doesn't violate constraints.
-        if file_system.has_mount_target(subnet):
-            raise MountTargetConflict("Mount Target already exists in AZ")
-
         # Create the new mount target
         mount_target = MountTarget(file_system, subnet, ip_address, security_groups)
 
@@ -360,7 +370,6 @@ class EFSBackend(BaseBackend):
         mount_target.set_network_interface(network_interface)
 
         # Record the new mount target
-        file_system.add_mount_target(subnet, mount_target)
         self.mount_targets_by_id[mount_target.mounted_target_id] = mount_target
         return mount_target
 
@@ -423,9 +432,27 @@ class EFSBackend(BaseBackend):
 
         file_system = self.file_systems_by_id[file_system_id]
         if file_system.number_of_mount_targets > 0:
-            raise FileSystemInUse("Must delete all mount targets before deleting file system.")
+            raise FileSystemInUse(
+                "Must delete all mount targets before deleting file system."
+            )
 
         del self.file_systems_by_id[file_system_id]
+        return
+
+    def delete_mount_target(self, mount_target_id):
+        """Delete a mount target specified by the given mount_target_id.
+
+        Note that this will also delete a network interface.
+
+        https://docs.aws.amazon.com/efs/latest/ug/API_DeleteMountTarget.html
+        """
+        if mount_target_id not in self.mount_targets_by_id:
+            raise MountTargetNotFound("Now mount target {}.".format(mount_target_id))
+
+        mount_target = self.mount_targets_by_id[mount_target_id]
+        self.ec2_backend.delete_network_interface(mount_target.network_interface_id)
+        del self.mount_targets_by_id[mount_target_id]
+        del mount_target
         return
 
     # add methods from here
