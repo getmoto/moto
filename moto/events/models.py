@@ -546,6 +546,7 @@ class Connection(BaseModel):
     def __init__(
         self, name, region_name, description, authorization_type, auth_parameters,
     ):
+        self.uuid = uuid4()
         self.name = name
         self.region = region_name
         self.description = description
@@ -556,8 +557,8 @@ class Connection(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:events:{0}:{1}:connection/{2}".format(
-            self.region, ACCOUNT_ID, self.name
+        return "arn:aws:events:{0}:{1}:connection/{2}/{3}".format(
+            self.region, ACCOUNT_ID, self.name, self.uuid
         )
 
 
