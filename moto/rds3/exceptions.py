@@ -28,7 +28,7 @@ class ResourceNotFound(RDSError):
     def __init__(self, resource_id):
         resource_type = self.__class__.__name__.replace('NotFound', '')
         super(ResourceNotFound, self).__init__(resource_id=resource_id, resource_type=resource_type)
-        self.code = self.__class__.__name__ + "Fault"
+        # self.code = self.__class__.__name__ + "Fault"
 
 
 class DBInstanceNotFound(ResourceNotFound):

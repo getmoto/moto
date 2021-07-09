@@ -488,6 +488,7 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
       <Datapoints>
         {% for datapoint in datapoints %}
             <member>
+              <Unit>Seconds</Unit>
               {% if datapoint.sum is not none %}
               <Sum>{{ datapoint.sum }}</Sum>
               {% endif %}
