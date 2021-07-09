@@ -22,7 +22,7 @@ from moto.efs.exceptions import (
     FileSystemAlreadyExists,
     BadRequest,
     FileSystemNotFound,
-    MountTargetConflict,
+    MountTargetConflict, FileSystemInUse,
 )
 
 
@@ -410,6 +410,23 @@ class EFSBackend(BaseBackend):
         mount_targets = corpus[:max_items]
         next_marker = self._mark_description(mount_targets, max_items)
         return next_marker, mount_targets
+
+    def delete_file_system(self, file_system_id):
+        """Delete the file system specified by the given file_system_id.
+
+        Note that mount targets must be deleted first.
+
+        https://docs.aws.amazon.com/efs/latest/ug/API_DeleteFileSystem.html
+        """
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+
+        file_system = self.file_systems_by_id[file_system_id]
+        if file_system.number_of_mount_targets > 0:
+            raise FileSystemInUse("Must delete all mount targets before deleting file system.")
+
+        del self.file_systems_by_id[file_system_id]
+        return
 
     # add methods from here
 

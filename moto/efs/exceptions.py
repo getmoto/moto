@@ -39,6 +39,13 @@ class MountTargetConflict(EFSError):
         )
 
 
+class FileSystemInUse(EFSError):
+    code = 409
+
+    def __init__(self, msg, *args, **kwargs):
+        super(FileSystemInUse, self).__init__("FileSystemInUse", msg, *args, **kwargs)
+
+
 class BadRequest(EFSError):
     code = 400
 

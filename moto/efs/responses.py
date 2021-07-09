@@ -86,3 +86,8 @@ class EFSResponse(BaseResponse):
         if next_marker:
             resp_json["NextMarker"] = next_marker
         return json.dumps(resp_json)
+
+    def delete_file_system(self):
+        file_system_id = self._get_param("FileSystemId")
+        self.efs_backend.delete_file_system(file_system_id=file_system_id,)
+        return json.dumps(dict())
