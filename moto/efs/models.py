@@ -1,9 +1,13 @@
+"""Implement models for EFS resources.
+
+See AWS docs for details:
+https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html
+"""
+
 from __future__ import unicode_literals
 
 import json
-import string
 import time
-import random
 from copy import deepcopy
 
 from boto3 import Session
@@ -23,6 +27,8 @@ from moto.efs.exceptions import (
 
 
 class FileSystem(CloudFormationModel):
+    """A model for an EFS File System Volume."""
+
     def __init__(
         self,
         creation_token,
@@ -164,6 +170,8 @@ class FileSystem(CloudFormationModel):
 
 
 class MountTarget(CloudFormationModel):
+    """A model for an EFS Mount Target."""
+
     def __init__(self, file_system, subnet, ip_address, security_groups):
         # Set the simple given parameters.
         self.file_system_id = file_system.file_system_id
@@ -234,6 +242,13 @@ class MountTarget(CloudFormationModel):
 
 
 class EFSBackend(BaseBackend):
+    """The backend manager of EFS resources.
+
+    This is the state-machine for each region, tracking the file systems, mount targets,
+    and eventually access points that are deployed. Creating, updating, and destroying
+    such resources should always go through this class.
+    """
+
     def __init__(self, region_name=None):
         super(EFSBackend, self).__init__()
         self.region_name = region_name
@@ -262,6 +277,10 @@ class EFSBackend(BaseBackend):
         return ec2_backends[self.region_name]
 
     def create_file_system(self, creation_token, **params):
+        """Create a new EFS File System Volume.
+
+        https://docs.aws.amazon.com/efs/latest/ug/API_CreateFileSystem.html
+        """
         if not creation_token:
             raise ValueError("No creation token given.")
         if creation_token in self.creation_tokens:
@@ -279,6 +298,10 @@ class EFSBackend(BaseBackend):
         return self.file_systems_by_id[fsid]
 
     def describe_file_systems(self, marker, max_items, creation_token, file_system_id):
+        """Describe all the EFS File Systems, or specific File Systems.
+
+        https://docs.aws.amazon.com/efs/latest/ug/API_DescribeFileSystems.html
+        """
         # Restrict the possible corpus of resules based on inputs.
         if creation_token and file_system_id:
             raise BadRequest(
@@ -312,6 +335,13 @@ class EFSBackend(BaseBackend):
     def create_mount_target(
         self, file_system_id, subnet_id, ip_address=None, security_groups=None
     ):
+        """Create a new EFS Mount Target for a given File System to a given subnet.
+
+        Note that you can only create one mount target for each availability zone
+        (which is implied by the subnet ID).
+
+        https://docs.aws.amazon.com/efs/latest/ug/API_CreateMountTarget.html
+        """
         # Get the relevant existing resources
         subnet = self.ec2_backend.get_subnet(subnet_id)
         file_system = self.file_systems_by_id[file_system_id]
@@ -337,6 +367,13 @@ class EFSBackend(BaseBackend):
     def describe_mount_targets(
         self, max_items, file_system_id, mount_target_id, access_point_id, marker
     ):
+        """Describe the mount targets given a mount target ID or a file system ID.
+
+        Note that as of this writing access points, and thus access point IDs are not
+        supported.
+
+        https://docs.aws.amazon.com/efs/latest/ug/API_DescribeMountTargets.html
+        """
         # Restrict the possible corpus of results based on inputs.
         if not (bool(file_system_id) ^ bool(mount_target_id) ^ bool(access_point_id)):
             raise BadRequest("Must specify exactly one mutually exclusive parameter.")
