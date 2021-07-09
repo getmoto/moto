@@ -703,23 +703,24 @@ class ResourceMap(collections_abc.Mapping):
             for resource in remaining_resources.copy():
                 parsed_resource = self._parsed_resources.get(resource)
                 try:
-                    if parsed_resource and hasattr(parsed_resource, "delete"):
-                        parsed_resource.delete(self._region_name)
-                    else:
-                        if hasattr(parsed_resource, "physical_resource_id"):
-                            resource_name = parsed_resource.physical_resource_id
+                    if not isinstance(parsed_resource, str) and parsed_resource is not None:
+                        if parsed_resource and hasattr(parsed_resource, "delete"):
+                            parsed_resource.delete(self._region_name)
                         else:
-                            resource_name = None
+                            if hasattr(parsed_resource, "physical_resource_id"):
+                                resource_name = parsed_resource.physical_resource_id
+                            else:
+                                resource_name = None
 
-                        resource_json = self._resource_json_map[
-                            parsed_resource.logical_resource_id
-                        ]
+                            resource_json = self._resource_json_map[
+                                parsed_resource.logical_resource_id
+                            ]
 
-                        parse_and_delete_resource(
-                            resource_name, resource_json, self, self._region_name,
-                        )
+                            parse_and_delete_resource(
+                                resource_name, resource_json, self, self._region_name,
+                            )
 
-                    self._parsed_resources.pop(parsed_resource.logical_resource_id)
+                        self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
                     # skip over dependency violations, and try again in a
                     # second pass
