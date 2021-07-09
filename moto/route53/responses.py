@@ -6,7 +6,7 @@ from moto.core.responses import BaseResponse
 from .models import route53_backend
 import xmltodict
 
-XMLNS = 'https://route53.amazonaws.com/doc/2013-04-01/'
+XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
 class Route53(BaseResponse):
@@ -262,8 +262,13 @@ def no_such_hosted_zone_error(zoneid, headers={}):
     headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
     headers["Content-Type"] = "text/xml"
     message = "Zone %s Not Found" % zoneid
-    error_response = "<Error><Code>NoSuchHostedZone</Code><Message>%s</Message></Error>" % message
-    error_response = '<ErrorResponse xmlns="%s">%s</ErrorResponse>' % (XMLNS, error_response)
+    error_response = (
+        "<Error><Code>NoSuchHostedZone</Code><Message>%s</Message></Error>" % message
+    )
+    error_response = '<ErrorResponse xmlns="%s">%s</ErrorResponse>' % (
+        XMLNS,
+        error_response,
+    )
     return 404, headers, error_response
 
 

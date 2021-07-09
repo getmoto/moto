@@ -190,7 +190,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
-            service_registries=service_registries
+            service_registries=service_registries,
         )
         return json.dumps({"service": service.response_object})
 

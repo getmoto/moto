@@ -470,9 +470,13 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_helper(self, param_prefix, skip_result_conversion=False, tracked_prefixes=None):
+    def _get_multi_param_helper(
+        self, param_prefix, skip_result_conversion=False, tracked_prefixes=None
+    ):
         value_dict = dict()
-        tracked_prefixes = tracked_prefixes or set()  # prefixes which have already been processed
+        tracked_prefixes = (
+            tracked_prefixes or set()
+        )  # prefixes which have already been processed
 
         def is_tracked(name_param):
             for prefix_loop in tracked_prefixes:
@@ -504,10 +508,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 match = self.param_regex.search(name[len(param_prefix) :])
                 if match:
                     # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
-                    sub_attr = '%s%s.%s' % (name[:len(param_prefix)], match.group(1), match.group(2))
+                    sub_attr = "%s%s.%s" % (
+                        name[: len(param_prefix)],
+                        match.group(1),
+                        match.group(2),
+                    )
                     if match.group(3):
-                        value = self._get_multi_param_helper(sub_attr, tracked_prefixes=tracked_prefixes,
-                                                             skip_result_conversion=skip_result_conversion)
+                        value = self._get_multi_param_helper(
+                            sub_attr,
+                            tracked_prefixes=tracked_prefixes,
+                            skip_result_conversion=skip_result_conversion,
+                        )
                     else:
                         value = self._get_param(sub_attr)
                     tracked_prefixes.add(sub_attr)
@@ -525,8 +536,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 for name, value in value_dict.items()
             }
             for k in list(value_dict.keys()):
-                parts = k.split('.')
-                if len(parts) != 2 or parts[1] != 'member':
+                parts = k.split(".")
+                if len(parts) != 2 or parts[1] != "member":
                     value_dict[parts[0]] = value_dict.pop(k)
         else:
             value_dict = list(value_dict.values())[0]
@@ -546,7 +557,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         index = 1
         while True:
             value_dict = self._get_multi_param_helper(
-                prefix + str(index), skip_result_conversion=skip_result_conversion)
+                prefix + str(index), skip_result_conversion=skip_result_conversion
+            )
             if not value_dict and value_dict != "":
                 break
 

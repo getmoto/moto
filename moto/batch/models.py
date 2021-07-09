@@ -535,7 +535,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
 
                 result = container.wait() or {}
-                job_failed = self.stop or result.get('StatusCode', 0) > 0
+                job_failed = self.stop or result.get("StatusCode", 0) > 0
                 self._mark_stopped(success=not job_failed)
 
             except Exception as err:

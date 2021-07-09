@@ -753,47 +753,56 @@ def test_sts_regions(region):
 @mock_sts
 @mock_iam
 def test_get_caller_identity_with_iam_user_credentials():
-    iam_client = boto3.client("iam", region_name='us-east-1')
+    iam_client = boto3.client("iam", region_name="us-east-1")
     iam_user_name = "new-user"
-    iam_user = iam_client.create_user(UserName=iam_user_name)['User']
-    access_key = iam_client.create_access_key(UserName=iam_user_name)['AccessKey']
+    iam_user = iam_client.create_user(UserName=iam_user_name)["User"]
+    access_key = iam_client.create_access_key(UserName=iam_user_name)["AccessKey"]
 
     identity = boto3.client(
-        "sts", region_name='us-east-1', aws_access_key_id=access_key['AccessKeyId'],
-        aws_secret_access_key=access_key['SecretAccessKey']).get_caller_identity()
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    ).get_caller_identity()
 
-    identity['Arn'].should.equal(iam_user['Arn'])
-    identity['UserId'].should.equal(iam_user['UserId'])
-    identity['Account'].should.equal(str(ACCOUNT_ID))
+    identity["Arn"].should.equal(iam_user["Arn"])
+    identity["UserId"].should.equal(iam_user["UserId"])
+    identity["Account"].should.equal(str(ACCOUNT_ID))
 
 
 @mock_sts
 @mock_iam
 def test_get_caller_identity_with_assumed_role_credentials():
-    iam_client = boto3.client("iam", region_name='us-east-1')
-    sts_client = boto3.client("sts", region_name='us-east-1')
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    sts_client = boto3.client("sts", region_name="us-east-1")
     iam_role_name = "new-user"
     trust_policy_document = {
         "Version": "2012-10-17",
         "Statement": {
             "Effect": "Allow",
-            "Principal": {"AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)},
-            "Action": "sts:AssumeRole"
-        }
+            "Principal": {
+                "AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)
+            },
+            "Action": "sts:AssumeRole",
+        },
     }
     iam_role_arn = iam_client.role_arn = iam_client.create_role(
         RoleName=iam_role_name,
-        AssumeRolePolicyDocument=json.dumps(trust_policy_document)
-    )['Role']['Arn']
+        AssumeRolePolicyDocument=json.dumps(trust_policy_document),
+    )["Role"]["Arn"]
     session_name = "new-session"
-    assumed_role = sts_client.assume_role(RoleArn=iam_role_arn,
-                                          RoleSessionName=session_name)
-    access_key = assumed_role['Credentials']
+    assumed_role = sts_client.assume_role(
+        RoleArn=iam_role_arn, RoleSessionName=session_name
+    )
+    access_key = assumed_role["Credentials"]
 
     identity = boto3.client(
-        "sts", region_name='us-east-1', aws_access_key_id=access_key['AccessKeyId'],
-        aws_secret_access_key=access_key['SecretAccessKey']).get_caller_identity()
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    ).get_caller_identity()
 
-    identity['Arn'].should.equal(assumed_role['AssumedRoleUser']['Arn'])
-    identity['UserId'].should.equal(assumed_role['AssumedRoleUser']['AssumedRoleId'])
-    identity['Account'].should.equal(str(ACCOUNT_ID))
+    identity["Arn"].should.equal(assumed_role["AssumedRoleUser"]["Arn"])
+    identity["UserId"].should.equal(assumed_role["AssumedRoleUser"]["AssumedRoleId"])
+    identity["Account"].should.equal(str(ACCOUNT_ID))

@@ -30,9 +30,11 @@ ENDPOINT_CONFIGURATION_TYPES = ["PRIVATE", "EDGE", "REGIONAL"]
 class APIGatewayResponse(BaseResponse):
     def error(self, type_, message, status=400):
         headers = self.response_headers or {}
-        headers['X-Amzn-Errortype'] = type_
+        headers["X-Amzn-Errortype"] = type_
         return (
-            status, headers, json.dumps({"__type": type_, "message": message}),
+            status,
+            headers,
+            json.dumps({"__type": type_, "message": message}),
         )
 
     @property
@@ -98,7 +100,7 @@ class APIGatewayResponse(BaseResponse):
                 endpoint_configuration=endpoint_configuration,
                 tags=tags,
                 policy=policy,
-                minimum_compression_size=minimum_compression_size
+                minimum_compression_size=minimum_compression_size,
             )
             return 200, {}, json.dumps(rest_api.to_dict())
 
@@ -164,9 +166,7 @@ class APIGatewayResponse(BaseResponse):
                 resource = self.backend.delete_resource(function_id, resource_id)
             return 200, {}, json.dumps(resource.to_dict())
         except BadRequestException as e:
-            return self.error(
-                "BadRequestException", e.message
-            )
+            return self.error("BadRequestException", e.message)
 
     def resource_methods(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -175,11 +175,11 @@ class APIGatewayResponse(BaseResponse):
         resource_id = url_path_parts[4]
         method_type = url_path_parts[6]
 
-        if self.method == 'GET':
+        if self.method == "GET":
             method = self.backend.get_method(function_id, resource_id, method_type)
             return 200, {}, json.dumps(method)
-        elif self.method == 'PUT':
-            authorization_type = self._get_param('authorizationType')
+        elif self.method == "PUT":
+            authorization_type = self._get_param("authorizationType")
             api_key_required = self._get_param("apiKeyRequired")
             request_models = self._get_param("requestModels")
             operation_name = self._get_param("operationName")
@@ -196,17 +196,15 @@ class APIGatewayResponse(BaseResponse):
                 operation_name=operation_name,
                 authorizer_id=authorizer_id,
                 authorization_scopes=authorization_scopes,
-                request_validator_id=request_validator_id
+                request_validator_id=request_validator_id,
             )
             return 200, {}, json.dumps(method)
 
-        elif self.method == 'DELETE':
-            self.backend.delete_method(
-                function_id, resource_id, method_type
-            )
+        elif self.method == "DELETE":
+            self.backend.delete_method(function_id, resource_id, method_type)
             return 200, {}, ""
 
-        elif self.method == 'PATCH':
+        elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             self.backend.update_method(
                 function_id, resource_id, method_type, patch_operations
@@ -230,7 +228,12 @@ class APIGatewayResponse(BaseResponse):
             response_models = self._get_param("responseModels")
             response_parameters = self._get_param("responseParameters")
             method_response = self.backend.create_method_response(
-                function_id, resource_id, method_type, response_code, response_models, response_parameters
+                function_id,
+                resource_id,
+                method_type,
+                response_code,
+                response_models,
+                response_parameters,
             )
         elif self.method == "DELETE":
             method_response = self.backend.delete_method_response(
@@ -349,7 +352,7 @@ class APIGatewayResponse(BaseResponse):
                 cacheClusterEnabled=cacheClusterEnabled,
                 cacheClusterSize=cacheClusterSize,
                 tags=tags,
-                tracing_enabled=tracing_enabled
+                tracing_enabled=tracing_enabled,
             )
         elif self.method == "GET":
             stages = self.backend.get_stages(function_id)
@@ -399,15 +402,15 @@ class APIGatewayResponse(BaseResponse):
                     function_id, resource_id, method_type
                 )
             elif self.method == "PUT":
-                integration_type = self._get_param('type')
-                uri = self._get_param('uri')
-                credentials = self._get_param('credentials')
-                request_templates = self._get_param('requestTemplates')
-                tls_config = self._get_param('tlsConfig')
-                cache_namespace = self._get_param('cacheNamespace')
+                integration_type = self._get_param("type")
+                uri = self._get_param("uri")
+                credentials = self._get_param("credentials")
+                request_templates = self._get_param("requestTemplates")
+                tls_config = self._get_param("tlsConfig")
+                cache_namespace = self._get_param("cacheNamespace")
                 self.backend.get_method(function_id, resource_id, method_type)
 
-                integration_http_method = self._get_param('httpMethod') or method_type
+                integration_http_method = self._get_param("httpMethod") or method_type
 
                 integration_response = self.backend.create_integration(
                     function_id,
@@ -419,7 +422,7 @@ class APIGatewayResponse(BaseResponse):
                     integration_method=integration_http_method,
                     request_templates=request_templates,
                     tls_config=tls_config,
-                    cache_namespace=cache_namespace
+                    cache_namespace=cache_namespace,
                 )
             elif self.method == "DELETE":
                 integration_response = self.backend.delete_integration(
@@ -429,13 +432,9 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps(integration_response)
 
         except BadRequestException as e:
-            return self.error(
-                "BadRequestException", e.message
-            )
+            return self.error("BadRequestException", e.message)
         except CrossAccountNotAllowed as e:
-            return self.error(
-                "AccessDeniedException", e.message
-            )
+            return self.error("AccessDeniedException", e.message)
 
     def integration_responses(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

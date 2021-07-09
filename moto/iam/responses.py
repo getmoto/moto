@@ -323,7 +323,9 @@ class IamResponse(BaseResponse):
         path = self._get_param("Path", "/")
         tags = self._get_multi_param("Tags.member")
 
-        profile = iam_backend.create_instance_profile(profile_name, path, role_ids=[], tags=tags)
+        profile = iam_backend.create_instance_profile(
+            profile_name, path, role_ids=[], tags=tags
+        )
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
 
@@ -467,7 +469,7 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
         iam_backend.delete_group_policy(group_name, policy_name)
-        return ''
+        return ""
 
     def delete_group(self):
         group_name = self._get_param("GroupName")

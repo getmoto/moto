@@ -62,7 +62,9 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member"
         )
         unit = self._get_param("Unit")
-        rule = self._get_param("AlarmRule")  # fetch AlarmRule to re-use this method for composite alarms as well
+        rule = self._get_param(
+            "AlarmRule"
+        )  # fetch AlarmRule to re-use this method for composite alarms as well
         alarm = self.cloudwatch_backend.put_metric_alarm(
             name,
             namespace,
@@ -82,7 +84,7 @@ class CloudWatchResponse(BaseResponse):
             unit,
             actions_enabled,
             self.region,
-            rule=rule
+            rule=rule,
         )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
@@ -111,7 +113,9 @@ class CloudWatchResponse(BaseResponse):
         composite_alarms = [a for a in alarms if a.rule is not None]
 
         template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
-        return template.render(metric_alarms=metric_alarms, composite_alarms=composite_alarms)
+        return template.render(
+            metric_alarms=metric_alarms, composite_alarms=composite_alarms
+        )
 
     @amzn_request_id
     def delete_alarms(self):
@@ -165,7 +169,14 @@ class CloudWatchResponse(BaseResponse):
             )
 
         datapoints = self.cloudwatch_backend.get_metric_statistics(
-            namespace, metric_name, start_time, end_time, period, statistics, unit, dimensions=dimensions
+            namespace,
+            metric_name,
+            start_time,
+            end_time,
+            period,
+            statistics,
+            unit,
+            dimensions=dimensions,
         )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
@@ -277,13 +288,19 @@ class CloudWatchResponse(BaseResponse):
     # TODO (whummer): temporary hack until get_metric_statistics is available in moto
     def get_metric_values(self):
         import json
+
         cloudwatch_backend = cloudwatch_backends[self.region]
-        metrics = [{
-            'Namespace': m.namespace,
-            'Name': m.name,
-            'Value': m.value,
-            'Dimensions': [{'Name': d.name, 'Value': d.value} for d in m.dimensions]}
-            for m in cloudwatch_backend.get_all_metrics()]
+        metrics = [
+            {
+                "Namespace": m.namespace,
+                "Name": m.name,
+                "Value": m.value,
+                "Dimensions": [
+                    {"Name": d.name, "Value": d.value} for d in m.dimensions
+                ],
+            }
+            for m in cloudwatch_backend.get_all_metrics()
+        ]
         return json.dumps(metrics)
 
 

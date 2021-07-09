@@ -117,8 +117,8 @@ class SecurityGroups(BaseResponse):
         vpc_id = self._get_param("VpcId")
         tags = self._get_multi_param("TagSpecification")
         tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-        tags = (tags or {}).get('Tag', [])
-        tags = {t['Key']: t['Value'] for t in tags}
+        tags = (tags or {}).get("Tag", [])
+        tags = {t["Key"]: t["Value"] for t in tags}
 
         if self.is_not_dryrun("CreateSecurityGroup"):
             group = self.ec2_backend.create_security_group(

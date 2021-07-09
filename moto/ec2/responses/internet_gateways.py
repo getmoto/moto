@@ -14,7 +14,9 @@ class InternetGateways(BaseResponse):
 
     def create_internet_gateway(self):
         if self.is_not_dryrun("CreateInternetGateway"):
-            tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+            tags = self._get_multi_param(
+                "TagSpecification", skip_result_conversion=True
+            )
             if tags:
                 tags = tags[0].get("Tag") or []
             igw = self.ec2_backend.create_internet_gateway(tags=tags)

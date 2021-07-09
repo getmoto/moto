@@ -162,7 +162,9 @@ class Database(CloudFormationModel):
         return self.db_instance_identifier
 
     def db_parameter_groups(self):
-        if not self.db_parameter_group_name or self.is_default_parameter_group(self.db_parameter_group_name):
+        if not self.db_parameter_group_name or self.is_default_parameter_group(
+            self.db_parameter_group_name
+        ):
             (
                 db_family,
                 db_parameter_group_name,
@@ -185,7 +187,7 @@ class Database(CloudFormationModel):
             ]
 
     def is_default_parameter_group(self, param_group_name):
-        return param_group_name.startswith('default.%s' % self.engine.lower())
+        return param_group_name.startswith("default.%s" % self.engine.lower())
 
     def default_db_parameter_group_details(self):
         if not self.engine_version:

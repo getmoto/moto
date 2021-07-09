@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import logging
 
-import os
 import re
 import six
 from six.moves.urllib.parse import urlparse, unquote, quote

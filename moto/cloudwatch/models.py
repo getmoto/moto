@@ -107,7 +107,7 @@ class FakeAlarm(BaseModel):
         unit,
         actions_enabled,
         region="us-east-1",
-        rule=None
+        rule=None,
     ):
         self.name = name
         self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
@@ -310,7 +310,7 @@ class CloudWatchBackend(BaseBackend):
         unit,
         actions_enabled,
         region="us-east-1",
-        rule=None
+        rule=None,
     ):
         alarm = FakeAlarm(
             name,
@@ -331,7 +331,7 @@ class CloudWatchBackend(BaseBackend):
             unit,
             actions_enabled,
             region,
-            rule=rule
+            rule=rule,
         )
 
         self.alarms[name] = alarm
@@ -461,7 +461,15 @@ class CloudWatchBackend(BaseBackend):
         return results
 
     def get_metric_statistics(
-        self, namespace, metric_name, start_time, end_time, period, stats, unit=None, dimensions=None
+        self,
+        namespace,
+        metric_name,
+        start_time,
+        end_time,
+        period,
+        stats,
+        unit=None,
+        dimensions=None,
     ):
         period_delta = timedelta(seconds=period)
         filtered_data = [
@@ -475,7 +483,9 @@ class CloudWatchBackend(BaseBackend):
         if unit:
             filtered_data = [md for md in filtered_data if md.unit == unit]
         if dimensions:
-            filtered_data = [md for md in filtered_data if md.filter(None, None, dimensions)]
+            filtered_data = [
+                md for md in filtered_data if md.filter(None, None, dimensions)
+            ]
 
         # earliest to oldest
         filtered_data = sorted(filtered_data, key=lambda x: x.timestamp)

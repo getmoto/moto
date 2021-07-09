@@ -171,7 +171,7 @@ def clean_json(resource_json, resources_map):
                             {"Ref": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[0]},
                             resources_map,
                         )
-                    cleaned_ref = '' if cleaned_ref is None else cleaned_ref
+                    cleaned_ref = "" if cleaned_ref is None else cleaned_ref
                     fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)
                 for literal in literals:
                     fn_sub_value = fn_sub_value.replace(
@@ -327,7 +327,9 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
     # fix/extend resource attributes
     if isinstance(resource, dynamodb2_models.Table):
-        resource.set_stream_specification(resource_json['Properties'].get('StreamSpecification') or {})
+        resource.set_stream_specification(
+            resource_json["Properties"].get("StreamSpecification") or {}
+        )
 
     return resource
 
@@ -424,7 +426,7 @@ class ResourceMap(collections_abc.Mapping):
         cross_stack_resources,
     ):
         self._template = template
-        self.set_resource_json(template.get('Resources'))
+        self.set_resource_json(template.get("Resources"))
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
@@ -445,7 +447,11 @@ class ResourceMap(collections_abc.Mapping):
     def __getitem__(self, key):
         resource_logical_id = key
 
-        if key != 'AWS::NoValue' and key in self._parsed_resources and self._parsed_resources[key] is None:
+        if (
+            key != "AWS::NoValue"
+            and key in self._parsed_resources
+            and self._parsed_resources[key] is None
+        ):
             self._parsed_resources.pop(key)
 
         if resource_logical_id in self._parsed_resources:
@@ -602,7 +608,7 @@ class ResourceMap(collections_abc.Mapping):
         # iterate through self.
         # Assumes that self.load() has been called before
         self._template = template
-        self.set_resource_json(template.get('Resources'))
+        self.set_resource_json(template.get("Resources"))
         self.tags.update(
             {
                 "aws:cloudformation:stack-name": self.get("AWS::StackName"),

@@ -19,7 +19,7 @@ class VPCs(BaseResponse):
         instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
         amazon_provided_ipv6_cidr_block = self._get_param(
             "AmazonProvidedIpv6CidrBlock"
-        ) in ['true', 'True']
+        ) in ["true", "True"]
         if tags:
             tags = tags[0].get("Tag")
 

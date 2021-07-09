@@ -567,7 +567,9 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
-    def list_secrets(self, filters: List, max_results: int = 100, next_token: str = None) -> Tuple[List, str]:
+    def list_secrets(
+        self, filters: List, max_results: int = 100, next_token: str = None
+    ) -> Tuple[List, str]:
         """
         Returns secrets from secretsmanager.
         The result is paginated and page items depends on the token value, because token contains start element

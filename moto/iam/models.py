@@ -101,7 +101,7 @@ class Policy(CloudFormationModel):
         path=None,
         create_date=None,
         update_date=None,
-        tags=None
+        tags=None,
     ):
         self.name = name
 
@@ -109,7 +109,7 @@ class Policy(CloudFormationModel):
         self.description = description or ""
         self.id = random_policy_id()
         self.path = path or "/"
-        self.tags = {tag['Key']: tag['Value'] for tag in tags or []}
+        self.tags = {tag["Key"]: tag["Value"] for tag in tags or []}
 
         if default_version_id:
             self.default_version_id = default_version_id
@@ -652,7 +652,8 @@ class Role(CloudFormationModel):
     @property
     def description_escaped(self):
         import html
-        return html.escape(self.description or '')
+
+        return html.escape(self.description or "")
 
 
 class InstanceProfile(CloudFormationModel):
@@ -662,7 +663,7 @@ class InstanceProfile(CloudFormationModel):
         self.path = path or "/"
         self.roles = roles if roles else []
         self.create_date = datetime.utcnow()
-        self.tags = {tag['Key']: tag['Value'] for tag in tags or []}
+        self.tags = {tag["Key"]: tag["Value"] for tag in tags or []}
 
     @property
     def created_iso_8601(self):
@@ -1510,7 +1511,11 @@ class IAMBackend(BaseBackend):
         iam_policy_document_validator.validate()
 
         policy = ManagedPolicy(
-            policy_name, description=description, document=policy_document, path=path, tags=tags
+            policy_name,
+            description=description,
+            document=policy_document,
+            path=path,
+            tags=tags,
         )
         if policy.arn in self.managed_policies:
             raise EntityAlreadyExists(

@@ -104,7 +104,12 @@ class PriorityInUseError(ELBClientError):
 
 class InvalidConditionFieldError(ELBClientError):
     VALID_FIELDS = [
-        "path-pattern", "host-header", "http-header", "http-request-method", "query-string", "source-ip"
+        "path-pattern",
+        "host-header",
+        "http-header",
+        "http-request-method",
+        "query-string",
+        "source-ip",
     ]
 
     def __init__(self, invalid_name):
@@ -139,7 +144,8 @@ class ActionTargetGroupNotFoundError(ELBClientError):
 class ListenerOrBalancerMissingError(ELBClientError):
     def __init__(self, arn):
         super(ListenerOrBalancerMissingError, self).__init__(
-            "ValidationError", "You must specify either listener ARNs or a load balancer ARN"
+            "ValidationError",
+            "You must specify either listener ARNs or a load balancer ARN",
         )
 
 

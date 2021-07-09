@@ -92,7 +92,9 @@ class IntegrationResponse(BaseModel, dict):
             # response_templates = {"application/json": None}  # Note: removed for compatibility with TF
             response_templates = {}
         for key in response_templates.keys():
-            response_templates[key] = response_templates[key] or None  # required for compatibility with TF
+            response_templates[key] = (
+                response_templates[key] or None
+            )  # required for compatibility with TF
         self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
         if selection_pattern:
@@ -102,8 +104,15 @@ class IntegrationResponse(BaseModel, dict):
 
 
 class Integration(BaseModel, dict):
-    def __init__(self, integration_type, uri, http_method, request_templates=None,
-                 tls_config=None, cache_namespace=None):
+    def __init__(
+        self,
+        integration_type,
+        uri,
+        http_method,
+        request_templates=None,
+        tls_config=None,
+        cache_namespace=None,
+    ):
         super(Integration, self).__init__()
         self["type"] = integration_type
         self["uri"] = uri
@@ -157,7 +166,7 @@ class Method(CloudFormationModel, dict):
                 requestModels=kwargs.get("request_models"),
                 methodIntegration=None,
                 operationName=kwargs.get("operation_name"),
-                requestValidatorId=kwargs.get("request_validator_id")
+                requestValidatorId=kwargs.get("request_validator_id"),
             )
         )
         self.method_responses = {}
@@ -202,7 +211,9 @@ class Method(CloudFormationModel, dict):
         return m
 
     def create_response(self, response_code, response_models, response_parameters):
-        method_response = MethodResponse(response_code, response_models, response_parameters)
+        method_response = MethodResponse(
+            response_code, response_models, response_parameters
+        )
         self.method_responses[response_code] = method_response
         return method_response
 
@@ -296,8 +307,17 @@ class Resource(CloudFormationModel):
             )
         return response.status_code, response.text
 
-    def add_method(self, method_type, authorization_type, api_key_required, request_models=None,
-                   operation_name=None, authorizer_id=None, authorization_scopes=None, request_validator_id=None):
+    def add_method(
+        self,
+        method_type,
+        authorization_type,
+        api_key_required,
+        request_models=None,
+        operation_name=None,
+        authorizer_id=None,
+        authorization_scopes=None,
+        request_validator_id=None,
+    ):
         if authorization_scopes and not isinstance(authorization_scopes, list):
             authorization_scopes = [authorization_scopes]
         method = Method(
@@ -308,7 +328,7 @@ class Resource(CloudFormationModel):
             operation_name=operation_name,
             authorizer_id=authorizer_id,
             authorization_scopes=authorization_scopes,
-            request_validator_id=request_validator_id
+            request_validator_id=request_validator_id,
         )
         self.resource_methods[method_type] = method
         return method
@@ -320,19 +340,29 @@ class Resource(CloudFormationModel):
         return method
 
     def add_integration(
-        self, method_type, integration_type, uri, request_templates=None,
-        integration_method=None, tls_config=None, cache_namespace=None
+        self,
+        method_type,
+        integration_type,
+        uri,
+        request_templates=None,
+        integration_method=None,
+        tls_config=None,
+        cache_namespace=None,
     ):
         integration_method = integration_method or method_type
         integration = Integration(
-            integration_type, uri, integration_method, request_templates=request_templates,
-            tls_config=tls_config, cache_namespace=cache_namespace
+            integration_type,
+            uri,
+            integration_method,
+            request_templates=request_templates,
+            tls_config=tls_config,
+            cache_namespace=cache_namespace,
         )
         self.resource_methods[method_type]["methodIntegration"] = integration
         return integration
 
     def get_integration(self, method_type):
-        return self.resource_methods.get(method_type, {}).get('methodIntegration', {})
+        return self.resource_methods.get(method_type, {}).get("methodIntegration", {})
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop("methodIntegration")
@@ -396,7 +426,7 @@ class Stage(BaseModel, dict):
         cacheClusterEnabled=False,
         cacheClusterSize=None,
         tags=None,
-        tracing_enabled=None
+        tracing_enabled=None,
     ):
         super(Stage, self).__init__()
         if variables is None:
@@ -667,7 +697,7 @@ class RestAPI(CloudFormationModel):
             "tags": self.tags,
             "policy": self.policy,
             "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
-            "minimumCompressionSize": self.minimum_compression_size
+            "minimumCompressionSize": self.minimum_compression_size,
         }
 
     def apply_patch_operations(self, patch_operations):
@@ -688,11 +718,12 @@ class RestAPI(CloudFormationModel):
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'RootResourceId':
+
+        if attribute_name == "RootResourceId":
             for res_id, res_obj in self.resources.items():
-                if res_obj.path_part == '/' and not res_obj.parent_id:
+                if res_obj.path_part == "/" and not res_obj.parent_id:
                     return res_id
-            raise Exception('Unable to find root resource for API %s' % self)
+            raise Exception("Unable to find root resource for API %s" % self)
         raise UnformattedGetAttTemplateException()
 
     @property
@@ -828,7 +859,7 @@ class RestAPI(CloudFormationModel):
         cacheClusterEnabled=None,
         cacheClusterSize=None,
         tags=None,
-        tracing_enabled=None
+        tracing_enabled=None,
     ):
         if variables is None:
             variables = {}
@@ -951,7 +982,7 @@ class APIGatewayBackend(BaseBackend):
         endpoint_configuration=None,
         tags=None,
         policy=None,
-        minimum_compression_size=None
+        minimum_compression_size=None,
     ):
         api_id = create_id()
         rest_api = RestAPI(
@@ -963,7 +994,7 @@ class APIGatewayBackend(BaseBackend):
             endpoint_configuration=endpoint_configuration,
             tags=tags,
             policy=policy,
-            minimum_compression_size=minimum_compression_size
+            minimum_compression_size=minimum_compression_size,
         )
         self.apis[api_id] = rest_api
         return rest_api
@@ -1024,19 +1055,22 @@ class APIGatewayBackend(BaseBackend):
         operation_name=None,
         authorizer_id=None,
         authorization_scopes=None,
-        request_validator_id=None
+        request_validator_id=None,
     ):
         resource = self.get_resource(function_id, resource_id)
         method = resource.add_method(
-            method_type, authorization_type, api_key_required=api_key_required,
-            request_models=request_models, operation_name=operation_name, authorizer_id=authorizer_id,
-            authorization_scopes=authorization_scopes, request_validator_id=request_validator_id
+            method_type,
+            authorization_type,
+            api_key_required=api_key_required,
+            request_models=request_models,
+            operation_name=operation_name,
+            authorizer_id=authorizer_id,
+            authorization_scopes=authorization_scopes,
+            request_validator_id=request_validator_id,
         )
         return method
 
-    def update_method(
-        self, function_id, resource_id, method_type, patch_operations
-    ):
+    def update_method(self, function_id, resource_id, method_type, patch_operations):
         resource = self.get_resource(function_id, resource_id)
         method = resource.get_method(method_type)
         return method.apply_operations(patch_operations)
@@ -1102,7 +1136,7 @@ class APIGatewayBackend(BaseBackend):
         cacheClusterEnabled=None,
         cacheClusterSize=None,
         tags=None,
-        tracing_enabled=None
+        tracing_enabled=None,
     ):
         if variables is None:
             variables = {}
@@ -1115,7 +1149,7 @@ class APIGatewayBackend(BaseBackend):
             cacheClusterEnabled=cacheClusterEnabled,
             cacheClusterSize=cacheClusterSize,
             tags=tags,
-            tracing_enabled=tracing_enabled
+            tracing_enabled=tracing_enabled,
         )
         return api.stages.get(stage_name)
 
@@ -1138,10 +1172,18 @@ class APIGatewayBackend(BaseBackend):
         return method_response
 
     def create_method_response(
-        self, function_id, resource_id, method_type, response_code, response_models, response_parameters
+        self,
+        function_id,
+        resource_id,
+        method_type,
+        response_code,
+        response_models,
+        response_parameters,
     ):
         method = self.get_method(function_id, resource_id, method_type)
-        method_response = method.create_response(response_code, response_models, response_parameters)
+        method_response = method.create_response(
+            response_code, response_models, response_parameters
+        )
         return method_response
 
     def update_method_response(
@@ -1170,7 +1212,7 @@ class APIGatewayBackend(BaseBackend):
         credentials=None,
         request_templates=None,
         tls_config=None,
-        cache_namespace=None
+        cache_namespace=None,
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1203,7 +1245,13 @@ class APIGatewayBackend(BaseBackend):
         ):
             raise InvalidIntegrationArn()
         integration = resource.add_integration(
-            method_type, integration_type, uri, integration_method=integration_method, request_templates=request_templates, tls_config=tls_config, cache_namespace=cache_namespace
+            method_type,
+            integration_type,
+            uri,
+            integration_method=integration_method,
+            request_templates=request_templates,
+            tls_config=tls_config,
+            cache_namespace=cache_namespace,
         )
         return integration
 
@@ -1399,7 +1447,7 @@ class APIGatewayBackend(BaseBackend):
     def _uri_validator(self, uri):
         try:
             result = urlparse(uri)
-            return all([result.scheme, result.netloc, result.path or '/'])
+            return all([result.scheme, result.netloc, result.path or "/"])
         except Exception:
             return False
 

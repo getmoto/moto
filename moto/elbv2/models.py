@@ -94,7 +94,7 @@ class FakeTargetGroup(CloudFormationModel):
         self.load_balancer_arns = []
         self.tags = {}
         self.matcher = matcher
-        if self.protocol != 'TCP':
+        if self.protocol != "TCP":
             self.matcher = self.matcher or {"HttpCode": "200"}
             self.healthcheck_path = self.healthcheck_path or "/"
             self.healthcheck_port = self.healthcheck_port or str(self.port)
@@ -212,7 +212,7 @@ class FakeListener(CloudFormationModel):
     ):
         self.load_balancer_arn = load_balancer_arn
         self.arn = arn
-        self.protocol = (protocol or '').upper()
+        self.protocol = (protocol or "").upper()
         self.port = port
         self.ssl_policy = ssl_policy
         self.certificate = certificate
@@ -443,7 +443,7 @@ class FakeLoadBalancer(CloudFormationModel):
         dns_name,
         state,
         scheme="internet-facing",
-        loadbalancer_type=None
+        loadbalancer_type=None,
     ):
         self.name = name
         self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
@@ -581,7 +581,12 @@ class ELBv2Backend(BaseBackend):
         self.__init__(region_name)
 
     def create_load_balancer(
-        self, name, security_groups, subnet_ids, scheme="internet-facing", loadbalancer_type=None
+        self,
+        name,
+        security_groups,
+        subnet_ids,
+        scheme="internet-facing",
+        loadbalancer_type=None,
     ):
         vpc_id = None
         subnets = []
@@ -613,7 +618,7 @@ class ELBv2Backend(BaseBackend):
             vpc_id=vpc_id,
             dns_name=dns_name,
             state=state,
-            loadbalancer_type=loadbalancer_type
+            loadbalancer_type=loadbalancer_type,
         )
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
@@ -1264,7 +1269,7 @@ Member must satisfy regular expression pattern: {}".format(
         healthy_threshold_count=None,
         unhealthy_threshold_count=None,
         http_codes=None,
-        health_check_enabled=None
+        health_check_enabled=None,
     ):
         target_group = self.target_groups.get(arn)
         if target_group is None:
