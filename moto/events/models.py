@@ -571,6 +571,7 @@ class Destination(BaseModel):
         invocation_endpoint,
         http_method,
     ):
+        self.uuid = uuid4()
         self.name = name
         self.region = region_name
         self.description = description
@@ -582,8 +583,8 @@ class Destination(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:events:{0}:{1}:destination/{2}".format(
-            self.region, ACCOUNT_ID, self.name
+        return "arn:aws:events:{0}:{1}:api-destination/{2}/{3}".format(
+            self.region, ACCOUNT_ID, self.name, self.uuid
         )
 
 
