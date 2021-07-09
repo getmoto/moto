@@ -754,9 +754,11 @@ class CloudFormationBackend(BaseBackend):
         if name_or_stack_id in self.stacks:
             # Delete by stack id
             stack = self.stacks.pop(name_or_stack_id, None)
+            export_names = [export.name for export in stack.exports]
             stack.delete()
             self.deleted_stacks[stack.stack_id] = stack
-            [self.exports.pop(export.name) for export in stack.exports]
+            for export_name in export_names:
+                self.exports.pop(export_name)
             return self.stacks.pop(name_or_stack_id, None)
         else:
             # Delete by stack name
