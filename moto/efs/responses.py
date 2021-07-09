@@ -66,3 +66,23 @@ class EFSResponse(BaseResponse):
             security_groups=security_groups,
         )
         return json.dumps(mount_target.info_json())
+
+    def describe_mount_targets(self):
+        max_items = self._get_int_param("MaxItems", 10)
+        marker = self._get_param("Marker")
+        file_system_id = self._get_param("FileSystemId")
+        mount_target_id = self._get_param("MountTargetId")
+        access_point_id = self._get_param("AccessPointId")
+        next_marker, mount_targets = self.efs_backend.describe_mount_targets(
+            max_items=max_items,
+            file_system_id=file_system_id,
+            mount_target_id=mount_target_id,
+            access_point_id=access_point_id,
+            marker=marker,
+        )
+        resp_json = {"MountTargets": mount_targets}
+        if marker:
+            resp_json["Marker"] = marker
+        if next_marker:
+            resp_json["NextMarker"] = next_marker
+        return json.dumps(resp_json)

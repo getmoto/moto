@@ -114,6 +114,10 @@ class FileSystem(CloudFormationModel):
     def has_mount_target(self, subnet):
         return subnet.availability_zone in self._mount_targets
 
+    def iter_mount_targets(self):
+        for mt in self._mount_targets.values():
+            yield mt
+
     @staticmethod
     def cloudformation_name_type():
         return
@@ -160,10 +164,12 @@ class FileSystem(CloudFormationModel):
 
 
 class MountTarget(CloudFormationModel):
-    def __init__(self, file_system_id, subnet, ip_address, security_groups):
+    def __init__(self, file_system, subnet, ip_address, security_groups):
         # Set the simple given parameters.
-        self.file_system_id = file_system_id
+        self.file_system_id = file_system.file_system_id
+        self._file_system = file_system
         self.subnet_id = subnet.id
+        self._subnet = subnet
         self.vpc_id = subnet.vpc_id
         self.security_groups = security_groups
 
@@ -233,6 +239,7 @@ class EFSBackend(BaseBackend):
         self.region_name = region_name
         self.creation_tokens = set()
         self.file_systems_by_id = {}
+        self.mount_targets_by_id = {}
         self.next_markers = {}
 
     def reset(self):
@@ -240,6 +247,15 @@ class EFSBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def _mark_description(self, corpus, max_items):
+        if max_items < len(corpus):
+            new_corpus = corpus[max_items:]
+            next_marker = str(hash(json.dumps(new_corpus)))
+            self.next_markers[next_marker] = new_corpus
+        else:
+            next_marker = None
+        return next_marker
 
     @property
     def ec2_backend(self):
@@ -290,12 +306,7 @@ class EFSBackend(BaseBackend):
 
         # Handle the max_items parameter.
         file_systems = corpus[:max_items]
-        if max_items < len(self.next_markers):
-            new_corpus = self.next_markers[marker][max_items:]
-            next_marker = str(hash(json.dumps(new_corpus)))
-            self.next_markers[next_marker] = new_corpus
-        else:
-            next_marker = None
+        next_marker = self._mark_description(file_systems, max_items)
         return next_marker, file_systems
 
     def create_mount_target(
@@ -310,19 +321,58 @@ class EFSBackend(BaseBackend):
             raise MountTargetConflict("Mount Target already exists in AZ")
 
         # Create the new mount target
-        new_mount_target = MountTarget(
-            file_system_id, subnet, ip_address, security_groups
-        )
+        mount_target = MountTarget(file_system, subnet, ip_address, security_groups)
 
         # Establish the network interface.
         network_interface = self.ec2_backend.create_network_interface(
-            subnet, [new_mount_target.ip_address], group_ids=security_groups
+            subnet, [mount_target.ip_address], group_ids=security_groups
         )
-        new_mount_target.set_network_interface(network_interface)
+        mount_target.set_network_interface(network_interface)
 
         # Record the new mount target
-        file_system.add_mount_target(subnet, new_mount_target)
-        return new_mount_target
+        file_system.add_mount_target(subnet, mount_target)
+        self.mount_targets_by_id[mount_target.mounted_target_id] = mount_target
+        return mount_target
+
+    def describe_mount_targets(
+        self, max_items, file_system_id, mount_target_id, access_point_id, marker
+    ):
+        # Restrict the possible corpus of results based on inputs.
+        if not (bool(file_system_id) ^ bool(mount_target_id) ^ bool(access_point_id)):
+            raise BadRequest("Must specify exactly one mutually exclusive parameter.")
+        elif file_system_id:
+            # Handle the case that a file_system_id is given.
+            if file_system_id not in self.file_systems_by_id:
+                raise FileSystemNotFound(file_system_id)
+            corpus = [
+                mt.info_json()
+                for mt in self.file_systems_by_id[file_system_id].iter_mount_targets()
+            ]
+        elif mount_target_id:
+            # Handle mount target specification case.
+            corpus = [self.mount_targets_by_id[mount_target_id].info_json()]
+        else:
+            # We don't handle access_point_id's yet.
+            assert False, "Moto does not yet support EFS access points."
+
+        # Handle the case that a marker is given. Note that the handling is quite
+        # different from that in describe_file_systems.
+        if marker is not None:
+            if marker not in self.next_markers:
+                raise BadRequest("Invalid Marker")
+            corpus_mtids = {m["MountTargetId"] for m in corpus}
+            marked_mtids = {m["MountTargetId"] for m in self.next_markers[marker]}
+            mt_ids = corpus_mtids & marked_mtids
+            corpus = [
+                mt_json
+                for mt_json in (self.next_markers[marker] + corpus)
+                if mt_json["MountTargetId"] in mt_ids
+            ]
+
+        # Handle the max_items parameter.
+        mount_targets = corpus[:max_items]
+        next_marker = self._mark_description(mount_targets, max_items)
+        return next_marker, mount_targets
 
     # add methods from here
 
