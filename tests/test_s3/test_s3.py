@@ -3597,7 +3597,6 @@ def test_boto3_put_object_tagging():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
-            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
 
@@ -3645,7 +3644,6 @@ def test_boto3_put_object_tagging_on_earliest_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
-            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
 
@@ -3713,7 +3711,6 @@ def test_boto3_put_object_tagging_on_both_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
-            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
 
