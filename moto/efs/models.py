@@ -171,7 +171,7 @@ class FileSystem(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        return
+        return efs_backends[region_name].delete_file_system(resource_name)
 
 
 class MountTarget(CloudFormationModel):
@@ -206,7 +206,7 @@ class MountTarget(CloudFormationModel):
         self.availability_zone_id = subnet.availability_zone_id
         self.availability_zone_name = subnet.availability_zone
 
-    def __del__(self):
+    def clean_up(self):
         self._file_system.remove_mount_target(self._subnet)
         self._subnet.del_subnet_ip(self.ip_address)
 
@@ -246,13 +246,13 @@ class MountTarget(CloudFormationModel):
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        pass
+        return
 
     @classmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        pass
+        return efs_backends[region_name].delete_mount_target(resource_name)
 
 
 class EFSBackend(BaseBackend):
@@ -437,6 +437,7 @@ class EFSBackend(BaseBackend):
             )
 
         del self.file_systems_by_id[file_system_id]
+        self.creation_tokens.remove(file_system.creation_token)
         return
 
     def delete_mount_target(self, mount_target_id):
@@ -452,7 +453,7 @@ class EFSBackend(BaseBackend):
         mount_target = self.mount_targets_by_id[mount_target_id]
         self.ec2_backend.delete_network_interface(mount_target.network_interface_id)
         del self.mount_targets_by_id[mount_target_id]
-        del mount_target
+        mount_target.clean_up()
         return
 
     # add methods from here
