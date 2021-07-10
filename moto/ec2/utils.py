@@ -45,6 +45,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpn-connection": "vpn",
     "vpn-gateway": "vgw",
     "iam-instance-profile-association": "iip-assoc",
+    "prefix-list": "pl",
 }
 
 
@@ -167,6 +168,10 @@ def random_eni_attach_id():
 
 def random_nat_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"], size=17)
+
+
+def random_prefix_list_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["prefix-list"], size=18)
 
 
 def random_launch_template_id():

@@ -35,6 +35,7 @@ from .vpn_connections import VPNConnections
 from .windows import Windows
 from .nat_gateways import NatGateways
 from .iam_instance_profiles import IamInstanceProfiles
+from .prefix_list import PrefixList
 
 
 class EC2Response(
@@ -73,6 +74,7 @@ class EC2Response(
     Windows,
     NatGateways,
     IamInstanceProfiles,
+    PrefixList,
 ):
     @property
     def ec2_backend(self):
