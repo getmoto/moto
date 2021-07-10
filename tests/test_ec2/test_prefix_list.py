@@ -21,6 +21,3 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
     assert prefix_list.get("PrefixList").get("Version") == 1
     assert prefix_list.get("PrefixList").get("PrefixListName") == "vpc-cidrs"
     assert prefix_list.get("PrefixList").get("State") == "create-in-progress"
-
-
-7a8c64cc26ea4a9790ac48d242de399e7d2b04a1

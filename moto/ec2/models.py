@@ -5799,15 +5799,15 @@ class CustomerGatewayBackend(object):
 
 
 class PrefixList(object):
-    def __init__(self, id, region, address_family, max_entries, prefix_list_name, entries):
+    def __init__(
+        self, id, region, address_family, max_entries, prefix_list_name, entries
+    ):
         self.id = id
         self.address_family = address_family
         self.max_entries = max_entries
         self.prefix_list_name = prefix_list_name
         self.entries = entries
-        self.arn = "arn:aws:ec2:{0}:{1}:prefix-list/{2}".format(
-            region, ACCOUNT_ID, id
-        )
+        self.arn = "arn:aws:ec2:{0}:{1}:prefix-list/{2}".format(region, ACCOUNT_ID, id)
         self.owner_id = ACCOUNT_ID
 
 
@@ -5816,9 +5816,18 @@ class PrefixListBackend(object):
         self.prefix_lists = {}
         super(PrefixListBackend, self).__init__()
 
-    def create_managed_prefix_list(self, address_family, max_entries, prefix_list_name, entries):
+    def create_managed_prefix_list(
+        self, address_family, max_entries, prefix_list_name, entries
+    ):
         prefix_list_id = random_prefix_list_id()
-        prefix_list = PrefixList(prefix_list_id, self.region_name, address_family, max_entries, prefix_list_name, entries)
+        prefix_list = PrefixList(
+            prefix_list_id,
+            self.region_name,
+            address_family,
+            max_entries,
+            prefix_list_name,
+            entries,
+        )
         self.prefix_lists[prefix_list_id] = prefix_list
         return prefix_list
 
@@ -6180,7 +6189,7 @@ class EC2Backend(
     NatGatewayBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
-    PrefixListBackend
+    PrefixListBackend,
 ):
     def __init__(self, region_name):
         self.region_name = region_name
