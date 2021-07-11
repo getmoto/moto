@@ -1107,6 +1107,7 @@ def test_get_change():
     response["ChangeInfo"]["Id"].should.equal(change_id)
     response["ChangeInfo"]["Status"].should.equal("INSYNC")
 
+
 @mock_route53
 def test_change_resource_record_sets_records_limit():
     conn = boto3.client("route53", region_name="us-east-1")
@@ -1127,7 +1128,8 @@ def test_change_resource_record_sets_records_limit():
         resourcerecords = []
         for rri in range(250):
             resourcerecords.append({"Value": f"127.0.0.{rri}"})
-        changes.append({
+        changes.append(
+            {
                 "Action": "CREATE",
                 "ResourceRecordSet": {
                     "Name": f"foo{ci}.db.",
@@ -1135,7 +1137,8 @@ def test_change_resource_record_sets_records_limit():
                     "TTL": 10,
                     "ResourceRecords": resourcerecords,
                 },
-            })
+            }
+        )
     create_1000_resource_records_payload = {
         "Comment": "Create four records with 250 resource records each",
         "Changes": changes,
@@ -1147,15 +1150,17 @@ def test_change_resource_record_sets_records_limit():
 
     # Changes creating over 1,000 resource records.
     too_many_changes = create_1000_resource_records_payload["Changes"].copy()
-    too_many_changes.append({
-                "Action": "CREATE",
-                "ResourceRecordSet": {
-                    "Name": "toomany.db.",
-                    "Type": "A",
-                    "TTL": 10,
-                    "ResourceRecords": [{"Value": "127.0.0.1"}],
-                },
-            })
+    too_many_changes.append(
+        {
+            "Action": "CREATE",
+            "ResourceRecordSet": {
+                "Name": "toomany.db.",
+                "Type": "A",
+                "TTL": 10,
+                "ResourceRecords": [{"Value": "127.0.0.1"}],
+            },
+        }
+    )
 
     create_1001_resource_records_payload = {
         "Comment": "Create four records with 250 resource records each, plus one more",
@@ -1164,7 +1169,8 @@ def test_change_resource_record_sets_records_limit():
 
     with pytest.raises(botocore.exceptions.ClientError):
         conn.change_resource_record_sets(
-            HostedZoneId=hosted_zone_id, ChangeBatch=create_1001_resource_records_payload
+            HostedZoneId=hosted_zone_id,
+            ChangeBatch=create_1001_resource_records_payload,
         )
 
     # Changes upserting exactly 500 resource records.
@@ -1173,7 +1179,8 @@ def test_change_resource_record_sets_records_limit():
         resourcerecords = []
         for rri in range(250):
             resourcerecords.append({"Value": f"127.0.0.{rri}"})
-        changes.append({
+        changes.append(
+            {
                 "Action": "UPSERT",
                 "ResourceRecordSet": {
                     "Name": f"foo{ci}.db.",
@@ -1181,7 +1188,8 @@ def test_change_resource_record_sets_records_limit():
                     "TTL": 10,
                     "ResourceRecords": resourcerecords,
                 },
-            })
+            }
+        )
     upsert_500_resource_records_payload = {
         "Comment": "Upsert two records with 250 resource records each",
         "Changes": changes,
@@ -1193,15 +1201,17 @@ def test_change_resource_record_sets_records_limit():
 
     # Changes upserting over 1,000 resource records.
     too_many_changes = upsert_500_resource_records_payload["Changes"].copy()
-    too_many_changes.append({
-                "Action": "UPSERT",
-                "ResourceRecordSet": {
-                    "Name": "toomany.db.",
-                    "Type": "A",
-                    "TTL": 10,
-                    "ResourceRecords": [{"Value": "127.0.0.1"}],
-                },
-            })
+    too_many_changes.append(
+        {
+            "Action": "UPSERT",
+            "ResourceRecordSet": {
+                "Name": "toomany.db.",
+                "Type": "A",
+                "TTL": 10,
+                "ResourceRecords": [{"Value": "127.0.0.1"}],
+            },
+        }
+    )
 
     upsert_501_resource_records_payload = {
         "Comment": "Upsert two records with 250 resource records each, plus one more",

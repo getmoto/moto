@@ -122,11 +122,12 @@ class Route53(BaseResponse):
             effective_rr_count = 0
             for value in change_list:
                 record_set = value["ResourceRecordSet"]
-                if "ResourceRecords" not in record_set or not record_set["ResourceRecords"]:
+                if (
+                    "ResourceRecords" not in record_set
+                    or not record_set["ResourceRecords"]
+                ):
                     continue
-                resource_records = list(record_set["ResourceRecords"].values())[
-                            0
-                        ]
+                resource_records = list(record_set["ResourceRecords"].values())[0]
                 effective_rr_count += len(resource_records)
                 if value["Action"] == "UPSERT":
                     effective_rr_count += len(resource_records)
