@@ -117,6 +117,26 @@ class Route53(BaseResponse):
                     ]["Change"]
                 ]
 
+            # Enforce quotas https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests-changeresourcerecordsets
+            #  - A request cannot contain more than 1,000 ResourceRecord elements. When the value of the Action element is UPSERT, each ResourceRecord element is counted twice.
+            effective_rr_count = 0
+            for value in change_list:
+                record_set = value["ResourceRecordSet"]
+                if "ResourceRecords" not in record_set or not record_set["ResourceRecords"]:
+                    continue
+                resource_records = list(record_set["ResourceRecords"].values())[
+                            0
+                        ]
+                effective_rr_count += len(resource_records)
+                if value["Action"] == "UPSERT":
+                    effective_rr_count += len(resource_records)
+            if effective_rr_count > 1000:
+                error_msg = """
+                An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
+                [Number of records limit of 1000 exceeded.]
+                """
+                return 400, headers, error_msg
+
             for value in change_list:
                 action = value["Action"]
                 record_set = value["ResourceRecordSet"]
