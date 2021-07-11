@@ -179,8 +179,7 @@ class VPCs(BaseResponse):
         client_token = self._get_param("ClientToken")
         tag_specifications = self._get_param("TagSpecifications")
         private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
-        # TODO: change to self._get_multi_param("SecurityGroupId") below!
-        security_group = self._get_param("SecurityGroup")
+        security_group_ids = self._get_multi_param("SecurityGroupId")
 
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
@@ -190,7 +189,7 @@ class VPCs(BaseResponse):
             route_table_ids=route_table_ids,
             subnet_ids=subnet_ids,
             client_token=client_token,
-            security_group=security_group,
+            security_group_ids=security_group_ids,
             tag_specifications=tag_specifications,
             private_dns_enabled=private_dns_enabled,
         )
@@ -546,12 +545,15 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </dnsEntries>
                 {% endif %}
-                {% if vpc_end_point.groups %}
-                    <groups>
-                        {% for group in vpc_end_point.groups %}
-                            <item>{{ group }}</item>
+                {% if vpc_end_point.security_group_ids %}
+                    <groupSet>
+                        {% for group_id in vpc_end_point.security_group_ids %}
+                            <item>
+                                <groupId>{{ group_id }}</groupId>
+                                <groupName>TODO</groupName>
+                            </item>
                         {% endfor %}
-                    </groups>
+                    </groupSet>
                 {% endif %}
                 {% if vpc_end_point.tag_specifications %}
                     <tagSet>

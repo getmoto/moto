@@ -3250,7 +3250,7 @@ class VPCBackend(object):
         network_interface_ids=[],
         dns_entries=None,
         client_token=None,
-        security_group=None,
+        security_group_ids=None,
         tag_specifications=None,
         private_dns_enabled=None,
     ):
@@ -3291,7 +3291,7 @@ class VPCBackend(object):
             network_interface_ids,
             dns_entries,
             client_token,
-            security_group,
+            security_group_ids,
             tag_specifications,
             private_dns_enabled,
         )
@@ -4343,7 +4343,7 @@ class VPCEndPoint(TaggedEC2Resource):
         network_interface_ids=None,
         dns_entries=None,
         client_token=None,
-        security_group=None,
+        security_group_ids=None,
         tag_specifications=None,
         private_dns_enabled=None,
     ):
@@ -4357,7 +4357,7 @@ class VPCEndPoint(TaggedEC2Resource):
         self.network_interface_ids = network_interface_ids
         self.subnet_ids = subnet_ids
         self.client_token = client_token
-        self.security_group = security_group
+        self.security_group_ids = security_group_ids
         self.tag_specifications = tag_specifications
         self.private_dns_enabled = private_dns_enabled
         self.created_at = datetime.utcnow()

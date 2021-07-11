@@ -208,7 +208,7 @@ def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
 
 
 def generate_vpc_end_point_id(vpc_id):
-    return "%s-%s" % ("vpce", vpc_id[4:])
+    return "%s-%s%s" % ("vpce", vpc_id[4:], random_resource_id(4))
 
 
 def create_dns_entries(service_name, vpc_endpoint_id):
