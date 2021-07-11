@@ -1127,12 +1127,12 @@ def test_change_resource_record_sets_records_limit():
     for ci in range(4):
         resourcerecords = []
         for rri in range(250):
-            resourcerecords.append({"Value": f"127.0.0.{rri}"})
+            resourcerecords.append({"Value": "127.0.0.%d" % (rri)})
         changes.append(
             {
                 "Action": "CREATE",
                 "ResourceRecordSet": {
-                    "Name": f"foo{ci}.db.",
+                    "Name": "foo%d.db." % (ci),
                     "Type": "A",
                     "TTL": 10,
                     "ResourceRecords": resourcerecords,
@@ -1178,12 +1178,12 @@ def test_change_resource_record_sets_records_limit():
     for ci in range(2):
         resourcerecords = []
         for rri in range(250):
-            resourcerecords.append({"Value": f"127.0.0.{rri}"})
+            resourcerecords.append({"Value": "127.0.0.%d" % (rri)})
         changes.append(
             {
                 "Action": "UPSERT",
                 "ResourceRecordSet": {
-                    "Name": f"foo{ci}.db.",
+                    "Name": "foo%d.db." % (ci),
                     "Type": "A",
                     "TTL": 10,
                     "ResourceRecords": resourcerecords,
