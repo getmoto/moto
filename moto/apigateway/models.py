@@ -910,8 +910,9 @@ class DomainName(BaseModel, dict):
     def __init__(self, domain_name, **kwargs):
         super(DomainName, self).__init__()
         self["domainName"] = domain_name
-        self["regionalDomainName"] = domain_name
-        self["distributionDomainName"] = domain_name
+        self["regionalDomainName"] = "d-%s.execute-api.%s.amazonaws.com" % (
+            create_id(), kwargs.get('region_name') or "us-east-1")
+        self["distributionDomainName"] = "d%s.cloudfront.net" % create_id()
         self["domainNameStatus"] = "AVAILABLE"
         self["domainNameStatusMessage"] = "Domain Name Available"
         self["regionalHostedZoneId"] = "Z2FDTNDATAQYW2"
@@ -1483,6 +1484,7 @@ class APIGatewayBackend(BaseBackend):
             tags=tags,
             security_policy=security_policy,
             generate_cli_skeleton=generate_cli_skeleton,
+            region_name=self.region_name,
         )
 
         self.domain_names[domain_name] = new_domain_name
@@ -1494,9 +1496,21 @@ class APIGatewayBackend(BaseBackend):
     def get_domain_name(self, domain_name):
         domain_info = self.domain_names.get(domain_name)
         if domain_info is None:
-            raise DomainNameNotFound
+            raise DomainNameNotFound()
         else:
             return self.domain_names[domain_name]
+
+    def delete_domain_name(self, domain_name):
+        domain_info = self.domain_names.pop(domain_name, None)
+        if domain_info is None:
+            raise DomainNameNotFound()
+
+    def update_domain_name(self, domain_name, patch_operations):
+        domain_info = self.domain_names.get(domain_name)
+        if not domain_info:
+            raise DomainNameNotFound()
+        domain_info.apply_patch_operations(patch_operations)
+        return domain_info
 
     def create_model(
         self,

@@ -702,6 +702,16 @@ class APIGatewayResponse(BaseResponse):
             if self.method == "GET":
                 if domain_name is not None:
                     domain_names = self.backend.get_domain_name(domain_name)
+            elif self.method == "DELETE":
+                if domain_name is not None:
+                    self.backend.delete_domain_name(domain_name)
+            elif self.method == "PATCH":
+                if domain_name is not None:
+                    patch_operations = self._get_param("patchOperations")
+                    self.backend.update_domain_name(domain_name, patch_operations)
+            else:
+                msg = 'Method "%s" for API GW domain names not implemented' % self.method
+                return 404, {}, json.dumps({"error": msg})
             return 200, {}, json.dumps(domain_names)
         except DomainNameNotFound as error:
             return (
