@@ -6,6 +6,7 @@ import time
 import boto.kinesis
 import boto3
 from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
+
 from dateutil.tz import tzlocal
 
 from moto import mock_kinesis, mock_kinesis_deprecated
@@ -477,6 +478,37 @@ def test_get_records_from_empty_stream_at_timestamp():
 
     response["Records"].should.have.length_of(0)
     response["MillisBehindLatest"].should.equal(0)
+
+
+@mock_kinesis
+def test_increase_stream_retention_period():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.increase_stream_retention_period(
+        StreamName=stream_name, RetentionPeriodHours=40
+    )
+
+    response = conn.describe_stream(StreamName=stream_name)
+    response["StreamDescription"]["RetentionPeriodHours"].should.equal(40)
+
+
+@mock_kinesis
+def test_decrease_stream_retention_period():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "decrease_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.increase_stream_retention_period(
+        StreamName=stream_name, RetentionPeriodHours=30
+    )
+    conn.decrease_stream_retention_period(
+        StreamName=stream_name, RetentionPeriodHours=25
+    )
+
+    response = conn.describe_stream(StreamName=stream_name)
+    response["StreamDescription"]["RetentionPeriodHours"].should.equal(25)
 
 
 @mock_kinesis_deprecated
