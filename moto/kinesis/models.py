@@ -145,7 +145,9 @@ class Stream(CloudFormationModel):
         self.status = "ACTIVE"
         self.shard_count = None
         self.update_shard_count(shard_count)
-        self.retention_period_hours = retention_period_hours if retention_period_hours else 24
+        self.retention_period_hours = (
+            retention_period_hours if retention_period_hours else 24
+        )
 
     def update_shard_count(self, shard_count):
         # ToDo: This was extracted from init.  It's only accurate for new streams.
