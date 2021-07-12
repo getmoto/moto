@@ -578,24 +578,22 @@ class KinesisBackend(BaseBackend):
 
     def increase_stream_retention_period(self, stream_name, retention_period_hours):
         stream = self.describe_stream(stream_name)
-        if stream.retention_period_hours:
-            if (
-                retention_period_hours <= stream.retention_period_hours
-                or retention_period_hours < 24
-                or retention_period_hours > 8760
-            ):
-                raise InvalidArgumentError(retention_period_hours)
+        if (
+            retention_period_hours <= stream.retention_period_hours
+            or retention_period_hours < 24
+            or retention_period_hours > 8760
+        ):
+            raise InvalidArgumentError(retention_period_hours)
         stream.retention_period_hours = retention_period_hours
 
     def decrease_stream_retention_period(self, stream_name, retention_period_hours):
         stream = self.describe_stream(stream_name)
-        if stream.retention_period_hours:
-            if (
-                retention_period_hours >= stream.retention_period_hours
-                or retention_period_hours < 24
-                or retention_period_hours > 8760
-            ):
-                raise InvalidArgumentError(retention_period_hours)
+        if (
+            retention_period_hours >= stream.retention_period_hours
+            or retention_period_hours < 24
+            or retention_period_hours > 8760
+        ):
+            raise InvalidArgumentError(retention_period_hours)
         stream.retention_period_hours = retention_period_hours
 
     """ Firehose """
