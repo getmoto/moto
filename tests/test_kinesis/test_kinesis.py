@@ -6,6 +6,7 @@ import time
 import boto.kinesis
 import boto3
 from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
+from botocore.exceptions import ClientError
 
 from dateutil.tz import tzlocal
 
@@ -481,7 +482,7 @@ def test_get_records_from_empty_stream_at_timestamp():
 
 
 @mock_kinesis
-def test_increase_stream_retention_period():
+def test_valid_increase_stream_retention_period():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
     conn.create_stream(StreamName=stream_name, ShardCount=1)
@@ -495,7 +496,21 @@ def test_increase_stream_retention_period():
 
 
 @mock_kinesis
-def test_decrease_stream_retention_period():
+def test_invalid_increase_stream_retention_period():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.increase_stream_retention_period(
+        StreamName=stream_name, RetentionPeriodHours=30
+    )
+    conn.increase_stream_retention_period.when.called_with(
+        StreamName=stream_name, RetentionPeriodHours=20
+    ).should.throw(ClientError)
+
+
+@mock_kinesis
+def test_valid_decrease_stream_retention_period():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "decrease_stream"
     conn.create_stream(StreamName=stream_name, ShardCount=1)
@@ -521,7 +536,7 @@ def test_invalid_shard_iterator_type():
     shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
     response = conn.get_shard_iterator.when.called_with(
         stream_name, shard_id, "invalid-type"
-    ).should.throw(InvalidArgumentException)
+    ).should.throw(ClientError)
 
 
 @mock_kinesis_deprecated
