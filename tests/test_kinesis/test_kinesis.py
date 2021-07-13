@@ -550,7 +550,7 @@ def test_invalid_shard_iterator_type():
     shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
     response = conn.get_shard_iterator.when.called_with(
         stream_name, shard_id, "invalid-type"
-    ).should.throw(ClientError)
+    ).should.throw(InvalidArgumentException)
 
 
 @mock_kinesis_deprecated
