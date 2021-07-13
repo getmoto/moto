@@ -526,6 +526,20 @@ def test_valid_decrease_stream_retention_period():
     response["StreamDescription"]["RetentionPeriodHours"].should.equal(25)
 
 
+@mock_kinesis
+def test_invalid_decrease_stream_retention_period():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "decrease_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.increase_stream_retention_period(
+        StreamName=stream_name, RetentionPeriodHours=30
+    )
+    conn.decrease_stream_retention_period.when.called_with(
+        StreamName=stream_name, RetentionPeriodHours=40
+    ).should.throw(ClientError)
+
+
 @mock_kinesis_deprecated
 def test_invalid_shard_iterator_type():
     conn = boto.kinesis.connect_to_region("us-west-2")
