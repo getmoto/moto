@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import time
+import pytest
 
 import boto.kinesis
 import boto3
@@ -504,9 +505,12 @@ def test_invalid_increase_stream_retention_period():
     conn.increase_stream_retention_period(
         StreamName=stream_name, RetentionPeriodHours=30
     )
-    conn.increase_stream_retention_period.when.called_with(
-        StreamName=stream_name, RetentionPeriodHours=20
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.increase_stream_retention_period(
+            StreamName=stream_name, RetentionPeriodHours=20
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidArgumentException")
+    ex.value.response["Error"]["Message"].should.equal(20)
 
 
 @mock_kinesis
@@ -535,9 +539,12 @@ def test_invalid_decrease_stream_retention_period():
     conn.increase_stream_retention_period(
         StreamName=stream_name, RetentionPeriodHours=30
     )
-    conn.decrease_stream_retention_period.when.called_with(
-        StreamName=stream_name, RetentionPeriodHours=40
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.decrease_stream_retention_period(
+            StreamName=stream_name, RetentionPeriodHours=20
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidArgumentException")
+    ex.value.response["Error"]["Message"].should.equal(20)
 
 
 @mock_kinesis_deprecated
