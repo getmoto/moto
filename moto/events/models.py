@@ -596,7 +596,9 @@ class EventPattern:
             raise InvalidEventPatternException
 
     def __str__(self):
-        return json.dumps(self._filter)
+        if self._filter:
+            return json.dumps(self._filter)
+        return str()
 
     def _load_event_pattern(self, pattern):
         try:
