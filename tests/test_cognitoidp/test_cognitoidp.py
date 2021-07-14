@@ -1177,7 +1177,7 @@ def test_get_user():
         attr.should.have.length_of(1)
         attr[0]["Value"].should.equal(v)
 
-    for key, value in outputs['additional_fields'].items():
+    for key, value in outputs["additional_fields"].items():
         _verify_attribute(key, value)
 
 
@@ -2025,6 +2025,7 @@ def test_admin_set_user_password():
         attr[0]["Value"].should.equal(v)
 
     _verify_attribute("thing", value)
+
 
 @mock_cognitoidp
 def test_change_password_with_invalid_token_raises_error():
