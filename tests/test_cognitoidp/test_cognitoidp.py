@@ -1044,7 +1044,7 @@ def test_admin_create_user():
 
     result["User"]["Username"].should.equal(username)
     result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
-    result["User"]["Attributes"].should.have.length_of(5)
+    result["User"]["Attributes"].should.have.length_of(1)
 
     def _verify_attribute(name, v):
         attr = [a for a in result["User"]["Attributes"] if a["Name"] == name]
@@ -1052,9 +1052,6 @@ def test_admin_create_user():
         attr[0]["Value"].should.equal(v)
 
     _verify_attribute("thing", value)
-    _verify_attribute("name", "")
-    _verify_attribute("family_name", "")
-    _verify_attribute("email_verified", True)
     result["User"]["Enabled"].should.equal(True)
 
 
@@ -1148,7 +1145,7 @@ def test_admin_get_user():
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(5)
+    result["UserAttributes"].should.have.length_of(1)
 
 
 @mock_cognitoidp
@@ -1173,16 +1170,15 @@ def test_get_user():
     outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
     result = conn.get_user(AccessToken=outputs["access_token"])
     result["Username"].should.equal(outputs["username"])
-    result["UserAttributes"].should.have.length_of(5)
+    result["UserAttributes"].should.have.length_of(1)
 
     def _verify_attribute(name, v):
         attr = [a for a in result["UserAttributes"] if a["Name"] == name]
         attr.should.have.length_of(1)
         attr[0]["Value"].should.equal(v)
 
-    _verify_attribute("name", "")
-    _verify_attribute("family_name", "")
-    _verify_attribute("email_verified", True)
+    for key, value in outputs["additional_fields"].items():
+        _verify_attribute(key, value)
 
 
 @mock_cognitoidp
@@ -2021,8 +2017,14 @@ def test_admin_set_user_password():
     )
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(5)
-    result["UserStatus"].should.equal("CONFIRMED")
+    result["UserAttributes"].should.have.length_of(1)
+
+    def _verify_attribute(name, v):
+        attr = [a for a in result["UserAttributes"] if a["Name"] == name]
+        attr.should.have.length_of(1)
+        attr[0]["Value"].should.equal(v)
+
+    _verify_attribute("thing", value)
 
 
 @mock_cognitoidp
