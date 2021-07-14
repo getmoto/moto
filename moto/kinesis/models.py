@@ -145,7 +145,9 @@ class Stream(CloudFormationModel):
         self.status = "ACTIVE"
         self.shard_count = None
         self.update_shard_count(shard_count)
-        self.retention_period_hours = retention_period_hours
+        self.retention_period_hours = (
+            retention_period_hours if retention_period_hours else 24
+        )
 
     def update_shard_count(self, shard_count):
         # ToDo: This was extracted from init.  It's only accurate for new streams.
@@ -573,6 +575,26 @@ class KinesisBackend(BaseBackend):
             shard1.put_record(
                 record.partition_key, record.data, record.explicit_hash_key
             )
+
+    def increase_stream_retention_period(self, stream_name, retention_period_hours):
+        stream = self.describe_stream(stream_name)
+        if (
+            retention_period_hours <= stream.retention_period_hours
+            or retention_period_hours < 24
+            or retention_period_hours > 8760
+        ):
+            raise InvalidArgumentError(retention_period_hours)
+        stream.retention_period_hours = retention_period_hours
+
+    def decrease_stream_retention_period(self, stream_name, retention_period_hours):
+        stream = self.describe_stream(stream_name)
+        if (
+            retention_period_hours >= stream.retention_period_hours
+            or retention_period_hours < 24
+            or retention_period_hours > 8760
+        ):
+            raise InvalidArgumentError(retention_period_hours)
+        stream.retention_period_hours = retention_period_hours
 
     """ Firehose """
 

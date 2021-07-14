@@ -149,6 +149,22 @@ class KinesisResponse(BaseResponse):
         )
         return ""
 
+    def increase_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.increase_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
+
+    def decrease_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.decrease_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
+
     """ Firehose """
 
     def create_delivery_stream(self):
