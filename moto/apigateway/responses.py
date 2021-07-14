@@ -20,6 +20,8 @@ from .exceptions import (
     ModelNotFound,
     ApiKeyValueMinLength,
     InvalidRequestInput,
+    NoIntegrationDefined,
+    NotFoundException,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -410,7 +412,9 @@ class APIGatewayResponse(BaseResponse):
                 cache_namespace = self._get_param("cacheNamespace")
                 self.backend.get_method(function_id, resource_id, method_type)
 
-                integration_http_method = self._get_param("httpMethod") or method_type
+                integration_http_method = self._get_param(
+                    "httpMethod"
+                )  # default removed because it's a required parameter
 
                 integration_response = self.backend.create_integration(
                     function_id,
@@ -471,9 +475,9 @@ class APIGatewayResponse(BaseResponse):
                 )
             return 200, {}, json.dumps(integration_response)
         except BadRequestException as e:
-            return self.error(
-                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
-            )
+            return self.error("BadRequestException", e.message)
+        except NoIntegrationDefined as e:
+            return self.error("NotFoundException", e.message)
 
     def deployments(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -492,9 +496,9 @@ class APIGatewayResponse(BaseResponse):
                 )
                 return 200, {}, json.dumps(deployment)
         except BadRequestException as e:
-            return self.error(
-                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
-            )
+            return self.error("BadRequestException", e.message)
+        except NotFoundException as e:
+            return self.error("NotFoundException", e.message)
 
     def individual_deployment(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

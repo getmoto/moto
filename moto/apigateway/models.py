@@ -119,7 +119,9 @@ class Integration(BaseModel, dict):
         self["httpMethod"] = http_method
         self["requestTemplates"] = request_templates
         # self["integrationResponses"] = {"200": IntegrationResponse(200)}  # commented out (tf-compat)
-        self["integrationResponses"] = {}
+        self[
+            "integrationResponses"
+        ] = None  # prevent json serialization from including them if none provided
         self["tlsConfig"] = tls_config
         self["cacheNamespace"] = cache_namespace
 
@@ -131,17 +133,19 @@ class Integration(BaseModel, dict):
         integration_response = IntegrationResponse(
             status_code, selection_pattern, response_templates, content_handling
         )
+        if self.get("integrationResponses") is None:
+            self["integrationResponses"] = {}
         self["integrationResponses"][status_code] = integration_response
         return integration_response
 
     def get_integration_response(self, status_code):
-        result = self["integrationResponses"].get(status_code)
+        result = self.get("integrationResponses", {}).get(status_code)
         if not result:
             raise NoIntegrationResponseDefined(status_code)
         return result
 
     def delete_integration_response(self, status_code):
-        return self["integrationResponses"].pop(status_code, None)
+        return self.get("integrationResponses", {}).pop(status_code, None)
 
 
 class MethodResponse(BaseModel, dict):

@@ -115,8 +115,8 @@ class InvalidConditionFieldError(ELBClientError):
     def __init__(self, invalid_name):
         super(InvalidConditionFieldError, self).__init__(
             "ValidationError",
-            "Condition field '%s' must be one of '[path-pattern, host-header]"
-            % (invalid_name),
+            "Condition field '%s' must be one of '[%s]'"
+            % (invalid_name, ",".join(self.VALID_FIELDS)),
         )
 
 

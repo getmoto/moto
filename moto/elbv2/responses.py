@@ -166,6 +166,7 @@ class ELBV2Response(BaseResponse):
             )
             condition["values"] = []
             # fix: preserve original request dict items, instead of flattening everything into "values" list
+            # NOTE: validations had to be fixed to accommodate this new structure
             from moto.config.models import snake_to_camels
 
             for entry in values:

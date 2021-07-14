@@ -1,8 +1,10 @@
 import json
-from moto.core.utils import amzn_request_id
-from moto.core.responses import BaseResponse
-from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
+
 from dateutil.parser import parse as dtparse
+
+from moto.core.responses import BaseResponse
+from moto.core.utils import amzn_request_id
+from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
 
 
 class CloudWatchResponse(BaseResponse):
@@ -22,31 +24,47 @@ class CloudWatchResponse(BaseResponse):
         metrics = self._get_multi_param("Metrics.member", skip_result_conversion=True)
         metric_data_queries = None
         if metrics:
-            metric_data_queries = [
-                MetricDataQuery(
-                    id=metric.get("Id"),
-                    label=metric.get("Label"),
-                    period=metric.get("Period"),
-                    return_data=metric.get("ReturnData"),
-                    expression=metric.get("Expression"),
-                    metric_stat=MetricStat(
-                        metric=Metric(
-                            metric_name=metric.get("MetricStat.Metric.MetricName"),
-                            namespace=metric.get("MetricStat.Metric.Namespace"),
-                            dimensions=[
-                                Dimension(name=dim["Name"], value=dim["Value"])
-                                for dim in metric["MetricStat.Metric.Dimensions.member"]
-                            ],
-                        ),
-                        period=metric.get("MetricStat.Period"),
-                        stat=metric.get("MetricStat.Stat"),
-                        unit=metric.get("MetricStat.Unit"),
+            metric_data_queries = []
+            for metric in metrics:
+                dimensions = []
+                for dim in (
+                    metric.get("MetricStat", {})
+                    .get("Metric", {})
+                    .get("Dimensions.member", [])
+                ):
+                    dimensions.append(
+                        Dimension(name=dim.get("Name"), value=dim.get("Value"))
                     )
-                    if "MetricStat.Metric.MetricName" in metric
-                    else None,
+                metric_stat = None
+                if (
+                    metric.get("MetricStat", {}).get("Metric", {}).get("MetricName", {})
+                    != {}
+                ):
+                    metric_stat = MetricStat(
+                        metric=Metric(
+                            metric_name=metric.get("MetricStat")
+                            .get("Metric")
+                            .get("MetricName"),
+                            namespace=metric.get("MetricStat")
+                            .get("Metric")
+                            .get("Namespace"),
+                            dimensions=dimensions,
+                        ),
+                        period=metric.get("MetricStat").get("Period"),
+                        stat=metric.get("MetricStat").get("Stat"),
+                        unit=metric.get("MetricStat").get("Unit"),
+                    )
+                metric_data_queries.append(
+                    MetricDataQuery(
+                        id=metric.get("Id"),
+                        label=metric.get("Label"),
+                        period=metric.get("Period"),
+                        return_data=metric.get("ReturnData"),
+                        expression=metric.get("Expression"),
+                        metric_stat=metric_stat,
+                    )
                 )
-                for metric in metrics
-            ]
+
         comparison_operator = self._get_param("ComparisonOperator")
         evaluation_periods = self._get_param("EvaluationPeriods")
         datapoints_to_alarm = self._get_param("DatapointsToAlarm")

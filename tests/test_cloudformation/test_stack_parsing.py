@@ -78,10 +78,7 @@ parameters = {
 ssm_parameter = {
     "Parameters": {
         "SingleParamCfn": {"Type": "AWS::SSM::Parameter::Value<String>"},
-        "ListParamCfn": {
-            "Type": "AWS::SSM::Parameter::Value<List<String>>",
-            "Default": "/path/to/list/param",
-        },
+        "ListParamCfn": {"Type": "AWS::SSM::Parameter::Value<List<String>>"},
     }
 }
 
@@ -533,21 +530,6 @@ def test_ssm_parameter_parsing():
                 "SingleParamCfn": "/path/to/single/param",
                 "ListParamCfn": "/path/to/list/param",
             },
-            region_name="us-west-1",
-        )
-
-        stack.resource_map.resolved_parameters["SingleParamCfn"].should.equal("string")
-        stack.resource_map.resolved_parameters["ListParamCfn"].should.equal(
-            ["comma", "separated", "string"]
-        )
-
-    # Not passing in a value for ListParamCfn to test Default value
-    if not settings.TEST_SERVER_MODE:
-        stack = FakeStack(
-            stack_id="test_id",
-            name="test_stack",
-            template=ssm_parameter_template_json,
-            parameters={"SingleParamCfn": "/path/to/single/param",},
             region_name="us-west-1",
         )
 

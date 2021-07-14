@@ -1383,7 +1383,9 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description is not none %}
       <Description>{{ role.description_escaped }}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
@@ -1411,7 +1413,7 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      {% if role.description is defined %}
+      {% if role.description is not none %}
       <Description>{{ role.description_escaped }}</Description>
       {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
@@ -2296,7 +2298,9 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
                 <Arn>{{ role.arn }}</Arn>
                 <RoleName>{{ role.name }}</RoleName>
                 <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+                {% if role.description is not none %}
                 <Description>{{ role.description_escaped }}</Description>
+                {% endif %}
                 <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
                 <RoleId>{{ role.id }}</RoleId>
                 {% if role.permissions_boundary %}

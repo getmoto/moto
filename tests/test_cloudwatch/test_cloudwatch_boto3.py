@@ -350,6 +350,9 @@ def test_get_metric_statistics():
 
 
 @mock_cloudwatch
+@pytest.mark.skip(
+    "no reason to disallow metric duplicates, see cloudformation/models.py MetricDatum.filter"
+)
 def test_duplicate_put_metric_data():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=pytz.utc)

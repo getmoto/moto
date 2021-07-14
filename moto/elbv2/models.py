@@ -689,29 +689,59 @@ class ELBv2Backend(BaseBackend):
         listener = listeners[0]
 
         # validate conditions
+        # see: https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-rule.html
         for condition in conditions:
             if "field" in condition:
                 field = condition["field"]
                 if field not in InvalidConditionFieldError.VALID_FIELDS:
                     raise InvalidConditionFieldError(field)
 
-            values = condition.get("values", [])
-            if len(values) > 1 and field in ["path-pattern"]:
-                raise InvalidConditionValueError(
-                    "The '%s' field contains too many values; the limit is '1'" % field
-                )
+                values = condition.get("values", [])
+                if field in ["host-header", "path-pattern"]:
+                    if len(values) > 1:
+                        raise InvalidConditionValueError(
+                            "The '%s' field contains too many values; the limit is '1'"
+                            % field
+                        )
 
-                values = condition["values"]
-                if len(values) == 0:
-                    raise InvalidConditionValueError(
-                        "A condition value must be specified"
-                    )
-                if len(values) > 1:
-                    raise InvalidConditionValueError(
-                        "The '%s' field contains too many values; the limit is '1'"
-                        % field
-                    )
+                    if field == "path-pattern":
+                        pathPatternValues = condition.get("pathPatternConfig", {}).get(
+                            "values", []
+                        )
 
+                        if len(values) == 0 and len(pathPatternValues) == 0:
+                            raise InvalidConditionValueError(
+                                "A condition value must be specified"
+                            )
+
+                        if len(values) > 0 and len(pathPatternValues) > 0:
+                            raise InvalidConditionValueError(
+                                f"You cannot provide both Values and 'PathPatternConfig' for a condition of type {field}"
+                            )
+
+                    if field == "host-header":
+                        hostHeaderValues = condition.get("hostHeaderConfig", {}).get(
+                            "values", []
+                        )
+
+                        if len(values) == 0 and len(hostHeaderValues) == 0:
+                            raise InvalidConditionValueError(
+                                "A condition value must be specified"
+                            )
+
+                        if len(values) > 0 and len(hostHeaderValues) > 0:
+                            raise InvalidConditionValueError(
+                                f"You cannot provide both Values and 'HostHeaderConfig' for a condition of type {field}"
+                            )
+                else:
+                    if len(values) > 0:
+                        raise InvalidConditionValueError(
+                            "'Values' is only valid for path-pattern and host-header"
+                        )
+
+        # TODO: check QueryStringConfig condition
+        # TODO: check HttpRequestMethodConfig condition
+        # TODO: check SourceIpConfig condition
         # TODO: check pattern of value for 'host-header'
         # TODO: check pattern of value for 'path-pattern'
 

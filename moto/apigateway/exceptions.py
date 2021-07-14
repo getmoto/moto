@@ -1,8 +1,16 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import JsonRESTError as RESTError
+from moto.core.exceptions import JsonRESTError
 
 
-class BadRequestException(RESTError):
+class BadRequestException(JsonRESTError):
+    pass
+
+
+class NotFoundException(JsonRESTError):
+    pass
+
+
+class AccessDeniedException(JsonRESTError):
     pass
 
 
@@ -14,7 +22,7 @@ class AwsProxyNotAllowed(BadRequestException):
         )
 
 
-class CrossAccountNotAllowed(RESTError):
+class CrossAccountNotAllowed(AccessDeniedException):
     def __init__(self):
         super(CrossAccountNotAllowed, self).__init__(
             "AccessDeniedException", "Cross-account pass role is not allowed."
@@ -71,14 +79,14 @@ class InvalidRequestInput(BadRequestException):
         )
 
 
-class NoIntegrationDefined(RESTError):
+class NoIntegrationDefined(NotFoundException):
     def __init__(self):
         super(NoIntegrationDefined, self).__init__(
             "NotFoundException", "No integration defined for method"
         )
 
 
-class NoIntegrationResponseDefined(RESTError):
+class NoIntegrationResponseDefined(NotFoundException):
     code = 404
 
     def __init__(self, code=None):
@@ -94,7 +102,7 @@ class NoMethodDefined(BadRequestException):
         )
 
 
-class AuthorizerNotFoundException(RESTError):
+class AuthorizerNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
@@ -103,7 +111,7 @@ class AuthorizerNotFoundException(RESTError):
         )
 
 
-class StageNotFoundException(RESTError):
+class StageNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
@@ -112,7 +120,7 @@ class StageNotFoundException(RESTError):
         )
 
 
-class ApiKeyNotFoundException(RESTError):
+class ApiKeyNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
@@ -121,7 +129,7 @@ class ApiKeyNotFoundException(RESTError):
         )
 
 
-class UsagePlanNotFoundException(RESTError):
+class UsagePlanNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
@@ -130,7 +138,7 @@ class UsagePlanNotFoundException(RESTError):
         )
 
 
-class ApiKeyAlreadyExists(RESTError):
+class ApiKeyAlreadyExists(JsonRESTError):
     code = 409
 
     def __init__(self):
@@ -148,7 +156,7 @@ class InvalidDomainName(BadRequestException):
         )
 
 
-class DomainNameNotFound(RESTError):
+class DomainNameNotFound(NotFoundException):
     code = 404
 
     def __init__(self):
@@ -175,7 +183,7 @@ class InvalidModelName(BadRequestException):
         )
 
 
-class RestAPINotFound(RESTError):
+class RestAPINotFound(NotFoundException):
     code = 404
 
     def __init__(self):
@@ -184,7 +192,7 @@ class RestAPINotFound(RESTError):
         )
 
 
-class ModelNotFound(RESTError):
+class ModelNotFound(NotFoundException):
     code = 404
 
     def __init__(self):
@@ -193,7 +201,7 @@ class ModelNotFound(RESTError):
         )
 
 
-class ApiKeyValueMinLength(RESTError):
+class ApiKeyValueMinLength(BadRequestException):
     code = 400
 
     def __init__(self):
@@ -202,7 +210,7 @@ class ApiKeyValueMinLength(RESTError):
         )
 
 
-class MethodNotFoundException(RESTError):
+class MethodNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):

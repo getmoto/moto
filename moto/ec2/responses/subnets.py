@@ -70,7 +70,7 @@ CREATE_SUBNET_RESPONSE = """
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
     <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
     <ownerId>{{ subnet.owner_id }}</ownerId>
-    <assignIpv6AddressOnCreation>{{ 'true' if subnet.assign_ipv6_address_on_creation else 'false' }}</assignIpv6AddressOnCreation>
+    <assignIpv6AddressOnCreation>{{ 'false' if not subnet.assign_ipv6_address_on_creation or subnet.assign_ipv6_address_on_creation == 'false' else 'true'}}</assignIpv6AddressOnCreation>
     <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
     <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
     <tagSet>
@@ -108,7 +108,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
         <ownerId>{{ subnet.owner_id }}</ownerId>
-        <assignIpv6AddressOnCreation>{{ 'true' if subnet.assign_ipv6_address_on_creation else 'false' }}</assignIpv6AddressOnCreation>
+        <assignIpv6AddressOnCreation>{{ 'false' if not subnet.assign_ipv6_address_on_creation or subnet.assign_ipv6_address_on_creation == 'false' else 'true'}}</assignIpv6AddressOnCreation>
         <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
         <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
         {% if subnet.get_tags() %}
