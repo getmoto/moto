@@ -1213,7 +1213,7 @@ def test_handle_listener_rules():
     obtained_rule = rules["Rules"][0]
     obtained_rule["Conditions"][0]["Values"][0].should.equal(new_host)
     obtained_rule["Conditions"][1]["Values"][0].should.equal(new_path_pattern)
-    obtained_rule["Conditions"][2]["Values"][0].should.equal(
+    obtained_rule["Conditions"][2]["PathPatternConfig"]["Values"][0].should.equal(
         new_pathpatternconfig_pattern
     )
     obtained_rule["Actions"][0]["TargetGroupArn"].should.equal(
@@ -1253,7 +1253,7 @@ def test_handle_listener_rules():
     obtained_rule = rules["Rules"][2]
     obtained_rule["Conditions"][0]["Values"][0].should.equal(new_host_2)
     obtained_rule["Conditions"][1]["Values"][0].should.equal(new_path_pattern_2)
-    obtained_rule["Conditions"][2]["Values"][0].should.equal(
+    obtained_rule["Conditions"][2]["PathPatternConfig"]["Values"][0].should.equal(
         new_pathpatternconfig_pattern_2
     )
     obtained_rule["Actions"][0]["TargetGroupArn"].should.equal(
