@@ -470,6 +470,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
+    def _get_multi_param_dict(self, param_prefix):
+        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
+
     def _get_multi_param_helper(
         self, param_prefix, skip_result_conversion=False, tracked_prefixes=None
     ):
