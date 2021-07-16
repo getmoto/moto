@@ -5824,13 +5824,15 @@ class VpnGatewayBackend(object):
 
 
 class CustomerGateway(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn):
+    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn, state="available", tags=[]):
         self.ec2_backend = ec2_backend
         self.id = id
         self.type = type
         self.ip_address = ip_address
         self.bgp_asn = bgp_asn
         self.attachments = {}
+        self.state = state
+        self.add_tags(tags or {})
         super(CustomerGateway, self).__init__()
 
     def get_filter_value(self, filter_name):
@@ -5844,17 +5846,42 @@ class CustomerGatewayBackend(object):
         self.customer_gateways = {}
         super(CustomerGatewayBackend, self).__init__()
 
-    def create_customer_gateway(self, type="ipsec.1", ip_address=None, bgp_asn=None):
+    def create_customer_gateway(self, type="ipsec.1", ip_address=None, bgp_asn=None, tags=[]):
         customer_gateway_id = random_customer_gateway_id()
         customer_gateway = CustomerGateway(
-            self, customer_gateway_id, type, ip_address, bgp_asn
+            self, customer_gateway_id, type, ip_address, bgp_asn, tags=tags
         )
         self.customer_gateways[customer_gateway_id] = customer_gateway
         return customer_gateway
 
     def get_all_customer_gateways(self, filters=None):
         customer_gateways = self.customer_gateways.values()
-        return generic_filter(filters, customer_gateways)
+        if filters is not None:
+            if filters.get("customer-gateway-id") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.id in filters["customer-gateway-id"]
+                ]
+            if filters.get("type") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.type in filters["type"]
+                ]
+            if filters.get("bgp-asn") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.bgp_asn in filters["bgp-asn"]
+                ]
+            if filters.get("ip-address") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.ip_address in filters["ip-address"]
+                ]
+        return customer_gateways
 
     def get_customer_gateway(self, customer_gateway_id):
         customer_gateway = self.customer_gateways.get(customer_gateway_id, None)
@@ -5863,7 +5890,10 @@ class CustomerGatewayBackend(object):
         return customer_gateway
 
     def delete_customer_gateway(self, customer_gateway_id):
-        deleted = self.customer_gateways.pop(customer_gateway_id, None)
+        customer_gateway = self.get_customer_gateway(customer_gateway_id)
+        customer_gateway.state = "deleted"
+        # deleted = self.customer_gateways.pop(customer_gateway_id, None)
+        deleted = True
         if not deleted:
             raise InvalidCustomerGatewayIdError(customer_gateway_id)
         return deleted
