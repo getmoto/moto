@@ -262,6 +262,11 @@ class LogGroup(BaseModel):
         )  # AWS defaults to Never Expire for log group retention
         self.subscription_filters = []
 
+        # The Amazon Resource Name (ARN) of the CMK to use when encrypting log data. It is optional.
+        # Docs:
+        # https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+        self.kms_key_id = kwargs.get("kmsKeyId")
+
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
             raise ResourceAlreadyExistsException()
@@ -442,6 +447,8 @@ class LogGroup(BaseModel):
         # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
         if self.retention_in_days:
             log_group["retentionInDays"] = self.retention_in_days
+        if self.kms_key_id:
+            log_group["kmsKeyId"] = self.kms_key_id
         return log_group
 
     def set_retention_policy(self, retention_in_days):

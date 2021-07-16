@@ -796,7 +796,7 @@ class ELBv2Backend(BaseBackend):
             raise InvalidConditionValueError("A condition value must be specified")
         if len(values) > 0 and condition.get("PathPatternConfig"):
             raise InvalidConditionValueError(
-                f"You cannot provide both Values and 'PathPatternConfig' for a condition of type 'path-pattern'"
+                "You cannot provide both Values and 'PathPatternConfig' for a condition of type 'path-pattern'"
             )
         for value in values:
             if len(value) > 128:

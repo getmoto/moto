@@ -25,9 +25,10 @@ class LogsResponse(BaseResponse):
     def create_log_group(self):
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
+        kms_key_id = self._get_param("kmsKeyId")
         assert 1 <= len(log_group_name) <= 512  # TODO: assert pattern
 
-        self.logs_backend.create_log_group(log_group_name, tags)
+        self.logs_backend.create_log_group(log_group_name, tags, kmsKeyId=kms_key_id)
         return ""
 
     def delete_log_group(self):
