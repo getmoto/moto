@@ -6942,7 +6942,7 @@
 
 - [X] add_tags_to_stream
 - [X] create_stream
-- [ ] decrease_stream_retention_period
+- [X] decrease_stream_retention_period
 - [X] delete_stream
 - [ ] deregister_stream_consumer
 - [ ] describe_limits
@@ -6953,7 +6953,7 @@
 - [ ] enable_enhanced_monitoring
 - [X] get_records
 - [X] get_shard_iterator
-- [ ] increase_stream_retention_period
+- [X] increase_stream_retention_period
 - [ ] list_shards
 - [ ] list_stream_consumers
 - [X] list_streams

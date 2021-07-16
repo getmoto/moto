@@ -330,7 +330,6 @@ class FakeListenerRule(CloudFormationModel):
         conditions = properties.get("Conditions")
 
         actions = elbv2_backend.convert_and_validate_action_properties(properties)
-        conditions = elbv2_backend.convert_and_validate_condition_properties(properties)
         listener_rule = elbv2_backend.create_rule(
             listener_arn, conditions, priority, actions
         )
@@ -347,7 +346,6 @@ class FakeListenerRule(CloudFormationModel):
         conditions = properties.get("Conditions")
 
         actions = elbv2_backend.convert_and_validate_action_properties(properties)
-        conditions = elbv2_backend.convert_and_validate_condition_properties(properties)
         listener_rule = elbv2_backend.modify_rule(
             original_resource.arn, conditions, actions
         )
@@ -672,15 +670,6 @@ class ELBv2Backend(BaseBackend):
                 raise InvalidActionTypeError(action_type, i + 1)
         return default_actions
 
-    def convert_and_validate_condition_properties(self, properties):
-
-        conditions = []
-        for i, condition in enumerate(properties["Conditions"]):
-            conditions.append(
-                {"field": condition["Field"], "values": condition["Values"]}
-            )
-        return conditions
-
     def create_rule(self, listener_arn, conditions, priority, actions):
         actions = [FakeAction(action) for action in actions]
         listeners = self.describe_listeners(None, [listener_arn])
@@ -690,54 +679,7 @@ class ELBv2Backend(BaseBackend):
 
         # validate conditions
         # see: https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-rule.html
-        for condition in conditions:
-            if "field" in condition:
-                field = condition["field"]
-                if field not in InvalidConditionFieldError.VALID_FIELDS:
-                    raise InvalidConditionFieldError(field)
-
-                values = condition.get("values", [])
-                if field in ["host-header", "path-pattern"]:
-                    if len(values) > 1:
-                        raise InvalidConditionValueError(
-                            "The '%s' field contains too many values; the limit is '1'"
-                            % field
-                        )
-
-                    if field == "path-pattern":
-                        pathPatternValues = condition.get("pathPatternConfig", {}).get(
-                            "values", []
-                        )
-
-                        if len(values) == 0 and len(pathPatternValues) == 0:
-                            raise InvalidConditionValueError(
-                                "A condition value must be specified"
-                            )
-
-                        if len(values) > 0 and len(pathPatternValues) > 0:
-                            raise InvalidConditionValueError(
-                                f"You cannot provide both Values and 'PathPatternConfig' for a condition of type {field}"
-                            )
-
-                    if field == "host-header":
-                        hostHeaderValues = condition.get("hostHeaderConfig", {}).get(
-                            "values", []
-                        )
-
-                        if len(values) == 0 and len(hostHeaderValues) == 0:
-                            raise InvalidConditionValueError(
-                                "A condition value must be specified"
-                            )
-
-                        if len(values) > 0 and len(hostHeaderValues) > 0:
-                            raise InvalidConditionValueError(
-                                f"You cannot provide both Values and 'HostHeaderConfig' for a condition of type {field}"
-                            )
-                else:
-                    if len(values) > 0:
-                        raise InvalidConditionValueError(
-                            "'Values' is only valid for path-pattern and host-header"
-                        )
+        self._validate_conditions(conditions)
 
         # TODO: check QueryStringConfig condition
         # TODO: check HttpRequestMethodConfig condition
@@ -761,6 +703,140 @@ class ELBv2Backend(BaseBackend):
         rule = FakeListenerRule(listener.arn, arn, conditions, priority, actions,)
         listener.register(arn, rule)
         return rule
+
+    def _validate_conditions(self, conditions):
+        for condition in conditions:
+            if "Field" in condition:
+                field = condition["Field"]
+                if field not in [
+                    "host-header",
+                    "http-header",
+                    "http-request-method",
+                    "path-pattern",
+                    "query-string",
+                    "source-ip",
+                ]:
+                    raise InvalidConditionFieldError(field)
+                if "Values" in condition and field not in [
+                    "host-header",
+                    "path-pattern",
+                ]:
+                    raise InvalidConditionValueError(
+                        "The 'Values' field is not compatible with '%s'" % field
+                    )
+                else:
+                    method_name = "_validate_" + field.replace("-", "_") + "_condition"
+                    func = getattr(self, method_name)
+                    func(condition)
+
+    def _validate_host_header_condition(self, condition):
+        values = None
+        if "HostHeaderConfig" in condition:
+            values = condition["HostHeaderConfig"]["Values"]
+        elif "Values" in condition:
+            values = condition["Values"]
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The 'host-header' field contains too many values; the limit is '1'"
+                )
+        if values is None or len(values) == 0:
+            raise InvalidConditionValueError("A condition value must be specified")
+        for value in values:
+            if len(value) > 128:
+                raise InvalidConditionValueError(
+                    "The 'host-header' value is too long; the limit is '128'"
+                )
+
+    def _validate_http_header_condition(self, condition):
+        if "HttpHeaderConfig" in condition:
+            config = condition["HttpHeaderConfig"]
+            name = config.get("HttpHeaderName")
+            if len(name) > 40:
+                raise InvalidConditionValueError(
+                    "The 'HttpHeaderName' value is too long; the limit is '40'"
+                )
+            values = config["Values"]
+            for value in values:
+                if len(value) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'http-header' value is too long; the limit is '128'"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'HttpHeaderConfig' must be specified with 'http-header'"
+            )
+
+    def _validate_http_request_method_condition(self, condition):
+        if "HttpRequestMethodConfig" in condition:
+            for value in condition["HttpRequestMethodConfig"]["Values"]:
+                if len(value) > 40:
+                    raise InvalidConditionValueError(
+                        "The 'http-request-method' value is too long; the limit is '40'"
+                    )
+                if not re.match("[A-Z_-]+", value):
+                    raise InvalidConditionValueError(
+                        "The 'http-request-method' value is invalid; the allowed characters are A-Z, hyphen and underscore"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'HttpRequestMethodConfig' must be specified with 'http-request-method'"
+            )
+
+    def _validate_path_pattern_condition(self, condition):
+        values = None
+        if "PathPatternConfig" in condition:
+            values = condition["PathPatternConfig"]["Values"]
+        elif "Values" in condition:
+            values = condition["Values"]
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The 'path-pattern' field contains too many values; the limit is '1'"
+                )
+        if values is None or len(values) == 0:
+            raise InvalidConditionValueError("A condition value must be specified")
+        if len(values) > 0 and condition.get("PathPatternConfig"):
+            raise InvalidConditionValueError(
+                f"You cannot provide both Values and 'PathPatternConfig' for a condition of type 'path-pattern'"
+            )
+        for value in values:
+            if len(value) > 128:
+                raise InvalidConditionValueError(
+                    "The 'path-pattern' value is too long; the limit is '128'"
+                )
+
+    def _validate_source_ip_condition(self, condition):
+        if "SourceIpConfig" in condition:
+            values = condition["SourceIpConfig"].get("Values", [])
+            if len(values) == 0:
+                raise InvalidConditionValueError(
+                    "A 'source-ip' value must be specified"
+                )
+        else:
+            raise InvalidConditionValueError(
+                "A 'SourceIpConfig' must be specified with 'source-ip'"
+            )
+
+    def _validate_query_string_condition(self, condition):
+        if "QueryStringConfig" in condition:
+            config = condition["QueryStringConfig"]
+            values = config["Values"]
+            for value in values:
+                if "Value" not in value:
+                    raise InvalidConditionValueError(
+                        "A 'Value' must be specified in 'QueryStringKeyValuePair'"
+                    )
+                if "Key" in value and len(value["Key"]) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'Key' value is too long; the limit is '128'"
+                    )
+                if len(value["Value"]) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'Value' value is too long; the limit is '128'"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'QueryStringConfig' must be specified with 'query-string'"
+            )
 
     def _validate_actions(self, actions):
         # validate Actions
@@ -1111,24 +1187,9 @@ Member must satisfy regular expression pattern: {}".format(
             raise RuleNotFoundError()
         rule = rules[0]
 
-        if conditions:
-            for condition in conditions:
-                field = condition["field"]
-                if field not in ["path-pattern", "host-header"]:
-                    raise InvalidConditionFieldError(field)
-
-                values = condition["values"]
-                if len(values) == 0:
-                    raise InvalidConditionValueError(
-                        "A condition value must be specified"
-                    )
-                if len(values) > 1:
-                    raise InvalidConditionValueError(
-                        "The '%s' field contains too many values; the limit is '1'"
-                        % field
-                    )
-                # TODO: check pattern of value for 'host-header'
-                # TODO: check pattern of value for 'path-pattern'
+        self._validate_conditions(conditions)
+        # TODO: check pattern of value for 'host-header'
+        # TODO: check pattern of value for 'path-pattern'
 
         # validate Actions
         self._validate_actions(actions)

@@ -154,49 +154,12 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_rule(self):
-        listener_arn = self._get_param("ListenerArn")
-        _conditions = self._get_list_prefix("Conditions.member")
-        conditions = []
-        for _condition in _conditions:
-            condition = {}
-            condition["field"] = _condition["field"]
-            values = sorted(
-                [e for e in _condition.items() if "values.member" in e[0]],
-                key=lambda x: x[0],
-            )
-            condition["values"] = []
-            # fix: preserve original request dict items, instead of flattening everything into "values" list
-            # NOTE: validations had to be fixed to accommodate this new structure
-            from moto.config.models import snake_to_camels
-
-            for entry in values:
-                if entry[0].startswith("values.member"):
-                    condition["values"].append(entry[1])
-                else:
-                    prefix, _, foo = entry[0].partition(".")
-                    prefix = snake_to_camels(prefix, cap_start=False, cap_arn=False)
-                    condition[prefix] = condition.get(prefix) or {"values": []}
-                    if entry[0].endswith("._key"):
-                        condition[prefix]["values"].append(
-                            {
-                                "Key": entry[1],
-                                "Value": _condition.get(
-                                    entry[0].replace("._key", "._value")
-                                ),
-                            }
-                        )
-                    elif entry[0].endswith("._value"):
-                        pass  # skip, already covered above
-                    else:
-                        condition[prefix]["values"].append(entry[1])
-            # condition["values"] = [e[1] for e in values]
-            conditions.append(condition)
-        priority = self._get_int_param("Priority")
+        params = self._get_params()
         actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.create_rule(
-            listener_arn=listener_arn,
-            conditions=conditions,
-            priority=priority,
+            listener_arn=params["ListenerArn"],
+            conditions=params["Conditions"],
+            priority=params["Priority"],
             actions=actions,
         )
         template = self.response_template(CREATE_RULE_TEMPLATE)
@@ -382,17 +345,8 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def modify_rule(self):
         rule_arn = self._get_param("RuleArn")
-        _conditions = self._get_list_prefix("Conditions.member")
-        conditions = []
-        for _condition in _conditions:
-            condition = {}
-            condition["field"] = _condition["field"]
-            values = sorted(
-                [e for e in _condition.items() if "values.member" in e[0]],
-                key=lambda x: x[0],
-            )
-            condition["values"] = [e[1] for e in values]
-            conditions.append(condition)
+        params = self._get_params()
+        conditions = params["Conditions"]
         actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
@@ -767,12 +721,72 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
+            {% if "Values" in condition %}
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
@@ -955,12 +969,72 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                  <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
+            {% if "Values" in condition %}
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
@@ -1097,12 +1171,72 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
+            {% if "Values" in condition %}
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>

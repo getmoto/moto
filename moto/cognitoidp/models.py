@@ -656,10 +656,7 @@ class CognitoIdpBackend(BaseBackend):
             UserStatus["FORCE_CHANGE_PASSWORD"],
             attributes,
         )
-        user.attributes.append({"Name": "sub", "Value": user.id})
-        user.attributes.append({"Name": "email_verified", "Value": True})
-        user.attributes.append({"Name": "name", "Value": ""})
-        user.attributes.append({"Name": "family_name", "Value": ""})
+
         user_pool.users[user.username] = user
         return user
 

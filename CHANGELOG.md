@@ -4,6 +4,22 @@ Moto Changelog
 Unreleased
 -----
 
+2.1.0
+-----
+    General Changes:
+        * Reduced the default value of DEFAULT_KEY_BUFFER_SIZE (introduced in 2.0.9).
+          In practice, this means that large S3 uploads will now be cached on disk, instead of in-memory.
+        * Removes `cfn-lint` as a dependency for the SSM-module.
+
+    New Methods:
+        * Kinesis
+            * decrease_stream_retention_period
+            * increase_stream_retention_period
+
+    Miscellaneous:
+        * CognitoIDP:admin_create_user(): Fixed a bug where user-supplied attributes would be ignored/overwritten
+        * ELBv2:create_rule(): Increased support for Condition-parameter, to also allow http-header/http-request-method/host-header/path-pattern/query-string/source-ip
+
 2.0.11
 ------
     New Services:
