@@ -35,6 +35,7 @@ from .vpn_connections import VPNConnections
 from .windows import Windows
 from .nat_gateways import NatGateways
 from .transit_gateways import TransitGateways
+from .transit_gateway_route_tables import TransitGatewayRouteTable
 from .iam_instance_profiles import IamInstanceProfiles
 
 
@@ -74,6 +75,7 @@ class EC2Response(
     Windows,
     NatGateways,
     TransitGateways,
+    TransitGatewayRouteTable,
     IamInstanceProfiles,
 ):
     @property
