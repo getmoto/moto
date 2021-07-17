@@ -6045,43 +6045,30 @@ class TransitGatewayRouteTableBackend(object):
         self.transit_gateways_route_tables[transit_gateways_route_table.id] = transit_gateways_route_table
         return transit_gateways_route_table
 
-    def get_all_transit_gateway_route_tables(self, filters):
+    def get_all_transit_gateway_route_tables(self, transit_gateway_ids, filters):
         transit_gateway_route_tables = self.transit_gateways_route_tables.values()
 
-        if filters is not None:
-            if filters.get("default-association-route-table") is not None:
-                transit_gateway_route_tables = [
-                    transit_gateway_route_table
-                    for transit_gateway_route_table in transit_gateway_route_tables
-                    if transit_gateway_route_table.default_association_route_table in filters["default-association-route-table"]
-                ]
+        attr_pairs = (
+            ("default-association-route-table", "default_association_route_table"),
+            ("default-propagation-route-table", "default_propagation_route_table"),
+            ("state", "state"),
+            ("transit-gateway-id", "transit_gateway_id"),
+            ("transit-gateway-route-table-id", "id")
+        )
 
-            if filters.get("default-propagation-route-table") is not None:
-                transit_gateway_route_tables = [
-                    transit_gateway_route_table
-                    for transit_gateway_route_table in transit_gateway_route_tables
-                    if transit_gateway_route_table.default_propagation_route_table in filters["default-propagation-route-table"]
-                ]
+        if transit_gateway_ids is not None:
+            transit_gateway_route_tables = [
+                transit_gateway_route_table
+                for transit_gateway_route_table in transit_gateway_route_tables
+                if transit_gateway_route_table.id in transit_gateway_ids
+            ]
 
-            if filters.get("state") is not None:
+        for attrs in attr_pairs:
+            values = filters.get(attrs[0]) or None
+            if values is not None:
                 transit_gateway_route_tables = [
-                    transit_gateway_route_table
-                    for transit_gateway_route_table in transit_gateway_route_tables
-                    if transit_gateway_route_table.state in filters["state"]
-                ]
-
-            if filters.get("transit-gateway-id") is not None:
-                transit_gateway_route_tables = [
-                    transit_gateway_route_table
-                    for transit_gateway_route_table in transit_gateway_route_tables
-                    if transit_gateway_route_table.transit_gateway_id in filters["transit-gateway-id"]
-                ]
-
-            if filters.get("transit-gateway-route-table-id") is not None:
-                transit_gateway_route_tables = [
-                    transit_gateway_route_table
-                    for transit_gateway_route_table in transit_gateway_route_tables
-                    if transit_gateway_route_table.id in filters["transit-gateway-route-table-id"]
+                    transit_gateway_route_table for transit_gateway_route_table in transit_gateway_route_tables
+                    if not values or getattr(transit_gateway_route_table, attrs[1]) in values
                 ]
 
         return transit_gateway_route_tables
