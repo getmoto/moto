@@ -45,6 +45,8 @@ def yaml_tag_constructor(loader, tag, node):
 
     def _f(loader, tag, node):
         if tag == "!GetAtt":
+            if isinstance(node.value, list):
+                return node.value
             return node.value.split(".")
         elif type(node) == yaml.SequenceNode:
             return loader.construct_sequence(node)
