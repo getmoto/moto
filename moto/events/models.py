@@ -544,7 +544,7 @@ class Replay(BaseModel):
 
 class Connection(BaseModel):
     def __init__(
-        self, name, region_name, description, authorization_type, auth_parameters,
+            self, name, region_name, description, authorization_type, auth_parameters,
     ):
         self.uuid = uuid4()
         self.name = name
@@ -560,6 +560,58 @@ class Connection(BaseModel):
         return "arn:aws:events:{0}:{1}:connection/{2}/{3}".format(
             self.region, ACCOUNT_ID, self.name, self.uuid
         )
+
+    def describe_short(self):
+        """
+        Create the short description for the Connection object.
+
+        Taken our from the Response Syntax of this API doc:
+            - https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
+
+        Something to consider:
+            - The original response also has
+                - LastAuthorizedTime (number)
+                - LastModifiedTime (number)
+            - At the time of implemeting this, there was no place where to set/get
+            those attributes. That is why they are not in the response.
+
+        Returns:
+            dict
+        """
+        return {
+            "ConnectionArn": self.arn,
+            "ConnectionState": self.state,
+            "CreationTime": self.creation_time,
+        }
+
+    def describe(self):
+        """
+        Create a complete description for the Connection object.
+
+        Taken our from the Response Syntax of this API doc:
+            - https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
+
+        Something to consider:
+            - The original response also has:
+                - LastAuthorizedTime (number)
+                - LastModifiedTime (number)
+                - SecretArn (string)
+                - StateReason (string)
+            - At the time of implemeting this, there was no place where to set/get
+            those attributes. That is why they are not in the response.
+
+        Returns:
+            dict
+        """
+        return {
+            "AuthorizationType": self.authorization_type,
+            "AuthParameters": self.auth_parameters,
+            "ConnectionArn": self.arn,
+            "ConnectionState": self.state,
+            "CreationTime": self.creation_time,
+            "Description": self.description,
+            "Name": self.name,
+        }
 
 
 class Destination(BaseModel):
@@ -1341,6 +1393,48 @@ class EventsBackend(BaseBackend):
 
     def list_connections(self):
         return self.connections.values()
+
+    def describe_connection(self, name):
+        """
+        Retrieves details about a connection.
+        Docs:
+            https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
+
+        Args:
+            name: The name of the connection to retrieve.
+
+        Raises:
+            ResourceNotFoundException: When the connection is not present.
+
+        Returns:
+            dict
+        """
+        connection = self.connections.get(name)
+        if not connection:
+            raise ResourceNotFoundException("Connection '{}' does not exist.".format(name))
+
+        return connection.describe()
+
+    def delete_connection(self, name):
+        """
+        Deletes a connection.
+        Docs:
+            https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
+
+        Args:
+            name: The name of the connection to delete.
+
+        Raises:
+            ResourceNotFoundException: When the connection is not present.
+
+        Returns:
+            dict
+        """
+        connection = self.connections.pop(name, None)
+        if not connection:
+            raise ResourceNotFoundException("Connection '{}' does not exist.".format(name))
+
+        return connection.describe_short()
 
     def create_api_destination(
         self, name, description, connection_arn, invocation_endpoint, http_method

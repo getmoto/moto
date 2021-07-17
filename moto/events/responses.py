@@ -448,6 +448,16 @@ class EventsHandler(BaseResponse):
 
         return json.dumps({"Connections": result}), self.response_headers
 
+    def describe_connection(self):
+        name = self._get_param("Name")
+        result = self.events_backend.describe_connection(name)
+        return json.dumps(result), self.response_headers
+
+    def delete_connection(self):
+        name = self._get_param("Name")
+        result = self.events_backend.delete_connection(name)
+        return json.dumps(result), self.response_headers
+
     def create_api_destination(self):
         name = self._get_param("Name")
         description = self._get_param("Description")
