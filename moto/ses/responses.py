@@ -478,15 +478,15 @@ SET_IDENTITY_EMAIL_FROM_DOMAIN = """<SetIdentityMailFromDomainResponse xmlns="ht
 
 GET_IDENTITY_EMAIL_FROM_DOMAIN_ATTRIBUTES = """<GetIdentityMailFromDomainAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <GetIdentityMailFromDomainAttributesResult>
-        {% for name, value in identities.items() %} 
-            <MailFromDomainAttribute>       
+        {% for name, value in identities.items() %}
+            <MailFromDomainAttribute>
                 <Name>{{ name }}</Name>
                 <Value>
                     <MailFromDomain>{{  value.get("mail_from_domain")}}</MailFromDomain>
                     <MailFromDomainStatus>Success</MailFromDomainStatus>
                     <BehaviorOnMXFailure>{{ value.get("behavior_on_mx_failure") }}</BehaviorOnMXFailure>
                 </Value>
-            </MailFromDomainAttribute> 
-        {% endfor %} 
+            </MailFromDomainAttribute>
+        {% endfor %}
   </GetIdentityMailFromDomainAttributesResult>
 </GetIdentityMailFromDomainAttributesResponse>"""
