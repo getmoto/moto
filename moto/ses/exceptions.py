@@ -97,3 +97,15 @@ class MissingRenderingAttributeException(RESTError):
             "MissingRenderingAttributeException",
             "Attribute '{0}' is not present in the rendering data.".format(var),
         )
+
+
+class IdentityDoesNotExist(RESTError):
+    code = 400
+
+    def __init__(self, var):
+        super(IdentityDoesNotExist, self).__init__(
+            "IdentityDoesNotExist",
+            "Identity '{0}' does not exist".format(var),
+        )
+
+

@@ -230,6 +230,21 @@ class EmailResponse(BaseResponse):
         template = self.response_template(CREATE_RECEIPT_RULE)
         return template.render()
 
+    def set_identity_mail_from_domain(self):
+        identity = self._get_param("Identity")
+        mail_from_domain = self._get_param("MailFromDomain")
+        behavior_on_mx_failure = self._get_param("BehaviorOnMXFailure")
+
+        ses_backend.set_identity_mail_from_domain(identity, mail_from_domain, behavior_on_mx_failure)
+        template = self.response_template(SET_IDENTITY_EMAIL_FROM_DOMAIN)
+        return template.render()
+
+    def get_identity_mail_from_domain_attributes(self):
+        identities = self._get_multi_param("Identities.member.")
+        identities = ses_backend.get_identity_mail_from_domain_attributes(identities)
+        template = self.response_template(GET_IDENTITY_EMAIL_FROM_DOMAIN_ATTRIBUTES)
+        return template.render(identities=identities)
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -451,3 +466,25 @@ CREATE_RECEIPT_RULE = """<CreateReceiptRuleResponse xmlns="http://ses.amazonaws.
     <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
   </ResponseMetadata>
 </CreateReceiptRuleResponse>"""
+
+SET_IDENTITY_EMAIL_FROM_DOMAIN = """<SetIdentityMailFromDomainResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <SetIdentityMailFromDomainResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</SetIdentityMailFromDomainResponse>"""
+
+GET_IDENTITY_EMAIL_FROM_DOMAIN_ATTRIBUTES = """<GetIdentityMailFromDomainAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <GetIdentityMailFromDomainAttributesResult>
+        {% for name, value in identities.items() %} 
+            <MailFromDomainAttribute>       
+                <Name>{{ name }}</Name>
+                <Value>
+                    <MailFromDomain>{{  value.get("mail_from_domain")}}</MailFromDomain>
+                    <MailFromDomainStatus>Success</MailFromDomainStatus>
+                    <BehaviorOnMXFailure>{{ value.get("behavior_on_mx_failure") }}</BehaviorOnMXFailure>
+                </Value>
+            </MailFromDomainAttribute> 
+        {% endfor %} 
+  </GetIdentityMailFromDomainAttributesResult>
+</GetIdentityMailFromDomainAttributesResponse>"""

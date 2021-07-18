@@ -24,6 +24,7 @@ from .exceptions import (
     RuleSetDoesNotExist,
     RuleAlreadyExists,
     MissingRenderingAttributeException,
+    IdentityDoesNotExist
 )
 from .utils import get_random_message_id
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
@@ -118,6 +119,8 @@ class SESBackend(BaseBackend):
         self.event_destinations = {}
         self.templates = {}
         self.receipt_rule_set = {}
+        self.identities = {}
+
 
     def _is_verified_address(self, source):
         _, address = parseaddr(source)
@@ -413,6 +416,21 @@ class SESBackend(BaseBackend):
             raise RuleAlreadyExists("Duplicate Rule Name.")
         rule_set.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
+
+    def set_identity_mail_from_domain(self, identity, mail_from_domain=None, behavior_on_mx_failure=None):
+        if identity not in self.domains:
+            raise IdentityDoesNotExist(identity)
+        identity_dict = {"mail_from_domain": mail_from_domain, "behavior_on_mx_failure": behavior_on_mx_failure}
+        self.identities[identity] = identity_dict
+
+
+    def get_identity_mail_from_domain_attributes(self, identities=None):
+        if identities is None:
+            identities = []
+        identities_map ={}
+        for identity in identities:
+            identities_map[identity] = self.identities.get(identity)
+        return identities_map
 
 
 ses_backend = SESBackend()

@@ -614,3 +614,17 @@ def test_domains_are_case_insensitive():
         identities = client.list_identities(IdentityType="Domain")["Identities"]
         identities.should.have.length_of(1)
         identities[0].should.equal("example.com")
+
+
+@mock_ses
+def test_domain_verify():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_domain_dkim(Domain="domain1.com")
+
+    conn.set_identity_mail_from_domain(Identity="domain1.com",
+                                       MailFromDomain="boundes.example.com",
+                                       BehaviorOnMXFailure="UseDefaultValue")
+
+    response = conn.get_identity_mail_from_domain_attributes(Identites=["domain1.com"])
+    print(response)
+    assert "MailFromDomainAttributes" in response
