@@ -104,8 +104,5 @@ class IdentityDoesNotExist(RESTError):
 
     def __init__(self, var):
         super(IdentityDoesNotExist, self).__init__(
-            "IdentityDoesNotExist",
-            "Identity '{0}' does not exist".format(var),
+            "IdentityDoesNotExist", "Identity '{0}' does not exist".format(var),
         )
-
-

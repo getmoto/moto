@@ -621,9 +621,11 @@ def test_domain_verify():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_domain_dkim(Domain="domain1.com")
 
-    conn.set_identity_mail_from_domain(Identity="domain1.com",
-                                       MailFromDomain="boundes.example.com",
-                                       BehaviorOnMXFailure="UseDefaultValue")
+    conn.set_identity_mail_from_domain(
+        Identity="domain1.com",
+        MailFromDomain="boundes.example.com",
+        BehaviorOnMXFailure="UseDefaultValue",
+    )
 
     response = conn.get_identity_mail_from_domain_attributes(Identites=["domain1.com"])
     print(response)

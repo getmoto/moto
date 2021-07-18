@@ -235,7 +235,9 @@ class EmailResponse(BaseResponse):
         mail_from_domain = self._get_param("MailFromDomain")
         behavior_on_mx_failure = self._get_param("BehaviorOnMXFailure")
 
-        ses_backend.set_identity_mail_from_domain(identity, mail_from_domain, behavior_on_mx_failure)
+        ses_backend.set_identity_mail_from_domain(
+            identity, mail_from_domain, behavior_on_mx_failure
+        )
         template = self.response_template(SET_IDENTITY_EMAIL_FROM_DOMAIN)
         return template.render()
 
