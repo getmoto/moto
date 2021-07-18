@@ -6012,6 +6012,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.default_association_route_table = default_association_route_table
         self.default_propagation_route_table = default_propagation_route_table
         self.state = "available"
+        self.routes = {}
         self.add_tags(tags or {})
 
     @property
@@ -6075,6 +6076,56 @@ class TransitGatewayRouteTableBackend(object):
 
     def delete_transit_gateway_route_table(self, transit_gateway_route_table_id):
         return self.transit_gateways_route_tables.pop(transit_gateway_route_table_id)
+
+    def create_transit_gateway_route(
+        self,
+        transit_gateway_route_table_id,
+        destination_cidr_block,
+        transit_gateway_attachment_id=None,
+        blackhole=False
+    ):
+        transit_gateways_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        transit_gateways_route_table.routes[destination_cidr_block] = {
+            "destinationCidrBlock": destination_cidr_block,
+            "prefixListId": "",
+            "state": "blackhole" if blackhole else "active",
+            # TODO: needs to be fixed once we have support for transit gateway attachments
+            "transitGatewayAttachments": {
+                "resourceId": "TODO",
+                "resourceType": "TODO",
+                "transitGatewayAttachmentId": transit_gateway_attachment_id,
+            },
+            "type": "TODO"
+        }
+        return transit_gateways_route_table
+
+    def delete_transit_gateway_route(
+        self,
+        transit_gateway_route_table_id,
+        destination_cidr_block,
+    ):
+        transit_gateways_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        transit_gateways_route_table.routes[destination_cidr_block]['state'] = "deleted"
+        return transit_gateways_route_table
+
+    def search_transit_gateway_routes(self, transit_gateway_route_table_id, filters, max_results=None):
+        transit_gateway_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+
+        attr_pairs = (
+            ("type", "type"),
+            ("state", "state"),
+        )
+
+        for attrs in attr_pairs:
+            values = filters.get(attrs[0]) or None
+            if values:
+                routes = [
+                    transit_gateway_route_table.routes[key] for key in transit_gateway_route_table.routes
+                    if transit_gateway_route_table.routes[key][attrs[1]] in values
+                ]
+        if max_results:
+            routes = routes[:int(max_results)]
+        return routes
 
 
 class NatGateway(CloudFormationModel):
