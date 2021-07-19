@@ -31,3 +31,10 @@ def load_resource(filename, as_json=True):
     """
     with open(filename, "r", encoding="utf-8") as f:
         return json.load(f) if as_json else f.read()
+
+
+def merge_multiple_dicts(*args):
+    result = {}
+    for d in args:
+        result.update(d)
+    return result

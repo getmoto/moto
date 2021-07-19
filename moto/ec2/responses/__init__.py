@@ -36,6 +36,7 @@ from .windows import Windows
 from .nat_gateways import NatGateways
 from .transit_gateways import TransitGateways
 from .transit_gateway_route_tables import TransitGatewayRouteTable
+from .transit_gateway_attachments import TransitGatewayAttachment
 from .iam_instance_profiles import IamInstanceProfiles
 
 
@@ -76,6 +77,7 @@ class EC2Response(
     NatGateways,
     TransitGateways,
     TransitGatewayRouteTable,
+    TransitGatewayAttachment,
     IamInstanceProfiles,
 ):
     @property

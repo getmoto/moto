@@ -34,7 +34,7 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import load_resource, merge_multiple_dicts
 from os import listdir
 
 from .exceptions import (
@@ -125,6 +125,7 @@ from .utils import (
     random_internet_gateway_id,
     random_ip,
     random_ipv6_cidr,
+    random_transit_gateway_attachment_id,
     random_transit_gateway_route_table_id,
     randor_ipv4_cidr,
     random_launch_template_id,
@@ -5826,7 +5827,7 @@ class VpnGatewayBackend(object):
 
 
 class CustomerGateway(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn, state="available", tags=[]):
+    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn, state="available", tags=None):
         self.ec2_backend = ec2_backend
         self.id = id
         self.type = type
@@ -5848,7 +5849,7 @@ class CustomerGatewayBackend(object):
         self.customer_gateways = {}
         super(CustomerGatewayBackend, self).__init__()
 
-    def create_customer_gateway(self, type="ipsec.1", ip_address=None, bgp_asn=None, tags=[]):
+    def create_customer_gateway(self, type="ipsec.1", ip_address=None, bgp_asn=None, tags=None):
         customer_gateway_id = random_customer_gateway_id()
         customer_gateway = CustomerGateway(
             self, customer_gateway_id, type, ip_address, bgp_asn, tags=tags
@@ -5903,14 +5904,26 @@ class CustomerGatewayBackend(object):
 
 class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
-    def __init__(self, backend, description=None, options=None, tags=[]):
+    DEFAULT_OPTIONS = {
+        "AmazonSideAsn": "64512",
+        "AssociationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
+        "AutoAcceptSharedAttachments": "disable",
+        "DefaultRouteTableAssociation": "enable",
+        "DefaultRouteTablePropagation": "enable",
+        "DnsSupport": "enable",
+        "MulticastSupport": "disable",
+        "PropagationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
+        "TransitGatewayCidrBlocks": None,
+        "VpnEcmpSupport": "enable"
+    }
+
+    def __init__(self, backend, description=None, options=None, tags=None):
         self.ec2_backend = backend
         self.id = random_transit_gateway_id()
         self.description = description
         self.state = "available"
         self.add_tags(tags or {})
-        self.options = options
-
+        self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
         self._created_at = datetime.utcnow()
 
     @property
@@ -5947,11 +5960,12 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
 
 class TransitGatewayBackend(object):
+
     def __init__(self):
         self.transit_gateways = {}
         super(TransitGatewayBackend, self).__init__()
 
-    def create_transit_gateway(self, description=None, options=None, tags=[]):
+    def create_transit_gateway(self, description=None, options=None, tags=None):
         transit_gateway = TransitGateway(self, description, options, tags)
         self.transit_gateways[transit_gateway.id] = transit_gateway
         return transit_gateway
@@ -5999,7 +6013,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self,
         backend,
         transit_gateway_id,
-        tags=[],
+        tags=None,
         default_association_route_table=False,
         default_propagation_route_table=False,
     ):
@@ -6032,7 +6046,7 @@ class TransitGatewayRouteTableBackend(object):
     def create_transit_gateway_route_table(
         self,
         transit_gateway_id,
-        tags=[],
+        tags=None,
         default_association_route_table=False,
         default_propagation_route_table=False
     ):
@@ -6046,7 +6060,7 @@ class TransitGatewayRouteTableBackend(object):
         self.transit_gateways_route_tables[transit_gateways_route_table.id] = transit_gateways_route_table
         return transit_gateways_route_table
 
-    def get_all_transit_gateway_route_tables(self, transit_gateway_ids, filters):
+    def get_all_transit_gateway_route_tables(self, transit_gateway_ids=None, filters=None):
         transit_gateway_route_tables = self.transit_gateways_route_tables.values()
 
         attr_pairs = (
@@ -6057,20 +6071,21 @@ class TransitGatewayRouteTableBackend(object):
             ("transit-gateway-route-table-id", "id")
         )
 
-        if transit_gateway_ids is not None:
+        if transit_gateway_ids:
             transit_gateway_route_tables = [
                 transit_gateway_route_table
                 for transit_gateway_route_table in transit_gateway_route_tables
                 if transit_gateway_route_table.id in transit_gateway_ids
             ]
 
-        for attrs in attr_pairs:
-            values = filters.get(attrs[0]) or None
-            if values is not None:
-                transit_gateway_route_tables = [
-                    transit_gateway_route_table for transit_gateway_route_table in transit_gateway_route_tables
-                    if not values or getattr(transit_gateway_route_table, attrs[1]) in values
-                ]
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    transit_gateway_route_tables = [
+                        transit_gateway_route_table for transit_gateway_route_table in transit_gateway_route_tables
+                        if not values or getattr(transit_gateway_route_table, attrs[1]) in values
+                    ]
 
         return transit_gateway_route_tables
 
@@ -6126,6 +6141,98 @@ class TransitGatewayRouteTableBackend(object):
         if max_results:
             routes = routes[:int(max_results)]
         return routes
+
+
+class TransitGatewayAttachment(TaggedEC2Resource):
+
+    def __init__(
+        self,
+        backend,
+        resource_id,
+        resource_type,
+        transit_gateway_id,
+        tags=None
+    ):
+
+        self.ec2_backend = backend
+        self.association = {}
+        self.resource_id = resource_id
+        self.resource_type = resource_type
+
+        self.id = random_transit_gateway_attachment_id()
+        self.transit_gateway_id = transit_gateway_id
+
+        self.state = "available"
+        self.add_tags(tags or {})
+
+        self._created_at = datetime.utcnow()
+
+    @property
+    def create_time(self):
+        return iso_8601_datetime_with_milliseconds(self._created_at)
+
+    @property
+    def resource_owner_id(self):
+        return ACCOUNT_ID
+
+    @property
+    def transit_gateway_owner_id(self):
+        return ACCOUNT_ID
+
+
+class TransitGatewayVpcAttachment(TransitGatewayAttachment):
+
+    DEFAULT_OPTIONS = {
+        "ApplianceModeSupport": "disable",
+        "DnsSupport": "enable",
+        "Ipv6Support": "disable"
+    }
+
+    def __init__(
+        self,
+        backend,
+        transit_gateway_id,
+        vpc_id,
+        subnet_ids,
+        tags=None,
+        options=None
+    ):
+
+        super().__init__(
+            backend=backend,
+            transit_gateway_id=transit_gateway_id,
+            resource_id=vpc_id,
+            resource_type="vpc",
+            tags=tags,
+        )
+
+        self.vpc_id = vpc_id
+        self.subnet_ids = subnet_ids
+        self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
+
+
+class TransitGatewayAttachmentBackend(object):
+    def __init__(self):
+        self.transit_gateways_attachments = {}
+        super(TransitGatewayAttachmentBackend, self).__init__()
+
+    def create_transit_gateway_vpc_attachment(
+        self,
+        transit_gateway_id,
+        vpc_id,
+        subnet_ids,
+        tags=None,
+        options=None
+    ):
+        transit_gateway_vpc_attachment = TransitGatewayVpcAttachment(
+            self,
+            transit_gateway_id=transit_gateway_id,
+            tags=tags,
+            vpc_id=vpc_id,
+            subnet_ids=subnet_ids,
+            options=options
+        )
+        return transit_gateway_vpc_attachment
 
 
 class NatGateway(CloudFormationModel):
@@ -6489,6 +6596,7 @@ class EC2Backend(
     NatGatewayBackend,
     TransitGatewayBackend,
     TransitGatewayRouteTableBackend,
+    TransitGatewayAttachmentBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
 ):
