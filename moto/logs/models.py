@@ -1,5 +1,6 @@
 from boto3 import Session
 
+from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
 from .exceptions import (
@@ -53,7 +54,7 @@ class LogStream(BaseModel):
         self.region = region
         self.arn = "arn:aws:logs:{region}:{id}:log-group:{log_group}:log-stream:{log_stream}".format(
             region=region,
-            id=self.__class__._log_ids,
+            id=moto_core.ACCOUNT_ID,
             log_group=log_group,
             log_stream=name,
         )
