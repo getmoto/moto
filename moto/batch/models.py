@@ -910,11 +910,11 @@ class BatchBackend(BaseBackend):
                 "could not find instanceRole {0}".format(cr["instanceRole"])
             )
 
-        if cr["maxvCpus"] < 0:
+        if int(cr["maxvCpus"]) < 0:
             raise InvalidParameterValueException("maxVCpus must be positive")
-        if cr["minvCpus"] < 0:
+        if int(cr["minvCpus"]) < 0:
             raise InvalidParameterValueException("minVCpus must be positive")
-        if cr["maxvCpus"] < cr["minvCpus"]:
+        if int(cr["maxvCpus"]) < int(cr["minvCpus"]):
             raise InvalidParameterValueException(
                 "maxVCpus must be greater than minvCpus"
             )
