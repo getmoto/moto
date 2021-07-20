@@ -29,7 +29,7 @@ def test_delete_vpn_connections():
     list_of_vpn_connections.should.have.length_of(1)
     conn.delete_vpn_connection(vpn_connection.id)
     list_of_vpn_connections = conn.get_all_vpn_connections()
-    list_of_vpn_connections.should.have.length_of(0)
+    list_of_vpn_connections[0].state.should.equal("deleted")
 
 
 @mock_ec2_deprecated

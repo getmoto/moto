@@ -5427,7 +5427,7 @@ class DHCPOptionsSetBackend(object):
 
 
 class VPNConnection(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, customer_gateway_id, vpn_gateway_id):
+    def __init__(self, ec2_backend, id, type, customer_gateway_id, vpn_gateway_id=None, transit_gateway_id=None, tags={}):
         self.ec2_backend = ec2_backend
         self.id = id
         self.state = "available"
@@ -5435,9 +5435,11 @@ class VPNConnection(TaggedEC2Resource):
         self.type = type
         self.customer_gateway_id = customer_gateway_id
         self.vpn_gateway_id = vpn_gateway_id
+        self.transit_gateway_id = transit_gateway_id
         self.tunnels = None
         self.options = None
         self.static_routes = None
+        self.add_tags(tags or {})
 
     def get_filter_value(self, filter_name):
         return super(VPNConnection, self).get_filter_value(
@@ -5451,8 +5453,7 @@ class VPNConnectionBackend(object):
         super(VPNConnectionBackend, self).__init__()
 
     def create_vpn_connection(
-        self, type, customer_gateway_id, vpn_gateway_id, static_routes_only=None
-    ):
+            self, type, customer_gateway_id, vpn_gateway_id=None, transit_gateway_id=None, static_routes_only=None, tags={}):
         vpn_connection_id = random_vpn_connection_id()
         if static_routes_only:
             pass
@@ -5462,6 +5463,8 @@ class VPNConnectionBackend(object):
             type=type,
             customer_gateway_id=customer_gateway_id,
             vpn_gateway_id=vpn_gateway_id,
+            transit_gateway_id=transit_gateway_id,
+            tags=tags
         )
         self.vpn_connections[vpn_connection.id] = vpn_connection
         return vpn_connection
@@ -5469,10 +5472,10 @@ class VPNConnectionBackend(object):
     def delete_vpn_connection(self, vpn_connection_id):
 
         if vpn_connection_id in self.vpn_connections:
-            self.vpn_connections.pop(vpn_connection_id)
+            self.vpn_connections[vpn_connection_id].state = "deleted"
         else:
             raise InvalidVpnConnectionIdError(vpn_connection_id)
-        return True
+        return self.vpn_connections[vpn_connection_id]
 
     def describe_vpn_connections(self, vpn_connection_ids=None):
         vpn_connections = []
@@ -5755,10 +5758,14 @@ class NetworkAclEntry(TaggedEC2Resource):
 
 
 class VpnGateway(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type):
+    def __init__(self, ec2_backend, id, type, amazon_side_asn, availability_zone, tags=None, state="available"):
         self.ec2_backend = ec2_backend
         self.id = id
         self.type = type
+        self.amazon_side_asn = amazon_side_asn
+        self.availability_zone = availability_zone
+        self.state = state
+        self.add_tags(tags or {})
         self.attachments = {}
         super(VpnGateway, self).__init__()
 
@@ -5788,9 +5795,9 @@ class VpnGatewayBackend(object):
         self.vpn_gateways = {}
         super(VpnGatewayBackend, self).__init__()
 
-    def create_vpn_gateway(self, type="ipsec.1"):
+    def create_vpn_gateway(self, type="ipsec.1", amazon_side_asn=None, availability_zone=None, tags=None):
         vpn_gateway_id = random_vpn_gateway_id()
-        vpn_gateway = VpnGateway(self, vpn_gateway_id, type)
+        vpn_gateway = VpnGateway(self, vpn_gateway_id, type, amazon_side_asn, availability_zone, tags)
         self.vpn_gateways[vpn_gateway_id] = vpn_gateway
         return vpn_gateway
 
@@ -6216,6 +6223,11 @@ class TransitGatewayAttachmentBackend(object):
         self.transit_gateways_attachments = {}
         super(TransitGatewayAttachmentBackend, self).__init__()
 
+    def create_transit_gateway_vpn_attachment(self, vpn_id, transit_gateway_id, tags=[]):
+        transit_gateway_vpn_attachment = TransitGatewayAttachment(self, resource_id=vpn_id, resource_type="vpn", transit_gateway_id=transit_gateway_id, tags=tags)
+        self.transit_gateways_attachments[transit_gateway_vpn_attachment.id] = transit_gateway_vpn_attachment
+        return transit_gateway_vpn_attachment
+
     def create_transit_gateway_vpc_attachment(
         self,
         transit_gateway_id,
@@ -6232,7 +6244,62 @@ class TransitGatewayAttachmentBackend(object):
             subnet_ids=subnet_ids,
             options=options
         )
+        self.transit_gateways_attachments[transit_gateway_vpc_attachment.id] = transit_gateway_vpc_attachment
         return transit_gateway_vpc_attachment
+
+    def describe_transit_gateway_attachments(self, transit_gateways_attachment_ids=None, filters=None, max_results=0):
+        transit_gateways_attachments = self.transit_gateways_attachments.values()
+
+        attr_pairs = (
+            ("resource-id", "resource_id"),
+            ("resource-type", "resource_type"),
+            ("transit-gateway-id", "transit_gateway_id")
+        )
+
+        if transit_gateways_attachment_ids:
+            transit_gateways_attachments = [
+                transit_gateways_attachment
+                for transit_gateways_attachment in transit_gateways_attachments
+                if transit_gateways_attachment.id in transit_gateways_attachment_ids
+            ]
+
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    transit_gateways_attachments = [
+                        transit_gateways_attachment for transit_gateways_attachment in transit_gateways_attachments
+                        if getattr(transit_gateways_attachment, attrs[1]) in values
+                    ]
+        return transit_gateways_attachments
+
+    def describe_transit_gateway_vpc_attachments(self, transit_gateways_attachment_ids=None, filters=None, max_results=0):
+        transit_gateways_attachments = self.transit_gateways_attachments.values()
+
+        attr_pairs = (
+            ("state", "state"),
+            ("transit-gateway-attachment-id", "id"),
+            ("transit-gateway-id", "transit_gateway_id"),
+            ("vpc-id", "resource_id")
+        )
+
+        if not transit_gateways_attachment_ids == [] and transit_gateways_attachment_ids is not None:
+            transit_gateways_attachments = [
+                transit_gateways_attachment
+                for transit_gateways_attachment in transit_gateways_attachments
+                if transit_gateways_attachment.id in transit_gateways_attachment_ids
+            ]
+
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    transit_gateways_attachments = [
+                        transit_gateways_attachment for transit_gateways_attachment in transit_gateways_attachments
+                        if getattr(transit_gateways_attachment, attrs[1]) in values
+                    ]
+
+        return transit_gateways_attachments
 
 
 class NatGateway(CloudFormationModel):

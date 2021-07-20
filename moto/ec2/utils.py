@@ -358,6 +358,13 @@ def get_obj_tag_values(obj):
     return tags
 
 
+def add_tag_specification(tags):
+    tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
+    tags = (tags or {}).get("Tag", [])
+    tags = {t["Key"]: t["Value"] for t in tags}
+    return tags
+
+
 def tag_filter_matches(obj, filter_name, filter_values):
     regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
     if filter_name == "tag-key":
