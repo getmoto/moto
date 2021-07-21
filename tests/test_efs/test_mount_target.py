@@ -21,15 +21,15 @@ def aws_credentials():
 
 
 @pytest.fixture(scope="function")
-def efs(aws_credentials):
-    with mock_efs():
-        yield boto3.client("efs", region_name="us-east-1")
-
-
-@pytest.fixture(scope="function")
 def ec2(aws_credentials):
     with mock_ec2():
         yield boto3.client("ec2", region_name="us-east-1")
+
+
+@pytest.fixture(scope="function")
+def efs(aws_credentials):
+    with mock_efs():
+        yield boto3.client("efs", region_name="us-east-1")
 
 
 def test_create_mount_target_minimal_correct_use(efs, ec2):
