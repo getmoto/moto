@@ -214,7 +214,7 @@ class MountTarget(CloudFormationModel):
 
         # Init non-user-assigned values.
         self.owner_id = ACCOUNT_ID
-        self.mounted_target_id = "fsmt-{}".format(get_random_hex())
+        self.mount_target_id = "fsmt-{}".format(get_random_hex())
         self.life_cycle_state = "available"
         self.network_interface_id = None
         self.availability_zone_id = subnet.availability_zone_id
@@ -391,7 +391,7 @@ class EFSBackend(BaseBackend):
         mount_target.set_network_interface(network_interface)
 
         # Record the new mount target
-        self.mount_targets_by_id[mount_target.mounted_target_id] = mount_target
+        self.mount_targets_by_id[mount_target.mount_target_id] = mount_target
         return mount_target
 
     def describe_mount_targets(
