@@ -33,6 +33,7 @@ class FileSystem(CloudFormationModel):
 
     def __init__(
         self,
+        region_name,
         creation_token,
         file_system_id,
         performance_mode="generalPurpose",
@@ -79,7 +80,7 @@ class FileSystem(CloudFormationModel):
         # Generate AWS-assigned parameters
         self.file_system_id = file_system_id
         self.file_system_arn = "arn:aws:elasticfilesystem:{region}:{user_id}:file-system/{file_system_id}".format(
-            region=None, user_id=None, file_system_id=self.file_system_id
+            region=region_name, user_id=ACCOUNT_ID, file_system_id=self.file_system_id
         )
         self.creation_time = time.time()
         self.owner_id = ACCOUNT_ID
@@ -308,6 +309,7 @@ class EFSBackend(BaseBackend):
         while fsid in self.file_systems_by_id:
             fsid = make_id()
         self.file_systems_by_id[fsid] = FileSystem(
+            self.region_name,
             creation_token,
             fsid,
             **{k: v for k, v in params.items() if v is not None}
