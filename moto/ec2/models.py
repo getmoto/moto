@@ -6195,6 +6195,90 @@ class TransitGatewayRouteTableBackend(object):
             routes = routes[: int(max_results)]
         return routes
 
+    def set_route_table_association(self, transit_gateway_attachment_id, transit_gateway_route_table_id):
+        self.transit_gateways_route_tables[transit_gateway_route_table_id].route_table_association = {
+            'resourceId': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_id,
+            'resourceType': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_type,
+            'state': 'associated',
+            'transitGatewayAttachmentId': transit_gateway_attachment_id
+        }
+
+    def set_route_table_propagation(self, transit_gateway_attachment_id, transit_gateway_route_table_id):
+        self.transit_gateways_route_tables[transit_gateway_route_table_id].route_table_propagation = {
+            'resourceId': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_id,
+            'resourceType': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_type,
+            'state': 'enabled',
+            'transitGatewayAttachmentId': transit_gateway_attachment_id
+        }
+
+    def get_all_transit_gateway_route_table_associations(self, transit_gateway_route_table_id=None, filters=None):
+        transit_gateway_route_tables = self.transit_gateways_route_tables.values()
+
+        if transit_gateway_route_tables:
+            transit_gateway_route_tables = [
+                transit_gateway_route_table
+                for transit_gateway_route_table in transit_gateway_route_tables
+                if transit_gateway_route_table.id in transit_gateway_route_table_id
+            ]
+
+        attr_pairs = (
+            ("resource-id", "route_table_association", "resourceId"),
+            ("resource-type", "route_table_association", "resourceType"),
+            ("transit-gateway-attachment-id", "route_table_association", "transitGatewayAttachmentId")
+        )
+
+        if transit_gateway_route_tables:
+            transit_gateway_route_tables = [
+                transit_gateway_route_table
+                for transit_gateway_route_table in transit_gateway_route_tables
+                if transit_gateway_route_table.id in transit_gateway_route_table_id
+            ]
+
+        result = []
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    for transit_gateway_route_table in transit_gateway_route_tables:
+                        if (len(attrs) <= 2 and getattr(transit_gateway_route_table, attrs[1]) in values) or \
+                           (len(attrs) == 3 and getattr(transit_gateway_route_table, attrs[1]).get(attrs[2]) in values):
+                            result.append(transit_gateway_route_table)
+        return transit_gateway_route_tables if not filters else result
+
+    def get_all_transit_gateway_route_table_propagations(self, transit_gateway_route_table_id=None, filters=None):
+        transit_gateway_route_tables = self.transit_gateways_route_tables.values()
+
+        if transit_gateway_route_tables:
+            transit_gateway_route_tables = [
+                transit_gateway_route_table
+                for transit_gateway_route_table in transit_gateway_route_tables
+                if transit_gateway_route_table.id in transit_gateway_route_table_id
+            ]
+
+        attr_pairs = (
+            ("resource-id", "route_table_propagation", "resourceId"),
+            ("resource-type", "route_table_propagation", "resourceType"),
+            ("transit-gateway-attachment-id", "route_table_propagation", "transitGatewayAttachmentId")
+        )
+
+        if transit_gateway_route_tables:
+            transit_gateway_route_tables = [
+                transit_gateway_route_table
+                for transit_gateway_route_table in transit_gateway_route_tables
+                if transit_gateway_route_table.id in transit_gateway_route_table_id
+            ]
+
+        result = []
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    for transit_gateway_route_table in transit_gateway_route_tables:
+                        if (len(attrs) <= 2 and getattr(transit_gateway_route_table, attrs[1]) in values) or \
+                           (len(attrs) == 3 and getattr(transit_gateway_route_table, attrs[1]).get(attrs[2]) in values):
+                            result.append(transit_gateway_route_table)
+        return transit_gateway_route_tables if not filters else result
+
 
 class TransitGatewayAttachment(TaggedEC2Resource):
     def __init__(
