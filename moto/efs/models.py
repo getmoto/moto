@@ -307,7 +307,11 @@ class EFSBackend(BaseBackend):
         fsid = make_id()
         while fsid in self.file_systems_by_id:
             fsid = make_id()
-        self.file_systems_by_id[fsid] = FileSystem(creation_token, fsid, **params)
+        self.file_systems_by_id[fsid] = FileSystem(
+            creation_token,
+            fsid,
+            **{k: v for k, v in params.items() if v is not None}
+        )
         self.creation_tokens.add(creation_token)
         return self.file_systems_by_id[fsid]
 
