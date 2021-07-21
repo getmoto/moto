@@ -32,18 +32,27 @@ def efs(aws_credentials):
         yield boto3.client("efs", region_name="us-east-1")
 
 
-def test_create_mount_target_minimal_correct_use(efs, ec2):
-    # Create a file system.
+@pytest.fixture(scope="function")
+def file_system(efs):
     create_fs_resp = efs.create_file_system(CreationToken="foobarbaz")
+    create_fs_resp.pop("ResponseMetadata")
+    yield create_fs_resp
 
-    # Choose a subnet.
+
+@pytest.fixture(scope="function")
+def subnet(ec2):
     desc_sn_resp = ec2.describe_subnets()
     subnet = desc_sn_resp["Subnets"][0]
+    yield subnet
+
+
+def test_create_mount_target_minimal_correct_use(efs, file_system, subnet):
     subnet_id = subnet["SubnetId"]
+    file_system_id = file_system["FileSystemId"]
 
     # Create the mount target.
     create_mt_resp = efs.create_mount_target(
-        FileSystemId=create_fs_resp["FileSystemId"], SubnetId=subnet_id
+        FileSystemId=file_system_id, SubnetId=subnet_id
     )
 
     # Check the mount target response code.
@@ -60,11 +69,44 @@ def test_create_mount_target_minimal_correct_use(efs, ec2):
     assert IPv4Network(create_mt_resp["IpAddress"]).subnet_of(
         IPv4Network(subnet["CidrBlock"])
     )
-    create_mt_resp["FileSystemId"].should.equal(create_fs_resp["FileSystemId"])
+    create_mt_resp["FileSystemId"].should.equal(file_system_id)
     create_mt_resp["OwnerId"].should.equal(ACCOUNT_ID)
+    create_mt_resp["LifeCycleState"].should.equal("available")
 
     # Check that the number of mount targets in the fs is correct.
     desc_fs_resp = efs.describe_file_systems()
     file_system = desc_fs_resp["FileSystems"][0]
     file_system["NumberOfMountTargets"].should.equal(1)
     return
+
+
+def test_create_mount_target_aws_sample_2(efs, ec2, file_system, subnet):
+    subnet_id = subnet["SubnetId"]
+    file_system_id = file_system["FileSystemId"]
+    subnet_network = IPv4Network(subnet["CidrBlock"])
+    for ip_addr_obj in subnet_network.hosts():
+        ip_addr = ip_addr_obj.exploded
+        break
+    else:
+        assert False, "Could not generate an IP address from CIDR block: {}".format(
+            subnet["CidrBlock"]
+        )
+    desc_sg_resp = ec2.describe_security_groups()
+    security_group = desc_sg_resp["SecurityGroups"][0]
+    security_group_id = security_group["GroupId"]
+
+    # Make sure nothing chokes.
+    sample_input = {
+        "FileSystemId": file_system_id,
+        "SubnetId": subnet_id,
+        "IpAddress": ip_addr,
+        "SecurityGroups": [security_group_id],
+    }
+    create_mt_resp = efs.create_mount_target(**sample_input)
+
+    # Check the mount target response code.
+    resp_metadata = create_mt_resp.pop("ResponseMetadata")
+    resp_metadata["HTTPStatusCode"].should.equal(200)
+
+    # Check that setting the IP Address worked.
+    create_mt_resp["IpAddress"].should.equal(ip_addr)
