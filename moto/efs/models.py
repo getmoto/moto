@@ -177,7 +177,9 @@ class FileSystem(CloudFormationModel):
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        return
+        raise NotImplementedError(
+            "Update of EFS File System via cloudformation is not yet implemented."
+        )
 
     @classmethod
     def delete_from_cloudformation_json(
@@ -258,7 +260,9 @@ class MountTarget(CloudFormationModel):
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        return
+        raise NotImplementedError(
+            "Updates of EFS Mount Target via cloudformation are not yet implemented."
+        )
 
     @classmethod
     def delete_from_cloudformation_json(
