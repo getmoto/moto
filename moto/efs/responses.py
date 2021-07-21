@@ -34,7 +34,7 @@ class EFSResponse(BaseResponse):
             backup=backup,
             tags=tags,
         )
-        return json.dumps(resource.info_json())
+        return json.dumps(resource.info_json()), {"status": 201}
 
     def describe_file_systems(self):
         max_items = self._get_int_param("MaxItems", 10)
