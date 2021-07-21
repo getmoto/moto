@@ -22,7 +22,7 @@ class EFSResponse(BaseResponse):
         )
         availability_zone_name = self._get_param("AvailabilityZoneName")
         backup = self._get_param("Backup")
-        tags = self._get_list_prefix("Tags.member")
+        tags = self._get_param("Tags")
         resource = self.efs_backend.create_file_system(
             creation_token=creation_token,
             performance_mode=performance_mode,
