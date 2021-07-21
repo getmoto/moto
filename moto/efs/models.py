@@ -28,6 +28,14 @@ from moto.efs.exceptions import (
 )
 
 
+def _lookup_az_id(az_name):
+    """Find the Availability zone ID given the AZ name."""
+    ec2 = ec2_backends[az_name[:-1]]
+    for zone in ec2.describe_availability_zones():
+        if zone.name == az_name:
+            return zone.zone_id
+
+
 class FileSystem(CloudFormationModel):
     """A model for an EFS File System Volume."""
 
@@ -60,6 +68,9 @@ class FileSystem(CloudFormationModel):
         self.throughput_mode = throughput_mode
         self.provisioned_throughput_in_mibps = provisioned_throughput_in_mibps
         self.availability_zone_name = availability_zone_name
+        self.availability_zone_id = None
+        if self.availability_zone_name:
+            self.availability_zone_id = _lookup_az_id(self.availability_zone_name)
         self.backup = backup
         self.lifecycle_policies = lifecycle_policies
         self.file_system_policy = file_system_policy
