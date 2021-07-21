@@ -130,3 +130,39 @@ def test_create_file_system_aws_sample_2(efs):
     resp["AvailabilityZoneId"].should.equal("usw2-az1")
     resp["AvailabilityZoneName"].should.equal("us-west-2b")
     resp["ThroughputMode"].should.equal("provisioned")
+
+
+def test_describe_file_systems_minimal_case(efs):
+    # Create the file system.
+    create_fs_resp = efs.create_file_system(CreationToken="foobar")
+    create_fs_resp.pop("ResponseMetadata")
+
+    # Describe the file systems.
+    desc_fs_resp = efs.describe_file_systems()
+    desc_fs_resp_metadata = desc_fs_resp.pop("ResponseMetadata")
+    assert desc_fs_resp_metadata["HTTPStatusCode"] == 200
+
+    # Check the list results.
+    fs_list = desc_fs_resp["FileSystems"]
+    assert len(fs_list) == 1
+    file_system = fs_list[0]
+    assert set(file_system.keys()) == {
+        "CreationTime",
+        "CreationToken",
+        "Encrypted",
+        "LifeCycleState",
+        "PerformanceMode",
+        "SizeInBytes",
+        "Tags",
+        "ThroughputMode",
+        "FileSystemId",
+        "FileSystemArn",
+        "NumberOfMountTargets",
+        "OwnerId",
+    }
+    assert file_system["FileSystemId"] == create_fs_resp["FileSystemId"]
+
+    # Pop out the timestamps and see if the rest of the description is the same.
+    create_fs_resp["SizeInBytes"].pop("Timestamp")
+    file_system["SizeInBytes"].pop("Timestamp")
+    assert file_system == create_fs_resp
