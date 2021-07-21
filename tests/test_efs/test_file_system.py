@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
 
 import re
+from os import environ
+
 import boto3
 import pytest
 import sure  # noqa
-from os import environ
-from moto import mock_efs
 
+from moto import mock_efs
 
 ARN_PATT = "^arn:(?P<Partition>[^:\n]*):(?P<Service>[^:\n]*):(?P<Region>[^:\n]*):(?P<AccountID>[^:\n]*):(?P<Ignore>(?P<ResourceType>[^:\/\n]*)[:\/])?(?P<Resource>.*)$"
 STRICT_ARN_PATT = "^arn:aws:[a-z]+:[a-z]{2}-[a-z]+-[0-9]:[0-9]+:[a-z-]+\/[a-z0-9-]+$"
