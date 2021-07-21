@@ -35,7 +35,7 @@ def test_create_file_system_correct_use(efs):
     )
 
     # Check the response.
-    create_fs_resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    create_fs_resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
     create_fs_resp["CreationToken"].should.equal(creation_token)
     create_fs_resp["FileSystemId"].should.contain("fs-")
     create_fs_resp["CreationTime"].should.be.a("datetime.datetime")
@@ -58,4 +58,74 @@ def test_create_file_system_correct_use(efs):
     arn_parts["Resource"].should.equal(create_fs_resp["FileSystemId"])
     arn_parts["Service"].should.equal("elasticfilesystem")
     arn_parts["AccountID"].should.equal(create_fs_resp["OwnerId"])
-    return
+
+
+def test_create_file_system_aws_sample_1(efs):
+    sample_params = {
+        "CreationToken": "myFileSystem1",
+        "PerformanceMode": "generalPurpose",
+        "Backup": True,
+        "Encrypted": True,
+        "Tags": [{"Key": "Name", "Value": "Test Group1"}],
+    }
+    resp = efs.create_file_system(**sample_params)
+    resp_metadata = resp.pop("ResponseMetadata")
+    resp_metadata["HTTPStatusCode"].should.equal(201)
+    set(resp.keys()).should.equal(
+        {
+            "OwnerId",
+            "CreationToken",
+            "Encrypted",
+            "PerformanceMode",
+            "FileSystemId",
+            "FileSystemArn",
+            "CreationTime",
+            "LifeCycleState",
+            "NumberOfMountTargets",
+            "SizeInBytes",
+            "Tags",
+            "ThroughputMode",
+        }
+    )
+    resp["Tags"].should.equal([{"Key": "Name", "Value": "Test Group1"}])
+    resp["PerformanceMode"].should.equal("generalPurpose")
+    resp["Encrypted"].should.equal(True)
+
+
+def test_create_file_system_aws_sample_2(efs):
+    sample_params = {
+        "CreationToken": "myFileSystem2",
+        "PerformanceMode": "generalPurpose",
+        "Backup": True,
+        "AvailabilityZoneName": "us-west-2b",
+        "Encrypted": True,
+        "ThroughputMode": "provisioned",
+        "ProvisionedThroughputInMibps": 60,
+        "Tags": [{"Key": "Name", "Value": "Test Group1"}],
+    }
+    resp = efs.create_file_system(**sample_params)
+    resp_metadata = resp.pop("ResponseMetadata")
+    resp_metadata["HTTPStatusCode"].should.equal(201)
+    set(resp.keys()).should.equal(
+        {
+            "AvailabilityZoneId",
+            "AvailabilityZoneName",
+            "CreationTime",
+            "CreationToken",
+            "Encrypted",
+            "LifeCycleState",
+            "PerformanceMode",
+            "ProvisionedThroughputInMibps",
+            "SizeInBytes",
+            "Tags",
+            "ThroughputMode",
+            "FileSystemId",
+            "FileSystemArn",
+            "NumberOfMountTargets",
+            "OwnerId",
+        }
+    )
+    resp["ProvisionedThroughputInMibps"].should.equal(60)
+    resp["AvailabilityZoneId"].should.equal("usw2-az1")
+    resp["AvailabilityZoneName"].should.equal("us-west-2b")
+    resp["ThroughputMode"].should.equal("provisioned")
