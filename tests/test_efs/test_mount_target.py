@@ -127,3 +127,87 @@ def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet
         assert False, "Got an unexpected exception: {}".format(e)
     else:
         assert False, "Expected an FileSystemInUse error."
+
+
+def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):
+    create_resp = efs.create_mount_target(
+        FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
+    )
+    create_resp.pop("ResponseMetadata")
+
+    # Describe the mount targets
+    desc_mt_resp = efs.describe_mount_targets(FileSystemId=file_system["FileSystemId"])
+    desc_mt_resp_metadata = desc_mt_resp.pop("ResponseMetadata")
+    assert desc_mt_resp_metadata["HTTPStatusCode"] == 200
+
+    # Check the list results.
+    mt_list = desc_mt_resp["MountTargets"]
+    assert len(mt_list) == 1
+    mount_target = mt_list[0]
+    assert mount_target["MountTargetId"] == create_resp["MountTargetId"]
+
+    # Pop out the timestamps and see if the rest of the description is the same.
+    assert mount_target == create_resp
+
+
+def test_describe_file_systems_paging(efs, ec2, file_system):
+    fs_id = file_system["FileSystemId"]
+
+    # Get a list of subnets.
+    subnet_list = ec2.describe_subnets()["Subnets"]
+
+    # Create several mount targets.
+    for subnet in subnet_list:
+        efs.create_mount_target(FileSystemId=fs_id, SubnetId=subnet["SubnetId"])
+
+    # First call (Start)
+    # ------------------
+
+    # Call the tested function
+    resp1 = efs.describe_mount_targets(FileSystemId=fs_id, MaxItems=2)
+
+    # Check the response status
+    assert has_status_code(resp1, 200)
+
+    # Check content of the result.
+    resp1.pop("ResponseMetadata")
+    assert set(resp1.keys()) == {"NextMarker", "MountTargets"}
+    assert len(resp1["MountTargets"]) == 2
+    mt_id_set_1 = {mt["MountTargetId"] for mt in resp1["MountTargets"]}
+
+    # Second call (Middle)
+    # --------------------
+
+    # Get the next marker.
+    resp2 = efs.describe_mount_targets(
+        FileSystemId=fs_id, MaxItems=2, Marker=resp1["NextMarker"]
+    )
+
+    # Check the response status
+    resp2_metadata = resp2.pop("ResponseMetadata")
+    assert resp2_metadata["HTTPStatusCode"] == 200
+
+    # Check the response contents.
+    assert set(resp2.keys()) == {"NextMarker", "MountTargets", "Marker"}
+    assert len(resp2["MountTargets"]) == 2
+    assert resp2["Marker"] == resp1["NextMarker"]
+    mt_id_set_2 = {mt["MountTargetId"] for mt in resp2["MountTargets"]}
+    assert mt_id_set_1 & mt_id_set_2 == set()
+
+    # Third call (End)
+    # ----------------
+
+    # Get the last marker results
+    resp3 = efs.describe_mount_targets(
+        FileSystemId=fs_id, MaxItems=20, Marker=resp2["NextMarker"]
+    )
+
+    # Check the response status
+    resp3_metadata = resp3.pop("ResponseMetadata")
+    assert resp3_metadata["HTTPStatusCode"] == 200
+
+    # Check the response contents.
+    assert set(resp3.keys()) == {"MountTargets", "Marker"}
+    assert resp3["Marker"] == resp2["NextMarker"]
+    mt_id_set_3 = {mt["MountTargetId"] for mt in resp3["MountTargets"]}
+    assert mt_id_set_3 & (mt_id_set_1 | mt_id_set_2) == set()
