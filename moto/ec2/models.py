@@ -2038,6 +2038,33 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 self.egress_rules.append(SecurityRule("-1", None, None, [], []))
 
+        #each filter as a simple function in a mapping
+        self.filters = {
+            'description' : self.filter_description,
+            'egress.ip-permission.cidr' : self.filter_egress__ip_permission__cidr,
+            'egress.ip-permission.from-port' : self.filter_egress__ip_permission__from_port,
+            'egress.ip-permission.group-id' : self.filter_egress__ip_permission__group_id,
+            'egress.ip-permission.group-name ' : self.filter_egress__ip_permission__group_name,
+            'egress.ip-permission.ipv6-cidr' : self.filter_egress__ip_permission__ipv6_cidr,
+            'egress.ip-permission.prefix-list-id' : self.filter_egress__ip_permission__prefix_list_id
+            'egress.ip-permission.protocol' : self.filter_egress__ip_permission__protocol,
+            'egress.ip-permission.to-port' : self.filter_egress__ip_permission__to_port,
+            'egress.ip-permission.user-id' : self.filter_egress__ip_permission__user_id,
+            'group-id' : self.filter_group_id,
+            'group-name' : self.filter_group_name,
+            'ip-permission.cidr' : self.filter_ip_permission__cidr,
+            'ip-permission.from-port' : self.filter_ip_permission__from_port,
+            'ip-permission.group-id' : self.filter_ip_permission__group_id,
+            'ip-permission.group-name' : self.filter_ip_permission__group_name,
+            'ip-permission.ipv6-cidr' : self.filter_ip_permission__ipv6_cidr,
+            'ip-permission.prefix-list-id' : self.filter_ip_permission__prefix_list_id,
+            'ip-permission.protocol' : self.filter_ip_permission__protocol,
+            'ip-permission.to-port' : self.filter_ip_permission__to_port,
+            'ip-permission.user-id' : self.filter_ip_permission__user_id,
+            'owner-id' : self.filter_owner_id,
+            'vpc-id' : self.filter_vpc_id
+        }
+
     @staticmethod
     def cloudformation_name_type():
         return "GroupName"
@@ -2115,38 +2142,188 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def physical_resource_id(self):
         return self.id
 
-    def matches_filter(self, key, filter_value):
-        def to_attr(filter_name):
-            attr = None
+    """
+            'description'
+            'egress.ip-permission.cidr' 
+            'egress.ip-permission.from-port' 
+            'egress.ip-permission.group-id' 
+            'egress.ip-permission.group-name ' 
+            'egress.ip-permission.ipv6-cidr' 
+            'egress.ip-permission.prefix-list-id' 
+            'egress.ip-permission.protocol'
+            'egress.ip-permission.to-port'
+            'egress.ip-permission.user-id'
+            'group-id' 
+            'group-name' 
+            'ip-permission.cidr' 
+            'ip-permission.from-port' 
+            'ip-permission.group-id' 
+            'ip-permission.group-name' 
+            'ip-permission.ipv6-cidr' 
+            'ip-permission.prefix-list-id' 
+            'ip-permission.protocol' 
+            'ip-permission.to-port' 
+            'ip-permission.user-id'
+            'owner-id' 
+            'vpc-id'
+    """
+    def filter_description(self, values):
+        for value in values:
+            if glob_matches(value, self.description):
+                return True
+        return False
 
-            if filter_name == "group-name":
-                attr = "name"
-            elif filter_name == "group-id":
-                attr = "id"
-            elif filter_name == "vpc-id":
-                attr = "vpc_id"
-            else:
-                attr = filter_name.replace("-", "_")
 
-            return attr
+    def filter_egress__ip_permission__cidr(self, values):
+        for value in values:
+            for rule in self.egress_rules:
+                for cidr in rule.ip_ranges:
+                    if glob_matches(value, cidr):
+                        return True
+        return False
 
-        if key.startswith("ip-permission"):
-            match = re.search(r"ip-permission.(*)", key)
-            ingress_attr = to_attr(match.groups()[0])
 
-            for ingress in self.ingress_rules:
-                if getattr(ingress, ingress_attr) in filter_value:
+    def filter_egress__ip_permission__from_port(self, values):
+        if self.ip_protocol != "-1":
+            for value in values:
+                for rule in self.egress_rules:
+                    if glob_matches(value, str(rule.from_port)):
+                        return True
+        return False
+                
+    def filter_egress__ip_permission__group_id(self, values):
+        for value in values:
+            for rule in self.egress_rules:
+                if glob_matches(value, rule.group_id):
                     return True
-        elif is_tag_filter(key):
+        return False
+
+    def filter_egress__ip_permission__group_name(self, values):
+        for value in values:
+            for rule in self.egress_rules:
+                for group in source_groups:
+                    if glob_matches(value, group.name):
+                        return True
+        return False
+
+    def filter_egress__ip_permission__ipv6_cidr(self, values):
+        raise MotoNotImplementedError("egress.ip-permission.ipv6-cidr filter")
+
+    def filter_egress__ip_permission__prefix_list_id(self, values):
+        raise MotoNotImplementedError("egress.ip-permission.prefix-list-id filter")
+
+    def filter_egress__ip_permission__protocol(self, values):
+        for value in values:
+            for rule in self.egress_rules:
+                if glob_matches(value, rule.protocol):
+                    return True
+        reutrn False
+
+    def filter_egress__ip_permission__to_port(self, values):
+        for value in values:
+            for rule in self.egress_rules:
+                if glob_matches(value, rule.to_port):
+                    return True
+        return False
+
+    def filter_egress__ip_permission__user_id(self, values):
+        for value in values:
+            for rule in self.egress_rules:
+                if glob_matches(value, rule.owner_id):
+                    return True
+        return False
+
+    def filter_group_id(self, values):
+        for value in values:
+            if glob_matches(value, self.id):
+                return True
+        return False
+
+    def filter_group_name(self, values):
+        for value in values:
+            if glob_matches(value, self.group_name):
+                return True
+        return False
+
+    def filter_ip_permission__cidr(self, values):
+        for value in values:
+            for rule in self.ingress_rules:
+                for cidr in rule.ip_ranges:
+                    if glob_matches(value, cidr):
+                        return True
+        return False
+
+    def filter_ip_permission__from_port(self, values):
+        for value in values:
+            for rule in self.ingress_rules:
+                if glob_matches(value, rule.from_port):
+                    return True
+        return False
+
+    def filter_ip_permission__group_id(self, values):
+        for value in values:
+            for rule in self.ingress_rules:
+                for group in source_groups:
+                    if glob_matches(value, group.id):
+                        return True
+        return False
+
+    def filter_ip_permission__group_name(self, values):
+        for value in values:
+            for rule in self.ingress_rules:
+                for group in source_groups:
+                    if glob_matches(value, group.name):
+                        return True
+        return False
+
+    def filter_ip_permission__ipv6_cidr(self, values):
+        raise MotoNotImplementedError("ip-permission.ipv6 filter")
+
+    def filter_ip_permission__prefix_list_id(self, values):
+        raise MotoNotImplementedError("ip-permission.prefix-list-id filter")
+
+    def filter_ip_permission__protocol(self, values):
+        for value in values:
+            for rule in self.ingress_rules:
+                if glob_matches(value, rule.protocol):
+                    return True
+        return False
+
+    def filter_ip_permission__to_port(self, values):
+        for value in values:
+            for rule in self.ingress_rules:
+                if glob_matches(rule.to_port):
+                    return True
+        return False
+
+    def filter_ip_permission__user_id(self, values):
+        for value in values:
+            for rule in self.ingress_rules:
+                if glob_matches(value, rule.owner_id):
+                    return True
+        return False
+
+    def filter_owner_id(self, values):
+        for value in values:
+            if glob_matches(value, self.owner_id):
+                return True
+        return False
+
+    def filter_vpc_id(self, values):
+        for value in values:
+            if glob_matches(value, self.vpc_id):
+                return True
+    return False
+        
+    def matches_filter(self, key, filter_value):
+        if is_tag_filter(key):
             tag_value = self.get_filter_value(key)
             if isinstance(filter_value, list):
                 return tag_filter_matches(self, key, filter_value)
             return tag_value in filter_value
         else:
-            attr_name = to_attr(key)
-            return getattr(self, attr_name) in filter_value
+            return self.filters[key](filter_value)
 
-        return False
 
     def matches_filters(self, filters):
         for key, value in filters.items():
