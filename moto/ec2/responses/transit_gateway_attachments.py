@@ -70,6 +70,44 @@ class TransitGatewayAttachment(BaseResponse):
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS)
         return template.render(transit_gateway_attachments=transit_gateway_attachments)
 
+    def delete_transit_gateway_vpc_attachment(self):
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        transit_gateway_attachment = self.ec2_backend.delete_transit_gateway_vpc_attachment(
+            transit_gateway_attachment_id=transit_gateway_attachment_id
+        )
+        template = self.response_template(DELETE_TRANSIT_GATEWAY_VPC_ATTACHMENTS)
+        return template.render(transit_gateway_attachment=transit_gateway_attachment)
+
+    def associate_transit_gateway_route_table(self):
+        transit_gateway_attachment_id = self._get_param('TransitGatewayAttachmentId')
+        transit_gateway_route_table_id = self._get_param('TransitGatewayRouteTableId')
+        transit_gateway_association = self.ec2_backend.associate_transit_gateway_route_table(
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
+            transit_gateway_route_table_id=transit_gateway_route_table_id
+        )
+        template = self.response_template(TRANSIT_GATEWAY_ASSOCIATIONS)
+        return template.render(transit_gateway_association=transit_gateway_association)
+
+    def enable_transit_gateway_route_table_propagation(self):
+        transit_gateway_attachment_id = self._get_param('TransitGatewayAttachmentId')
+        transit_gateway_route_table_id = self._get_param('TransitGatewayRouteTableId')
+        transit_gateway_propagation = self.ec2_backend.enable_transit_gateway_route_table_propagation(
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
+            transit_gateway_route_table_id=transit_gateway_route_table_id
+        )
+        template = self.response_template(TRANSIT_GATEWAY_PROPAGATION)
+        return template.render(transit_gateway_propagation=transit_gateway_propagation)
+
+    def disable_transit_gateway_route_table_propagation(self):
+        transit_gateway_attachment_id = self._get_param('TransitGatewayAttachmentId')
+        transit_gateway_route_table_id = self._get_param('TransitGatewayRouteTableId')
+        transit_gateway_propagation = self.ec2_backend.disable_transit_gateway_route_table_propagation(
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
+            transit_gateway_route_table_id=transit_gateway_route_table_id
+        )
+        template = self.response_template(TRANSIT_GATEWAY_PROPAGATION)
+        return template.render(transit_gateway_propagation=transit_gateway_propagation)
+
 
 CREATE_TRANSIT_GATEWAY_VPC_ATTACHMENT = """<CreateTransitGatewayVpcAttachmentResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
         <requestId>9b5766ac-2af6-4b92-9a8a-4d74ae46ae79</requestId>
@@ -199,6 +237,37 @@ MODIFY_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<ModifyTransitGatewayVpcAttachmentRe
             <vpcOwnerId>{{ transit_gateway_attachment.resource_owner_id }}</vpcOwnerId>
     </transitGatewayVpcAttachment>
 </ModifyTransitGatewayVpcAttachmentResponse>"""
+
+
+DELETE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DeleteTransitGatewayVpcAttachmentResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+        <requestId>9b5766ac-2af6-4b92-9a8a-4d74ae46ae79</requestId>
+        <transitGatewayVpcAttachment>
+            <createTime>{{ transit_gateway_attachment.create_time }}</createTime>
+            <options>
+                <applianceModeSupport>{{ transit_gateway_attachment.options.ApplianceModeSupport }}</applianceModeSupport>
+                <dnsSupport>{{ transit_gateway_attachment.options.DnsSupport }}</dnsSupport>
+                <ipv6Support>{{ transit_gateway_attachment.options.Ipv6Support }}</ipv6Support>
+            </options>
+            <state>{{ transit_gateway_attachment.state }}</state>
+            <subnetIds>
+            {% for subnet_id in transit_gateway_attachment.subnet_ids %}
+                <item>{{ subnet_id }}</item>
+            {% endfor %}
+            </subnetIds>
+            <tagSet>
+            {% for tag in transit_gateway_attachment.get_tags() %}
+                <item>
+                    <key>{{ tag.key }}</key>
+                    <value>{{ tag.value }}</value>
+                </item>
+            {% endfor %}
+            </tagSet>
+            <transitGatewayAttachmentId>{{ transit_gateway_attachment.id }}</transitGatewayAttachmentId>
+            <transitGatewayId>{{ transit_gateway_attachment.transit_gateway_id }}</transitGatewayId>
+            <vpcId>{{ transit_gateway_attachment.vpc_id }}</vpcId>
+            <vpcOwnerId>{{ transit_gateway_attachment.resource_owner_id }}</vpcOwnerId>
+    </transitGatewayVpcAttachment>
+</DeleteTransitGatewayVpcAttachmentResponse>"""
 
 
 TRANSIT_GATEWAY_ASSOCIATIONS = """<AssociateTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
