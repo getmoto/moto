@@ -9,6 +9,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 from moto import mock_efs
+from tests.test_efs.junk_drawer import has_status_code
 
 ARN_PATT = "^arn:(?P<Partition>[^:\n]*):(?P<Service>[^:\n]*):(?P<Region>[^:\n]*):(?P<AccountID>[^:\n]*):(?P<Ignore>(?P<ResourceType>[^:\/\n]*)[:\/])?(?P<Resource>.*)$"
 STRICT_ARN_PATT = "^arn:aws:[a-z]+:[a-z]{2}-[a-z]+-[0-9]:[0-9]+:[a-z-]+\/[a-z0-9-]+$"
@@ -268,10 +269,10 @@ def test_describe_file_systems_paging(efs):
     resp1 = efs.describe_file_systems(MaxItems=4)
 
     # Check the response status
-    resp1_metadata = resp1.pop("ResponseMetadata")
-    assert resp1_metadata["HTTPStatusCode"] == 200
+    assert has_status_code(resp1, 200)
 
     # Check content of the result.
+    resp1.pop("ResponseMetadata")
     assert set(resp1.keys()) == {"NextMarker", "FileSystems"}
     assert len(resp1["FileSystems"]) == 4
     fs_id_set_1 = {fs["FileSystemId"] for fs in resp1["FileSystems"]}
@@ -315,7 +316,7 @@ def test_describe_file_systems_invalid_marker(efs):
     try:
         efs.describe_file_systems(Marker="fiddlesticks")
     except ClientError as e:
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert has_status_code(e.response, 400)
         assert "BadRequest" in e.response["Error"]["Message"]
     else:
         assert False, "Expected BadRequest error."
@@ -323,7 +324,7 @@ def test_describe_file_systems_invalid_marker(efs):
 
 def test_describe_file_systems_invalid_creation_token(efs):
     resp = efs.describe_file_systems(CreationToken="fizzle")
-    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert has_status_code(resp, 200)
     assert len(resp["FileSystems"]) == 0
 
 
@@ -331,7 +332,7 @@ def test_describe_file_systems_invalid_file_system_id(efs):
     try:
         efs.describe_file_systems(FileSystemId="fs-29879313")
     except ClientError as e:
-        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+        assert has_status_code(e.response, 404)
         assert "FileSystemNotFound" in e.response["Error"]["Message"]
     except Exception as e:
         assert False, "Got the wrong kind of exception: {}".format(e)
@@ -347,3 +348,37 @@ def test_describe_file_system_creation_token_and_file_system_id(efs):
         assert "BadRequest" in e.response["Error"]["Message"]
     else:
         assert False, "Expected BadRequest error."
+
+
+# Testing Delete
+# ==============
+
+
+def test_delete_file_system_minimal_case(efs):
+    # Create the file system
+    resp = efs.create_file_system()
+
+    # Describe the file system, prove it shows up.
+    desc1 = efs.describe_file_systems()
+    assert len(desc1["FileSystems"]) == 1
+    assert resp["FileSystemId"] in {fs["FileSystemId"] for fs in desc1["FileSystems"]}
+
+    # Delete the file system.
+    del_resp = efs.delete_file_system(FileSystemId=resp["FileSystemId"])
+    assert has_status_code(del_resp, 204)
+
+    # Check that the file system is no longer there.
+    desc2 = efs.describe_file_systems()
+    assert len(desc2["FileSystems"]) == 0
+
+
+def test_delete_file_system_invalid_file_system_id(efs):
+    try:
+        efs.delete_file_system(FileSystemId="fs-2394287")
+    except ClientError as e:
+        assert has_status_code(e.response, 404)
+        assert "FileSystemNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got the wrong kind of exception: {}".format(e)
+    else:
+        assert False, "Expected FileSystemNotFound error."

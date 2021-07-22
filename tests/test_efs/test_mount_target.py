@@ -6,9 +6,11 @@ from os import environ
 import boto3
 import pytest
 import sure  # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_efs
 from moto.core import ACCOUNT_ID
+from tests.test_efs.junk_drawer import has_status_code
 
 
 @pytest.fixture(scope="function")
@@ -110,3 +112,18 @@ def test_create_mount_target_aws_sample_2(efs, ec2, file_system, subnet):
 
     # Check that setting the IP Address worked.
     create_mt_resp["IpAddress"].should.equal(ip_addr)
+
+
+def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet):
+    efs.create_mount_target(
+        FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
+    )
+    try:
+        efs.delete_file_system(FileSystemId=file_system["FileSystemId"])
+    except ClientError as e:
+        assert has_status_code(e.response, 409)
+        assert "FileSystemInUse" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an FileSystemInUse error."
