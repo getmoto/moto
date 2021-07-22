@@ -441,15 +441,11 @@ class EFSBackend(BaseBackend):
             corpus_mtids = {m["MountTargetId"] for m in corpus}
             marked_mtids = {m["MountTargetId"] for m in self.next_markers[marker]}
             mt_ids = corpus_mtids & marked_mtids
-            corpus = [
-                mt_json
-                for mt_json in (self.next_markers[marker] + corpus)
-                if mt_json["MountTargetId"] in mt_ids
-            ]
+            corpus = [self.mount_targets_by_id[mt_id].info_json() for mt_id in mt_ids]
 
         # Handle the max_items parameter.
         mount_targets = corpus[:max_items]
-        next_marker = self._mark_description(mount_targets, max_items)
+        next_marker = self._mark_description(corpus, max_items)
         return next_marker, mount_targets
 
     def delete_file_system(self, file_system_id):
