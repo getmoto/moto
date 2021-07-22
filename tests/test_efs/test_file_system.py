@@ -6,6 +6,7 @@ from os import environ
 import boto3
 import pytest
 import sure  # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_efs
 
@@ -47,6 +48,10 @@ def efs(aws_credentials):
         yield boto3.client("efs", region_name="us-east-1")
 
 
+# Testing Create
+# ==============
+
+
 def test_create_file_system_correct_use(efs):
     creation_token = "test_efs_create"
     create_fs_resp = efs.create_file_system(
@@ -72,6 +77,16 @@ def test_create_file_system_correct_use(efs):
         create_fs_resp["SizeInBytes"][key_name].should.equal(0)
     create_fs_resp["FileSystemArn"].should.match(STRICT_ARN_PATT)
 
+    # Check the (lack of the) backup policy.
+    try:
+        efs.describe_backup_policy(FileSystemId=create_fs_resp["FileSystemId"])
+    except ClientError as e:
+        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+        assert "PolicyNotFound" in e.response["Error"]["Message"]
+    else:
+        assert False, "Found backup policy when there should be none."
+
+    # Check the arn in detail
     match_obj = re.match(ARN_PATT, create_fs_resp["FileSystemArn"])
     arn_parts = match_obj.groupdict()
     arn_parts["ResourceType"].should.equal("file-system")
@@ -104,6 +119,9 @@ def test_create_file_system_aws_sample_1(efs):
     resp["PerformanceMode"].should.equal("generalPurpose")
     resp["Encrypted"].should.equal(True)
 
+    policy_resp = efs.describe_backup_policy(FileSystemId=resp["FileSystemId"])
+    assert policy_resp["BackupPolicy"]["Status"] == "ENABLED"
+
 
 def test_create_file_system_aws_sample_2(efs):
     resp = efs.create_file_system(**SAMPLE_2_PARAMS)
@@ -132,6 +150,19 @@ def test_create_file_system_aws_sample_2(efs):
     resp["AvailabilityZoneId"].should.equal("usw2-az1")
     resp["AvailabilityZoneName"].should.equal("us-west-2b")
     resp["ThroughputMode"].should.equal("provisioned")
+
+    policy_resp = efs.describe_backup_policy(FileSystemId=resp["FileSystemId"])
+    assert policy_resp["BackupPolicy"]["Status"] == "ENABLED"
+
+
+def test_create_file_system_az_name_given_backup_default(efs):
+    resp = efs.create_file_system(AvailabilityZoneName="us-east-1e")
+    policy_resp = efs.describe_backup_policy(FileSystemId=resp["FileSystemId"])
+    assert policy_resp["BackupPolicy"]["Status"] == "ENABLED"
+
+
+# Testing Describe
+# ================
 
 
 def test_describe_file_systems_minimal_case(efs):
