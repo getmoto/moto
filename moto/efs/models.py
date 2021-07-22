@@ -427,6 +427,8 @@ class EFSBackend(BaseBackend):
                 for mt in self.file_systems_by_id[file_system_id].iter_mount_targets()
             ]
         elif mount_target_id:
+            if mount_target_id not in self.mount_targets_by_id:
+                raise MountTargetNotFound(mount_target_id)
             # Handle mount target specification case.
             corpus = [self.mount_targets_by_id[mount_target_id].info_json()]
         else:
@@ -476,7 +478,7 @@ class EFSBackend(BaseBackend):
         https://docs.aws.amazon.com/efs/latest/ug/API_DeleteMountTarget.html
         """
         if mount_target_id not in self.mount_targets_by_id:
-            raise MountTargetNotFound("Now mount target {}.".format(mount_target_id))
+            raise MountTargetNotFound(mount_target_id)
 
         mount_target = self.mount_targets_by_id[mount_target_id]
         self.ec2_backend.delete_network_interface(mount_target.network_interface_id)

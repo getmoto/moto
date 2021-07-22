@@ -50,9 +50,12 @@ class MountTargetConflict(EFSError):
 class MountTargetNotFound(EFSError):
     code = 404
 
-    def __init__(self, msg, *args, **kwargs):
+    def __init__(self, mount_target_id, *args, **kwargs):
         super(MountTargetNotFound, self).__init__(
-            "MountTargetNotFound", msg, *args, **kwargs
+            "MountTargetNotFound",
+            "Mount target '{}' does not exist.".format(mount_target_id),
+            *args,
+            **kwargs
         )
 
 
