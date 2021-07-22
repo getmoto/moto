@@ -31,6 +31,7 @@ from moto.core.models import Model, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
+    glob_matches
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
@@ -2046,7 +2047,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             'egress.ip-permission.group-id' : self.filter_egress__ip_permission__group_id,
             'egress.ip-permission.group-name ' : self.filter_egress__ip_permission__group_name,
             'egress.ip-permission.ipv6-cidr' : self.filter_egress__ip_permission__ipv6_cidr,
-            'egress.ip-permission.prefix-list-id' : self.filter_egress__ip_permission__prefix_list_id
+            'egress.ip-permission.prefix-list-id' : self.filter_egress__ip_permission__prefix_list_id,
             'egress.ip-permission.protocol' : self.filter_egress__ip_permission__protocol,
             'egress.ip-permission.to-port' : self.filter_egress__ip_permission__to_port,
             'egress.ip-permission.user-id' : self.filter_egress__ip_permission__user_id,
@@ -2217,7 +2218,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             for rule in self.egress_rules:
                 if glob_matches(value, rule.protocol):
                     return True
-        reutrn False
+        return False
 
     def filter_egress__ip_permission__to_port(self, values):
         for value in values:
@@ -2263,7 +2264,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def filter_ip_permission__group_id(self, values):
         for value in values:
             for rule in self.ingress_rules:
-                for group in source_groups:
+                for group in rule.source_groups:
                     if glob_matches(value, group.id):
                         return True
         return False
@@ -2313,7 +2314,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             if glob_matches(value, self.vpc_id):
                 return True
-    return False
+        return False
         
     def matches_filter(self, key, filter_value):
         if is_tag_filter(key):
