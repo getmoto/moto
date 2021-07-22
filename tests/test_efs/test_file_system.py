@@ -309,3 +309,41 @@ def test_describe_file_systems_paging(efs):
     assert resp3["Marker"] == resp2["NextMarker"]
     fs_id_set_3 = {fs["FileSystemId"] for fs in resp3["FileSystems"]}
     assert fs_id_set_3 & (fs_id_set_1 | fs_id_set_2) == set()
+
+
+def test_describe_file_systems_invalid_marker(efs):
+    try:
+        efs.describe_file_systems(Marker="fiddlesticks")
+    except ClientError as e:
+        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert "BadRequest" in e.response["Error"]["Message"]
+    else:
+        assert False, "Expected BadRequest error."
+
+
+def test_describe_file_systems_invalid_creation_token(efs):
+    resp = efs.describe_file_systems(CreationToken="fizzle")
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(resp["FileSystems"]) == 0
+
+
+def test_describe_file_systems_invalid_file_system_id(efs):
+    try:
+        efs.describe_file_systems(FileSystemId="fs-29879313")
+    except ClientError as e:
+        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 404
+        assert "FileSystemNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got the wrong kind of exception: {}".format(e)
+    else:
+        assert False, "Expected FileSystemNotFound error."
+
+
+def test_describe_file_system_creation_token_and_file_system_id(efs):
+    try:
+        efs.describe_file_systems(CreationToken="fizzle", FileSystemId="fs-07987987")
+    except ClientError as e:
+        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert "BadRequest" in e.response["Error"]["Message"]
+    else:
+        assert False, "Expected BadRequest error."
