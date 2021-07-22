@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import json
 import time
 from copy import deepcopy
+from hashlib import md5
 
 from boto3 import Session
 
@@ -297,7 +298,8 @@ class EFSBackend(BaseBackend):
     def _mark_description(self, corpus, max_items):
         if max_items < len(corpus):
             new_corpus = corpus[max_items:]
-            next_marker = str(hash(json.dumps(new_corpus)))
+            new_hash = md5(json.dumps(new_corpus).encode("utf-8"))
+            next_marker = new_hash.hexdigest()
             self.next_markers[next_marker] = new_corpus
         else:
             next_marker = None
@@ -365,7 +367,7 @@ class EFSBackend(BaseBackend):
 
         # Handle the max_items parameter.
         file_systems = corpus[:max_items]
-        next_marker = self._mark_description(file_systems, max_items)
+        next_marker = self._mark_description(corpus, max_items)
         return next_marker, file_systems
 
     def create_mount_target(
