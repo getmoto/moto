@@ -6171,12 +6171,10 @@ class TransitGatewayRouteTableBackend(object):
         transit_gateways_route_table.routes[destination_cidr_block]["state"] = "deleted"
         return transit_gateways_route_table
 
-    def search_transit_gateway_routes(
-        self, transit_gateway_route_table_id, filters, max_results=None
-    ):
-        transit_gateway_route_table = self.transit_gateways_route_tables[
-            transit_gateway_route_table_id
-        ]
+    def search_transit_gateway_routes(self, transit_gateway_route_table_id, filters, max_results=None):
+        transit_gateway_route_table = self.transit_gateways_route_tables.get(transit_gateway_route_table_id)
+        if not transit_gateway_route_table:
+            return []
 
         attr_pairs = (
             ("type", "type"),
@@ -6434,7 +6432,72 @@ class TransitGatewayAttachmentBackend(object):
                         if getattr(transit_gateways_attachment, attrs[1]) in values
                     ]
 
-        return transit_gateways_attachments
+        return transit_gateway_attachments
+
+    def modify_transit_gateway_vpc_attachment(
+        self,
+        add_subnet_ids=None,
+        options=None,
+        remove_subnet_ids=None,
+        transit_gateway_attachment_id=None
+    ):
+        if remove_subnet_ids:
+            self.transit_gateway_attachments[transit_gateway_attachment_id].subnet_ids = [
+                id for id in self.transit_gateway_attachments[transit_gateway_attachment_id].subnet_ids
+                if id not in remove_subnet_ids
+            ]
+        if options:
+            self.transit_gateway_attachments[transit_gateway_attachment_id].options.update(options)
+
+        if add_subnet_ids:
+            self.transit_gateway_attachments[transit_gateway_attachment_id].subnet_ids = add_subnet_ids
+
+        return self.transit_gateway_attachments[transit_gateway_attachment_id]
+
+    def set_attachment_association(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
+        self.transit_gateway_attachments[transit_gateway_attachment_id].association = {
+            "state": "associated",
+            "transitGatewayRouteTableId": transit_gateway_route_table_id
+        }
+
+    def set_attachment_propagation(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
+        self.transit_gateway_attachments[transit_gateway_attachment_id].association = {
+            "state": "enabled",
+            "transitGatewayRouteTableId": transit_gateway_route_table_id
+        }
+
+
+class TransitGatewayRelations(object):
+    # this class is for TransitGatewayAssociation and TransitGatewayPropagation
+    def __init__(self, backend, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None, state=None):
+        self.transit_gateway_attachment_id = transit_gateway_attachment_id
+        self.transit_gateway_route_table_id = transit_gateway_route_table_id
+        self.resource_id = backend.transit_gateway_attachments[transit_gateway_attachment_id].resource_id
+        self.resource_type = backend.transit_gateway_attachments[transit_gateway_attachment_id].resource_type
+        self.state = state
+
+
+class TransitGatewayRelationsBackend(object):
+    def __init__(self):
+        self.transit_gateway_associations = {}
+        self.transit_gateway_propagations = {}
+        super(TransitGatewayRelationsBackend, self).__init__()
+
+    def associate_transit_gateway_route_table(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
+        transit_gateway_association = TransitGatewayRelations(self, transit_gateway_attachment_id, transit_gateway_route_table_id, state='associated')
+        self.set_route_table_association(transit_gateway_attachment_id, transit_gateway_route_table_id)
+        self.set_attachment_association(transit_gateway_attachment_id, transit_gateway_route_table_id)
+        self.transit_gateway_associations[transit_gateway_attachment_id] = transit_gateway_association
+
+        return transit_gateway_association
+
+    def enable_transit_gateway_route_table_propagation(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
+        transit_gateway_propagation = TransitGatewayRelations(self, transit_gateway_attachment_id, transit_gateway_route_table_id, state='enabled')
+        self.set_route_table_propagation(transit_gateway_attachment_id, transit_gateway_route_table_id)
+        self.set_attachment_propagation(transit_gateway_attachment_id, transit_gateway_route_table_id)
+        self.transit_gateway_propagations[transit_gateway_attachment_id] = transit_gateway_propagation
+
+        return transit_gateway_propagation
 
 
 class NatGateway(CloudFormationModel):

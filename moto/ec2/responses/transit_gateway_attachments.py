@@ -41,6 +41,21 @@ class TransitGatewayAttachment(BaseResponse):
             transit_gateway_vpc_attachments=transit_gateway_vpc_attachments
         )
 
+    def modify_transit_gateway_vpc_attachment(self):
+        add_subnet_ids = self._get_multi_param("AddSubnetIds")
+        options = self._get_multi_param_dict("Options")
+        remove_subnet_ids = self._get_multi_param("RemoveSubnetIds")
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+
+        transit_gateway_attachment = self.ec2_backend.modify_transit_gateway_vpc_attachment(
+            add_subnet_ids=add_subnet_ids,
+            options=options,
+            remove_subnet_ids=remove_subnet_ids,
+            transit_gateway_attachment_id=transit_gateway_attachment_id
+        )
+        template = self.response_template(MODIFY_TRANSIT_GATEWAY_VPC_ATTACHMENTS)
+        return template.render(transit_gateway_attachment=transit_gateway_attachment)
+
     def describe_transit_gateway_attachments(self):
         transit_gateways_attachment_ids = self._get_multi_param(
             "TransitGatewayAttachmentIds"
@@ -152,4 +167,61 @@ DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DescribeTransitGatewayVpcAttachme
         {% endfor %}
     </transitGatewayVpcAttachments>
 </DescribeTransitGatewayVpcAttachmentsResponse>
+"""
+
+
+MODIFY_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<ModifyTransitGatewayVpcAttachmentResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+        <requestId>9b5766ac-2af6-4b92-9a8a-4d74ae46ae79</requestId>
+        <transitGatewayVpcAttachment>
+            <createTime>{{ transit_gateway_attachment.create_time }}</createTime>
+            <options>
+                <applianceModeSupport>{{ transit_gateway_attachment.options.ApplianceModeSupport }}</applianceModeSupport>
+                <dnsSupport>{{ transit_gateway_attachment.options.DnsSupport }}</dnsSupport>
+                <ipv6Support>{{ transit_gateway_attachment.options.Ipv6Support }}</ipv6Support>
+            </options>
+            <state>{{ transit_gateway_attachment.state }}</state>
+            <subnetIds>
+            {% for subnet_id in transit_gateway_attachment.subnet_ids %}
+                <item>{{ subnet_id }}</item>
+            {% endfor %}
+            </subnetIds>
+            <tagSet>
+            {% for tag in transit_gateway_attachment.get_tags() %}
+                <item>
+                    <key>{{ tag.key }}</key>
+                    <value>{{ tag.value }}</value>
+                </item>
+            {% endfor %}
+            </tagSet>
+            <transitGatewayAttachmentId>{{ transit_gateway_attachment.id }}</transitGatewayAttachmentId>
+            <transitGatewayId>{{ transit_gateway_attachment.transit_gateway_id }}</transitGatewayId>
+            <vpcId>{{ transit_gateway_attachment.vpc_id }}</vpcId>
+            <vpcOwnerId>{{ transit_gateway_attachment.resource_owner_id }}</vpcOwnerId>
+    </transitGatewayVpcAttachment>
+</ModifyTransitGatewayVpcAttachmentResponse>"""
+
+
+TRANSIT_GATEWAY_ASSOCIATIONS = """<AssociateTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>86a597cf-93ec-44a3-9559-4641863642a5</requestId>
+    <association>
+        <resourceId>{{ transit_gateway_association.resource_id }}</resourceId>
+        <resourceType>{{ transit_gateway_association.resource_type }}</resourceType>
+        <state>{{ transit_gateway_association.state }}</state>
+        <transitGatewayAttachmentId>{{ transit_gateway_association.transit_gateway_attachment_id }}</transitGatewayAttachmentId>
+        <transitGatewayRouteTableId>{{ transit_gateway_association.transit_gateway_route_table_id }}</transitGatewayRouteTableId>
+    </association>
+</AssociateTransitGatewayRouteTableResponse>
+"""
+
+
+TRANSIT_GATEWAY_PROPAGATION = """<EnableTransitGatewayRouteTablePropagationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>c78427d4-e498-46ae-bc14-32841b16bff4</requestId>
+    <propagation>
+        <resourceId>{{ transit_gateway_propagation.resource_id }}</resourceId>
+        <resourceType>{{ transit_gateway_propagation.resource_type }}</resourceType>
+        <state>{{ transit_gateway_propagation.state }}</state>
+        <transitGatewayAttachmentId>{{ transit_gateway_propagation.transit_gateway_attachment_id }}</transitGatewayAttachmentId>
+        <transitGatewayRouteTableId>{{ transit_gateway_propagation.transit_gateway_route_table_id }}</transitGatewayRouteTableId>
+    </propagation>
+</EnableTransitGatewayRouteTablePropagationResponse>
 """
