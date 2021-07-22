@@ -644,13 +644,12 @@ class Destination(BaseModel):
 class EventPattern:
     def __init__(self, filter):
         self._filter = self._load_event_pattern(filter)
+        self._filter_raw = filter
         if not self._validate_event_pattern(self._filter):
             raise InvalidEventPatternException
 
     def __str__(self):
-        if self._filter:
-            return json.dumps(self._filter)
-        return str()
+        return self._filter_raw or str()
 
     def _load_event_pattern(self, pattern):
         try:
