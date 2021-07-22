@@ -622,6 +622,7 @@ class Destination(BaseModel):
         description,
         connection_arn,
         invocation_endpoint,
+        invocation_rate_limit_per_second,
         http_method,
     ):
         self.uuid = uuid4()
@@ -630,6 +631,7 @@ class Destination(BaseModel):
         self.description = description
         self.connection_arn = connection_arn
         self.invocation_endpoint = invocation_endpoint
+        self.invocation_rate_limit_per_second = invocation_rate_limit_per_second
         self.creation_time = unix_time(datetime.utcnow())
         self.http_method = http_method
         self.state = "ACTIVE"
@@ -639,6 +641,41 @@ class Destination(BaseModel):
         return "arn:aws:events:{0}:{1}:api-destination/{2}/{3}".format(
             self.region, ACCOUNT_ID, self.name, self.uuid
         )
+
+    def describe(self):
+        """
+        Describes the Destination object as a dict
+        Docs:
+            Response Syntax in
+            https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
+
+        Something to consider:
+            - The response also has [InvocationRateLimitPerSecond] which was not
+            available when implementing this method
+
+        Returns:
+            dict
+        """
+        return {
+            "ApiDestinationArn": self.arn,
+            "ApiDestinationState": self.state,
+            "ConnectionArn": self.connection_arn,
+            "CreationTime": self.creation_time,
+            "Description": self.description,
+            "HttpMethod": self.http_method,
+            "InvocationEndpoint": self.invocation_endpoint,
+            "InvocationRateLimitPerSecond": self.invocation_rate_limit_per_second,
+            "LastModifiedTime": self.creation_time,
+            "Name": self.name,
+        }
+
+    def describe_short(self):
+        return {
+            "ApiDestinationArn": self.arn,
+            "ApiDestinationState": self.state,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.creation_time,
+        }
 
 
 class EventPattern:
@@ -1436,26 +1473,86 @@ class EventsBackend(BaseBackend):
         return connection.describe_short()
 
     def create_api_destination(
-        self, name, description, connection_arn, invocation_endpoint, http_method
+            self, name, description, connection_arn, invocation_endpoint, invocation_rate_limit_per_second, http_method
     ):
+        """
+        Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+        Docs:
+            https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateApiDestination.html
 
+        Returns:
+            dict
+        """
         destination = Destination(
             name=name,
             region_name=self.region_name,
             description=description,
             connection_arn=connection_arn,
             invocation_endpoint=invocation_endpoint,
+            invocation_rate_limit_per_second=invocation_rate_limit_per_second,
             http_method=http_method,
         )
 
         self.destinations[name] = destination
-        return destination
+        return destination.describe_short()
 
     def list_api_destinations(self):
         return self.destinations.values()
 
     def describe_api_destination(self, name):
-        return self.destinations.get(name)
+        """
+        Retrieves details about an API destination.
+        Docs:
+            https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
+        Args:
+            name: The name of the API destination to retrieve.
+
+        Returns:
+            dict
+        """
+        destination = self.destinations.get(name)
+        if not destination:
+            raise ResourceNotFoundException("An api-destination '{}' does not exist.".format(name))
+        return destination.describe()
+
+    def update_api_destination(self, *, name, **kwargs):
+        """
+        Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+        Docs:
+            https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdateApiDestination.html
+
+        Returns:
+            dict
+        """
+        destination = self.destinations.get(name)
+        if not destination:
+            raise ResourceNotFoundException("An api-destination '{}' does not exist.".format(name))
+
+        for attr, value in kwargs.items():
+            if value is not None and hasattr(destination, attr):
+                setattr(destination, attr, value)
+        return destination.describe_short()
+
+    def delete_api_destination(self, name):
+        """
+        Deletes the specified API destination.
+        Docs:
+            https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteApiDestination.html
+
+        Args:
+            name: The name of the destination to delete.
+
+        Raises:
+            ResourceNotFoundException: When the destination is not present.
+
+        Returns:
+            dict
+
+        """
+        destination = self.destinations.pop(name, None)
+        if not destination:
+            raise ResourceNotFoundException("An api-destination '{}' does not exist.".format(name))
+        return {}
 
 
 events_backends = {}
