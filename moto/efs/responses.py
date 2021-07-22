@@ -99,3 +99,11 @@ class EFSResponse(BaseResponse):
         mount_target_id = self._get_param("MountTargetId")
         self.efs_backend.delete_mount_target(mount_target_id=mount_target_id,)
         return json.dumps(dict())
+
+    def describe_backup_policy(self):
+        file_system_id = self._get_param("FileSystemId")
+        backup_policy = self.efs_backend.describe_backup_policy(
+            file_system_id=file_system_id,
+        )
+        resp = {"BackupPolicy": backup_policy}
+        return json.dumps(resp)

@@ -61,3 +61,10 @@ class BadRequest(EFSError):
 
     def __init__(self, msg, *args, **kwargs):
         super(BadRequest, self).__init__("BadRequest", msg, *args, **kwargs)
+
+
+class PolicyNotFound(EFSError):
+    code = 404
+
+    def __init__(self, *args, **kwargs):
+        super(PolicyNotFound, self).__init__("PolicyNotFound", *args, **kwargs)

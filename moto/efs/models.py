@@ -27,6 +27,7 @@ from moto.efs.exceptions import (
     FileSystemNotFound,
     MountTargetConflict,
     MountTargetNotFound,
+    PolicyNotFound,
 )
 
 
@@ -73,7 +74,7 @@ class FileSystem(CloudFormationModel):
         self.availability_zone_id = None
         if self.availability_zone_name:
             self.availability_zone_id = _lookup_az_id(self.availability_zone_name)
-        self.backup = backup
+        self._backup = backup
         self.lifecycle_policies = lifecycle_policies
         self.file_system_policy = file_system_policy
 
@@ -119,6 +120,13 @@ class FileSystem(CloudFormationModel):
     @property
     def number_of_mount_targets(self):
         return len(self._mount_targets)
+
+    @property
+    def backup_policy(self):
+        if self._backup:
+            return {"Status": "ENABLED"}
+        else:
+            return
 
     def info_json(self):
         ret = {
@@ -480,7 +488,11 @@ class EFSBackend(BaseBackend):
         mount_target.clean_up()
         return
 
-    # add methods from here
+    def describe_backup_policy(self, file_system_id):
+        backup_policy = self.file_systems_by_id[file_system_id].backup_policy
+        if not backup_policy:
+            raise PolicyNotFound("None")
+        return backup_policy
 
 
 efs_backends = {}
