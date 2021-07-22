@@ -150,7 +150,7 @@ def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):
     assert mount_target == create_resp
 
 
-def test_describe_file_systems_paging(efs, ec2, file_system):
+def test_describe_mount_targets_paging(efs, ec2, file_system):
     fs_id = file_system["FileSystemId"]
 
     # Get a list of subnets.
@@ -211,3 +211,39 @@ def test_describe_file_systems_paging(efs, ec2, file_system):
     assert resp3["Marker"] == resp2["NextMarker"]
     mt_id_set_3 = {mt["MountTargetId"] for mt in resp3["MountTargets"]}
     assert mt_id_set_3 & (mt_id_set_1 | mt_id_set_2) == set()
+
+
+def test_describe_mount_targets_invalid_file_system_id(efs):
+    try:
+        efs.describe_mount_targets(FileSystemId="fs-12343289")
+    except ClientError as e:
+        assert has_status_code(e.response, 404)
+        assert "FileSystemNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an FileSystemNotFound error."
+
+
+def test_describe_mount_targets_invalid_mount_target_id(efs):
+    try:
+        efs.describe_mount_targets(MountTargetId="fsmt-ad9f8987")
+    except ClientError as e:
+        assert has_status_code(e.response, 404)
+        assert "MountTargetNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an MountTargetNotFound error."
+
+
+def test_describe_mount_targets_no_id_given(efs):
+    try:
+        efs.describe_mount_targets()
+    except ClientError as e:
+        assert has_status_code(e.response, 400)
+        assert "BadRequest" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an BadRequest error."
