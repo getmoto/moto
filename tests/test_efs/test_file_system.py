@@ -161,6 +161,25 @@ def test_create_file_system_az_name_given_backup_default(efs):
     assert policy_resp["BackupPolicy"]["Status"] == "ENABLED"
 
 
+def test_create_file_system_no_creation_token_given(efs):
+    # Note that from the API docs, it would seem this should create an error. However it
+    # turns out that botocore just automatically assigns a UUID.
+    resp = efs.create_file_system()
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 201
+    assert "CreationToken" in resp
+
+
+def test_create_file_system_file_system_already_exists(efs):
+    efs.create_file_system(CreationToken="foo")
+    try:
+        efs.create_file_system(CreationToken="foo")
+    except ClientError as e:
+        assert e.response["ResponseMetadata"]["HTTPStatusCode"] == 409
+        assert "FileSystemAlreadyExists" in e.response["Error"]["Message"]
+    else:
+        assert False, "Expected FileSystemAlreadyExists error."
+
+
 # Testing Describe
 # ================
 
