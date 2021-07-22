@@ -1037,3 +1037,70 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
     ).get("SecurityGroups")[0]
     assert len(sg["IpPermissions"]) == 0
     assert len(sg["IpPermissionsEgress"]) == 0
+
+
+@mock_ec2
+def test_get_groups_by_ippermissions_group_id_filter():
+    ec2r = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2r.create_vpc(CidrBlock="10.250.0.0/16")
+    sg1 = vpc.create_security_group(Description="test", GroupName="test-1")
+    sg2 = vpc.create_security_group(Description="test", GroupName="test-2")
+
+    sg1_allows_sg2_ingress_rule = {
+        "IpProtocol": "tcp",
+        "FromPort": 31337,
+        "ToPort": 31337,
+        "UserIdGroupPairs": [{"GroupId": sg2.group_id, "VpcId": sg2.vpc_id}],
+    }
+    sg1.authorize_ingress(IpPermissions=[sg1_allows_sg2_ingress_rule])
+
+    # we should be able to describe security groups and filter for all the ones that contain
+    # a reference to another group ID
+
+    match_only_groups_whose_ingress_rules_refer_to_group_2 = {
+        "Name": "ip-permission.group-id",
+        "Values": [sg2.group_id],
+    }
+    security_groups = ec2r.security_groups.filter(
+        Filters=[match_only_groups_whose_ingress_rules_refer_to_group_2]
+    )
+
+    security_groups = list(security_groups)
+    assert len(security_groups) == 1
+    assert security_groups[0].group_id == sg1.group_id
+
+
+@mock_ec2
+def test_get_groups_by_ippermissions_group_id_filter_across_vpcs():
+    # setup 2 VPCs, each with a single Security Group
+    # where one security group authorizes the other sg (in another vpc) via GroupId
+    ec2r = boto3.resource("ec2", region_name="us-west-1")
+
+    vpc1 = ec2r.create_vpc(CidrBlock="10.250.0.0/16")
+    vpc2 = ec2r.create_vpc(CidrBlock="10.251.0.0/16")
+
+    sg1 = vpc1.create_security_group(Description="test", GroupName="test-1")
+    sg2 = vpc2.create_security_group(Description="test", GroupName="test-2")
+
+    sg1_allows_sg2_ingress_rule = {
+        "IpProtocol": "tcp",
+        "FromPort": 31337,
+        "ToPort": 31337,
+        "UserIdGroupPairs": [{"GroupId": sg2.group_id, "VpcId": sg2.vpc_id}],
+    }
+    sg1.authorize_ingress(IpPermissions=[sg1_allows_sg2_ingress_rule])
+
+    # we should be able to describe security groups and filter for all the ones that contain
+    # a reference to another group ID
+
+    match_only_groups_whose_ingress_rules_refer_to_group_2 = {
+        "Name": "ip-permission.group-id",
+        "Values": [sg2.group_id],
+    }
+    security_groups = ec2r.security_groups.filter(
+        Filters=[match_only_groups_whose_ingress_rules_refer_to_group_2]
+    )
+
+    security_groups = list(security_groups)
+    assert len(security_groups) == 1
+    assert security_groups[0].group_id == sg1.group_id
