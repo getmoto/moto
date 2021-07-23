@@ -4,6 +4,37 @@ on: [push, pull_request]
 
 jobs:
   # Install and cache dependencies
+  terraformcache:
+    name: Caching Terraform dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.8 ]
+
+    steps:
+    - name: Checkout Terraform Tests repo
+      uses: actions/checkout@v2
+      with:
+        repository: bblommers/moto-terraform-tests
+        path: moto-terraform-tests
+        submodules: 'true'
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '^1.16.0'
+    - run: go version
+    - name: cache
+      id: terraformcache
+      uses: actions/cache@v2
+      with:
+        path: '~/.cache'
+        key: 'terraformcache'
+    - name: Download
+      if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
+      run: |
+        cd moto-terraform-tests
+        bin/install-aws-test
+        cd ..
+
   cache:
     name: Caching
     runs-on: ubuntu-latest
@@ -13,28 +44,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Checkout Terraform Tests repo
-        uses: actions/checkout@v2
-        with:
-          repository: bblommers/moto-terraform-tests
-          path: moto-terraform-tests
-          submodules: 'true'
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '^1.16.0'
-      - run: go version
-      - name: cache
-        id: terraformcache
-        uses: actions/cache@v2
-        with:
-          path: '~/.cache'
-          key: 'awstestcache'
-      - name: Download
-        if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
-        run: |
-          cd moto-terraform-tests
-          bin/install-aws-test
-          cd ..
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -190,7 +199,7 @@ jobs:
   terraform:
     name: Terraform Tests
     runs-on: ubuntu-latest
-    needs: lint
+    needs: terraformcache
     strategy:
       matrix:
         python-version: [ 3.8 ]
@@ -213,7 +222,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'awstestcache'
+        key: 'terraformcache'
     - name: Start MotoServer
       run: |
         python setup.py sdist
@@ -222,7 +231,7 @@ jobs:
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
-        bin/run-tests -i tests/terraform-tests.success.txt
+        bin/run-tests -i ../tests/terraform-tests.success.txt
         cd ..
     - name: "Create report"
       run: |
