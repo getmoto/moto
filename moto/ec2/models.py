@@ -2023,7 +2023,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, ec2_backend, group_id, name, description, vpc_id=None):
         self.ec2_backend = ec2_backend
         self.id = group_id
+        self.group_id = self.id
         self.name = name
+        self.group_name = self.name
         self.description = description
         self.ingress_rules = []
         self.egress_rules = [
