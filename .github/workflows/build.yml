@@ -32,7 +32,9 @@ jobs:
       - name: Download
         if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
         run: |
-          moto-terraform-tests/bin/install-aws-test
+          cd moto-terraform-tests
+          bin/install-aws-test
+          cd ..
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -219,11 +221,15 @@ jobs:
         python wait_for.py
     - name: Run Terraform Tests
       run: |
-        moto-terraform-tests/bin/run-tests -i tests/terraform-tests.success.txt
+        cd moto-terraform-tests
+        bin/run-tests -i tests/terraform-tests.success.txt
+        cd ..
     - name: "Create report"
       run: |
+        cd moto-terraform-tests
         bin/create-report
         bin/create-report-cli
+        cd ..
 
   deploy:
     name: Deploy
