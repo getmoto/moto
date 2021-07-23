@@ -435,9 +435,9 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
 
 def glob_matches(pattern, string):
     """AWS API-style globbing regexes"""
-    pattern = re.sub(r"\*", r".*", string)
-    pattern = re.sub(r"\?", r".?", pattern)
+    pattern = re.sub(r"[^\\]\*", r".*", pattern)
+    pattern = re.sub(r"[^\\]\?", r".?", pattern)
 
-    if re.match(pattern, string):
+    if re.match(pattern, str(string)):
         return True
     return False
