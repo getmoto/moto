@@ -49,7 +49,7 @@ class IoTResponse(BaseResponse):
             next_token = str(max_results) if len(thing_types) > max_results else None
         else:
             token = int(previous_next_token)
-            result = thing_types[token: token + max_results]
+            result = thing_types[token : token + max_results]
             next_token = (
                 str(token + max_results)
                 if len(thing_types) > token + max_results

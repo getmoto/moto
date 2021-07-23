@@ -144,8 +144,8 @@ class FakeCertificate(BaseModel):
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
-        self.validity_not_before = (time.time() - 86400)
-        self.validity_not_after = (time.time() + 86400)
+        self.validity_not_before = time.time() - 86400
+        self.validity_not_after = time.time() + 86400
         self.ca_certificate_id = None
         self.ca_certificate_pem = ca_certificate_pem
         if ca_certificate_pem:
@@ -177,7 +177,7 @@ class FakeCertificate(BaseModel):
             "lastModifiedDate": self.last_modified_date,
             "validity": {
                 "notBefore": self.validity_not_before,
-                "notAfter": self.validity_not_after
+                "notAfter": self.validity_not_after,
             },
             "transferData": self.transfer_data,
         }

@@ -54,7 +54,7 @@ def migrate_version(target_file, new_version):
     regex = r"['\"](.*)['\"]"
     migrate_source_attribute(
         "__version__",
-        "\"{new_version}\"".format(new_version=new_version),
+        '"{new_version}"'.format(new_version=new_version),
         target_file,
         regex,
     )
@@ -84,7 +84,9 @@ def prerelease_version():
     assert (
         initpy_ver > ver
     ), "the moto/__init__.py version should be newer than the last tagged release."
-    return "{}.{}.{}.dev{}".format(initpy_ver.major, initpy_ver.minor, initpy_ver.micro, commits_since)
+    return "{}.{}.{}.dev{}".format(
+        initpy_ver.major, initpy_ver.minor, initpy_ver.micro, commits_since
+    )
 
 
 def read(*parts):
@@ -116,7 +118,9 @@ def increase_patch_version(old_version):
     :param old_version: 2.0.1
     :return: 2.0.2.dev
     """
-    return "{}.{}.{}.dev".format(old_version.major, old_version.minor, old_version.micro + 1)
+    return "{}.{}.{}.dev".format(
+        old_version.major, old_version.minor, old_version.micro + 1
+    )
 
 
 def release_version_correct():
@@ -154,5 +158,7 @@ if __name__ == "__main__":
         initpy = os.path.abspath("moto/__init__.py")
         migrate_version(initpy, new_version)
     else:
-        print("Invalid usage. Supply 0 or 1 arguments. "
-              "Argument can be either a version '1.2.3' or 'patch' if you want to increase the patch-version (1.2.3 -> 1.2.4.dev)")
+        print(
+            "Invalid usage. Supply 0 or 1 arguments. "
+            "Argument can be either a version '1.2.3' or 'patch' if you want to increase the patch-version (1.2.3 -> 1.2.4.dev)"
+        )

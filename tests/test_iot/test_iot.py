@@ -538,6 +538,10 @@ def test_certs():
     cert_desc.should.have.key("certificateArn").which.should_not.be.none
     cert_desc.should.have.key("certificateId").which.should_not.be.none
     cert_desc.should.have.key("certificatePem").which.should_not.be.none
+    cert_desc.should.have.key("validity").which.should_not.be.none
+    validity = cert_desc["validity"]
+    validity.should.have.key("notBefore").which.should_not.be.none
+    validity.should.have.key("notAfter").which.should_not.be.none
     cert_desc.should.have.key("status").which.should.equal("ACTIVE")
     cert_pem = cert_desc["certificatePem"]
 
@@ -1019,7 +1023,7 @@ def test_delete_thing_group():
     group_name_1a = "my-group-name-1a"
     group_name_2a = "my-group-name-2a"
     tree_dict = {
-        group_name_1a: {group_name_2a: {},},
+        group_name_1a: {group_name_2a: {}, },
     }
     group_catalog = generate_thing_group_tree(client, tree_dict)
 

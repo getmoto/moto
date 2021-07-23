@@ -104,11 +104,19 @@ all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 # i.e. even those without extra dependencies.
 # Would be good for future-compatibility, I guess.
 extras_per_service = {
-    "apigateway": [_dep_python_jose_py2, _dep_python_jose_py3, _dep_python_jose_ecdsa_pin],
+    "apigateway": [
+        _dep_python_jose_py2,
+        _dep_python_jose_py3,
+        _dep_python_jose_ecdsa_pin,
+    ],
     "awslambda": [_dep_docker],
     "batch": [_dep_docker],
     "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint, _dep_decorator],
-    "cognitoidp": [_dep_python_jose_py2, _dep_python_jose_py3, _dep_python_jose_ecdsa_pin],
+    "cognitoidp": [
+        _dep_python_jose_py2,
+        _dep_python_jose_py3,
+        _dep_python_jose_ecdsa_pin,
+    ],
     "dynamodb2": [_dep_docker],
     "dynamodbstreams": [_dep_docker],
     "ec2": [_dep_docker, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
@@ -145,11 +153,7 @@ setup(
     author="Steve Pulec",
     author_email="spulec@gmail.com",
     url="https://github.com/spulec/moto",
-    entry_points={
-        "console_scripts": [
-            "moto_server = moto.server:main",
-        ],
-    },
+    entry_points={"console_scripts": ["moto_server = moto.server:main",],},
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,
@@ -167,7 +171,5 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
-    project_urls={
-        "Documentation": "http://docs.getmoto.org/en/latest/",
-    },
+    project_urls={"Documentation": "http://docs.getmoto.org/en/latest/",},
 )
