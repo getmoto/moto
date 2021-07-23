@@ -167,6 +167,12 @@ class LogsResponse(BaseResponse):
         self.logs_backend.delete_retention_policy(log_group_name)
         return ""
 
+    def put_resource_policy(self):
+        policy_name = self._get_param("policyName")
+        policy_doc = self._get_param("policyDocument")
+        self.logs_backend.put_resource_policy(policy_name, policy_doc)
+        return ""
+
     def list_tags_log_group(self):
         log_group_name = self._get_param("logGroupName")
         tags = self.logs_backend.list_tags_log_group(log_group_name)

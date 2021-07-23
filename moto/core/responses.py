@@ -464,6 +464,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _get_bool_param(self, param_name, if_none=None):
         val = self._get_param(param_name)
         if val is not None:
+            val = str(val)
             if val.lower() == "true":
                 return True
             elif val.lower() == "false":

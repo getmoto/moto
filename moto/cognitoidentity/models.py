@@ -13,6 +13,7 @@ from .utils import get_random_identity_id
 
 
 class CognitoIdentity(BaseModel):
+
     def __init__(self, region, identity_pool_name, **kwargs):
         self.identity_pool_name = identity_pool_name
         self.allow_unauthenticated_identities = kwargs.get(
@@ -28,6 +29,20 @@ class CognitoIdentity(BaseModel):
 
         self.identity_pool_id = get_random_identity_id(region)
         self.creation_time = datetime.datetime.utcnow()
+
+    def to_json(self):
+        return json.dumps(
+            {
+                "IdentityPoolId": self.identity_pool_id,
+                "IdentityPoolName": self.identity_pool_name,
+                "AllowUnauthenticatedIdentities": self.allow_unauthenticated_identities,
+                "SupportedLoginProviders": self.supported_login_providers,
+                "DeveloperProviderName": self.developer_provider_name,
+                "OpenIdConnectProviderARNs": self.open_id_connect_provider_arns,
+                "CognitoIdentityProviders": self.cognito_identity_providers,
+                "SamlProviderARNs": self.saml_provider_arns,
+            }
+        )
 
 
 class CognitoIdentityBackend(BaseBackend):
@@ -54,7 +69,7 @@ class CognitoIdentityBackend(BaseBackend):
                 "DeveloperProviderName": identity_pool.developer_provider_name,
                 "IdentityPoolId": identity_pool.identity_pool_id,
                 "IdentityPoolName": identity_pool.identity_pool_name,
-                "IdentityPoolTags": {},
+                "IdentityPoolTags": {},  # TODO: add tags
                 "OpenIdConnectProviderARNs": identity_pool.open_id_connect_provider_arns,
                 "SamlProviderARNs": identity_pool.saml_provider_arns,
                 "SupportedLoginProviders": identity_pool.supported_login_providers,
@@ -85,19 +100,38 @@ class CognitoIdentityBackend(BaseBackend):
         )
         self.identity_pools[new_identity.identity_pool_id] = new_identity
 
-        response = json.dumps(
-            {
-                "IdentityPoolId": new_identity.identity_pool_id,
-                "IdentityPoolName": new_identity.identity_pool_name,
-                "AllowUnauthenticatedIdentities": new_identity.allow_unauthenticated_identities,
-                "SupportedLoginProviders": new_identity.supported_login_providers,
-                "DeveloperProviderName": new_identity.developer_provider_name,
-                "OpenIdConnectProviderARNs": new_identity.open_id_connect_provider_arns,
-                "CognitoIdentityProviders": new_identity.cognito_identity_providers,
-                "SamlProviderARNs": new_identity.saml_provider_arns,
-            }
-        )
+        response = new_identity.to_json()
+        return response
 
+    def update_identity_pool(
+        self,
+        identity_pool_id,
+        identity_pool_name,
+        allow_unauthenticated,
+        allow_classic,
+        login_providers,
+        provider_name,
+        provider_arns,
+        identity_providers,
+        saml_providers,
+        pool_tags,
+    ):
+        pool = self.identity_pools[identity_pool_id]
+        pool.identity_pool_name = pool.identity_pool_name or identity_pool_name
+        if allow_unauthenticated is not None:
+            pool.allow_unauthenticated_identities = allow_unauthenticated
+        if login_providers is not None:
+            pool.supported_login_providers = login_providers
+        if provider_name:
+            pool.developer_provider_name = provider_name
+        if provider_arns is not None:
+            pool.open_id_connect_provider_arns = provider_arns
+        if identity_providers is not None:
+            pool.cognito_identity_providers = identity_providers
+        if saml_providers is not None:
+            pool.saml_provider_arns = saml_providers
+
+        response = pool.to_json()
         return response
 
     def get_id(self):

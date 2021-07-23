@@ -518,6 +518,7 @@ class LogsBackend(BaseBackend):
         self.region_name = region_name
         self.groups = dict()  # { logGroupName: LogGroup}
         self.queries = dict()
+        self.resource_policies = dict()
 
     def reset(self):
         region_name = self.region_name
@@ -684,6 +685,10 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.set_retention_policy(None)
+
+    def put_resource_policy(self, policy_name, policy_doc):
+        policy = {"policyName": policy_name, "policyDocument": policy_doc}
+        self.resource_policies[policy_name] = policy
 
     def list_tags_log_group(self, log_group_name):
         if log_group_name not in self.groups:
