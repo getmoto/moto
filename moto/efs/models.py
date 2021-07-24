@@ -20,6 +20,7 @@ from moto.core.utils import (
     underscores_to_camelcase,
 )
 from moto.ec2 import ec2_backends
+from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.efs.exceptions import (
     BadRequest,
     FileSystemAlreadyExists,
@@ -28,6 +29,9 @@ from moto.efs.exceptions import (
     MountTargetConflict,
     MountTargetNotFound,
     PolicyNotFound,
+    SubnetNotFound,
+    SecurityGroupNotFound,
+    SecurityGroupLimitExceeded,
 )
 
 
@@ -220,6 +224,12 @@ class MountTarget(CloudFormationModel):
         self._subnet = subnet
         self.vpc_id = subnet.vpc_id
         self.security_groups = security_groups
+
+        # Check the number of security groups.
+        if self.security_groups is not None and len(self.security_groups) > 5:
+            raise SecurityGroupLimitExceeded(
+                "The maximum number of security groups per interface has been reached."
+            )
 
         # Get an IP address if needed, otherwise validate the one we're given.
         if ip_address is None:
