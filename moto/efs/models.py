@@ -139,6 +139,16 @@ class FileSystem(CloudFormationModel):
         return ret
 
     def add_mount_target(self, subnet, mount_target):
+        # Check that the mount target doesn't violate constraints.
+        for other_mount_target in self._mount_targets.values():
+            if other_mount_target.subnet_vpc_id != subnet.vpc_id:
+                raise MountTargetConflict(
+                    "requested subnet for new mount target is not in the same VPC as existing mount targets"
+                )
+
+        if subnet.availability_zone in self._mount_targets:
+            raise MountTargetConflict("mount target already exists in this AZ")
+
         self._mount_targets[subnet.availability_zone] = mount_target
 
     def has_mount_target(self, subnet):
@@ -202,10 +212,6 @@ class MountTarget(CloudFormationModel):
     """A model for an EFS Mount Target."""
 
     def __init__(self, file_system, subnet, ip_address, security_groups):
-        # Check that the mount target doesn't violate constraints.
-        if file_system.has_mount_target(subnet):
-            raise MountTargetConflict("Mount Target already exists in AZ")
-
         # Set the simple given parameters.
         self.file_system_id = file_system.file_system_id
         self._file_system = file_system
