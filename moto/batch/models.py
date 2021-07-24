@@ -17,7 +17,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 from moto.logs import logs_backends
 
-from .exceptions import InvalidParameterValueException, InternalFailure, ClientException
+from .exceptions import InvalidParameterValueException, ClientException
 from .utils import (
     make_arn_for_compute_env,
     make_arn_for_job_queue,
@@ -783,6 +783,7 @@ class BatchBackend(BaseBackend):
                 "state": environment.state,
                 "type": environment.env_type,
                 "status": "VALID",
+                "statusReason": "Compute environment is available",
             }
             if environment.env_type == "MANAGED":
                 json_part["computeResources"] = environment.compute_resources
@@ -899,9 +900,10 @@ class BatchBackend(BaseBackend):
             "type",
         ):
             if param not in cr:
-                raise InvalidParameterValueException(
-                    "computeResources must contain {0}".format(param)
-                )
+                pass  # commenting out invalid check below - values may be missing (tf-compat)
+                # raise InvalidParameterValueException(
+                #     "computeResources must contain {0}".format(param)
+                # )
         for profile in self.iam_backend.get_instance_profiles():
             if profile.arn == cr["instanceRole"]:
                 break
@@ -955,9 +957,6 @@ class BatchBackend(BaseBackend):
             raise InvalidParameterValueException(
                 "computeResources.type must be either EC2 | SPOT"
             )
-
-        if cr["type"] == "SPOT":
-            raise InternalFailure("SPOT NOT SUPPORTED YET")
 
     @staticmethod
     def find_min_instances_to_meet_vcpus(instance_types, target):
@@ -1028,7 +1027,8 @@ class BatchBackend(BaseBackend):
             if compute_env.env_type == "MANAGED":
                 # Delete compute environment
                 instance_ids = [instance.id for instance in compute_env.instances]
-                self.ec2_backend.terminate_instances(instance_ids)
+                if instance_ids:
+                    self.ec2_backend.terminate_instances(instance_ids)
 
     def update_compute_environment(
         self, compute_environment_name, state, compute_resources, service_role
