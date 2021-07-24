@@ -395,3 +395,25 @@ def test_describe_mount_targets_no_id_given(efs):
         assert False, "Got an unexpected exception: {}".format(e)
     else:
         assert False, "Expected an BadRequest error."
+
+
+def test_delete_mount_target_minimal_case(efs, file_system, subnet):
+    mt_info = efs.create_mount_target(
+        FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
+    )
+    resp = efs.delete_mount_target(MountTargetId=mt_info["MountTargetId"])
+    assert has_status_code(resp, 204)
+    desc_resp = efs.describe_mount_targets(FileSystemId=file_system["FileSystemId"])
+    assert len(desc_resp["MountTargets"]) == 0
+
+
+def test_delete_mount_target_invalid_mount_target_id(efs, file_system, subnet):
+    try:
+        efs.delete_mount_target(MountTargetId="fsmt-98487aef0a7")
+    except ClientError as e:
+        assert has_status_code(e.response, 404)
+        assert "MountTargetNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an MountTargetNotFound error."
