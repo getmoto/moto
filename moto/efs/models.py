@@ -273,6 +273,10 @@ class MountTarget(CloudFormationModel):
     def physical_resource_id(self):
         return self.mounted_target_id
 
+    @property
+    def subnet_vpc_id(self):
+        return self._subnet.vpc_id
+
     @staticmethod
     def cloudformation_name_type():
         pass
@@ -413,8 +417,20 @@ class EFSBackend(BaseBackend):
         https://docs.aws.amazon.com/efs/latest/ug/API_CreateMountTarget.html
         """
         # Get the relevant existing resources
-        subnet = self.ec2_backend.get_subnet(subnet_id)
+        try:
+            subnet = self.ec2_backend.get_subnet(subnet_id)
+        except InvalidSubnetIdError:
+            raise SubnetNotFound(subnet_id)
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
         file_system = self.file_systems_by_id[file_system_id]
+
+        # Validate the security groups.
+        if security_groups:
+            sg_lookup = {sg.id for sg in self.ec2_backend.describe_security_groups()}
+            for sg_id in security_groups:
+                if sg_id not in sg_lookup:
+                    raise SecurityGroupNotFound(sg_id)
 
         # Create the new mount target
         mount_target = MountTarget(file_system, subnet, ip_address, security_groups)
