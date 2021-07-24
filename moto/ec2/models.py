@@ -6423,7 +6423,7 @@ class TransitGatewayAttachmentBackend(object):
             not transit_gateways_attachment_ids == []
             and transit_gateways_attachment_ids is not None
         ):
-            transit_gateways_attachments = [
+            transit_gateway_attachments = [
                 transit_gateways_attachment
                 for transit_gateways_attachment in transit_gateways_attachments
                 if transit_gateways_attachment.id in transit_gateways_attachment_ids
@@ -6433,7 +6433,7 @@ class TransitGatewayAttachmentBackend(object):
             for attrs in attr_pairs:
                 values = filters.get(attrs[0]) or None
                 if values is not None:
-                    transit_gateways_attachments = [
+                    transit_gateway_attachments = [
                         transit_gateways_attachment
                         for transit_gateways_attachment in transit_gateway_attachments
                         if getattr(transit_gateways_attachment, attrs[1]) in values
