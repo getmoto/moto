@@ -152,9 +152,18 @@ CREATE_TRANSIT_GATEWAY_ROUTE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?
 <CreateTransitGatewayRouteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>072b02ce-df3a-4de6-a20b-6653ae4b91a4</requestId>
     <route>
-        <destinationCidrBlock>{{ transit_gateway_route_table.routes[destination_cidr_block]['destinationCidrBlock'] }}</destinationCidrBlock>
-        <state>{{ transit_gateway_route_table.routes[destination_cidr_block]['state'] }}</state>
-        <type>{{ transit_gateway_route_table.routes[destination_cidr_block]['type'] }}</type>
+        <destinationCidrBlock>{{ transit_gateway_route_table['destinationCidrBlock'] }}</destinationCidrBlock>
+        <state>{{ transit_gateway_route_table['state'] }}</state>
+        <type>{{ transit_gateway_route_table['type'] }}</type>
+        <transitGatewayAttachments>
+        {% if transit_gateway_route_table['state'] != 'blackhole' %}
+            <item>
+                <resourceId>{{ transit_gateway_route_table['transitGatewayAttachments']['resourceId'] }}</resourceId>
+                <resourceType>{{ transit_gateway_route_table['transitGatewayAttachments']['resourceType'] }}</resourceType>
+                <transitGatewayAttachmentId>{{ transit_gateway_route_table['transitGatewayAttachments']['transitGatewayAttachmentId'] }}</transitGatewayAttachmentId>
+            </item>
+        {% endif %}
+        </transitGatewayAttachments>
     </route>
 </CreateTransitGatewayRouteResponse>
 """
@@ -179,6 +188,16 @@ SEARCH_TRANSIT_GATEWAY_ROUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"
             <destinationCidrBlock>{{ route['destinationCidrBlock'] }}</destinationCidrBlock>
             <state>{{ route['state'] }}</state>
             <type>{{ route['type'] }}</type>
+            <state>active</state>
+            {% if route.get('transitGatewayAttachments') %}
+            <transitGatewayAttachments>
+                <item>
+                    <resourceId>{{ route['transitGatewayAttachments']['resourceId'] }}</resourceId>
+                    <resourceType>{{ route['transitGatewayAttachments']['resourceType'] }}</resourceType>
+                    <transitGatewayAttachmentId>{{ route['transitGatewayAttachments']['transitGatewayAttachmentId'] }}</transitGatewayAttachmentId>
+                </item>
+            </transitGatewayAttachments>
+            {% endif %}
         </item>
         {% endfor %}
     </routeSet>
