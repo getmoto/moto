@@ -6410,7 +6410,7 @@ class TransitGatewayAttachmentBackend(object):
     def describe_transit_gateway_vpc_attachments(
         self, transit_gateways_attachment_ids=None, filters=None, max_results=0
     ):
-        transit_gateways_attachments = self.transit_gateways_attachments.values()
+        transit_gateway_attachments = self.transit_gateways_attachments.values()
 
         attr_pairs = (
             ("state", "state"),
@@ -6435,7 +6435,7 @@ class TransitGatewayAttachmentBackend(object):
                 if values is not None:
                     transit_gateways_attachments = [
                         transit_gateways_attachment
-                        for transit_gateways_attachment in transit_gateways_attachments
+                        for transit_gateways_attachment in transit_gateway_attachments
                         if getattr(transit_gateways_attachment, attrs[1]) in values
                     ]
 
