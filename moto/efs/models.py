@@ -225,7 +225,15 @@ class MountTarget(CloudFormationModel):
         if ip_address is None:
             ip_address = subnet.get_available_subnet_ip(self)
         else:
-            subnet.request_ip(ip_address, self)
+            try:
+                subnet.request_ip(ip_address, self)
+            except Exception as e:
+                if "IP" in str(e) and "CIDR" in str(e):
+                    raise BadRequest(
+                        "Address does not fall within the subnet's address range"
+                    )
+                else:
+                    raise e
         self.ip_address = ip_address
 
         # Init non-user-assigned values.
