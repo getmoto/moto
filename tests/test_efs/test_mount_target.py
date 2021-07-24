@@ -114,6 +114,154 @@ def test_create_mount_target_aws_sample_2(efs, ec2, file_system, subnet):
     create_mt_resp["IpAddress"].should.equal(ip_addr)
 
 
+def test_create_mount_target_invalid_file_system_id(efs, subnet):
+    try:
+        efs.create_mount_target(FileSystemId="fs-12343289", SubnetId=subnet["SubnetId"])
+    except ClientError as e:
+        assert has_status_code(e.response, 404)
+        assert "FileSystemNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an FileSystemNotFound error."
+
+
+def test_create_mount_target_invalid_subnet_id(efs, file_system):
+    try:
+        efs.create_mount_target(
+            FileSystemId=file_system["FileSystemId"], SubnetId="subnet-12345678"
+        )
+    except ClientError as e:
+        assert has_status_code(e.response, 404)
+        assert "SubnetNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an SubnetNotFound error."
+
+
+def test_create_mount_target_invalid_sg_id(efs, file_system, subnet):
+    try:
+        efs.create_mount_target(
+            FileSystemId=file_system["FileSystemId"],
+            SubnetId=subnet["SubnetId"],
+            SecurityGroups=["sg-1234df235"],
+        )
+    except ClientError as e:
+        assert has_status_code(e.response, 404)
+        assert "SecurityGroupNotFound" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an SecurityGroupNotFound error."
+
+
+def test_create_second_mount_target_wrong_vpc(efs, ec2, file_system, subnet):
+    vpc_info = ec2.create_vpc(CidrBlock="10.1.0.0/16")
+    new_subnet_info = ec2.create_subnet(
+        VpcId=vpc_info["Vpc"]["VpcId"], CidrBlock="10.1.1.0/24"
+    )
+    efs.create_mount_target(
+        FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
+    )
+    try:
+        efs.create_mount_target(
+            FileSystemId=file_system["FileSystemId"],
+            SubnetId=new_subnet_info["Subnet"]["SubnetId"],
+        )
+    except ClientError as e:
+        assert has_status_code(e.response, 409)
+        assert "MountTargetConflict" in e.response["Error"]["Message"]
+        assert "VPC" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an MountTargetConflict error."
+
+
+def test_create_mount_target_duplicate_subnet_id(efs, file_system, subnet):
+    efs.create_mount_target(
+        FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
+    )
+    try:
+        efs.create_mount_target(
+            FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
+        )
+    except ClientError as e:
+        assert has_status_code(e.response, 409)
+        assert "MountTargetConflict" in e.response["Error"]["Message"]
+        assert "AZ" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an MountTargetConflict error."
+
+
+def test_create_mount_target_subnets_in_same_zone(efs, ec2, file_system, subnet):
+    efs.create_mount_target(
+        FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
+    )
+    subnet_info = ec2.create_subnet(
+        VpcId=subnet["VpcId"],
+        CidrBlock="172.31.96.0/20",
+        AvailabilityZone=subnet["AvailabilityZone"],
+    )
+    try:
+        efs.create_mount_target(
+            FileSystemId=file_system["FileSystemId"],
+            SubnetId=subnet_info["Subnet"]["SubnetId"],
+        )
+    except ClientError as e:
+        assert has_status_code(e.response, 409)
+        assert "MountTargetConflict" in e.response["Error"]["Message"]
+        assert "AZ" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an MountTargetConflict error."
+
+
+def test_create_mount_target_ip_address_out_of_range(efs, file_system, subnet):
+    try:
+        efs.create_mount_target(
+            FileSystemId=file_system["FileSystemId"],
+            SubnetId=subnet["SubnetId"],
+            IpAddress="10.0.1.0",
+        )
+    except ClientError as e:
+        assert has_status_code(e.response, 400)
+        assert "BadRequest" in e.response["Error"]["Message"]
+        assert "Address" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an BadRequest error."
+
+
+def test_create_mount_target_too_many_security_groups(efs, ec2, file_system, subnet):
+    sg_id_list = []
+    for i in range(6):
+        sg_info = ec2.create_security_group(
+            VpcId=subnet["VpcId"],
+            GroupName="sg-{}".format(i),
+            Description="SG-{} protects us from the Goa'uld.".format(i),
+        )
+        sg_id_list.append(sg_info["GroupId"])
+    try:
+        efs.create_mount_target(
+            FileSystemId=file_system["FileSystemId"],
+            SubnetId=subnet["SubnetId"],
+            SecurityGroups=sg_id_list,
+        )
+    except ClientError as e:
+        assert has_status_code(e.response, 400)
+        assert "SecurityGroupLimitExceeded" in e.response["Error"]["Message"]
+    except Exception as e:
+        assert False, "Got an unexpected exception: {}".format(e)
+    else:
+        assert False, "Expected an SecurityGroupLimitExceeded error."
+
+
 def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet):
     efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
