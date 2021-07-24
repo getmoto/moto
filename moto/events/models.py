@@ -247,9 +247,10 @@ class Rule(CloudFormationModel):
 
 
 class EventBus(CloudFormationModel):
-    def __init__(self, region_name, name):
+    def __init__(self, region_name, name, tags=None):
         self.region = region_name
         self.name = name
+        self.tags = tags or []
 
         self._permissions = {}
 
@@ -1125,7 +1126,7 @@ class EventsBackend(BaseBackend):
 
         return event_bus
 
-    def create_event_bus(self, name, event_source_name=None):
+    def create_event_bus(self, name, event_source_name=None, tags=None):
         if name in self.event_buses:
             raise JsonRESTError(
                 "ResourceAlreadyExistsException",
@@ -1143,7 +1144,10 @@ class EventsBackend(BaseBackend):
                 "Event source {} does not exist.".format(event_source_name),
             )
 
-        self.event_buses[name] = EventBus(self.region_name, name)
+        event_bus = EventBus(self.region_name, name, tags=tags)
+        self.event_buses[name] = event_bus
+        if tags:
+            self.tagger.tag_resource(event_bus.arn, tags)
 
         return self.event_buses[name]
 
@@ -1162,30 +1166,38 @@ class EventsBackend(BaseBackend):
             raise JsonRESTError(
                 "ValidationException", "Cannot delete event bus default."
             )
-        self.event_buses.pop(name, None)
+        event_bus = self.event_buses.pop(name, None)
+        if event_bus:
+            self.tagger.delete_all_tags_for_resource(event_bus.arn)
 
     def list_tags_for_resource(self, arn):
         name = arn.split("/")[-1]
-        if name in self.rules:
-            return self.tagger.list_tags_for_resource(self.rules[name].arn)
+        registries = [self.rules, self.event_buses]
+        for registry in registries:
+            if name in registry:
+                return self.tagger.list_tags_for_resource(registry[name].arn)
         raise ResourceNotFoundException(
             "Rule {0} does not exist on EventBus default.".format(name)
         )
 
     def tag_resource(self, arn, tags):
         name = arn.split("/")[-1]
-        if name in self.rules:
-            self.tagger.tag_resource(self.rules[name].arn, tags)
-            return {}
+        registries = [self.rules, self.event_buses]
+        for registry in registries:
+            if name in registry:
+                self.tagger.tag_resource(registry[name].arn, tags)
+                return {}
         raise ResourceNotFoundException(
             "Rule {0} does not exist on EventBus default.".format(name)
         )
 
     def untag_resource(self, arn, tag_names):
         name = arn.split("/")[-1]
-        if name in self.rules:
-            self.tagger.untag_resource_using_names(self.rules[name].arn, tag_names)
-            return {}
+        registries = [self.rules, self.event_buses]
+        for registry in registries:
+            if name in registry:
+                self.tagger.untag_resource_using_names(registry[name].arn, tag_names)
+                return {}
         raise ResourceNotFoundException(
             "Rule {0} does not exist on EventBus default.".format(name)
         )
