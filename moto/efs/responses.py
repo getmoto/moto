@@ -61,7 +61,7 @@ class EFSResponse(BaseResponse):
         file_system_id = self._get_param("FileSystemId")
         subnet_id = self._get_param("SubnetId")
         ip_address = self._get_param("IpAddress")
-        security_groups = self._get_list_prefix("SecurityGroups.member")
+        security_groups = self._get_param("SecurityGroups")
         mount_target = self.efs_backend.create_mount_target(
             file_system_id=file_system_id,
             subnet_id=subnet_id,
