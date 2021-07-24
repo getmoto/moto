@@ -71,3 +71,36 @@ class PolicyNotFound(EFSError):
 
     def __init__(self, *args, **kwargs):
         super(PolicyNotFound, self).__init__("PolicyNotFound", *args, **kwargs)
+
+
+class SubnetNotFound(EFSError):
+    code = 404
+
+    def __init__(self, subnet_id, *args, **kwargs):
+        super(SubnetNotFound, self).__init__(
+            "SubnetNotFound",
+            "The subnet ID '{}' does not exist".format(subnet_id),
+            *args,
+            **kwargs
+        )
+
+
+class SecurityGroupNotFound(EFSError):
+    code = 404
+
+    def __init__(self, security_group_id, *args, **kwargs):
+        super(SecurityGroupNotFound, self).__init__(
+            "SecurityGroupNotFound",
+            "The SecurityGroup ID '{}' does not exist".format(security_group_id),
+            *args,
+            **kwargs
+        )
+
+
+class SecurityGroupLimitExceeded(EFSError):
+    code = 400
+
+    def __init__(self, msg, *args, **kwargs):
+        super(SecurityGroupLimitExceeded, self).__init__(
+            "SecurityGroupLimitExceeded", msg, *args, **kwargs
+        )
