@@ -6440,7 +6440,7 @@ class TransitGatewayAttachmentBackend(object):
                     ]
 
         return transit_gateway_attachments
-    
+
     def delete_transit_gateway_vpc_attachment(self, transit_gateway_attachment_id=None):
         self.transit_gateway_attachments[transit_gateway_attachment_id].state = "deleted"
         transit_gateway_attachment = self.transit_gateway_attachments.pop(transit_gateway_attachment_id)
