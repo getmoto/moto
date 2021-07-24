@@ -58,7 +58,7 @@ def test_key_pairs_invalid_id():
         conn.get_all_key_pairs("foo")
     cm.value.code.should.equal("InvalidKeyPair.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -112,7 +112,7 @@ def test_key_pairs_create_exist():
         conn.create_key_pair("foo")
     cm.value.code.should.equal("InvalidKeyPair.Duplicate")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -178,7 +178,7 @@ def test_key_pairs_import_exist():
         conn.create_key_pair("foo")
     cm.value.code.should.equal("InvalidKeyPair.Duplicate")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated

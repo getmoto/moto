@@ -34,7 +34,7 @@ def test_vpcs():
         conn.delete_vpc("vpc-1234abcd")
     cm.value.code.should.equal("InvalidVpcID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -117,7 +117,7 @@ def test_vpc_get_by_id():
         conn.get_all_vpcs(vpc_ids=["vpc-does_not_exist"])
     cm.value.code.should.equal("InvalidVpcID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated

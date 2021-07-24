@@ -87,7 +87,7 @@ def test_eip_allocate_invalid_domain():
         conn.allocate_address(domain="bogus")
     cm.value.code.should.equal("InvalidParameterValue")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -105,7 +105,7 @@ def test_eip_associate_classic():
         conn.associate_address(public_ip=eip.public_ip)
     cm.value.code.should.equal("MissingParameter")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     with pytest.raises(EC2ResponseError) as ex:
         conn.associate_address(
@@ -156,7 +156,7 @@ def test_eip_associate_vpc():
         conn.associate_address(allocation_id=eip.allocation_id)
     cm.value.code.should.equal("MissingParameter")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address(instance_id=instance.id, allocation_id=eip.allocation_id)
     # no .update() on address ):
@@ -206,7 +206,7 @@ def test_eip_boto3_vpc_association():
     address.association_id.should.be.none
     address.instance_id.should.be.empty
     address.network_interface_id.should.be.empty
-    association_id = client.associate_address(
+    client.associate_address(
         InstanceId=instance.id, AllocationId=allocation_id, AllowReassociation=False
     )
     instance.load()
@@ -244,7 +244,7 @@ def test_eip_associate_network_interface():
         conn.associate_address(network_interface_id=eni.id)
     cm.value.code.should.equal("MissingParameter")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address(network_interface_id=eni.id, allocation_id=eip.allocation_id)
     # no .update() on address ):
@@ -281,14 +281,13 @@ def test_eip_reassociate():
         )
     cm.value.code.should.equal("Resource.AlreadyAssociated")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address.when.called_with(
         instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=True
     ).should_not.throw(EC2ResponseError)
 
     eip.release()
-    eip = None
 
     instance1.terminate()
     instance2.terminate()
@@ -315,7 +314,7 @@ def test_eip_reassociate_nic():
         conn.associate_address(network_interface_id=eni2.id, public_ip=eip.public_ip)
     cm.value.code.should.equal("Resource.AlreadyAssociated")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address.when.called_with(
         network_interface_id=eni2.id, public_ip=eip.public_ip, allow_reassociation=True
@@ -339,7 +338,7 @@ def test_eip_associate_invalid_args():
         conn.associate_address(instance_id=instance.id)
     cm.value.code.should.equal("MissingParameter")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     instance.terminate()
 
@@ -353,7 +352,7 @@ def test_eip_disassociate_bogus_association():
         conn.disassociate_address(association_id="bogus")
     cm.value.code.should.equal("InvalidAssociationID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -365,7 +364,7 @@ def test_eip_release_bogus_eip():
         conn.release_address(allocation_id="bogus")
     cm.value.code.should.equal("InvalidAllocationID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -377,7 +376,7 @@ def test_eip_disassociate_arg_error():
         conn.disassociate_address()
     cm.value.code.should.equal("MissingParameter")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -389,7 +388,7 @@ def test_eip_release_arg_error():
         conn.release_address()
     cm.value.code.should.equal("MissingParameter")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -441,7 +440,7 @@ def test_eip_describe_none():
         conn.get_all_addresses(addresses=["256.256.256.256"])
     cm.value.code.should.equal("InvalidAddress.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

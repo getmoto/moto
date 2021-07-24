@@ -27,32 +27,31 @@ class CloudWatchResponse(BaseResponse):
             metric_data_queries = []
             for metric in metrics:
                 dimensions = []
-                for dim in (
+                dims = (
                     metric.get("MetricStat", {})
                     .get("Metric", {})
                     .get("Dimensions.member", [])
-                ):
+                )
+                for dim in dims:
                     dimensions.append(
                         Dimension(name=dim.get("Name"), value=dim.get("Value"))
                     )
                 metric_stat = None
-                if (
-                    metric.get("MetricStat", {}).get("Metric", {}).get("MetricName", {})
-                    != {}
-                ):
+                stat_metric_name = (
+                    metric.get("MetricStat", {}).get("Metric", {}).get("MetricName")
+                )
+                if stat_metric_name:
+                    stat_details = metric.get("MetricStat", {})
+                    stat_metric_ns = stat_details.get("Metric", {}).get("Namespace")
                     metric_stat = MetricStat(
                         metric=Metric(
-                            metric_name=metric.get("MetricStat")
-                            .get("Metric")
-                            .get("MetricName"),
-                            namespace=metric.get("MetricStat")
-                            .get("Metric")
-                            .get("Namespace"),
+                            metric_name=stat_metric_name,
+                            namespace=stat_metric_ns,
                             dimensions=dimensions,
                         ),
-                        period=metric.get("MetricStat").get("Period"),
-                        stat=metric.get("MetricStat").get("Stat"),
-                        unit=metric.get("MetricStat").get("Unit"),
+                        period=stat_details.get("Period"),
+                        stat=stat_details.get("Stat"),
+                        unit=stat_details.get("Unit"),
                     )
                 metric_data_queries.append(
                     MetricDataQuery(
@@ -80,9 +79,8 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member"
         )
         unit = self._get_param("Unit")
-        rule = self._get_param(
-            "AlarmRule"
-        )  # fetch AlarmRule to re-use this method for composite alarms as well
+        # fetch AlarmRule to re-use this method for composite alarms as well
+        rule = self._get_param("AlarmRule")
         alarm = self.cloudwatch_backend.put_metric_alarm(
             name,
             namespace,
@@ -302,24 +300,6 @@ class CloudWatchResponse(BaseResponse):
 
         template = self.response_template(SET_ALARM_STATE_TEMPLATE)
         return template.render()
-
-    # TODO (whummer): temporary hack until get_metric_statistics is available in moto
-    def get_metric_values(self):
-        import json
-
-        cloudwatch_backend = cloudwatch_backends[self.region]
-        metrics = [
-            {
-                "Namespace": m.namespace,
-                "Name": m.name,
-                "Value": m.value,
-                "Dimensions": [
-                    {"Name": d.name, "Value": d.value} for d in m.dimensions
-                ],
-            }
-            for m in cloudwatch_backend.get_all_metrics()
-        ]
-        return json.dumps(metrics)
 
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">

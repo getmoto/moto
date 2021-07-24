@@ -48,7 +48,7 @@ def test_create_and_delete_volume():
         volume.delete()
     cm.value.code.should.equal("InvalidVolume.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -136,7 +136,7 @@ def test_filter_volume_by_id():
         conn.get_all_volumes(volume_ids=["vol-does_not_exist"])
     cm.value.code.should.equal("InvalidVolume.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -342,7 +342,7 @@ def test_create_snapshot():
         snapshot.delete()
     cm.value.code.should.equal("InvalidSnapshot.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -384,7 +384,7 @@ def test_filter_snapshot_by_id():
         conn.get_all_snapshots(snapshot_ids=["snap-does_not_exist"])
     cm.value.code.should.equal("InvalidSnapshot.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -534,7 +534,7 @@ def test_snapshot_attribute():
         )
     cm.value.code.should.equal("InvalidAMIAttributeItemValue")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     # Error: Add with invalid snapshot ID
     with pytest.raises(EC2ResponseError) as cm:
@@ -546,7 +546,7 @@ def test_snapshot_attribute():
         )
     cm.value.code.should.equal("InvalidSnapshot.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     # Error: Remove with invalid snapshot ID
     with pytest.raises(EC2ResponseError) as cm:
@@ -558,7 +558,7 @@ def test_snapshot_attribute():
         )
     cm.value.code.should.equal("InvalidSnapshot.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

@@ -73,7 +73,7 @@ def test_igw_attach_bad_vpc():
         conn.attach_internet_gateway(igw.id, BAD_VPC)
     cm.value.code.should.equal("InvalidVpcID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -89,7 +89,7 @@ def test_igw_attach_twice():
         conn.attach_internet_gateway(igw.id, vpc2.id)
     cm.value.code.should.equal("Resource.AlreadyAssociated")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -126,7 +126,7 @@ def test_igw_detach_wrong_vpc():
         conn.detach_internet_gateway(igw.id, vpc2.id)
     cm.value.code.should.equal("Gateway.NotAttached")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -141,7 +141,7 @@ def test_igw_detach_invalid_vpc():
         conn.detach_internet_gateway(igw.id, BAD_VPC)
     cm.value.code.should.equal("Gateway.NotAttached")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -155,7 +155,7 @@ def test_igw_detach_unattached():
         conn.detach_internet_gateway(igw.id, vpc.id)
     cm.value.code.should.equal("Gateway.NotAttached")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -191,7 +191,7 @@ def test_igw_delete_attached():
         conn.delete_internet_gateway(igw.id)
     cm.value.code.should.equal("DependencyViolation")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -211,7 +211,7 @@ def test_igw_describe_bad_id():
         conn.get_all_internet_gateways([BAD_IGW])
     cm.value.code.should.equal("InvalidInternetGatewayID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated

@@ -4,6 +4,8 @@ from moto.core.exceptions import RESTError
 
 class EC2ClientError(RESTError):
     code = 400
+    # EC2 uses <RequestID> as tag name in the XML response
+    request_id_tag_name = "RequestID"
 
 
 class DependencyViolationError(EC2ClientError):

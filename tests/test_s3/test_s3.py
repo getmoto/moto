@@ -3594,7 +3594,11 @@ def test_boto3_put_object_tagging():
 
     e = err.value
     e.response["Error"].should.equal(
-        {"Code": "NoSuchKey", "Message": "The specified key does not exist.",}
+        {
+            "Code": "NoSuchKey",
+            "Message": "The specified key does not exist.",
+            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+        }
     )
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
@@ -3638,7 +3642,11 @@ def test_boto3_put_object_tagging_on_earliest_version():
 
     e = err.value
     e.response["Error"].should.equal(
-        {"Code": "NoSuchKey", "Message": "The specified key does not exist.",}
+        {
+            "Code": "NoSuchKey",
+            "Message": "The specified key does not exist.",
+            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+        }
     )
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
@@ -3702,7 +3710,11 @@ def test_boto3_put_object_tagging_on_both_version():
 
     e = err.value
     e.response["Error"].should.equal(
-        {"Code": "NoSuchKey", "Message": "The specified key does not exist.",}
+        {
+            "Code": "NoSuchKey",
+            "Message": "The specified key does not exist.",
+            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+        }
     )
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")

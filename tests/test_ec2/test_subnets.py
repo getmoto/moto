@@ -33,7 +33,7 @@ def test_subnets():
         conn.delete_subnet(subnet.id)
     cm.value.code.should.equal("InvalidSubnetID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -44,7 +44,7 @@ def test_subnet_create_vpc_validation():
         conn.create_subnet("vpc-abcd1234", "10.0.0.0/18")
     cm.value.code.should.equal("InvalidVpcID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -227,7 +227,7 @@ def test_subnet_get_by_id():
         conn.get_all_subnets(subnet_ids=["subnet-does_not_exist"])
     cm.value.code.should.equal("InvalidSubnetID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated

@@ -517,6 +517,7 @@ class ResourceMap(collections_abc.Mapping):
     def load_parameters(self):
         parameter_slots = self._template.get("Parameters", {})
         for parameter_name, parameter in parameter_slots.items():
+            # Set the default values.
             value = parameter.get("Default")
             value_type = parameter.get("Type")
             if value_type.startswith("AWS::SSM::Parameter::") and value:
@@ -530,7 +531,6 @@ class ResourceMap(collections_abc.Mapping):
                 parameter_slot = parameter_slots[key]
 
                 value_type = parameter_slot.get("Type", "String")
-
                 if value_type.startswith("AWS::SSM::Parameter::"):
                     value = self.parse_ssm_parameter(value, value_type)
                 if value_type == "CommaDelimitedList" or value_type.startswith("List"):

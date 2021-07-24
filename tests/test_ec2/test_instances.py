@@ -292,7 +292,7 @@ def test_get_instances_by_id():
         conn.get_all_reservations(instance_ids=[instance1.id, "i-1234abcd"])
     cm.value.code.should.equal("InvalidInstanceID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -1291,7 +1291,7 @@ def test_instance_with_nic_attach_detach():
         conn.detach_network_interface("eni-attach-1234abcd")
     cm.value.code.should.equal("InvalidAttachmentID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -1459,7 +1459,7 @@ def test_describe_instance_status_with_instance_filter_deprecated():
         conn.get_all_instance_status(instance_ids=[instance.id, "i-1234abcd"])
     cm.value.code.should.equal("InvalidInstanceID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

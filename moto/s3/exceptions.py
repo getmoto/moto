@@ -30,6 +30,9 @@ ERROR_WITH_RANGE = """{% extends 'single_error' %}
 
 
 class S3ClientError(RESTError):
+    # S3 API uses <RequestID> as the XML tag in response messages
+    request_id_tag_name = "RequestID"
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("template", "single_error")
         self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME

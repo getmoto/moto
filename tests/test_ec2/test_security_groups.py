@@ -44,7 +44,7 @@ def test_create_and_describe_security_group():
         )
     cm.value.code.should.equal("InvalidGroup.Duplicate")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     all_groups = conn.get_all_security_groups()
     # The default group gets created automatically
@@ -61,7 +61,7 @@ def test_create_security_group_without_description_raises_error():
         conn.create_security_group("test security group", "")
     cm.value.code.should.equal("MissingParameter")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -93,7 +93,7 @@ def test_create_and_describe_vpc_security_group():
         )
     cm.value.code.should.equal("InvalidGroup.Duplicate")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     all_groups = conn.get_all_security_groups(filters={"vpc_id": [vpc_id]})
 
@@ -150,7 +150,7 @@ def test_deleting_security_groups():
         conn.delete_security_group("foobar")
     cm.value.code.should.equal("InvalidGroup.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     # Delete by name
     with pytest.raises(EC2ResponseError) as ex:
@@ -217,7 +217,7 @@ def test_authorize_ip_range_and_revoke():
         )
     cm.value.code.should.equal("InvalidPermission.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     # Actually revoke
     with pytest.raises(EC2ResponseError) as ex:
@@ -341,7 +341,7 @@ def test_authorize_other_group_and_revoke():
         )
     cm.value.code.should.equal("InvalidPermission.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     # Actually revoke
     security_group.revoke(
@@ -444,7 +444,7 @@ def test_get_all_security_groups():
         conn.get_all_security_groups(groupnames=["does_not_exist"])
     cm.value.code.should.equal("InvalidGroup.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     resp.should.have.length_of(1)
     resp[0].id.should.equal(sg1.id)
@@ -475,7 +475,7 @@ def test_authorize_bad_cidr_throws_invalid_parameter_value():
         )
     cm.value.code.should.equal("InvalidParameterValue")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -941,7 +941,7 @@ def test_get_all_security_groups_filter_with_same_vpc_id():
         conn.get_all_security_groups(group_ids=["does_not_exist"])
     cm.value.code.should.equal("InvalidGroup.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

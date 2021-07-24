@@ -78,7 +78,7 @@ parameters = {
 ssm_parameter = {
     "Parameters": {
         "SingleParamCfn": {"Type": "AWS::SSM::Parameter::Value<String>"},
-         "ListParamCfn": {
+        "ListParamCfn": {
             "Type": "AWS::SSM::Parameter::Value<List<String>>",
             "Default": "/path/to/list/param",
         },
@@ -541,7 +541,7 @@ def test_ssm_parameter_parsing():
             ["comma", "separated", "string"]
         )
 
-     # Not passing in a value for ListParamCfn to test Default value
+    # Not passing in a value for ListParamCfn to test Default value
     if not settings.TEST_SERVER_MODE:
         stack = FakeStack(
             stack_id="test_id",

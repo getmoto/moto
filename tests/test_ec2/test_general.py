@@ -29,7 +29,7 @@ def test_console_output_without_instance():
         conn.get_console_output("i-1234abcd")
     cm.value.error_code.should.equal("InvalidInstanceID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none  # requestId is none because boto strips it out
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

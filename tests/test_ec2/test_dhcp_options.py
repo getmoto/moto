@@ -35,7 +35,7 @@ def test_dhcp_options_associate_invalid_dhcp_id():
         conn.associate_dhcp_options("foo", vpc.id)
     cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -48,7 +48,7 @@ def test_dhcp_options_associate_invalid_vpc_id():
         conn.associate_dhcp_options(dhcp_options.id, "foo")
     cm.value.code.should.equal("InvalidVpcID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -66,7 +66,7 @@ def test_dhcp_options_delete_with_vpc():
         conn.delete_dhcp_options(dhcp_options_id)
     cm.value.code.should.equal("DependencyViolation")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     vpc.delete()
 
@@ -74,7 +74,7 @@ def test_dhcp_options_delete_with_vpc():
         conn.get_all_dhcp_options([dhcp_options_id])
     cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -102,13 +102,13 @@ def test_create_dhcp_options_invalid_options():
         conn.create_dhcp_options(ntp_servers=servers)
     cm.value.code.should.equal("InvalidParameterValue")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.create_dhcp_options(netbios_node_type="0")
     cm.value.code.should.equal("InvalidParameterValue")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -133,7 +133,7 @@ def test_describe_dhcp_options_invalid_id():
         conn.get_all_dhcp_options(["1"])
     cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -151,7 +151,7 @@ def test_delete_dhcp_options():
         conn.get_all_dhcp_options([dhcp_option.id])
     cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -164,7 +164,7 @@ def test_delete_dhcp_options_invalid_id():
         conn.delete_dhcp_options("dopt-abcd1234")
     cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -177,7 +177,7 @@ def test_delete_dhcp_options_malformed_id():
         conn.delete_dhcp_options("foo-abcd1234")
     cm.value.code.should.equal("InvalidDhcpOptionsId.Malformed")
     cm.value.status.should.equal(400)
-    # cm.value.request_id.should_not.be.none
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
