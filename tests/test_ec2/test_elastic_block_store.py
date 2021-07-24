@@ -290,19 +290,19 @@ def test_volume_attach_and_detach():
         volume.attach("i-1234abcd", "/dev/sdh")
     cm1.value.code.should.equal("InvalidInstanceID.NotFound")
     cm1.value.status.should.equal(400)
-    # cm1.value.request_id.should_not.be.none
+    cm1.value.request_id.should_not.be.none
 
     with pytest.raises(EC2ResponseError) as cm2:
         conn.detach_volume(volume.id, instance.id, "/dev/sdh")
     cm2.value.code.should.equal("InvalidAttachment.NotFound")
     cm2.value.status.should.equal(400)
-    # cm2.value.request_id.should_not.be.none
+    cm2.value.request_id.should_not.be.none
 
     with pytest.raises(EC2ResponseError) as cm3:
         conn.detach_volume(volume.id, "i-1234abcd", "/dev/sdh")
     cm3.value.code.should.equal("InvalidInstanceID.NotFound")
     cm3.value.status.should.equal(400)
-    # cm3.value.request_id.should_not.be.none
+    cm3.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
