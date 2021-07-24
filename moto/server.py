@@ -5,6 +5,7 @@ import io
 import json
 import os
 import re
+import signal
 import sys
 from threading import Lock
 
@@ -299,9 +300,8 @@ def main(argv=sys.argv[1:]):
 
     args = parser.parse_args(argv)
 
-    # comment out, to avoid error: "signal only works in main thread"
-    # signal.signal(signal.SIGINT, signal_handler)
-    # signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

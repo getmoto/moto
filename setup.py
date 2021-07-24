@@ -134,16 +134,17 @@ if int(setuptools.__version__.split(".", 1)[0]) < 18:
 else:
     extras_require[":python_version<'3.3'"] = ["backports.tempfile"]
 
+
 setup(
-    name='moto-ext',
+    name="moto",
     version=get_version(),
-    description='A library that allows your python tests to easily'
-                ' mock out the boto library',
-    long_description=read('README.md'),
-    long_description_content_type='text/markdown',
-    author='Steve Pulec',
-    author_email='spulec@gmail.com',
-    url='https://github.com/spulec/moto',
+    description="A library that allows your python tests to easily"
+    " mock out the boto library",
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
+    author="Steve Pulec",
+    author_email="spulec@gmail.com",
+    url="https://github.com/spulec/moto",
     entry_points={
         "console_scripts": [
             "moto_server = moto.server:main",
