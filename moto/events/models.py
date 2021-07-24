@@ -545,7 +545,7 @@ class Replay(BaseModel):
 
 class Connection(BaseModel):
     def __init__(
-            self, name, region_name, description, authorization_type, auth_parameters,
+        self, name, region_name, description, authorization_type, auth_parameters,
     ):
         self.uuid = uuid4()
         self.name = name
@@ -1459,7 +1459,9 @@ class EventsBackend(BaseBackend):
         """
         connection = self.connections.get(name)
         if not connection:
-            raise ResourceNotFoundException("Connection '{}' does not exist.".format(name))
+            raise ResourceNotFoundException(
+                "Connection '{}' does not exist.".format(name)
+            )
 
         return connection.describe()
 
@@ -1480,12 +1482,20 @@ class EventsBackend(BaseBackend):
         """
         connection = self.connections.pop(name, None)
         if not connection:
-            raise ResourceNotFoundException("Connection '{}' does not exist.".format(name))
+            raise ResourceNotFoundException(
+                "Connection '{}' does not exist.".format(name)
+            )
 
         return connection.describe_short()
 
     def create_api_destination(
-            self, name, description, connection_arn, invocation_endpoint, invocation_rate_limit_per_second, http_method
+        self,
+        name,
+        description,
+        connection_arn,
+        invocation_endpoint,
+        invocation_rate_limit_per_second,
+        http_method,
     ):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
@@ -1524,7 +1534,9 @@ class EventsBackend(BaseBackend):
         """
         destination = self.destinations.get(name)
         if not destination:
-            raise ResourceNotFoundException("An api-destination '{}' does not exist.".format(name))
+            raise ResourceNotFoundException(
+                "An api-destination '{}' does not exist.".format(name)
+            )
         return destination.describe()
 
     def update_api_destination(self, *, name, **kwargs):
@@ -1538,7 +1550,9 @@ class EventsBackend(BaseBackend):
         """
         destination = self.destinations.get(name)
         if not destination:
-            raise ResourceNotFoundException("An api-destination '{}' does not exist.".format(name))
+            raise ResourceNotFoundException(
+                "An api-destination '{}' does not exist.".format(name)
+            )
 
         for attr, value in kwargs.items():
             if value is not None and hasattr(destination, attr):
@@ -1563,7 +1577,9 @@ class EventsBackend(BaseBackend):
         """
         destination = self.destinations.pop(name, None)
         if not destination:
-            raise ResourceNotFoundException("An api-destination '{}' does not exist.".format(name))
+            raise ResourceNotFoundException(
+                "An api-destination '{}' does not exist.".format(name)
+            )
         return {}
 
 

@@ -35,7 +35,9 @@ class TransitGateways(BaseResponse):
         description = self._get_param("Description") or None
         options = self._get_multi_param_dict("Options")
         transit_gateway = self.ec2_backend.modify_transit_gateway(
-            transit_gateway_id=transit_gateway_id, description=description, options=options
+            transit_gateway_id=transit_gateway_id,
+            description=description,
+            options=options,
         )
         template = self.response_template(MODIFY_TRANSIT_GATEWAY_RESPONSE)
         return template.render(transit_gateway=transit_gateway)

@@ -2231,7 +2231,7 @@ def test_describe_connection_success():
         Name=conn_name,
         Description=conn_description,
         AuthorizationType=auth_type,
-        AuthParameters=auth_params
+        AuthParameters=auth_params,
     )
 
     # When
@@ -2260,6 +2260,7 @@ def test_describe_connection_not_present():
 # Scenario 01: Success
 # Scenario 02: Failure - Connection not present
 
+
 @mock_events
 def test_delete_connection_success():
     # Given
@@ -2275,7 +2276,7 @@ def test_delete_connection_success():
         Name=conn_name,
         Description=conn_description,
         AuthorizationType=auth_type,
-        AuthParameters=auth_params
+        AuthParameters=auth_params,
     )
 
     # When

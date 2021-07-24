@@ -5427,7 +5427,16 @@ class DHCPOptionsSetBackend(object):
 
 
 class VPNConnection(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, customer_gateway_id, vpn_gateway_id=None, transit_gateway_id=None, tags={}):
+    def __init__(
+        self,
+        ec2_backend,
+        id,
+        type,
+        customer_gateway_id,
+        vpn_gateway_id=None,
+        transit_gateway_id=None,
+        tags={},
+    ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.state = "available"
@@ -5453,7 +5462,14 @@ class VPNConnectionBackend(object):
         super(VPNConnectionBackend, self).__init__()
 
     def create_vpn_connection(
-            self, type, customer_gateway_id, vpn_gateway_id=None, transit_gateway_id=None, static_routes_only=None, tags={}):
+        self,
+        type,
+        customer_gateway_id,
+        vpn_gateway_id=None,
+        transit_gateway_id=None,
+        static_routes_only=None,
+        tags={},
+    ):
         vpn_connection_id = random_vpn_connection_id()
         if static_routes_only:
             pass
@@ -5464,7 +5480,7 @@ class VPNConnectionBackend(object):
             customer_gateway_id=customer_gateway_id,
             vpn_gateway_id=vpn_gateway_id,
             transit_gateway_id=transit_gateway_id,
-            tags=tags
+            tags=tags,
         )
         self.vpn_connections[vpn_connection.id] = vpn_connection
         return vpn_connection
@@ -5758,7 +5774,16 @@ class NetworkAclEntry(TaggedEC2Resource):
 
 
 class VpnGateway(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, amazon_side_asn, availability_zone, tags=None, state="available"):
+    def __init__(
+        self,
+        ec2_backend,
+        id,
+        type,
+        amazon_side_asn,
+        availability_zone,
+        tags=None,
+        state="available",
+    ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.type = type
@@ -5795,9 +5820,13 @@ class VpnGatewayBackend(object):
         self.vpn_gateways = {}
         super(VpnGatewayBackend, self).__init__()
 
-    def create_vpn_gateway(self, type="ipsec.1", amazon_side_asn=None, availability_zone=None, tags=None):
+    def create_vpn_gateway(
+        self, type="ipsec.1", amazon_side_asn=None, availability_zone=None, tags=None
+    ):
         vpn_gateway_id = random_vpn_gateway_id()
-        vpn_gateway = VpnGateway(self, vpn_gateway_id, type, amazon_side_asn, availability_zone, tags)
+        vpn_gateway = VpnGateway(
+            self, vpn_gateway_id, type, amazon_side_asn, availability_zone, tags
+        )
         self.vpn_gateways[vpn_gateway_id] = vpn_gateway
         return vpn_gateway
 
@@ -5834,7 +5863,9 @@ class VpnGatewayBackend(object):
 
 
 class CustomerGateway(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn, state="available", tags=None):
+    def __init__(
+        self, ec2_backend, id, type, ip_address, bgp_asn, state="available", tags=None
+    ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.type = type
@@ -5856,7 +5887,9 @@ class CustomerGatewayBackend(object):
         self.customer_gateways = {}
         super(CustomerGatewayBackend, self).__init__()
 
-    def create_customer_gateway(self, type="ipsec.1", ip_address=None, bgp_asn=None, tags=None):
+    def create_customer_gateway(
+        self, type="ipsec.1", ip_address=None, bgp_asn=None, tags=None
+    ):
         customer_gateway_id = random_customer_gateway_id()
         customer_gateway = CustomerGateway(
             self, customer_gateway_id, type, ip_address, bgp_asn, tags=tags
@@ -5921,7 +5954,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         "MulticastSupport": "disable",
         "PropagationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
         "TransitGatewayCidrBlocks": None,
-        "VpnEcmpSupport": "enable"
+        "VpnEcmpSupport": "enable",
     }
 
     def __init__(self, backend, description=None, options=None, tags=None):
@@ -5967,7 +6000,6 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
 
 class TransitGatewayBackend(object):
-
     def __init__(self):
         self.transit_gateways = {}
         super(TransitGatewayBackend, self).__init__()
@@ -6005,7 +6037,9 @@ class TransitGatewayBackend(object):
     def delete_transit_gateway(self, transit_gateway_id):
         return self.transit_gateways.pop(transit_gateway_id)
 
-    def modify_transit_gateway(self, transit_gateway_id, description=None, options=None):
+    def modify_transit_gateway(
+        self, transit_gateway_id, description=None, options=None
+    ):
         transit_gateway = self.transit_gateways.get(transit_gateway_id)
         if description:
             transit_gateway.description = description
@@ -6015,7 +6049,6 @@ class TransitGatewayBackend(object):
 
 
 class TransitGatewayRouteTable(TaggedEC2Resource):
-
     def __init__(
         self,
         backend,
@@ -6055,19 +6088,23 @@ class TransitGatewayRouteTableBackend(object):
         transit_gateway_id,
         tags=None,
         default_association_route_table=False,
-        default_propagation_route_table=False
+        default_propagation_route_table=False,
     ):
         transit_gateways_route_table = TransitGatewayRouteTable(
             self,
             transit_gateway_id=transit_gateway_id,
             tags=tags,
             default_association_route_table=default_association_route_table,
-            default_propagation_route_table=default_propagation_route_table
+            default_propagation_route_table=default_propagation_route_table,
         )
-        self.transit_gateways_route_tables[transit_gateways_route_table.id] = transit_gateways_route_table
+        self.transit_gateways_route_tables[
+            transit_gateways_route_table.id
+        ] = transit_gateways_route_table
         return transit_gateways_route_table
 
-    def get_all_transit_gateway_route_tables(self, transit_gateway_ids=None, filters=None):
+    def get_all_transit_gateway_route_tables(
+        self, transit_gateway_ids=None, filters=None
+    ):
         transit_gateway_route_tables = self.transit_gateways_route_tables.values()
 
         attr_pairs = (
@@ -6075,7 +6112,7 @@ class TransitGatewayRouteTableBackend(object):
             ("default-propagation-route-table", "default_propagation_route_table"),
             ("state", "state"),
             ("transit-gateway-id", "transit_gateway_id"),
-            ("transit-gateway-route-table-id", "id")
+            ("transit-gateway-route-table-id", "id"),
         )
 
         if transit_gateway_ids:
@@ -6090,8 +6127,10 @@ class TransitGatewayRouteTableBackend(object):
                 values = filters.get(attrs[0]) or None
                 if values is not None:
                     transit_gateway_route_tables = [
-                        transit_gateway_route_table for transit_gateway_route_table in transit_gateway_route_tables
-                        if not values or getattr(transit_gateway_route_table, attrs[1]) in values
+                        transit_gateway_route_table
+                        for transit_gateway_route_table in transit_gateway_route_tables
+                        if not values
+                        or getattr(transit_gateway_route_table, attrs[1]) in values
                     ]
 
         return transit_gateway_route_tables
@@ -6104,9 +6143,11 @@ class TransitGatewayRouteTableBackend(object):
         transit_gateway_route_table_id,
         destination_cidr_block,
         transit_gateway_attachment_id=None,
-        blackhole=False
+        blackhole=False,
     ):
-        transit_gateways_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        transit_gateways_route_table = self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ]
         transit_gateways_route_table.routes[destination_cidr_block] = {
             "destinationCidrBlock": destination_cidr_block,
             "prefixListId": "",
@@ -6117,21 +6158,25 @@ class TransitGatewayRouteTableBackend(object):
                 "resourceType": "TODO",
                 "transitGatewayAttachmentId": transit_gateway_attachment_id,
             },
-            "type": "TODO"
+            "type": "TODO",
         }
         return transit_gateways_route_table
 
     def delete_transit_gateway_route(
-        self,
-        transit_gateway_route_table_id,
-        destination_cidr_block,
+        self, transit_gateway_route_table_id, destination_cidr_block,
     ):
-        transit_gateways_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
-        transit_gateways_route_table.routes[destination_cidr_block]['state'] = "deleted"
+        transit_gateways_route_table = self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ]
+        transit_gateways_route_table.routes[destination_cidr_block]["state"] = "deleted"
         return transit_gateways_route_table
 
-    def search_transit_gateway_routes(self, transit_gateway_route_table_id, filters, max_results=None):
-        transit_gateway_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+    def search_transit_gateway_routes(
+        self, transit_gateway_route_table_id, filters, max_results=None
+    ):
+        transit_gateway_route_table = self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ]
 
         attr_pairs = (
             ("type", "type"),
@@ -6142,23 +6187,18 @@ class TransitGatewayRouteTableBackend(object):
             values = filters.get(attrs[0]) or None
             if values:
                 routes = [
-                    transit_gateway_route_table.routes[key] for key in transit_gateway_route_table.routes
+                    transit_gateway_route_table.routes[key]
+                    for key in transit_gateway_route_table.routes
                     if transit_gateway_route_table.routes[key][attrs[1]] in values
                 ]
         if max_results:
-            routes = routes[:int(max_results)]
+            routes = routes[: int(max_results)]
         return routes
 
 
 class TransitGatewayAttachment(TaggedEC2Resource):
-
     def __init__(
-        self,
-        backend,
-        resource_id,
-        resource_type,
-        transit_gateway_id,
-        tags=None
+        self, backend, resource_id, resource_type, transit_gateway_id, tags=None
     ):
 
         self.ec2_backend = backend
@@ -6192,17 +6232,11 @@ class TransitGatewayVpcAttachment(TransitGatewayAttachment):
     DEFAULT_OPTIONS = {
         "ApplianceModeSupport": "disable",
         "DnsSupport": "enable",
-        "Ipv6Support": "disable"
+        "Ipv6Support": "disable",
     }
 
     def __init__(
-        self,
-        backend,
-        transit_gateway_id,
-        vpc_id,
-        subnet_ids,
-        tags=None,
-        options=None
+        self, backend, transit_gateway_id, vpc_id, subnet_ids, tags=None, options=None
     ):
 
         super().__init__(
@@ -6223,18 +6257,23 @@ class TransitGatewayAttachmentBackend(object):
         self.transit_gateways_attachments = {}
         super(TransitGatewayAttachmentBackend, self).__init__()
 
-    def create_transit_gateway_vpn_attachment(self, vpn_id, transit_gateway_id, tags=[]):
-        transit_gateway_vpn_attachment = TransitGatewayAttachment(self, resource_id=vpn_id, resource_type="vpn", transit_gateway_id=transit_gateway_id, tags=tags)
-        self.transit_gateways_attachments[transit_gateway_vpn_attachment.id] = transit_gateway_vpn_attachment
+    def create_transit_gateway_vpn_attachment(
+        self, vpn_id, transit_gateway_id, tags=[]
+    ):
+        transit_gateway_vpn_attachment = TransitGatewayAttachment(
+            self,
+            resource_id=vpn_id,
+            resource_type="vpn",
+            transit_gateway_id=transit_gateway_id,
+            tags=tags,
+        )
+        self.transit_gateways_attachments[
+            transit_gateway_vpn_attachment.id
+        ] = transit_gateway_vpn_attachment
         return transit_gateway_vpn_attachment
 
     def create_transit_gateway_vpc_attachment(
-        self,
-        transit_gateway_id,
-        vpc_id,
-        subnet_ids,
-        tags=None,
-        options=None
+        self, transit_gateway_id, vpc_id, subnet_ids, tags=None, options=None
     ):
         transit_gateway_vpc_attachment = TransitGatewayVpcAttachment(
             self,
@@ -6242,18 +6281,22 @@ class TransitGatewayAttachmentBackend(object):
             tags=tags,
             vpc_id=vpc_id,
             subnet_ids=subnet_ids,
-            options=options
+            options=options,
         )
-        self.transit_gateways_attachments[transit_gateway_vpc_attachment.id] = transit_gateway_vpc_attachment
+        self.transit_gateways_attachments[
+            transit_gateway_vpc_attachment.id
+        ] = transit_gateway_vpc_attachment
         return transit_gateway_vpc_attachment
 
-    def describe_transit_gateway_attachments(self, transit_gateways_attachment_ids=None, filters=None, max_results=0):
+    def describe_transit_gateway_attachments(
+        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+    ):
         transit_gateways_attachments = self.transit_gateways_attachments.values()
 
         attr_pairs = (
             ("resource-id", "resource_id"),
             ("resource-type", "resource_type"),
-            ("transit-gateway-id", "transit_gateway_id")
+            ("transit-gateway-id", "transit_gateway_id"),
         )
 
         if transit_gateways_attachment_ids:
@@ -6268,22 +6311,28 @@ class TransitGatewayAttachmentBackend(object):
                 values = filters.get(attrs[0]) or None
                 if values is not None:
                     transit_gateways_attachments = [
-                        transit_gateways_attachment for transit_gateways_attachment in transit_gateways_attachments
+                        transit_gateways_attachment
+                        for transit_gateways_attachment in transit_gateways_attachments
                         if getattr(transit_gateways_attachment, attrs[1]) in values
                     ]
         return transit_gateways_attachments
 
-    def describe_transit_gateway_vpc_attachments(self, transit_gateways_attachment_ids=None, filters=None, max_results=0):
+    def describe_transit_gateway_vpc_attachments(
+        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+    ):
         transit_gateways_attachments = self.transit_gateways_attachments.values()
 
         attr_pairs = (
             ("state", "state"),
             ("transit-gateway-attachment-id", "id"),
             ("transit-gateway-id", "transit_gateway_id"),
-            ("vpc-id", "resource_id")
+            ("vpc-id", "resource_id"),
         )
 
-        if not transit_gateways_attachment_ids == [] and transit_gateways_attachment_ids is not None:
+        if (
+            not transit_gateways_attachment_ids == []
+            and transit_gateways_attachment_ids is not None
+        ):
             transit_gateways_attachments = [
                 transit_gateways_attachment
                 for transit_gateways_attachment in transit_gateways_attachments
@@ -6295,7 +6344,8 @@ class TransitGatewayAttachmentBackend(object):
                 values = filters.get(attrs[0]) or None
                 if values is not None:
                     transit_gateways_attachments = [
-                        transit_gateways_attachment for transit_gateways_attachment in transit_gateways_attachments
+                        transit_gateways_attachment
+                        for transit_gateways_attachment in transit_gateways_attachments
                         if getattr(transit_gateways_attachment, attrs[1]) in values
                     ]
 

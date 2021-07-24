@@ -20,31 +20,37 @@ class TransitGatewayAttachment(BaseResponse):
             tags=tags,
             vpc_id=vpc_id,
             subnet_ids=subnet_ids,
-            options=options
+            options=options,
         )
         template = self.response_template(CREATE_TRANSIT_GATEWAY_VPC_ATTACHMENT)
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
 
     def describe_transit_gateway_vpc_attachments(self):
-        transit_gateways_attachment_ids = self._get_multi_param("TransitGatewayAttachmentIds")
+        transit_gateways_attachment_ids = self._get_multi_param(
+            "TransitGatewayAttachmentIds"
+        )
         filters = filters_from_querystring(self.querystring)
         max_results = self._get_param("MaxResults")
         transit_gateway_vpc_attachments = self.ec2_backend.describe_transit_gateway_vpc_attachments(
             transit_gateways_attachment_ids=transit_gateways_attachment_ids,
             filters=filters,
-            max_results=max_results
+            max_results=max_results,
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS)
-        return template.render(transit_gateway_vpc_attachments=transit_gateway_vpc_attachments)
+        return template.render(
+            transit_gateway_vpc_attachments=transit_gateway_vpc_attachments
+        )
 
     def describe_transit_gateway_attachments(self):
-        transit_gateways_attachment_ids = self._get_multi_param("TransitGatewayAttachmentIds")
+        transit_gateways_attachment_ids = self._get_multi_param(
+            "TransitGatewayAttachmentIds"
+        )
         filters = filters_from_querystring(self.querystring)
         max_results = self._get_param("MaxResults")
         transit_gateway_attachments = self.ec2_backend.describe_transit_gateway_attachments(
             transit_gateways_attachment_ids=transit_gateways_attachment_ids,
             filters=filters,
-            max_results=max_results
+            max_results=max_results,
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS)
         return template.render(transit_gateway_attachments=transit_gateway_attachments)

@@ -36,7 +36,7 @@ def test_describe_vpn_gateway():
 
 @mock_ec2
 def test_describe_vpn_connections_attachment_vpc_id_filter():
-    """ describe_vpn_gateways attachment.vpc-id filter """
+    """describe_vpn_gateways attachment.vpc-id filter"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -60,7 +60,7 @@ def test_describe_vpn_connections_attachment_vpc_id_filter():
 
 @mock_ec2
 def test_describe_vpn_connections_state_filter_attached():
-    """ describe_vpn_gateways attachment.state filter - match attached """
+    """describe_vpn_gateways attachment.state filter - match attached"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -84,7 +84,7 @@ def test_describe_vpn_connections_state_filter_attached():
 
 @mock_ec2
 def test_describe_vpn_connections_state_filter_deatched():
-    """ describe_vpn_gateways attachment.state filter - don't match detatched """
+    """describe_vpn_gateways attachment.state filter - don't match detatched"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -104,7 +104,7 @@ def test_describe_vpn_connections_state_filter_deatched():
 
 @mock_ec2
 def test_describe_vpn_connections_id_filter_match():
-    """ describe_vpn_gateways vpn-gateway-id filter - match correct id """
+    """describe_vpn_gateways vpn-gateway-id filter - match correct id"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -121,7 +121,7 @@ def test_describe_vpn_connections_id_filter_match():
 
 @mock_ec2
 def test_describe_vpn_connections_id_filter_miss():
-    """ describe_vpn_gateways vpn-gateway-id filter - don't match """
+    """describe_vpn_gateways vpn-gateway-id filter - don't match"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -136,7 +136,7 @@ def test_describe_vpn_connections_id_filter_miss():
 
 @mock_ec2
 def test_describe_vpn_connections_type_filter_match():
-    """ describe_vpn_gateways type filter - match """
+    """describe_vpn_gateways type filter - match"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -153,7 +153,7 @@ def test_describe_vpn_connections_type_filter_match():
 
 @mock_ec2
 def test_describe_vpn_connections_type_filter_miss():
-    """ describe_vpn_gateways type filter - don't match """
+    """describe_vpn_gateways type filter - don't match"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 

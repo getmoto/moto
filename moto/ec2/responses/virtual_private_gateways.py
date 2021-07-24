@@ -20,7 +20,11 @@ class VirtualPrivateGateways(BaseResponse):
         tags = (tags or {}).get("Tag", [])
         tags = {t["Key"]: t["Value"] for t in tags}
         vpn_gateway = self.ec2_backend.create_vpn_gateway(
-            type=type, amazon_side_asn=amazon_side_asn, availability_zone=availability_zone, tags=tags)
+            type=type,
+            amazon_side_asn=amazon_side_asn,
+            availability_zone=availability_zone,
+            tags=tags,
+        )
         template = self.response_template(CREATE_VPN_GATEWAY_RESPONSE)
         return template.render(vpn_gateway=vpn_gateway)
 

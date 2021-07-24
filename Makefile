@@ -13,9 +13,8 @@ init:
 	@pip install -r requirements-dev.txt
 
 lint:
-	flake8 --ignore=Q000,E203,E501,W503 moto
-	# TODO: "black" checks disabled for now (shouldn't fail the build)
-	black --check moto/ tests/ || true
+	flake8 moto
+	black --check moto/ tests/
 
 format:
 	black moto/ tests/

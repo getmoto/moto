@@ -177,11 +177,15 @@ def random_transit_gateway_id():
 
 
 def random_transit_gateway_route_table_id():
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"], size=17)
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"], size=17
+    )
 
 
 def random_transit_gateway_attachment_id():
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"], size=17)
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"], size=17
+    )
 
 
 def random_launch_template_id():

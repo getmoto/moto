@@ -477,11 +477,18 @@ class EventsHandler(BaseResponse):
         description = self._get_param("Description")
         connection_arn = self._get_param("ConnectionArn")
         invocation_endpoint = self._get_param("InvocationEndpoint")
-        invocation_rate_limit_per_second = self._get_param("InvocationRateLimitPerSecond")
+        invocation_rate_limit_per_second = self._get_param(
+            "InvocationRateLimitPerSecond"
+        )
         http_method = self._get_param("HttpMethod")
 
         result = self.events_backend.create_api_destination(
-            name, description, connection_arn, invocation_endpoint, invocation_rate_limit_per_second, http_method
+            name,
+            description,
+            connection_arn,
+            invocation_endpoint,
+            invocation_rate_limit_per_second,
+            http_method,
         )
         return self._create_response(result)
 
@@ -515,7 +522,9 @@ class EventsHandler(BaseResponse):
             description=self._get_param("Description"),
             http_method=self._get_param("HttpMethod"),
             invocation_endpoint=self._get_param("InvocationEndpoint"),
-            invocation_rate_limit_per_second=self._get_param("InvocationRateLimitPerSecond"),
+            invocation_rate_limit_per_second=self._get_param(
+                "InvocationRateLimitPerSecond"
+            ),
             name=self._get_param("Name"),
         )
 

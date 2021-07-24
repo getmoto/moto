@@ -20,14 +20,22 @@ class TransitGatewayRouteTable(BaseResponse):
 
     def describe_transit_gateway_route_tables(self):
         filters = filters_from_querystring(self.querystring)
-        transit_gateway_ids = self._get_multi_param("TransitGatewayRouteTableIds") or None
-        transit_gateway_route_tables = self.ec2_backend.get_all_transit_gateway_route_tables(transit_gateway_ids, filters)
+        transit_gateway_ids = (
+            self._get_multi_param("TransitGatewayRouteTableIds") or None
+        )
+        transit_gateway_route_tables = self.ec2_backend.get_all_transit_gateway_route_tables(
+            transit_gateway_ids, filters
+        )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE)
-        return template.render(transit_gateway_route_tables=transit_gateway_route_tables)
+        return template.render(
+            transit_gateway_route_tables=transit_gateway_route_tables
+        )
 
     def delete_transit_gateway_route_table(self):
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
-        transit_gateway_route_table = self.ec2_backend.delete_transit_gateway_route_table(transit_gateway_route_table_id)
+        transit_gateway_route_table = self.ec2_backend.delete_transit_gateway_route_table(
+            transit_gateway_route_table_id
+        )
         template = self.response_template(DELETE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE)
         return template.render(transit_gateway_route_table=transit_gateway_route_table)
 
@@ -40,10 +48,13 @@ class TransitGatewayRouteTable(BaseResponse):
             destination_cidr_block=destination_cidr_block,
             transit_gateway_route_table_id=transit_gateway_route_table_id,
             transit_gateway_attachment_id=transit_gateway_attachment_id,
-            blackhole=blackhole
+            blackhole=blackhole,
         )
         template = self.response_template(CREATE_TRANSIT_GATEWAY_ROUTE_RESPONSE)
-        return template.render(transit_gateway_route_table=transit_gateways_route_table, destination_cidr_block=destination_cidr_block)
+        return template.render(
+            transit_gateway_route_table=transit_gateways_route_table,
+            destination_cidr_block=destination_cidr_block,
+        )
 
     def delete_transit_gateway_route(self):
         destination_cidr_block = self._get_param("DestinationCidrBlock")
@@ -53,8 +64,11 @@ class TransitGatewayRouteTable(BaseResponse):
             transit_gateway_route_table_id=transit_gateway_route_table_id,
         )
         template = self.response_template(DELETE_TRANSIT_GATEWAY_ROUTE_RESPONSE)
-        rendered_template = template.render(transit_gateway_route_table=transit_gateway_route_table, destination_cidr_block=destination_cidr_block)
-        del(transit_gateway_route_table.routes[destination_cidr_block])
+        rendered_template = template.render(
+            transit_gateway_route_table=transit_gateway_route_table,
+            destination_cidr_block=destination_cidr_block,
+        )
+        del transit_gateway_route_table.routes[destination_cidr_block]
         return rendered_template
 
     def search_transit_gateway_routes(self):
@@ -62,7 +76,9 @@ class TransitGatewayRouteTable(BaseResponse):
         filters = filters_from_querystring(self.querystring)
         max_results = self._get_param("MaxResults")
         transit_gateway_routes = self.ec2_backend.search_transit_gateway_routes(
-            transit_gateway_route_table_id=transit_gateway_route_table_id, filters=filters, max_results=max_results
+            transit_gateway_route_table_id=transit_gateway_route_table_id,
+            filters=filters,
+            max_results=max_results,
         )
         template = self.response_template(SEARCH_TRANSIT_GATEWAY_ROUTES_RESPONSE)
         return template.render(transit_gateway_routes=transit_gateway_routes)

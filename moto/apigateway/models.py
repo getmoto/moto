@@ -915,7 +915,9 @@ class DomainName(BaseModel, dict):
         super(DomainName, self).__init__()
         self["domainName"] = domain_name
         self["regionalDomainName"] = "d-%s.execute-api.%s.amazonaws.com" % (
-            create_id(), kwargs.get('region_name') or "us-east-1")
+            create_id(),
+            kwargs.get("region_name") or "us-east-1",
+        )
         self["distributionDomainName"] = "d%s.cloudfront.net" % create_id()
         self["domainNameStatus"] = "AVAILABLE"
         self["domainNameStatusMessage"] = "Domain Name Available"

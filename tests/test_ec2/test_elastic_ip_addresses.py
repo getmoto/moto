@@ -327,7 +327,7 @@ def test_eip_reassociate_nic():
 
 @mock_ec2_deprecated
 def test_eip_associate_invalid_args():
-    """Associate EIP, invalid args """
+    """Associate EIP, invalid args"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
     reservation = conn.run_instances(EXAMPLE_AMI_ID)

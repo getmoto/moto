@@ -13,10 +13,17 @@ class VPNConnections(BaseResponse):
         static_routes = self._get_param("StaticRoutesOnly")
         tags = add_tag_specification(self._get_multi_param("TagSpecification"))
         vpn_connection = self.ec2_backend.create_vpn_connection(
-            type, cgw_id, vpn_gateway_id=vgw_id, transit_gateway_id=tgw_id, static_routes_only=static_routes, tags=tags
+            type,
+            cgw_id,
+            vpn_gateway_id=vgw_id,
+            transit_gateway_id=tgw_id,
+            static_routes_only=static_routes,
+            tags=tags,
         )
         if vpn_connection.transit_gateway_id:
-            self.ec2_backend.create_transit_gateway_vpn_attachment(vpn_id=vpn_connection.id, transit_gateway_id=tgw_id)
+            self.ec2_backend.create_transit_gateway_vpn_attachment(
+                vpn_id=vpn_connection.id, transit_gateway_id=tgw_id
+            )
         template = self.response_template(CREATE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connection=vpn_connection)
 
@@ -24,7 +31,9 @@ class VPNConnections(BaseResponse):
         vpn_connection_id = self._get_param("VpnConnectionId")
         vpn_connection = self.ec2_backend.delete_vpn_connection(vpn_connection_id)
         if vpn_connection.transit_gateway_id:
-            transit_gateway_attachments = self.ec2_backend.describe_transit_gateway_attachments()
+            transit_gateway_attachments = (
+                self.ec2_backend.describe_transit_gateway_attachments()
+            )
             for attachment in transit_gateway_attachments:
                 if attachment.resource_id == vpn_connection.id:
                     attachment.state = "deleted"
@@ -155,15 +164,17 @@ CUSTOMER_GATEWAY_CONFIGURATION_TEMPLATE = """
         </vpn_connection>
 """
 
-CREATE_VPN_CONNECTION_RESPONSE = """
+CREATE_VPN_CONNECTION_RESPONSE = (
+    """
 <CreateVpnConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpnConnection>
     <vpnConnectionId>{{ vpn_connection.id }}</vpnConnectionId>
     <state>{{ vpn_connection.state }}</state>
       <customerGatewayConfiguration>
-    """ + escape(CUSTOMER_GATEWAY_CONFIGURATION_TEMPLATE) + \
     """
+    + escape(CUSTOMER_GATEWAY_CONFIGURATION_TEMPLATE)
+    + """
       </customerGatewayConfiguration>
     <type>ipsec.1</type>
     <customerGatewayId>{{ vpn_connection.customer_gateway_id }}</customerGatewayId>
@@ -181,6 +192,7 @@ CREATE_VPN_CONNECTION_RESPONSE = """
     </tagSet>
   </vpnConnection>
 </CreateVpnConnectionResponse>"""
+)
 
 
 CREATE_VPN_CONNECTION_ROUTE_RESPONSE = """
@@ -201,7 +213,8 @@ DELETE_VPN_CONNECTION_ROUTE_RESPONSE = """
     <return>true</return>
 </DeleteVpnConnectionRouteResponse>"""
 
-DESCRIBE_VPN_CONNECTION_RESPONSE = """
+DESCRIBE_VPN_CONNECTION_RESPONSE = (
+    """
 <DescribeVpnConnectionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpnConnectionSet>
@@ -210,8 +223,9 @@ DESCRIBE_VPN_CONNECTION_RESPONSE = """
       <vpnConnectionId>{{ vpn_connection.id }}</vpnConnectionId>
       <state>{{ vpn_connection.state }}</state>
       <customerGatewayConfiguration>
-    """ + escape(CUSTOMER_GATEWAY_CONFIGURATION_TEMPLATE) + \
     """
+    + escape(CUSTOMER_GATEWAY_CONFIGURATION_TEMPLATE)
+    + """
       </customerGatewayConfiguration>
       <type>ipsec.1</type>
       <customerGatewayId>{{ vpn_connection.customer_gateway_id }}</customerGatewayId>
@@ -231,3 +245,4 @@ DESCRIBE_VPN_CONNECTION_RESPONSE = """
     {% endfor %}
   </vpnConnectionSet>
 </DescribeVpnConnectionsResponse>"""
+)

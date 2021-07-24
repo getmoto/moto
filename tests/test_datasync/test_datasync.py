@@ -156,7 +156,7 @@ def test_create_task():
 
 @mock_datasync
 def test_create_task_fail():
-    """ Test that Locations must exist before a Task can be created """
+    """Test that Locations must exist before a Task can be created"""
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_smb=True, create_s3=True)
     with pytest.raises(ClientError) as e:

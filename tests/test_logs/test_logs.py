@@ -14,11 +14,13 @@ _logs_region = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
 @mock_logs
-@pytest.mark.parametrize("kms_key_id", [
-    "arn:aws:kms:us-east-1:000000000000:key/51d81fab-b138-4bd2-8a09-07fd6d37224d",
-    None,
-
-])
+@pytest.mark.parametrize(
+    "kms_key_id",
+    [
+        "arn:aws:kms:us-east-1:000000000000:key/51d81fab-b138-4bd2-8a09-07fd6d37224d",
+        None,
+    ],
+)
 def test_create_log_group(kms_key_id):
     # Given
     conn = boto3.client("logs", "us-west-2")
@@ -530,7 +532,7 @@ def test_describe_subscription_filters_errors():
 
     # when
     with pytest.raises(ClientError) as e:
-        client.describe_subscription_filters(logGroupName="not-existing-log-group", )
+        client.describe_subscription_filters(logGroupName="not-existing-log-group",)
 
     # then
     ex = e.value

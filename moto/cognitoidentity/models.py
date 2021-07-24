@@ -13,7 +13,6 @@ from .utils import get_random_identity_id
 
 
 class CognitoIdentity(BaseModel):
-
     def __init__(self, region, identity_pool_name, **kwargs):
         self.identity_pool_name = identity_pool_name
         self.allow_unauthenticated_identities = kwargs.get(

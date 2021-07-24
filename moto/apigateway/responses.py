@@ -714,7 +714,9 @@ class APIGatewayResponse(BaseResponse):
                     patch_operations = self._get_param("patchOperations")
                     self.backend.update_domain_name(domain_name, patch_operations)
             else:
-                msg = 'Method "%s" for API GW domain names not implemented' % self.method
+                msg = (
+                    'Method "%s" for API GW domain names not implemented' % self.method
+                )
                 return 404, {}, json.dumps({"error": msg})
             return 200, {}, json.dumps(domain_names)
         except DomainNameNotFound as error:

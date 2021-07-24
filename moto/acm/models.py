@@ -452,7 +452,9 @@ class AWSCertificateManagerBackend(BaseBackend):
                 )
         else:
             # Will generate a random ARN
-            bundle = CertBundle(certificate, private_key, chain=chain, region=self.region)
+            bundle = CertBundle(
+                certificate, private_key, chain=chain, region=self.region
+            )
 
         self._certificates[bundle.arn] = bundle
 
