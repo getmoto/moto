@@ -6145,14 +6145,18 @@ class TransitGatewayRouteTableBackend(object):
         transit_gateway_attachment_id=None,
         blackhole=False,
     ):
-        transit_gateways_route_table = self.transit_gateways_route_tables.get(transit_gateway_route_table_id)
-        transit_gateway_attachment = self.transit_gateway_attachments.get(transit_gateway_attachment_id)
+        transit_gateways_route_table = self.transit_gateways_route_tables.get(
+            transit_gateway_route_table_id
+        )
+        transit_gateway_attachment = self.transit_gateway_attachments.get(
+            transit_gateway_attachment_id
+        )
 
         transit_gateways_route_table.routes[destination_cidr_block] = {
             "destinationCidrBlock": destination_cidr_block,
             "prefixListId": "",
             "state": "blackhole" if blackhole else "active",
-            "type": "static"
+            "type": "static",
         }
 
         if transit_gateway_attachment:
@@ -6163,7 +6167,9 @@ class TransitGatewayRouteTableBackend(object):
                     "transitGatewayAttachmentId": transit_gateway_attachment_id,
                 }
             }
-            transit_gateways_route_table.routes[destination_cidr_block].update(transit_gateway_attachment_dict)
+            transit_gateways_route_table.routes[destination_cidr_block].update(
+                transit_gateway_attachment_dict
+            )
         return transit_gateways_route_table.routes[destination_cidr_block]
 
     def delete_transit_gateway_route(
@@ -6175,8 +6181,12 @@ class TransitGatewayRouteTableBackend(object):
         transit_gateways_route_table.routes[destination_cidr_block]["state"] = "deleted"
         return transit_gateways_route_table
 
-    def search_transit_gateway_routes(self, transit_gateway_route_table_id, filters, max_results=None):
-        transit_gateway_route_table = self.transit_gateways_route_tables.get(transit_gateway_route_table_id)
+    def search_transit_gateway_routes(
+        self, transit_gateway_route_table_id, filters, max_results=None
+    ):
+        transit_gateway_route_table = self.transit_gateways_route_tables.get(
+            transit_gateway_route_table_id
+        )
         if not transit_gateway_route_table:
             return []
 
@@ -6197,26 +6207,46 @@ class TransitGatewayRouteTableBackend(object):
             routes = routes[: int(max_results)]
         return routes
 
-    def set_route_table_association(self, transit_gateway_attachment_id, transit_gateway_route_table_id):
-        self.transit_gateways_route_tables[transit_gateway_route_table_id].route_table_association = {
-            'resourceId': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_id,
-            'resourceType': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_type,
-            'state': 'associated',
-            'transitGatewayAttachmentId': transit_gateway_attachment_id
+    def set_route_table_association(
+        self, transit_gateway_attachment_id, transit_gateway_route_table_id
+    ):
+        self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ].route_table_association = {
+            "resourceId": self.transit_gateway_attachments[
+                transit_gateway_attachment_id
+            ].resource_id,
+            "resourceType": self.transit_gateway_attachments[
+                transit_gateway_attachment_id
+            ].resource_type,
+            "state": "associated",
+            "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
 
-    def set_route_table_propagation(self, transit_gateway_attachment_id, transit_gateway_route_table_id):
-        self.transit_gateways_route_tables[transit_gateway_route_table_id].route_table_propagation = {
-            'resourceId': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_id,
-            'resourceType': self.transit_gateway_attachments[transit_gateway_attachment_id].resource_type,
-            'state': 'enabled',
-            'transitGatewayAttachmentId': transit_gateway_attachment_id
+    def set_route_table_propagation(
+        self, transit_gateway_attachment_id, transit_gateway_route_table_id
+    ):
+        self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ].route_table_propagation = {
+            "resourceId": self.transit_gateway_attachments[
+                transit_gateway_attachment_id
+            ].resource_id,
+            "resourceType": self.transit_gateway_attachments[
+                transit_gateway_attachment_id
+            ].resource_type,
+            "state": "enabled",
+            "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
 
     def disable_route_table_propagation(self, transit_gateway_route_table_id):
-        self.transit_gateways_route_tables[transit_gateway_route_table_id].route_table_propagation = {}
+        self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ].route_table_propagation = {}
 
-    def get_all_transit_gateway_route_table_associations(self, transit_gateway_route_table_id=None, filters=None):
+    def get_all_transit_gateway_route_table_associations(
+        self, transit_gateway_route_table_id=None, filters=None
+    ):
         transit_gateway_route_tables = self.transit_gateways_route_tables.values()
 
         if transit_gateway_route_tables:
@@ -6229,7 +6259,11 @@ class TransitGatewayRouteTableBackend(object):
         attr_pairs = (
             ("resource-id", "route_table_association", "resourceId"),
             ("resource-type", "route_table_association", "resourceType"),
-            ("transit-gateway-attachment-id", "route_table_association", "transitGatewayAttachmentId")
+            (
+                "transit-gateway-attachment-id",
+                "route_table_association",
+                "transitGatewayAttachmentId",
+            ),
         )
 
         if transit_gateway_route_tables:
@@ -6245,12 +6279,22 @@ class TransitGatewayRouteTableBackend(object):
                 values = filters.get(attrs[0]) or None
                 if values is not None:
                     for transit_gateway_route_table in transit_gateway_route_tables:
-                        if (len(attrs) <= 2 and getattr(transit_gateway_route_table, attrs[1]) in values) or \
-                           (len(attrs) == 3 and getattr(transit_gateway_route_table, attrs[1]).get(attrs[2]) in values):
+                        if (
+                            len(attrs) <= 2
+                            and getattr(transit_gateway_route_table, attrs[1]) in values
+                        ) or (
+                            len(attrs) == 3
+                            and getattr(transit_gateway_route_table, attrs[1]).get(
+                                attrs[2]
+                            )
+                            in values
+                        ):
                             result.append(transit_gateway_route_table)
         return transit_gateway_route_tables if not filters else result
 
-    def get_all_transit_gateway_route_table_propagations(self, transit_gateway_route_table_id=None, filters=None):
+    def get_all_transit_gateway_route_table_propagations(
+        self, transit_gateway_route_table_id=None, filters=None
+    ):
         transit_gateway_route_tables = self.transit_gateways_route_tables.values()
 
         if transit_gateway_route_tables:
@@ -6263,7 +6307,11 @@ class TransitGatewayRouteTableBackend(object):
         attr_pairs = (
             ("resource-id", "route_table_propagation", "resourceId"),
             ("resource-type", "route_table_propagation", "resourceType"),
-            ("transit-gateway-attachment-id", "route_table_propagation", "transitGatewayAttachmentId")
+            (
+                "transit-gateway-attachment-id",
+                "route_table_propagation",
+                "transitGatewayAttachmentId",
+            ),
         )
 
         if transit_gateway_route_tables:
@@ -6279,8 +6327,16 @@ class TransitGatewayRouteTableBackend(object):
                 values = filters.get(attrs[0]) or None
                 if values is not None:
                     for transit_gateway_route_table in transit_gateway_route_tables:
-                        if (len(attrs) <= 2 and getattr(transit_gateway_route_table, attrs[1]) in values) or \
-                           (len(attrs) == 3 and getattr(transit_gateway_route_table, attrs[1]).get(attrs[2]) in values):
+                        if (
+                            len(attrs) <= 2
+                            and getattr(transit_gateway_route_table, attrs[1]) in values
+                        ) or (
+                            len(attrs) == 3
+                            and getattr(transit_gateway_route_table, attrs[1]).get(
+                                attrs[2]
+                            )
+                            in values
+                        ):
                             result.append(transit_gateway_route_table)
         return transit_gateway_route_tables if not filters else result
 
@@ -6357,7 +6413,7 @@ class TransitGatewayAttachmentBackend(object):
             transit_gateway_id=transit_gateway_id,
             tags=tags,
         )
-        self.transit_gateways_attachments[
+        self.transit_gateway_attachments[
             transit_gateway_vpn_attachment.id
         ] = transit_gateway_vpn_attachment
         return transit_gateway_vpn_attachment
@@ -6373,7 +6429,7 @@ class TransitGatewayAttachmentBackend(object):
             subnet_ids=subnet_ids,
             options=options,
         )
-        self.transit_gateways_attachments[
+        self.transit_gateway_attachments[
             transit_gateway_vpc_attachment.id
         ] = transit_gateway_vpc_attachment
         return transit_gateway_vpc_attachment
@@ -6381,7 +6437,7 @@ class TransitGatewayAttachmentBackend(object):
     def describe_transit_gateway_attachments(
         self, transit_gateways_attachment_ids=None, filters=None, max_results=0
     ):
-        transit_gateways_attachments = self.transit_gateways_attachments.values()
+        transit_gateway_attachments = self.transit_gateway_attachments.values()
 
         attr_pairs = (
             ("resource-id", "resource_id"),
@@ -6389,8 +6445,11 @@ class TransitGatewayAttachmentBackend(object):
             ("transit-gateway-id", "transit_gateway_id"),
         )
 
-        if transit_gateways_attachment_ids:
-            transit_gateways_attachments = [
+        if (
+            not transit_gateways_attachment_ids == []
+            and transit_gateways_attachment_ids is not None
+        ):
+            transit_gateway_attachments = [
                 transit_gateways_attachment
                 for transit_gateways_attachment in transit_gateways_attachments
                 if transit_gateways_attachment.id in transit_gateways_attachment_ids
@@ -6400,9 +6459,9 @@ class TransitGatewayAttachmentBackend(object):
             for attrs in attr_pairs:
                 values = filters.get(attrs[0]) or None
                 if values is not None:
-                    transit_gateways_attachments = [
+                    transit_gateway_attachments = [
                         transit_gateways_attachment
-                        for transit_gateways_attachment in transit_gateways_attachments
+                        for transit_gateways_attachment in transit_gateway_attachments
                         if getattr(transit_gateways_attachment, attrs[1]) in values
                     ]
         return transit_gateways_attachments
@@ -6442,8 +6501,12 @@ class TransitGatewayAttachmentBackend(object):
         return transit_gateways_attachments
 
     def delete_transit_gateway_vpc_attachment(self, transit_gateway_attachment_id=None):
-        self.transit_gateway_attachments[transit_gateway_attachment_id].state = "deleted"
-        transit_gateway_attachment = self.transit_gateway_attachments.pop(transit_gateway_attachment_id)
+        self.transit_gateway_attachments[
+            transit_gateway_attachment_id
+        ].state = "deleted"
+        transit_gateway_attachment = self.transit_gateway_attachments.pop(
+            transit_gateway_attachment_id
+        )
         return transit_gateway_attachment
 
     def modify_transit_gateway_vpc_attachment(
@@ -6451,44 +6514,69 @@ class TransitGatewayAttachmentBackend(object):
         add_subnet_ids=None,
         options=None,
         remove_subnet_ids=None,
-        transit_gateway_attachment_id=None
+        transit_gateway_attachment_id=None,
     ):
         if remove_subnet_ids:
-            self.transit_gateway_attachments[transit_gateway_attachment_id].subnet_ids = [
-                id for id in self.transit_gateway_attachments[transit_gateway_attachment_id].subnet_ids
+            self.transit_gateway_attachments[
+                transit_gateway_attachment_id
+            ].subnet_ids = [
+                id
+                for id in self.transit_gateway_attachments[
+                    transit_gateway_attachment_id
+                ].subnet_ids
                 if id not in remove_subnet_ids
             ]
         if options:
-            self.transit_gateway_attachments[transit_gateway_attachment_id].options.update(options)
+            self.transit_gateway_attachments[
+                transit_gateway_attachment_id
+            ].options.update(options)
 
         if add_subnet_ids:
-            self.transit_gateway_attachments[transit_gateway_attachment_id].subnet_ids = add_subnet_ids
+            self.transit_gateway_attachments[
+                transit_gateway_attachment_id
+            ].subnet_ids = add_subnet_ids
 
         return self.transit_gateway_attachments[transit_gateway_attachment_id]
 
-    def set_attachment_association(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
+    def set_attachment_association(
+        self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
+    ):
         self.transit_gateway_attachments[transit_gateway_attachment_id].association = {
             "state": "associated",
-            "transitGatewayRouteTableId": transit_gateway_route_table_id
+            "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
-    def set_attachment_propagation(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
+    def set_attachment_propagation(
+        self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
+    ):
         self.transit_gateway_attachments[transit_gateway_attachment_id].association = {
             "state": "enabled",
-            "transitGatewayRouteTableId": transit_gateway_route_table_id
+            "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
     def disable_attachment_propagation(self, transit_gateway_attachment_id=None):
-        self.transit_gateway_attachments[transit_gateway_attachment_id].association["state"] = "disabled"
+        self.transit_gateway_attachments[transit_gateway_attachment_id].association[
+            "state"
+        ] = "disabled"
 
 
 class TransitGatewayRelations(object):
     # this class is for TransitGatewayAssociation and TransitGatewayPropagation
-    def __init__(self, backend, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None, state=None):
+    def __init__(
+        self,
+        backend,
+        transit_gateway_attachment_id=None,
+        transit_gateway_route_table_id=None,
+        state=None,
+    ):
         self.transit_gateway_attachment_id = transit_gateway_attachment_id
         self.transit_gateway_route_table_id = transit_gateway_route_table_id
-        self.resource_id = backend.transit_gateway_attachments[transit_gateway_attachment_id].resource_id
-        self.resource_type = backend.transit_gateway_attachments[transit_gateway_attachment_id].resource_type
+        self.resource_id = backend.transit_gateway_attachments[
+            transit_gateway_attachment_id
+        ].resource_id
+        self.resource_type = backend.transit_gateway_attachments[
+            transit_gateway_attachment_id
+        ].resource_type
         self.state = state
 
 
@@ -6498,27 +6586,63 @@ class TransitGatewayRelationsBackend(object):
         self.transit_gateway_propagations = {}
         super(TransitGatewayRelationsBackend, self).__init__()
 
-    def associate_transit_gateway_route_table(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
-        transit_gateway_association = TransitGatewayRelations(self, transit_gateway_attachment_id, transit_gateway_route_table_id, state='associated')
-        self.set_route_table_association(transit_gateway_attachment_id, transit_gateway_route_table_id)
-        self.set_attachment_association(transit_gateway_attachment_id, transit_gateway_route_table_id)
-        self.transit_gateway_associations[transit_gateway_attachment_id] = transit_gateway_association
+    def associate_transit_gateway_route_table(
+        self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
+    ):
+        transit_gateway_association = TransitGatewayRelations(
+            self,
+            transit_gateway_attachment_id,
+            transit_gateway_route_table_id,
+            state="associated",
+        )
+        self.set_route_table_association(
+            transit_gateway_attachment_id, transit_gateway_route_table_id
+        )
+        self.set_attachment_association(
+            transit_gateway_attachment_id, transit_gateway_route_table_id
+        )
+        self.transit_gateway_associations[
+            transit_gateway_attachment_id
+        ] = transit_gateway_association
 
         return transit_gateway_association
 
-    def enable_transit_gateway_route_table_propagation(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
-        transit_gateway_propagation = TransitGatewayRelations(self, transit_gateway_attachment_id, transit_gateway_route_table_id, state='enabled')
-        self.set_route_table_propagation(transit_gateway_attachment_id, transit_gateway_route_table_id)
-        self.set_attachment_propagation(transit_gateway_attachment_id, transit_gateway_route_table_id)
-        self.transit_gateway_propagations[transit_gateway_attachment_id] = transit_gateway_propagation
+    def enable_transit_gateway_route_table_propagation(
+        self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
+    ):
+        transit_gateway_propagation = TransitGatewayRelations(
+            self,
+            transit_gateway_attachment_id,
+            transit_gateway_route_table_id,
+            state="enabled",
+        )
+        self.set_route_table_propagation(
+            transit_gateway_attachment_id, transit_gateway_route_table_id
+        )
+        self.set_attachment_propagation(
+            transit_gateway_attachment_id, transit_gateway_route_table_id
+        )
+        self.transit_gateway_propagations[
+            transit_gateway_attachment_id
+        ] = transit_gateway_propagation
 
         return transit_gateway_propagation
 
-    def disable_transit_gateway_route_table_propagation(self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None):
-        self.disable_route_table_propagation(transit_gateway_route_table_id=transit_gateway_route_table_id)
-        self.disable_attachment_propagation(transit_gateway_attachment_id=transit_gateway_attachment_id)
-        self.transit_gateway_propagations[transit_gateway_attachment_id].state = 'disabled'
-        transit_gateway_propagation = self.transit_gateway_propagations.pop(transit_gateway_attachment_id)
+    def disable_transit_gateway_route_table_propagation(
+        self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
+    ):
+        self.disable_route_table_propagation(
+            transit_gateway_route_table_id=transit_gateway_route_table_id
+        )
+        self.disable_attachment_propagation(
+            transit_gateway_attachment_id=transit_gateway_attachment_id
+        )
+        self.transit_gateway_propagations[
+            transit_gateway_attachment_id
+        ].state = "disabled"
+        transit_gateway_propagation = self.transit_gateway_propagations.pop(
+            transit_gateway_attachment_id
+        )
 
         return transit_gateway_propagation
 

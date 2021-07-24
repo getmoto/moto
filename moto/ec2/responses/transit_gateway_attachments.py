@@ -51,7 +51,7 @@ class TransitGatewayAttachment(BaseResponse):
             add_subnet_ids=add_subnet_ids,
             options=options,
             remove_subnet_ids=remove_subnet_ids,
-            transit_gateway_attachment_id=transit_gateway_attachment_id
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
         )
         template = self.response_template(MODIFY_TRANSIT_GATEWAY_VPC_ATTACHMENTS)
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
@@ -79,31 +79,31 @@ class TransitGatewayAttachment(BaseResponse):
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
 
     def associate_transit_gateway_route_table(self):
-        transit_gateway_attachment_id = self._get_param('TransitGatewayAttachmentId')
-        transit_gateway_route_table_id = self._get_param('TransitGatewayRouteTableId')
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         transit_gateway_association = self.ec2_backend.associate_transit_gateway_route_table(
             transit_gateway_attachment_id=transit_gateway_attachment_id,
-            transit_gateway_route_table_id=transit_gateway_route_table_id
+            transit_gateway_route_table_id=transit_gateway_route_table_id,
         )
         template = self.response_template(TRANSIT_GATEWAY_ASSOCIATIONS)
         return template.render(transit_gateway_association=transit_gateway_association)
 
     def enable_transit_gateway_route_table_propagation(self):
-        transit_gateway_attachment_id = self._get_param('TransitGatewayAttachmentId')
-        transit_gateway_route_table_id = self._get_param('TransitGatewayRouteTableId')
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         transit_gateway_propagation = self.ec2_backend.enable_transit_gateway_route_table_propagation(
             transit_gateway_attachment_id=transit_gateway_attachment_id,
-            transit_gateway_route_table_id=transit_gateway_route_table_id
+            transit_gateway_route_table_id=transit_gateway_route_table_id,
         )
         template = self.response_template(TRANSIT_GATEWAY_PROPAGATION)
         return template.render(transit_gateway_propagation=transit_gateway_propagation)
 
     def disable_transit_gateway_route_table_propagation(self):
-        transit_gateway_attachment_id = self._get_param('TransitGatewayAttachmentId')
-        transit_gateway_route_table_id = self._get_param('TransitGatewayRouteTableId')
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         transit_gateway_propagation = self.ec2_backend.disable_transit_gateway_route_table_propagation(
             transit_gateway_attachment_id=transit_gateway_attachment_id,
-            transit_gateway_route_table_id=transit_gateway_route_table_id
+            transit_gateway_route_table_id=transit_gateway_route_table_id,
         )
         template = self.response_template(TRANSIT_GATEWAY_PROPAGATION)
         return template.render(transit_gateway_propagation=transit_gateway_propagation)
