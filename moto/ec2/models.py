@@ -6410,7 +6410,7 @@ class TransitGatewayAttachmentBackend(object):
     def describe_transit_gateway_vpc_attachments(
         self, transit_gateways_attachment_ids=None, filters=None, max_results=0
     ):
-        transit_gateway_attachments = self.transit_gateways_attachments.values()
+        transit_gateways_attachments = self.transit_gateway_attachments.values()
 
         attr_pairs = (
             ("state", "state"),
@@ -6423,7 +6423,7 @@ class TransitGatewayAttachmentBackend(object):
             not transit_gateways_attachment_ids == []
             and transit_gateways_attachment_ids is not None
         ):
-            transit_gateway_attachments = [
+            transit_gateways_attachments = [
                 transit_gateways_attachment
                 for transit_gateways_attachment in transit_gateways_attachments
                 if transit_gateways_attachment.id in transit_gateways_attachment_ids
@@ -6433,13 +6433,13 @@ class TransitGatewayAttachmentBackend(object):
             for attrs in attr_pairs:
                 values = filters.get(attrs[0]) or None
                 if values is not None:
-                    transit_gateway_attachments = [
+                    transit_gateways_attachments = [
                         transit_gateways_attachment
-                        for transit_gateways_attachment in transit_gateway_attachments
+                        for transit_gateways_attachment in transit_gateways_attachments
                         if getattr(transit_gateways_attachment, attrs[1]) in values
                     ]
 
-        return transit_gateway_attachments
+        return transit_gateways_attachments
 
     def delete_transit_gateway_vpc_attachment(self, transit_gateway_attachment_id=None):
         self.transit_gateway_attachments[transit_gateway_attachment_id].state = "deleted"
