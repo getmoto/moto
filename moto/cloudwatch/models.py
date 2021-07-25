@@ -189,13 +189,11 @@ class MetricDatum(BaseModel):
         if name and name != self.name:
             return False
 
-        # Note: The logic below appears to be incorrect. We should not skip adding new Metrics
-        #       if a metric with the same dimensions has already been added to the list.
-        # for metric in already_present_metrics:
-        #     if self.dimensions and are_dimensions_same(
-        #         metric.dimensions, self.dimensions
-        #     ):
-        #         return False
+        for metric in already_present_metrics:
+            if self.dimensions and are_dimensions_same(
+                metric.dimensions, self.dimensions
+            ):
+                return False
 
         if dimensions and any(
             Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
