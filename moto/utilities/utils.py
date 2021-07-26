@@ -46,12 +46,8 @@ def filter_resources(resources, filters, attr_pairs):
         if values is not None:
             for resource in resources:
                 instance = getattr(resource, attrs[1])
-                if (
-                    len(attrs) <= 2
-                    and instance in values
-                ) or (
-                    len(attrs) == 3
-                    and instance.get(attrs[2]) in values
+                if (len(attrs) <= 2 and instance in values) or (
+                    len(attrs) == 3 and instance.get(attrs[2]) in values
                 ):
                     result.append(instance)
     return result

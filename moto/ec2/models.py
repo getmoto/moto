@@ -6015,9 +6015,9 @@ class TransitGatewayBackend(object):
         attr_pairs = (
             ("transit-gateway-id", "id"),
             ("state", "state"),
-            ("owner-id", "owner_id")
-
-            ("default-association-route-table", "default_association_route_table"),
+            ("owner-id", "owner_id")(
+                "default-association-route-table", "default_association_route_table"
+            ),
             ("default-propagation-route-table", "default_propagation_route_table"),
             ("state", "state"),
             ("transit-gateway-id", "transit_gateway_id"),
@@ -6396,7 +6396,7 @@ class TransitGatewayAttachmentBackend(object):
         ):
             transit_gateway_attachments = [
                 transit_gateways_attachment
-                for transit_gateways_attachment in transit_gateways_attachments
+                for transit_gateways_attachment in transit_gateway_attachments
                 if transit_gateways_attachment.id in transit_gateways_attachment_ids
             ]
 
@@ -6408,7 +6408,7 @@ class TransitGatewayAttachmentBackend(object):
     def describe_transit_gateway_vpc_attachments(
         self, transit_gateways_attachment_ids=None, filters=None, max_results=0
     ):
-        transit_gateways_attachments = self.transit_gateway_attachments.values()
+        transit_gateway_attachments = self.transit_gateway_attachments.values()
 
         attr_pairs = (
             ("state", "state"),
@@ -6421,15 +6421,15 @@ class TransitGatewayAttachmentBackend(object):
             not transit_gateways_attachment_ids == []
             and transit_gateways_attachment_ids is not None
         ):
-            transit_gateways_attachments = [
+            transit_gateway_attachments = [
                 transit_gateways_attachment
-                for transit_gateways_attachment in transit_gateways_attachments
+                for transit_gateways_attachment in transit_gateway_attachments
                 if transit_gateways_attachment.id in transit_gateways_attachment_ids
             ]
 
-        result = transit_gateways_attachments
+        result = transit_gateway_attachments
         if filters:
-            result = filter_resources(transit_gateways_attachments, filters, attr_pairs)
+            result = filter_resources(transit_gateway_attachments, filters, attr_pairs)
         return result
 
     def delete_transit_gateway_vpc_attachment(self, transit_gateway_attachment_id=None):
@@ -6450,11 +6450,9 @@ class TransitGatewayAttachmentBackend(object):
         tgw_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
         if remove_subnet_ids:
             tgw_attachment.subnet_ids = [
-                id
-                for id in tgw_attachment.subnet_ids
-                if id not in remove_subnet_ids
+                id for id in tgw_attachment.subnet_ids if id not in remove_subnet_ids
             ]
-        
+
         if options:
             tgw_attachment.options.update(options)
 
