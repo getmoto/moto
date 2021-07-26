@@ -2,7 +2,6 @@ import re
 from datetime import datetime
 
 from boto3 import Session
-from six import iteritems
 
 from moto.core import ACCOUNT_ID, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -160,7 +159,7 @@ class ForecastBackend(BaseBackend):
         dsg.update(dataset_arns)
 
     def list_dataset_groups(self):
-        return [v for (_, v) in iteritems(self.dataset_groups)]
+        return [v for (_, v) in self.dataset_groups.items()]
 
     def reset(self):
         region_name = self.region_name

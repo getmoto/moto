@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from jinja2 import Template
-from six.moves.urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import BaseResponse
 from .models import route53_backend

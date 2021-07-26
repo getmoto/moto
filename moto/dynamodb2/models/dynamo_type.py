@@ -1,5 +1,3 @@
-import six
-
 from moto.dynamodb2.comparisons import get_comparison_func
 from moto.dynamodb2.exceptions import InvalidUpdateExpression, IncorrectDataType
 from moto.dynamodb2.models.utilities import attribute_is_list, bytesize
@@ -200,7 +198,7 @@ class DynamoType(object):
             raise TypeError("Sum only supported for Numbers.")
 
     def __getitem__(self, item):
-        if isinstance(item, six.string_types):
+        if isinstance(item, str):
             # If our DynamoType is a map it should be subscriptable with a key
             if self.type == DDBType.MAP:
                 return self.value[item]
@@ -222,7 +220,7 @@ class DynamoType(object):
                     self.value.append(value)
                 else:
                     self.value[key] = value
-        elif isinstance(key, six.string_types):
+        elif isinstance(key, str):
             if self.is_map():
                 self.value[key] = value
         else:
@@ -251,7 +249,7 @@ class DynamoType(object):
 
         Returns DynamoType or None.
         """
-        if isinstance(key, six.string_types) and self.is_map():
+        if isinstance(key, str) and self.is_map():
             if "." in key and key.split(".")[0] in self.value:
                 return self.value[key.split(".")[0]].child_attr(
                     ".".join(key.split(".")[1:])

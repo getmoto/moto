@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import json
 import yaml
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id

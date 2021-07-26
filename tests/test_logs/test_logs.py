@@ -4,7 +4,6 @@ from unittest import SkipTest
 
 import boto3
 import pytest
-import six
 import sure  # noqa
 from botocore.exceptions import ClientError
 
@@ -97,7 +96,7 @@ def test_put_logs():
     )
     events = res["events"]
     nextSequenceToken = putRes["nextSequenceToken"]
-    assert isinstance(nextSequenceToken, six.string_types) == True
+    assert isinstance(nextSequenceToken, str) == True
     assert len(nextSequenceToken) == 56
     events.should.have.length_of(2)
 

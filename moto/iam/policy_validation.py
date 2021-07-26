@@ -1,8 +1,6 @@
 import json
 import re
 
-from six import string_types
-
 from moto.iam.exceptions import MalformedPolicyDocument
 
 
@@ -190,7 +188,7 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_effect_syntax(statement):
         assert "Effect" in statement
-        assert isinstance(statement["Effect"], string_types)
+        assert isinstance(statement["Effect"], str)
         assert statement["Effect"].lower() in [
             allowed_effect.lower() for allowed_effect in VALID_EFFECTS
         ]
@@ -222,10 +220,10 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_string_or_list_of_strings_syntax(statement, key):
         if key in statement:
-            assert isinstance(statement[key], (string_types, list))
+            assert isinstance(statement[key], (str, list))
             if isinstance(statement[key], list):
                 for resource in statement[key]:
-                    assert isinstance(resource, string_types)
+                    assert isinstance(resource, str)
 
     @staticmethod
     def _validate_condition_syntax(statement):
@@ -237,7 +235,7 @@ class IAMPolicyDocumentValidator:
                     condition_element_key,
                     condition_element_value,
                 ) in condition_value.items():
-                    assert isinstance(condition_element_value, (list, string_types))
+                    assert isinstance(condition_element_value, (list, str))
 
                 if (
                     IAMPolicyDocumentValidator._strip_condition_key(condition_key)
@@ -262,11 +260,11 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_sid_syntax(statement):
         if "Sid" in statement:
-            assert isinstance(statement["Sid"], string_types)
+            assert isinstance(statement["Sid"], str)
 
     def _validate_id_syntax(self):
         if "Id" in self._policy_json:
-            assert isinstance(self._policy_json["Id"], string_types)
+            assert isinstance(self._policy_json["Id"], str)
 
     def _validate_resource_exist(self):
         for statement in self._statements:
@@ -295,7 +293,7 @@ class IAMPolicyDocumentValidator:
     def _validate_action_like_for_prefixes(self, key):
         for statement in self._statements:
             if key in statement:
-                if isinstance(statement[key], string_types):
+                if isinstance(statement[key], str):
                     self._validate_action_prefix(statement[key])
                 else:
                     for action in statement[key]:
@@ -328,7 +326,7 @@ class IAMPolicyDocumentValidator:
     def _validate_resource_like_for_formats(self, key):
         for statement in self._statements:
             if key in statement:
-                if isinstance(statement[key], string_types):
+                if isinstance(statement[key], str):
                     self._validate_resource_format(statement[key])
                 else:
                     for resource in sorted(statement[key], reverse=True):
@@ -438,7 +436,7 @@ class IAMPolicyDocumentValidator:
 
     @staticmethod
     def _legacy_parse_resource_like(statement, key):
-        if isinstance(statement[key], string_types):
+        if isinstance(statement[key], str):
             if statement[key] != "*":
                 assert statement[key].count(":") >= 5 or "::" not in statement[key]
                 assert statement[key].split(":")[2] != ""
@@ -459,7 +457,7 @@ class IAMPolicyDocumentValidator:
                 condition_element_key,
                 condition_element_value,
             ) in condition_value.items():
-                if isinstance(condition_element_value, string_types):
+                if isinstance(condition_element_value, str):
                     IAMPolicyDocumentValidator._legacy_parse_date_condition_value(
                         condition_element_value
                     )

@@ -18,7 +18,6 @@ import sys
 import time
 import uuid
 
-import six
 
 from bisect import insort
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
@@ -153,7 +152,7 @@ class FakeKey(BaseModel):
 
         # Hack for working around moto's own unit tests; this probably won't
         # actually get hit in normal use.
-        if isinstance(new_value, six.text_type):
+        if isinstance(new_value, str):
             new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
@@ -284,7 +283,7 @@ class FakeKey(BaseModel):
         return state
 
     def __setstate__(self, state):
-        self.__dict__.update({k: v for k, v in six.iteritems(state) if k != "value"})
+        self.__dict__.update({k: v for k, v in state.items() if k != "value"})
 
         self._value_buffer = tempfile.SpooledTemporaryFile(
             max_size=self._max_buffer_size
@@ -628,24 +627,16 @@ class CorsRule(BaseModel):
         max_age_seconds=None,
     ):
         self.allowed_methods = (
-            [allowed_methods]
-            if isinstance(allowed_methods, six.string_types)
-            else allowed_methods
+            [allowed_methods] if isinstance(allowed_methods, str) else allowed_methods
         )
         self.allowed_origins = (
-            [allowed_origins]
-            if isinstance(allowed_origins, six.string_types)
-            else allowed_origins
+            [allowed_origins] if isinstance(allowed_origins, str) else allowed_origins
         )
         self.allowed_headers = (
-            [allowed_headers]
-            if isinstance(allowed_headers, six.string_types)
-            else allowed_headers
+            [allowed_headers] if isinstance(allowed_headers, str) else allowed_headers
         )
         self.exposed_headers = (
-            [expose_headers]
-            if isinstance(expose_headers, six.string_types)
-            else expose_headers
+            [expose_headers] if isinstance(expose_headers, str) else expose_headers
         )
         self.max_age_seconds = max_age_seconds
 
@@ -960,20 +951,20 @@ class FakeBucket(CloudFormationModel):
 
         for rule in rules:
             assert isinstance(rule["AllowedMethod"], list) or isinstance(
-                rule["AllowedMethod"], six.string_types
+                rule["AllowedMethod"], str
             )
             assert isinstance(rule["AllowedOrigin"], list) or isinstance(
-                rule["AllowedOrigin"], six.string_types
+                rule["AllowedOrigin"], str
             )
             assert isinstance(rule.get("AllowedHeader", []), list) or isinstance(
-                rule.get("AllowedHeader", ""), six.string_types
+                rule.get("AllowedHeader", ""), str
             )
             assert isinstance(rule.get("ExposedHeader", []), list) or isinstance(
-                rule.get("ExposedHeader", ""), six.string_types
+                rule.get("ExposedHeader", ""), str
             )
-            assert isinstance(rule.get("MaxAgeSeconds", "0"), six.string_types)
+            assert isinstance(rule.get("MaxAgeSeconds", "0"), str)
 
-            if isinstance(rule["AllowedMethod"], six.string_types):
+            if isinstance(rule["AllowedMethod"], str):
                 methods = [rule["AllowedMethod"]]
             else:
                 methods = rule["AllowedMethod"]

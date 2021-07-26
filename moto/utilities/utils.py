@@ -1,10 +1,6 @@
 import json
 import random
 import string
-import six
-
-if six.PY2:
-    from io import open
 
 
 def str2bool(v):

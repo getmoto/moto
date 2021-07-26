@@ -13,7 +13,7 @@ import time
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-from six.moves.urllib import parse
+from urllib import parse
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID, CloudFormationModel
 from moto.core.utils import (

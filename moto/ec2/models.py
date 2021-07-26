@@ -6,7 +6,6 @@ import ipaddress
 import json
 import os
 import re
-import six
 import warnings
 
 from boto3 import Session
@@ -576,12 +575,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
         if isinstance(self.user_data, list) and len(self.user_data) > 0:
-            if six.PY3 and isinstance(self.user_data[0], six.binary_type):
+            if isinstance(self.user_data[0], bytes):
                 # string will have a "b" prefix -- need to get rid of it
                 self.user_data[0] = self.user_data[0].decode("utf-8")
-            elif six.PY2 and isinstance(self.user_data[0], six.text_type):
-                # string will have a "u" prefix -- need to get rid of it
-                self.user_data[0] = self.user_data[0].encode("utf-8")
 
         if self.subnet_id:
             subnet = ec2_backend.get_subnet(self.subnet_id)
@@ -2295,9 +2291,7 @@ class SecurityGroupBackend(object):
         if group is None:
             raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges:
-            if isinstance(ip_ranges, str) or (
-                six.PY2 and isinstance(ip_ranges, unicode)  # noqa
-            ):
+            if isinstance(ip_ranges, str):
                 ip_ranges = [{"CidrIp": str(ip_ranges)}]
             elif not isinstance(ip_ranges, list):
                 ip_ranges = [json.loads(ip_ranges)]
@@ -3112,9 +3106,7 @@ class VPCBackend(object):
     ):
         vpc_id = random_vpc_id()
         try:
-            vpc_cidr_block = ipaddress.IPv4Network(
-                six.text_type(cidr_block), strict=False
-            )
+            vpc_cidr_block = ipaddress.IPv4Network(str(cidr_block), strict=False)
         except ValueError:
             raise InvalidCIDRBlockParameterError(cidr_block)
         if vpc_cidr_block.prefixlen < 16 or vpc_cidr_block.prefixlen > 28:
@@ -3482,9 +3474,9 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
-        self.cidr = ipaddress.IPv4Network(six.text_type(self.cidr_block), strict=False)
+        self.cidr = ipaddress.IPv4Network(str(self.cidr_block), strict=False)
         self._available_ip_addresses = (
-            ipaddress.IPv4Network(six.text_type(self.cidr_block)).num_addresses - 5
+            ipaddress.IPv4Network(str(self.cidr_block)).num_addresses - 5
         )
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
@@ -3496,7 +3488,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
         self._subnet_ip_generator = self.cidr.hosts()
         self.reserved_ips = [
-            six.next(self._subnet_ip_generator) for _ in range(0, 3)
+            next(self._subnet_ip_generator) for _ in range(0, 3)
         ]  # Reserved by AWS
         self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
         self._subnet_ips = {}  # has IP: instance
@@ -3597,11 +3589,11 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         try:
             new_ip = self._unused_ips.pop()
         except KeyError:
-            new_ip = six.next(self._subnet_ip_generator)
+            new_ip = next(self._subnet_ip_generator)
 
             # Skips any IP's if they've been manually specified
             while str(new_ip) in self._subnet_ips:
-                new_ip = six.next(self._subnet_ip_generator)
+                new_ip = next(self._subnet_ip_generator)
 
             if new_ip == self.cidr.broadcast_address:
                 raise StopIteration()  # Broadcast address cant be used obviously
@@ -3663,14 +3655,12 @@ class SubnetBackend(object):
         )  # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
         vpc_cidr_blocks = [
             ipaddress.IPv4Network(
-                six.text_type(cidr_block_association["cidr_block"]), strict=False
+                str(cidr_block_association["cidr_block"]), strict=False
             )
             for cidr_block_association in vpc.get_cidr_block_association_set()
         ]
         try:
-            subnet_cidr_block = ipaddress.IPv4Network(
-                six.text_type(cidr_block), strict=False
-            )
+            subnet_cidr_block = ipaddress.IPv4Network(str(cidr_block), strict=False)
         except ValueError:
             raise InvalidCIDRBlockParameterError(cidr_block)
 
@@ -4401,9 +4391,7 @@ class RouteBackend(object):
 
             try:
                 if destination_cidr_block:
-                    ipaddress.IPv4Network(
-                        six.text_type(destination_cidr_block), strict=False
-                    )
+                    ipaddress.IPv4Network(str(destination_cidr_block), strict=False)
             except ValueError:
                 raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
@@ -4696,8 +4684,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         return instance
 
 
-@six.add_metaclass(Model)
-class SpotRequestBackend(object):
+class SpotRequestBackend(object, metaclass=Model):
     def __init__(self):
         self.spot_instance_requests = {}
         super(SpotRequestBackend, self).__init__()

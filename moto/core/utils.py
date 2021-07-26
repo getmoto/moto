@@ -6,10 +6,9 @@ import datetime
 import inspect
 import random
 import re
-import six
 import string
 from botocore.exceptions import ClientError
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
@@ -68,20 +67,13 @@ def camelcase_to_pascal(argument):
 
 
 def method_names_from_class(clazz):
-    # On Python 2, methods are different from functions, and the `inspect`
-    # predicates distinguish between them. On Python 3, methods are just
-    # regular functions, and `inspect.ismethod` doesn't work, so we have to
-    # use `inspect.isfunction` instead
-    if six.PY2:
-        predicate = inspect.ismethod
-    else:
-        predicate = inspect.isfunction
+    predicate = inspect.isfunction
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
 
 def get_random_hex(length=8):
     chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    return "".join(six.text_type(random.choice(chars)) for x in range(length))
+    return "".join(str(random.choice(chars)) for x in range(length))
 
 
 def get_random_message_id():
@@ -184,7 +176,7 @@ class convert_flask_to_responses_response(object):
 
     def __call__(self, request, *args, **kwargs):
         for key, val in request.headers.items():
-            if isinstance(val, six.binary_type):
+            if isinstance(val, bytes):
                 request.headers[key] = val.decode("utf-8")
 
         result = self.callback(request, request.url, request.headers)
@@ -233,10 +225,6 @@ def gen_amz_crc32(response, headerdict=None):
         response = response.encode("utf-8")
 
     crc = binascii.crc32(response)
-    if six.PY2:
-        # https://python.readthedocs.io/en/v2.7.2/library/binascii.html
-        # TLDR: Use bitshift to match Py3 behaviour
-        crc = crc & 0xFFFFFFFF
 
     if headerdict is not None and isinstance(headerdict, dict):
         headerdict.update({"x-amz-crc32": str(crc)})
@@ -261,7 +249,7 @@ def amz_crc32(f):
         headers = {}
         status = 200
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             body = response
         else:
             if len(response) == 2:
@@ -293,7 +281,7 @@ def amzn_request_id(f):
         headers = {}
         status = 200
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             body = response
         else:
             if len(response) == 2:
@@ -405,7 +393,7 @@ def remap_nested_keys(root, key_transform):
     if isinstance(root, dict):
         return {
             key_transform(k): remap_nested_keys(v, key_transform)
-            for k, v in six.iteritems(root)
+            for k, v in root.items()
         }
     return root
 

@@ -1,4 +1,3 @@
-import six
 import uuid
 from moto.core.responses import BaseResponse
 from moto.ec2.models import OWNER_ID
@@ -29,10 +28,10 @@ def xml_serialize(tree, key, value):
 
     node = ElementTree.SubElement(tree, name)
 
-    if isinstance(value, (str, int, float, six.text_type)):
+    if isinstance(value, (str, int, float, str)):
         node.text = str(value)
     elif isinstance(value, dict):
-        for dictkey, dictvalue in six.iteritems(value):
+        for dictkey, dictvalue in value.items():
             xml_serialize(node, dictkey, dictvalue)
     elif isinstance(value, list):
         for item in value:
@@ -53,7 +52,7 @@ def pretty_xml(tree):
 
 def parse_object(raw_data):
     out_data = {}
-    for key, value in six.iteritems(raw_data):
+    for key, value in raw_data.items():
         key_fix_splits = key.split("_")
         key_len = len(key_fix_splits)
 
@@ -75,7 +74,7 @@ def parse_object(raw_data):
 
 
 def parse_lists(data):
-    for key, value in six.iteritems(data):
+    for key, value in data.items():
         if isinstance(value, dict):
             keys = data[key].keys()
             is_list = all(map(lambda k: k.isnumeric(), keys))
@@ -106,13 +105,13 @@ class LaunchTemplates(BaseResponse):
                 if "TagSpecifications" not in parsed_template_data:
                     parsed_template_data["TagSpecifications"] = []
                 converted_tag_spec = []
-                for resource_type, tags in six.iteritems(tag_spec):
+                for resource_type, tags in tag_spec.items():
                     converted_tag_spec.append(
                         {
                             "ResourceType": resource_type,
                             "Tags": [
                                 {"Key": key, "Value": value}
-                                for key, value in six.iteritems(tags)
+                                for key, value in tags.items()
                             ],
                         }
                     )

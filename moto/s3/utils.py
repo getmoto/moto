@@ -2,8 +2,7 @@ from __future__ import unicode_literals
 import logging
 
 import re
-import six
-from six.moves.urllib.parse import urlparse, unquote, quote
+from urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
 import sys
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
@@ -75,7 +74,7 @@ def metadata_from_headers(headers):
     metadata = CaseInsensitiveDict()
     meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_.]+)$", flags=re.IGNORECASE)
     for header, value in headers.items():
-        if isinstance(header, six.string_types):
+        if isinstance(header, str):
             result = meta_regex.match(header)
             meta_key = None
             if result:
@@ -94,14 +93,10 @@ def metadata_from_headers(headers):
 
 
 def clean_key_name(key_name):
-    if six.PY2:
-        return unquote(key_name.encode("utf-8")).decode("utf-8")
     return unquote(key_name)
 
 
 def undo_clean_key_name(key_name):
-    if six.PY2:
-        return quote(key_name.encode("utf-8")).decode("utf-8")
     return quote(key_name)
 
 

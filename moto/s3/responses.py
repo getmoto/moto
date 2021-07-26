@@ -4,7 +4,6 @@ import os
 import re
 import sys
 
-import six
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import (
@@ -12,7 +11,7 @@ from moto.core.utils import (
     py2_strip_unicode_keys,
     unix_time_millis,
 )
-from six.moves.urllib.parse import (
+from urllib.parse import (
     parse_qs,
     parse_qsl,
     urlparse,
@@ -272,11 +271,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _send_response(response):
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             return 200, {}, response.encode("utf-8")
         else:
             status_code, headers, response_content = response
-            if not isinstance(response_content, six.binary_type):
+            if not isinstance(response_content, bytes):
                 response_content = response_content.encode("utf-8")
 
             return status_code, headers, response_content
@@ -301,7 +300,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             body = request.data
         if body is None:
             body = b""
-        if isinstance(body, six.binary_type):
+        if isinstance(body, bytes):
             body = body.decode("utf-8")
         body = "{0}".format(body).encode("utf-8")
 
@@ -503,7 +502,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get("prefix", [None])[0]
-        if prefix and isinstance(prefix, six.binary_type):
+        if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
@@ -555,7 +554,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             raise InvalidContinuationToken()
 
         prefix = querystring.get("prefix", [None])[0]
-        if prefix and isinstance(prefix, six.binary_type):
+        if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
         result_keys, result_folders = self.backend.prefix_query(
@@ -1007,7 +1006,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             status_code = 200
             response_content = response
         else:
@@ -1331,7 +1330,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
             src_key = request.headers.get("x-amz-copy-source")
-            if isinstance(src_key, six.binary_type):
+            if isinstance(src_key, bytes):
                 src_key = src_key.decode("utf-8")
             src_key_parsed = urlparse(src_key)
             src_bucket, src_key = (

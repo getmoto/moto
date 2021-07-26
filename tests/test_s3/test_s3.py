@@ -5,9 +5,9 @@ import datetime
 import sys
 import os
 from boto3 import Session
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.request import urlopen
+from urllib.error import HTTPError
+from urllib.parse import urlparse, parse_qs
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
@@ -25,7 +25,6 @@ from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
-import six
 import requests
 
 from moto.s3 import models
@@ -3823,7 +3822,7 @@ def test_boto3_list_object_versions():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
     response = s3.list_object_versions(Bucket=bucket_name)
@@ -3846,7 +3845,7 @@ def test_boto3_list_object_versions_with_versioning_disabled():
     bucket_name = "mybucket"
     key = "key-with-versions"
     s3.create_bucket(Bucket=bucket_name)
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
     response = s3.list_object_versions(Bucket=bucket_name)
@@ -3869,12 +3868,12 @@ def test_boto3_list_object_versions_with_versioning_enabled_late():
     bucket_name = "mybucket"
     key = "key-with-versions"
     s3.create_bucket(Bucket=bucket_name)
-    items = (six.b("v1"), six.b("v2"))
-    s3.put_object(Bucket=bucket_name, Key=key, Body=six.b("v1"))
+    items = (b"v1", b"v2")
+    s3.put_object(Bucket=bucket_name, Key=key, Body=b"v1")
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    s3.put_object(Bucket=bucket_name, Key=key, Body=six.b("v2"))
+    s3.put_object(Bucket=bucket_name, Key=key, Body=b"v2")
     response = s3.list_object_versions(Bucket=bucket_name)
 
     # Two object versions should be returned
@@ -3901,7 +3900,7 @@ def test_boto3_bad_prefix_list_object_versions():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
     response = s3.list_object_versions(Bucket=bucket_name, Prefix=bad_prefix)
@@ -3919,7 +3918,7 @@ def test_boto3_delete_markers():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
 
@@ -3962,7 +3961,7 @@ def test_boto3_multiple_delete_markers():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
 

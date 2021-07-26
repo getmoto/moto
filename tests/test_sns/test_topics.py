@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import boto
 import json
-import six
 
 import sure  # noqa
 
@@ -124,17 +123,9 @@ def test_topic_attributes():
         DEFAULT_EFFECTIVE_DELIVERY_POLICY
     )
 
-    # boto can't handle prefix-mandatory strings:
-    # i.e. unicode on Python 2 -- u"foobar"
-    # and bytes on Python 3 -- b"foobar"
-    if six.PY2:
-        policy = json.dumps({b"foo": b"bar"})
-        displayname = b"My display name"
-        delivery = {b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}}
-    else:
-        policy = json.dumps({"foo": "bar"})
-        displayname = "My display name"
-        delivery = {"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}
+    policy = json.dumps({"foo": "bar"})
+    displayname = "My display name"
+    delivery = {"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}
     conn.set_topic_attributes(topic_arn, "Policy", policy)
     conn.set_topic_attributes(topic_arn, "DisplayName", displayname)
     conn.set_topic_attributes(topic_arn, "DeliveryPolicy", delivery)
