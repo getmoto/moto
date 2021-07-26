@@ -84,7 +84,7 @@ extras_per_service = {
     "ses": [_dep_docker],
     "sns": [_dep_docker],
     "sqs": [_dep_docker],
-    "ssm": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
+    "ssm": [_dep_docker, _dep_PyYAML],
     "xray": [_dep_aws_xray_sdk],
 }
 extras_require = {
