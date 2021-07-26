@@ -3,8 +3,6 @@ import os
 import random
 import string
 
-import six
-
 ACCOUNT_SPECIFIC_ACCESS_KEY_PREFIX = "8NWMTLYQ"
 ACCOUNT_SPECIFIC_ASSUMED_ROLE_ID_PREFIX = "3X42LBCD"
 SESSION_TOKEN_PREFIX = "FQoGZXIvYXdzEBYaD"
@@ -34,6 +32,6 @@ def random_assumed_role_id():
 
 def _random_uppercase_or_digit_sequence(length):
     return "".join(
-        six.text_type(random.choice(string.ascii_uppercase + string.digits))
+        str(random.choice(string.ascii_uppercase + string.digits))
         for _ in range(length)
     )

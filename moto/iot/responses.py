@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-from six.moves.urllib.parse import unquote
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 from .models import iot_backends

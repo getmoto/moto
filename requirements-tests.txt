@@ -1,7 +1,4 @@
 pytest
-pytest-cov; python_version >= '3.6'
-# https://github.com/aws/aws-xray-sdk-python/issues/196
-# Downgrade pytest-cov to the last version that uses coverage < 5
-pytest-cov<=2.10.1; python_version < '3.6'
+pytest-cov
 sure==1.4.11
 freezegun

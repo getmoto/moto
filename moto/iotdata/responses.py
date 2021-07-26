@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import iotdata_backends
 import json
-from six.moves.urllib.parse import unquote
+from urllib.parse import unquote
 
 
 class IoTDataPlaneResponse(BaseResponse):

@@ -5,7 +5,6 @@ import pytest
 import boto
 import boto3
 from boto.exception import EC2ResponseError
-import six
 
 import sure  # noqa
 
@@ -30,7 +29,7 @@ def test_eip_allocate_classic():
 
     standard = conn.allocate_address()
     standard.should.be.a(boto.ec2.address.Address)
-    standard.public_ip.should.be.a(six.text_type)
+    standard.public_ip.should.be.a(str)
     standard.instance_id.should.be.none
     standard.domain.should.be.equal("standard")
 

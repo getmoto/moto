@@ -10,7 +10,7 @@ from moto.core.utils import (
     underscores_to_camelcase,
     camelcase_to_pascal,
 )
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,

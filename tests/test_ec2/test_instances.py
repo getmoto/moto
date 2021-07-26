@@ -8,7 +8,6 @@ from unittest import SkipTest
 import base64
 import ipaddress
 
-import six
 import boto
 import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
@@ -21,10 +20,7 @@ from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 
 
-if six.PY2:
-    decode_method = base64.decodestring
-else:
-    decode_method = base64.decodebytes
+decode_method = base64.decodebytes
 
 ################ Test Readme ###############
 def add_servers(ami_id, count):
@@ -1050,7 +1046,7 @@ def test_run_instance_with_subnet_boto3():
         instance = resp["Instances"][0]
         instance["SubnetId"].should.equal(subnet_id)
 
-        priv_ipv4 = ipaddress.ip_address(six.text_type(instance["PrivateIpAddress"]))
+        priv_ipv4 = ipaddress.ip_address(str(instance["PrivateIpAddress"]))
         subnet_cidr.should.contain(priv_ipv4)
 
 

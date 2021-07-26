@@ -10,7 +10,6 @@ from enum import Enum, unique
 from operator import lt, le, eq, ge, gt
 
 from boto3 import Session
-from six import string_types
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
@@ -640,7 +639,7 @@ class EventPattern:
         return all(nested_filter_matches + filter_list_matches)
 
     def _does_item_match_filters(self, item, filters):
-        allowed_values = [value for value in filters if isinstance(value, string_types)]
+        allowed_values = [value for value in filters if isinstance(value, str)]
         allowed_values_match = item in allowed_values if allowed_values else True
         named_filter_matches = [
             self._does_item_match_named_filter(item, filter)

@@ -2,13 +2,10 @@ import abc
 from abc import abstractmethod
 from collections import deque
 
-import six
-
 from moto.dynamodb2.models import DynamoType
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Node:
+class Node(metaclass=abc.ABCMeta):
     def __init__(self, children=None):
         self.type = self.__class__.__name__
         assert children is None or isinstance(children, list)
@@ -31,8 +28,7 @@ class LeafNode(Node):
         super(LeafNode, self).__init__(children)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Expression(Node):
+class Expression(Node, metaclass=abc.ABCMeta):
     """
     Abstract Syntax Tree representing the expression
 
@@ -51,8 +47,7 @@ class UpdateExpression(Expression):
     """
 
 
-@six.add_metaclass(abc.ABCMeta)
-class UpdateExpressionClause(UpdateExpression):
+class UpdateExpressionClause(UpdateExpression, metaclass=abc.ABCMeta):
     """
     UpdateExpressionClause* => UpdateExpressionSetClause
     UpdateExpressionClause* => UpdateExpressionRemoveClause

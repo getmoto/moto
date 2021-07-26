@@ -1,7 +1,7 @@
 import random
 import string
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 def region_from_glacier_url(url):

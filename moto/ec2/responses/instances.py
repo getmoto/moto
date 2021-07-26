@@ -12,7 +12,6 @@ from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
-import six
 
 
 class InstanceResponse(BaseResponse):
@@ -322,7 +321,7 @@ class InstanceResponse(BaseResponse):
         if isinstance(bool_str, bool):
             return bool_str
 
-        if isinstance(bool_str, six.text_type):
+        if isinstance(bool_str, str):
             return str(bool_str).lower() == "true"
 
         return False

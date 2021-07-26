@@ -7,7 +7,6 @@ from datetime import datetime
 import boto3
 import json
 import pytz
-import six
 import sure  # noqa
 from botocore.exceptions import ClientError
 import pytest
@@ -157,13 +156,13 @@ def test_describe_cluster():
     cl["Id"].should.equal(cluster_id)
     cl["KerberosAttributes"].should.equal(args["KerberosAttributes"])
     cl["LogUri"].should.equal(args["LogUri"])
-    cl["MasterPublicDnsName"].should.be.a(six.string_types)
+    cl["MasterPublicDnsName"].should.be.a(str)
     cl["Name"].should.equal(args["Name"])
     cl["NormalizedInstanceHours"].should.equal(0)
     # cl['ReleaseLabel'].should.equal('emr-5.0.0')
     cl.shouldnt.have.key("RequestedAmiVersion")
     cl["RunningAmiVersion"].should.equal("1.0.0")
-    cl["SecurityConfiguration"].should.be.a(six.string_types)
+    cl["SecurityConfiguration"].should.be.a(str)
     cl["SecurityConfiguration"].should.equal(args["SecurityConfiguration"])
     cl["ServiceRole"].should.equal(args["ServiceRole"])
 
@@ -276,7 +275,7 @@ def test_describe_job_flow():
     esd = jf["ExecutionStatusDetail"]
     esd["CreationDateTime"].should.be.a("datetime.datetime")
     # esd['EndDateTime'].should.be.a('datetime.datetime')
-    # esd['LastStateChangeReason'].should.be.a(six.string_types)
+    # esd['LastStateChangeReason'].should.be.a(str)
     esd["ReadyDateTime"].should.be.a("datetime.datetime")
     esd["StartDateTime"].should.be.a("datetime.datetime")
     esd["State"].should.equal("WAITING")
@@ -289,21 +288,21 @@ def test_describe_job_flow():
         # ig['BidPrice']
         ig["CreationDateTime"].should.be.a("datetime.datetime")
         # ig['EndDateTime'].should.be.a('datetime.datetime')
-        ig["InstanceGroupId"].should.be.a(six.string_types)
+        ig["InstanceGroupId"].should.be.a(str)
         ig["InstanceRequestCount"].should.be.a(int)
         ig["InstanceRole"].should.be.within(["MASTER", "CORE"])
         ig["InstanceRunningCount"].should.be.a(int)
         ig["InstanceType"].should.be.within(["c3.medium", "c3.xlarge"])
-        # ig['LastStateChangeReason'].should.be.a(six.string_types)
+        # ig['LastStateChangeReason'].should.be.a(str)
         ig["Market"].should.equal("ON_DEMAND")
-        ig["Name"].should.be.a(six.string_types)
+        ig["Name"].should.be.a(str)
         ig["ReadyDateTime"].should.be.a("datetime.datetime")
         ig["StartDateTime"].should.be.a("datetime.datetime")
         ig["State"].should.equal("RUNNING")
     attrs["KeepJobFlowAliveWhenNoSteps"].should.equal(True)
-    # attrs['MasterInstanceId'].should.be.a(six.string_types)
+    # attrs['MasterInstanceId'].should.be.a(str)
     attrs["MasterInstanceType"].should.equal(args["Instances"]["MasterInstanceType"])
-    attrs["MasterPublicDnsName"].should.be.a(six.string_types)
+    attrs["MasterPublicDnsName"].should.be.a(str)
     attrs["NormalizedInstanceHours"].should.equal(0)
     attrs["Placement"]["AvailabilityZone"].should.equal(
         args["Instances"]["Placement"]["AvailabilityZone"]
@@ -911,8 +910,8 @@ def test_instance_groups():
         x["RunningInstanceCount"].should.equal(y["InstanceCount"])
         # ShrinkPolicy
         x["Status"]["State"].should.equal("RUNNING")
-        x["Status"]["StateChangeReason"]["Code"].should.be.a(six.string_types)
-        # x['Status']['StateChangeReason']['Message'].should.be.a(six.string_types)
+        x["Status"]["StateChangeReason"]["Code"].should.be.a(str)
+        # x['Status']['StateChangeReason']['Message'].should.be.a(str)
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
         x["Status"]["Timeline"]["ReadyDateTime"].should.be.a("datetime.datetime")
@@ -1022,7 +1021,7 @@ def test_steps():
         x["Config"]["Jar"].should.equal(y["HadoopJarStep"]["Jar"])
         # x['Config']['MainClass'].should.equal(y['HadoopJarStep']['MainClass'])
         # Properties
-        x["Id"].should.be.a(six.string_types)
+        x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
         x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
         # StateChangeReason
@@ -1038,7 +1037,7 @@ def test_steps():
         x["Config"]["Jar"].should.equal(y["HadoopJarStep"]["Jar"])
         # x['Config']['MainClass'].should.equal(y['HadoopJarStep']['MainClass'])
         # Properties
-        x["Id"].should.be.a(six.string_types)
+        x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
         x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
         # StateChangeReason
