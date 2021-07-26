@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 
+import re
 from ipaddress import IPv4Network
 from os import environ
 
 import boto3
 import pytest
-import sure  # noqa
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_efs
@@ -59,26 +59,26 @@ def test_create_mount_target_minimal_correct_use(efs, file_system, subnet):
 
     # Check the mount target response code.
     resp_metadata = create_mt_resp.pop("ResponseMetadata")
-    resp_metadata["HTTPStatusCode"].should.equal(200)
+    assert resp_metadata["HTTPStatusCode"] == 200
 
     # Check the mount target response body.
-    create_mt_resp["MountTargetId"].should.match("^fsmt-[a-f0-9]+$")
-    create_mt_resp["NetworkInterfaceId"].should.match("^eni-[a-f0-9]+$")
-    create_mt_resp["AvailabilityZoneId"].should.equal(subnet["AvailabilityZoneId"])
-    create_mt_resp["AvailabilityZoneName"].should.equal(subnet["AvailabilityZone"])
-    create_mt_resp["VpcId"].should.equal(subnet["VpcId"])
-    create_mt_resp["SubnetId"].should.equal(subnet_id)
+    assert re.match("^fsmt-[a-f0-9]+$", create_mt_resp["MountTargetId"])
+    assert re.match("^eni-[a-f0-9]+$", create_mt_resp["NetworkInterfaceId"])
+    assert create_mt_resp["AvailabilityZoneId"] == subnet["AvailabilityZoneId"]
+    assert create_mt_resp["AvailabilityZoneName"] == subnet["AvailabilityZone"]
+    assert create_mt_resp["VpcId"] == subnet["VpcId"]
+    assert create_mt_resp["SubnetId"] == subnet_id
     assert IPv4Network(create_mt_resp["IpAddress"]).subnet_of(
         IPv4Network(subnet["CidrBlock"])
     )
-    create_mt_resp["FileSystemId"].should.equal(file_system_id)
-    create_mt_resp["OwnerId"].should.equal(ACCOUNT_ID)
-    create_mt_resp["LifeCycleState"].should.equal("available")
+    assert create_mt_resp["FileSystemId"] == file_system_id
+    assert create_mt_resp["OwnerId"] == ACCOUNT_ID
+    assert create_mt_resp["LifeCycleState"] == "available"
 
     # Check that the number of mount targets in the fs is correct.
     desc_fs_resp = efs.describe_file_systems()
     file_system = desc_fs_resp["FileSystems"][0]
-    file_system["NumberOfMountTargets"].should.equal(1)
+    assert file_system["NumberOfMountTargets"] == 1
     return
 
 
@@ -108,52 +108,40 @@ def test_create_mount_target_aws_sample_2(efs, ec2, file_system, subnet):
 
     # Check the mount target response code.
     resp_metadata = create_mt_resp.pop("ResponseMetadata")
-    resp_metadata["HTTPStatusCode"].should.equal(200)
+    assert resp_metadata["HTTPStatusCode"] == 200
 
     # Check that setting the IP Address worked.
-    create_mt_resp["IpAddress"].should.equal(ip_addr)
+    assert create_mt_resp["IpAddress"] == ip_addr
 
 
 def test_create_mount_target_invalid_file_system_id(efs, subnet):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(FileSystemId="fs-12343289", SubnetId=subnet["SubnetId"])
-    except ClientError as e:
-        assert has_status_code(e.response, 404)
-        assert "FileSystemNotFound" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an FileSystemNotFound error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 404)
+    assert "FileSystemNotFound" in resp["Error"]["Message"]
 
 
 def test_create_mount_target_invalid_subnet_id(efs, file_system):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(
             FileSystemId=file_system["FileSystemId"], SubnetId="subnet-12345678"
         )
-    except ClientError as e:
-        assert has_status_code(e.response, 404)
-        assert "SubnetNotFound" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an SubnetNotFound error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 404)
+    assert "SubnetNotFound" in resp["Error"]["Message"]
 
 
 def test_create_mount_target_invalid_sg_id(efs, file_system, subnet):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(
             FileSystemId=file_system["FileSystemId"],
             SubnetId=subnet["SubnetId"],
             SecurityGroups=["sg-1234df235"],
         )
-    except ClientError as e:
-        assert has_status_code(e.response, 404)
-        assert "SecurityGroupNotFound" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an SecurityGroupNotFound error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 404)
+    assert "SecurityGroupNotFound" in resp["Error"]["Message"]
 
 
 def test_create_second_mount_target_wrong_vpc(efs, ec2, file_system, subnet):
@@ -164,37 +152,29 @@ def test_create_second_mount_target_wrong_vpc(efs, ec2, file_system, subnet):
     efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(
             FileSystemId=file_system["FileSystemId"],
             SubnetId=new_subnet_info["Subnet"]["SubnetId"],
         )
-    except ClientError as e:
-        assert has_status_code(e.response, 409)
-        assert "MountTargetConflict" in e.response["Error"]["Message"]
-        assert "VPC" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an MountTargetConflict error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 409)
+    assert "MountTargetConflict" in resp["Error"]["Message"]
+    assert "VPC" in resp["Error"]["Message"]
 
 
 def test_create_mount_target_duplicate_subnet_id(efs, file_system, subnet):
     efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(
             FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
         )
-    except ClientError as e:
-        assert has_status_code(e.response, 409)
-        assert "MountTargetConflict" in e.response["Error"]["Message"]
-        assert "AZ" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an MountTargetConflict error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 409)
+    assert "MountTargetConflict" in resp["Error"]["Message"]
+    assert "AZ" in resp["Error"]["Message"]
 
 
 def test_create_mount_target_subnets_in_same_zone(efs, ec2, file_system, subnet):
@@ -206,36 +186,28 @@ def test_create_mount_target_subnets_in_same_zone(efs, ec2, file_system, subnet)
         CidrBlock="172.31.96.0/20",
         AvailabilityZone=subnet["AvailabilityZone"],
     )
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(
             FileSystemId=file_system["FileSystemId"],
             SubnetId=subnet_info["Subnet"]["SubnetId"],
         )
-    except ClientError as e:
-        assert has_status_code(e.response, 409)
-        assert "MountTargetConflict" in e.response["Error"]["Message"]
-        assert "AZ" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an MountTargetConflict error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 409)
+    assert "MountTargetConflict" in resp["Error"]["Message"]
+    assert "AZ" in resp["Error"]["Message"]
 
 
 def test_create_mount_target_ip_address_out_of_range(efs, file_system, subnet):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(
             FileSystemId=file_system["FileSystemId"],
             SubnetId=subnet["SubnetId"],
             IpAddress="10.0.1.0",
         )
-    except ClientError as e:
-        assert has_status_code(e.response, 400)
-        assert "BadRequest" in e.response["Error"]["Message"]
-        assert "Address" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an BadRequest error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 400)
+    assert "BadRequest" in resp["Error"]["Message"]
+    assert "Address" in resp["Error"]["Message"]
 
 
 def test_create_mount_target_too_many_security_groups(efs, ec2, file_system, subnet):
@@ -247,34 +219,26 @@ def test_create_mount_target_too_many_security_groups(efs, ec2, file_system, sub
             Description="SG-{} protects us from the Goa'uld.".format(i),
         )
         sg_id_list.append(sg_info["GroupId"])
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.create_mount_target(
             FileSystemId=file_system["FileSystemId"],
             SubnetId=subnet["SubnetId"],
             SecurityGroups=sg_id_list,
         )
-    except ClientError as e:
-        assert has_status_code(e.response, 400)
-        assert "SecurityGroupLimitExceeded" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an SecurityGroupLimitExceeded error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 400)
+    assert "SecurityGroupLimitExceeded" in resp["Error"]["Message"]
 
 
 def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet):
     efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.delete_file_system(FileSystemId=file_system["FileSystemId"])
-    except ClientError as e:
-        assert has_status_code(e.response, 409)
-        assert "FileSystemInUse" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an FileSystemInUse error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 409)
+    assert "FileSystemInUse" in resp["Error"]["Message"]
 
 
 def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):
@@ -362,39 +326,27 @@ def test_describe_mount_targets_paging(efs, ec2, file_system):
 
 
 def test_describe_mount_targets_invalid_file_system_id(efs):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.describe_mount_targets(FileSystemId="fs-12343289")
-    except ClientError as e:
-        assert has_status_code(e.response, 404)
-        assert "FileSystemNotFound" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an FileSystemNotFound error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 404)
+    assert "FileSystemNotFound" in resp["Error"]["Message"]
 
 
 def test_describe_mount_targets_invalid_mount_target_id(efs):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.describe_mount_targets(MountTargetId="fsmt-ad9f8987")
-    except ClientError as e:
-        assert has_status_code(e.response, 404)
-        assert "MountTargetNotFound" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an MountTargetNotFound error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 404)
+    assert "MountTargetNotFound" in resp["Error"]["Message"]
 
 
 def test_describe_mount_targets_no_id_given(efs):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.describe_mount_targets()
-    except ClientError as e:
-        assert has_status_code(e.response, 400)
-        assert "BadRequest" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an BadRequest error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 400)
+    assert "BadRequest" in resp["Error"]["Message"]
 
 
 def test_delete_mount_target_minimal_case(efs, file_system, subnet):
@@ -408,12 +360,8 @@ def test_delete_mount_target_minimal_case(efs, file_system, subnet):
 
 
 def test_delete_mount_target_invalid_mount_target_id(efs, file_system, subnet):
-    try:
+    with pytest.raises(ClientError) as exc_info:
         efs.delete_mount_target(MountTargetId="fsmt-98487aef0a7")
-    except ClientError as e:
-        assert has_status_code(e.response, 404)
-        assert "MountTargetNotFound" in e.response["Error"]["Message"]
-    except Exception as e:
-        assert False, "Got an unexpected exception: {}".format(e)
-    else:
-        assert False, "Expected an MountTargetNotFound error."
+    resp = exc_info.value.response
+    assert has_status_code(resp, 404)
+    assert "MountTargetNotFound" in resp["Error"]["Message"]
