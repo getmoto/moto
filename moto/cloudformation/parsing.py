@@ -703,7 +703,10 @@ class ResourceMap(collections_abc.Mapping):
             for resource in remaining_resources.copy():
                 parsed_resource = self._parsed_resources.get(resource)
                 try:
-                    if not isinstance(parsed_resource, str) and parsed_resource is not None:
+                    if (
+                        not isinstance(parsed_resource, str)
+                        and parsed_resource is not None
+                    ):
                         if parsed_resource and hasattr(parsed_resource, "delete"):
                             parsed_resource.delete(self._region_name)
                         else:
