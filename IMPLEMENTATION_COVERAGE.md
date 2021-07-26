@@ -268,7 +268,7 @@
 
 ## apigateway
 <details>
-<summary>40% implemented</summary>
+<summary>43% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -292,7 +292,7 @@
 - [X] delete_deployment
 - [ ] delete_documentation_part
 - [ ] delete_documentation_version
-- [ ] delete_domain_name
+- [X] delete_domain_name
 - [ ] delete_gateway_response
 - [X] delete_integration
 - [X] delete_integration_response
@@ -376,12 +376,12 @@
 - [ ] update_deployment
 - [ ] update_documentation_part
 - [ ] update_documentation_version
-- [ ] update_domain_name
+- [X] update_domain_name
 - [ ] update_gateway_response
 - [ ] update_integration
 - [ ] update_integration_response
-- [ ] update_method
-- [ ] update_method_response
+- [X] update_method
+- [X] update_method_response
 - [ ] update_model
 - [ ] update_request_validator
 - [ ] update_resource
@@ -2095,7 +2095,7 @@
 
 ## cognito-identity
 <details>
-<summary>26% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] create_identity_pool
 - [ ] delete_identities
@@ -2119,7 +2119,7 @@
 - [ ] unlink_developer_identity
 - [ ] unlink_identity
 - [ ] untag_resource
-- [ ] update_identity_pool
+- [X] update_identity_pool
 </details>
 
 ## cognito-idp
@@ -3298,7 +3298,7 @@
 
 ## ec2
 <details>
-<summary>26% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -3387,15 +3387,15 @@
 - [ ] create_traffic_mirror_filter_rule
 - [ ] create_traffic_mirror_session
 - [ ] create_traffic_mirror_target
-- [ ] create_transit_gateway
+- [X] create_transit_gateway
 - [ ] create_transit_gateway_connect
 - [ ] create_transit_gateway_connect_peer
 - [ ] create_transit_gateway_multicast_domain
 - [ ] create_transit_gateway_peering_attachment
 - [ ] create_transit_gateway_prefix_list_reference
-- [ ] create_transit_gateway_route
-- [ ] create_transit_gateway_route_table
-- [ ] create_transit_gateway_vpc_attachment
+- [X] create_transit_gateway_route
+- [X] create_transit_gateway_route_table
+- [X] create_transit_gateway_vpc_attachment
 - [X] create_volume
 - [X] create_vpc
 - [X] create_vpc_endpoint
@@ -3441,14 +3441,14 @@
 - [ ] delete_traffic_mirror_filter_rule
 - [ ] delete_traffic_mirror_session
 - [ ] delete_traffic_mirror_target
-- [ ] delete_transit_gateway
+- [X] delete_transit_gateway
 - [ ] delete_transit_gateway_connect
 - [ ] delete_transit_gateway_connect_peer
 - [ ] delete_transit_gateway_multicast_domain
 - [ ] delete_transit_gateway_peering_attachment
 - [ ] delete_transit_gateway_prefix_list_reference
-- [ ] delete_transit_gateway_route
-- [ ] delete_transit_gateway_route_table
+- [X] delete_transit_gateway_route
+- [X] delete_transit_gateway_route_table
 - [ ] delete_transit_gateway_vpc_attachment
 - [X] delete_volume
 - [X] delete_vpc
@@ -3561,13 +3561,13 @@
 - [ ] describe_traffic_mirror_filters
 - [ ] describe_traffic_mirror_sessions
 - [ ] describe_traffic_mirror_targets
-- [ ] describe_transit_gateway_attachments
+- [X] describe_transit_gateway_attachments
 - [ ] describe_transit_gateway_connect_peers
 - [ ] describe_transit_gateway_connects
 - [ ] describe_transit_gateway_multicast_domains
 - [ ] describe_transit_gateway_peering_attachments
 - [ ] describe_transit_gateway_route_tables
-- [ ] describe_transit_gateway_vpc_attachments
+- [X] describe_transit_gateway_vpc_attachments
 - [ ] describe_transit_gateways
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
@@ -3676,7 +3676,7 @@
 - [ ] modify_traffic_mirror_filter_network_services
 - [ ] modify_traffic_mirror_filter_rule
 - [ ] modify_traffic_mirror_session
-- [ ] modify_transit_gateway
+- [X] modify_transit_gateway
 - [ ] modify_transit_gateway_prefix_list_reference
 - [ ] modify_transit_gateway_vpc_attachment
 - [ ] modify_volume
@@ -3735,7 +3735,7 @@
 - [ ] run_scheduled_instances
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
-- [ ] search_transit_gateway_routes
+- [X] search_transit_gateway_routes
 - [ ] send_diagnostic_interrupt
 - [X] start_instances
 - [ ] start_network_insights_analysis
@@ -4313,7 +4313,7 @@
 
 ## events
 <details>
-<summary>68% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] activate_event_source
 - [X] cancel_replay
@@ -4324,15 +4324,15 @@
 - [ ] create_partner_event_source
 - [ ] deactivate_event_source
 - [ ] deauthorize_connection
-- [ ] delete_api_destination
+- [X] delete_api_destination
 - [X] delete_archive
-- [ ] delete_connection
+- [X] delete_connection
 - [X] delete_event_bus
 - [ ] delete_partner_event_source
 - [X] delete_rule
 - [X] describe_api_destination
 - [X] describe_archive
-- [ ] describe_connection
+- [X] describe_connection
 - [X] describe_event_bus
 - [ ] describe_event_source
 - [ ] describe_partner_event_source
@@ -4363,7 +4363,7 @@
 - [X] tag_resource
 - [X] test_event_pattern
 - [X] untag_resource
-- [ ] update_api_destination
+- [X] update_api_destination
 - [X] update_archive
 - [ ] update_connection
 </details>
@@ -6212,7 +6212,7 @@
 
 ## kinesis
 <details>
-<summary>50% implemented</summary>
+<summary>57% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -6885,7 +6885,7 @@
 
 ## logs
 <details>
-<summary>42% implemented</summary>
+<summary>45% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -6921,7 +6921,7 @@
 - [X] put_log_events
 - [ ] put_metric_filter
 - [ ] put_query_definition
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [X] put_retention_policy
 - [X] put_subscription_filter
 - [X] start_query
@@ -7913,7 +7913,7 @@
 
 ## organizations
 <details>
-<summary>72% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -7924,7 +7924,7 @@
 - [X] create_organizational_unit
 - [X] create_policy
 - [ ] decline_handshake
-- [ ] delete_organization
+- [X] delete_organization
 - [ ] delete_organizational_unit
 - [X] delete_policy
 - [X] deregister_delegated_administrator
@@ -9041,7 +9041,7 @@
 
 ## s3
 <details>
-<summary>23% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] abort_multipart_upload
 - [ ] complete_multipart_upload
@@ -9060,7 +9060,7 @@
 - [X] delete_bucket_policy
 - [ ] delete_bucket_replication
 - [X] delete_bucket_tagging
-- [ ] delete_bucket_website
+- [X] delete_bucket_website
 - [X] delete_object
 - [X] delete_object_tagging
 - [ ] delete_objects
