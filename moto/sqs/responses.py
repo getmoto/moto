@@ -91,7 +91,14 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
+        tags = {}
+        tags_param = self._get_multi_param("Tag")
+        # Returns [{'Key': 'Foo', 'Value': 'Bar'}]
+        if tags_param:
+            for tag in tags_param:
+                tags[tag["Key"]] = tag["Value"]
+
+        queue = self.sqs_backend.create_queue(queue_name, tags, **self.attribute)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
