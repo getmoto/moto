@@ -173,7 +173,7 @@ def test_create_queue_with_tags():
     queue_url = response["QueueUrl"]
 
     client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
-        {"tag_key_1": "tag_value_1", "tag_key_2": "tag_value_2",}
+        {"tag_key_1": "tag_value_1", "tag_key_2": "",}
     )
 
 
