@@ -54,7 +54,7 @@ class EventsHandler(BaseResponse):
         Returns:
             (str, dict): dumped result and headers
         """
-        return json.dumps(result), self.headers
+        return json.dumps(result), self.response_headers
 
     def error(self, type_, message="", status=400):
         headers = self.response_headers
@@ -466,6 +466,16 @@ class EventsHandler(BaseResponse):
         name = self._get_param("Name")
         result = self.events_backend.describe_connection(name)
         return json.dumps(result), self.response_headers
+
+    def update_connection(self):
+        updates = dict(
+            name=self._get_param("Name"),
+            description=self._get_param("Description"),
+            authorization_type=self._get_param("AuthorizationType"),
+            auth_parameters=self._get_param("AuthParameters"),
+        )
+        result = self.events_backend.update_connection(**updates)
+        return self._create_response(result)
 
     def delete_connection(self):
         name = self._get_param("Name")
