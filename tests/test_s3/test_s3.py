@@ -4972,7 +4972,9 @@ def test_encryption():
 
     resp = conn.get_bucket_encryption(Bucket="mybucket")
     assert "ServerSideEncryptionConfiguration" in resp
-    assert resp["ServerSideEncryptionConfiguration"] == sse_config
+    return_config = sse_config.copy()
+    return_config["Rules"][0]["BucketKeyEnabled"] = False
+    assert resp["ServerSideEncryptionConfiguration"].should.equal(return_config)
 
     conn.delete_bucket_encryption(Bucket="mybucket")
     with pytest.raises(ClientError) as exc:

@@ -1,5 +1,6 @@
 from boto3 import Session
 
+from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
 from .exceptions import (
@@ -53,7 +54,7 @@ class LogStream(BaseModel):
         self.region = region
         self.arn = "arn:aws:logs:{region}:{id}:log-group:{log_group}:log-stream:{log_stream}".format(
             region=region,
-            id=self.__class__._log_ids,
+            id=moto_core.ACCOUNT_ID,
             log_group=log_group,
             log_stream=name,
         )
@@ -262,6 +263,11 @@ class LogGroup(BaseModel):
         )  # AWS defaults to Never Expire for log group retention
         self.subscription_filters = []
 
+        # The Amazon Resource Name (ARN) of the CMK to use when encrypting log data. It is optional.
+        # Docs:
+        # https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+        self.kms_key_id = kwargs.get("kmsKeyId")
+
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
             raise ResourceAlreadyExistsException()
@@ -442,6 +448,8 @@ class LogGroup(BaseModel):
         # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
         if self.retention_in_days:
             log_group["retentionInDays"] = self.retention_in_days
+        if self.kms_key_id:
+            log_group["kmsKeyId"] = self.kms_key_id
         return log_group
 
     def set_retention_policy(self, retention_in_days):
@@ -510,6 +518,7 @@ class LogsBackend(BaseBackend):
         self.region_name = region_name
         self.groups = dict()  # { logGroupName: LogGroup}
         self.queries = dict()
+        self.resource_policies = dict()
 
     def reset(self):
         region_name = self.region_name
@@ -676,6 +685,10 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.set_retention_policy(None)
+
+    def put_resource_policy(self, policy_name, policy_doc):
+        policy = {"policyName": policy_name, "policyDocument": policy_doc}
+        self.resource_policies[policy_name] = policy
 
     def list_tags_log_group(self, log_group_name):
         if log_group_name not in self.groups:

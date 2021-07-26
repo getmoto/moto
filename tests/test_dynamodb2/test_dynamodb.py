@@ -5970,7 +5970,7 @@ def test_dynamodb_update_item_fails_on_string_sets():
         BillingMode="PAY_PER_REQUEST",
     )
     table.meta.client.get_waiter("table_exists").wait(TableName="test")
-    attribute = {"test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT"}}
+    attribute = {"test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT",}}
 
     client.update_item(
         TableName="test",

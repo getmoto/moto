@@ -15,6 +15,9 @@ from moto.iam import iam_backends
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
+    "transit-gateway": "tgw",
+    "transit-gateway-route-table": "tgw-rtb",
+    "transit-gateway-attachment": "tgw-attach",
     "dhcp-options": "dopt",
     "flow-logs": "fl",
     "image": "ami",
@@ -168,6 +171,22 @@ def random_nat_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"], size=17)
 
 
+def random_transit_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"], size=17)
+
+
+def random_transit_gateway_route_table_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"], size=17
+    )
+
+
+def random_transit_gateway_attachment_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"], size=17
+    )
+
+
 def random_launch_template_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
 
@@ -207,7 +226,7 @@ def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
 
 
 def generate_vpc_end_point_id(vpc_id):
-    return "%s-%s" % ("vpce", vpc_id[4:])
+    return "%s-%s%s" % ("vpce", vpc_id[4:], random_resource_id(4))
 
 
 def create_dns_entries(service_name, vpc_endpoint_id):
@@ -339,6 +358,13 @@ def get_obj_tag_names(obj):
 
 def get_obj_tag_values(obj):
     tags = set((tag["value"] for tag in obj.get_tags()))
+    return tags
+
+
+def add_tag_specification(tags):
+    tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
+    tags = (tags or {}).get("Tag", [])
+    tags = {t["Key"]: t["Value"] for t in tags}
     return tags
 
 
@@ -515,6 +541,11 @@ def random_key_pair():
 
 def get_prefix(resource_id):
     resource_id_prefix, separator, after = resource_id.partition("-")
+    if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["transit-gateway"]:
+        if after.startswith("rtb"):
+            resource_id_prefix = EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"]
+        if after.startswith("attach"):
+            resource_id_prefix = EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"]
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["network-interface"]:
         if after.startswith("attach"):
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX["network-interface-attachment"]

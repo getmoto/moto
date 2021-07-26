@@ -64,13 +64,13 @@ CREATE_SUBNET_RESPONSE = """
     <state>pending</state>
     <vpcId>{{ subnet.vpc_id }}</vpcId>
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
-    <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>
+    <availableIpAddressCount>{{ subnet.available_ip_addresses or '0' }}</availableIpAddressCount>
     <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
     <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
     <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
     <ownerId>{{ subnet.owner_id }}</ownerId>
-    <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
+    <assignIpv6AddressOnCreation>{{ 'false' if not subnet.assign_ipv6_address_on_creation or subnet.assign_ipv6_address_on_creation == 'false' else 'true'}}</assignIpv6AddressOnCreation>
     <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
     <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
     <tagSet>
@@ -102,13 +102,13 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <state>{{ subnet.state }}</state>
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
-        <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>
+        <availableIpAddressCount>{{ subnet.available_ip_addresses or '0' }}</availableIpAddressCount>
         <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
         <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
         <ownerId>{{ subnet.owner_id }}</ownerId>
-        <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
+        <assignIpv6AddressOnCreation>{{ 'false' if not subnet.assign_ipv6_address_on_creation or subnet.assign_ipv6_address_on_creation == 'false' else 'true'}}</assignIpv6AddressOnCreation>
         <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
         <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
         {% if subnet.get_tags() %}

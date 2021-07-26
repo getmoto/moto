@@ -505,9 +505,8 @@ class ResourceMap(collections_abc.Mapping):
                     self._parsed_resources.update(json.loads(key.value))
 
     def parse_ssm_parameter(self, value, value_type):
-
         # The Value in SSM parameters is the SSM parameter path
-        # we need to use ssm_backend to retreive the
+        # we need to use ssm_backend to retrieve the
         # actual value from parameter store
         parameter = ssm_backends[self._region_name].get_parameter(value, False)
         actual_value = parameter.value

@@ -88,3 +88,12 @@ def test_event_pattern_with_multi_numeric_event_filter():
     assert two_or_three.matches_event(events[2])
     assert two_or_three.matches_event(events[3])
     assert not two_or_three.matches_event(events[4])
+
+
+@pytest.mark.parametrize(
+    "pattern, expected_str",
+    [('{"source": ["foo", "bar"]}', '{"source": ["foo", "bar"]}'), (None, ""),],
+)
+def test_event_pattern_str(pattern, expected_str):
+    event_pattern = EventPattern(pattern)
+    assert str(event_pattern) == expected_str

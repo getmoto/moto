@@ -192,7 +192,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
-    param_list_regex = re.compile(r"(.*)\.(\d+)\.")
+    param_list_regex = re.compile(r"^(\.?[^.]*(\.member)?)\.(\d+)\.")
+    param_regex = re.compile(r"([^\.]*)\.(\w+)(\..+)?")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
@@ -252,7 +253,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                             )
                         )
                     )
-                except UnicodeEncodeError:
+                except (UnicodeEncodeError, UnicodeDecodeError):
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
             querystring.update(headers)
@@ -402,7 +403,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             try:
                 response = method()
             except HTTPException as http_error:
-                response = http_error.description, dict(status=http_error.code)
+                response_headers = dict(http_error.get_headers() or [])
+                response_headers["status"] = http_error.code
+                response = http_error.description, response_headers
 
             if isinstance(response, str):
                 return 200, headers, response
@@ -460,15 +463,23 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _get_bool_param(self, param_name, if_none=None):
         val = self._get_param(param_name)
         if val is not None:
+            val = str(val)
             if val.lower() == "true":
                 return True
             elif val.lower() == "false":
                 return False
         return if_none
 
-    def _get_multi_param_helper(self, param_prefix):
+    def _get_multi_param_dict(self, param_prefix):
+        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
+
+    def _get_multi_param_helper(
+        self, param_prefix, skip_result_conversion=False, tracked_prefixes=None
+    ):
         value_dict = dict()
-        tracked_prefixes = set()  # prefixes which have already been processed
+        tracked_prefixes = (
+            tracked_prefixes or set()
+        )  # prefixes which have already been processed
 
         def is_tracked(name_param):
             for prefix_loop in tracked_prefixes:
@@ -497,23 +508,46 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 name = prefix
                 value_dict[name] = value
             else:
-                value_dict[name] = value[0]
+                match = self.param_regex.search(name[len(param_prefix) :])
+                if match:
+                    # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
+                    sub_attr = "%s%s.%s" % (
+                        name[: len(param_prefix)],
+                        match.group(1),
+                        match.group(2),
+                    )
+                    if match.group(3):
+                        value = self._get_multi_param_helper(
+                            sub_attr,
+                            tracked_prefixes=tracked_prefixes,
+                            skip_result_conversion=skip_result_conversion,
+                        )
+                    else:
+                        value = self._get_param(sub_attr)
+                    tracked_prefixes.add(sub_attr)
+                    value_dict[name] = value
+                else:
+                    value_dict[name] = value[0]
 
         if not value_dict:
             return None
 
-        if len(value_dict) > 1:
+        if skip_result_conversion or len(value_dict) > 1:
             # strip off period prefix
             value_dict = {
                 name[len(param_prefix) + 1 :]: value
                 for name, value in value_dict.items()
             }
+            for k in list(value_dict.keys()):
+                parts = k.split(".")
+                if len(parts) != 2 or parts[1] != "member":
+                    value_dict[parts[0]] = value_dict.pop(k)
         else:
             value_dict = list(value_dict.values())[0]
 
         return value_dict
 
-    def _get_multi_param(self, param_prefix):
+    def _get_multi_param(self, param_prefix, skip_result_conversion=False):
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -525,7 +559,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         values = []
         index = 1
         while True:
-            value_dict = self._get_multi_param_helper(prefix + str(index))
+            value_dict = self._get_multi_param_helper(
+                prefix + str(index), skip_result_conversion=skip_result_conversion
+            )
             if not value_dict and value_dict != "":
                 break
 

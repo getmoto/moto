@@ -90,7 +90,7 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
-    # Update PIP - recent version does not support PY2 though
+    # Update PIP
     - name: Update pip
       run: |
         # https://github.com/pypa/pip/issues/10201
@@ -136,6 +136,7 @@ jobs:
       run: |
         pip install -r requirements-dev.txt
         pip install pytest-cov
+        pip install pytest-github-actions-annotate-failures
     - name: Test with pytest
       run: |
         make test-coverage
@@ -229,7 +230,7 @@ jobs:
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
-        bin/run-tests -i ../tests/terraform-tests.success.txt
+        bin/run-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt
         cd ..
     - name: "Create report"
       run: |

@@ -534,7 +534,7 @@ class LifecycleAndFilter(BaseModel):
 
         for key, value in self.tags.items():
             data.append(
-                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value},}
+                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value}}
             )
 
         return data
@@ -1058,9 +1058,6 @@ class FakeBucket(CloudFormationModel):
 
         self.accelerate_configuration = accelerate_config
 
-    def set_website_configuration(self, website_configuration):
-        self.website_configuration = website_configuration
-
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -1382,11 +1379,15 @@ class S3Backend(BaseBackend):
 
     def set_bucket_website_configuration(self, bucket_name, website_configuration):
         bucket = self.get_bucket(bucket_name)
-        bucket.set_website_configuration(website_configuration)
+        bucket.website_configuration = website_configuration
 
     def get_bucket_website_configuration(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return bucket.website_configuration
+
+    def delete_bucket_website(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.website_configuration = None
 
     def get_bucket_public_access_block(self, bucket_name):
         bucket = self.get_bucket(bucket_name)

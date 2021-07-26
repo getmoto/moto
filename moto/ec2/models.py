@@ -33,7 +33,7 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import load_resource, merge_multiple_dicts
 from os import listdir
 
 from .exceptions import (
@@ -124,9 +124,12 @@ from .utils import (
     random_internet_gateway_id,
     random_ip,
     random_ipv6_cidr,
+    random_transit_gateway_attachment_id,
+    random_transit_gateway_route_table_id,
     randor_ipv4_cidr,
     random_launch_template_id,
     random_nat_gateway_id,
+    random_transit_gateway_id,
     random_key_pair,
     random_private_ip,
     random_public_ip,
@@ -249,8 +252,12 @@ class TaggedEC2Resource(BaseModel):
             return [tag["key"] for tag in tags]
         elif filter_name == "tag-value":
             return [tag["value"] for tag in tags]
-        else:
-            raise FilterNotImplementedError(filter_name, method_name)
+
+        value = getattr(self, filter_name.lower().replace("-", "_"), None)
+        if value is not None:
+            return [value]
+
+        raise FilterNotImplementedError(filter_name, method_name)
 
 
 class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
@@ -2015,7 +2022,9 @@ class SecurityRule(object):
 
 
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, ec2_backend, group_id, name, description, vpc_id=None):
+    def __init__(
+        self, ec2_backend, group_id, name, description, vpc_id=None, tags=None
+    ):
         self.ec2_backend = ec2_backend
         self.id = group_id
         self.name = name
@@ -2027,6 +2036,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
+        self.add_tags(tags or {})
 
         # Append default IPv6 egress rule for VPCs with IPv6 support
         if vpc_id:
@@ -2188,7 +2198,9 @@ class SecurityGroupBackend(object):
 
         super(SecurityGroupBackend, self).__init__()
 
-    def create_security_group(self, name, description, vpc_id=None, force=False):
+    def create_security_group(
+        self, name, description, vpc_id=None, tags=None, force=False
+    ):
         if not description:
             raise MissingParameterError("GroupDescription")
 
@@ -2197,7 +2209,9 @@ class SecurityGroupBackend(object):
             existing_group = self.get_security_group_from_name(name, vpc_id)
             if existing_group:
                 raise InvalidSecurityGroupDuplicateError(name)
-        group = SecurityGroup(self, group_id, name, description, vpc_id=vpc_id)
+        group = SecurityGroup(
+            self, group_id, name, description, vpc_id=vpc_id, tags=tags
+        )
 
         self.groups[vpc_id][group_id] = group
         return group
@@ -3051,10 +3065,12 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         ).get("cidr_block"):
             raise OperationNotPermitted(association_id)
 
-        response = self.cidr_block_association_set.pop(association_id, {})
-        if response:
+        entry = response = self.cidr_block_association_set.get(association_id, {})
+        if entry:
+            response = json.loads(json.dumps(entry))
             response["vpc_id"] = self.id
             response["cidr_block_state"]["state"] = "disassociating"
+            entry["cidr_block_state"]["state"] = "disassociated"
         return response
 
     def get_cidr_block_association_set(self, ipv6=False):
@@ -3229,7 +3245,7 @@ class VPCBackend(object):
         network_interface_ids=[],
         dns_entries=None,
         client_token=None,
-        security_group=None,
+        security_group_ids=None,
         tag_specifications=None,
         private_dns_enabled=None,
     ):
@@ -3259,6 +3275,7 @@ class VPCBackend(object):
             dns_entries = [dns_entries]
 
         vpc_end_point = VPCEndPoint(
+            self,
             vpc_endpoint_id,
             vpc_id,
             service_name,
@@ -3269,7 +3286,7 @@ class VPCBackend(object):
             network_interface_ids,
             dns_entries,
             client_token,
-            security_group,
+            security_group_ids,
             tag_specifications,
             private_dns_enabled,
         )
@@ -4308,6 +4325,7 @@ class Route(CloudFormationModel):
 class VPCEndPoint(TaggedEC2Resource):
     def __init__(
         self,
+        ec2_backend,
         id,
         vpc_id,
         service_name,
@@ -4318,10 +4336,11 @@ class VPCEndPoint(TaggedEC2Resource):
         network_interface_ids=None,
         dns_entries=None,
         client_token=None,
-        security_group=None,
+        security_group_ids=None,
         tag_specifications=None,
         private_dns_enabled=None,
     ):
+        self.ec2_backend = ec2_backend
         self.id = id
         self.vpc_id = vpc_id
         self.service_name = service_name
@@ -4331,7 +4350,7 @@ class VPCEndPoint(TaggedEC2Resource):
         self.network_interface_ids = network_interface_ids
         self.subnet_ids = subnet_ids
         self.client_token = client_token
-        self.security_group = security_group
+        self.security_group_ids = security_group_ids
         self.tag_specifications = tag_specifications
         self.private_dns_enabled = private_dns_enabled
         self.created_at = datetime.utcnow()
@@ -5395,7 +5414,16 @@ class DHCPOptionsSetBackend(object):
 
 
 class VPNConnection(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, customer_gateway_id, vpn_gateway_id):
+    def __init__(
+        self,
+        ec2_backend,
+        id,
+        type,
+        customer_gateway_id,
+        vpn_gateway_id=None,
+        transit_gateway_id=None,
+        tags={},
+    ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.state = "available"
@@ -5403,9 +5431,11 @@ class VPNConnection(TaggedEC2Resource):
         self.type = type
         self.customer_gateway_id = customer_gateway_id
         self.vpn_gateway_id = vpn_gateway_id
+        self.transit_gateway_id = transit_gateway_id
         self.tunnels = None
         self.options = None
         self.static_routes = None
+        self.add_tags(tags or {})
 
     def get_filter_value(self, filter_name):
         return super(VPNConnection, self).get_filter_value(
@@ -5419,7 +5449,13 @@ class VPNConnectionBackend(object):
         super(VPNConnectionBackend, self).__init__()
 
     def create_vpn_connection(
-        self, type, customer_gateway_id, vpn_gateway_id, static_routes_only=None
+        self,
+        type,
+        customer_gateway_id,
+        vpn_gateway_id=None,
+        transit_gateway_id=None,
+        static_routes_only=None,
+        tags={},
     ):
         vpn_connection_id = random_vpn_connection_id()
         if static_routes_only:
@@ -5430,6 +5466,8 @@ class VPNConnectionBackend(object):
             type=type,
             customer_gateway_id=customer_gateway_id,
             vpn_gateway_id=vpn_gateway_id,
+            transit_gateway_id=transit_gateway_id,
+            tags=tags,
         )
         self.vpn_connections[vpn_connection.id] = vpn_connection
         return vpn_connection
@@ -5437,10 +5475,10 @@ class VPNConnectionBackend(object):
     def delete_vpn_connection(self, vpn_connection_id):
 
         if vpn_connection_id in self.vpn_connections:
-            self.vpn_connections.pop(vpn_connection_id)
+            self.vpn_connections[vpn_connection_id].state = "deleted"
         else:
             raise InvalidVpnConnectionIdError(vpn_connection_id)
-        return True
+        return self.vpn_connections[vpn_connection_id]
 
     def describe_vpn_connections(self, vpn_connection_ids=None):
         vpn_connections = []
@@ -5723,10 +5761,23 @@ class NetworkAclEntry(TaggedEC2Resource):
 
 
 class VpnGateway(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type):
+    def __init__(
+        self,
+        ec2_backend,
+        id,
+        type,
+        amazon_side_asn,
+        availability_zone,
+        tags=None,
+        state="available",
+    ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.type = type
+        self.amazon_side_asn = amazon_side_asn
+        self.availability_zone = availability_zone
+        self.state = state
+        self.add_tags(tags or {})
         self.attachments = {}
         super(VpnGateway, self).__init__()
 
@@ -5756,9 +5807,13 @@ class VpnGatewayBackend(object):
         self.vpn_gateways = {}
         super(VpnGatewayBackend, self).__init__()
 
-    def create_vpn_gateway(self, type="ipsec.1"):
+    def create_vpn_gateway(
+        self, type="ipsec.1", amazon_side_asn=None, availability_zone=None, tags=None
+    ):
         vpn_gateway_id = random_vpn_gateway_id()
-        vpn_gateway = VpnGateway(self, vpn_gateway_id, type)
+        vpn_gateway = VpnGateway(
+            self, vpn_gateway_id, type, amazon_side_asn, availability_zone, tags
+        )
         self.vpn_gateways[vpn_gateway_id] = vpn_gateway
         return vpn_gateway
 
@@ -5795,13 +5850,17 @@ class VpnGatewayBackend(object):
 
 
 class CustomerGateway(TaggedEC2Resource):
-    def __init__(self, ec2_backend, id, type, ip_address, bgp_asn):
+    def __init__(
+        self, ec2_backend, id, type, ip_address, bgp_asn, state="available", tags=None
+    ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.type = type
         self.ip_address = ip_address
         self.bgp_asn = bgp_asn
         self.attachments = {}
+        self.state = state
+        self.add_tags(tags or {})
         super(CustomerGateway, self).__init__()
 
     def get_filter_value(self, filter_name):
@@ -5815,17 +5874,44 @@ class CustomerGatewayBackend(object):
         self.customer_gateways = {}
         super(CustomerGatewayBackend, self).__init__()
 
-    def create_customer_gateway(self, type="ipsec.1", ip_address=None, bgp_asn=None):
+    def create_customer_gateway(
+        self, type="ipsec.1", ip_address=None, bgp_asn=None, tags=None
+    ):
         customer_gateway_id = random_customer_gateway_id()
         customer_gateway = CustomerGateway(
-            self, customer_gateway_id, type, ip_address, bgp_asn
+            self, customer_gateway_id, type, ip_address, bgp_asn, tags=tags
         )
         self.customer_gateways[customer_gateway_id] = customer_gateway
         return customer_gateway
 
     def get_all_customer_gateways(self, filters=None):
         customer_gateways = self.customer_gateways.values()
-        return generic_filter(filters, customer_gateways)
+        if filters is not None:
+            if filters.get("customer-gateway-id") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.id in filters["customer-gateway-id"]
+                ]
+            if filters.get("type") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.type in filters["type"]
+                ]
+            if filters.get("bgp-asn") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.bgp_asn in filters["bgp-asn"]
+                ]
+            if filters.get("ip-address") is not None:
+                customer_gateways = [
+                    customer_gateway
+                    for customer_gateway in customer_gateways
+                    if customer_gateway.ip_address in filters["ip-address"]
+                ]
+        return customer_gateways
 
     def get_customer_gateway(self, customer_gateway_id):
         customer_gateway = self.customer_gateways.get(customer_gateway_id, None)
@@ -5834,10 +5920,423 @@ class CustomerGatewayBackend(object):
         return customer_gateway
 
     def delete_customer_gateway(self, customer_gateway_id):
-        deleted = self.customer_gateways.pop(customer_gateway_id, None)
+        customer_gateway = self.get_customer_gateway(customer_gateway_id)
+        customer_gateway.state = "deleted"
+        # deleted = self.customer_gateways.pop(customer_gateway_id, None)
+        deleted = True
         if not deleted:
             raise InvalidCustomerGatewayIdError(customer_gateway_id)
         return deleted
+
+
+class TransitGateway(TaggedEC2Resource, CloudFormationModel):
+
+    DEFAULT_OPTIONS = {
+        "AmazonSideAsn": "64512",
+        "AssociationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
+        "AutoAcceptSharedAttachments": "disable",
+        "DefaultRouteTableAssociation": "enable",
+        "DefaultRouteTablePropagation": "enable",
+        "DnsSupport": "enable",
+        "MulticastSupport": "disable",
+        "PropagationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
+        "TransitGatewayCidrBlocks": None,
+        "VpnEcmpSupport": "enable",
+    }
+
+    def __init__(self, backend, description=None, options=None, tags=None):
+        self.ec2_backend = backend
+        self.id = random_transit_gateway_id()
+        self.description = description
+        self.state = "available"
+        self.add_tags(tags or {})
+        self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
+        self._created_at = datetime.utcnow()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @property
+    def create_time(self):
+        return iso_8601_datetime_with_milliseconds(self._created_at)
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-natgateway.html
+        return "AWS::EC2::TransitGateway"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        ec2_backend = ec2_backends[region_name]
+        transit_gateway = ec2_backend.create_transit_gateway(
+            cloudformation_json["Properties"]["Description"],
+            cloudformation_json["Properties"]["Options"],
+        )
+        return transit_gateway
+
+
+class TransitGatewayBackend(object):
+    def __init__(self):
+        self.transit_gateways = {}
+        super(TransitGatewayBackend, self).__init__()
+
+    def create_transit_gateway(self, description=None, options=None, tags=None):
+        transit_gateway = TransitGateway(self, description, options, tags)
+        self.transit_gateways[transit_gateway.id] = transit_gateway
+        return transit_gateway
+
+    def get_all_transit_gateways(self, filters):
+        transit_gateways = self.transit_gateways.values()
+
+        if filters is not None:
+            if filters.get("transit-gateway-id") is not None:
+                transit_gateways = [
+                    transit_gateway
+                    for transit_gateway in transit_gateways
+                    if transit_gateway.id in filters["transit-gateway-id"]
+                ]
+            if filters.get("state") is not None:
+                transit_gateways = [
+                    transit_gateway
+                    for transit_gateway in transit_gateways
+                    if transit_gateway.state in filters["state"]
+                ]
+            if filters.get("owner-id") is not None:
+                transit_gateways = [
+                    transit_gateway
+                    for transit_gateway in transit_gateways
+                    if transit_gateway.owner_id in filters["owner-id"]
+                ]
+
+        return transit_gateways
+
+    def delete_transit_gateway(self, transit_gateway_id):
+        return self.transit_gateways.pop(transit_gateway_id)
+
+    def modify_transit_gateway(
+        self, transit_gateway_id, description=None, options=None
+    ):
+        transit_gateway = self.transit_gateways.get(transit_gateway_id)
+        if description:
+            transit_gateway.description = description
+        if options:
+            transit_gateway.options.update(options)
+        return transit_gateway
+
+
+class TransitGatewayRouteTable(TaggedEC2Resource):
+    def __init__(
+        self,
+        backend,
+        transit_gateway_id,
+        tags=None,
+        default_association_route_table=False,
+        default_propagation_route_table=False,
+    ):
+        self.ec2_backend = backend
+        self.id = random_transit_gateway_route_table_id()
+        self.transit_gateway_id = transit_gateway_id
+
+        self._created_at = datetime.utcnow()
+
+        self.default_association_route_table = default_association_route_table
+        self.default_propagation_route_table = default_propagation_route_table
+        self.state = "available"
+        self.routes = {}
+        self.add_tags(tags or {})
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @property
+    def create_time(self):
+        return iso_8601_datetime_with_milliseconds(self._created_at)
+
+
+class TransitGatewayRouteTableBackend(object):
+    def __init__(self):
+        self.transit_gateways_route_tables = {}
+        super(TransitGatewayRouteTableBackend, self).__init__()
+
+    def create_transit_gateway_route_table(
+        self,
+        transit_gateway_id,
+        tags=None,
+        default_association_route_table=False,
+        default_propagation_route_table=False,
+    ):
+        transit_gateways_route_table = TransitGatewayRouteTable(
+            self,
+            transit_gateway_id=transit_gateway_id,
+            tags=tags,
+            default_association_route_table=default_association_route_table,
+            default_propagation_route_table=default_propagation_route_table,
+        )
+        self.transit_gateways_route_tables[
+            transit_gateways_route_table.id
+        ] = transit_gateways_route_table
+        return transit_gateways_route_table
+
+    def get_all_transit_gateway_route_tables(
+        self, transit_gateway_ids=None, filters=None
+    ):
+        transit_gateway_route_tables = self.transit_gateways_route_tables.values()
+
+        attr_pairs = (
+            ("default-association-route-table", "default_association_route_table"),
+            ("default-propagation-route-table", "default_propagation_route_table"),
+            ("state", "state"),
+            ("transit-gateway-id", "transit_gateway_id"),
+            ("transit-gateway-route-table-id", "id"),
+        )
+
+        if transit_gateway_ids:
+            transit_gateway_route_tables = [
+                transit_gateway_route_table
+                for transit_gateway_route_table in transit_gateway_route_tables
+                if transit_gateway_route_table.id in transit_gateway_ids
+            ]
+
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    transit_gateway_route_tables = [
+                        transit_gateway_route_table
+                        for transit_gateway_route_table in transit_gateway_route_tables
+                        if not values
+                        or getattr(transit_gateway_route_table, attrs[1]) in values
+                    ]
+
+        return transit_gateway_route_tables
+
+    def delete_transit_gateway_route_table(self, transit_gateway_route_table_id):
+        return self.transit_gateways_route_tables.pop(transit_gateway_route_table_id)
+
+    def create_transit_gateway_route(
+        self,
+        transit_gateway_route_table_id,
+        destination_cidr_block,
+        transit_gateway_attachment_id=None,
+        blackhole=False,
+    ):
+        transit_gateways_route_table = self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ]
+        transit_gateways_route_table.routes[destination_cidr_block] = {
+            "destinationCidrBlock": destination_cidr_block,
+            "prefixListId": "",
+            "state": "blackhole" if blackhole else "active",
+            # TODO: needs to be fixed once we have support for transit gateway attachments
+            "transitGatewayAttachments": {
+                "resourceId": "TODO",
+                "resourceType": "TODO",
+                "transitGatewayAttachmentId": transit_gateway_attachment_id,
+            },
+            "type": "TODO",
+        }
+        return transit_gateways_route_table
+
+    def delete_transit_gateway_route(
+        self, transit_gateway_route_table_id, destination_cidr_block,
+    ):
+        transit_gateways_route_table = self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ]
+        transit_gateways_route_table.routes[destination_cidr_block]["state"] = "deleted"
+        return transit_gateways_route_table
+
+    def search_transit_gateway_routes(
+        self, transit_gateway_route_table_id, filters, max_results=None
+    ):
+        transit_gateway_route_table = self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ]
+
+        attr_pairs = (
+            ("type", "type"),
+            ("state", "state"),
+        )
+
+        for attrs in attr_pairs:
+            values = filters.get(attrs[0]) or None
+            if values:
+                routes = [
+                    transit_gateway_route_table.routes[key]
+                    for key in transit_gateway_route_table.routes
+                    if transit_gateway_route_table.routes[key][attrs[1]] in values
+                ]
+        if max_results:
+            routes = routes[: int(max_results)]
+        return routes
+
+
+class TransitGatewayAttachment(TaggedEC2Resource):
+    def __init__(
+        self, backend, resource_id, resource_type, transit_gateway_id, tags=None
+    ):
+
+        self.ec2_backend = backend
+        self.association = {}
+        self.resource_id = resource_id
+        self.resource_type = resource_type
+
+        self.id = random_transit_gateway_attachment_id()
+        self.transit_gateway_id = transit_gateway_id
+
+        self.state = "available"
+        self.add_tags(tags or {})
+
+        self._created_at = datetime.utcnow()
+
+    @property
+    def create_time(self):
+        return iso_8601_datetime_with_milliseconds(self._created_at)
+
+    @property
+    def resource_owner_id(self):
+        return ACCOUNT_ID
+
+    @property
+    def transit_gateway_owner_id(self):
+        return ACCOUNT_ID
+
+
+class TransitGatewayVpcAttachment(TransitGatewayAttachment):
+
+    DEFAULT_OPTIONS = {
+        "ApplianceModeSupport": "disable",
+        "DnsSupport": "enable",
+        "Ipv6Support": "disable",
+    }
+
+    def __init__(
+        self, backend, transit_gateway_id, vpc_id, subnet_ids, tags=None, options=None
+    ):
+
+        super().__init__(
+            backend=backend,
+            transit_gateway_id=transit_gateway_id,
+            resource_id=vpc_id,
+            resource_type="vpc",
+            tags=tags,
+        )
+
+        self.vpc_id = vpc_id
+        self.subnet_ids = subnet_ids
+        self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
+
+
+class TransitGatewayAttachmentBackend(object):
+    def __init__(self):
+        self.transit_gateways_attachments = {}
+        super(TransitGatewayAttachmentBackend, self).__init__()
+
+    def create_transit_gateway_vpn_attachment(
+        self, vpn_id, transit_gateway_id, tags=[]
+    ):
+        transit_gateway_vpn_attachment = TransitGatewayAttachment(
+            self,
+            resource_id=vpn_id,
+            resource_type="vpn",
+            transit_gateway_id=transit_gateway_id,
+            tags=tags,
+        )
+        self.transit_gateways_attachments[
+            transit_gateway_vpn_attachment.id
+        ] = transit_gateway_vpn_attachment
+        return transit_gateway_vpn_attachment
+
+    def create_transit_gateway_vpc_attachment(
+        self, transit_gateway_id, vpc_id, subnet_ids, tags=None, options=None
+    ):
+        transit_gateway_vpc_attachment = TransitGatewayVpcAttachment(
+            self,
+            transit_gateway_id=transit_gateway_id,
+            tags=tags,
+            vpc_id=vpc_id,
+            subnet_ids=subnet_ids,
+            options=options,
+        )
+        self.transit_gateways_attachments[
+            transit_gateway_vpc_attachment.id
+        ] = transit_gateway_vpc_attachment
+        return transit_gateway_vpc_attachment
+
+    def describe_transit_gateway_attachments(
+        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+    ):
+        transit_gateways_attachments = self.transit_gateways_attachments.values()
+
+        attr_pairs = (
+            ("resource-id", "resource_id"),
+            ("resource-type", "resource_type"),
+            ("transit-gateway-id", "transit_gateway_id"),
+        )
+
+        if transit_gateways_attachment_ids:
+            transit_gateways_attachments = [
+                transit_gateways_attachment
+                for transit_gateways_attachment in transit_gateways_attachments
+                if transit_gateways_attachment.id in transit_gateways_attachment_ids
+            ]
+
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    transit_gateways_attachments = [
+                        transit_gateways_attachment
+                        for transit_gateways_attachment in transit_gateways_attachments
+                        if getattr(transit_gateways_attachment, attrs[1]) in values
+                    ]
+        return transit_gateways_attachments
+
+    def describe_transit_gateway_vpc_attachments(
+        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+    ):
+        transit_gateways_attachments = self.transit_gateways_attachments.values()
+
+        attr_pairs = (
+            ("state", "state"),
+            ("transit-gateway-attachment-id", "id"),
+            ("transit-gateway-id", "transit_gateway_id"),
+            ("vpc-id", "resource_id"),
+        )
+
+        if (
+            not transit_gateways_attachment_ids == []
+            and transit_gateways_attachment_ids is not None
+        ):
+            transit_gateways_attachments = [
+                transit_gateways_attachment
+                for transit_gateways_attachment in transit_gateways_attachments
+                if transit_gateways_attachment.id in transit_gateways_attachment_ids
+            ]
+
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    transit_gateways_attachments = [
+                        transit_gateways_attachment
+                        for transit_gateways_attachment in transit_gateways_attachments
+                        if getattr(transit_gateways_attachment, attrs[1]) in values
+                    ]
+
+        return transit_gateways_attachments
 
 
 class NatGateway(CloudFormationModel):
@@ -6199,6 +6698,9 @@ class EC2Backend(
     VpnGatewayBackend,
     CustomerGatewayBackend,
     NatGatewayBackend,
+    TransitGatewayBackend,
+    TransitGatewayRouteTableBackend,
+    TransitGatewayAttachmentBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
 ):

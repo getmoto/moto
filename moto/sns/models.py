@@ -441,7 +441,7 @@ class SNSBackend(BaseBackend):
         return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic_subscriptions(self, topic):
-        for key, value in self.subscriptions.items():
+        for key, value in dict(self.subscriptions).items():
             if value.topic == topic:
                 self.subscriptions.pop(key)
 
@@ -585,7 +585,10 @@ class SNSBackend(BaseBackend):
     ):
         for endpoint in self.platform_endpoints.values():
             if token == endpoint.token:
-                if attributes["Enabled"].lower() == endpoint.attributes["Enabled"]:
+                if (
+                    attributes.get("Enabled", "").lower()
+                    == endpoint.attributes["Enabled"]
+                ):
                     return endpoint
                 raise DuplicateSnsEndpointError(
                     "Duplicate endpoint token with different attributes: %s" % token

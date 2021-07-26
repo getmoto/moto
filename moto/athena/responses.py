@@ -82,7 +82,7 @@ class AthenaResponse(BaseResponse):
 
     def error(self, msg, status):
         return (
-            json.dumps({"__type": "InvalidRequestException", "Message": msg,}),
+            json.dumps({"__type": "InvalidRequestException", "Message": msg}),
             dict(status=status),
         )
 

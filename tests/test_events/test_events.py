@@ -4,11 +4,10 @@ import unittest
 from datetime import datetime
 
 import boto3
+import pytest
 import pytz
 import sure  # noqa
-
 from botocore.exceptions import ClientError
-import pytest
 
 from moto import mock_logs
 from moto.core import ACCOUNT_ID
@@ -2157,15 +2156,15 @@ def test_create_and_list_connections():
         },
     )
 
-    assert response.get(
-        "ConnectionArn"
-    ) == "arn:aws:events:eu-central-1:{0}:connection/test".format(ACCOUNT_ID)
+    response.get("ConnectionArn").should.contain(
+        "arn:aws:events:eu-central-1:{0}:connection/test/".format(ACCOUNT_ID)
+    )
 
     response = client.list_connections()
 
-    assert response.get("Connections")[0].get(
-        "ConnectionArn"
-    ) == "arn:aws:events:eu-central-1:{0}:connection/test".format(ACCOUNT_ID)
+    response.get("Connections")[0].get("ConnectionArn").should.contain(
+        "arn:aws:events:eu-central-1:{0}:connection/test/".format(ACCOUNT_ID)
+    )
 
 
 @mock_events
@@ -2189,27 +2188,116 @@ def test_create_and_list_api_destinations():
         HttpMethod="GET",
     )
 
-    assert destination_response.get(
-        "ApiDestinationArn"
-    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+    arn_without_uuid = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:api-destination/test/"
+    assert destination_response.get("ApiDestinationArn").startswith(arn_without_uuid)
     assert destination_response.get("ApiDestinationState") == "ACTIVE"
 
     destination_response = client.describe_api_destination(Name="test")
 
-    assert destination_response.get(
-        "ApiDestinationArn"
-    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+    assert destination_response.get("ApiDestinationArn").startswith(arn_without_uuid)
 
     assert destination_response.get("Name") == "test"
     assert destination_response.get("ApiDestinationState") == "ACTIVE"
 
     destination_response = client.list_api_destinations()
-    assert destination_response.get("ApiDestinations")[0].get(
-        "ApiDestinationArn"
-    ) == "arn:aws:events:eu-central-1:{0}:destination/test".format(ACCOUNT_ID)
+    assert (
+        destination_response.get("ApiDestinations")[0]
+        .get("ApiDestinationArn")
+        .startswith(arn_without_uuid)
+    )
 
     assert destination_response.get("ApiDestinations")[0].get("Name") == "test"
     assert (
         destination_response.get("ApiDestinations")[0].get("ApiDestinationState")
         == "ACTIVE"
     )
+
+
+# Scenarios for describe_connection
+# Scenario 01: Success
+# Scenario 02: Failure - Connection not present
+@mock_events
+def test_describe_connection_success():
+    # Given
+    conn_name = "test_conn_name"
+    conn_description = "test_conn_description"
+    auth_type = "API_KEY"
+    auth_params = {
+        "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+    }
+
+    client = boto3.client("events", "eu-central-1")
+    _ = client.create_connection(
+        Name=conn_name,
+        Description=conn_description,
+        AuthorizationType=auth_type,
+        AuthParameters=auth_params,
+    )
+
+    # When
+    response = client.describe_connection(Name=conn_name)
+
+    # Then
+    assert response["Name"] == conn_name
+    assert response["Description"] == conn_description
+    assert response["AuthorizationType"] == auth_type
+    expected_auth_param = {"ApiKeyAuthParameters": {"ApiKeyName": "test"}}
+    assert response["AuthParameters"] == expected_auth_param
+
+
+@mock_events
+def test_describe_connection_not_present():
+    conn_name = "test_conn_name"
+
+    client = boto3.client("events", "eu-central-1")
+
+    # When/Then
+    with pytest.raises(ClientError):
+        _ = client.describe_connection(Name=conn_name)
+
+
+# Scenarios for delete_connection
+# Scenario 01: Success
+# Scenario 02: Failure - Connection not present
+
+
+@mock_events
+def test_delete_connection_success():
+    # Given
+    conn_name = "test_conn_name"
+    conn_description = "test_conn_description"
+    auth_type = "API_KEY"
+    auth_params = {
+        "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+    }
+
+    client = boto3.client("events", "eu-central-1")
+    created_connection = client.create_connection(
+        Name=conn_name,
+        Description=conn_description,
+        AuthorizationType=auth_type,
+        AuthParameters=auth_params,
+    )
+
+    # When
+    response = client.delete_connection(Name=conn_name)
+
+    # Then
+    expected_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:connection/{conn_name}/"
+    assert response["ConnectionArn"] == created_connection["ConnectionArn"]
+    assert response["ConnectionState"] == created_connection["ConnectionState"]
+    assert response["CreationTime"] == created_connection["CreationTime"]
+
+    with pytest.raises(ClientError):
+        _ = client.describe_connection(Name=conn_name)
+
+
+@mock_events
+def test_delete_connection_not_present():
+    conn_name = "test_conn_name"
+
+    client = boto3.client("events", "eu-central-1")
+
+    # When/Then
+    with pytest.raises(ClientError):
+        _ = client.delete_connection(Name=conn_name)
