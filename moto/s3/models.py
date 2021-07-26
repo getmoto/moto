@@ -44,11 +44,11 @@ from .exceptions import (
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore
+from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
-UPLOAD_PART_MIN_SIZE = 5242880
 STORAGE_CLASS = [
     "STANDARD",
     "REDUCED_REDUNDANCY",
@@ -58,7 +58,6 @@ STORAGE_CLASS = [
     "GLACIER",
     "DEEP_ARCHIVE",
 ]
-DEFAULT_KEY_BUFFER_SIZE = 16 * 1024 * 1024
 DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
@@ -95,7 +94,7 @@ class FakeKey(BaseModel):
         etag=None,
         is_versioned=False,
         version_id=0,
-        max_buffer_size=DEFAULT_KEY_BUFFER_SIZE,
+        max_buffer_size=None,
         multipart=None,
         bucket_name=None,
         encryption=None,
@@ -115,8 +114,10 @@ class FakeKey(BaseModel):
         self.multipart = multipart
         self.bucket_name = bucket_name
 
-        self._value_buffer = tempfile.SpooledTemporaryFile(max_size=max_buffer_size)
-        self._max_buffer_size = max_buffer_size
+        self._max_buffer_size = (
+            max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
+        )
+        self._value_buffer = tempfile.SpooledTemporaryFile(self._max_buffer_size)
         self.value = value
         self.lock = threading.Lock()
 
@@ -206,7 +207,7 @@ class FakeKey(BaseModel):
             value_md5 = hashlib.md5()
             self._value_buffer.seek(0)
             while True:
-                block = self._value_buffer.read(DEFAULT_KEY_BUFFER_SIZE)
+                block = self._value_buffer.read(16 * 1024 * 1024)  # read in 16MB chunks
                 if not block:
                     break
                 value_md5.update(block)
@@ -317,7 +318,7 @@ class FakeMultipart(BaseModel):
                 etag = etag.replace('"', "")
             if part is None or part_etag != etag:
                 raise InvalidPart()
-            if last is not None and last.contentsize < UPLOAD_PART_MIN_SIZE:
+            if last is not None and last.contentsize < S3_UPLOAD_PART_MIN_SIZE:
                 raise EntityTooSmall()
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
@@ -330,7 +331,7 @@ class FakeMultipart(BaseModel):
 
     def set_part(self, part_id, value):
         if part_id < 1:
-            return
+            raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(part_id, value)
         self.parts[part_id] = key
@@ -1593,11 +1594,13 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         multipart_data = bucket.multiparts.get(multipart_id, None)
         if not multipart_data:
-            raise NoSuchUpload()
+            raise NoSuchUpload(upload_id=multipart_id)
         del bucket.multiparts[multipart_id]
 
     def list_multipart(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
+        if multipart_id not in bucket.multiparts:
+            raise NoSuchUpload(upload_id=multipart_id)
         return list(bucket.multiparts[multipart_id].list_parts())
 
     def get_all_multiparts(self, bucket_name):

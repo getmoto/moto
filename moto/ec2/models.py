@@ -403,6 +403,7 @@ class NetworkInterfaceBackend(object):
         private_ip_addresses=None,
         group_ids=None,
         description=None,
+        tags=None,
         **kwargs
     ):
         eni = NetworkInterface(
@@ -414,6 +415,8 @@ class NetworkInterfaceBackend(object):
             description=description,
             **kwargs
         )
+        if tags:
+            eni.add_tags(tags)
         self.enis[eni.id] = eni
         return eni
 
@@ -2101,7 +2104,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             security_group.delete(region_name)
 
     def delete(self, region_name):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
 
     @property

@@ -482,7 +482,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     delete_marker_list=delete_marker_list,
                     latest_versions=latest_versions,
                     bucket=bucket,
-                    prefix="",
+                    prefix=prefix,
                     max_keys=1000,
                     delimiter="",
                     is_truncated="false",
@@ -942,13 +942,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             key_name = object_["Key"]
             version_id = object_.get("VersionId", None)
 
-            success, _ = self.backend.delete_object(
+            self.backend.delete_object(
                 bucket_name, undo_clean_key_name(key_name), version_id=version_id
             )
-            if success:
-                deleted_objects.append((key_name, version_id))
-            else:
-                error_names.append(key_name)
+            deleted_objects.append((key_name, version_id))
 
         return (
             200,

@@ -512,7 +512,7 @@ class Model(type):
 
     @staticmethod
     def prop(model_name):
-        """ decorator to mark a class method as returning model values """
+        """decorator to mark a class method as returning model values"""
 
         def dec(f):
             f.__returns_model__ = model_name

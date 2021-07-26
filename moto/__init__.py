@@ -125,12 +125,14 @@ mock_support = lazy_load(".support", "mock_support")
 mock_mediaconnect = lazy_load(".mediaconnect", "mock_mediaconnect")
 mock_mediapackage = lazy_load(".mediapackage", "mock_mediapackage")
 mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
+mock_eks = lazy_load(".eks", "mock_eks")
+mock_mediastoredata = lazy_load(".mediastoredata", "mock_mediastoredata")
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.0.9.dev"
+__version__ = "2.1.1.dev"
 
 
 try:

@@ -1714,6 +1714,34 @@ def test_send_message_batch():
 
 
 @mock_sqs
+def test_delete_message_batch_with_duplicates():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName="test-queue")
+    queue_url = response["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="coucou")
+
+    messages = client.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=0, VisibilityTimeout=0
+    )["Messages"]
+    assert messages, "at least one msg"
+    entries = [
+        {"Id": msg["MessageId"], "ReceiptHandle": msg["ReceiptHandle"]}
+        for msg in [messages[0], messages[0]]
+    ]
+
+    with pytest.raises(ClientError) as e:
+        client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+    ex = e.value
+    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+
+    # no messages are deleted
+    messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
+        "Messages", []
+    )
+    assert messages, "message still in the queue"
+
+
+@mock_sqs
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -2554,7 +2582,7 @@ def test_list_queues_limits_to_1000_queues():
 
 
 @mock_sqs
-def test_send_messages_to_fifo_without_message_group_id():
+def test_send_message_to_fifo_without_message_group_id():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(
         QueueName="blah.fifo",
@@ -2563,6 +2591,25 @@ def test_send_messages_to_fifo_without_message_group_id():
 
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="message-1")
+    ex = e.value
+    ex.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter MessageGroupId."
+    )
+
+
+@mock_sqs
+def test_send_messages_to_fifo_without_message_group_id():
+    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    queue = sqs.create_queue(
+        QueueName="blah.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
+    )
+
+    with pytest.raises(Exception) as e:
+        queue.send_messages(
+            Entries=[{"Id": "id_1", "MessageBody": "body_1",},]
+        )
     ex = e.value
     ex.response["Error"]["Code"].should.equal("MissingParameter")
     ex.response["Error"]["Message"].should.equal(

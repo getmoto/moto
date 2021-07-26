@@ -26,6 +26,8 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
 import requests
+
+from moto.s3 import models
 from moto.s3.responses import DEFAULT_REGION_NAME
 from unittest import SkipTest
 import pytest
@@ -36,10 +38,10 @@ from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import py2_strip_unicode_keys
-
+from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
 if settings.TEST_SERVER_MODE:
-    REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
+    REDUCED_PART_SIZE = S3_UPLOAD_PART_MIN_SIZE
     EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
 else:
     REDUCED_PART_SIZE = 256
@@ -50,15 +52,15 @@ def reduced_min_part_size(f):
     """speed up tests by temporarily making the multipart minimum part size
     small
     """
-    orig_size = s3model.UPLOAD_PART_MIN_SIZE
+    orig_size = S3_UPLOAD_PART_MIN_SIZE
 
     @wraps(f)
     def wrapped(*args, **kwargs):
         try:
-            s3model.UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
+            s3model.S3_UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
             return f(*args, **kwargs)
         finally:
-            s3model.UPLOAD_PART_MIN_SIZE = orig_size
+            s3model.S3_UPLOAD_PART_MIN_SIZE = orig_size
 
     return wrapped
 
@@ -686,8 +688,7 @@ def test_delete_keys_invalid():
     # non-existing key case
     result = bucket.delete_keys(["abc", "file3"])
 
-    result.deleted.should.have.length_of(1)
-    result.errors.should.have.length_of(1)
+    result.deleted.should.have.length_of(2)
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal("file1")
@@ -1122,6 +1123,33 @@ def test_multipart_upload_from_file_to_presigned_url():
     assert data == b"test"
     # cleanup
     os.remove("text.txt")
+
+
+@mock_s3
+def test_default_key_buffer_size():
+    # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
+    original_default_key_buffer_size = os.environ.get(
+        "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", None
+    )
+
+    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
+    assert get_s3_default_key_buffer_size() == 2
+    fk = models.FakeKey("a", os.urandom(1))  # 1 byte string
+    assert fk._value_buffer._rolled == False
+
+    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
+    assert get_s3_default_key_buffer_size() == 1
+    fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
+    assert fk._value_buffer._rolled == True
+
+    # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the buffer size should be less than
+    # S3_UPLOAD_PART_MIN_SIZE to prevent in memory caching of multi part uploads
+    del os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"]
+    assert get_s3_default_key_buffer_size() < S3_UPLOAD_PART_MIN_SIZE
+
+    # restore original environment variable content
+    if original_default_key_buffer_size:
+        os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
 
 
 @mock_s3
@@ -2285,7 +2313,12 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
         client.abort_multipart_upload(
             Bucket="blah", Key="foobar", UploadId="dummy_upload_id"
         )
-    err.value.response["Error"]["Code"].should.equal("NoSuchUpload")
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NoSuchUpload")
+    err["Message"].should.equal(
+        "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed."
+    )
+    err["UploadId"].should.equal("dummy_upload_id")
 
 
 @mock_s3
@@ -4186,6 +4219,22 @@ def test_delete_objects_with_url_encoded_key(key):
 
 
 @mock_s3
+def test_delete_objects_unknown_key():
+    bucket_name = "test-moto-issue-1581"
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket_name)
+    client.put_object(Bucket=bucket_name, Key="file1", Body="body")
+
+    s = client.delete_objects(
+        Bucket=bucket_name, Delete={"Objects": [{"Key": "file1"}, {"Key": "file2"}]}
+    )
+    s["Deleted"].should.have.length_of(2)
+    s["Deleted"].should.contain({"Key": "file1"})
+    s["Deleted"].should.contain({"Key": "file2"})
+    client.delete_bucket(Bucket=bucket_name)
+
+
+@mock_s3
 @mock_config
 def test_public_access_block():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -5100,3 +5149,21 @@ def test_object_headers():
     res.should.have.key("ServerSideEncryption")
     res.should.have.key("SSEKMSKeyId")
     res.should.have.key("BucketKeyEnabled")
+
+
+@mock_s3
+def test_get_object_versions_with_prefix():
+    bucket_name = "testbucket-3113"
+    s3_resource = boto3.resource("s3")
+    s3_client = boto3.client("s3")
+    s3_client.create_bucket(Bucket=bucket_name)
+    bucket_versioning = s3_resource.BucketVersioning(bucket_name)
+    bucket_versioning.enable()
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"alttest", Key="altfile.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+
+    versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix="file")
+    versions["Versions"].should.have.length_of(3)
+    versions["Prefix"].should.equal("file")

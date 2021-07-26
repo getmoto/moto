@@ -73,6 +73,7 @@ class DomainDispatcherApplication(object):
 
     def infer_service_region_host(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
+        target = environ.get("HTTP_X_AMZ_TARGET")
         if auth:
             # Signed request
             # Parse auth header to find service assuming a SigV4 request
@@ -90,7 +91,6 @@ class DomainDispatcherApplication(object):
                 service, region = DEFAULT_SERVICE_REGION
         else:
             # Unsigned request
-            target = environ.get("HTTP_X_AMZ_TARGET")
             action = self.get_action_from_body(environ)
             if target:
                 service, _ = target.split(".", 1)
@@ -102,7 +102,13 @@ class DomainDispatcherApplication(object):
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
-        if service == "dynamodb":
+        if service == "mediastore" and not target:
+            # All MediaStore API calls have a target header
+            # If no target is set, assume we're trying to reach the mediastore-data service
+            host = "data.{service}.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
+        elif service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
             else:

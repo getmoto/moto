@@ -332,7 +332,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 .replace("-", "_")
             )
             if is_last:
-                return "(?P<%s>[^/]*)" % name
+                return "(?P<%s>[^/]+)" % name
             return "(?P<%s>.*)" % name
 
         elems = uri.split("/")
@@ -555,6 +555,81 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     0
                 ]
         return params
+
+    def _get_params(self):
+        """
+        Given a querystring of
+        {
+            'Action': ['CreatRule'],
+            'Conditions.member.1.Field': ['http-header'],
+            'Conditions.member.1.HttpHeaderConfig.HttpHeaderName': ['User-Agent'],
+            'Conditions.member.1.HttpHeaderConfig.Values.member.1': ['curl'],
+            'Actions.member.1.FixedResponseConfig.StatusCode': ['200'],
+            'Actions.member.1.FixedResponseConfig.ContentType': ['text/plain'],
+            'Actions.member.1.Type': ['fixed-response']
+        }
+
+        returns
+        {
+            'Action': 'CreatRule',
+            'Conditions': [
+                {
+                    'Field': 'http-header',
+                    'HttpHeaderConfig': {
+                        'HttpHeaderName': 'User-Agent',
+                        'Values': ['curl']
+                    }
+                }
+            ],
+            'Actions': [
+                {
+                    'Type': 'fixed-response',
+                    'FixedResponseConfig': {
+                        'StatusCode': '200',
+                        'ContentType': 'text/plain'
+                    }
+                }
+            ]
+        }
+        """
+        params = {}
+        for k, v in sorted(self.querystring.items()):
+            self._parse_param(k, v[0], params)
+        return params
+
+    def _parse_param(self, key, value, params):
+        keylist = key.split(".")
+        obj = params
+        for i, key in enumerate(keylist[:-1]):
+            if key in obj:
+                # step into
+                parent = obj
+                obj = obj[key]
+            else:
+                if key == "member":
+                    if not isinstance(obj, list):
+                        # initialize list
+                        # reset parent
+                        obj = []
+                        parent[keylist[i - 1]] = obj
+                elif key.isdigit():
+                    index = int(key) - 1
+                    if len(obj) <= index:
+                        # initialize list element
+                        obj.insert(index, {})
+                    # step into
+                    parent = obj
+                    obj = obj[index]
+                else:
+                    # initialize dict
+                    obj[key] = {}
+                    # step into
+                    parent = obj
+                    obj = obj[key]
+        if isinstance(obj, list):
+            obj.append(value)
+        else:
+            obj[keylist[-1]] = value
 
     def _get_list_prefix(self, param_prefix):
         """

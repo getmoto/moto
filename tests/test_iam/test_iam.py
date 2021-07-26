@@ -808,6 +808,7 @@ def test_list_users():
     user["UserName"].should.equal("my-user")
     user["Path"].should.equal("/")
     user["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    response["IsTruncated"].should.equal(False)
 
     conn.create_user(UserName="my-user-1", Path="myUser")
     response = conn.list_users(PathPrefix="my")
