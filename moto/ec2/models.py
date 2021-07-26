@@ -33,7 +33,7 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
-from moto.utilities.utils import load_resource, merge_multiple_dicts
+from moto.utilities.utils import load_resource, merge_multiple_dicts, filter_resources
 from os import listdir
 
 from .exceptions import (
@@ -6012,27 +6012,22 @@ class TransitGatewayBackend(object):
     def get_all_transit_gateways(self, filters):
         transit_gateways = self.transit_gateways.values()
 
-        if filters is not None:
-            if filters.get("transit-gateway-id") is not None:
-                transit_gateways = [
-                    transit_gateway
-                    for transit_gateway in transit_gateways
-                    if transit_gateway.id in filters["transit-gateway-id"]
-                ]
-            if filters.get("state") is not None:
-                transit_gateways = [
-                    transit_gateway
-                    for transit_gateway in transit_gateways
-                    if transit_gateway.state in filters["state"]
-                ]
-            if filters.get("owner-id") is not None:
-                transit_gateways = [
-                    transit_gateway
-                    for transit_gateway in transit_gateways
-                    if transit_gateway.owner_id in filters["owner-id"]
-                ]
+        attr_pairs = (
+            ("transit-gateway-id", "id"),
+            ("state", "state"),
+            ("owner-id", "owner_id")
 
-        return transit_gateways
+            ("default-association-route-table", "default_association_route_table"),
+            ("default-propagation-route-table", "default_propagation_route_table"),
+            ("state", "state"),
+            ("transit-gateway-id", "transit_gateway_id"),
+            ("transit-gateway-route-table-id", "id"),
+        )
+
+        result = transit_gateways
+        if filters:
+            result = filter_resources(transit_gateways, filters, attr_pairs)
+        return result
 
     def delete_transit_gateway(self, transit_gateway_id):
         return self.transit_gateways.pop(transit_gateway_id)
@@ -6122,18 +6117,10 @@ class TransitGatewayRouteTableBackend(object):
                 if transit_gateway_route_table.id in transit_gateway_ids
             ]
 
+        result = transit_gateway_route_tables
         if filters:
-            for attrs in attr_pairs:
-                values = filters.get(attrs[0]) or None
-                if values is not None:
-                    transit_gateway_route_tables = [
-                        transit_gateway_route_table
-                        for transit_gateway_route_table in transit_gateway_route_tables
-                        if not values
-                        or getattr(transit_gateway_route_table, attrs[1]) in values
-                    ]
-
-        return transit_gateway_route_tables
+            result = filter_resources(transit_gateway_route_tables, filters, attr_pairs)
+        return result
 
     def delete_transit_gateway_route_table(self, transit_gateway_route_table_id):
         return self.transit_gateways_route_tables.pop(transit_gateway_route_table_id)
@@ -6266,31 +6253,10 @@ class TransitGatewayRouteTableBackend(object):
             ),
         )
 
-        if transit_gateway_route_tables:
-            transit_gateway_route_tables = [
-                transit_gateway_route_table
-                for transit_gateway_route_table in transit_gateway_route_tables
-                if transit_gateway_route_table.id in transit_gateway_route_table_id
-            ]
-
-        result = []
+        result = transit_gateway_route_tables
         if filters:
-            for attrs in attr_pairs:
-                values = filters.get(attrs[0]) or None
-                if values is not None:
-                    for transit_gateway_route_table in transit_gateway_route_tables:
-                        if (
-                            len(attrs) <= 2
-                            and getattr(transit_gateway_route_table, attrs[1]) in values
-                        ) or (
-                            len(attrs) == 3
-                            and getattr(transit_gateway_route_table, attrs[1]).get(
-                                attrs[2]
-                            )
-                            in values
-                        ):
-                            result.append(transit_gateway_route_table)
-        return transit_gateway_route_tables if not filters else result
+            result = filter_resources(transit_gateway_route_tables, filters, attr_pairs)
+        return result
 
     def get_all_transit_gateway_route_table_propagations(
         self, transit_gateway_route_table_id=None, filters=None
@@ -6314,31 +6280,10 @@ class TransitGatewayRouteTableBackend(object):
             ),
         )
 
-        if transit_gateway_route_tables:
-            transit_gateway_route_tables = [
-                transit_gateway_route_table
-                for transit_gateway_route_table in transit_gateway_route_tables
-                if transit_gateway_route_table.id in transit_gateway_route_table_id
-            ]
-
-        result = []
+        result = transit_gateway_route_tables
         if filters:
-            for attrs in attr_pairs:
-                values = filters.get(attrs[0]) or None
-                if values is not None:
-                    for transit_gateway_route_table in transit_gateway_route_tables:
-                        if (
-                            len(attrs) <= 2
-                            and getattr(transit_gateway_route_table, attrs[1]) in values
-                        ) or (
-                            len(attrs) == 3
-                            and getattr(transit_gateway_route_table, attrs[1]).get(
-                                attrs[2]
-                            )
-                            in values
-                        ):
-                            result.append(transit_gateway_route_table)
-        return transit_gateway_route_tables if not filters else result
+            result = filter_resources(transit_gateway_route_tables, filters, attr_pairs)
+        return result
 
 
 class TransitGatewayAttachment(TaggedEC2Resource):
@@ -6455,16 +6400,10 @@ class TransitGatewayAttachmentBackend(object):
                 if transit_gateways_attachment.id in transit_gateways_attachment_ids
             ]
 
+        result = transit_gateway_attachments
         if filters:
-            for attrs in attr_pairs:
-                values = filters.get(attrs[0]) or None
-                if values is not None:
-                    transit_gateway_attachments = [
-                        transit_gateways_attachment
-                        for transit_gateways_attachment in transit_gateway_attachments
-                        if getattr(transit_gateways_attachment, attrs[1]) in values
-                    ]
-        return transit_gateways_attachments
+            result = filter_resources(transit_gateway_attachments, filters, attr_pairs)
+        return result
 
     def describe_transit_gateway_vpc_attachments(
         self, transit_gateways_attachment_ids=None, filters=None, max_results=0
@@ -6488,25 +6427,16 @@ class TransitGatewayAttachmentBackend(object):
                 if transit_gateways_attachment.id in transit_gateways_attachment_ids
             ]
 
+        result = transit_gateways_attachments
         if filters:
-            for attrs in attr_pairs:
-                values = filters.get(attrs[0]) or None
-                if values is not None:
-                    transit_gateways_attachments = [
-                        transit_gateways_attachment
-                        for transit_gateways_attachment in transit_gateways_attachments
-                        if getattr(transit_gateways_attachment, attrs[1]) in values
-                    ]
-
-        return transit_gateways_attachments
+            result = filter_resources(transit_gateways_attachments, filters, attr_pairs)
+        return result
 
     def delete_transit_gateway_vpc_attachment(self, transit_gateway_attachment_id=None):
-        self.transit_gateway_attachments[
-            transit_gateway_attachment_id
-        ].state = "deleted"
         transit_gateway_attachment = self.transit_gateway_attachments.pop(
             transit_gateway_attachment_id
         )
+        transit_gateway_attachment.state = "deleted"
         return transit_gateway_attachment
 
     def modify_transit_gateway_vpc_attachment(
@@ -6516,27 +6446,23 @@ class TransitGatewayAttachmentBackend(object):
         remove_subnet_ids=None,
         transit_gateway_attachment_id=None,
     ):
+
+        tgw_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
         if remove_subnet_ids:
-            self.transit_gateway_attachments[
-                transit_gateway_attachment_id
-            ].subnet_ids = [
+            tgw_attachment.subnet_ids = [
                 id
-                for id in self.transit_gateway_attachments[
-                    transit_gateway_attachment_id
-                ].subnet_ids
+                for id in tgw_attachment.subnet_ids
                 if id not in remove_subnet_ids
             ]
+        
         if options:
-            self.transit_gateway_attachments[
-                transit_gateway_attachment_id
-            ].options.update(options)
+            tgw_attachment.options.update(options)
 
         if add_subnet_ids:
-            self.transit_gateway_attachments[
-                transit_gateway_attachment_id
-            ].subnet_ids = add_subnet_ids
+            for id in add_subnet_ids:
+                tgw_attachment.subnet_ids.append(id)
 
-        return self.transit_gateway_attachments[transit_gateway_attachment_id]
+        return tgw_attachment
 
     def set_attachment_association(
         self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None

@@ -230,3 +230,31 @@ SEARCH_TRANSIT_GATEWAY_ROUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"
     <additionalRoutesAvailable>false</additionalRoutesAvailable>
 </SearchTransitGatewayRoutesResponse>
 """
+
+GET_TRANSIT_GATEWAY_ROUTE_TABLE_ASSOCIATIONS_RESPONSE = """<GetTransitGatewayRouteTableAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>92fdc91d-c374-4217-b2b4-33f2fb0a2be7</requestId>
+    <associations>
+        {% for association in transit_gateway_route_table_associations %}
+        <item>
+            <resourceId>{{ association.resourceId }}</resourceId>
+            <resourceType>{{ association.resourceType }}</resourceType>
+            <state>{{ association.state }}</state>
+            <transitGatewayAttachmentId>{{ association.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+        </item>
+        {% endfor %}
+    </associations>
+</GetTransitGatewayRouteTableAssociationsResponse>"""
+
+GET_TRANSIT_GATEWAY_ROUTE_TABLE_PROPAGATIONS_RESPONSE = """<GetTransitGatewayRouteTablePropagationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>541bc42d-9ed9-4aef-a5f7-2ea32fbdec16</requestId>
+    <transitGatewayRouteTablePropagations>
+        {% for propagation in transit_gateway_route_table_propagations %}
+        <item>
+            <resourceId>{{ propagation.route_table_propagation.resourceId }}</resourceId>
+            <resourceType>{{ propagation.route_table_propagation.resourceType }}</resourceType>
+            <state>{{ propagation.route_table_propagation.state }}</state>
+            <transitGatewayAttachmentId>{{ propagation.route_table_propagation.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+        </item>
+        {% endfor %}
+    </transitGatewayRouteTablePropagations>
+</GetTransitGatewayRouteTablePropagationsResponse>"""

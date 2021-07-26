@@ -34,3 +34,24 @@ def merge_multiple_dicts(*args):
     for d in args:
         result.update(d)
     return result
+
+
+def filter_resources(resources, filters, attr_pairs):
+    """
+    Used to filter resources. Usually in get and describe apis.
+    """
+    result = []
+    for attrs in attr_pairs:
+        values = filters.get(attrs[0]) or None
+        if values is not None:
+            for resource in resources:
+                instance = getattr(resource, attrs[1])
+                if (
+                    len(attrs) <= 2
+                    and instance in values
+                ) or (
+                    len(attrs) == 3
+                    and instance.get(attrs[2]) in values
+                ):
+                    result.append(instance)
+    return result
