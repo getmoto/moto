@@ -167,12 +167,13 @@ def test_create_queue_kms():
 def test_create_queue_with_tags():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
-        QueueName="test-queue-with-tags", tags={"tag_key_1": "tag_value_1"}
+        QueueName="test-queue-with-tags",
+        tags={"tag_key_1": "tag_value_1", "tag_key_2": ""},
     )
     queue_url = response["QueueUrl"]
 
     client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
-        {"tag_key_1": "tag_value_1"}
+        {"tag_key_1": "tag_value_1", "tag_key_2": "",}
     )
 
 
