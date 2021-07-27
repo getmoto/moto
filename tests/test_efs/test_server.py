@@ -50,6 +50,15 @@ def file_system_id(efs):
     yield create_fs_resp["FileSystemId"]
 
 
+"""
+Test each method current supported to ensure it connects via the server.
+
+NOTE: this does NOT test whether the endpoints are really functioning, just that they
+connect and respond. Tests of functionality are contained in `test_file_system` and
+`test_mount_target`.
+"""
+
+
 def test_efs_file_system_create(client):
     res = client.post(
         "/2015-02-01/file-systems", json={"CreationToken": "2398asdfkajsdf"}
