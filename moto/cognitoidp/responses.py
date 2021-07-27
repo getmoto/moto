@@ -429,7 +429,7 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, username
         )
         return ""
-        
+
     # Resource Server
     def create_resource_server(self):
         user_pool_id = self._get_param("UserPoolId")

@@ -911,7 +911,7 @@ class CognitoIdpBackend(BaseBackend):
         for token, token_tuple in list(user_pool.refresh_tokens.items()):
             _, username = token_tuple
             if username == username:
-                del user_pool.refresh_tokens[token]
+                user_pool.refresh_tokens[token] = None
 
     def create_resource_server(self, user_pool_id, identifier, name, scopes):
         user_pool = self.user_pools.get(user_pool_id)
@@ -1009,10 +1009,10 @@ class CognitoIdpBackend(BaseBackend):
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             if not refresh_token:
                 raise ResourceNotFoundError(refresh_token)
-            
-            if not user_pool.refresh_tokens.get(refresh_token, None):
-                raise ResourceNotFoundError(refresh_token)
-            
+
+            if user_pool.refresh_tokens[refresh_token] is None:
+                raise NotAuthorizedError('Refresh Token has been revoked')
+
             client_id, username = user_pool.refresh_tokens[refresh_token]
             if not username:
                 raise ResourceNotFoundError(username)
