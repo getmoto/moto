@@ -176,6 +176,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         desired_count = self._get_int_param("desiredCount")
         load_balancers = self._get_param("loadBalancers")
         scheduling_strategy = self._get_param("schedulingStrategy")
+        service_registries = self._get_param("serviceRegistries")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
@@ -189,6 +190,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
+            service_registries=service_registries,
         )
         return json.dumps({"service": service.response_object})
 

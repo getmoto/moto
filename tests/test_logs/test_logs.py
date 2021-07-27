@@ -1,10 +1,11 @@
 import os
 import time
 from unittest import SkipTest
+
 import boto3
-from botocore.exceptions import ClientError
 import pytest
 import sure  # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_logs, settings
 
@@ -12,14 +13,34 @@ _logs_region = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
 @mock_logs
-def test_create_log_group():
+@pytest.mark.parametrize(
+    "kms_key_id",
+    [
+        "arn:aws:kms:us-east-1:000000000000:key/51d81fab-b138-4bd2-8a09-07fd6d37224d",
+        None,
+    ],
+)
+def test_create_log_group(kms_key_id):
+    # Given
     conn = boto3.client("logs", "us-west-2")
 
-    response = conn.create_log_group(logGroupName="dummy")
+    create_logs_params = dict(logGroupName="dummy")
+    if kms_key_id:
+        create_logs_params["kmsKeyId"] = kms_key_id
+
+    # When
+    response = conn.create_log_group(**create_logs_params)
     response = conn.describe_log_groups()
 
+    # Then
     response["logGroups"].should.have.length_of(1)
-    response["logGroups"][0].should_not.have.key("retentionInDays")
+
+    log_group = response["logGroups"][0]
+    log_group.should_not.have.key("retentionInDays")
+
+    if kms_key_id:
+        log_group.should.have.key("kmsKeyId")
+        log_group["kmsKeyId"].should.equal(kms_key_id)
 
 
 @mock_logs

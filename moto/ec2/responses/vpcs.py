@@ -17,16 +17,16 @@ class VPCs(BaseResponse):
         cidr_block = self._get_param("CidrBlock")
         tags = self._get_multi_param("TagSpecification")
         instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
-        amazon_provided_ipv6_cidr_blocks = self._get_param(
+        amazon_provided_ipv6_cidr_block = self._get_param(
             "AmazonProvidedIpv6CidrBlock"
-        )
+        ) in ["true", "True"]
         if tags:
             tags = tags[0].get("Tag")
 
         vpc = self.ec2_backend.create_vpc(
             cidr_block,
             instance_tenancy,
-            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_blocks,
+            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
             tags=tags,
         )
         doc_date = self._get_doc_date()
@@ -178,8 +178,8 @@ class VPCs(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
         tag_specifications = self._get_param("TagSpecifications")
-        private_dns_enabled = self._get_bool_param("PrivateDNSEnabled", if_none=True)
-        security_group = self._get_param("SecurityGroup")
+        private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
+        security_group_ids = self._get_multi_param("SecurityGroupId")
 
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
@@ -189,7 +189,7 @@ class VPCs(BaseResponse):
             route_table_ids=route_table_ids,
             subnet_ids=subnet_ids,
             client_token=client_token,
-            security_group=security_group,
+            security_group_ids=security_group_ids,
             tag_specifications=tag_specifications,
             private_dns_enabled=private_dns_enabled,
         )
@@ -479,8 +479,8 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
         {% endfor %}
     </serviceNameSet>
     <serviceDetailSet>
+        {% for service in vpc_end_points.servicesDetails %}
         <item>
-            {% for service in vpc_end_points.servicesDetails %}
                 <owner>amazon</owner>
                 <serviceType>
                     <item>
@@ -498,8 +498,8 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                 </availabilityZoneSet>
                 <serviceName>{{ service.service_name }}</serviceName>
                 <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
-            {% endfor %}
         </item>
+        {% endfor %}
     </serviceDetailSet>
 </DescribeVpcEndpointServicesResponse>"""
 
@@ -545,12 +545,15 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </dnsEntries>
                 {% endif %}
-                {% if vpc_end_point.groups %}
-                    <groups>
-                        {% for group in vpc_end_point.groups %}
-                            <item>{{ group }}</item>
+                {% if vpc_end_point.security_group_ids %}
+                    <groupSet>
+                        {% for group_id in vpc_end_point.security_group_ids %}
+                            <item>
+                                <groupId>{{ group_id }}</groupId>
+                                <groupName>TODO</groupName>
+                            </item>
                         {% endfor %}
-                    </groups>
+                    </groupSet>
                 {% endif %}
                 {% if vpc_end_point.tag_specifications %}
                     <tagSet>

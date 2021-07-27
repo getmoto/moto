@@ -40,9 +40,9 @@ class RouteTables(BaseResponse):
 
     def create_route_table(self):
         vpc_id = self._get_param("VpcId")
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
         if tags:
-            tags = tags[0].get("Tag")
+            tags = tags[0].get("Tag") or []
         route_table = self.ec2_backend.create_route_table(vpc_id, tags)
         template = self.response_template(CREATE_ROUTE_TABLE_RESPONSE)
         return template.render(route_table=route_table)

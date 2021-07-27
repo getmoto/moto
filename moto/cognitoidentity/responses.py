@@ -27,6 +27,31 @@ class CognitoIdentityResponse(BaseResponse):
             saml_provider_arns=saml_provider_arns,
         )
 
+    def update_identity_pool(self):
+        pool_id = self._get_param("IdentityPoolId")
+        pool_name = self._get_param("IdentityPoolName")
+        allow_unauthenticated = self._get_bool_param("AllowUnauthenticatedIdentities")
+        allow_classic = self._get_bool_param("AllowClassicFlow")
+        login_providers = self._get_multi_param_dict("SupportedLoginProviders")
+        provider_name = self._get_param("DeveloperProviderName")
+        provider_arns = self._get_multi_param("OpenIdConnectProviderARNs")
+        identity_providers = self._get_multi_param_dict("CognitoIdentityProviders")
+        saml_providers = self._get_multi_param("SamlProviderARNs")
+        pool_tags = self._get_multi_param_dict("IdentityPoolTags")
+
+        return cognitoidentity_backends[self.region].update_identity_pool(
+            identity_pool_id=pool_id,
+            identity_pool_name=pool_name,
+            allow_unauthenticated=allow_unauthenticated,
+            allow_classic=allow_classic,
+            login_providers=login_providers,
+            provider_name=provider_name,
+            provider_arns=provider_arns,
+            identity_providers=identity_providers,
+            saml_providers=saml_providers,
+            pool_tags=pool_tags,
+        )
+
     def get_id(self):
         return cognitoidentity_backends[self.region].get_id()
 

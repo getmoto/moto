@@ -25,9 +25,10 @@ class LogsResponse(BaseResponse):
     def create_log_group(self):
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
+        kms_key_id = self._get_param("kmsKeyId")
         assert 1 <= len(log_group_name) <= 512  # TODO: assert pattern
 
-        self.logs_backend.create_log_group(log_group_name, tags)
+        self.logs_backend.create_log_group(log_group_name, tags, kmsKeyId=kms_key_id)
         return ""
 
     def delete_log_group(self):
@@ -164,6 +165,12 @@ class LogsResponse(BaseResponse):
     def delete_retention_policy(self):
         log_group_name = self._get_param("logGroupName")
         self.logs_backend.delete_retention_policy(log_group_name)
+        return ""
+
+    def put_resource_policy(self):
+        policy_name = self._get_param("policyName")
+        policy_doc = self._get_param("policyDocument")
+        self.logs_backend.put_resource_policy(policy_name, policy_doc)
         return ""
 
     def list_tags_log_group(self):

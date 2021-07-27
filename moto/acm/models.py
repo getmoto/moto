@@ -448,11 +448,13 @@ class AWSCertificateManagerBackend(BaseBackend):
             else:
                 # Will reuse provided ARN
                 bundle = CertBundle(
-                    certificate, private_key, chain=chain, region=region, arn=arn
+                    certificate, private_key, chain=chain, region=self.region, arn=arn
                 )
         else:
             # Will generate a random ARN
-            bundle = CertBundle(certificate, private_key, chain=chain, region=region)
+            bundle = CertBundle(
+                certificate, private_key, chain=chain, region=self.region
+            )
 
         self._certificates[bundle.arn] = bundle
 

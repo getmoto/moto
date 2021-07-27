@@ -107,6 +107,7 @@ class FakeAlarm(BaseModel):
         unit,
         actions_enabled,
         region="us-east-1",
+        rule=None,
     ):
         self.name = name
         self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
@@ -123,7 +124,7 @@ class FakeAlarm(BaseModel):
         self.dimensions = [
             Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
         ]
-        self.actions_enabled = actions_enabled
+        self.actions_enabled = True if actions_enabled is None else actions_enabled
         self.alarm_actions = alarm_actions
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
@@ -136,6 +137,9 @@ class FakeAlarm(BaseModel):
         self.state_reason_data = "{}"
         self.state_value = "OK"
         self.state_updated_timestamp = datetime.utcnow()
+
+        # only used for composite alarms
+        self.rule = rule
 
     def update_state(self, reason, reason_data, state_value):
         # History type, that then decides what the rest of the items are, can be one of ConfigurationUpdate | StateUpdate | Action
@@ -156,6 +160,8 @@ class FakeAlarm(BaseModel):
 
 
 def are_dimensions_same(metric_dimensions, dimensions):
+    if len(metric_dimensions) != len(dimensions):
+        return False
     for dimension in metric_dimensions:
         for new_dimension in dimensions:
             if (
@@ -163,7 +169,6 @@ def are_dimensions_same(metric_dimensions, dimensions):
                 or dimension.value != new_dimension.value
             ):
                 return False
-
     return True
 
 
@@ -178,11 +183,12 @@ class MetricDatum(BaseModel):
         ]
         self.unit = unit
 
-    def filter(self, namespace, name, dimensions, already_present_metrics):
+    def filter(self, namespace, name, dimensions, already_present_metrics=[]):
         if namespace and namespace != self.namespace:
             return False
         if name and name != self.name:
             return False
+
         for metric in already_present_metrics:
             if self.dimensions and are_dimensions_same(
                 metric.dimensions, self.dimensions
@@ -302,6 +308,7 @@ class CloudWatchBackend(BaseBackend):
         unit,
         actions_enabled,
         region="us-east-1",
+        rule=None,
     ):
         alarm = FakeAlarm(
             name,
@@ -322,6 +329,7 @@ class CloudWatchBackend(BaseBackend):
             unit,
             actions_enabled,
             region,
+            rule=rule,
         )
 
         self.alarms[name] = alarm
@@ -451,7 +459,15 @@ class CloudWatchBackend(BaseBackend):
         return results
 
     def get_metric_statistics(
-        self, namespace, metric_name, start_time, end_time, period, stats, unit=None
+        self,
+        namespace,
+        metric_name,
+        start_time,
+        end_time,
+        period,
+        stats,
+        unit=None,
+        dimensions=None,
     ):
         period_delta = timedelta(seconds=period)
         filtered_data = [
@@ -464,6 +480,10 @@ class CloudWatchBackend(BaseBackend):
 
         if unit:
             filtered_data = [md for md in filtered_data if md.unit == unit]
+        if dimensions:
+            filtered_data = [
+                md for md in filtered_data if md.filter(None, None, dimensions)
+            ]
 
         # earliest to oldest
         filtered_data = sorted(filtered_data, key=lambda x: x.timestamp)

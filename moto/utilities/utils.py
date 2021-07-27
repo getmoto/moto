@@ -3,6 +3,13 @@ import random
 import string
 
 
+def str2bool(v):
+    if v in ("yes", True, "true", "True", "TRUE", "t", "1"):
+        return True
+    elif v in ("no", False, "false", "False", "FALSE", "f", "0"):
+        return False
+
+
 def random_string(length=None):
     n = length or 20
     random_str = "".join(
@@ -20,3 +27,10 @@ def load_resource(filename, as_json=True):
     """
     with open(filename, "r", encoding="utf-8") as f:
         return json.load(f) if as_json else f.read()
+
+
+def merge_multiple_dicts(*args):
+    result = {}
+    for d in args:
+        result.update(d)
+    return result

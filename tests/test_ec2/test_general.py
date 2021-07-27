@@ -6,6 +6,7 @@ import boto
 import boto3
 from boto.exception import EC2ResponseError
 import sure  # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2_deprecated, mock_ec2
 from tests import EXAMPLE_AMI_ID
@@ -26,7 +27,7 @@ def test_console_output_without_instance():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_console_output("i-1234abcd")
-    cm.value.code.should.equal("InvalidInstanceID.NotFound")
+    cm.value.error_code.should.equal("InvalidInstanceID.NotFound")
     cm.value.status.should.equal(400)
     cm.value.request_id.should_not.be.none
 

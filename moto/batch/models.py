@@ -16,7 +16,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 from moto.logs import logs_backends
 
-from .exceptions import InvalidParameterValueException, InternalFailure, ClientException
+from .exceptions import InvalidParameterValueException, ClientException
 from .utils import (
     make_arn_for_compute_env,
     make_arn_for_job_queue,
@@ -463,7 +463,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
             self.job_state = "STARTING"
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             image_repository, image_tag = parse_image_ref(image)
-            self.docker_client.images.pull(image_repository, image_tag)
+            # avoid explicit pulling here, to allow using cached images
+            # self.docker_client.images.pull(image_repository, image_tag)
             container = self.docker_client.containers.run(
                 image,
                 cmd,
@@ -479,6 +480,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 container.reload()
                 while container.status == "running" and not self.stop:
                     container.reload()
+                    time.sleep(0.5)
 
                 # Container should be stopped by this point... unless asked to stop
                 if container.status == "running":
@@ -531,11 +533,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
 
-                result = container.wait()
-                if self.stop or result["StatusCode"] != 0:
-                    self._mark_stopped(success=False)
-                else:
-                    self._mark_stopped(success=True)
+                result = container.wait() or {}
+                job_failed = self.stop or result.get("StatusCode", 0) > 0
+                self._mark_stopped(success=not job_failed)
 
             except Exception as err:
                 logger.error(
@@ -782,6 +782,7 @@ class BatchBackend(BaseBackend):
                 "state": environment.state,
                 "type": environment.env_type,
                 "status": "VALID",
+                "statusReason": "Compute environment is available",
             }
             if environment.env_type == "MANAGED":
                 json_part["computeResources"] = environment.compute_resources
@@ -898,9 +899,10 @@ class BatchBackend(BaseBackend):
             "type",
         ):
             if param not in cr:
-                raise InvalidParameterValueException(
-                    "computeResources must contain {0}".format(param)
-                )
+                pass  # commenting out invalid check below - values may be missing (tf-compat)
+                # raise InvalidParameterValueException(
+                #     "computeResources must contain {0}".format(param)
+                # )
         for profile in self.iam_backend.get_instance_profiles():
             if profile.arn == cr["instanceRole"]:
                 break
@@ -954,9 +956,6 @@ class BatchBackend(BaseBackend):
             raise InvalidParameterValueException(
                 "computeResources.type must be either EC2 | SPOT"
             )
-
-        if cr["type"] == "SPOT":
-            raise InternalFailure("SPOT NOT SUPPORTED YET")
 
     @staticmethod
     def find_min_instances_to_meet_vcpus(instance_types, target):
@@ -1027,7 +1026,8 @@ class BatchBackend(BaseBackend):
             if compute_env.env_type == "MANAGED":
                 # Delete compute environment
                 instance_ids = [instance.id for instance in compute_env.instances]
-                self.ec2_backend.terminate_instances(instance_ids)
+                if instance_ids:
+                    self.ec2_backend.terminate_instances(instance_ids)
 
     def update_compute_environment(
         self, compute_environment_name, state, compute_resources, service_role

@@ -9,6 +9,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 from moto import mock_apigateway, mock_cognitoidp, settings
+from moto.apigateway.exceptions import NoIntegrationDefined
 from moto.core import ACCOUNT_ID
 from moto.core.models import responses_mock
 import pytest
@@ -474,13 +475,7 @@ def test_integrations():
     response.should.equal(
         {
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "httpMethod": "GET",
-            "integrationResponses": {
-                "200": {
-                    "responseTemplates": {"application/json": None},
-                    "statusCode": 200,
-                }
-            },
+            "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
         }
@@ -495,13 +490,7 @@ def test_integrations():
     response.should.equal(
         {
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "httpMethod": "GET",
-            "integrationResponses": {
-                "200": {
-                    "responseTemplates": {"application/json": None},
-                    "statusCode": 200,
-                }
-            },
+            "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
         }
@@ -511,18 +500,10 @@ def test_integrations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["resourceMethods"]["GET"]["httpMethod"].should.equal("GET")
+    response["resourceMethods"]["GET"]["authorizationType"].should.equal("none")
     response["resourceMethods"]["GET"]["methodIntegration"].should.equal(
-        {
-            "httpMethod": "GET",
-            "integrationResponses": {
-                "200": {
-                    "responseTemplates": {"application/json": None},
-                    "statusCode": 200,
-                }
-            },
-            "type": "HTTP",
-            "uri": "http://httpbin.org/robots.txt",
-        }
+        {"httpMethod": "POST", "type": "HTTP", "uri": "http://httpbin.org/robots.txt",}
     )
 
     client.delete_integration(restApiId=api_id, resourceId=root_id, httpMethod="GET")
@@ -611,7 +592,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
         }
     )
 
@@ -626,7 +607,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
         }
     )
 
@@ -637,7 +618,7 @@ def test_integration_response():
     response["methodIntegration"]["integrationResponses"].should.equal(
         {
             "200": {
-                "responseTemplates": {"application/json": None},
+                "responseTemplates": {},  # Note: TF compatibility
                 "selectionPattern": "foobar",
                 "statusCode": "200",
             }
@@ -687,7 +668,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
             "contentHandling": "CONVERT_TO_BINARY",
         }
     )
@@ -703,7 +684,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
             "contentHandling": "CONVERT_TO_BINARY",
         }
     )
@@ -1277,7 +1258,7 @@ def test_create_deployment_requires_REST_method_integrations():
 
     with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     ex.value.response["Error"]["Message"].should.equal(
         "No integration defined for method"
     )
@@ -1873,7 +1854,7 @@ def test_http_proxying_integration():
         httpMethod="GET",
         type="HTTP",
         uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="POST",
+        integrationHttpMethod="GET",
     )
 
     stage_name = "staging"

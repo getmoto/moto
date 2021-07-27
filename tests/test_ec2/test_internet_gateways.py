@@ -21,7 +21,7 @@ BAD_IGW = "igw-deadbeef"
 
 @mock_ec2_deprecated
 def test_igw_create():
-    """ internet gateway create """
+    """internet gateway create"""
     conn = boto.connect_vpc("the_key", "the_secret")
 
     conn.get_all_internet_gateways().should.have.length_of(0)
@@ -44,7 +44,7 @@ def test_igw_create():
 
 @mock_ec2_deprecated
 def test_igw_attach():
-    """ internet gateway attach """
+    """internet gateway attach"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
@@ -65,7 +65,7 @@ def test_igw_attach():
 
 @mock_ec2_deprecated
 def test_igw_attach_bad_vpc():
-    """ internet gateway fail to attach w/ bad vpc """
+    """internet gateway fail to attach w/ bad vpc"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
 
@@ -78,7 +78,7 @@ def test_igw_attach_bad_vpc():
 
 @mock_ec2_deprecated
 def test_igw_attach_twice():
-    """ internet gateway fail to attach twice """
+    """internet gateway fail to attach twice"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     vpc1 = conn.create_vpc(VPC_CIDR)
@@ -94,7 +94,7 @@ def test_igw_attach_twice():
 
 @mock_ec2_deprecated
 def test_igw_detach():
-    """ internet gateway detach"""
+    """internet gateway detach"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
@@ -115,7 +115,7 @@ def test_igw_detach():
 
 @mock_ec2_deprecated
 def test_igw_detach_wrong_vpc():
-    """ internet gateway fail to detach w/ wrong vpc """
+    """internet gateway fail to detach w/ wrong vpc"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     vpc1 = conn.create_vpc(VPC_CIDR)
@@ -131,7 +131,7 @@ def test_igw_detach_wrong_vpc():
 
 @mock_ec2_deprecated
 def test_igw_detach_invalid_vpc():
-    """ internet gateway fail to detach w/ invalid vpc """
+    """internet gateway fail to detach w/ invalid vpc"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
@@ -146,7 +146,7 @@ def test_igw_detach_invalid_vpc():
 
 @mock_ec2_deprecated
 def test_igw_detach_unattached():
-    """ internet gateway fail to detach unattached """
+    """internet gateway fail to detach unattached"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
@@ -160,7 +160,7 @@ def test_igw_detach_unattached():
 
 @mock_ec2_deprecated
 def test_igw_delete():
-    """ internet gateway delete"""
+    """internet gateway delete"""
     conn = boto.connect_vpc("the_key", "the_secret")
     vpc = conn.create_vpc(VPC_CIDR)
     conn.get_all_internet_gateways().should.have.length_of(0)
@@ -181,7 +181,7 @@ def test_igw_delete():
 
 @mock_ec2_deprecated
 def test_igw_delete_attached():
-    """ internet gateway fail to delete attached """
+    """internet gateway fail to delete attached"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
@@ -196,7 +196,7 @@ def test_igw_delete_attached():
 
 @mock_ec2_deprecated
 def test_igw_desribe():
-    """ internet gateway fetch by id """
+    """internet gateway fetch by id"""
     conn = boto.connect_vpc("the_key", "the_secret")
     igw = conn.create_internet_gateway()
     igw_by_search = conn.get_all_internet_gateways([igw.id])[0]
@@ -205,7 +205,7 @@ def test_igw_desribe():
 
 @mock_ec2_deprecated
 def test_igw_describe_bad_id():
-    """ internet gateway fail to fetch by bad id """
+    """internet gateway fail to fetch by bad id"""
     conn = boto.connect_vpc("the_key", "the_secret")
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_internet_gateways([BAD_IGW])
@@ -216,7 +216,7 @@ def test_igw_describe_bad_id():
 
 @mock_ec2_deprecated
 def test_igw_filter_by_vpc_id():
-    """ internet gateway filter by vpc id """
+    """internet gateway filter by vpc id"""
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()
@@ -231,7 +231,7 @@ def test_igw_filter_by_vpc_id():
 
 @mock_ec2_deprecated
 def test_igw_filter_by_tags():
-    """ internet gateway filter by vpc id """
+    """internet gateway filter by vpc id"""
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()
@@ -245,7 +245,7 @@ def test_igw_filter_by_tags():
 
 @mock_ec2_deprecated
 def test_igw_filter_by_internet_gateway_id():
-    """ internet gateway filter by internet gateway id """
+    """internet gateway filter by internet gateway id"""
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()
@@ -258,7 +258,7 @@ def test_igw_filter_by_internet_gateway_id():
 
 @mock_ec2_deprecated
 def test_igw_filter_by_attachment_state():
-    """ internet gateway filter by attachment state """
+    """internet gateway filter by attachment state"""
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()

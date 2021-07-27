@@ -27,7 +27,7 @@ def test_elastic_network_interfaces():
         "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    eni = conn.create_network_interface(subnet.id)
+    conn.create_network_interface(subnet.id)
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(1)

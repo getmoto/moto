@@ -42,6 +42,20 @@ class EventsHandler(BaseResponse):
     def _get_param(self, param, if_none=None):
         return self.request_params.get(param, if_none)
 
+    def _create_response(self, result):
+        """
+        Creates a proper response for the API.
+
+        It basically transforms a dict-like result from the backend
+        into a tuple (str, dict) properly formatted.
+        Args:
+            result (dict): result from backend
+
+        Returns:
+            (str, dict): dumped result and headers
+        """
+        return json.dumps(result), self.headers
+
     def error(self, type_, message="", status=400):
         headers = self.response_headers
         headers["status"] = status
@@ -266,9 +280,9 @@ class EventsHandler(BaseResponse):
     def create_event_bus(self):
         name = self._get_param("Name")
         event_source_name = self._get_param("EventSourceName")
+        tags = self._get_param("Tags")
 
-        event_bus = self.events_backend.create_event_bus(name, event_source_name)
-
+        event_bus = self.events_backend.create_event_bus(name, event_source_name, tags)
         return json.dumps({"EventBusArn": event_bus.arn}), self.response_headers
 
     def list_event_buses(self):
@@ -448,27 +462,35 @@ class EventsHandler(BaseResponse):
 
         return json.dumps({"Connections": result}), self.response_headers
 
+    def describe_connection(self):
+        name = self._get_param("Name")
+        result = self.events_backend.describe_connection(name)
+        return json.dumps(result), self.response_headers
+
+    def delete_connection(self):
+        name = self._get_param("Name")
+        result = self.events_backend.delete_connection(name)
+        return json.dumps(result), self.response_headers
+
     def create_api_destination(self):
         name = self._get_param("Name")
         description = self._get_param("Description")
         connection_arn = self._get_param("ConnectionArn")
         invocation_endpoint = self._get_param("InvocationEndpoint")
+        invocation_rate_limit_per_second = self._get_param(
+            "InvocationRateLimitPerSecond"
+        )
         http_method = self._get_param("HttpMethod")
 
-        destination = self.events_backend.create_api_destination(
-            name, description, connection_arn, invocation_endpoint, http_method
+        result = self.events_backend.create_api_destination(
+            name,
+            description,
+            connection_arn,
+            invocation_endpoint,
+            invocation_rate_limit_per_second,
+            http_method,
         )
-        return (
-            json.dumps(
-                {
-                    "ApiDestinationArn": destination.arn,
-                    "ApiDestinationState": "ACTIVE",
-                    "CreationTime": destination.creation_time,
-                    "LastModifiedTime": destination.creation_time,
-                }
-            ),
-            self.response_headers,
-        )
+        return self._create_response(result)
 
     def list_api_destinations(self):
         destinations = self.events_backend.list_api_destinations()
@@ -491,20 +513,25 @@ class EventsHandler(BaseResponse):
 
     def describe_api_destination(self):
         name = self._get_param("Name")
-        destination = self.events_backend.describe_api_destination(name)
+        result = self.events_backend.describe_api_destination(name)
+        return self._create_response(result)
 
-        return (
-            json.dumps(
-                {
-                    "ApiDestinationArn": destination.arn,
-                    "Name": destination.name,
-                    "ApiDestinationState": destination.state,
-                    "ConnectionArn": destination.connection_arn,
-                    "InvocationEndpoint": destination.invocation_endpoint,
-                    "HttpMethod": destination.http_method,
-                    "CreationTime": destination.creation_time,
-                    "LastModifiedTime": destination.creation_time,
-                }
+    def update_api_destination(self):
+        updates = dict(
+            connection_arn=self._get_param("ConnectionArn"),
+            description=self._get_param("Description"),
+            http_method=self._get_param("HttpMethod"),
+            invocation_endpoint=self._get_param("InvocationEndpoint"),
+            invocation_rate_limit_per_second=self._get_param(
+                "InvocationRateLimitPerSecond"
             ),
-            self.response_headers,
+            name=self._get_param("Name"),
         )
+
+        result = self.events_backend.update_api_destination(**updates)
+        return self._create_response(result)
+
+    def delete_api_destination(self):
+        name = self._get_param("Name")
+        result = self.events_backend.delete_api_destination(name)
+        return self._create_response(result)
