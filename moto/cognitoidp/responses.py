@@ -422,6 +422,14 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
+    def admin_user_global_sign_out(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_user_global_sign_out(
+            user_pool_id, username
+        )
+        return ""
+
     # Resource Server
     def create_resource_server(self):
         user_pool_id = self._get_param("UserPoolId")

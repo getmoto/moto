@@ -1662,6 +1662,53 @@ def test_confirm_forgot_password():
 
 
 @mock_cognitoidp
+def test_admin_user_global_sign_out():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    conn.admin_user_global_sign_out(
+        UserPoolId=result["user_pool_id"], Username=result["username"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="REFRESH_TOKEN",
+            AuthParameters={
+                "REFRESH_TOKEN": result["refresh_token"],
+                "SECRET_HASH": result["secret_hash"],
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("Refresh Token has been revoked")
+
+
+@mock_cognitoidp
+def test_admin_user_global_sign_out_unknown_userpool():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.admin_user_global_sign_out(
+            UserPoolId="n/a", Username=result["username"],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_cognitoidp
+def test_admin_user_global_sign_out_unknown_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.admin_user_global_sign_out(
+            UserPoolId=result["user_pool_id"], Username="n/a",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+
+
+@mock_cognitoidp
 def test_admin_update_user_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
