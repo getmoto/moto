@@ -195,6 +195,9 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 <routeTableId>{{ route_table.id }}</routeTableId>
                 <main>true</main>
                 <subnetId>{{ subnet_id }}</subnetId>
+                <associationState>
+                  <state>associated</state>
+                </associationState>
               </item>
             {% endfor %}
           </associationSet>
