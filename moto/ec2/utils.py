@@ -5,7 +5,6 @@ import hashlib
 import fnmatch
 import random
 import re
-import six
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
@@ -53,7 +52,7 @@ EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items(
 
 def random_resource_id(size=8):
     chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    resource_id = "".join(six.text_type(random.choice(chars)) for _ in range(size))
+    resource_id = "".join(str(random.choice(chars)) for _ in range(size))
     return resource_id
 
 
@@ -462,7 +461,7 @@ def is_filter_matching(obj, filter, filter_value):
     if filter_value is None:
         return False
 
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         if not isinstance(filter_value, list):
             filter_value = [filter_value]
         if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
@@ -582,7 +581,7 @@ def rsa_public_key_parse(key_material):
     from sshpubkeys.keys import SSHKey
 
     try:
-        if not isinstance(key_material, six.binary_type):
+        if not isinstance(key_material, bytes):
             key_material = key_material.encode("ascii")
 
         decoded_key = base64.b64decode(key_material).decode("ascii")

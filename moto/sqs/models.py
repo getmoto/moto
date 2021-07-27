@@ -7,7 +7,6 @@ import random
 import re
 import string
 
-import six
 import struct
 from copy import deepcopy
 from xml.sax.saxutils import escape
@@ -147,7 +146,7 @@ class Message(BaseModel):
 
     @staticmethod
     def utf8(string):
-        if isinstance(string, six.string_types):
+        if isinstance(string, str):
             return string.encode("utf-8")
         return string
 
@@ -307,7 +306,7 @@ class Queue(CloudFormationModel):
         )
         bool_fields = ("ContentBasedDeduplication", "FifoQueue")
 
-        for key, value in six.iteritems(attributes):
+        for key, value in attributes.items():
             if key in integer_fields:
                 value = int(value)
             if key in bool_fields:
@@ -328,7 +327,7 @@ class Queue(CloudFormationModel):
 
     def _setup_dlq(self, policy):
 
-        if isinstance(policy, six.text_type):
+        if isinstance(policy, str):
             try:
                 self.redrive_policy = json.loads(policy)
             except ValueError:

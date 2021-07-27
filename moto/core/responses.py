@@ -15,8 +15,7 @@ from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
-import six
-from six.moves.urllib.parse import parse_qs, parse_qsl, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import xmltodict
 from werkzeug.exceptions import HTTPException
@@ -32,24 +31,24 @@ log = logging.getLogger(__name__)
 def _decode_dict(d):
     decoded = OrderedDict()
     for key, value in d.items():
-        if isinstance(key, six.binary_type):
+        if isinstance(key, bytes):
             newkey = key.decode("utf-8")
         elif isinstance(key, (list, tuple)):
             newkey = []
             for k in key:
-                if isinstance(k, six.binary_type):
+                if isinstance(k, bytes):
                     newkey.append(k.decode("utf-8"))
                 else:
                     newkey.append(k)
         else:
             newkey = key
 
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             newvalue = value.decode("utf-8")
         elif isinstance(value, (list, tuple)):
             newvalue = []
             for v in value:
-                if isinstance(v, six.binary_type):
+                if isinstance(v, bytes):
                     newvalue.append(v.decode("utf-8"))
                 else:
                     newvalue.append(v)
@@ -221,7 +220,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 querystring[key] = [value]
 
         raw_body = self.body
-        if isinstance(self.body, six.binary_type):
+        if isinstance(self.body, bytes):
             self.body = self.body.decode("utf-8")
 
         if not querystring:
@@ -405,7 +404,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             except HTTPException as http_error:
                 response = http_error.description, dict(status=http_error.code)
 
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, headers, response
             else:
                 return self._send_response(headers, response)

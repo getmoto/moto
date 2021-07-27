@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import six
 import datetime
 from moto.organizations import utils
 
@@ -72,7 +71,7 @@ def validate_roots(org, response):
     root.should.have.key("Arn").should.equal(
         utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root["Id"])
     )
-    root.should.have.key("Name").should.be.a(six.string_types)
+    root.should.have.key("Name").should.be.a(str)
     root.should.have.key("PolicyTypes").should.be.a(list)
     root["PolicyTypes"][0].should.have.key("Type").should.equal(
         "SERVICE_CONTROL_POLICY"
@@ -87,7 +86,7 @@ def validate_organizational_unit(org, response):
     ou.should.have.key("Arn").should.equal(
         utils.OU_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], ou["Id"])
     )
-    ou.should.have.key("Name").should.be.a(six.string_types)
+    ou.should.have.key("Name").should.be.a(str)
 
 
 def validate_account(org, account):
@@ -103,7 +102,7 @@ def validate_account(org, account):
     account["Email"].should.match(utils.EMAIL_REGEX)
     account["JoinedMethod"].should.be.within(["INVITED", "CREATED"])
     account["Status"].should.be.within(["ACTIVE", "SUSPENDED"])
-    account["Name"].should.be.a(six.string_types)
+    account["Name"].should.be.a(str)
     account["JoinedTimestamp"].should.be.a(datetime.datetime)
 
 
@@ -120,7 +119,7 @@ def validate_create_account_status(create_status):
     )
     create_status["Id"].should.match(utils.CREATE_ACCOUNT_STATUS_ID_REGEX)
     create_status["AccountId"].should.match(utils.ACCOUNT_ID_REGEX)
-    create_status["AccountName"].should.be.a(six.string_types)
+    create_status["AccountName"].should.be.a(str)
     create_status["State"].should.equal("SUCCEEDED")
     create_status["RequestedTimestamp"].should.be.a(datetime.datetime)
     create_status["CompletedTimestamp"].should.be.a(datetime.datetime)
@@ -132,13 +131,13 @@ def validate_policy_summary(org, summary):
     summary.should.have.key("Arn").should.equal(
         utils.SCP_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], summary["Id"])
     )
-    summary.should.have.key("Name").should.be.a(six.string_types)
-    summary.should.have.key("Description").should.be.a(six.string_types)
+    summary.should.have.key("Name").should.be.a(str)
+    summary.should.have.key("Description").should.be.a(str)
     summary.should.have.key("Type").should.equal("SERVICE_CONTROL_POLICY")
     summary.should.have.key("AwsManaged").should.be.a(bool)
 
 
 def validate_service_control_policy(org, response):
     response.should.have.key("PolicySummary").should.be.a(dict)
-    response.should.have.key("Content").should.be.a(six.string_types)
+    response.should.have.key("Content").should.be.a(str)
     validate_policy_summary(org, response["PolicySummary"])

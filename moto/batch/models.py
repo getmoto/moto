@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import re
 from itertools import cycle
-import six
 import datetime
 import time
 import uuid
@@ -867,7 +866,7 @@ class BatchBackend(BaseBackend):
                     security_group_names=[],
                     instance_type=instance_type,
                     region_name=self.region_name,
-                    subnet_id=six.next(subnet_cycle),
+                    subnet_id=next(subnet_cycle),
                     key_name=compute_resources.get("ec2KeyPair", "AWS_OWNED"),
                     security_group_ids=compute_resources["securityGroupIds"],
                 )

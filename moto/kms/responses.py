@@ -5,8 +5,6 @@ import json
 import os
 import re
 
-import six
-
 from moto.core.responses import BaseResponse
 from .models import kms_backends
 from .exceptions import (
@@ -343,7 +341,7 @@ class KmsResponse(BaseResponse):
 
         self._validate_key_id(key_id)
 
-        if isinstance(plaintext, six.text_type):
+        if isinstance(plaintext, str):
             plaintext = plaintext.encode("utf-8")
 
         ciphertext_blob, arn = self.kms_backend.encrypt(

@@ -3,7 +3,7 @@ import random
 import re
 import string
 
-from six.moves.urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 def region_from_managedblckchain_url(url):

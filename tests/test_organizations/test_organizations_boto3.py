@@ -14,7 +14,6 @@ from moto.organizations.models import (
 
 import boto3
 import json
-import six
 import sure  # noqa
 from botocore.exceptions import ClientError
 import pytest
@@ -947,9 +946,9 @@ def test_list_targets_for_policy():
     response = client.list_targets_for_policy(PolicyId=policy_id)
     for target in response["Targets"]:
         target.should.be.a(dict)
-        target.should.have.key("Name").should.be.a(six.string_types)
-        target.should.have.key("Arn").should.be.a(six.string_types)
-        target.should.have.key("TargetId").should.be.a(six.string_types)
+        target.should.have.key("Name").should.be.a(str)
+        target.should.have.key("Arn").should.be.a(str)
+        target.should.have.key("TargetId").should.be.a(str)
         target.should.have.key("Type").should.be.within(
             ["ROOT", "ORGANIZATIONAL_UNIT", "ACCOUNT"]
         )

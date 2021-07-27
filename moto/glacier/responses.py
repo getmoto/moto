@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 
 from moto.core.responses import _TemplateEnvironmentMixin
 from .models import glacier_backends
