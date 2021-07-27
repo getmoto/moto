@@ -1660,14 +1660,14 @@ def test_confirm_forgot_password():
         Password=str(uuid.uuid4()),
     )
 
+
 @mock_cognitoidp
 def test_admin_user_global_sign_out():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
 
     conn.admin_user_global_sign_out(
-        UserPoolId=result['user_pool_id'],
-        Username=result['username'],
+        UserPoolId=result["user_pool_id"], Username=result["username"],
     )
 
     with pytest.raises(ClientError) as ex:
@@ -1683,17 +1683,18 @@ def test_admin_user_global_sign_out():
     err["Code"].should.equal("NotAuthorizedException")
     err["Message"].should.equal("Refresh Token has been revoked")
 
+
 @mock_cognitoidp
 def test_admin_user_global_sign_out_unknown_userpool():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
     with pytest.raises(ClientError) as ex:
         conn.admin_user_global_sign_out(
-            UserPoolId='n/a',
-            Username=result['username'],
+            UserPoolId="n/a", Username=result["username"],
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
+
 
 @mock_cognitoidp
 def test_admin_user_global_sign_out_unknown_user():
@@ -1701,11 +1702,11 @@ def test_admin_user_global_sign_out_unknown_user():
     result = user_authentication_flow(conn)
     with pytest.raises(ClientError) as ex:
         conn.admin_user_global_sign_out(
-            UserPoolId=result['user_pool_id'],
-            Username='n/a',
+            UserPoolId=result["user_pool_id"], Username="n/a",
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
+
 
 @mock_cognitoidp
 def test_admin_update_user_attributes():
