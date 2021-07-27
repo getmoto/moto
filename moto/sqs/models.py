@@ -498,7 +498,6 @@ class Queue(CloudFormationModel):
                         return
 
         self._messages.append(message)
-        from moto.awslambda import lambda_backends
 
         for arn, esm in self.lambda_event_source_mappings.items():
             backend = sqs_backends[self.region]
@@ -515,6 +514,8 @@ class Queue(CloudFormationModel):
                 self.receive_message_wait_time_seconds,
                 self.visibility_timeout,
             )
+
+            from moto.awslambda import lambda_backends
 
             result = lambda_backends[self.region].send_sqs_batch(
                 arn, messages, self.queue_arn

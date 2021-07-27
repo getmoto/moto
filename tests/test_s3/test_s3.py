@@ -4341,10 +4341,6 @@ def test_s3_public_access_block_to_config_dict():
         "RestrictPublicBuckets": "False",
     }
 
-    # Python 2 unicode issues:
-    if sys.version_info[0] < 3:
-        public_access_block = py2_strip_unicode_keys(public_access_block)
-
     # Add a public access block:
     s3_config_query.backends["global"].put_bucket_public_access_block(
         "bucket1", public_access_block
@@ -4811,11 +4807,8 @@ def test_s3_config_dict():
         }
     )
 
-    # The policy is a byte array -- need to encode in Python 3 -- for Python 2 just pass the raw string in:
-    if sys.version_info[0] > 2:
-        pass_policy = bytes(policy, "utf-8")
-    else:
-        pass_policy = policy
+    # The policy is a byte array -- need to encode in Python 3
+    pass_policy = bytes(policy, "utf-8")
     s3_config_query.backends["global"].set_bucket_policy("bucket1", pass_policy)
 
     # Get the us-west-2 bucket and verify that it works properly:
