@@ -6010,18 +6010,12 @@ class TransitGatewayBackend(object):
         return transit_gateway
 
     def get_all_transit_gateways(self, filters):
-        transit_gateways = self.transit_gateways.values()
+        transit_gateways = list(self.transit_gateways.values())
 
         attr_pairs = (
             ("transit-gateway-id", "id"),
             ("state", "state"),
-            ("owner-id", "owner_id")(
-                "default-association-route-table", "default_association_route_table"
-            ),
-            ("default-propagation-route-table", "default_propagation_route_table"),
-            ("state", "state"),
-            ("transit-gateway-id", "transit_gateway_id"),
-            ("transit-gateway-route-table-id", "id"),
+            ("owner-id", "owner_id"),
         )
 
         result = transit_gateways
@@ -6100,7 +6094,7 @@ class TransitGatewayRouteTableBackend(object):
     def get_all_transit_gateway_route_tables(
         self, transit_gateway_ids=None, filters=None
     ):
-        transit_gateway_route_tables = self.transit_gateways_route_tables.values()
+        transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         attr_pairs = (
             ("default-association-route-table", "default_association_route_table"),
@@ -6182,14 +6176,14 @@ class TransitGatewayRouteTableBackend(object):
             ("state", "state"),
         )
 
-        for attrs in attr_pairs:
-            values = filters.get(attrs[0]) or None
-            if values:
-                routes = [
-                    transit_gateway_route_table.routes[key]
-                    for key in transit_gateway_route_table.routes
-                    if transit_gateway_route_table.routes[key][attrs[1]] in values
-                ]
+        routes = transit_gateway_route_table.routes.copy()
+        for key in transit_gateway_route_table.routes:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values:
+                    if routes.get(key).get(attrs[1]) not in values:
+                        routes.pop(key)
+                        break
         if max_results:
             routes = routes[: int(max_results)]
         return routes
@@ -6234,7 +6228,7 @@ class TransitGatewayRouteTableBackend(object):
     def get_all_transit_gateway_route_table_associations(
         self, transit_gateway_route_table_id=None, filters=None
     ):
-        transit_gateway_route_tables = self.transit_gateways_route_tables.values()
+        transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         if transit_gateway_route_tables:
             transit_gateway_route_tables = [
@@ -6261,7 +6255,7 @@ class TransitGatewayRouteTableBackend(object):
     def get_all_transit_gateway_route_table_propagations(
         self, transit_gateway_route_table_id=None, filters=None
     ):
-        transit_gateway_route_tables = self.transit_gateways_route_tables.values()
+        transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         if transit_gateway_route_tables:
             transit_gateway_route_tables = [
@@ -6382,7 +6376,7 @@ class TransitGatewayAttachmentBackend(object):
     def describe_transit_gateway_attachments(
         self, transit_gateways_attachment_ids=None, filters=None, max_results=0
     ):
-        transit_gateway_attachments = self.transit_gateway_attachments.values()
+        transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 
         attr_pairs = (
             ("resource-id", "resource_id"),
@@ -6408,7 +6402,7 @@ class TransitGatewayAttachmentBackend(object):
     def describe_transit_gateway_vpc_attachments(
         self, transit_gateways_attachment_ids=None, filters=None, max_results=0
     ):
-        transit_gateway_attachments = self.transit_gateway_attachments.values()
+        transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 
         attr_pairs = (
             ("state", "state"),

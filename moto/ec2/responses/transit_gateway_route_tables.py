@@ -178,15 +178,15 @@ CREATE_TRANSIT_GATEWAY_ROUTE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?
 <CreateTransitGatewayRouteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>072b02ce-df3a-4de6-a20b-6653ae4b91a4</requestId>
     <route>
-        <destinationCidrBlock>{{ transit_gateway_route_table['destinationCidrBlock'] }}</destinationCidrBlock>
-        <state>{{ transit_gateway_route_table['state'] }}</state>
-        <type>{{ transit_gateway_route_table['type'] }}</type>
+        <destinationCidrBlock>{{ transit_gateway_route_table.destinationCidrBlock }}</destinationCidrBlock>
+        <state>{{ transit_gateway_route_table.state }}</state>
+        <type>{{ transit_gateway_route_table.type }}</type>
         <transitGatewayAttachments>
-        {% if transit_gateway_route_table['state'] != 'blackhole' %}
+        {% if transit_gateway_route_table.state != 'blackhole' %}
             <item>
-                <resourceId>{{ transit_gateway_route_table['transitGatewayAttachments']['resourceId'] }}</resourceId>
-                <resourceType>{{ transit_gateway_route_table['transitGatewayAttachments']['resourceType'] }}</resourceType>
-                <transitGatewayAttachmentId>{{ transit_gateway_route_table['transitGatewayAttachments']['transitGatewayAttachmentId'] }}</transitGatewayAttachmentId>
+                <resourceId>{{ transit_gateway_route_table.transitGatewayAttachments.resourceId }}</resourceId>
+                <resourceType>{{ transit_gateway_route_table.transitGatewayAttachments.resourceType }}</resourceType>
+                <transitGatewayAttachmentId>{{ transit_gateway_route_table.transitGatewayAttachments.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
             </item>
         {% endif %}
         </transitGatewayAttachments>
@@ -198,9 +198,9 @@ DELETE_TRANSIT_GATEWAY_ROUTE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?
 <DeleteTransitGatewayRouteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>2109d5bb-f874-4f35-b419-4723792a638f</requestId>
     <route>
-        <destinationCidrBlock>{{ transit_gateway_route_table.routes[destination_cidr_block]['destinationCidrBlock'] }}</destinationCidrBlock>
-        <state>{{ transit_gateway_route_table.routes[destination_cidr_block]['state'] }}</state>
-        <type>{{ transit_gateway_route_table.routes[destination_cidr_block]['type'] }}</type>
+        <destinationCidrBlock>{{ transit_gateway_route_table.routes[destination_cidr_block].destinationCidrBlock }}</destinationCidrBlock>
+        <state>{{ transit_gateway_route_table.routes[destination_cidr_block].state }}</state>
+        <type>{{ transit_gateway_route_table.routes[destination_cidr_block].type }}</type>
     </route>
 </DeleteTransitGatewayRouteResponse>
 """
@@ -211,16 +211,15 @@ SEARCH_TRANSIT_GATEWAY_ROUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"
     <routeSet>
         {% for route in transit_gateway_routes %}
         <item>
-            <destinationCidrBlock>{{ route['destinationCidrBlock'] }}</destinationCidrBlock>
-            <state>{{ route['state'] }}</state>
-            <type>{{ route['type'] }}</type>
-            <state>active</state>
-            {% if route.get('transitGatewayAttachments') %}
+            <destinationCidrBlock>{{ transit_gateway_routes[route].destinationCidrBlock }}</destinationCidrBlock>
+            <state>{{ transit_gateway_routes[route].state }}</state>
+            <type>{{ transit_gateway_routes[route].type }}</type>
+            {% if transit_gateway_routes[route].get('transitGatewayAttachments') %}
             <transitGatewayAttachments>
                 <item>
-                    <resourceId>{{ route['transitGatewayAttachments']['resourceId'] }}</resourceId>
-                    <resourceType>{{ route['transitGatewayAttachments']['resourceType'] }}</resourceType>
-                    <transitGatewayAttachmentId>{{ route['transitGatewayAttachments']['transitGatewayAttachmentId'] }}</transitGatewayAttachmentId>
+                    <resourceId>{{ transit_gateway_routes[route].transitGatewayAttachments.resourceId }}</resourceId>
+                    <resourceType>{{ transit_gateway_routes[route].transitGatewayAttachments.resourceType }}</resourceType>
+                    <transitGatewayAttachmentId>{{ transit_gateway_routes[route].transitGatewayAttachments.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
                 </item>
             </transitGatewayAttachments>
             {% endif %}
@@ -234,12 +233,12 @@ SEARCH_TRANSIT_GATEWAY_ROUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"
 GET_TRANSIT_GATEWAY_ROUTE_TABLE_ASSOCIATIONS_RESPONSE = """<GetTransitGatewayRouteTableAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>92fdc91d-c374-4217-b2b4-33f2fb0a2be7</requestId>
     <associations>
-        {% for association in transit_gateway_route_table_associations %}
+        {% for route_table in transit_gateway_route_table_associations %}
         <item>
-            <resourceId>{{ association.resourceId }}</resourceId>
-            <resourceType>{{ association.resourceType }}</resourceType>
-            <state>{{ association.state }}</state>
-            <transitGatewayAttachmentId>{{ association.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+            <resourceId>{{ route_table.route_table_association.resourceId }}</resourceId>
+            <resourceType>{{ route_table.route_table_association.resourceType }}</resourceType>
+            <state>{{ route_table.route_table_association.state }}</state>
+            <transitGatewayAttachmentId>{{ route_table.route_table_association.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
         </item>
         {% endfor %}
     </associations>
@@ -248,12 +247,12 @@ GET_TRANSIT_GATEWAY_ROUTE_TABLE_ASSOCIATIONS_RESPONSE = """<GetTransitGatewayRou
 GET_TRANSIT_GATEWAY_ROUTE_TABLE_PROPAGATIONS_RESPONSE = """<GetTransitGatewayRouteTablePropagationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>541bc42d-9ed9-4aef-a5f7-2ea32fbdec16</requestId>
     <transitGatewayRouteTablePropagations>
-        {% for propagation in transit_gateway_route_table_propagations %}
+        {% for route_table in transit_gateway_route_table_propagations %}
         <item>
-            <resourceId>{{ propagation.route_table_propagation.resourceId }}</resourceId>
-            <resourceType>{{ propagation.route_table_propagation.resourceType }}</resourceType>
-            <state>{{ propagation.route_table_propagation.state }}</state>
-            <transitGatewayAttachmentId>{{ propagation.route_table_propagation.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+            <resourceId>{{ route_table.route_table_propagation.route_table_propagation.resourceId }}</resourceId>
+            <resourceType>{{ route_table.route_table_propagation.route_table_propagation.resourceType }}</resourceType>
+            <state>{{ route_table.route_table_propagation.route_table_propagation.state }}</state>
+            <transitGatewayAttachmentId>{{ route_table.route_table_propagation.route_table_propagation.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
         </item>
         {% endfor %}
     </transitGatewayRouteTablePropagations>

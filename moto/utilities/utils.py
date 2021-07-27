@@ -40,14 +40,15 @@ def filter_resources(resources, filters, attr_pairs):
     """
     Used to filter resources. Usually in get and describe apis.
     """
-    result = []
-    for attrs in attr_pairs:
-        values = filters.get(attrs[0]) or None
-        if values is not None:
-            for resource in resources:
+    result = resources.copy()
+    for resource in resources:
+        for attrs in attr_pairs:
+            values = filters.get(attrs[0]) or None
+            if values:
                 instance = getattr(resource, attrs[1])
-                if (len(attrs) <= 2 and instance in values) or (
-                    len(attrs) == 3 and instance.get(attrs[2]) in values
+                if (len(attrs) <= 2 and instance not in values) or (
+                    len(attrs) == 3 and instance.get(attrs[2]) not in values
                 ):
-                    result.append(instance)
+                    result.remove(resource)
+                    break
     return result

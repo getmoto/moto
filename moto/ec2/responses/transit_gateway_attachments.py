@@ -85,7 +85,7 @@ class TransitGatewayAttachment(BaseResponse):
             transit_gateway_attachment_id=transit_gateway_attachment_id,
             transit_gateway_route_table_id=transit_gateway_route_table_id,
         )
-        template = self.response_template(TRANSIT_GATEWAY_ASSOCIATIONS)
+        template = self.response_template(TRANSIT_GATEWAY_ASSOCIATION)
         return template.render(transit_gateway_association=transit_gateway_association)
 
     def enable_transit_gateway_route_table_propagation(self):
@@ -270,7 +270,7 @@ DELETE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DeleteTransitGatewayVpcAttachmentRe
 </DeleteTransitGatewayVpcAttachmentResponse>"""
 
 
-TRANSIT_GATEWAY_ASSOCIATIONS = """<AssociateTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+TRANSIT_GATEWAY_ASSOCIATION = """<AssociateTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>86a597cf-93ec-44a3-9559-4641863642a5</requestId>
     <association>
         <resourceId>{{ transit_gateway_association.resource_id }}</resourceId>
