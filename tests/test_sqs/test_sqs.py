@@ -206,6 +206,31 @@ def test_create_queue_with_policy():
 
 
 @mock_sqs
+def test_set_queue_attribute_empty_policy_removes_attr():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName="test-queue",
+        Attributes={
+            "Policy": json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Id": "test",
+                    "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
+                }
+            )
+        },
+    )
+    queue_url = response["QueueUrl"]
+
+    empty_policy = {"Policy": ""}
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=empty_policy)
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    response.shouldnt.have.key("Policy")
+
+
+@mock_sqs
 def test_get_queue_url():
     client = boto3.client("sqs", region_name="us-east-1")
     client.create_queue(QueueName="test-queue")
