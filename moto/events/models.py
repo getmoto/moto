@@ -1438,6 +1438,18 @@ class EventsBackend(BaseBackend):
         self.connections[name] = connection
         return connection
 
+    def update_connection(self, *, name, **kwargs):
+        connection = self.connections.get(name)
+        if not connection:
+            raise ResourceNotFoundException(
+                "Connection '{}' does not exist.".format(name)
+            )
+
+        for attr, value in kwargs.items():
+            if value is not None and hasattr(connection, attr):
+                setattr(connection, attr, value)
+        return connection.describe_short()
+
     def list_connections(self):
         return self.connections.values()
 
