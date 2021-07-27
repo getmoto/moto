@@ -1660,6 +1660,29 @@ def test_confirm_forgot_password():
         Password=str(uuid.uuid4()),
     )
 
+@mock_cognitoidp
+def test_admin_user_global_sign_out():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = user_authentication_flow(conn)
+
+    conn.admin_user_global_sign_out(
+        UserPoolId=result['user_pool_id'],
+        Username=result['username'],
+    )
+
+    try:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="REFRESH_TOKEN",
+            AuthParameters={
+                "REFRESH_TOKEN": result["refresh_token"],
+                "SECRET_HASH": result["secret_hash"],
+            },
+        )
+        raise AssertionError('Auth should fail as refresh token no longer valid')
+    except conn.exceptions.ResourceNotFoundException as e:
+        pass
 
 @mock_cognitoidp
 def test_admin_update_user_attributes():

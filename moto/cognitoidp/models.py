@@ -900,6 +900,19 @@ class CognitoIdpBackend(BaseBackend):
         user = user_pool.users[username]
         user.update_attributes(attributes)
 
+    def admin_user_global_sign_out(self, user_pool_id, username):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        if username not in user_pool.users:
+            raise UserNotFoundError(username)
+
+        for token, token_tuple in list(user_pool.refresh_tokens.items()):
+            _, username = token_tuple
+            if username == username:
+                del user_pool.refresh_tokens[token]
+
     def create_resource_server(self, user_pool_id, identifier, name, scopes):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
@@ -996,7 +1009,10 @@ class CognitoIdpBackend(BaseBackend):
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             if not refresh_token:
                 raise ResourceNotFoundError(refresh_token)
-
+            
+            if not user_pool.refresh_tokens.get(refresh_token, None):
+                raise ResourceNotFoundError(refresh_token)
+            
             client_id, username = user_pool.refresh_tokens[refresh_token]
             if not username:
                 raise ResourceNotFoundError(username)
