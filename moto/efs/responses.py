@@ -37,7 +37,10 @@ class EFSResponse(BaseResponse):
             backup=backup,
             tags=tags,
         )
-        return json.dumps(resource.info_json()), {"status": 201}
+        return (
+            json.dumps(resource.info_json()),
+            {"status": 201, "Content-Type": "application/json"},
+        )
 
     def describe_file_systems(self):
         max_items = self._get_int_param("MaxItems", 10)
@@ -55,7 +58,7 @@ class EFSResponse(BaseResponse):
             resp_json["Marker"] = marker
         if next_marker:
             resp_json["NextMarker"] = next_marker
-        return json.dumps(resp_json)
+        return json.dumps(resp_json), {"Content-Type": "application/json"}
 
     def create_mount_target(self):
         file_system_id = self._get_param("FileSystemId")
@@ -68,7 +71,10 @@ class EFSResponse(BaseResponse):
             ip_address=ip_address,
             security_groups=security_groups,
         )
-        return json.dumps(mount_target.info_json())
+        return (
+            json.dumps(mount_target.info_json()),
+            {"Content-Type": "application/json"},
+        )
 
     def describe_mount_targets(self):
         max_items = self._get_int_param("MaxItems", 10)
@@ -88,17 +94,17 @@ class EFSResponse(BaseResponse):
             resp_json["Marker"] = marker
         if next_marker:
             resp_json["NextMarker"] = next_marker
-        return json.dumps(resp_json)
+        return json.dumps(resp_json), {"Content-Type": "application/json"}
 
     def delete_file_system(self):
         file_system_id = self._get_param("FileSystemId")
         self.efs_backend.delete_file_system(file_system_id=file_system_id,)
-        return json.dumps(dict()), {"status": 204}
+        return json.dumps(dict()), {"status": 204, "Content-Type": "application/json"}
 
     def delete_mount_target(self):
         mount_target_id = self._get_param("MountTargetId")
         self.efs_backend.delete_mount_target(mount_target_id=mount_target_id,)
-        return json.dumps(dict()), {"status": 204}
+        return json.dumps(dict()), {"status": 204, "Content-Type": "application/json"}
 
     def describe_backup_policy(self):
         file_system_id = self._get_param("FileSystemId")
@@ -106,4 +112,4 @@ class EFSResponse(BaseResponse):
             file_system_id=file_system_id,
         )
         resp = {"BackupPolicy": backup_policy}
-        return json.dumps(resp)
+        return json.dumps(resp), {"Content-Type": "application/json"}
