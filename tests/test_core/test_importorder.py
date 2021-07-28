@@ -2,11 +2,15 @@ import boto3
 import pytest
 import sure  # noqa
 from moto import mock_s3
+from moto import settings
 from os import environ
+from unittest import SkipTest
 
 
 @pytest.fixture(scope="function")
 def aws_credentials():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No point in testing this in ServerMode.")
     """Mocked AWS Credentials for moto."""
     environ["AWS_ACCESS_KEY_ID"] = "testing"
     environ["AWS_SECRET_ACCESS_KEY"] = "testing"
