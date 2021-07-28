@@ -2168,6 +2168,53 @@ def test_create_and_list_connections():
 
 
 @mock_events
+def test_create_and_describe_connection():
+    client = boto3.client("events", "eu-central-1")
+
+    client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    description = client.describe_connection(Name="test")
+
+    description["Name"].should.equal("test")
+    description["Description"].should.equal("test description")
+    description["AuthorizationType"].should.equal("API_KEY")
+    description["ConnectionState"].should.equal("AUTHORIZED")
+    description.should.have.key("CreationTime")
+
+
+@mock_events
+def test_delete_connection():
+    client = boto3.client("events", "eu-central-1")
+
+    conns = client.list_connections()["Connections"]
+    conns.should.have.length_of(0)
+
+    client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    conns = client.list_connections()["Connections"]
+    conns.should.have.length_of(1)
+
+    client.delete_connection(Name="test")
+
+    conns = client.list_connections()["Connections"]
+    conns.should.have.length_of(0)
+
+
+@mock_events
 def test_create_and_list_api_destinations():
     client = boto3.client("events", "eu-central-1")
 
@@ -2211,6 +2258,75 @@ def test_create_and_list_api_destinations():
         destination_response.get("ApiDestinations")[0].get("ApiDestinationState")
         == "ACTIVE"
     )
+
+
+@pytest.mark.parametrize(
+    "key,initial_value,updated_value",
+    [
+        ("Description", "my aspi dest", "my actual api dest"),
+        ("InvocationEndpoint", "www.google.com", "www.google.cz"),
+        ("InvocationRateLimitPerSecond", 1, 32),
+        ("HttpMethod", "GET", "PATCH"),
+    ],
+)
+@mock_events
+def test_create_and_update_api_destination(key, initial_value, updated_value):
+    client = boto3.client("events", "eu-central-1")
+
+    response = client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    default_params = {
+        "Name": "test",
+        "Description": "test-description",
+        "ConnectionArn": response.get("ConnectionArn"),
+        "InvocationEndpoint": "www.google.com",
+        "HttpMethod": "GET",
+    }
+    default_params.update({key: initial_value})
+
+    client.create_api_destination(**default_params)
+    destination = client.describe_api_destination(Name="test")
+    destination[key].should.equal(initial_value)
+
+    client.update_api_destination(Name="test", **dict({key: updated_value}))
+
+    destination = client.describe_api_destination(Name="test")
+    destination[key].should.equal(updated_value)
+
+
+@mock_events
+def test_delete_api_destination():
+    client = boto3.client("events", "eu-central-1")
+
+    client.list_api_destinations()["ApiDestinations"].should.have.length_of(0)
+
+    response = client.create_connection(
+        Name="test",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    client.create_api_destination(
+        Name="testdest",
+        ConnectionArn=response.get("ConnectionArn"),
+        InvocationEndpoint="www.google.com",
+        HttpMethod="GET",
+    )
+
+    client.list_api_destinations()["ApiDestinations"].should.have.length_of(1)
+
+    client.delete_api_destination(Name="testdest")
+
+    client.list_api_destinations()["ApiDestinations"].should.have.length_of(0)
 
 
 # Scenarios for describe_connection

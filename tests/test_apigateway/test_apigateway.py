@@ -1705,12 +1705,6 @@ def test_get_domain_names():
 def test_get_domain_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
-    # quering an invalid domain name which is not present
-    with pytest.raises(ClientError) as ex:
-        client.get_domain_name(domainName=domain_name)
-
-    ex.value.response["Error"]["Message"].should.equal("Invalid Domain Name specified")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     # adding a domain name
     client.create_domain_name(domainName=domain_name)
     # retrieving the data of added domain name.
@@ -2278,3 +2272,87 @@ def create_method_integration(client, api_id, httpMethod="GET"):
         statusCode="200",
         responseTemplates={},
     )
+    return root_id
+
+
+@mock_apigateway
+def test_get_integration_response_unknown_response():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    root_id = create_method_integration(client, api_id)
+    client.get_integration_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+    with pytest.raises(ClientError) as ex:
+        client.get_integration_response(
+            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="300"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid Response status code specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_delete_stage_unknown_stage():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    with pytest.raises(ClientError) as ex:
+        client.delete_stage(restApiId=api_id, stageName="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid stage identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_get_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_api_key(apiKey="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid API Key identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_get_domain_name_unknown_domainname():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_domain_name(domainName="www.google.com")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_update_domain_name_unknown_domainname():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.update_domain_name(domainName="www.google.fr", patchOperations=[])
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_delete_domain_name_unknown_domainname():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_domain_name(domainName="www.google.com")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")

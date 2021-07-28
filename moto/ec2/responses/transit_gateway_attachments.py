@@ -111,7 +111,7 @@ DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS = """<DescribeTransitGatewayAttachmentsResp
             </tagSet>
             <transitGatewayAttachmentId>{{ transit_gateway_attachment.id }}</transitGatewayAttachmentId>
             <transitGatewayId>{{ transit_gateway_attachment.transit_gateway_id }}</transitGatewayId>
-            <transitGatewayOwnerId>074255357339</transitGatewayOwnerId>
+            <transitGatewayOwnerId>{{ transit_gateway_attachment.resource_owner_id }}</transitGatewayOwnerId>
         </item>
         {% endfor %}
     </transitGatewayAttachments>
@@ -133,7 +133,7 @@ DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DescribeTransitGatewayVpcAttachme
                 <state>{{ transit_gateway_vpc_attachment.state }}</state>
                 <subnetIds>
                 {% for id in transit_gateway_vpc_attachment.subnet_ids %}
-                    <item>id</item>
+                    <item>{{ id }}</item>
                 {% endfor %}
                 </subnetIds>
                 <tagSet>
@@ -147,7 +147,7 @@ DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DescribeTransitGatewayVpcAttachme
                 <transitGatewayAttachmentId>{{ transit_gateway_vpc_attachment.id }}</transitGatewayAttachmentId>
                 <transitGatewayId>{{ transit_gateway_vpc_attachment.transit_gateway_id }}</transitGatewayId>
                 <vpcId>{{ transit_gateway_vpc_attachment.vpc_id }}</vpcId>
-                <vpcOwnerId>074255357339</vpcOwnerId>
+                <vpcOwnerId>{{ transit_gateway_vpc_attachment.resource_owner_id }}</vpcOwnerId>
             </item>
         {% endfor %}
     </transitGatewayVpcAttachments>

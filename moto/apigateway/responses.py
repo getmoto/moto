@@ -21,6 +21,7 @@ from .exceptions import (
     ApiKeyValueMinLength,
     InvalidRequestInput,
     NoIntegrationDefined,
+    NoIntegrationResponseDefined,
     NotFoundException,
 )
 
@@ -368,26 +369,21 @@ class APIGatewayResponse(BaseResponse):
         function_id = url_path_parts[2]
         stage_name = url_path_parts[4]
 
-        if self.method == "GET":
-            try:
+        try:
+            if self.method == "GET":
                 stage_response = self.backend.get_stage(function_id, stage_name)
-            except StageNotFoundException as error:
-                return (
-                    error.code,
-                    {},
-                    '{{"message":"{0}","code":"{1}"}}'.format(
-                        error.message, error.error_type
-                    ),
+
+            elif self.method == "PATCH":
+                patch_operations = self._get_param("patchOperations")
+                stage_response = self.backend.update_stage(
+                    function_id, stage_name, patch_operations
                 )
-        elif self.method == "PATCH":
-            patch_operations = self._get_param("patchOperations")
-            stage_response = self.backend.update_stage(
-                function_id, stage_name, patch_operations
-            )
-        elif self.method == "DELETE":
-            self.backend.delete_stage(function_id, stage_name)
-            return 202, {}, "{}"
-        return 200, {}, json.dumps(stage_response)
+            elif self.method == "DELETE":
+                self.backend.delete_stage(function_id, stage_name)
+                return 202, {}, "{}"
+            return 200, {}, json.dumps(stage_response)
+        except StageNotFoundException as error:
+            return error.code, {}, error.get_body()
 
     def integrations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -476,7 +472,7 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps(integration_response)
         except BadRequestException as e:
             return self.error("BadRequestException", e.message)
-        except NoIntegrationDefined as e:
+        except (NoIntegrationDefined, NoIntegrationResponseDefined) as e:
             return self.error("NotFoundException", e.message)
 
     def deployments(self, request, full_url, headers):
@@ -552,9 +548,12 @@ class APIGatewayResponse(BaseResponse):
         status_code = 200
         if self.method == "GET":
             include_value = self._get_bool_param("includeValue")
-            apikey_response = self.backend.get_api_key(
-                apikey, include_value=include_value
-            )
+            try:
+                apikey_response = self.backend.get_api_key(
+                    apikey, include_value=include_value
+                )
+            except ApiKeyNotFoundException as e:
+                return self.error("NotFoundException", e.message)
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             apikey_response = self.backend.update_api_key(apikey, patch_operations)
@@ -720,13 +719,7 @@ class APIGatewayResponse(BaseResponse):
                 return 404, {}, json.dumps({"error": msg})
             return 200, {}, json.dumps(domain_names)
         except DomainNameNotFound as error:
-            return (
-                error.code,
-                {},
-                '{{"message":"{0}","code":"{1}"}}'.format(
-                    error.message, error.error_type
-                ),
-            )
+            return self.error("NotFoundException", error.message)
 
     def models(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
