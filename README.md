@@ -38,14 +38,15 @@ Imagine you have the following python code that you want to test:
 ```python
 import boto3
 
+s3_client = boto3.client('s3', region_name='us-east-1')
+
 class MyModel(object):
     def __init__(self, name, value):
         self.name = name
         self.value = value
 
     def save(self):
-        s3 = boto3.client('s3', region_name='us-east-1')
-        s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
+        s3_client.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
 
 ```
 
@@ -56,19 +57,23 @@ Now see how you could test it with Moto:
 ```python
 import boto3
 from moto import mock_s3
-from mymodule import MyModel
+from moto.core import patch_client
+from mymodule import MyModel, s3_client
 
 
 @mock_s3
 def test_my_model_save():
-    conn = boto3.resource('s3', region_name='us-east-1')
+    mocked_resource = boto3.resource('s3', region_name='us-east-1')
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
-    conn.create_bucket(Bucket='mybucket')
+    mocked_resource.create_bucket(Bucket='mybucket')
+
+    # Ensure our client is patched - this is important!
+    patch_client(s3_client)
 
     model_instance = MyModel('steve', 'is awesome')
     model_instance.save()
 
-    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode("utf-8")
+    body = mocked_resource.Object('mybucket', 'steve').get()['Body'].read().decode("utf-8")
 
     assert body == 'is awesome'
 ```
@@ -302,6 +307,7 @@ have altered some of the mock behavior. In short, you need to ensure that you _a
    This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
    See the pesky imports section below on how to work around this.
 
+
 ### Example on pytest usage?
 If you are a user of [pytest](https://pytest.org/en/latest/), you can leverage [pytest fixtures](https://pytest.org/en/latest/fixture.html#fixture)
 to help set up your mocks and other AWS resources that you would need.
@@ -416,6 +422,16 @@ def test_something(s3):
 
    some_func()  # The mock has been established from the "s3" pytest fixture, so this function that uses
                 # a package-level S3 client will properly use the mock and not reach out to AWS.
+```
+
+As a workaround, it is possible to explicitly patch a client that was created before the mocks were established:
+```python
+from some.package.that.does.something.with.s3 import some_func, created_s3_client
+from moto.core import patch_client
+def test_something(s3):
+   patch_client(created_s3_client) # <-- Patch boto3-client that was created before the mocks were established
+
+   some_func()
 ```
 
 ### Other caveats
