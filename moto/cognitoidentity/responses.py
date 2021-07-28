@@ -32,7 +32,7 @@ class CognitoIdentityResponse(BaseResponse):
         pool_name = self._get_param("IdentityPoolName")
         allow_unauthenticated = self._get_bool_param("AllowUnauthenticatedIdentities")
         allow_classic = self._get_bool_param("AllowClassicFlow")
-        login_providers = self._get_multi_param_dict("SupportedLoginProviders")
+        login_providers = self._get_param("SupportedLoginProviders")
         provider_name = self._get_param("DeveloperProviderName")
         provider_arns = self._get_multi_param("OpenIdConnectProviderARNs")
         identity_providers = self._get_multi_param_dict("CognitoIdentityProviders")

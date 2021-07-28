@@ -26,7 +26,7 @@ import requests.exceptions
 from boto3 import Session
 
 from moto.awslambda.policy import Policy
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
@@ -1070,32 +1070,6 @@ class LayerStorage(object):
                 split_arn.version, None
             )
         return None
-
-
-class LambdaPermission(BaseModel):
-    def __init__(self, spec):
-        self.action = spec["Action"]
-        self.function_name = spec["FunctionName"]
-        self.principal = spec["Principal"]
-        # optional
-        self.source_account = spec.get("SourceAccount")
-        self.source_arn = spec.get("SourceArn")
-
-    @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-        properties = cloudformation_json["Properties"]
-        spec = {
-            "Action": properties["Action"],
-            "FunctionName": properties["FunctionName"],
-            "Principal": properties["Principal"],
-        }
-        optional_properties = "SourceAccount SourceArn".split()
-        for prop in optional_properties:
-            if prop in properties:
-                spec[prop] = properties[prop]
-        return LambdaPermission(spec)
 
 
 class LambdaBackend(BaseBackend):

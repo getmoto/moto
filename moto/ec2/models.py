@@ -5944,12 +5944,11 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         "VpnEcmpSupport": "enable",
     }
 
-    def __init__(self, backend, description=None, options=None, tags=None):
+    def __init__(self, backend, description=None, options=None):
         self.ec2_backend = backend
         self.id = random_transit_gateway_id()
         self.description = description
         self.state = "available"
-        self.add_tags(tags or {})
         self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
         self._created_at = datetime.utcnow()
 
@@ -5979,10 +5978,19 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         ec2_backend = ec2_backends[region_name]
+        properties = cloudformation_json["Properties"]
+        description = properties["Description"]
+        options = dict(properties)
+        del options["Description"]
         transit_gateway = ec2_backend.create_transit_gateway(
-            cloudformation_json["Properties"]["Description"],
-            cloudformation_json["Properties"]["Options"],
+            description=description, options=options
         )
+
+        for tag in properties.get("Tags", []):
+            tag_key = tag["Key"]
+            tag_value = tag["Value"]
+            transit_gateway.add_tag(tag_key, tag_value)
+
         return transit_gateway
 
 
@@ -5991,8 +5999,13 @@ class TransitGatewayBackend(object):
         self.transit_gateways = {}
         super(TransitGatewayBackend, self).__init__()
 
-    def create_transit_gateway(self, description=None, options=None, tags=None):
-        transit_gateway = TransitGateway(self, description, options, tags)
+    def create_transit_gateway(self, description=None, options=None, tags=[]):
+        transit_gateway = TransitGateway(self, description, options)
+        for tag in tags:
+            tag_key = tag.get("Key")
+            tag_value = tag.get("Value")
+            transit_gateway.add_tag(tag_key, tag_value)
+
         self.transit_gateways[transit_gateway.id] = transit_gateway
         return transit_gateway
 
@@ -6200,6 +6213,7 @@ class TransitGatewayAttachment(TaggedEC2Resource):
         self.add_tags(tags or {})
 
         self._created_at = datetime.utcnow()
+        self.owner_id = ACCOUNT_ID
 
     @property
     def create_time(self):

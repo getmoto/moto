@@ -91,7 +91,7 @@ class NoIntegrationResponseDefined(NotFoundException):
 
     def __init__(self, code=None):
         super(NoIntegrationResponseDefined, self).__init__(
-            "NotFoundException", "No integration defined for method, code '%s'" % code
+            "NotFoundException", "Invalid Response status code specified"
         )
 
 
@@ -161,7 +161,7 @@ class DomainNameNotFound(NotFoundException):
 
     def __init__(self):
         super(DomainNameNotFound, self).__init__(
-            "NotFoundException", "Invalid Domain Name specified"
+            "NotFoundException", "Invalid domain name identifier specified"
         )
 
 
