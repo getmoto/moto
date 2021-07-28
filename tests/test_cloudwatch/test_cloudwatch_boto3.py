@@ -447,7 +447,7 @@ def test_put_data_with_multiple_dimensions_and_ns():
     print(result)
     metrics = [m for m in result if m.get("Namespace") in namespaces]
     # TODO: should be 6, but is currently 2 (only taking into account the first namespace)
-    (len(namespaces) * num_dimensions).should.equal(len(metrics))
+    len(metrics).should.equal(len(namespaces) * num_dimensions)
 
 
 @mock_cloudwatch
