@@ -419,6 +419,38 @@ def test_get_metric_statistics_dimensions():
 
 
 @mock_cloudwatch
+def test_put_data_with_multiple_dimensions_and_ns():
+    client = boto3.client("cloudwatch", region_name="us-east-1")
+
+    namespaces = [
+        "ns1-%s" % short_uid(),
+        "ns2-%s" % short_uid(),
+        "ns3-%s" % short_uid(),
+    ]
+    num_dimensions = 2
+    for ns in namespaces:
+        for i in range(3):
+            rs = client.put_metric_data(
+                Namespace=ns,
+                MetricData=[
+                    {
+                        "MetricName": "someMetric",
+                        "Value": 123,
+                        "Dimensions": [
+                            {"Name": "foo", "Value": "bar-%s" % (i % num_dimensions),}
+                        ],
+                    }
+                ],
+            )
+
+    result = client.list_metrics()["Metrics"]
+    print(result)
+    metrics = [m for m in result if m.get("Namespace") in namespaces]
+    # TODO: should be 6, but is currently 2 (only taking into account the first namespace)
+    (len(namespaces) * num_dimensions).should.equal(len(metrics))
+
+
+@mock_cloudwatch
 def test_duplicate_put_metric_data():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=pytz.utc)
@@ -917,3 +949,10 @@ def test_get_metric_data_for_multiple_metrics():
 
     res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
     res2["Values"].should.equal([25.0])
+
+
+# UTIL FUNCTIONS
+
+
+def short_uid():
+    return str(uuid4())[:8]
