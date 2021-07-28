@@ -34,6 +34,7 @@ def test_mock_works_with_client_created_outside(aws_credentials):
 
     # So remind us to mock this client
     from moto.core import patch_client
+
     patch_client(outside_client)
 
     b = outside_client.list_buckets()
@@ -42,7 +43,6 @@ def test_mock_works_with_client_created_outside(aws_credentials):
 
 
 class ImportantBusinessLogic:
-
     def __init__(self):
         self._s3 = boto3.client("s3", region_name="us-east-1")
 
