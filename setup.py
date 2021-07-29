@@ -76,17 +76,20 @@ extras_per_service = {
     "batch": [_dep_docker],
     "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
     "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "dynamodb2": [_dep_docker],
-    "dynamodbstreams": [_dep_docker],
-    "ec2": [_dep_docker, _dep_sshpubkeys],
+    "ec2": [_dep_sshpubkeys],
     "iotdata": [_dep_jsondiff],
     "s3": [_dep_PyYAML],
-    "ses": [_dep_docker],
-    "sns": [_dep_docker],
-    "sqs": [_dep_docker],
-    "ssm": [_dep_docker, _dep_PyYAML],
+    "ses": [],
+    "sns": [],
+    "sqs": [],
+    "ssm": [_dep_PyYAML],
     "xray": [_dep_aws_xray_sdk],
 }
+# When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
+extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
+extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
+# EFS depends on EC2 to find subnets etc
+extras_per_service["efs"] = extras_per_service["ec2"]
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,

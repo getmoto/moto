@@ -16,7 +16,6 @@ from moto.core.utils import (
     camelcase_to_underscores,
 )
 from moto.sqs import sqs_backends
-from moto.awslambda import lambda_backends
 
 from .exceptions import (
     SNSNotFoundError,
@@ -210,6 +209,8 @@ class Subscription(BaseModel):
                 function_name = arr[-2]
             else:
                 assert False
+
+            from moto.awslambda import lambda_backends
 
             lambda_backends[region].send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
