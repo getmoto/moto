@@ -193,7 +193,7 @@ class Database(CloudFormationModel):
         if not self.engine_version:
             return (None, None)
 
-        minor_engine_version = ".".join(self.engine_version.rsplit(".")[:-1])
+        minor_engine_version = ".".join(str(self.engine_version).rsplit(".")[:-1])
         db_family = "{0}{1}".format(self.engine.lower(), minor_engine_version)
 
         return db_family, "default.{0}".format(db_family)
