@@ -46,7 +46,7 @@ test_service() {
   path_to_test_file=$2
   venv_path="test_venv_${service}"
   overwrite "Running tests for ${service}.."
-  venv ${venv_path} -p `which python3` > /dev/null
+  python -m venv ${venv_path} -p `which python3` > /dev/null
   source ${venv_path}/bin/activate > /dev/null
   # Can't just install requirements-file, as it points to all dependencies
   pip install -r requirements-tests.txt > /dev/null
