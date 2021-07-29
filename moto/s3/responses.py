@@ -133,7 +133,7 @@ ACTION_MAP = {
         "DELETE": {
             "uploadId": "AbortMultipartUpload",
             "versionId": "DeleteObjectVersion",
-            "DEFAULT": " DeleteObject",
+            "DEFAULT": "DeleteObject",
         },
         "POST": {
             "uploads": "PutObject",
