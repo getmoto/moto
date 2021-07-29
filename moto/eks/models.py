@@ -255,14 +255,6 @@ class EKSBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def list_clusters(self, max_results, next_token):
-        cluster_names = sorted(self.clusters.keys())
-        start = cluster_names.index(next_token) if next_token else 0
-        end = min(start + max_results, self.cluster_count)
-        new_next = "null" if end == self.cluster_count else cluster_names[end]
-
-        return cluster_names[start:end], new_next
-
     def create_cluster(
         self,
         name,
@@ -465,14 +457,30 @@ class EKSBackend(BaseBackend):
         cluster.nodegroup_count -= 1
         return result
 
+    def list_clusters(self, max_results, next_token):
+        return paginated_list(self.clusters.keys(), max_results, next_token)
+
     def list_nodegroups(self, cluster_name, max_results, next_token):
         cluster = self.clusters[cluster_name]
-        nodegroup_names = sorted(cluster.nodegroups.keys())
-        start = nodegroup_names.index(next_token) if next_token else 0
-        end = min(start + max_results, cluster.nodegroup_count)
-        new_next = "null" if end == cluster.nodegroup_count else nodegroup_names[end]
+        return paginated_list(cluster.nodegroups.keys(), max_results, next_token)
 
-        return nodegroup_names[start:end], new_next
+
+def paginated_list(full_list, max_results, next_token):
+    """
+    Returns a tuple containing a slice of the full list
+    starting at next_token and ending with at most the
+    max_results number of elements, and the new
+    next_token which can be passed back in for the next
+    segment of the full list.
+    """
+    sorted_list = sorted(full_list)
+    list_len = len(sorted_list)
+
+    start = sorted_list.index(next_token) if next_token else 0
+    end = min(start + max_results, list_len)
+    new_next = None if end == list_len else sorted_list[end]
+
+    return sorted_list[start:end], new_next
 
 
 def validate_safe_to_delete(cluster):
