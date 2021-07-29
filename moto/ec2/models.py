@@ -6117,7 +6117,9 @@ class TransitGatewayRouteTableBackend(object):
         return result
 
     def delete_transit_gateway_route_table(self, transit_gateway_route_table_id):
-        transit_gateways_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        transit_gateways_route_table = self.transit_gateways_route_tables[
+            transit_gateway_route_table_id
+        ]
         transit_gateways_route_table.state = "deleted"
         return transit_gateways_route_table
 

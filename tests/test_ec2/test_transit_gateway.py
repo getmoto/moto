@@ -339,7 +339,13 @@ def test_search_transit_gateway_routes_by_state():
     )["Routes"]
 
     routes.should.equal(
-        [{"DestinationCidrBlock": "192.168.0.1", "Type": "static", "State": "blackhole"}]
+        [
+            {
+                "DestinationCidrBlock": "192.168.0.1",
+                "Type": "static",
+                "State": "blackhole",
+            }
+        ]
     )
 
     routes = ec2.search_transit_gateway_routes(
