@@ -6117,7 +6117,9 @@ class TransitGatewayRouteTableBackend(object):
         return result
 
     def delete_transit_gateway_route_table(self, transit_gateway_route_table_id):
-        return self.transit_gateways_route_tables.pop(transit_gateway_route_table_id)
+        transit_gateways_route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        transit_gateways_route_table.state = "deleted"
+        return transit_gateways_route_table
 
     def create_transit_gateway_route(
         self,
@@ -6339,7 +6341,7 @@ class TransitGatewayVpcAttachment(TransitGatewayAttachment):
 
 class TransitGatewayAttachmentBackend(object):
     def __init__(self):
-        self.transit_gateways_attachments = {}
+        self.transit_gateway_attachments = {}
         super(TransitGatewayAttachmentBackend, self).__init__()
 
     def create_transit_gateway_vpn_attachment(

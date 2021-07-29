@@ -159,16 +159,12 @@ DESCRIBE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE = """<DescribeTransitGatewayRouteT
 DELETE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE = """<DeleteTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>a9a07226-c7b1-4305-9934-0bcfc3ef1c5e</requestId>
     <transitGatewayRouteTable>
-        {% for transit_gateway_route_table in transit_gateway_route_tables %}
-        <item>
-            <creationTime>{{ transit_gateway_route_table.create_time }}</creationTime>
-            <defaultAssociationRouteTable>{{ transit_gateway_route_table.default_association_route_table }}</defaultAssociationRouteTable>
-            <defaultPropagationRouteTable>{{ transit_gateway_route_table.default_propagation_route_table }}</defaultPropagationRouteTable>
-            <state>{{ transit_gateway_route_table.state }}</state>
-            <transitGatewayId>{{ transit_gateway_route_table.transit_gateway_id }}</transitGatewayId>
-            <transitGatewayRouteTableId>{{ transit_gateway_route_table.id }}</transitGatewayRouteTableId>
-        </item>
-        {% endfor %}
+        <creationTime>{{ transit_gateway_route_table.create_time }}</creationTime>
+        <defaultAssociationRouteTable>{{ transit_gateway_route_table.default_association_route_table }}</defaultAssociationRouteTable>
+        <defaultPropagationRouteTable>{{ transit_gateway_route_table.default_propagation_route_table }}</defaultPropagationRouteTable>
+        <state>{{ transit_gateway_route_table.state }}</state>
+        <transitGatewayId>{{ transit_gateway_route_table.transit_gateway_id }}</transitGatewayId>
+        <transitGatewayRouteTableId>{{ transit_gateway_route_table.id }}</transitGatewayRouteTableId>
     </transitGatewayRouteTable>
 </DeleteTransitGatewayRouteTableResponse>
 """
@@ -182,7 +178,7 @@ CREATE_TRANSIT_GATEWAY_ROUTE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?
         <state>{{ transit_gateway_route_table.state }}</state>
         <type>{{ transit_gateway_route_table.type }}</type>
         <transitGatewayAttachments>
-        {% if transit_gateway_route_table.state != 'blackhole' %}
+        {% if transit_gateway_route_table.state != 'blackhole' and transit_gateway_route_table.transitGatewayAttachments %}
             <item>
                 <resourceId>{{ transit_gateway_route_table.transitGatewayAttachments.resourceId }}</resourceId>
                 <resourceType>{{ transit_gateway_route_table.transitGatewayAttachments.resourceType }}</resourceType>
