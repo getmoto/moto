@@ -6,12 +6,12 @@ from moto import mock_s3
 
 service_names = [
     (d[5:], "")
-        for d in dir(moto)
-        if d.startswith("mock_")
-           and not d.endswith("_deprecated")
-           and not d == "mock_xray_client"
-           and not d == "mock_all"
-    ]
+    for d in dir(moto)
+    if d.startswith("mock_")
+    and not d.endswith("_deprecated")
+    and not d == "mock_xray_client"
+    and not d == "mock_all"
+]
 
 
 class TestMockBucketStartingWithServiceName:
@@ -20,8 +20,7 @@ class TestMockBucketStartingWithServiceName:
     """
 
     @pytest.mark.parametrize(
-        "service_name,decorator",
-        service_names,
+        "service_name,decorator", service_names,
     )
     def test_bucketname_starting_with_service_name(self, service_name, decorator):
 
