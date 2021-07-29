@@ -15,4 +15,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Run test
       run: |
+        sudo apt install python3-venv
+        which venv
+        which virtualenv
         scripts/dependency_test.sh
