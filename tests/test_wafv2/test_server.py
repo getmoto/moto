@@ -12,6 +12,7 @@ from moto import mock_wafv2
 from moto.wafv2 import GLOBAL_REGION
 from moto.wafv2.models import US_EAST_1_REGION
 from test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
+from moto.core import ACCOUNT_ID
 
 CREATE_WEB_ACL_HEADERS = {
     "X-Amz-Target": "AWSWAF_20190729.CreateWebACL",
@@ -35,20 +36,19 @@ def test_create_web_acl():
 
     web_acl = res.json["Summary"]
     assert web_acl.get("Name") == "John"
-    assert web_acl.get("ARN").startswith("arn:aws:wafv2:us-east-1:123456789012:regional/webacl/John/")
+    assert web_acl.get("ARN").startswith("arn:aws:wafv2:us-east-1:{}:regional/webacl/John/".format(ACCOUNT_ID))
 
     # Duplicate name - should raise error
     res = test_client.post("/", headers=CREATE_WEB_ACL_HEADERS, json=CREATE_WEB_ACL_BODY("John", "REGIONAL"))
     assert res.status_code == 400
-
+    assert b"AWS WAF could not perform the operation because some resource in your request is a duplicate of an existing one." in res.data
+    assert b"WafV2DuplicateItem" in res.data
 
     res = test_client.post("/", headers=CREATE_WEB_ACL_HEADERS, json=CREATE_WEB_ACL_BODY("Carl", "CLOUDFRONT"))
     web_acl = res.json["Summary"]
-    assert web_acl.get("ARN").startswith("arn:aws:wafv2:global:123456789012:global/webacl/Carl/")
+    assert web_acl.get("ARN").startswith("arn:aws:wafv2:global:{}:global/webacl/Carl/".format(ACCOUNT_ID))
 
-    print(json.dumps(res.json, indent=2))
-
-
+test_create_web_acl()
 @mock_wafv2
 def test_list_web_ac_ls():
     backend = server.create_backend_app("wafv2")
@@ -70,7 +70,3 @@ def test_list_web_ac_ls():
     web_acls = res.json["WebACLs"]
     assert len(web_acls) == 1
     assert web_acls[0]["Name"] == "Sarah"
-
-
-test_list_web_ac_ls()
-test_create_web_acl()

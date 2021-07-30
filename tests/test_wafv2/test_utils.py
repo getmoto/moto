@@ -18,6 +18,3 @@ def test_make_arn_for_wacl():
     scope = "CLOUDFRONT"
     arn = make_arn_for_wacl(name, region, uniqueID, scope)
     assert arn == "arn:aws:wafv2:{}:{}:global/webacl/{}/{}".format(region, ACCOUNT_ID, name, uniqueID)
-
-
-test_make_arn_for_wacl()
