@@ -6057,6 +6057,8 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.state = "available"
         self.routes = {}
         self.add_tags(tags or {})
+        self.route_table_association = {}
+        self.route_table_propagation = {}
 
     @property
     def physical_resource_id(self):
@@ -6092,7 +6094,7 @@ class TransitGatewayRouteTableBackend(object):
         return transit_gateways_route_table
 
     def get_all_transit_gateway_route_tables(
-        self, transit_gateway_ids=None, filters=None
+        self, transit_gateway_route_table_ids=None, filters=None
     ):
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
@@ -6104,11 +6106,11 @@ class TransitGatewayRouteTableBackend(object):
             ("transit-gateway-route-table-id", "id"),
         )
 
-        if transit_gateway_ids:
+        if transit_gateway_route_table_ids:
             transit_gateway_route_tables = [
                 transit_gateway_route_table
                 for transit_gateway_route_table in transit_gateway_route_tables
-                if transit_gateway_route_table.id in transit_gateway_ids
+                if transit_gateway_route_table.id in transit_gateway_route_table_ids
             ]
 
         result = transit_gateway_route_tables
@@ -6136,7 +6138,6 @@ class TransitGatewayRouteTableBackend(object):
         transit_gateway_attachment = self.transit_gateway_attachments.get(
             transit_gateway_attachment_id
         )
-
         transit_gateways_route_table.routes[destination_cidr_block] = {
             "destinationCidrBlock": destination_cidr_block,
             "prefixListId": "",
@@ -6291,6 +6292,7 @@ class TransitGatewayAttachment(TaggedEC2Resource):
 
         self.ec2_backend = backend
         self.association = {}
+        self.propagation = {}
         self.resource_id = resource_id
         self.resource_type = resource_type
 
@@ -6471,13 +6473,13 @@ class TransitGatewayAttachmentBackend(object):
     def set_attachment_propagation(
         self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
     ):
-        self.transit_gateway_attachments[transit_gateway_attachment_id].association = {
+        self.transit_gateway_attachments[transit_gateway_attachment_id].propagation = {
             "state": "enabled",
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
     def disable_attachment_propagation(self, transit_gateway_attachment_id=None):
-        self.transit_gateway_attachments[transit_gateway_attachment_id].association[
+        self.transit_gateway_attachments[transit_gateway_attachment_id].propagation[
             "state"
         ] = "disabled"
 
@@ -6491,6 +6493,7 @@ class TransitGatewayRelations(object):
         transit_gateway_route_table_id=None,
         state=None,
     ):
+        self.ec2_backend = backend
         self.transit_gateway_attachment_id = transit_gateway_attachment_id
         self.transit_gateway_route_table_id = transit_gateway_route_table_id
         self.resource_id = backend.transit_gateway_attachments[
@@ -6931,6 +6934,7 @@ class EC2Backend(
     TransitGatewayBackend,
     TransitGatewayRouteTableBackend,
     TransitGatewayAttachmentBackend,
+    TransitGatewayRelationsBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
 ):

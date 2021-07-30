@@ -20,11 +20,11 @@ class TransitGatewayRouteTable(BaseResponse):
 
     def describe_transit_gateway_route_tables(self):
         filters = filters_from_querystring(self.querystring)
-        transit_gateway_ids = (
+        transit_gateway_route_table_ids = (
             self._get_multi_param("TransitGatewayRouteTableIds") or None
         )
         transit_gateway_route_tables = self.ec2_backend.get_all_transit_gateway_route_tables(
-            transit_gateway_ids, filters
+            transit_gateway_route_table_ids, filters
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE)
         return template.render(
@@ -245,10 +245,10 @@ GET_TRANSIT_GATEWAY_ROUTE_TABLE_PROPAGATIONS_RESPONSE = """<GetTransitGatewayRou
     <transitGatewayRouteTablePropagations>
         {% for route_table in transit_gateway_route_table_propagations %}
         <item>
-            <resourceId>{{ route_table.route_table_propagation.route_table_propagation.resourceId }}</resourceId>
-            <resourceType>{{ route_table.route_table_propagation.route_table_propagation.resourceType }}</resourceType>
-            <state>{{ route_table.route_table_propagation.route_table_propagation.state }}</state>
-            <transitGatewayAttachmentId>{{ route_table.route_table_propagation.route_table_propagation.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+            <resourceId>{{ route_table.route_table_propagation.resourceId }}</resourceId>
+            <resourceType>{{ route_table.route_table_propagation.resourceType }}</resourceType>
+            <state>{{ route_table.route_table_propagation.state }}</state>
+            <transitGatewayAttachmentId>{{ route_table.route_table_propagation.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
         </item>
         {% endfor %}
     </transitGatewayRouteTablePropagations>
