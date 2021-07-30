@@ -297,8 +297,11 @@ def main(argv=sys.argv[1:]):
 
     args = parser.parse_args(argv)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    try:
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+    except Exception:
+        pass  # ignore "ValueError: signal only works in main thread"
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)
