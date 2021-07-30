@@ -29,6 +29,7 @@ def test_create_web_acl():
     web_acl = res["Summary"]
     assert web_acl.get("ARN").startswith("arn:aws:wafv2:global:{}:global/webacl/Carl/".format(ACCOUNT_ID))
 
+
 @mock_wafv2
 def test_list_web_acl():
 
@@ -41,7 +42,6 @@ def test_list_web_acl():
     assert len(web_acls) == 2
     assert web_acls[0]["Name"] == "Daphne"
     assert web_acls[1]["Name"] == "Sarah"
-
 
     res = conn.list_web_acls(**LIST_WEB_ACL_BODY("CLOUDFRONT"))
     web_acls = res["WebACLs"]

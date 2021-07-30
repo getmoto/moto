@@ -4,14 +4,13 @@ import json
 from moto.core.utils import amzn_request_id
 
 from moto.core.responses import BaseResponse
-from .models import FakeWebACL, GLOBAL_REGION, WAFV2Backend, wafv2_backends
-from typing import List
+from .models import GLOBAL_REGION, wafv2_backends
 
 
 class WAFV2Response(BaseResponse):
 
     @property
-    def wafv2_backend(self) -> WAFV2Backend:
+    def wafv2_backend(self):
         return wafv2_backends[self.region]  # default region is "us-east-1"
 
     @amzn_request_id
@@ -19,10 +18,11 @@ class WAFV2Response(BaseResponse):
         """  https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section) """
 
         scope = self._get_param("Scope")
-        if scope == "CLOUDFRONT": self.region = GLOBAL_REGION
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
         name = self._get_param("Name")
         body = json.loads(self.body)
-        web_acl: FakeWebACL = self.wafv2_backend.create_web_acl(name, body["VisibilityConfig"], body["DefaultAction"], scope)
+        web_acl = self.wafv2_backend.create_web_acl(name, body["VisibilityConfig"], body["DefaultAction"], scope)
         response = {
             "Summary": web_acl.to_dict(),
         }
@@ -34,8 +34,9 @@ class WAFV2Response(BaseResponse):
         """  https://docs.aws.amazon.com/waf/latest/APIReference/API_ListWebACLs.html (response syntax section) """
 
         scope = self._get_param("Scope")
-        if scope == "CLOUDFRONT": self.region = GLOBAL_REGION
-        all_web_acls: List[dict] = self.wafv2_backend.list_web_acls()
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        all_web_acls = self.wafv2_backend.list_web_acls()
         response = {
             "NextMarker":"Not Implemented",
             "WebACLs": all_web_acls

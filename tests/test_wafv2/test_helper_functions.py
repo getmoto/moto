@@ -12,8 +12,8 @@ def CREATE_WEB_ACL_BODY(name:str,scope:str) -> dict:
         }
     }
 
+
 def LIST_WEB_ACL_BODY(scope:str) -> dict:
     return {
         "Scope": scope
     }
-

@@ -9,7 +9,6 @@ import botocore
 from botocore.exceptions import ClientError
 import moto.server as server
 from moto import mock_wafv2
-from moto.wafv2 import GLOBAL_REGION
 from moto.wafv2.models import US_EAST_1_REGION
 from test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 from moto.core import ACCOUNT_ID
@@ -48,7 +47,7 @@ def test_create_web_acl():
     web_acl = res.json["Summary"]
     assert web_acl.get("ARN").startswith("arn:aws:wafv2:global:{}:global/webacl/Carl/".format(ACCOUNT_ID))
 
-test_create_web_acl()
+
 @mock_wafv2
 def test_list_web_ac_ls():
     backend = server.create_backend_app("wafv2")

@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from uuid import UUID, uuid4
+from uuid import uuid4
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.wafv2 import utils
@@ -9,13 +9,10 @@ from .exceptions import (
     WAFV2DuplicateItemException,
 )
 from moto.core.utils import (
-    camelcase_to_underscores,
-    underscores_to_camelcase,
     iso_8601_datetime_with_milliseconds,
 )
 import datetime
 from collections import OrderedDict
-from typing import List,Tuple
 
 
 US_EAST_1_REGION = "us-east-1"
@@ -27,7 +24,7 @@ class VisibilityConfig(BaseModel):
     https://docs.aws.amazon.com/waf/latest/APIReference/API_VisibilityConfig.html
     """
 
-    def __init__(self, MetricName: str, SampledRequestsEnabled: dict, CloudWatchMetricsEnabled: dict):
+    def __init__(self, MetricName, SampledRequestsEnabled, CloudWatchMetricsEnabled):
         self.cloud_watch_metrics_enabled = CloudWatchMetricsEnabled
         self.metric_name = MetricName
         self.sampled_requests_enabled = SampledRequestsEnabled
@@ -38,7 +35,7 @@ class DefaultAction(BaseModel):
     https://docs.aws.amazon.com/waf/latest/APIReference/API_DefaultAction.html
     """
 
-    def __init__(self, Allow: dict = {}, Block: dict = {}):
+    def __init__(self, Allow={}, Block={}):
         self.allow = Allow
         self.block = Block
 
@@ -49,7 +46,7 @@ class FakeWebACL(BaseModel):
     https://docs.aws.amazon.com/waf/latest/APIReference/API_WebACL.html
     """
 
-    def __init__(self, name: str, arn: str, id: str, visibility_config: dict, default_action: dict):
+    def __init__(self, name, arn, id, visibility_config, default_action):
         self.name = name if name else utils.create_test_name("Mock-WebACL-name")
         self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
         self.id = id
@@ -59,7 +56,7 @@ class FakeWebACL(BaseModel):
         self.VisibilityConfig = VisibilityConfig(**visibility_config)
         self.DefaultAction = DefaultAction(**default_action)
 
-    def to_dict(self) -> dict:
+    def to_dict(self):
         # Format for summary https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section)
         return {
             "ARN": self.arn,
@@ -78,7 +75,7 @@ class WAFV2Backend(BaseBackend):
     def __init__(self, region_name=None):
         super(WAFV2Backend, self).__init__()
         self.region_name = region_name
-        self.wacls = OrderedDict[str,FakeWebACL]()  # self.wacls[ARN] = FakeWacl
+        self.wacls = OrderedDict()  # self.wacls[ARN] = FakeWacl
         # TODO: self.load_balancers = OrderedDict()
 
     def reset(self):
@@ -86,7 +83,7 @@ class WAFV2Backend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_web_acl(self, name: str, visibility_config: dict, default_action: dict, scope:str) -> FakeWebACL:
+    def create_web_acl(self, name, visibility_config, default_action, scope):
         wacl_id = str(uuid4())
         arn = make_arn_for_wacl(name=name, region_name=self.region_name, id=wacl_id, scope=scope)
         if arn in self.wacls or self._is_duplicate_name(name):
@@ -95,10 +92,10 @@ class WAFV2Backend(BaseBackend):
         self.wacls[arn] = new_wacl
         return new_wacl
 
-    def list_web_acls(self) -> List[dict]:
+    def list_web_acls(self):
         return [wacl.to_dict() for wacl in self.wacls.values()]
 
-    def _is_duplicate_name(self, name: str) -> bool:
+    def _is_duplicate_name(self, name):
         allWaclNames = set(wacl.name for wacl in self.wacls.values())
         return name in allWaclNames
 
