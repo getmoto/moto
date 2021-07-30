@@ -2316,12 +2316,14 @@ class SecurityGroupBackend(object):
         source_groups = []
         for source_group_name in source_group_names:
             source_group = self.get_security_group_from_name(source_group_name, vpc_id)
+            # TODO raise exception if source_group is None?
             if source_group:
                 source_groups.append(source_group)
 
         # for VPCs
         for source_group_id in source_group_ids:
             source_group = self.get_security_group_from_id(source_group_id)
+            # TODO raise exception if source_group is None?
             if source_group:
                 source_groups.append(source_group)
 
