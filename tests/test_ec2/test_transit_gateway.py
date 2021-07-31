@@ -194,8 +194,7 @@ def test_create_transit_gateway_route_table():
     table.should.have.key("Tags").equals([])
 
     tables = ec2.describe_transit_gateway_route_tables()["TransitGatewayRouteTables"]
-    tables.should.have.length_of(1)
-    tables[0].should.equal(table)
+    tables.should.have.length_of(2)
 
 
 @mock_ec2
@@ -235,14 +234,16 @@ def test_delete_transit_gateway_route_table():
     ]
 
     tables = ec2.describe_transit_gateway_route_tables()["TransitGatewayRouteTables"]
-    tables.should.have.length_of(1)
+    tables.should.have.length_of(2)
 
-    ec2.delete_transit_gateway_route_table(
+    table = ec2.delete_transit_gateway_route_table(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
     )
 
+    table["TransitGatewayRouteTable"].should.have.key("State").equals("deleted")
+
     tables = ec2.describe_transit_gateway_route_tables()["TransitGatewayRouteTables"]
-    tables.should.have.length_of(0)
+    tables.should.have.length_of(2)
 
 
 @mock_ec2
@@ -278,7 +279,7 @@ def test_create_transit_gateway_route():
     )["Route"]
 
     route.should.have.key("DestinationCidrBlock").equal("0.0.0.0")
-    route.should.have.key("Type").equal("TODO")
+    route.should.have.key("Type").equal("static")
     route.should.have.key("State").equal("active")
 
 
@@ -299,7 +300,7 @@ def test_create_transit_gateway_route_as_blackhole():
     )["Route"]
 
     route.should.have.key("DestinationCidrBlock").equal("192.168.0.1")
-    route.should.have.key("Type").equal("TODO")
+    route.should.have.key("Type").equal("static")
     route.should.have.key("State").equal("blackhole")
 
 
@@ -329,7 +330,7 @@ def test_search_transit_gateway_routes_by_state():
     )["Routes"]
 
     routes.should.equal(
-        [{"DestinationCidrBlock": "192.168.0.0", "Type": "TODO", "State": "active"}]
+        [{"DestinationCidrBlock": "192.168.0.0", "Type": "static", "State": "active"}]
     )
 
     routes = ec2.search_transit_gateway_routes(
@@ -338,7 +339,13 @@ def test_search_transit_gateway_routes_by_state():
     )["Routes"]
 
     routes.should.equal(
-        [{"DestinationCidrBlock": "192.168.0.1", "Type": "TODO", "State": "blackhole"}]
+        [
+            {
+                "DestinationCidrBlock": "192.168.0.1",
+                "Type": "static",
+                "State": "blackhole",
+            }
+        ]
     )
 
     routes = ec2.search_transit_gateway_routes(
@@ -371,7 +378,7 @@ def test_delete_transit_gateway_route():
     )
 
     response["Route"].should.equal(
-        {"DestinationCidrBlock": "192.168.0.0", "Type": "TODO", "State": "deleted"}
+        {"DestinationCidrBlock": "192.168.0.0", "Type": "static", "State": "deleted"}
     )
 
     routes = ec2.search_transit_gateway_routes(
@@ -380,7 +387,7 @@ def test_delete_transit_gateway_route():
     )["Routes"]
 
     routes.should.equal(
-        [{"DestinationCidrBlock": "192.168.0.1", "Type": "TODO", "State": "active"}]
+        [{"DestinationCidrBlock": "192.168.0.1", "Type": "static", "State": "active"}]
     )
 
 
