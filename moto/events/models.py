@@ -330,11 +330,21 @@ class EventBus(CloudFormationModel):
         event_bus_name = resource_name
         event_backend.delete_event_bus(event_bus_name)
 
-    def add_permission(self, statement_id, action, principal):
-        for sid, statement in self._statements.items():
-            if statement.principal == principal:
-                del self._statements[sid]
+    def _remove_principals_statements(self, *principals):
+        statements_to_delete = set()
 
+        for principal in principals:
+            for sid, statement in self._statements.items():
+                if statement.principal == principal:
+                    statements_to_delete.add(sid)
+
+        # This is done separately to avoid:
+        # RuntimeError: dictionary changed size during iteration
+        for sid in statements_to_delete:
+            del self._statements[sid]
+
+    def add_permission(self, statement_id, action, principal):
+        self._remove_principals_statements(principal)
         statement = EventBusPolicyStatement(
             sid=statement_id,
             action=action,
@@ -345,10 +355,9 @@ class EventBus(CloudFormationModel):
 
     def add_policy(self, policy):
         policy_statements = policy["Statement"]
-        for new_statement in policy_statements:
-            for sid, statement in self._statements.items():
-                if statement.principal == new_statement["Principal"]:
-                    del self._statements[sid]
+
+        principals = [stmt["Principal"] for stmt in policy_statements]
+        self._remove_principals_statements(*principals)
 
         for new_statement in policy_statements:
             sid = new_statement["Sid"]
