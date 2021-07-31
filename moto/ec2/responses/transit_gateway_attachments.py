@@ -114,21 +114,34 @@ class TransitGatewayAttachment(BaseResponse):
         peer_transit_gateway_id = self._get_param("PeerTransitGatewayId")
         transit_gateway_id = self._get_param("TransitGatewayId")
         tags = add_tag_specification(self._get_multi_param("TagSpecification"))
-        transit_gateway_peering_attachment = self.ec2_backend.create_transit_gateway_peering_attachment(transit_gateway_id, peer_transit_gateway_id, peer_region, peer_account_id, tags)
+        transit_gateway_peering_attachment = self.ec2_backend.create_transit_gateway_peering_attachment(
+            transit_gateway_id,
+            peer_transit_gateway_id,
+            peer_region,
+            peer_account_id,
+            tags,
+        )
         template = self.response_template(TRANSIT_GATEWAY_PEERING_ATTACHMENT)
-        return template.render(method_name="CreateTransitGatewayPeeringAttachment", transit_gateway_peering_attachment=transit_gateway_peering_attachment)
+        return template.render(
+            method_name="CreateTransitGatewayPeeringAttachment",
+            transit_gateway_peering_attachment=transit_gateway_peering_attachment,
+        )
 
     def describe_transit_gateway_peering_attachments(self):
-        transit_gateways_attachment_ids = self._get_multi_param("TransitGatewayAttachmentIds")
+        transit_gateways_attachment_ids = self._get_multi_param(
+            "TransitGatewayAttachmentIds"
+        )
         filters = filters_from_querystring(self.querystring)
         max_results = self._get_param("MaxResults")
         transit_gateway_peering_attachments = self.ec2_backend.describe_transit_gateway_peering_attachments(
             transit_gateways_attachment_ids=transit_gateways_attachment_ids,
             filters=filters,
-            max_results=max_results
+            max_results=max_results,
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_PEERING_ATTACHMENTS)
-        return template.render(transit_gateway_peering_attachments=transit_gateway_peering_attachments)
+        return template.render(
+            transit_gateway_peering_attachments=transit_gateway_peering_attachments
+        )
 
     def accept_transit_gateway_peering_attachment(self):
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
@@ -136,7 +149,10 @@ class TransitGatewayAttachment(BaseResponse):
             transit_gateway_attachment_id=transit_gateway_attachment_id
         )
         template = self.response_template(TRANSIT_GATEWAY_PEERING_ATTACHMENT)
-        return template.render(method_name="AcceptTransitGatewayPeeringAttachment", transit_gateway_peering_attachment=transit_gateway_peering_attachment)
+        return template.render(
+            method_name="AcceptTransitGatewayPeeringAttachment",
+            transit_gateway_peering_attachment=transit_gateway_peering_attachment,
+        )
 
     def delete_transit_gateway_peering_attachment(self):
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
@@ -144,7 +160,10 @@ class TransitGatewayAttachment(BaseResponse):
             transit_gateway_attachment_id=transit_gateway_attachment_id
         )
         template = self.response_template(TRANSIT_GATEWAY_PEERING_ATTACHMENT)
-        return template.render(method_name="DeleteTransitGatewayPeeringAttachment", transit_gateway_peering_attachment=transit_gateway_peering_attachment)
+        return template.render(
+            method_name="DeleteTransitGatewayPeeringAttachment",
+            transit_gateway_peering_attachment=transit_gateway_peering_attachment,
+        )
 
     def reject_transit_gateway_peering_attachment(self):
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
@@ -152,7 +171,10 @@ class TransitGatewayAttachment(BaseResponse):
             transit_gateway_attachment_id=transit_gateway_attachment_id
         )
         template = self.response_template(TRANSIT_GATEWAY_PEERING_ATTACHMENT)
-        return template.render(method_name="RejectTransitGatewayPeeringAttachment", transit_gateway_peering_attachment=transit_gateway_peering_attachment)
+        return template.render(
+            method_name="RejectTransitGatewayPeeringAttachment",
+            transit_gateway_peering_attachment=transit_gateway_peering_attachment,
+        )
 
 
 CREATE_TRANSIT_GATEWAY_VPC_ATTACHMENT = """<CreateTransitGatewayVpcAttachmentResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
