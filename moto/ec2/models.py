@@ -169,6 +169,7 @@ from .utils import (
     tag_filter_matches,
     rsa_public_key_parse,
     rsa_public_key_fingerprint,
+    describe_tag_filter
 )
 
 
@@ -3332,7 +3333,7 @@ class VPCBackend(object):
         }
 
 
-class VPCPeeringConnectionStatus(object):
+class PeeringConnectionStatus(object):
     def __init__(self, code="initiating-request", message=""):
         self.code = code
         self.message = message
@@ -3363,7 +3364,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         self.id = vpc_pcx_id
         self.vpc = vpc
         self.peer_vpc = peer_vpc
-        self._status = VPCPeeringConnectionStatus()
+        self._status = PeeringConnectionStatus()
 
     @staticmethod
     def cloudformation_name_type():
@@ -6309,7 +6310,7 @@ class TransitGatewayAttachment(TaggedEC2Resource):
         self.add_tags(tags or {})
 
         self._created_at = datetime.utcnow()
-        self.owner_id = ACCOUNT_ID
+        self.owner_id = self.resource_owner_id
 
     @property
     def create_time(self):
@@ -6347,6 +6348,43 @@ class TransitGatewayVpcAttachment(TransitGatewayAttachment):
         self.vpc_id = vpc_id
         self.subnet_ids = subnet_ids
         self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
+
+
+class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
+    def __init__(
+        self,
+        backend,
+        transit_gateway_id=None,
+        peer_transit_gateway_id=None,
+        peer_region=None,
+        peer_account_id=None,
+        tags=None,
+        region_name=None
+    ):
+
+        super().__init__(
+            backend=backend,
+            transit_gateway_id=transit_gateway_id,
+            resource_id=peer_transit_gateway_id,
+            resource_type="peering",
+            tags=tags
+        )
+
+        self.accepter_tgw_info = {
+            "ownerId": peer_account_id,
+            "region": peer_region,
+            "transitGatewayId": peer_transit_gateway_id
+        }
+        self.requester_tgw_info = {
+            "ownerId": self.owner_id,
+            "region": region_name,
+            "transitGatewayId": transit_gateway_id
+        }
+        self.status = PeeringConnectionStatus()
+
+    @property
+    def resource_owner_id(self):
+        return ACCOUNT_ID
 
 
 class TransitGatewayAttachmentBackend(object):
@@ -6488,6 +6526,68 @@ class TransitGatewayAttachmentBackend(object):
         self.transit_gateway_attachments[transit_gateway_attachment_id].propagation[
             "state"
         ] = "disabled"
+
+    def create_transit_gateway_peering_attachment(self, transit_gateway_id, peer_transit_gateway_id, peer_region, peer_account_id, tags):
+        transit_gateway_peering_attachment = TransitGatewayPeeringAttachment(
+            self,
+            transit_gateway_id=transit_gateway_id,
+            peer_transit_gateway_id=peer_transit_gateway_id,
+            peer_region=peer_region,
+            peer_account_id=peer_account_id,
+            tags=tags,
+            region_name=self.region_name
+        )
+        transit_gateway_peering_attachment.status.accept()
+        transit_gateway_peering_attachment.state = "available"
+        self.transit_gateway_attachments[transit_gateway_peering_attachment.id] = transit_gateway_peering_attachment
+        return transit_gateway_peering_attachment
+
+    def describe_transit_gateway_peering_attachments(self, transit_gateways_attachment_ids=None, filters=None, max_results=0):
+        transit_gateway_attachments = list(self.transit_gateway_attachments.values())
+
+        attr_pairs = (
+            ("state", "state"),
+            ("transit-gateway-attachment-id", "id"),
+            ("local-owner-id", "requester_tgw_info", "ownerId"),
+            ("remote-owner-id", "accepter_tgw_info", "ownerId"),
+        )
+
+        if transit_gateways_attachment_ids:
+            transit_gateway_attachments = [
+                transit_gateways_attachment
+                for transit_gateways_attachment in transit_gateway_attachments
+                if transit_gateways_attachment.id in transit_gateways_attachment_ids
+            ]
+
+        if filters:
+            for attrs in attr_pairs:
+                values = filters.get(attrs[0]) or None
+                if values is not None:
+                    for transit_gateways_attachment in transit_gateway_attachments:
+                        if (attrs[1] not in transit_gateways_attachment) or \
+                           (len(attrs) <= 2 and not getattr(transit_gateways_attachment, attrs[1]) in values) or \
+                           (len(attrs) == 3 and not getattr(transit_gateways_attachment, attrs[1]).get(attrs[2]) in values):
+                            del transit_gateway_attachments[transit_gateway_attachments.index(transit_gateways_attachment)]
+        transit_gateway_attachments = describe_tag_filter(filters, transit_gateway_attachments)
+        return transit_gateway_attachments
+
+    def accept_transit_gateway_peering_attachment(self, transit_gateway_attachment_id):
+        transit_gateway_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
+        transit_gateway_attachment.state = "available"
+        transit_gateway_attachment.status.accept()
+        return transit_gateway_attachment
+
+    def reject_transit_gateway_peering_attachment(self, transit_gateway_attachment_id):
+        transit_gateway_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
+        transit_gateway_attachment.state = "rejected"
+        transit_gateway_attachment.status.reject()
+        return transit_gateway_attachment
+
+    def delete_transit_gateway_peering_attachment(self, transit_gateway_attachment_id):
+        transit_gateway_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
+        transit_gateway_attachment.state = "deleted"
+        transit_gateway_attachment.status.deleted()
+        return transit_gateway_attachment
 
 
 class TransitGatewayRelations(object):

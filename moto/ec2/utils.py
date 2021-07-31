@@ -678,3 +678,22 @@ def filter_iam_instance_profiles(iam_instance_profile_arn, iam_instance_profile_
             instance_profile = None
 
     return instance_profile
+
+
+def describe_tag_filter(filters, instances):
+    instances = list(instances)
+    for key in filters:
+        if key.startswith('tag:'):
+            match = re.match(r'tag:(.*)', key)
+            if match:
+                tag_key_name = match.group(1)
+            for instance in instances:
+                need_delete = True
+                for tag in instance.get_tags():
+                    if tag.get("key") == tag_key_name and tag.get('value') in filters.get(key):
+                        need_delete = False
+                    elif tag.get("key") == tag_key_name and tag.get('value') not in filters.get(key):
+                        need_delete = True
+                if need_delete:
+                    del instances[instances.index(instance)]
+    return instances
