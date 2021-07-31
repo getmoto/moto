@@ -6571,7 +6571,9 @@ class TransitGatewayAttachmentBackend(object):
             ]
 
         if filters:
-            transit_gateway_attachments = filter_resources(transit_gateway_attachments, filters, attr_pairs)
+            transit_gateway_attachments = filter_resources(
+                transit_gateway_attachments, filters, attr_pairs
+            )
             transit_gateway_attachments = describe_tag_filter(
                 filters, transit_gateway_attachments
             )
