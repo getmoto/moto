@@ -6564,8 +6564,7 @@ class TransitGatewayAttachmentBackend(object):
                 values = filters.get(attrs[0]) or None
                 if values is not None:
                     for transit_gateways_attachment in transit_gateway_attachments:
-                        if (attrs[1] not in transit_gateways_attachment) or \
-                           (len(attrs) <= 2 and not getattr(transit_gateways_attachment, attrs[1]) in values) or \
+                        if (len(attrs) <= 2 and not getattr(transit_gateways_attachment, attrs[1]) in values) or \
                            (len(attrs) == 3 and not getattr(transit_gateways_attachment, attrs[1]).get(attrs[2]) in values):
                             del transit_gateway_attachments[transit_gateway_attachments.index(transit_gateways_attachment)]
         transit_gateway_attachments = describe_tag_filter(filters, transit_gateway_attachments)
