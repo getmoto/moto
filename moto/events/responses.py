@@ -264,7 +264,9 @@ class EventsHandler(BaseResponse):
         statement_id = self._get_param("StatementId")
         remove_all_permissions = self._get_param("RemoveAllPermissions")
 
-        self.events_backend.remove_permission(event_bus_name, statement_id, remove_all_permissions)
+        self.events_backend.remove_permission(
+            event_bus_name, statement_id, remove_all_permissions
+        )
 
         return ""
 

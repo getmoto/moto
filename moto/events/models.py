@@ -265,10 +265,7 @@ class EventBus(CloudFormationModel):
         if self._statements:
             policy = {
                 "Version": "2012-10-17",
-                "Statement": [
-                    stmt.describe()
-                    for stmt in self._statements.values()
-                ]
+                "Statement": [stmt.describe() for stmt in self._statements.values()],
             }
             return json.dumps(policy)
         return None
@@ -346,10 +343,7 @@ class EventBus(CloudFormationModel):
     def add_permission(self, statement_id, action, principal):
         self._remove_principals_statements(principal)
         statement = EventBusPolicyStatement(
-            sid=statement_id,
-            action=action,
-            principal=principal,
-            resource=self.arn,
+            sid=statement_id, action=action, principal=principal, resource=self.arn,
         )
         self._statements[statement_id] = statement
 
@@ -1300,7 +1294,7 @@ class EventsBackend(BaseBackend):
                 "EventPattern": json.dumps(rule_event_pattern),
                 "EventBusName": event_bus.name,
                 "ManagedBy": "prod.vhs.events.aws.internal",
-            }
+            },
         )
         self.put_targets(
             rule.name,
