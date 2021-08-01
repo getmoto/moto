@@ -3026,7 +3026,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
     def associate_vpc_cidr_block(
         self, cidr_block, amazon_provided_ipv6_cidr_block=False
     ):
-        max_associations = 5
+        max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
 
         if (
             len(self.get_cidr_block_association_set(amazon_provided_ipv6_cidr_block))
