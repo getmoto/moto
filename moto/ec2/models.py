@@ -3028,6 +3028,14 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
     ):
         max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
 
+        for cidr in self.cidr_block_association_set.copy():
+            if (
+                self.cidr_block_association_set.get(cidr)
+                .get("cidr_block_state")
+                .get("state")
+                == "disassociated"
+            ):
+                self.cidr_block_association_set.pop(cidr)
         if (
             len(self.get_cidr_block_association_set(amazon_provided_ipv6_cidr_block))
             >= max_associations
