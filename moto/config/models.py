@@ -1,11 +1,11 @@
 import json
 import re
 import time
-import pkg_resources
 import random
 import string
 
 from datetime import datetime
+import pkg_resources
 
 from boto3 import Session
 
@@ -36,9 +36,11 @@ from moto.config.exceptions import (
     InvalidTagCharacters,
     DuplicateTags,
     InvalidLimit,
+    InvalidLimitException,
     InvalidResourceParameters,
     TooManyResourceIds,
     ResourceNotDiscoveredException,
+    ResourceNotFoundException,
     TooManyResourceKeys,
     InvalidResultTokenException,
     ValidationException,
@@ -69,6 +71,8 @@ RESOURCE_MAP = {
     "AWS::IAM::Policy": policy_config_query,
 }
 
+MAX_TAGS_IN_ARG = 50
+
 
 def datetime2int(date):
     return int(time.mktime(date.timetuple()))
@@ -93,7 +97,7 @@ def snake_to_camels(original, cap_start, cap_arn):
 def random_string():
     """Returns a random set of 8 lowercase letters for the Config Aggregator ARN"""
     chars = []
-    for x in range(0, 8):
+    for _ in range(0, 8):
         chars.append(random.choice(string.ascii_lowercase))
 
     return "".join(chars)
@@ -115,7 +119,7 @@ def validate_tag_key(tag_key, exception_param="tags.X.member.key"):
     # [\w\s_.:/=+\-@]+ SHOULD be the same as the Java regex on the AWS documentation: [\p{L}\p{Z}\p{N}_.:/=+\-@]+
     match = re.findall(r"[\w\s_.:/=+\-@]+", tag_key)
     # Kudos if you can come up with a better way of doing a global search :)
-    if not len(match) or len(match[0]) < len(tag_key):
+    if not match or len(match[0]) < len(tag_key):
         raise InvalidTagCharacters(tag_key, param=exception_param)
 
 
@@ -133,7 +137,7 @@ def check_tag_duplicate(all_tags, tag_key):
 def validate_tags(tags):
     proper_tags = {}
 
-    if len(tags) > 50:
+    if len(tags) > MAX_TAGS_IN_ARG:
         raise TooManyTags(tags)
 
     for tag in tags:
@@ -188,7 +192,7 @@ class ConfigEmptyDictable(BaseModel):
 
 class ConfigRecorderStatus(ConfigEmptyDictable):
     def __init__(self, name):
-        super(ConfigRecorderStatus, self).__init__()
+        super().__init__()
 
         self.name = name
         self.recording = False
@@ -213,7 +217,7 @@ class ConfigRecorderStatus(ConfigEmptyDictable):
 
 class ConfigDeliverySnapshotProperties(ConfigEmptyDictable):
     def __init__(self, delivery_frequency):
-        super(ConfigDeliverySnapshotProperties, self).__init__()
+        super().__init__()
 
         self.delivery_frequency = delivery_frequency
 
@@ -222,7 +226,7 @@ class ConfigDeliveryChannel(ConfigEmptyDictable):
     def __init__(
         self, name, s3_bucket_name, prefix=None, sns_arn=None, snapshot_properties=None
     ):
-        super(ConfigDeliveryChannel, self).__init__()
+        super().__init__()
 
         self.name = name
         self.s3_bucket_name = s3_bucket_name
@@ -238,7 +242,7 @@ class RecordingGroup(ConfigEmptyDictable):
         include_global_resource_types=False,
         resource_types=None,
     ):
-        super(RecordingGroup, self).__init__()
+        super().__init__()
 
         self.all_supported = all_supported
         self.include_global_resource_types = include_global_resource_types
@@ -247,7 +251,7 @@ class RecordingGroup(ConfigEmptyDictable):
 
 class ConfigRecorder(ConfigEmptyDictable):
     def __init__(self, role_arn, recording_group, name="default", status=None):
-        super(ConfigRecorder, self).__init__()
+        super().__init__()
 
         self.name = name
         self.role_arn = role_arn
@@ -261,7 +265,7 @@ class ConfigRecorder(ConfigEmptyDictable):
 
 class AccountAggregatorSource(ConfigEmptyDictable):
     def __init__(self, account_ids, aws_regions=None, all_aws_regions=None):
-        super(AccountAggregatorSource, self).__init__(capitalize_start=True)
+        super().__init__(capitalize_start=True)
 
         # Can't have both the regions and all_regions flag present -- also can't have them both missing:
         if aws_regions and all_aws_regions:
@@ -287,9 +291,7 @@ class AccountAggregatorSource(ConfigEmptyDictable):
 
 class OrganizationAggregationSource(ConfigEmptyDictable):
     def __init__(self, role_arn, aws_regions=None, all_aws_regions=None):
-        super(OrganizationAggregationSource, self).__init__(
-            capitalize_start=True, capitalize_arn=False
-        )
+        super().__init__(capitalize_start=True, capitalize_arn=False)
 
         # Can't have both the regions and all_regions flag present -- also can't have them both missing:
         if aws_regions and all_aws_regions:
@@ -315,9 +317,7 @@ class OrganizationAggregationSource(ConfigEmptyDictable):
 
 class ConfigAggregator(ConfigEmptyDictable):
     def __init__(self, name, region, account_sources=None, org_source=None, tags=None):
-        super(ConfigAggregator, self).__init__(
-            capitalize_start=True, capitalize_arn=False
-        )
+        super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self.configuration_aggregator_name = name
         self.configuration_aggregator_arn = "arn:aws:config:{region}:{id}:config-aggregator/config-aggregator-{random}".format(
@@ -333,7 +333,7 @@ class ConfigAggregator(ConfigEmptyDictable):
 
     # Override the to_dict so that we can format the tags properly...
     def to_dict(self):
-        result = super(ConfigAggregator, self).to_dict()
+        result = super().to_dict()
 
         # Override the account aggregation sources if present:
         if self.account_aggregation_sources:
@@ -352,9 +352,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
     def __init__(
         self, current_region, authorized_account_id, authorized_aws_region, tags=None
     ):
-        super(ConfigAggregationAuthorization, self).__init__(
-            capitalize_start=True, capitalize_arn=False
-        )
+        super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self.aggregation_authorization_arn = (
             "arn:aws:config:{region}:{id}:aggregation-authorization/"
@@ -383,9 +381,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         input_parameters=None,
         excluded_accounts=None,
     ):
-        super(OrganizationConformancePack, self).__init__(
-            capitalize_start=True, capitalize_arn=False
-        )
+        super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self._status = "CREATE_SUCCESSFUL"
         self._unique_pack_name = "{0}-{1}".format(name, random_string())
@@ -508,12 +504,12 @@ class ConfigBackend(BaseBackend):
                 )
 
             account_sources = []
-            for a in config_aggregator["AccountAggregationSources"]:
+            for source in config_aggregator["AccountAggregationSources"]:
                 account_sources.append(
                     AccountAggregatorSource(
-                        a["AccountIds"],
-                        aws_regions=a.get("AwsRegions"),
-                        all_aws_regions=a.get("AllAwsRegions"),
+                        source["AccountIds"],
+                        aws_regions=source.get("AwsRegions"),
+                        all_aws_regions=source.get("AllAwsRegions"),
                     )
                 )
 
@@ -688,32 +684,32 @@ class ConfigBackend(BaseBackend):
         if config_recorder.get("recordingGroup") is None:
             recording_group = RecordingGroup()
         else:
-            rg = config_recorder["recordingGroup"]
+            rgroup = config_recorder["recordingGroup"]
 
             # If an empty dict is passed in, then bad:
-            if not rg:
+            if not rgroup:
                 raise InvalidRecordingGroupException()
 
             # Can't have both the resource types specified and the other flags as True.
-            if rg.get("resourceTypes") and (
-                rg.get("allSupported", False)
-                or rg.get("includeGlobalResourceTypes", False)
+            if rgroup.get("resourceTypes") and (
+                rgroup.get("allSupported", False)
+                or rgroup.get("includeGlobalResourceTypes", False)
             ):
                 raise InvalidRecordingGroupException()
 
             # Must supply resourceTypes if 'allSupported' is not supplied:
-            if not rg.get("allSupported") and not rg.get("resourceTypes"):
+            if not rgroup.get("allSupported") and not rgroup.get("resourceTypes"):
                 raise InvalidRecordingGroupException()
 
             # Validate that the list provided is correct:
-            self._validate_resource_types(rg.get("resourceTypes", []))
+            self._validate_resource_types(rgroup.get("resourceTypes", []))
 
             recording_group = RecordingGroup(
-                all_supported=rg.get("allSupported", True),
-                include_global_resource_types=rg.get(
+                all_supported=rgroup.get("allSupported", True),
+                include_global_resource_types=rgroup.get(
                     "includeGlobalResourceTypes", False
                 ),
-                resource_types=rg.get("resourceTypes", []),
+                resource_types=rgroup.get("resourceTypes", []),
             )
 
         self.recorders[config_recorder["name"]] = ConfigRecorder(
@@ -727,12 +723,12 @@ class ConfigBackend(BaseBackend):
         recorders = []
 
         if recorder_names:
-            for rn in recorder_names:
-                if not self.recorders.get(rn):
-                    raise NoSuchConfigurationRecorderException(rn)
+            for rname in recorder_names:
+                if not self.recorders.get(rname):
+                    raise NoSuchConfigurationRecorderException(rname)
 
                 # Format the recorder:
-                recorders.append(self.recorders[rn].to_dict())
+                recorders.append(self.recorders[rname].to_dict())
 
         else:
             for recorder in self.recorders.values():
@@ -744,12 +740,12 @@ class ConfigBackend(BaseBackend):
         recorders = []
 
         if recorder_names:
-            for rn in recorder_names:
-                if not self.recorders.get(rn):
-                    raise NoSuchConfigurationRecorderException(rn)
+            for rname in recorder_names:
+                if not self.recorders.get(rname):
+                    raise NoSuchConfigurationRecorderException(rname)
 
                 # Format the recorder:
-                recorders.append(self.recorders[rn].status.to_dict())
+                recorders.append(self.recorders[rname].status.to_dict())
 
         else:
             for recorder in self.recorders.values():
@@ -790,7 +786,7 @@ class ConfigBackend(BaseBackend):
             raise MaxNumberOfDeliveryChannelsExceededException(delivery_channel["name"])
 
         if not delivery_channel.get("configSnapshotDeliveryProperties"):
-            dp = None
+            dprop = None
 
         else:
             # Validate the config snapshot delivery properties:
@@ -798,7 +794,7 @@ class ConfigBackend(BaseBackend):
                 delivery_channel["configSnapshotDeliveryProperties"]
             )
 
-            dp = ConfigDeliverySnapshotProperties(
+            dprop = ConfigDeliverySnapshotProperties(
                 delivery_channel["configSnapshotDeliveryProperties"][
                     "deliveryFrequency"
                 ]
@@ -809,19 +805,19 @@ class ConfigBackend(BaseBackend):
             delivery_channel["s3BucketName"],
             prefix=delivery_channel.get("s3KeyPrefix", None),
             sns_arn=delivery_channel.get("snsTopicARN", None),
-            snapshot_properties=dp,
+            snapshot_properties=dprop,
         )
 
     def describe_delivery_channels(self, channel_names):
         channels = []
 
         if channel_names:
-            for cn in channel_names:
-                if not self.delivery_channels.get(cn):
-                    raise NoSuchDeliveryChannelException(cn)
+            for cname in channel_names:
+                if not self.delivery_channels.get(cname):
+                    raise NoSuchDeliveryChannelException(cname)
 
                 # Format the delivery channel:
-                channels.append(self.delivery_channels[cn].to_dict())
+                channels.append(self.delivery_channels[cname].to_dict())
 
         else:
             for channel in self.delivery_channels.values():
@@ -1003,7 +999,7 @@ class ConfigBackend(BaseBackend):
 
         return result
 
-    def get_resource_config_history(self, resource_type, id, backend_region):
+    def get_resource_config_history(self, resource_type, resource_id, backend_region):
         """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
 
         NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
@@ -1012,7 +1008,7 @@ class ConfigBackend(BaseBackend):
         """
         # If the type isn't implemented then we won't find the item:
         if resource_type not in RESOURCE_MAP:
-            raise ResourceNotDiscoveredException(resource_type, id)
+            raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         # Is the resource type global?
         backend_query_region = (
@@ -1023,14 +1019,14 @@ class ConfigBackend(BaseBackend):
 
         # If the backend region isn't implemented then we won't find the item:
         if not RESOURCE_MAP[resource_type].backends.get(backend_region):
-            raise ResourceNotDiscoveredException(resource_type, id)
+            raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         # Get the item:
         item = RESOURCE_MAP[resource_type].get_config_resource(
-            id, backend_region=backend_query_region
+            resource_id, backend_region=backend_query_region
         )
         if not item:
-            raise ResourceNotDiscoveredException(resource_type, id)
+            raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         item["accountId"] = DEFAULT_ACCOUNT_ID
 
@@ -1288,11 +1284,70 @@ class ConfigBackend(BaseBackend):
 
         self.organization_conformance_packs.pop(name)
 
+    def _match_arn(self, resource_arn):
+        """Return config instance that has a matching ARN."""
+        # The allowed resources are ConfigRule, ConfigurationAggregator,
+        # and AggregatorAuthorization.  ConfigRule isn't currently
+        # supported.
+        allowed_resources = [
+            {
+                "configs": self.config_aggregators,
+                "arn_attribute": "configuration_aggregator_arn",
+            },
+            {
+                "configs": self.aggregation_authorizations,
+                "arn_attribute": "aggregation_authorization_arn",
+            },
+        ]
+
+        # Find matching config for given resource_arn among all the
+        # allowed config resources.
+        matched_config = None
+        for resource in allowed_resources:
+            for config in resource["configs"].values():
+                if resource_arn == getattr(config, resource["arn_attribute"]):
+                    matched_config = config
+                    break
+
+        if not matched_config:
+            raise ResourceNotFoundException(resource_arn)
+        return matched_config
+
+    def tag_resource(self, resource_arn, tags):
+        """Add tags in config with a matching ARN."""
+        # Tag validation:
+        tags = validate_tags(tags)
+
+        # Find config with a matching ARN.
+        matched_config = self._match_arn(resource_arn)
+
+        # Merge the new tags with the existing tags.
+        matched_config.tags.update(tags)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        """Remove tags in config with a matching ARN.
+
+        If the tags in the tag_keys don't match any keys for that
+        ARN, they're just ignored.
+        """
+        if len(tag_keys) > MAX_TAGS_IN_ARG:
+            raise TooManyTags(tag_keys)
+
+        # Find config with a matching ARN.
+        matched_config = self._match_arn(resource_arn)
+
+        for tag_key in tag_keys:
+            matched_config.tags.pop(tag_key, None)
+
 
 config_backends = {}
-for region in Session().get_available_regions("config"):
-    config_backends[region] = ConfigBackend()
-for region in Session().get_available_regions("config", partition_name="aws-us-gov"):
-    config_backends[region] = ConfigBackend()
-for region in Session().get_available_regions("config", partition_name="aws-cn"):
-    config_backends[region] = ConfigBackend()
+for available_region in Session().get_available_regions("config"):
+    config_backends[available_region] = ConfigBackend()
+for available_region in Session().get_available_regions(
+    "config", partition_name="aws-us-gov"
+):
+    config_backends[available_region] = ConfigBackend()
+for available_region in Session().get_available_regions(
+    "config", partition_name="aws-cn"
+):
+    config_backends[available_region] = ConfigBackend()

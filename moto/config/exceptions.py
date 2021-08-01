@@ -329,6 +329,17 @@ class InvalidLimit(JsonRESTError):
         )
 
 
+class InvalidLimitException(JsonRESTError):
+    code = 400
+
+    def __init__(self, value):
+        super(InvalidLimit, self).__init__(
+            "ValidationException",
+            "Value '{value}' at 'limit' failed to satisify constraint: Member"
+            " must have value less than or equal to 100".format(value=value),
+        )
+
+
 class TooManyResourceIds(JsonRESTError):
     code = 400
 
@@ -348,6 +359,17 @@ class ResourceNotDiscoveredException(JsonRESTError):
             "ResourceNotDiscoveredException",
             "Resource {resource} of resourceType:{type} is unknown or has not been "
             "discovered".format(resource=resource, type=type),
+        )
+
+
+class ResourceNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, resource_arn):
+        super(ResourceNotFoundException, self).__init__(
+            "ResourceNotFoundException",
+            "ResourceArn '{resource_arn}' does not exist".format(
+                resource_arn=resource_arn),
         )
 
 
