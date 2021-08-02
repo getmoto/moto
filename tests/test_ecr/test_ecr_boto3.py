@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import hashlib
 import json
 from datetime import datetime
+
+import pytest
 from freezegun import freeze_time
 import os
 from random import random
@@ -16,6 +18,8 @@ from dateutil.tz import tzlocal
 
 from moto import mock_ecr
 from unittest import SkipTest
+
+from moto.core import ACCOUNT_ID
 
 
 def _create_image_digest(contents=None):
@@ -56,17 +60,84 @@ def _create_image_manifest():
 
 @mock_ecr
 def test_create_repository():
+    # given
     client = boto3.client("ecr", region_name="us-east-1")
-    response = client.create_repository(repositoryName="test_ecr_repository")
-    response["repository"]["repositoryName"].should.equal("test_ecr_repository")
-    response["repository"]["repositoryArn"].should.equal(
-        "arn:aws:ecr:us-east-1:012345678910:repository/test_ecr_repository"
+    repo_name = "test-repo"
+
+    # when
+    response = client.create_repository(repositoryName=repo_name)
+
+    # then
+    repo = response["repository"]
+    repo["repositoryName"].should.equal(repo_name)
+    repo["repositoryArn"].should.equal(
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
     )
-    response["repository"]["registryId"].should.equal("012345678910")
-    response["repository"]["repositoryUri"].should.equal(
-        "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_ecr_repository"
+    repo["registryId"].should.equal(ACCOUNT_ID)
+    repo["repositoryUri"].should.equal(
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
     )
-    # response['repository']['createdAt'].should.equal(0)
+    repo["createdAt"].should.be.a(datetime)
+    repo["imageTagMutability"].should.equal("MUTABLE")
+    repo["imageScanningConfiguration"].should.equal({"scanOnPush": False})
+    repo["encryptionConfiguration"].should.equal({"encryptionType": "AES256"})
+
+
+@mock_ecr
+def test_create_repository_with_non_default_config():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "test-repo"
+    kms_key = f"arn:aws:kms:{region_name}:{ACCOUNT_ID}:key/51d81fab-b138-4bd2-8a09-07fd6d37224d"
+
+    # when
+    response = client.create_repository(
+        repositoryName=repo_name,
+        imageTagMutability="IMMUTABLE",
+        imageScanningConfiguration={"scanOnPush": True},
+        encryptionConfiguration={"encryptionType": "KMS", "kmsKey": kms_key},
+        tags=[{"Key": "key-1", "Value": "value-1"}],
+    )
+
+    # then
+    repo = response["repository"]
+    repo["repositoryName"].should.equal(repo_name)
+    repo["repositoryArn"].should.equal(
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    )
+    repo["registryId"].should.equal(ACCOUNT_ID)
+    repo["repositoryUri"].should.equal(
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    )
+    repo["createdAt"].should.be.a(datetime)
+    repo["imageTagMutability"].should.equal("IMMUTABLE")
+    repo["imageScanningConfiguration"].should.equal({"scanOnPush": True})
+    repo["encryptionConfiguration"].should.equal(
+        {"encryptionType": "KMS", "kmsKey": kms_key}
+    )
+
+
+@mock_ecr
+def test_create_repository_error_already_exists():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.create_repository(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CreateRepository")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryAlreadyExistsException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' already exists "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
 
 
 @mock_ecr
@@ -78,8 +149,8 @@ def test_describe_repositories():
     len(response["repositories"]).should.equal(2)
 
     repository_arns = [
-        "arn:aws:ecr:us-east-1:012345678910:repository/test_repository1",
-        "arn:aws:ecr:us-east-1:012345678910:repository/test_repository0",
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1",
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository0",
     ]
     set(
         [
@@ -89,8 +160,8 @@ def test_describe_repositories():
     ).should.equal(set(repository_arns))
 
     repository_uris = [
-        "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
-        "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
     ]
     set(
         [
@@ -105,12 +176,12 @@ def test_describe_repositories_1():
     client = boto3.client("ecr", region_name="us-east-1")
     _ = client.create_repository(repositoryName="test_repository1")
     _ = client.create_repository(repositoryName="test_repository0")
-    response = client.describe_repositories(registryId="012345678910")
+    response = client.describe_repositories(registryId=ACCOUNT_ID)
     len(response["repositories"]).should.equal(2)
 
     repository_arns = [
-        "arn:aws:ecr:us-east-1:012345678910:repository/test_repository1",
-        "arn:aws:ecr:us-east-1:012345678910:repository/test_repository0",
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1",
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository0",
     ]
     set(
         [
@@ -120,8 +191,8 @@ def test_describe_repositories_1():
     ).should.equal(set(repository_arns))
 
     repository_uris = [
-        "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
-        "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
     ]
     set(
         [
@@ -147,10 +218,10 @@ def test_describe_repositories_3():
     _ = client.create_repository(repositoryName="test_repository0")
     response = client.describe_repositories(repositoryNames=["test_repository1"])
     len(response["repositories"]).should.equal(1)
-    repository_arn = "arn:aws:ecr:us-east-1:012345678910:repository/test_repository1"
+    repository_arn = f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1"
     response["repositories"][0]["repositoryArn"].should.equal(repository_arn)
 
-    repository_uri = "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1"
+    repository_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1"
     response["repositories"][0]["repositoryUri"].should.equal(repository_uri)
 
 
@@ -176,11 +247,11 @@ def test_delete_repository():
     response = client.delete_repository(repositoryName="test_repository")
     response["repository"]["repositoryName"].should.equal("test_repository")
     response["repository"]["repositoryArn"].should.equal(
-        "arn:aws:ecr:us-east-1:012345678910:repository/test_repository"
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository"
     )
-    response["repository"]["registryId"].should.equal("012345678910")
+    response["repository"]["registryId"].should.equal(ACCOUNT_ID)
     response["repository"]["repositoryUri"].should.equal(
-        "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository"
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository"
     )
     # response['repository']['createdAt'].should.equal(0)
 
@@ -202,7 +273,7 @@ def test_put_image():
     response["image"]["imageId"]["imageTag"].should.equal("latest")
     response["image"]["imageId"]["imageDigest"].should.contain("sha")
     response["image"]["repositoryName"].should.equal("test_repository")
-    response["image"]["registryId"].should.equal("012345678910")
+    response["image"]["registryId"].should.equal(ACCOUNT_ID)
 
 
 @mock_ecr
@@ -256,7 +327,7 @@ def test_put_image_with_multiple_tags():
     response["image"]["imageId"]["imageTag"].should.equal("v1")
     response["image"]["imageId"]["imageDigest"].should.contain("sha")
     response["image"]["repositoryName"].should.equal("test_repository")
-    response["image"]["registryId"].should.equal("012345678910")
+    response["image"]["registryId"].should.equal(ACCOUNT_ID)
 
     response1 = client.put_image(
         repositoryName="test_repository",
@@ -267,7 +338,7 @@ def test_put_image_with_multiple_tags():
     response1["image"]["imageId"]["imageTag"].should.equal("latest")
     response1["image"]["imageId"]["imageDigest"].should.contain("sha")
     response1["image"]["repositoryName"].should.equal("test_repository")
-    response1["image"]["registryId"].should.equal("012345678910")
+    response1["image"]["registryId"].should.equal(ACCOUNT_ID)
 
     response2 = client.describe_images(repositoryName="test_repository")
     type(response2["imageDetails"]).should.be(list)
@@ -275,7 +346,7 @@ def test_put_image_with_multiple_tags():
 
     response2["imageDetails"][0]["imageDigest"].should.contain("sha")
 
-    response2["imageDetails"][0]["registryId"].should.equal("012345678910")
+    response2["imageDetails"][0]["registryId"].should.equal(ACCOUNT_ID)
 
     response2["imageDetails"][0]["repositoryName"].should.equal("test_repository")
 
@@ -398,10 +469,10 @@ def test_describe_images():
     response["imageDetails"][2]["imageDigest"].should.contain("sha")
     response["imageDetails"][3]["imageDigest"].should.contain("sha")
 
-    response["imageDetails"][0]["registryId"].should.equal("012345678910")
-    response["imageDetails"][1]["registryId"].should.equal("012345678910")
-    response["imageDetails"][2]["registryId"].should.equal("012345678910")
-    response["imageDetails"][3]["registryId"].should.equal("012345678910")
+    response["imageDetails"][0]["registryId"].should.equal(ACCOUNT_ID)
+    response["imageDetails"][1]["registryId"].should.equal(ACCOUNT_ID)
+    response["imageDetails"][2]["registryId"].should.equal(ACCOUNT_ID)
+    response["imageDetails"][3]["registryId"].should.equal(ACCOUNT_ID)
 
     response["imageDetails"][0]["repositoryName"].should.equal("test_repository")
     response["imageDetails"][1]["repositoryName"].should.equal("test_repository")
@@ -448,7 +519,7 @@ def test_describe_images_by_tag():
         )
         len(response["imageDetails"]).should.be(1)
         image_detail = response["imageDetails"][0]
-        image_detail["registryId"].should.equal("012345678910")
+        image_detail["registryId"].should.equal(ACCOUNT_ID)
         image_detail["repositoryName"].should.equal("test_repository")
         image_detail["imageTags"].should.equal([put_response["imageId"]["imageTag"]])
         image_detail["imageDigest"].should.equal(put_response["imageId"]["imageDigest"])
@@ -592,7 +663,7 @@ def test_describe_images_by_digest():
         )
         len(response["imageDetails"]).should.be(1)
         image_detail = response["imageDetails"][0]
-        image_detail["registryId"].should.equal("012345678910")
+        image_detail["registryId"].should.equal(ACCOUNT_ID)
         image_detail["repositoryName"].should.equal("test_repository")
         image_detail["imageTags"].should.equal([put_response["imageId"]["imageTag"]])
         image_detail["imageDigest"].should.equal(digest)
@@ -608,8 +679,8 @@ def test_get_authorization_token_assume_region():
     auth_token_response["authorizationData"].should.equal(
         [
             {
-                "authorizationToken": "QVdTOjAxMjM0NTY3ODkxMC1hdXRoLXRva2Vu",
-                "proxyEndpoint": "https://012345678910.dkr.ecr.us-east-1.amazonaws.com",
+                "authorizationToken": "QVdTOjEyMzQ1Njc4OTAxMi1hdXRoLXRva2Vu",
+                "proxyEndpoint": f"https://{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com",
                 "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
             }
         ]
@@ -674,7 +745,7 @@ def test_batch_get_image():
     response["images"][0]["imageManifest"].should.contain(
         "vnd.docker.distribution.manifest.v2+json"
     )
-    response["images"][0]["registryId"].should.equal("012345678910")
+    response["images"][0]["registryId"].should.equal(ACCOUNT_ID)
     response["images"][0]["repositoryName"].should.equal("test_repository")
 
     response["images"][0]["imageId"]["imageTag"].should.equal("v2")

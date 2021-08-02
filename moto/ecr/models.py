@@ -7,11 +7,17 @@ from random import random
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.ec2 import ec2_backends
-from moto.ecr.exceptions import ImageNotFoundException, RepositoryNotFoundException
+from moto.ecr.exceptions import (
+    ImageNotFoundException,
+    RepositoryNotFoundException,
+    RepositoryAlreadyExistsException,
+)
+from moto.utilities.tagging_service import TaggingService
 
-DEFAULT_REGISTRY_ID = "012345678910"
+DEFAULT_REGISTRY_ID = ACCOUNT_ID
 
 
 class BaseObject(BaseModel):
@@ -39,16 +45,27 @@ class BaseObject(BaseModel):
 
 
 class Repository(BaseObject, CloudFormationModel):
-    def __init__(self, repository_name):
+    def __init__(
+        self,
+        repository_name,
+        encryption_config,
+        image_scan_config,
+        image_tag_mutablility,
+    ):
         self.registry_id = DEFAULT_REGISTRY_ID
-        self.arn = "arn:aws:ecr:us-east-1:{0}:repository/{1}".format(
-            self.registry_id, repository_name
+        self.arn = (
+            f"arn:aws:ecr:us-east-1:{self.registry_id}:repository/{repository_name}"
         )
         self.name = repository_name
-        # self.created = datetime.utcnow()
-        self.uri = "{0}.dkr.ecr.us-east-1.amazonaws.com/{1}".format(
-            self.registry_id, repository_name
+        self.created_at = datetime.utcnow()
+        self.uri = (
+            f"{self.registry_id}.dkr.ecr.us-east-1.amazonaws.com/{repository_name}"
         )
+        self.image_tag_mutability = image_tag_mutablility or "MUTABLE"
+        self.image_scanning_configuration = image_scan_config or {"scanOnPush": False}
+        self.encryption_configuration = encryption_config or {
+            "encryptionType": "AES256"
+        }
         self.images = []
 
     @property
@@ -63,7 +80,9 @@ class Repository(BaseObject, CloudFormationModel):
         response_object["repositoryArn"] = self.arn
         response_object["repositoryName"] = self.name
         response_object["repositoryUri"] = self.uri
-        # response_object['createdAt'] = self.created
+        response_object["createdAt"] = iso_8601_datetime_without_milliseconds(
+            self.created_at
+        )
         del response_object["arn"], response_object["name"], response_object["images"]
         return response_object
 
@@ -207,6 +226,7 @@ class Image(BaseObject):
 class ECRBackend(BaseBackend):
     def __init__(self):
         self.repositories = {}
+        self.tagger = TaggingService()
 
     def describe_repositories(self, registry_id=None, repository_names=None):
         """
@@ -233,9 +253,26 @@ class ECRBackend(BaseBackend):
             repositories.append(repository.response_object)
         return repositories
 
-    def create_repository(self, repository_name):
-        repository = Repository(repository_name)
+    def create_repository(
+        self,
+        repository_name,
+        encryption_config,
+        image_scan_config,
+        image_tag_mutablility,
+        tags,
+    ):
+        if self.repositories.get(repository_name):
+            raise RepositoryAlreadyExistsException(repository_name, DEFAULT_REGISTRY_ID)
+
+        repository = Repository(
+            repository_name=repository_name,
+            encryption_config=encryption_config,
+            image_scan_config=image_scan_config,
+            image_tag_mutablility=image_tag_mutablility,
+        )
         self.repositories[repository_name] = repository
+        self.tagger.tag_resource(repository.arn, tags)
+
         return repository
 
     def delete_repository(self, repository_name, registry_id=None):

@@ -20,14 +20,23 @@ class ECRResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param):
-        return self.request_params.get(param, None)
+    def _get_param(self, param, if_none=None):
+        return self.request_params.get(param, if_none)
 
     def create_repository(self):
         repository_name = self._get_param("repositoryName")
-        if repository_name is None:
-            repository_name = "default"
-        repository = self.ecr_backend.create_repository(repository_name)
+        encryption_config = self._get_param("encryptionConfiguration")
+        image_scan_config = self._get_param("imageScanningConfiguration")
+        image_tag_mutablility = self._get_param("imageTagMutability")
+        tags = self._get_param("tags", [])
+
+        repository = self.ecr_backend.create_repository(
+            repository_name=repository_name,
+            encryption_config=encryption_config,
+            image_scan_config=image_scan_config,
+            image_tag_mutablility=image_tag_mutablility,
+            tags=tags,
+        )
         return json.dumps({"repository": repository.response_object})
 
     def describe_repositories(self):

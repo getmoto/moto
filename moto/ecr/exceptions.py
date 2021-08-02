@@ -2,6 +2,19 @@ from __future__ import unicode_literals
 from moto.core.exceptions import RESTError, JsonRESTError
 
 
+class RepositoryAlreadyExistsException(JsonRESTError):
+    code = 400
+
+    def __init__(self, repository_name, registry_id):
+        super(RepositoryAlreadyExistsException, self).__init__(
+            error_type="RepositoryAlreadyExistsException",
+            message=(
+                f"The repository with name '{repository_name}' already exists "
+                f"in the registry with id '{registry_id}'"
+            ),
+        )
+
+
 class RepositoryNotFoundException(RESTError):
     code = 400
 
