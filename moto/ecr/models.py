@@ -48,19 +48,21 @@ class BaseObject(BaseModel):
 class Repository(BaseObject, CloudFormationModel):
     def __init__(
         self,
+        region_name,
         repository_name,
         encryption_config,
         image_scan_config,
         image_tag_mutablility,
     ):
+        self.region_name = region_name
         self.registry_id = DEFAULT_REGISTRY_ID
         self.arn = (
-            f"arn:aws:ecr:us-east-1:{self.registry_id}:repository/{repository_name}"
+            f"arn:aws:ecr:{region_name}:{self.registry_id}:repository/{repository_name}"
         )
         self.name = repository_name
         self.created_at = datetime.utcnow()
         self.uri = (
-            f"{self.registry_id}.dkr.ecr.us-east-1.amazonaws.com/{repository_name}"
+            f"{self.registry_id}.dkr.ecr.{region_name}.amazonaws.com/{repository_name}"
         )
         self.image_tag_mutability = image_tag_mutablility or "MUTABLE"
         self.image_scanning_configuration = image_scan_config or {"scanOnPush": False}
@@ -87,6 +89,26 @@ class Repository(BaseObject, CloudFormationModel):
         del response_object["arn"], response_object["name"], response_object["images"]
         return response_object
 
+    def update(self, image_scan_config, image_tag_mutability):
+        if image_scan_config:
+            self.image_scan_config = image_scan_config
+        if image_tag_mutability:
+            self.image_tag_mutability = image_tag_mutability
+
+    def delete(self, region_name):
+        ecr_backend = ecr_backends[region_name]
+        ecr_backend.delete_repository(self.name)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "RepositoryUri":
+            return self.uri
+
+        raise UnformattedGetAttTemplateException()
+
     @staticmethod
     def cloudformation_name_type():
         return "RepositoryName"
@@ -101,32 +123,52 @@ class Repository(BaseObject, CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         ecr_backend = ecr_backends[region_name]
+        properties = cloudformation_json["Properties"]
+
+        encryption_config = properties.get("EncryptionConfiguration")
+        image_scan_config = properties.get("ImageScanningConfiguration")
+        image_tag_mutablility = properties.get("ImageTagMutability")
+        tags = properties.get("Tags", [])
+
         return ecr_backend.create_repository(
             # RepositoryName is optional in CloudFormation, thus create a random
             # name if necessary
-            repository_name=resource_name
+            repository_name=resource_name,
+            encryption_config=encryption_config,
+            image_scan_config=image_scan_config,
+            image_tag_mutablility=image_tag_mutablility,
+            tags=tags,
         )
 
     @classmethod
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
+        ecr_backend = ecr_backends[region_name]
         properties = cloudformation_json["Properties"]
+        encryption_configuration = properties.get(
+            "EncryptionConfiguration", {"encryptionType": "AES256"}
+        )
 
-        if original_resource.name != properties["RepositoryName"]:
-            ecr_backend = ecr_backends[region_name]
-            ecr_backend.delete_cluster(original_resource.arn)
-            return ecr_backend.create_repository(
-                # RepositoryName is optional in CloudFormation, thus create a
-                # random name if necessary
-                repository_name=properties.get(
-                    "RepositoryName",
-                    "RepositoryName{0}".format(int(random() * 10 ** 6)),
-                )
+        if (
+            new_resource_name == original_resource.name
+            and encryption_configuration == original_resource.encryption_configuration
+        ):
+            original_resource.update(
+                properties.get("ImageScanningConfiguration"),
+                properties.get("ImageTagMutability"),
             )
-        else:
-            # no-op when nothing changed between old and new resources
+
+            ecr_backend.tagger.tag_resource(
+                original_resource.arn, properties.get("Tags", [])
+            )
+
             return original_resource
+        else:
+            original_resource.delete(region_name)
+            return cls.create_from_cloudformation_json(
+                new_resource_name, cloudformation_json, region_name
+            )
 
 
 class Image(BaseObject):
@@ -225,9 +267,15 @@ class Image(BaseObject):
 
 
 class ECRBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name):
+        self.region_name = region_name
         self.repositories = {}
         self.tagger = TaggingService()
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def describe_repositories(self, registry_id=None, repository_names=None):
         """
@@ -266,6 +314,7 @@ class ECRBackend(BaseBackend):
             raise RepositoryAlreadyExistsException(repository_name, DEFAULT_REGISTRY_ID)
 
         repository = Repository(
+            region_name=self.region_name,
             repository_name=repository_name,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
@@ -277,12 +326,14 @@ class ECRBackend(BaseBackend):
         return repository
 
     def delete_repository(self, repository_name, registry_id=None):
-        if repository_name in self.repositories:
-            if self.repositories[repository_name].images:
+        repo = self.repositories.get(repository_name)
+        if repo:
+            if repo.images:
                 raise RepositoryNotEmptyException(
                     repository_name, registry_id or DEFAULT_REGISTRY_ID
                 )
 
+            self.tagger.delete_all_tags_for_resource(repo.arn)
             return self.repositories.pop(repository_name)
         else:
             raise RepositoryNotFoundException(
@@ -529,4 +580,4 @@ class ECRBackend(BaseBackend):
 
 ecr_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    ecr_backends[region] = ECRBackend()
+    ecr_backends[region] = ECRBackend(region)

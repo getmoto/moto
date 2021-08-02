@@ -104,11 +104,11 @@ def test_create_repository_with_non_default_config():
     repo = response["repository"]
     repo["repositoryName"].should.equal(repo_name)
     repo["repositoryArn"].should.equal(
-        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+        f"arn:aws:ecr:{region_name}:{ACCOUNT_ID}:repository/{repo_name}"
     )
     repo["registryId"].should.equal(ACCOUNT_ID)
     repo["repositoryUri"].should.equal(
-        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+        f"{ACCOUNT_ID}.dkr.ecr.{region_name}.amazonaws.com/{repo_name}"
     )
     repo["createdAt"].should.be.a(datetime)
     repo["imageTagMutability"].should.equal("IMMUTABLE")
@@ -263,14 +263,14 @@ def test_delete_repository():
     # given
     client = boto3.client("ecr", region_name="us-east-1")
     repo_name = "test-repo"
-    client.create_repository(repositoryName="repo_name")
+    client.create_repository(repositoryName=repo_name)
 
     # when
-    response = client.delete_repository(repositoryName="repo_name")
+    response = client.delete_repository(repositoryName=repo_name)
 
     # then
     repo = response["repository"]
-    repo["repositoryName"].should.equal("repo_name")
+    repo["repositoryName"].should.equal(repo_name)
     repo["repositoryArn"].should.equal(
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
     )
@@ -278,7 +278,7 @@ def test_delete_repository():
     repo["repositoryUri"].should.equal(
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
     )
-    repo.should.be.a(datetime)
+    repo["createdAt"].should.be.a(datetime)
     repo["imageTagMutability"].should.equal("MUTABLE")
 
     response = client.describe_repositories()
