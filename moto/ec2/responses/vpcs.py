@@ -51,6 +51,13 @@ class VPCs(BaseResponse):
         template = self.response_template(DESCRIBE_VPCS_RESPONSE)
         return template.render(vpcs=vpcs, doc_date=doc_date)
 
+    def modify_vpc_tenancy(self):
+        vpc_id = self._get_param("VpcId")
+        tenancy = self._get_param("InstanceTenancy")
+        value = self.ec2_backend.modify_vpc_tenancy(vpc_id, tenancy)
+        template = self.response_template(MODIFY_VPC_TENANCY_RESPONSE)
+        return template.render(value=value)
+
     def describe_vpc_attribute(self):
         vpc_id = self._get_param("VpcId")
         attribute = self._get_param("Attribute")
@@ -245,6 +252,7 @@ CREATE_VPC_RESPONSE = """
         {% endif %}
       <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-1a2b3c4d2{% endif %}</dhcpOptionsId>
       <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
+      <ownerId> {{ vpc.owner_id }}</ownerId>
       <tagSet>
         {% for tag in vpc.get_tags() %}
           <item>
@@ -344,6 +352,7 @@ DESCRIBE_VPCS_RESPONSE = """
         <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-7a8b9c2d{% endif %}</dhcpOptionsId>
         <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
         <isDefault>{{ vpc.is_default }}</isDefault>
+        <ownerId> {{ vpc.owner_id }}</ownerId>
         <tagSet>
           {% for tag in vpc.get_tags() %}
             <item>
@@ -364,6 +373,13 @@ DELETE_VPC_RESPONSE = """
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>true</return>
 </DeleteVpcResponse>
+"""
+
+MODIFY_VPC_TENANCY_RESPONSE = """
+<ModifyVpcTenancyResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+   <return>true</return>
+</ModifyVpcTenancyResponse>
 """
 
 DESCRIBE_VPC_ATTRIBUTE_RESPONSE = """

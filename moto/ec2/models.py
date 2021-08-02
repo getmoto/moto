@@ -38,6 +38,7 @@ from os import listdir
 
 from .exceptions import (
     CidrLimitExceeded,
+    UnsupportedTenancy,
     DependencyViolationError,
     EC2ClientError,
     FilterNotImplementedError,
@@ -2941,6 +2942,10 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
                 amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
             )
 
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
     @staticmethod
     def cloudformation_name_type():
         return None
@@ -3011,11 +3016,25 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         else:
             return super(VPC, self).get_filter_value(filter_name, "DescribeVpcs")
 
+    def modify_vpc_tenancy(self, tenancy):
+        if tenancy != "default":
+            raise UnsupportedTenancy(tenancy)
+        self.instance_tenancy = tenancy
+        return True
+
     def associate_vpc_cidr_block(
         self, cidr_block, amazon_provided_ipv6_cidr_block=False
     ):
         max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
 
+        for cidr in self.cidr_block_association_set.copy():
+            if (
+                self.cidr_block_association_set.get(cidr)
+                .get("cidr_block_state")
+                .get("state")
+                == "disassociated"
+            ):
+                self.cidr_block_association_set.pop(cidr)
         if (
             len(self.get_cidr_block_association_set(amazon_provided_ipv6_cidr_block))
             >= max_associations
@@ -3198,6 +3217,10 @@ class VPCBackend(object):
             return getattr(vpc, attr_name)
         else:
             raise InvalidParameterValueError(attr_name)
+
+    def modify_vpc_tenancy(self, vpc_id, tenancy):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.modify_vpc_tenancy(tenancy)
 
     def enable_vpc_classic_link(self, vpc_id):
         vpc = self.get_vpc(vpc_id)

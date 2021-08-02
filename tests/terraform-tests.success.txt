@@ -61,3 +61,4 @@ TestAccAWSSsmParameterDataSource
 TestAccAWSUserGroupMembership
 TestAccAWSUserPolicyAttachment
 TestAccAWSUserSSHKey
+TestAccAWSVpc_
