@@ -61,6 +61,7 @@ class FakeSecret:
         secret_binary=None,
         description=None,
         tags=[],
+        KmsKeyId=None,
         version_id=None,
         version_stages=None,
     ):
@@ -71,6 +72,7 @@ class FakeSecret:
         self.secret_binary = secret_binary
         self.description = description
         self.tags = tags
+        self.KmsKeyId = KmsKeyId
         self.version_id = version_id
         self.version_stages = version_stages
         self.rotation_enabled = False
@@ -78,9 +80,12 @@ class FakeSecret:
         self.auto_rotate_after_days = 0
         self.deleted_date = None
 
-    def update(self, description=None, tags=[]):
+    def update(self, description=None, tags=[], KmsKeyId=None):
         self.description = description
         self.tags = tags
+
+        if KmsKeyId is not None:
+            self.KmsKeyId = KmsKeyId
 
     def set_versions(self, versions):
         self.versions = versions
@@ -127,7 +132,7 @@ class FakeSecret:
             "ARN": self.arn,
             "Name": self.name,
             "Description": self.description or "",
-            "KmsKeyId": "",
+            "KmsKeyId": self.KmsKeyId,
             "RotationEnabled": self.rotation_enabled,
             "RotationLambdaARN": self.rotation_lambda_arn,
             "RotationRules": {"AutomaticallyAfterDays": self.auto_rotate_after_days},
@@ -242,7 +247,7 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def update_secret(
-        self, secret_id, secret_string=None, secret_binary=None, **kwargs
+        self, secret_id, secret_string=None, secret_binary=None, KmsKeyId=None, **kwargs
     ):
 
         # error if secret does not exist
@@ -265,12 +270,13 @@ class SecretsManagerBackend(BaseBackend):
             secret_binary=secret_binary,
             description=description,
             tags=tags,
+            KmsKeyId=KmsKeyId,
         )
 
         return secret.to_short_dict()
 
     def create_secret(
-        self, name, secret_string=None, secret_binary=None, description=None, tags=[]
+        self, name, secret_string=None, secret_binary=None, description=None, tags=[], KmsKeyId=None
     ):
 
         # error if secret exists
@@ -285,6 +291,7 @@ class SecretsManagerBackend(BaseBackend):
             secret_binary=secret_binary,
             description=description,
             tags=tags,
+            KmsKeyId=KmsKeyId,
         )
 
         return secret.to_short_dict()
@@ -296,6 +303,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         description=None,
         tags=[],
+        KmsKeyId=None,
         version_id=None,
         version_stages=None,
     ):
@@ -319,7 +327,8 @@ class SecretsManagerBackend(BaseBackend):
 
         if secret_id in self.secrets:
             secret = self.secrets[secret_id]
-            secret.update(description, tags)
+
+            secret.update(description, tags, KmsKeyId)
 
             if "AWSPENDING" in version_stages:
                 secret.versions[version_id] = secret_version
@@ -333,6 +342,7 @@ class SecretsManagerBackend(BaseBackend):
                 secret_binary=secret_binary,
                 description=description,
                 tags=tags,
+                KmsKeyId=KmsKeyId,
             )
             secret.set_versions({version_id: secret_version})
             secret.set_default_version_id(version_id)
