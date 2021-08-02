@@ -14,6 +14,7 @@ from moto.ecr.exceptions import (
     ImageNotFoundException,
     RepositoryNotFoundException,
     RepositoryAlreadyExistsException,
+    RepositoryNotEmptyException,
 )
 from moto.utilities.tagging_service import TaggingService
 
@@ -277,6 +278,11 @@ class ECRBackend(BaseBackend):
 
     def delete_repository(self, repository_name, registry_id=None):
         if repository_name in self.repositories:
+            if self.repositories[repository_name].images:
+                raise RepositoryNotEmptyException(
+                    repository_name, registry_id or DEFAULT_REGISTRY_ID
+                )
+
             return self.repositories.pop(repository_name)
         else:
             raise RepositoryNotFoundException(

@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError, JsonRESTError
+from moto.core.exceptions import JsonRESTError
 
 
 class RepositoryAlreadyExistsException(JsonRESTError):
@@ -15,14 +15,30 @@ class RepositoryAlreadyExistsException(JsonRESTError):
         )
 
 
-class RepositoryNotFoundException(RESTError):
+class RepositoryNotEmptyException(JsonRESTError):
+    code = 400
+
+    def __init__(self, repository_name, registry_id):
+        super(RepositoryNotEmptyException, self).__init__(
+            error_type="RepositoryNotEmptyException",
+            message=(
+                f"The repository with name '{repository_name}' "
+                f"in registry with id '{registry_id}' "
+                "cannot be deleted because it still contains images"
+            ),
+        )
+
+
+class RepositoryNotFoundException(JsonRESTError):
     code = 400
 
     def __init__(self, repository_name, registry_id):
         super(RepositoryNotFoundException, self).__init__(
             error_type="RepositoryNotFoundException",
-            message="The repository with name '{0}' does not exist in the registry "
-            "with id '{1}'".format(repository_name, registry_id),
+            message=(
+                f"The repository with name '{repository_name}' does not exist "
+                f"in the registry with id '{registry_id}'"
+            ),
         )
 
 

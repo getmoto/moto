@@ -152,23 +152,23 @@ def test_describe_repositories():
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1",
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository0",
     ]
-    set(
+    sorted(
         [
             response["repositories"][0]["repositoryArn"],
             response["repositories"][1]["repositoryArn"],
         ]
-    ).should.equal(set(repository_arns))
+    ).should.equal(sorted(repository_arns))
 
     repository_uris = [
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
     ]
-    set(
+    sorted(
         [
             response["repositories"][0]["repositoryUri"],
             response["repositories"][1]["repositoryUri"],
         ]
-    ).should.equal(set(repository_uris))
+    ).should.equal(sorted(repository_uris))
 
 
 @mock_ecr
@@ -183,23 +183,23 @@ def test_describe_repositories_1():
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1",
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository0",
     ]
-    set(
+    sorted(
         [
             response["repositories"][0]["repositoryArn"],
             response["repositories"][1]["repositoryArn"],
         ]
-    ).should.equal(set(repository_arns))
+    ).should.equal(sorted(repository_arns))
 
     repository_uris = [
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
     ]
-    set(
+    sorted(
         [
             response["repositories"][0]["repositoryUri"],
             response["repositories"][1]["repositoryUri"],
         ]
-    ).should.equal(set(repository_uris))
+    ).should.equal(sorted(repository_uris))
 
 
 @mock_ecr
@@ -227,36 +227,62 @@ def test_describe_repositories_3():
 
 @mock_ecr
 def test_describe_repositories_with_image():
+    # given
     client = boto3.client("ecr", region_name="us-east-1")
-    _ = client.create_repository(repositoryName="test_repository")
-
-    _ = client.put_image(
-        repositoryName="test_repository",
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    client.put_image(
+        repositoryName=repo_name,
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag="latest",
     )
 
-    response = client.describe_repositories(repositoryNames=["test_repository"])
-    len(response["repositories"]).should.equal(1)
+    # when
+    response = client.describe_repositories(repositoryNames=[repo_name])
+
+    # then
+    response["repositories"].should.have.length_of(1)
+
+    repo = response["repositories"][0]
+    repo["registryId"].should.equal(ACCOUNT_ID)
+    repo["repositoryArn"].should.equal(
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    )
+    repo["repositoryName"].should.equal(repo_name)
+    repo["repositoryUri"].should.equal(
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    )
+    repo["createdAt"].should.be.a(datetime)
+    repo["imageScanningConfiguration"].should.equal({"scanOnPush": False})
+    repo["imageTagMutability"].should.equal("MUTABLE")
+    repo["encryptionConfiguration"].should.equal({"encryptionType": "AES256"})
 
 
 @mock_ecr
 def test_delete_repository():
+    # given
     client = boto3.client("ecr", region_name="us-east-1")
-    _ = client.create_repository(repositoryName="test_repository")
-    response = client.delete_repository(repositoryName="test_repository")
-    response["repository"]["repositoryName"].should.equal("test_repository")
-    response["repository"]["repositoryArn"].should.equal(
-        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository"
+    repo_name = "test-repo"
+    client.create_repository(repositoryName="repo_name")
+
+    # when
+    response = client.delete_repository(repositoryName="repo_name")
+
+    # then
+    repo = response["repository"]
+    repo["repositoryName"].should.equal("repo_name")
+    repo["repositoryArn"].should.equal(
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
     )
-    response["repository"]["registryId"].should.equal(ACCOUNT_ID)
-    response["repository"]["repositoryUri"].should.equal(
-        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository"
+    repo["registryId"].should.equal(ACCOUNT_ID)
+    repo["repositoryUri"].should.equal(
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
     )
-    # response['repository']['createdAt'].should.equal(0)
+    repo.should.be.a(datetime)
+    repo["imageTagMutability"].should.equal("MUTABLE")
 
     response = client.describe_repositories()
-    len(response["repositories"]).should.equal(0)
+    response["repositories"].should.have.length_of(0)
 
 
 @mock_ecr
@@ -629,15 +655,48 @@ def test_describe_image_that_doesnt_exist():
 @mock_ecr
 def test_delete_repository_that_doesnt_exist():
     client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "repo-that-doesnt-exist"
 
-    error_msg = re.compile(
-        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
-        re.MULTILINE,
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_repository(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteRepository")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
     )
 
-    client.delete_repository.when.called_with(
-        repositoryName="repo-that-doesnt-exist", registryId="123"
-    ).should.throw(ClientError, error_msg)
+
+@mock_ecr
+def test_delete_repository_error_not_empty():
+    client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_repository(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteRepository")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotEmptyException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' "
+        f"in registry with id '{ACCOUNT_ID}' "
+        "cannot be deleted because it still contains images"
+    )
 
 
 @mock_ecr
