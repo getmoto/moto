@@ -35,7 +35,6 @@ from moto.config.exceptions import (
     NoSuchConfigurationAggregatorException,
     InvalidTagCharacters,
     DuplicateTags,
-    InvalidLimit,
     InvalidLimitException,
     InvalidResourceParameters,
     TooManyResourceIds,
@@ -884,7 +883,7 @@ class ConfigBackend(BaseBackend):
 
         limit = limit or DEFAULT_PAGE_SIZE
         if limit > DEFAULT_PAGE_SIZE:
-            raise InvalidLimit(limit)
+            raise InvalidLimitException(limit)
 
         if resource_ids and resource_name:
             raise InvalidResourceParameters()
@@ -958,7 +957,7 @@ class ConfigBackend(BaseBackend):
 
         limit = limit or DEFAULT_PAGE_SIZE
         if limit > DEFAULT_PAGE_SIZE:
-            raise InvalidLimit(limit)
+            raise InvalidLimitException(limit)
 
         # If the resource type exists and the backend region is implemented in moto, then
         # call upon the resource type's Config Query class to retrieve the list of resources that match the criteria:

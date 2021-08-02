@@ -213,13 +213,13 @@ class ConfigResponse(BaseResponse):
         return ""
 
     def tag_resource(self):
-        schema = self.config_backend.tag_resource(
+        self.config_backend.tag_resource(
             self._get_param("ResourceArn"), self._get_param("Tags"),
         )
         return ""
 
     def untag_resource(self):
-        schema = self.config_backend.untag_resource(
+        self.config_backend.untag_resource(
             self._get_param("ResourceArn"), self._get_param("TagKeys"),
         )
         return ""

@@ -22,8 +22,8 @@ TEST_REGION = "us-east-1"
 def config_aggregators_info(client):
     """Return list of dicts of ConfigAggregators ARNs and tags.
 
-    One ConfigAggregator would do, but this help tests that a list
-    of configs can be handled by the caller.
+    One ConfigAggregator would do, but this tests that a list of
+    configs can be handled by the caller.
     """
     config_aggs = []
     for idx in range(3):
