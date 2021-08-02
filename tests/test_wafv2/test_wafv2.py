@@ -17,17 +17,23 @@ def test_create_web_acl():
     res = conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))
     web_acl = res["Summary"]
     assert web_acl.get("Name") == "John"
-    assert web_acl.get("ARN").startswith("arn:aws:wafv2:us-east-1:{}:regional/webacl/John/".format(ACCOUNT_ID))
+    assert web_acl.get("ARN").startswith(
+        "arn:aws:wafv2:us-east-1:{}:regional/webacl/John/".format(ACCOUNT_ID)
+    )
     # Duplicate name - should raise error
     with pytest.raises(ClientError) as ex:
         conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))
     err = ex.value.response["Error"]
-    err["Message"].should.contain("AWS WAF could not perform the operation because some resource in your request is a duplicate of an existing one.")
+    err["Message"].should.contain(
+        "AWS WAF could not perform the operation because some resource in your request is a duplicate of an existing one."
+    )
     err["Code"].should.equal("400")
 
     res = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Carl", "CLOUDFRONT"))
     web_acl = res["Summary"]
-    assert web_acl.get("ARN").startswith("arn:aws:wafv2:global:{}:global/webacl/Carl/".format(ACCOUNT_ID))
+    assert web_acl.get("ARN").startswith(
+        "arn:aws:wafv2:global:{}:global/webacl/Carl/".format(ACCOUNT_ID)
+    )
 
 
 @mock_wafv2

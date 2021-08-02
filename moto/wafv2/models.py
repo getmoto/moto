@@ -3,14 +3,11 @@ from uuid import uuid4
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.wafv2 import utils
+
 # from moto.ec2.models import elbv2_backends
-from .utils import make_arn_for_wacl
-from .exceptions import (
-    WAFV2DuplicateItemException,
-)
-from moto.core.utils import (
-    iso_8601_datetime_with_milliseconds,
-)
+from .utils import make_arn_for_wacl, pascal_to_underscores_dict
+from .exceptions import WAFV2DuplicateItemException
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 import datetime
 from collections import OrderedDict
 
@@ -24,10 +21,12 @@ class VisibilityConfig(BaseModel):
     https://docs.aws.amazon.com/waf/latest/APIReference/API_VisibilityConfig.html
     """
 
-    def __init__(self, MetricName, SampledRequestsEnabled, CloudWatchMetricsEnabled):
-        self.cloud_watch_metrics_enabled = CloudWatchMetricsEnabled
-        self.metric_name = MetricName
-        self.sampled_requests_enabled = SampledRequestsEnabled
+    def __init__(
+        self, metric_name, sampled_requests_enabled, cloud_watch_metrics_enabled
+    ):
+        self.cloud_watch_metrics_enabled = cloud_watch_metrics_enabled
+        self.metric_name = metric_name
+        self.sampled_requests_enabled = sampled_requests_enabled
 
 
 class DefaultAction(BaseModel):
@@ -35,9 +34,9 @@ class DefaultAction(BaseModel):
     https://docs.aws.amazon.com/waf/latest/APIReference/API_DefaultAction.html
     """
 
-    def __init__(self, Allow={}, Block={}):
-        self.allow = Allow
-        self.block = Block
+    def __init__(self, allow={}, block={}):
+        self.allow = allow
+        self.block = block
 
 
 # TODO: Add remaining properties
@@ -53,8 +52,10 @@ class FakeWebACL(BaseModel):
         self.arn = arn
         self.description = "Mock WebACL named {0}".format(self.name)
         self.capacity = 3
-        self.VisibilityConfig = VisibilityConfig(**visibility_config)
-        self.DefaultAction = DefaultAction(**default_action)
+        self.visibilityConfig = VisibilityConfig(
+            **pascal_to_underscores_dict(visibility_config)
+        )
+        self.defaultAction = DefaultAction(**pascal_to_underscores_dict(default_action))
 
     def to_dict(self):
         # Format for summary https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section)
@@ -63,7 +64,7 @@ class FakeWebACL(BaseModel):
             "Description": self.description,
             "Id": self.id,
             "LockToken": "Not Implemented",
-            "Name": self.name
+            "Name": self.name,
         }
 
 
@@ -85,7 +86,9 @@ class WAFV2Backend(BaseBackend):
 
     def create_web_acl(self, name, visibility_config, default_action, scope):
         wacl_id = str(uuid4())
-        arn = make_arn_for_wacl(name=name, region_name=self.region_name, id=wacl_id, scope=scope)
+        arn = make_arn_for_wacl(
+            name=name, region_name=self.region_name, id=wacl_id, scope=scope
+        )
         if arn in self.wacls or self._is_duplicate_name(name):
             raise WAFV2DuplicateItemException()
         new_wacl = FakeWebACL(name, arn, wacl_id, visibility_config, default_action)
@@ -112,10 +115,14 @@ class WAFV2Backend(BaseBackend):
 
 
 wafv2_backends = {}
-wafv2_backends[GLOBAL_REGION] = WAFV2Backend(GLOBAL_REGION)  # never used? cloudfront is global and uses us-east-1
+wafv2_backends[GLOBAL_REGION] = WAFV2Backend(
+    GLOBAL_REGION
+)  # never used? cloudfront is global and uses us-east-1
 for region in Session().get_available_regions("waf-regional"):
     wafv2_backends[region] = WAFV2Backend(region)
-for region in Session().get_available_regions("waf-regional", partition_name="aws-us-gov"):
+for region in Session().get_available_regions(
+    "waf-regional", partition_name="aws-us-gov"
+):
     wafv2_backends[region] = WAFV2Backend(region)
 for region in Session().get_available_regions("waf-regional", partition_name="aws-cn"):
     wafv2_backends[region] = WAFV2Backend(region)
