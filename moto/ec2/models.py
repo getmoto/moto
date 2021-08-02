@@ -3017,10 +3017,9 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             return super(VPC, self).get_filter_value(filter_name, "DescribeVpcs")
 
     def modify_vpc_tenancy(self, tenancy):
-        if tenancy == "default":
-            self.instance_tenancy = tenancy
-        else:
+        if tenancy != "default":
             raise UnsupportedTenancy(tenancy)
+        self.instance_tenancy = tenancy
         return True
 
     def associate_vpc_cidr_block(

@@ -484,7 +484,7 @@ class CidrLimitExceeded(EC2ClientError):
 class UnsupportedTenancy(EC2ClientError):
     def __init__(self, tenancy):
         super(UnsupportedTenancy, self).__init__(
-            "(UnsupportedTenancy",
+            "UnsupportedTenancy",
             "The tenancy value {0} is not supported.".format(tenancy),
         )
 
