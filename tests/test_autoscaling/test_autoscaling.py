@@ -2640,3 +2640,55 @@ def test_terminate_instance_in_auto_scaling_group_no_decrement():
     original_instance_id.shouldnt.be.within(
         [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
     )
+
+
+@mock_autoscaling
+@mock_ec2
+def test_delete_tags_by_key():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="TestLC",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+    tag_to_delete = {
+        "ResourceId": "tag_test_asg",
+        "ResourceType": "auto-scaling-group",
+        "PropagateAtLaunch": True,
+        "Key": "TestDeleteTagKey1",
+        "Value": "TestTagValue1",
+    }
+    tag_to_keep = {
+        "ResourceId": "tag_test_asg",
+        "ResourceType": "auto-scaling-group",
+        "PropagateAtLaunch": True,
+        "Key": "TestTagKey1",
+        "Value": "TestTagValue1",
+    }
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="tag_test_asg",
+        MinSize=1,
+        MaxSize=2,
+        LaunchConfigurationName="TestLC",
+        Tags=[tag_to_delete, tag_to_keep],
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    client.delete_tags(
+        Tags=[
+            {
+                "ResourceId": "tag_test_asg",
+                "ResourceType": "auto-scaling-group",
+                "PropagateAtLaunch": True,
+                "Key": "TestDeleteTagKey1",
+            }
+        ]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=["tag_test_asg"]
+    )
+    group = response["AutoScalingGroups"][0]
+    tags = group["Tags"]
+    tags.should.contain(tag_to_keep)
+    tags.should_not.contain(tag_to_delete)
