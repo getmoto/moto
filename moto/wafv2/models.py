@@ -52,10 +52,12 @@ class FakeWebACL(BaseModel):
         self.arn = arn
         self.description = "Mock WebACL named {0}".format(self.name)
         self.capacity = 3
-        self.visibilityConfig = VisibilityConfig(
+        self.visibility_config = VisibilityConfig(
             **pascal_to_underscores_dict(visibility_config)
         )
-        self.defaultAction = DefaultAction(**pascal_to_underscores_dict(default_action))
+        self.default_action = DefaultAction(
+            **pascal_to_underscores_dict(default_action)
+        )
 
     def to_dict(self):
         # Format for summary https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section)
