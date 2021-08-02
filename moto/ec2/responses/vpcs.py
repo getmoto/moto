@@ -211,6 +211,61 @@ class VPCs(BaseResponse):
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
         return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
 
+    def create_managed_prefix_list(self):
+        address_family = self._get_param("AddressFamily")
+        max_entries = self._get_param("MaxEntries")
+        prefix_list_name = self._get_param("PrefixListName")
+        entry = self._get_multi_param("Entry")
+
+        print(
+            "=====create_managed_prefix_list======", "\n",
+            address_family,
+            max_entries,
+            prefix_list_name,
+            entry,
+            "======END=====", "\n"
+        )
+
+        tags = self._get_multi_param("TagSpecifications")
+        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
+        tags = (tags or {}).get("Tag", [])
+        tags = {t["Key"]: t["Value"] for t in tags}
+
+        managed_prefix_list = self.ec2_backend.create_managed_prefix_list(
+            address_family=address_family,
+            entry=entry,
+            max_entries=max_entries,
+            prefix_list_name=prefix_list_name,
+            tags=tags
+        )
+        template = self.response_template(CREATE_MANAGED_PREFIX_LIST)
+        return template.render(managed_prefix_list=managed_prefix_list)
+
+    def describe_managed_prefix_lists(self):
+        prefix_list_ids = self._get_multi_param("PrefixListId")
+        filters = filters_from_querystring(self.querystring)
+        managed_prefix_lists = self.ec2_backend.describe_managed_prefix_lists(
+            prefix_list_ids=prefix_list_ids, filters=filters
+        )
+        template = self.response_template(DESCRIBE_MANAGED_PREFIX_LIST)
+        print("managed_prefix_lists:", managed_prefix_lists)
+        return template.render(managed_prefix_lists=managed_prefix_lists)
+
+    def get_managed_prefix_list_entries(self):
+        prefix_list_id = self._get_param("PrefixListId")
+        target_version = self._get_param("TargetVersion")
+        managed_prefix_list = self.ec2_backend.get_managed_prefix_list_entries(
+            prefix_list_id=prefix_list_id,
+        )
+        entries = list(managed_prefix_list.entries.values())
+        if target_version:
+            target_version = int(target_version)
+            entries = [managed_prefix_list.entries.get(target_version)]
+        template = self.response_template(GET_MANAGED_PREFIX_LIST_ENTRIES)
+        print(managed_prefix_list.entries)
+        print(entries)
+        return template.render(entries=entries)
+
 
 CREATE_VPC_RESPONSE = """
 <CreateVpcResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
@@ -571,3 +626,69 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
         {% endfor %}
     </vpcEndpointSet>
 </DescribeVpcEndpointsResponse>"""
+
+
+CREATE_MANAGED_PREFIX_LIST = """ <CreateManagedPrefixListResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <prefixList>
+        <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+        <maxEntries>{{ managed_prefix_list.max_entries }}</maxEntries>
+        <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+        <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+        <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+        <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+        <state>{{ managed_prefix_list.state }}</state>
+        <tagSet>
+        {% for tag in managed_prefix_list.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
+        <version>{{ managed_prefix_list.version }}</version>
+    </prefixList>
+</CreateManagedPrefixListResponse>"""
+
+
+DESCRIBE_MANAGED_PREFIX_LIST = """<DescribeManagedPrefixListsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+        <requestId>934214d3-4501-4797-b896-13e8fc7ec256</requestId>
+        <prefixListSet>
+        {% for managed_prefix_list in managed_prefix_lists %}
+            <item>
+                <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+                <maxEntries>{{ managed_prefix_list.max_entries }}</maxEntries>
+                <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+                <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+                <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+                <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+                <state>{{ managed_prefix_list.state }}</state>
+                <tagSet>
+                {% for tag in managed_prefix_list.get_tags() %}
+                    <item>
+                        <key>{{ tag.key }}</key>
+                        <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+                </tagSet>
+                <version>{{ managed_prefix_list.version }}</version>
+            </item>
+        {% endfor %}
+    </prefixListSet>
+</DescribeManagedPrefixListsResponse>
+"""
+
+
+GET_MANAGED_PREFIX_LIST_ENTRIES = """<GetManagedPrefixListEntriesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>39a3c79f-846f-4382-a592-example</requestId>
+    <entrySet>
+    {% for entry in entries %}
+     {% for item in entry %}
+        <item>
+            <cidr>{{ item.Cidr or ''}}</cidr>
+            <description>{{ item.Description or ''}}</description>
+        </item>
+     {% endfor %}
+    {% endfor %}
+    </entrySet>
+</GetManagedPrefixListEntriesResponse>
+"""

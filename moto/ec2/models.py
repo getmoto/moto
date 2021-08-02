@@ -137,6 +137,7 @@ from .utils import (
     random_route_table_id,
     generate_route_id,
     generate_vpc_end_point_id,
+    random_managed_prefix_list_id,
     create_dns_entries,
     split_route_id,
     random_security_group_id,
@@ -4359,8 +4360,80 @@ class VPCEndPoint(TaggedEC2Resource):
         self.security_group_ids = security_group_ids
         self.tag_specifications = tag_specifications
         self.private_dns_enabled = private_dns_enabled
-        self.created_at = datetime.utcnow()
+        self.created_at = utc_date_and_time()
         self.dns_entries = dns_entries
+
+
+class ManagedPrefixList(TaggedEC2Resource):
+    def __init__(self, backend, address_family=None, entry=[], max_entries=None, prefix_list_name=None, region=None, tags={}):
+        self.ec2_backend = backend
+        self.address_family = address_family
+        self.max_entries = max_entries
+        self.id = random_managed_prefix_list_id()
+        self.prefix_list_name = prefix_list_name
+        self.prefix_list_arn = self.arn(region)
+        self.state = "create-complete"
+        self.state_message = "create complete"
+        self.add_tags(tags or {})
+        self.version = 1
+        self.entries = {self.version: entry} if entry else {}
+
+    def arn(self, region):
+        return "arn:aws:ec2:{region}:aws:prefix-list/{resource_id}".format(
+            region=region, resource_id=self.id
+        )
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
+
+class ManagedPrefixListBackend(object):
+
+    def __init__(self):
+        self.managed_prefix_lists = {}
+        super(ManagedPrefixListBackend, self).__init__()
+
+    def create_managed_prefix_list(self, address_family=None, entry=[], max_entries=None, prefix_list_name=None, tags={}):
+        managed_prefix_list = ManagedPrefixList(
+            self,
+            address_family=address_family,
+            entry=entry,
+            max_entries=max_entries,
+            prefix_list_name=prefix_list_name,
+            region=self.region,
+            tags=tags
+        )
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+        print("-----self.managed_prefix_lists[managed_prefix_list.id]:", self.managed_prefix_lists[managed_prefix_list.id])
+        return managed_prefix_list
+
+    def describe_managed_prefix_lists(self, prefix_list_ids=None, filters=None):
+        managed_prefix_lists = list(self.managed_prefix_lists.values())
+        print("managed_prefix_lists=====1", managed_prefix_lists)
+        attr_pairs = (
+            ("owner-id", "owner_id"),
+            ("prefix-list-id", "id"),
+            ("prefix-list-name", "prefix_list_name"),
+        )
+
+        if prefix_list_ids:
+            managed_prefix_lists = [
+                managed_prefix_list
+                for managed_prefix_list in managed_prefix_lists
+                if managed_prefix_list.id in prefix_list_ids
+            ]
+
+        print("managed_prefix_lists=====2", managed_prefix_lists)
+        result = managed_prefix_lists
+        if filters:
+            result = filter_resources(managed_prefix_lists, filters, attr_pairs)
+        print("managed_prefix_lists=====3", result)
+        return result
+
+    def get_managed_prefix_list_entries(self, prefix_list_id=None):
+        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
+        return managed_prefix_list
 
 
 class RouteBackend(object):
@@ -6918,6 +6991,7 @@ class EC2Backend(
     SecurityGroupBackend,
     AmiBackend,
     VPCBackend,
+    ManagedPrefixListBackend,
     SubnetBackend,
     SubnetRouteTableAssociationBackend,
     FlowLogsBackend,
