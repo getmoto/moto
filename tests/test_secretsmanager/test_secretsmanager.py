@@ -465,7 +465,9 @@ def test_describe_secret_with_KmsKeyId():
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
     secret_description["KmsKeyId"].should.equal("dummy_arn")
-    conn.list_secrets()["SecretList"][0]["KmsKeyId"].should.equal(results["KmsKeyId"])
+    conn.list_secrets()["SecretList"][0]["KmsKeyId"].should.equal(
+        secret_description["KmsKeyId"]
+    )
 
 
 @mock_secretsmanager
