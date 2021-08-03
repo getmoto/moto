@@ -309,9 +309,13 @@ def test_describe_tags_with_rule_arn():
         Priority=100,
         Conditions=[{"Field": "host-header", "Values": ["example-asdf.com"]}],
         Actions=[default_action],
-        Tags=[{'Key': 'test_k', 'Value': 'test_v'}]
+        Tags=[{"Key": "test_k", "Value": "test_v"}],
     )
-    rule_arn = response['Rules'][0]['RuleArn']
+    rule_arn = response["Rules"][0]["RuleArn"]
     response = conn.describe_tags(ResourceArns=[rule_arn])
-    expected_response = {'TagDescriptions': [{'ResourceArn': rule_arn, 'Tags': [{'Key': 'test_k', 'Value': 'test_v'}]}]}
-    assert response['TagDescriptions'] == expected_response['TagDescriptions']
+    expected_response = {
+        "TagDescriptions": [
+            {"ResourceArn": rule_arn, "Tags": [{"Key": "test_k", "Value": "test_v"}]}
+        ]
+    }
+    assert response["TagDescriptions"] == expected_response["TagDescriptions"]
