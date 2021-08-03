@@ -47,7 +47,7 @@ def config_aggregators_info(client):
 @mock_config
 def test_tag_resource():
     """Test the ConfigSource API tag_resource()."""
-    client = boto3.client("config", region_name="us-east-1")
+    client = boto3.client("config", region_name=TEST_REGION)
 
     # Try an ARN when there are no configs instantiated.
     no_config_arn = "no_configs"
@@ -131,7 +131,7 @@ def test_tag_resource():
 @mock_config
 def test_untag_resource():
     """Test the ConfigSource API untag_resource()."""
-    client = boto3.client("config", region_name="us-east-1")
+    client = boto3.client("config", region_name=TEST_REGION)
 
     # Try an ARN when there are no configs instantiated.
     no_config_arn = "no_configs"
@@ -226,3 +226,38 @@ def test_untag_resource():
     assert not updated_rsp["Tags"]
 
     # Verify keys removed from ConfigRule, when implemented.
+
+
+@mock_config
+def test_list_tags_for_resource():
+    """Test the ConfigSource API list_tags_for_resource()."""
+    client = boto3.client("config", region_name=TEST_REGION)
+
+    # Try an invalid ARN.
+    bad_arn = "bad_arn"
+    with pytest.raises(ClientError) as cerr:
+        client.list_tags_for_resource(ResourceArn=bad_arn)
+    assert cerr.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        f"ResourceArn '{bad_arn}' does not exist"
+        in cerr.value.response["Error"]["Message"]
+    )
+
+    # Create some configs and use the ARN from one of them for testing the
+    # tags argument.
+    config_aggs = config_aggregators_info(client)
+    good_arn = config_aggs[1]["arn"]
+
+    # Try a limit that is out of range (> 100).
+    with pytest.raises(ClientError) as cerr:
+        client.list_tags_for_resource(ResourceArn=good_arn, Limit=101)
+    assert cerr.value.response["Error"]["Code"] == "InvalidLimitException"
+    assert (
+        "Value '101' at 'limit' failed to satisfy constraint"
+        in cerr.value.response["Error"]["Message"]
+    )
+
+    # Verify there are 10 tags, 10 through 19.
+    expected_tags = [{"Key": f"{x}", "Value": f"{x}"} for x in range(10, 20)]
+    rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    assert expected_tags == rsp["Tags"]

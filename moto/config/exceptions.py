@@ -289,8 +289,8 @@ class InvalidLimitException(JsonRESTError):
 
     def __init__(self, value):
         super().__init__(
-            "ValidationException",
-            "Value '{value}' at 'limit' failed to satisify constraint: Member"
+            "InvalidLimitException",
+            "Value '{value}' at 'limit' failed to satisfy constraint: Member"
             " must have value less than or equal to 100".format(value=value),
         )
 
