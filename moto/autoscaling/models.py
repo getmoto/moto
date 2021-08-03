@@ -1040,8 +1040,29 @@ class AutoScalingBackend(BaseBackend):
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
 
     def suspend_processes(self, group_name, scaling_processes):
+        all_proc_names = [
+            "Launch",
+            "Terminate",
+            "AddToLoadBalancer",
+            "AlarmNotification",
+            "AZRebalance",
+            "HealthCheck",
+            "InstanceRefresh",
+            "ReplaceUnhealthy",
+            "ScheduledActions",
+        ]
         group = self.autoscaling_groups[group_name]
-        group.suspended_processes = scaling_processes or []
+        set_to_add = set(scaling_processes or all_proc_names)
+        group.suspended_processes = list(set(group.suspended_processes).union(set_to_add))
+
+    def resume_processes(self, group_name, scaling_processes):
+        group = self.autoscaling_groups[group_name]
+        if scaling_processes:
+            group.suspended_processes = list(
+                set(group.suspended_processes).difference(set(scaling_processes))
+            )
+        else:
+            group.suspended_processes = []
 
     def set_instance_protection(
         self, group_name, instance_ids, protected_from_scale_in

@@ -945,7 +945,7 @@
 - [ ] put_scheduled_update_group_action
 - [ ] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
-- [ ] resume_processes
+- [X] resume_processes
 - [X] set_desired_capacity
 - [X] set_instance_health
 - [X] set_instance_protection

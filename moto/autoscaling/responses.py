@@ -359,6 +359,15 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(SUSPEND_PROCESSES_TEMPLATE)
         return template.render()
 
+    def resume_processes(self):
+        autoscaling_group_name = self._get_param("AutoScalingGroupName")
+        scaling_processes = self._get_multi_param("ScalingProcesses.member")
+        self.autoscaling_backend.resume_processes(
+            autoscaling_group_name, scaling_processes
+        )
+        template = self.response_template(RESUME_PROCESSES_TEMPLATE)
+        return template.render()
+
     def set_instance_protection(self):
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -801,6 +810,12 @@ SUSPEND_PROCESSES_TEMPLATE = """<SuspendProcessesResponse xmlns="http://autoscal
    <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
 </ResponseMetadata>
 </SuspendProcessesResponse>"""
+
+RESUME_PROCESSES_TEMPLATE = """<ResumeProcessesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+   <RequestId></RequestId>
+</ResponseMetadata>
+</ResumeProcessesResponse>"""
 
 SET_INSTANCE_HEALTH_TEMPLATE = """<SetInstanceHealthResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <SetInstanceHealthResponse></SetInstanceHealthResponse>
