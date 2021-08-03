@@ -7,6 +7,7 @@ import warnings
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum, unique
+from json import JSONDecodeError
 from operator import lt, le, eq, ge, gt
 
 from boto3 import Session
@@ -21,7 +22,6 @@ from moto.events.exceptions import (
     InvalidEventPatternException,
     IllegalStatusException,
 )
-from moto.iam.policy_validation import IAMPolicyDocumentValidator
 from moto.utilities.tagging_service import TaggingService
 
 from uuid import uuid4
@@ -1129,6 +1129,16 @@ class EventsBackend(BaseBackend):
     def test_event_pattern(self):
         raise NotImplementedError()
 
+    @staticmethod
+    def _put_permission_from_policy(event_bus, policy):
+        try:
+            policy_doc = json.loads(policy)
+            event_bus.add_policy(policy_doc)
+        except JSONDecodeError:
+            raise JsonRESTError(
+                "ValidationException", "This policy contains invalid Json"
+            )
+
     def _put_permission_from_params(self, event_bus, action, principal, statement_id):
         if principal is None or self.ACCOUNT_ID.match(principal) is None:
             raise JsonRESTError(
@@ -1154,10 +1164,7 @@ class EventsBackend(BaseBackend):
         event_bus = self.describe_event_bus(event_bus_name)
 
         if policy:
-            validator = IAMPolicyDocumentValidator(policy_document=policy)
-            validator.validate()
-            policy_doc = json.loads(policy)
-            event_bus.add_policy(policy_doc)
+            self._put_permission_from_policy(event_bus, policy)
         else:
             self._put_permission_from_params(event_bus, action, principal, statement_id)
 
