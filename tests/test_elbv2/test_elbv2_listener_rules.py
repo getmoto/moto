@@ -295,3 +295,23 @@ def test_create_rule_validate_condition(condition, expected_message):
     err = ex.value.response["Error"]
     err["Code"].should.equal("ValidationError")
     err["Message"].should.equal(expected_message)
+
+
+@mock_elbv2
+@mock_ec2
+def test_describe_tags_with_rule_arn():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[{"Field": "host-header", "Values": ["example-asdf.com"]}],
+        Actions=[default_action],
+        Tags=[{'Key': 'test_k', 'Value': 'test_v'}]
+    )
+    rule_arn = response['Rules'][0]['RuleArn']
+    response = conn.describe_tags(ResourceArns=[rule_arn])
+    expected_response = {'TagDescriptions': [{'ResourceArn': rule_arn, 'Tags': [{'Key': 'test_k', 'Value': 'test_v'}]}]}
+    assert response['TagDescriptions'] == expected_response['TagDescriptions']

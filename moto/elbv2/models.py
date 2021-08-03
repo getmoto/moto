@@ -134,6 +134,13 @@ class FakeTargetGroup(CloudFormationModel):
             raise TooManyTagsError()
         self.tags[key] = value
 
+    def list_tags(self):
+        return self.tags
+
+    def remove_tag(self, key):
+        if key in self.tags:
+            del self.tags[key]
+
     def health_for(self, target, ec2_backend):
         t = self.targets.get(target["id"])
         if t is None:
@@ -229,6 +236,18 @@ class FakeListener(CloudFormationModel):
         )
         self.tags = {}
 
+    def add_tag(self, key, value):
+        if len(self.tags) >= 10 and key not in self.tags:
+            raise TooManyTagsError()
+        self.tags[key] = value
+
+    def list_tags(self):
+        return self.tags
+
+    def remove_tag(self, key):
+        if key in self.tags:
+            del self.tags[key]
+
     @property
     def physical_resource_id(self):
         return self.arn
@@ -309,6 +328,19 @@ class FakeListenerRule(CloudFormationModel):
         self.conditions = conditions
         self.actions = actions
         self.priority = priority
+        self.tags = {}
+
+    def add_tag(self, key, value):
+        if len(self.tags) >= 10 and key not in self.tags:
+            raise TooManyTagsError()
+        self.tags[key] = value
+
+    def list_tags(self):
+        return self.tags
+
+    def remove_tag(self, key):
+        if key in self.tags:
+            del self.tags[key]
 
     @property
     def physical_resource_id(self):

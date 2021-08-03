@@ -3,11 +3,14 @@ from moto.core.exceptions import RESTError
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
 from .models import elbv2_backends
+from .models import FakeLoadBalancer
+from .models import FakeListener
 from .exceptions import DuplicateTagKeysError
 from .exceptions import LoadBalancerNotFoundError
 from .exceptions import TargetGroupNotFoundError
 from .exceptions import ListenerNotFoundError
 from .exceptions import ListenerOrBalancerMissingError
+from .exceptions import RuleNotFoundError
 
 SSL_POLICIES = [
     {
@@ -162,6 +165,7 @@ class ELBV2Response(BaseResponse):
             priority=params["Priority"],
             actions=actions,
         )
+        self._add_tags(rules)
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
 
@@ -198,7 +202,7 @@ class ELBV2Response(BaseResponse):
             matcher=matcher,
             target_type=target_type,
         )
-
+        self._add_tags(target_group)
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
         return template.render(target_group=target_group)
 
@@ -223,7 +227,7 @@ class ELBV2Response(BaseResponse):
             certificate=certificate,
             default_actions=default_actions,
         )
-
+        self._add_tags(listener)
         template = self.response_template(CREATE_LISTENER_TEMPLATE)
         return template.render(listener=listener)
 
@@ -419,6 +423,26 @@ class ELBV2Response(BaseResponse):
                 resource = self.elbv2_backend.load_balancers.get(arn)
                 if not resource:
                     raise LoadBalancerNotFoundError()
+            elif ":listener-rule" in arn:
+                lb_arn, _, _ = arn.replace(":listener-rule", ":loadbalancer").rpartition("/")[0].rpartition("/")
+                balancer = self.elbv2_backend.load_balancers.get(lb_arn)
+                if not balancer:
+                    raise LoadBalancerNotFoundError()
+                listener_arn, _, _ = arn.replace(":listener-rule", ":listener").rpartition("/")
+                listener = balancer.listeners.get(listener_arn)
+                if not listener:
+                    raise ListenerNotFoundError()
+                resource = listener.rules.get(arn)
+                if not resource:
+                    raise RuleNotFoundError()
+            elif ":listener" in arn:
+                lb_arn, _, _ = arn.replace(":listener", ":loadbalancer").rpartition("/")
+                balancer = self.elbv2_backend.load_balancers.get(lb_arn)
+                if not balancer:
+                    raise LoadBalancerNotFoundError()
+                resource = balancer.listeners.get(arn)
+                if not resource:
+                    raise ListenerNotFoundError()
             else:
                 raise LoadBalancerNotFoundError()
             self._add_tags(resource)
@@ -440,6 +464,26 @@ class ELBV2Response(BaseResponse):
                 resource = self.elbv2_backend.load_balancers.get(arn)
                 if not resource:
                     raise LoadBalancerNotFoundError()
+            elif ":listener-rule" in arn:
+                lb_arn, _, _ = arn.replace(":listener-rule", ":loadbalancer").rpartition("/")[0].rpartition("/")
+                balancer = self.elbv2_backend.load_balancers.get(lb_arn)
+                if not balancer:
+                    raise LoadBalancerNotFoundError()
+                listener_arn, _, _ = arn.replace(":listener-rule", ":listener").rpartition("/")
+                listener = balancer.listeners.get(listener_arn)
+                if not listener:
+                    raise ListenerNotFoundError()
+                resource = listener.rules.get(arn)
+                if not resource:
+                    raise RuleNotFoundError()
+            elif ":listener" in arn:
+                lb_arn, _, _ = arn.replace(":listener", ":loadbalancer").rpartition("/")
+                balancer = self.elbv2_backend.load_balancers.get(lb_arn)
+                if not balancer:
+                    raise LoadBalancerNotFoundError()
+                resource = balancer.listeners.get(arn)
+                if not resource:
+                    raise ListenerNotFoundError()
             else:
                 raise LoadBalancerNotFoundError()
             [resource.remove_tag(key) for key in tag_keys]
@@ -460,6 +504,19 @@ class ELBV2Response(BaseResponse):
                 resource = self.elbv2_backend.load_balancers.get(arn)
                 if not resource:
                     raise LoadBalancerNotFoundError()
+            elif ":listener-rule" in arn:
+                lb_arn, _, _ = arn.replace(":listener-rule", ":loadbalancer").rpartition("/")[
+                    0].rpartition("/")
+                balancer = self.elbv2_backend.load_balancers.get(lb_arn)
+                if not balancer:
+                    raise LoadBalancerNotFoundError()
+                listener_arn, _, _ = arn.replace(":listener-rule", ":listener").rpartition("/")
+                listener = balancer.listeners.get(listener_arn)
+                if not listener:
+                    raise ListenerNotFoundError()
+                resource = listener.rules.get(arn)
+                if not resource:
+                    raise RuleNotFoundError()
             elif ":listener" in arn:
                 lb_arn, _, _ = arn.replace(":listener", ":loadbalancer").rpartition("/")
                 balancer = self.elbv2_backend.load_balancers.get(lb_arn)
