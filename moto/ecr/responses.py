@@ -195,3 +195,9 @@ class ECRResponse(BaseResponse):
         tags = self._get_param("tags", [])
 
         return json.dumps(self.ecr_backend.tag_resource(arn, tags))
+
+    def untag_resource(self):
+        arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys", [])
+
+        return json.dumps(self.ecr_backend.untag_resource(arn, tag_keys))

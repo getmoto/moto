@@ -1276,3 +1276,49 @@ def test_tag_resource_error_not_exists():
         f"The repository with name '{repo_name}' does not exist "
         f"in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_untag_resource():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    arn = client.create_repository(
+        repositoryName=repo_name,
+        tags=[
+            {"Key": "key-1", "Value": "value-1"},
+            {"Key": "key-2", "Value": "value-2"},
+        ],
+    )["repository"]["repositoryArn"]
+
+    # when
+    client.untag_resource(resourceArn=arn, tagKeys=["key-1"])
+
+    # then
+    tags = client.list_tags_for_resource(resourceArn=arn)["tags"]
+    tags.should.equal([{"Key": "key-2", "Value": "value-2"}])
+
+
+@mock_ecr
+def test_untag_resource_error_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.untag_resource(
+            resourceArn=f"arn:aws:ecr:{region_name}:{ACCOUNT_ID}:repository/{repo_name}",
+            tagKeys=["key-1"],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("UntagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )

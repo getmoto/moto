@@ -606,6 +606,16 @@ class ECRBackend(BaseBackend):
         else:
             raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
 
+    def untag_resource(self, arn, tag_keys):
+        name = arn.split("/")[-1]
+
+        repo = self.repositories.get(name)
+        if repo:
+            self.tagger.untag_resource_using_names(repo.arn, tag_keys)
+            return {}
+        else:
+            raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
+
 
 ecr_backends = {}
 for region, ec2_backend in ec2_backends.items():
