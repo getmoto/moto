@@ -1245,6 +1245,36 @@ def test_create_database_subnet_group():
 
 @mock_ec2
 @mock_rds2
+def test_modify_database_subnet_group():
+    vpc_conn = boto3.client("ec2", "us-west-2")
+    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet1 = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
+        "Subnet"
+    ]
+    subnet2 = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.2.0/24")[
+        "Subnet"
+    ]
+
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_subnet_group(
+        DBSubnetGroupName="db_subnet",
+        DBSubnetGroupDescription="my db subnet",
+        SubnetIds=[subnet1["SubnetId"]],
+    )
+
+    conn.modify_db_subnet_group(
+        DBSubnetGroupName="db_subnet",
+        DBSubnetGroupDescription="my updated desc",
+        SubnetIds=[subnet1["SubnetId"], subnet2["SubnetId"]],
+    )
+
+    groups = conn.describe_db_subnet_groups()["DBSubnetGroups"]
+    # FIXME: Group is deleted atm
+    # TODO: we should check whether all attrs are persisted
+
+
+@mock_ec2
+@mock_rds2
 def test_create_database_in_subnet_group():
     vpc_conn = boto3.client("ec2", "us-west-2")
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
