@@ -992,6 +992,14 @@ class AutoScalingBackend(BaseBackend):
 
             group.tags = new_tags
 
+    def delete_tags(self, tags):
+        for tag_to_delete in tags:
+            group_name = tag_to_delete["resource_id"]
+            key_to_delete = tag_to_delete["key"]
+            group = self.autoscaling_groups[group_name]
+            old_tags = group.tags
+            group.tags = [x for x in old_tags if x["key"] != key_to_delete]
+
     def attach_load_balancers(self, group_name, load_balancer_names):
         group = self.autoscaling_groups[group_name]
         group.load_balancers.extend(

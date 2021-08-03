@@ -908,7 +908,7 @@
 - [ ] delete_notification_configuration
 - [X] delete_policy
 - [ ] delete_scheduled_action
-- [ ] delete_tags
+- [X] delete_tags
 - [ ] delete_warm_pool
 - [ ] describe_account_limits
 - [ ] describe_adjustment_types
