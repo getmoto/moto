@@ -36,10 +36,6 @@ How to teach Moto to support a new AWS endpoint:
 1. Run `black moto/ tests/` over your code to ensure that it is properly formatted
 1. Run `make test` to ensure your tests are passing
 
-## Python versions
-
-moto currently supports both Python 2 and 3, so make sure your tests pass against both major versions of Python.
-
 ## Missing services
 
 Implementing a new service from scratch is more work, but still quite straightforward. All the code that intercepts network requests to `*.amazonaws.com` is already handled for you in `moto/core` - all that's necessary for new services to be recognized is to create a new decorator and determine which URLs should be intercepted.

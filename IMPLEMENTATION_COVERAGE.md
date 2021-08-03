@@ -2124,7 +2124,7 @@
 
 ## cognito-idp
 <details>
-<summary>48% implemented</summary>
+<summary>49% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -2152,7 +2152,7 @@
 - [ ] admin_update_auth_event_feedback
 - [ ] admin_update_device_status
 - [X] admin_update_user_attributes
-- [ ] admin_user_global_sign_out
+- [X] admin_user_global_sign_out
 - [X] associate_software_token
 - [X] change_password
 - [ ] confirm_device
@@ -3298,7 +3298,7 @@
 
 ## ec2
 <details>
-<summary>28% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -3320,7 +3320,7 @@
 - [X] associate_route_table
 - [ ] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
-- [ ] associate_transit_gateway_route_table
+- [X] associate_transit_gateway_route_table
 - [X] associate_vpc_cidr_block
 - [ ] attach_classic_link_vpc
 - [X] attach_internet_gateway
@@ -3449,7 +3449,7 @@
 - [ ] delete_transit_gateway_prefix_list_reference
 - [X] delete_transit_gateway_route
 - [X] delete_transit_gateway_route_table
-- [ ] delete_transit_gateway_vpc_attachment
+- [X] delete_transit_gateway_vpc_attachment
 - [X] delete_volume
 - [X] delete_vpc
 - [ ] delete_vpc_endpoint_connection_notifications
@@ -3594,7 +3594,7 @@
 - [ ] disable_ebs_encryption_by_default
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_serial_console_access
-- [ ] disable_transit_gateway_route_table_propagation
+- [X] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
 - [X] disable_vpc_classic_link
 - [X] disable_vpc_classic_link_dns_support
@@ -3610,7 +3610,7 @@
 - [ ] enable_ebs_encryption_by_default
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_serial_console_access
-- [ ] enable_transit_gateway_route_table_propagation
+- [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
 - [ ] enable_volume_io
 - [X] enable_vpc_classic_link
@@ -3678,7 +3678,7 @@
 - [ ] modify_traffic_mirror_session
 - [X] modify_transit_gateway
 - [ ] modify_transit_gateway_prefix_list_reference
-- [ ] modify_transit_gateway_vpc_attachment
+- [X] modify_transit_gateway_vpc_attachment
 - [ ] modify_volume
 - [ ] modify_volume_attribute
 - [X] modify_vpc_attribute
@@ -3687,7 +3687,7 @@
 - [ ] modify_vpc_endpoint_service_configuration
 - [ ] modify_vpc_endpoint_service_permissions
 - [ ] modify_vpc_peering_connection_options
-- [ ] modify_vpc_tenancy
+- [X] modify_vpc_tenancy
 - [ ] modify_vpn_connection
 - [ ] modify_vpn_connection_options
 - [ ] modify_vpn_tunnel_certificate
@@ -3888,25 +3888,25 @@
 
 ## efs
 <details>
-<summary>0% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] create_access_point
-- [ ] create_file_system
-- [ ] create_mount_target
+- [X] create_file_system
+- [X] create_mount_target
 - [ ] create_tags
 - [ ] delete_access_point
-- [ ] delete_file_system
+- [X] delete_file_system
 - [ ] delete_file_system_policy
-- [ ] delete_mount_target
+- [X] delete_mount_target
 - [ ] delete_tags
 - [ ] describe_access_points
 - [ ] describe_account_preferences
-- [ ] describe_backup_policy
+- [X] describe_backup_policy
 - [ ] describe_file_system_policy
-- [ ] describe_file_systems
+- [X] describe_file_systems
 - [ ] describe_lifecycle_configuration
 - [ ] describe_mount_target_security_groups
-- [ ] describe_mount_targets
+- [X] describe_mount_targets
 - [ ] describe_tags
 - [ ] list_tags_for_resource
 - [ ] modify_mount_target_security_groups
@@ -4313,7 +4313,7 @@
 
 ## events
 <details>
-<summary>76% implemented</summary>
+<summary>78% implemented</summary>
 
 - [ ] activate_event_source
 - [X] cancel_replay
@@ -4365,7 +4365,7 @@
 - [X] untag_resource
 - [X] update_api_destination
 - [X] update_archive
-- [ ] update_connection
+- [X] update_connection
 </details>
 
 ## finspace

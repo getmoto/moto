@@ -4,6 +4,43 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.1
+-----
+    General:
+        * We removed Py3.5 support
+        * We removed some unnecessary dependencies for the EC2/SQS services.
+
+    New Services:
+        * EFS:
+            * create_file_system
+            * create_mount_target
+            * delete_file_system
+            * delete_mount_target
+            * describe_backup_policy
+            * describe_file_systems
+            * describe_mount_target
+
+    New Methods:
+        * CognitoIDP:
+            * admin_user_global_sign_out()
+        * EC2:
+            * associate_transit_gateway_route_table()
+            * delete_transit_gateway_vpc_attachment()
+            * disable_transit_gateway_route_table_propagation()
+            * enable_transit_gateway_route_table_propagation()
+            * modify_vpc_tenancy()
+            * modify_transit_gateway_vpc_attachment()
+        * Events:
+            * update_connection()
+
+    Miscellaneous:
+        * EC2 - describe_route_tables() now returns the associationState-attribute
+        * EKS - list_clusters() received a pagination bug fix
+        * IOT - describe_certificate() now returns the validity-attribute
+        * SQS - create_queue() now supports empty tags
+        * SQS - set_queue_attributes() now supports setting an empty policy
+
+
 2.2.0
 -----
     General Changes:
