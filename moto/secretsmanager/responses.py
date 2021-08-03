@@ -46,22 +46,26 @@ class SecretsManagerResponse(BaseResponse):
         secret_binary = self._get_param("SecretBinary")
         description = self._get_param("Description", if_none="")
         tags = self._get_param("Tags", if_none=[])
+        kms_key_id = self._get_param("KmsKeyId", if_none=None)
         return secretsmanager_backends[self.region].create_secret(
             name=name,
             secret_string=secret_string,
             secret_binary=secret_binary,
             description=description,
             tags=tags,
+            kms_key_id=kms_key_id,
         )
 
     def update_secret(self):
         secret_id = self._get_param("SecretId")
         secret_string = self._get_param("SecretString")
         secret_binary = self._get_param("SecretBinary")
+        kms_key_id = self._get_param("KmsKeyId", if_none=None)
         return secretsmanager_backends[self.region].update_secret(
             secret_id=secret_id,
             secret_string=secret_string,
             secret_binary=secret_binary,
+            kms_key_id=kms_key_id,
         )
 
     def get_random_password(self):

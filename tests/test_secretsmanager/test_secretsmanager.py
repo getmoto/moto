@@ -456,6 +456,21 @@ def test_describe_secret_with_arn():
 
 
 @mock_secretsmanager
+def test_describe_secret_with_KmsKeyId():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    results = conn.create_secret(
+        Name="test-secret", SecretString="foosecret", KmsKeyId="dummy_arn"
+    )
+
+    secret_description = conn.describe_secret(SecretId=results["ARN"])
+
+    secret_description["KmsKeyId"].should.equal("dummy_arn")
+    conn.list_secrets()["SecretList"][0]["KmsKeyId"].should.equal(
+        secret_description["KmsKeyId"]
+    )
+
+
+@mock_secretsmanager
 def test_describe_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -643,7 +658,7 @@ def lambda_handler(event, context):
     arn = event['SecretId']
     token = event['ClientRequestToken']
     step = event['Step']
-    
+
     client = boto3.client("secretsmanager", region_name="us-west-2", endpoint_url="http://motoserver:5000")
     metadata = client.describe_secret(SecretId=arn)
     value = client.get_secret_value(SecretId=arn, VersionId=token, VersionStage="AWSPENDING")
@@ -661,31 +676,31 @@ def lambda_handler(event, context):
     elif "AWSPENDING" not in versions[token]:
         print("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
         raise ValueError("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
-    
+
     if step == 'createSecret':
         try:
             client.get_secret_value(SecretId=arn, VersionId=token, VersionStage='AWSPENDING')
         except client.exceptions.ResourceNotFoundException:
             client.put_secret_value(
-                SecretId=arn, 
-                ClientRequestToken=token, 
-                SecretString=json.dumps({'create': True}), 
+                SecretId=arn,
+                ClientRequestToken=token,
+                SecretString=json.dumps({'create': True}),
                 VersionStages=['AWSPENDING']
             )
 
     if step == 'setSecret':
         client.put_secret_value(
-            SecretId=arn, 
-            ClientRequestToken=token, 
-            SecretString='UpdatedValue', 
+            SecretId=arn,
+            ClientRequestToken=token,
+            SecretString='UpdatedValue',
             VersionStages=["AWSPENDING"],
         )
-    
+
     elif step == 'finishSecret':
         current_version = next(
             version
             for version, stages in metadata['VersionIdsToStages'].items()
-            if 'AWSCURRENT' in stages 
+            if 'AWSCURRENT' in stages
         )
         print("current: %s new: %s" % (current_version, token))
         client.update_secret_version_stage(
@@ -998,6 +1013,40 @@ def test_update_secret_with_tags_and_description():
         {"Key": "Mykey", "Value": "Myvalue"},
     ]
     assert secret_details["Description"] == "desc"
+
+
+@mock_secretsmanager
+def test_update_secret_with_KmsKeyId():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    created_secret = conn.create_secret(
+        Name="test-secret", SecretString="foosecret", KmsKeyId="foo_arn"
+    )
+
+    assert created_secret["ARN"]
+    assert created_secret["Name"] == "test-secret"
+    assert created_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "foosecret"
+
+    secret_details = conn.describe_secret(SecretId="test-secret")
+    secret_details["KmsKeyId"].should.equal("foo_arn")
+
+    updated_secret = conn.update_secret(
+        SecretId="test-secret", SecretString="barsecret", KmsKeyId="bar_arn"
+    )
+
+    assert updated_secret["ARN"]
+    assert updated_secret["Name"] == "test-secret"
+    assert updated_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "barsecret"
+    assert created_secret["VersionId"] != updated_secret["VersionId"]
+
+    secret_details = conn.describe_secret(SecretId="test-secret")
+    secret_details["KmsKeyId"].should.equal("bar_arn")
 
 
 @mock_secretsmanager
