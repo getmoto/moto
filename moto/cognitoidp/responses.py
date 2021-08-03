@@ -329,7 +329,7 @@ class CognitoIdpResponse(BaseResponse):
         if filt:
             inherent_attributes = {
                 "cognito:user_status": lambda u: u.status,
-                "status": lambda u: u.enabled,
+                "status": lambda u: "Enabled" if u.enabled else "Disabled",
                 "username": lambda u: u.username,
             }
             name, value = filt.replace('"', "").replace(" ", "").split("=")
