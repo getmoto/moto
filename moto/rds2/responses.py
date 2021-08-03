@@ -281,6 +281,19 @@ class RDS2Response(BaseResponse):
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
 
+    def modify_db_subnet_group(self):
+        subnet_name = self._get_param("DBSubnetGroupName")
+        description = self._get_param("DBSubnetGroupDescription")
+        subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
+        subnets = [
+            ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids
+        ]
+        subnet_group = self.backend.modify_db_subnet_group(
+            subnet_name, description, subnets
+        )
+        template = self.response_template(MODIFY_SUBNET_GROUPS_TEMPLATE)
+        return template.render(subnet_group=subnet_group)
+
     def delete_db_subnet_group(self):
         subnet_name = self._get_param("DBSubnetGroupName")
         subnet_group = self.backend.delete_subnet_group(subnet_name)
@@ -587,6 +600,15 @@ DESCRIBE_SUBNET_GROUPS_TEMPLATE = """<DescribeDBSubnetGroupsResponse xmlns="http
     <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
   </ResponseMetadata>
 </DescribeDBSubnetGroupsResponse>"""
+
+MODIFY_SUBNET_GROUPS_TEMPLATE = """<ModifyDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <ModifyDBSubnetGroupResult>
+    {{ subnet_group.to_xml() }}
+  </ModifyDBSubnetGroupResult>
+  <ResponseMetadata>
+    <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
+  </ResponseMetadata>
+</ModifyDBSubnetGroupResponse>"""
 
 DELETE_SUBNET_GROUP_TEMPLATE = """<DeleteDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <ResponseMetadata>

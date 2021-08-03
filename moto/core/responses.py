@@ -422,6 +422,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _send_response(headers, response):
+        if response is None:
+            response = "", {}
         if len(response) == 2:
             body, new_headers = response
         else:
