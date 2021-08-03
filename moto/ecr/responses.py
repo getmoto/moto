@@ -20,14 +20,23 @@ class ECRResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param):
-        return self.request_params.get(param, None)
+    def _get_param(self, param, if_none=None):
+        return self.request_params.get(param, if_none)
 
     def create_repository(self):
         repository_name = self._get_param("repositoryName")
-        if repository_name is None:
-            repository_name = "default"
-        repository = self.ecr_backend.create_repository(repository_name)
+        encryption_config = self._get_param("encryptionConfiguration")
+        image_scan_config = self._get_param("imageScanningConfiguration")
+        image_tag_mutablility = self._get_param("imageTagMutability")
+        tags = self._get_param("tags", [])
+
+        repository = self.ecr_backend.create_repository(
+            repository_name=repository_name,
+            encryption_config=encryption_config,
+            image_scan_config=image_scan_config,
+            image_tag_mutablility=image_tag_mutablility,
+            tags=tags,
+        )
         return json.dumps({"repository": repository.response_object})
 
     def describe_repositories(self):
@@ -175,3 +184,20 @@ class ECRResponse(BaseResponse):
     def upload_layer_part(self):
         if self.is_not_dryrun("UploadLayerPart"):
             raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
+
+    def list_tags_for_resource(self):
+        arn = self._get_param("resourceArn")
+
+        return json.dumps(self.ecr_backend.list_tags_for_resource(arn))
+
+    def tag_resource(self):
+        arn = self._get_param("resourceArn")
+        tags = self._get_param("tags", [])
+
+        return json.dumps(self.ecr_backend.tag_resource(arn, tags))
+
+    def untag_resource(self):
+        arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys", [])
+
+        return json.dumps(self.ecr_backend.untag_resource(arn, tag_keys))
