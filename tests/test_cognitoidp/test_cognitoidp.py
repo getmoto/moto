@@ -1221,6 +1221,13 @@ def test_list_users():
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
+    # checking Filter for inherent attributes
+    result = conn.list_users(
+        UserPoolId=user_pool_id, Filter='username = "{}"'.format(username_bis)
+    )
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(username_bis)
+
 
 @mock_cognitoidp
 def test_get_user_unconfirmed():

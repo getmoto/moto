@@ -327,6 +327,11 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, limit=limit, pagination_token=token
         )
         if filt:
+            inherent_attributes = {
+                "cognito:user_status": lambda u: u.status,
+                "status": lambda u: u.enabled,
+                "username": lambda u: u.username,
+            }
             name, value = filt.replace('"', "").replace(" ", "").split("=")
             users = [
                 user
@@ -336,6 +341,10 @@ class CognitoIdpResponse(BaseResponse):
                     for attr in user.attributes
                     if attr["Name"] == name and attr["Value"] == value
                 ]
+                or (
+                    name in inherent_attributes
+                    and inherent_attributes[name](user) == value
+                )
             ]
         response = {"Users": [user.to_json(extended=True) for user in users]}
         if token:
