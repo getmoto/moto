@@ -327,7 +327,7 @@ class ConfigAggregator(ConfigEmptyDictable):
         self.creation_time = datetime2int(datetime.utcnow())
         self.last_updated_time = datetime2int(datetime.utcnow())
 
-        # Tags are listed in the list_tags_for_resource API call ... not implementing yet -- please feel free to!
+        # Tags are listed in the list_tags_for_resource API call.
         self.tags = tags or {}
 
     # Override the to_dict so that we can format the tags properly...
@@ -340,9 +340,10 @@ class ConfigAggregator(ConfigEmptyDictable):
                 a.to_dict() for a in self.account_aggregation_sources
             ]
 
-        # Tags are listed in the list_tags_for_resource API call ... not implementing yet -- please feel free to!
-        # if self.tags:
-        #     result['Tags'] = [{'Key': key, 'Value': value} for key, value in self.tags.items()]
+        if self.tags:
+            result["Tags"] = [
+                {"Key": key, "Value": value} for key, value in self.tags.items()
+            ]
 
         return result
 
@@ -366,7 +367,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
         self.authorized_aws_region = authorized_aws_region
         self.creation_time = datetime2int(datetime.utcnow())
 
-        # Tags are listed in the list_tags_for_resource API call ... not implementing yet -- please feel free to!
+        # Tags are listed in the list_tags_for_resource API call.
         self.tags = tags or {}
 
 
@@ -1337,6 +1338,21 @@ class ConfigBackend(BaseBackend):
 
         for tag_key in tag_keys:
             matched_config.tags.pop(tag_key, None)
+
+    def list_tags_for_resource(self, resource_arn, limit, next_token):
+        """Return list of tags for AWS Config resource."""
+        # The limit argument is essentially ignored as a config instance
+        # can only have 50 tags, but we'll check the argument anyway.
+        # Although the boto3 documentation indicates the limit is 50, boto3
+        # accepts a limit value up to 100 as does the AWS CLI.
+        limit = limit or DEFAULT_PAGE_SIZE
+        if limit > DEFAULT_PAGE_SIZE:
+            raise InvalidLimitException(limit)
+
+        matched_config = self._match_arn(resource_arn)
+        return {
+            "Tags": [{"Key": k, "Value": v} for k, v in matched_config.tags.items()]
+        }
 
 
 config_backends = {}

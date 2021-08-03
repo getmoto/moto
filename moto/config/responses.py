@@ -133,14 +133,13 @@ class ConfigResponse(BaseResponse):
         )
         return json.dumps(schema)
 
-    # TODO
-    # def list_tags_for_resource(self):
-    #     schema = self.config_backend.list_tags_for_resource(
-    #         self._get_param("ResourceArn"),
-    #         self._get_param("Limit"),
-    #         self._get_param("NextToken"),
-    #     )
-    #     return json.dumps(schema)
+    def list_tags_for_resource(self):
+        schema = self.config_backend.list_tags_for_resource(
+            self._get_param("ResourceArn"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(schema)
 
     def get_resource_config_history(self):
         schema = self.config_backend.get_resource_config_history(

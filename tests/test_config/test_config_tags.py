@@ -99,11 +99,15 @@ def test_tag_resource():
     )
 
     # Verify keys added to ConfigurationAggregator.
-    # TODO - use list_tags_for_resources() to get current set of tags.
+    rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    tags = rsp["Tags"]
+
     new_tags = [{"Key": "test_key", "Value": "test_value"}]
     client.tag_resource(ResourceArn=good_arn, Tags=new_tags)
-    # TODO - use list_tags_for_resources() to verify the list of tags include
-    #        the original set of tags, plus the new ones.
+    tags.extend(new_tags)
+
+    updated_rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    assert tags == updated_rsp["Tags"]
 
     # Verify keys added to AggregationAuthorization.
     response = client.put_aggregation_authorization(
@@ -112,12 +116,16 @@ def test_tag_resource():
         Tags=[{"Key": f"{x}", "Value": f"{x}"} for x in range(10)],
     )
     agg_auth_arn = response["AggregationAuthorization"]["AggregationAuthorizationArn"]
-    # TODO - use list_tags_for_resources() to get current set of tags.
-    client.tag_resource(ResourceArn=agg_auth_arn, Tags=new_tags)
-    # TODO - use list_tags_for_resources() to verify the list of tags include
-    #        the original set of tags, plus the new ones.
+    rsp = client.list_tags_for_resource(ResourceArn=agg_auth_arn)
+    tags = rsp["Tags"]
 
-    # TODO - Verify keys added to ConfigRule, when implemented.
+    client.tag_resource(ResourceArn=agg_auth_arn, Tags=new_tags)
+    tags.extend(new_tags)
+
+    updated_rsp = client.list_tags_for_resource(ResourceArn=agg_auth_arn)
+    assert tags == updated_rsp["Tags"]
+
+    # Verify keys added to ConfigRule, when implemented.
 
 
 @mock_config
@@ -169,19 +177,27 @@ def test_untag_resource():
     client.untag_resource(ResourceArn=good_arn, TagKeys=["foo"])
 
     # Try a mix of existing and non-existing tags.
-    client.untag_resource(ResourceArn=good_arn, TagKeys=["0", "1", "foo", "3"])
-    # TODO - use list_tags_for_resources() to verify the existing tags are
-    #        removed
+    rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    tags = rsp["Tags"]
+
+    client.untag_resource(ResourceArn=good_arn, TagKeys=["10", "foo", "13"])
+
+    updated_rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    expected_tags = [x for x in tags if x["Key"] not in ["10", "13"]]
+    assert expected_tags == updated_rsp["Tags"]
 
     # Verify keys removed from ConfigurationAggregator.  Add a new tag to
     # the current set of tags, then delete the new tag.  The original set
     # of tags should remain.
-    # TODO - use list_tags_for_resources() to get current set of tags.
+    rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    tags = rsp["Tags"]
+
     test_tags = [{"Key": "test_key", "Value": "test_value"}]
     client.tag_resource(ResourceArn=good_arn, Tags=test_tags)
     client.untag_resource(ResourceArn=good_arn, TagKeys=[test_tags[0]["Key"]])
-    # TODO - use list_tags_for_resources() to verify the list of tags only
-    #        contains the original set of tags.
+
+    updated_rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    assert tags == updated_rsp["Tags"]
 
     # Verify keys removed from AggregationAuthorization.  Add a new tag to
     # the current set of tags, then delete the new tag.  The original set
@@ -192,15 +208,21 @@ def test_untag_resource():
         Tags=[{"Key": f"{x}", "Value": f"{x}"} for x in range(10)],
     )
     agg_auth_arn = response["AggregationAuthorization"]["AggregationAuthorizationArn"]
-    # TODO - use list_tags_for_resources() to get current set of tags.
+    rsp = client.list_tags_for_resource(ResourceArn=agg_auth_arn)
+    tags = rsp["Tags"]
+
     test_tags = [{"Key": "test_key", "Value": "test_value"}]
     client.tag_resource(ResourceArn=agg_auth_arn, Tags=test_tags)
-    client.untag_resource(ResourceArn=good_arn, TagKeys=[test_tags[0]["Key"]])
-    # TODO - use list_tags_for_resources() to verify the list of tags only
-    #        contains the original set of tags.
+    client.untag_resource(ResourceArn=agg_auth_arn, TagKeys=[test_tags[0]["Key"]])
+
+    updated_rsp = client.list_tags_for_resource(ResourceArn=agg_auth_arn)
+    assert tags == updated_rsp["Tags"]
 
     # Delete all the tags.
-    client.untag_resource(ResourceArn=good_arn, TagKeys=[f"{x}" for x in range(10)])
-    # TODO - use list_tags_for_resources() to verify there are no tags.
+    rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    client.untag_resource(ResourceArn=good_arn, TagKeys=[x["Key"] for x in rsp["Tags"]])
 
-    # TODO - Verify keys removed from ConfigRule, when implemented.
+    updated_rsp = client.list_tags_for_resource(ResourceArn=good_arn)
+    assert not updated_rsp["Tags"]
+
+    # Verify keys removed from ConfigRule, when implemented.
