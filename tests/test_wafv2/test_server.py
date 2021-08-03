@@ -9,8 +9,7 @@ import botocore
 from botocore.exceptions import ClientError
 import moto.server as server
 from moto import mock_wafv2
-from moto.wafv2.models import US_EAST_1_REGION
-from test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
+from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 from moto.core import ACCOUNT_ID
 
 CREATE_WEB_ACL_HEADERS = {

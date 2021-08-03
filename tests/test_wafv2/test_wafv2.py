@@ -6,7 +6,7 @@ import sure  # noqa
 import boto3
 from botocore.exceptions import ClientError
 from moto import mock_wafv2
-from test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
+from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 from moto.core import ACCOUNT_ID
 
 
