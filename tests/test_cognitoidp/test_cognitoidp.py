@@ -1221,12 +1221,43 @@ def test_list_users():
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
-    # checking Filter for inherent attributes
-    result = conn.list_users(
-        UserPoolId=user_pool_id, Filter='username = "{}"'.format(username_bis)
-    )
+
+@mock_cognitoidp
+def test_list_users_inherent_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    result = conn.list_users(UserPoolId=user_pool_id)
     result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username_bis)
+    result["Users"][0]["Username"].should.equal(username)
+
+    # create a confirmed disabled user
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    disabled_user_username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=disabled_user_username)
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=disabled_user_username, ConfirmationCode="123456"
+    )
+    conn.admin_disable_user(UserPoolId=user_pool_id, Username=disabled_user_username)
+
+    # filter, filter value, response field, response field expected value - all target confirmed disabled user
+    filters = [
+        ("username", disabled_user_username, "Username", disabled_user_username),
+        ("status", "Disabled", "Enabled", False),
+        ("cognito:user_status", "CONFIRMED", "UserStatus", "CONFIRMED"),
+    ]
+
+    for filter, filter_value, response_field, response_field_expected_value in filters:
+        result = conn.list_users(
+            UserPoolId=user_pool_id, Filter='{}="{}"'.format(filter, filter_value)
+        )
+        print(result)
+        result["Users"].should.have.length_of(1)
+        result["Users"][0][response_field].should.equal(response_field_expected_value)
 
 
 @mock_cognitoidp
