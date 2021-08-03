@@ -2370,6 +2370,7 @@
 
 - [X] batch_get_aggregate_resource_config
 - [X] batch_get_resource_config
+- [ ] can_paginate
 - [X] delete_aggregation_authorization
 - [ ] delete_config_rule
 - [X] delete_configuration_aggregator
@@ -2411,6 +2412,7 @@
 - [ ] describe_remediation_exceptions
 - [ ] describe_remediation_execution_status
 - [ ] describe_retention_configurations
+- [ ] generate_presigned_url
 - [ ] get_aggregate_compliance_details_by_config_rule
 - [ ] get_aggregate_config_rule_compliance_summary
 - [ ] get_aggregate_conformance_pack_compliance_summary
@@ -2425,12 +2427,14 @@
 - [ ] get_discovered_resource_counts
 - [ ] get_organization_config_rule_detailed_status
 - [X] get_organization_conformance_pack_detailed_status
+- [ ] get_paginator
 - [X] get_resource_config_history
 - [ ] get_stored_query
+- [ ] get_waiter
 - [X] list_aggregate_discovered_resources
 - [X] list_discovered_resources
 - [ ] list_stored_queries
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] put_aggregation_authorization
 - [ ] put_config_rule
 - [X] put_configuration_aggregator
@@ -2452,8 +2456,8 @@
 - [X] start_configuration_recorder
 - [ ] start_remediation_execution
 - [X] stop_configuration_recorder
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 </details>
 
 ## connect
