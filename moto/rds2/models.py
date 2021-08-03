@@ -1029,6 +1029,16 @@ class RDS2Backend(BaseBackend):
                 raise DBSubnetGroupNotFoundError(subnet_group_name)
         return self.subnet_groups.values()
 
+    def modify_db_subnet_group(self, subnet_name, description, subnets):
+        subnet_group = self.subnet_groups.pop(subnet_name)
+        if not subnet_group:
+            raise DBSubnetGroupNotFoundError(subnet_name)
+        subnet_group.subnet_name = subnet_name
+        subnet_group.subnets = subnets
+        if description is not None:
+            subnet_group.description = description
+        return subnet_group
+
     def delete_subnet_group(self, subnet_name):
         if subnet_name in self.subnet_groups:
             return self.subnet_groups.pop(subnet_name)
