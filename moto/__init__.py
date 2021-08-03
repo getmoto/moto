@@ -133,7 +133,7 @@ mock_efs = lazy_load(".efs", "mock_efs")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.1.dev"
+__version__ = "2.2.2.dev"
 
 
 try:
