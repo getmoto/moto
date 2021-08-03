@@ -184,3 +184,8 @@ class ECRResponse(BaseResponse):
     def upload_layer_part(self):
         if self.is_not_dryrun("UploadLayerPart"):
             raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
+
+    def list_tags_for_resource(self):
+        arn = self._get_param("resourceArn")
+
+        return json.dumps(self.ecr_backend.list_tags_for_resource(arn))

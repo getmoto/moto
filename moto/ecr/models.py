@@ -270,7 +270,7 @@ class ECRBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.repositories = {}
-        self.tagger = TaggingService()
+        self.tagger = TaggingService(tagName="tags")
 
     def reset(self):
         region_name = self.region_name
@@ -576,6 +576,15 @@ class ECRBackend(BaseBackend):
                     response["failures"].append(failure_response)
 
         return response
+
+    def list_tags_for_resource(self, arn):
+        name = arn.split("/")[-1]
+
+        repo = self.repositories.get(name)
+        if repo:
+            return self.tagger.list_tags_for_resource(repo.arn)
+        else:
+            raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
 
 
 ecr_backends = {}

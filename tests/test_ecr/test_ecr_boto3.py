@@ -1166,3 +1166,43 @@ def test_batch_delete_image_with_mismatched_digest_and_tag():
     batch_delete_response["failures"][0]["failureReason"].should.equal(
         "Requested image not found"
     )
+
+
+@mock_ecr
+def test_list_tags_for_resource():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    arn = client.create_repository(
+        repositoryName=repo_name, tags=[{"Key": "key-1", "Value": "value-1"}],
+    )["repository"]["repositoryArn"]
+
+    # when
+    tags = client.list_tags_for_resource(resourceArn=arn)["tags"]
+
+    # then
+    tags.should.equal([{"Key": "key-1", "Value": "value-1"}])
+
+
+@mock_ecr
+def test_list_tags_for_resource_error_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_tags_for_resource(
+            resourceArn=f"arn:aws:ecr:{region_name}:{ACCOUNT_ID}:repository/{repo_name}"
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
