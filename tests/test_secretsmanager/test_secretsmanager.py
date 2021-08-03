@@ -454,10 +454,13 @@ def test_describe_secret_with_arn():
     secret_description["ARN"].should.equal(results["ARN"])
     conn.list_secrets()["SecretList"][0]["ARN"].should.equal(results["ARN"])
 
+
 @mock_secretsmanager
 def test_describe_secret_with_KmsKeyId():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    results = conn.create_secret(Name="test-secret", SecretString="foosecret", KmsKeyId="dummy_arn")
+    results = conn.create_secret(
+        Name="test-secret", SecretString="foosecret", KmsKeyId="dummy_arn"
+    )
 
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
