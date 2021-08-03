@@ -251,9 +251,10 @@ class EventsHandler(BaseResponse):
         action = self._get_param("Action")
         principal = self._get_param("Principal")
         statement_id = self._get_param("StatementId")
+        policy = self._get_param("Policy")
 
         self.events_backend.put_permission(
-            event_bus_name, action, principal, statement_id
+            event_bus_name, action, principal, statement_id, policy
         )
 
         return ""
@@ -261,8 +262,11 @@ class EventsHandler(BaseResponse):
     def remove_permission(self):
         event_bus_name = self._get_param("EventBusName")
         statement_id = self._get_param("StatementId")
+        remove_all_permissions = self._get_param("RemoveAllPermissions")
 
-        self.events_backend.remove_permission(event_bus_name, statement_id)
+        self.events_backend.remove_permission(
+            event_bus_name, statement_id, remove_all_permissions
+        )
 
         return ""
 
