@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import hashlib
 import re
+import uuid
 from datetime import datetime
 from random import random
 
@@ -66,10 +67,19 @@ class Repository(BaseObject, CloudFormationModel):
         )
         self.image_tag_mutability = image_tag_mutablility or "MUTABLE"
         self.image_scanning_configuration = image_scan_config or {"scanOnPush": False}
-        self.encryption_configuration = encryption_config or {
-            "encryptionType": "AES256"
-        }
+        self.encryption_configuration = self._determine_encryption_config(
+            encryption_config
+        )
         self.images = []
+
+    def _determine_encryption_config(self, encryption_config):
+        if not encryption_config:
+            return {"encryptionType": "AES256"}
+        if encryption_config == {"encryptionType": "KMS"}:
+            encryption_config[
+                "kmsKey"
+            ] = f"arn:aws:kms:{self.region_name}:{ACCOUNT_ID}:key/{uuid.uuid4()}"
+        return encryption_config
 
     @property
     def physical_resource_id(self):
@@ -583,6 +593,16 @@ class ECRBackend(BaseBackend):
         repo = self.repositories.get(name)
         if repo:
             return self.tagger.list_tags_for_resource(repo.arn)
+        else:
+            raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
+
+    def tag_resource(self, arn, tags):
+        name = arn.split("/")[-1]
+
+        repo = self.repositories.get(name)
+        if repo:
+            self.tagger.tag_resource(repo.arn, tags)
+            return {}
         else:
             raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
 
