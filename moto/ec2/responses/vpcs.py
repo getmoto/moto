@@ -217,16 +217,7 @@ class VPCs(BaseResponse):
         prefix_list_name = self._get_param("PrefixListName")
         entry = self._get_multi_param("Entry")
 
-        print(
-            "=====create_managed_prefix_list======", "\n",
-            address_family,
-            max_entries,
-            prefix_list_name,
-            entry,
-            "======END=====", "\n"
-        )
-
-        tags = self._get_multi_param("TagSpecifications")
+        tags = self._get_multi_param("TagSpecification")
         tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
         tags = (tags or {}).get("Tag", [])
         tags = {t["Key"]: t["Value"] for t in tags}
@@ -248,7 +239,6 @@ class VPCs(BaseResponse):
             prefix_list_ids=prefix_list_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_MANAGED_PREFIX_LIST)
-        print("managed_prefix_lists:", managed_prefix_lists)
         return template.render(managed_prefix_lists=managed_prefix_lists)
 
     def get_managed_prefix_list_entries(self):
@@ -257,14 +247,28 @@ class VPCs(BaseResponse):
         managed_prefix_list = self.ec2_backend.get_managed_prefix_list_entries(
             prefix_list_id=prefix_list_id,
         )
-        entries = list(managed_prefix_list.entries.values())
+        entries = list(managed_prefix_list.entries.values())[-1]
         if target_version:
             target_version = int(target_version)
-            entries = [managed_prefix_list.entries.get(target_version)]
+            entries = managed_prefix_list.entries.get(target_version)
         template = self.response_template(GET_MANAGED_PREFIX_LIST_ENTRIES)
-        print(managed_prefix_list.entries)
-        print(entries)
         return template.render(entries=entries)
+
+    def delete_managed_prefix_list(self):
+        prefix_list_id = self._get_param("PrefixListId")
+        managed_prefix_list = self.ec2_backend.delete_managed_prefix_list(prefix_list_id)
+        template = self.response_template(DELETE_MANAGED_PREFIX_LIST)
+        return template.render(managed_prefix_list=managed_prefix_list)
+
+    def describe_prefix_lists(self):
+        prefix_list_ids = self._get_multi_param("PrefixListId")
+        filters = filters_from_querystring(self.querystring)
+        self.ec2_backend.create_default_pls()
+        managed_pls = self.ec2_backend.describe_managed_prefix_lists(
+            prefix_list_ids=prefix_list_ids, filters=filters
+        )
+        template = self.response_template(DESCRIBE_PREFIX_LIST)
+        return template.render(managed_pls=managed_pls)
 
 
 CREATE_VPC_RESPONSE = """
@@ -656,7 +660,9 @@ DESCRIBE_MANAGED_PREFIX_LIST = """<DescribeManagedPrefixListsResponse xmlns="htt
         {% for managed_prefix_list in managed_prefix_lists %}
             <item>
                 <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+                {% if managed_prefix_list.max_entries %}
                 <maxEntries>{{ managed_prefix_list.max_entries }}</maxEntries>
+                {% endif %}
                 <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
                 <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
                 <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
@@ -670,7 +676,9 @@ DESCRIBE_MANAGED_PREFIX_LIST = """<DescribeManagedPrefixListsResponse xmlns="htt
                     </item>
                 {% endfor %}
                 </tagSet>
+                {% if managed_prefix_list.version %}
                 <version>{{ managed_prefix_list.version }}</version>
+                {% endif %}
             </item>
         {% endfor %}
     </prefixListSet>
@@ -682,13 +690,56 @@ GET_MANAGED_PREFIX_LIST_ENTRIES = """<GetManagedPrefixListEntriesResponse xmlns=
     <requestId>39a3c79f-846f-4382-a592-example</requestId>
     <entrySet>
     {% for entry in entries %}
-     {% for item in entry %}
         <item>
-            <cidr>{{ item.Cidr or ''}}</cidr>
-            <description>{{ item.Description or ''}}</description>
+            <cidr>{{ entry.Cidr or ''}}</cidr>
+            <description>{{ entry.Description or ''}}</description>
         </item>
-     {% endfor %}
     {% endfor %}
     </entrySet>
 </GetManagedPrefixListEntriesResponse>
+"""
+
+
+DELETE_MANAGED_PREFIX_LIST = """<DeleteManagedPrefixListResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>39a3c79f-846f-4382-a592-example</requestId>
+    <prefixList>
+        <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+        <maxEntries>{{ managed_prefix_list.max_entries or '' }}</maxEntries>
+        <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+        <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+        <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+        <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+        <state>{{ managed_prefix_list.state }}</state>
+        <tagSet>
+        {% for tag in managed_prefix_list.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
+        <version>{{ managed_prefix_list.version or ''}}</version>
+    </prefixList>
+</DeleteManagedPrefixListResponse>
+"""
+
+
+DESCRIBE_PREFIX_LIST = """<DescribePrefixListsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>8a2ec0e2-6918-4270-ae45-58e61971e97d</requestId>
+    <prefixListSet>
+    {% for pl in managed_pls %}
+    {% if pl.prefix_list_name.startswith("com.amazonaws.") %}
+        <item>
+            <cidrSet>
+                {% for entry in pl.entries %}
+                <item>{{ entry.Cidr }}</item>
+                {% endfor %}
+            </cidrSet>
+            <prefixListId>{{ pl.id }}</prefixListId>
+            <prefixListName>{{ pl.prefix_list_name }}</prefixListName>
+        </item>
+    {% endif %}
+    {% endfor %}
+    </prefixListSet>
+</DescribePrefixListsResponse>
 """
