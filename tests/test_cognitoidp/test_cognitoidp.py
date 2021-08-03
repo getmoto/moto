@@ -1255,7 +1255,6 @@ def test_list_users_inherent_attributes():
         result = conn.list_users(
             UserPoolId=user_pool_id, Filter='{}="{}"'.format(filter, filter_value)
         )
-        print(result)
         result["Users"].should.have.length_of(1)
         result["Users"][0][response_field].should.equal(response_field_expected_value)
 
