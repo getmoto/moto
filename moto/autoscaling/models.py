@@ -1053,7 +1053,9 @@ class AutoScalingBackend(BaseBackend):
         ]
         group = self.autoscaling_groups[group_name]
         set_to_add = set(scaling_processes or all_proc_names)
-        group.suspended_processes = list(set(group.suspended_processes).union(set_to_add))
+        group.suspended_processes = list(
+            set(group.suspended_processes).union(set_to_add)
+        )
 
     def resume_processes(self, group_name, scaling_processes):
         group = self.autoscaling_groups[group_name]
