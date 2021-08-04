@@ -5,7 +5,6 @@ import hashlib
 import fnmatch
 import random
 import re
-from sys import prefix
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
