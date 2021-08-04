@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import filters_from_querystring
+from moto.ec2.utils import add_tag_specification, filters_from_querystring
 
 
 class VPCs(BaseResponse):
@@ -184,10 +184,11 @@ class VPCs(BaseResponse):
         type = self._get_param("VpcEndpointType")
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
-        tag_specifications = self._get_param("TagSpecifications")
+        tags = self._get_multi_param("TagSpecification")
         private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
         security_group_ids = self._get_multi_param("SecurityGroupId")
 
+        tags = add_tag_specification(tags)
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
@@ -197,10 +198,9 @@ class VPCs(BaseResponse):
             subnet_ids=subnet_ids,
             client_token=client_token,
             security_group_ids=security_group_ids,
-            tag_specifications=tag_specifications,
+            tags=tags,
             private_dns_enabled=private_dns_enabled,
         )
-
         template = self.response_template(CREATE_VPC_END_POINT)
         return template.render(vpc_end_point=vpc_end_point)
 
@@ -483,6 +483,14 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
             {% endfor %}
         {% endif %}
         </dnsEntrySet>
+        <tagSet>
+        {% for tag in vpc_end_point.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
         <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
     </vpcEndpoint>
 </CreateVpcEndpointResponse>"""
@@ -571,16 +579,14 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </groupSet>
                 {% endif %}
-                {% if vpc_end_point.tag_specifications %}
-                    <tagSet>
-                        {% for tag in vpc_end_point.tag_specifications %}
-                          <item>
-                            <key>{{ tag.key }}</key>
-                            <value>{{ tag.value }}</value>
-                          </item>
-                        {% endfor %}
-                    </tagSet>
-                {% endif %}
+                <tagSet>
+                {% for tag in vpc_end_point.get_tags() %}
+                    <item>
+                        <key>{{ tag.key }}</key>
+                        <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+                </tagSet>
                 <ownerId>{{ account_id }}</ownerId>
                 <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
             </item>

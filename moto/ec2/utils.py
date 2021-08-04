@@ -5,6 +5,7 @@ import hashlib
 import fnmatch
 import random
 import re
+from sys import prefix
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
@@ -40,6 +41,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "reservation": "r",
     "volume": "vol",
     "vpc": "vpc",
+    "vpc-endpoint": "vpce",
     "vpc-cidr-association-id": "vpc-cidr-assoc",
     "vpc-elastic-ip": "eipalloc",
     "vpc-elastic-ip-association": "eipassoc",
@@ -129,6 +131,10 @@ def random_volume_id():
 
 def random_vpc_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc"])
+
+
+def random_vpc_ep_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-endpoint"], size=8)
 
 
 def random_vpc_cidr_association_id():
@@ -223,10 +229,6 @@ def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
     return "%s~%s" % (route_table_id, cidr_block)
-
-
-def generate_vpc_end_point_id(vpc_id):
-    return "%s-%s%s" % ("vpce", vpc_id[4:], random_resource_id(4))
 
 
 def create_dns_entries(service_name, vpc_endpoint_id):
