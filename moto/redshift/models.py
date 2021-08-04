@@ -5,7 +5,7 @@ import datetime
 
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.utils import random_string

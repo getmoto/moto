@@ -24,7 +24,7 @@ from moto.packages.boto.ec2.spotinstancerequest import (
 )
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel, CloudFormationModel
 from moto.core.utils import (

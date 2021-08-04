@@ -22,7 +22,7 @@ from werkzeug.wrappers import Request
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
-from moto.compat import patch
+from unittest.mock import patch
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,

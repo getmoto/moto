@@ -4,7 +4,7 @@ import json
 import yaml
 
 import sure  # noqa
-from tests.compat import patch
+from unittest.mock import patch
 
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack

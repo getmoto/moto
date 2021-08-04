@@ -8,7 +8,7 @@ from moto.packages.boto.ec2.blockdevicemapping import (
 )
 from moto.ec2.exceptions import InvalidInstanceIdError
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends

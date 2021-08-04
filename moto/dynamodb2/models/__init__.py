@@ -8,7 +8,7 @@ import re
 import uuid
 
 from boto3 import Session
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis
@@ -957,16 +957,6 @@ class Table(CloudFormationModel):
                     last_evaluated_key[col] = results[-1].attrs[col]
 
         return results, last_evaluated_key
-
-    def lookup(self, *args, **kwargs):
-        if not self.schema:
-            self.describe()
-        for x, arg in enumerate(args):
-            kwargs[self.schema[x].name] = arg
-        ret = self.get_item(**kwargs)
-        if not ret.keys():
-            return None
-        return ret
 
     def delete(self, region_name):
         dynamodb_backends[region_name].delete_table(self.name)

@@ -6,7 +6,7 @@ import copy
 import warnings
 import re
 
-from moto.compat import collections_abc
+import collections.abc as collections_abc
 
 # This ugly section of imports is necessary because we
 # build the list of CloudFormationModel subclasses using

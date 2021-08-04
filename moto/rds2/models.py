@@ -8,7 +8,7 @@ from collections import defaultdict
 from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds

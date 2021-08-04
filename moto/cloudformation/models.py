@@ -6,7 +6,7 @@ import uuid
 
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 

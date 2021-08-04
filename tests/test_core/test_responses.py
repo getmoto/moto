@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import sure  # noqa
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 
 from botocore.awsrequest import AWSPreparedRequest
 

@@ -4,7 +4,7 @@ import datetime
 import re
 from jinja2 import Template
 from botocore.exceptions import ParamValidationError
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (

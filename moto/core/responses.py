@@ -21,7 +21,7 @@ import xmltodict
 from werkzeug.exceptions import HTTPException
 
 import boto3
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto import settings
 
