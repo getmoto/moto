@@ -1322,3 +1322,76 @@ def test_untag_resource_error_not_exists():
         f"The repository with name '{repo_name}' does not exist "
         f"in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_put_image_tag_mutability():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    response = client.describe_repositories(repositoryNames=[repo_name])
+    response["repositories"][0]["imageTagMutability"].should.equal("MUTABLE")
+
+    # when
+    response = client.put_image_tag_mutability(
+        repositoryName=repo_name, imageTagMutability="IMMUTABLE",
+    )
+
+    # then
+    response["imageTagMutability"].should.equal("IMMUTABLE")
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+
+    response = client.describe_repositories(repositoryNames=[repo_name])
+    response["repositories"][0]["imageTagMutability"].should.equal("IMMUTABLE")
+
+
+@mock_ecr
+def test_put_image_tag_mutability_error_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_image_tag_mutability(
+            repositoryName=repo_name, imageTagMutability="IMMUTABLE",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutImageTagMutability")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_put_image_tag_mutability_error_invalid_param():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_image_tag_mutability(
+            repositoryName=repo_name, imageTagMutability="invalid",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutImageTagMutability")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+    ex.response["Error"]["Message"].should.equal(
+        "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
+        "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
+    )

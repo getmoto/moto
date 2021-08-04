@@ -16,6 +16,7 @@ from moto.ecr.exceptions import (
     RepositoryNotFoundException,
     RepositoryAlreadyExistsException,
     RepositoryNotEmptyException,
+    InvalidParameterException,
 )
 from moto.utilities.tagging_service import TaggingService
 
@@ -99,7 +100,7 @@ class Repository(BaseObject, CloudFormationModel):
         del response_object["arn"], response_object["name"], response_object["images"]
         return response_object
 
-    def update(self, image_scan_config, image_tag_mutability):
+    def update(self, image_scan_config=None, image_tag_mutability=None):
         if image_scan_config:
             self.image_scan_config = image_scan_config
         if image_tag_mutability:
@@ -615,6 +616,28 @@ class ECRBackend(BaseBackend):
             return {}
         else:
             raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
+
+    def put_image_tag_mutability(
+        self, registry_id, repository_name, image_tag_mutability
+    ):
+        if image_tag_mutability not in ["IMMUTABLE", "MUTABLE"]:
+            raise InvalidParameterException(
+                "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
+                "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
+            )
+
+        registry_id = registry_id or DEFAULT_REGISTRY_ID
+        repo = self.repositories.get(repository_name)
+        if not repo or repo.registry_id != registry_id:
+            raise RepositoryNotFoundException(repository_name, registry_id)
+
+        repo.update(image_tag_mutability=image_tag_mutability)
+
+        return {
+            "registryId": registry_id,
+            "repositoryName": repository_name,
+            "imageTagMutability": image_tag_mutability,
+        }
 
 
 ecr_backends = {}
