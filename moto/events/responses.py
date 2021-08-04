@@ -252,9 +252,10 @@ class EventsHandler(BaseResponse):
         principal = self._get_param("Principal")
         statement_id = self._get_param("StatementId")
         policy = self._get_param("Policy")
+        condition = self._get_param("Condition")
 
         self.events_backend.put_permission(
-            event_bus_name, action, principal, statement_id, policy
+            event_bus_name, action, principal, statement_id, condition, policy
         )
 
         return ""
