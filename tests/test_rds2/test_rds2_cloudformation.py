@@ -25,10 +25,10 @@ def test_create_subnetgroup_via_cf():
                 "Properties": {
                     "DBSubnetGroupName": "subnetgroupname",
                     "DBSubnetGroupDescription": "subnetgroupdesc",
-                    "SubnetIds": [subnet["SubnetId"]]
-                }
+                    "SubnetIds": [subnet["SubnetId"]],
+                },
             }
-        }
+        },
     }
     template_json = json.dumps(template)
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
@@ -62,15 +62,17 @@ def test_create_dbinstance_via_cf():
                     "Port": 3307,
                     "Engine": "mysql",
                     # Required - throws exception when describing an instance without tags
-                    "Tags": []
-                }
+                    "Tags": [],
+                },
             }
-        }
+        },
     }
     template_json = json.dumps(template)
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
 
-    summaries = cf.list_stack_resources(StackName="test_stack")["StackResourceSummaries"]
+    summaries = cf.list_stack_resources(StackName="test_stack")[
+        "StackResourceSummaries"
+    ]
 
     db_instance_identifier = summaries[0]["PhysicalResourceId"]
     resp = rds.describe_db_instances()["DBInstances"]
@@ -98,11 +100,9 @@ def test_create_dbsecuritygroup_via_cf():
         "Resources": {
             "db": {
                 "Type": "AWS::RDS::DBSecurityGroup",
-                "Properties": {
-                    "GroupDescription": "my sec group"
-                }
+                "Properties": {"GroupDescription": "my sec group"},
             }
-        }
+        },
     }
     template_json = json.dumps(template)
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
