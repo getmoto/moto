@@ -191,17 +191,17 @@ def test_list_jobs():
     )
     job_id2 = resp["jobId"]
 
-    batch_client.list_jobs(
-        jobQueue=queue_arn, jobStatus="SUCCEEDED"
-    )["jobSummaryList"].should.have.length_of(0)
+    batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
+        "jobSummaryList"
+    ].should.have.length_of(0)
 
     # Wait only as long as it takes to run the jobs
     for job_id in [job_id1, job_id2]:
         _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
-    batch_client.list_jobs(
-        jobQueue=queue_arn, jobStatus="SUCCEEDED"
-    )["jobSummaryList"].should.have.length_of(2)
+    batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
+        "jobSummaryList"
+    ].should.have.length_of(2)
 
 
 @mock_logs
@@ -651,4 +651,3 @@ def test_container_overrides():
     sure.expect(env_var).to.contain({"name": "TEST2", "value": "from job"})
 
     sure.expect(env_var).to.contain({"name": "AWS_BATCH_JOB_ID", "value": job_id})
-

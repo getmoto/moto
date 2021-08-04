@@ -77,7 +77,9 @@ def test_create_job_queue_twice():
             jobQueueName="test_job_queue",
             state="ENABLED",
             priority=123,
-            computeEnvironmentOrder=[{"order": 123, "computeEnvironment": compute_env_arn}],
+            computeEnvironmentOrder=[
+                {"order": 123, "computeEnvironment": compute_env_arn}
+            ],
         )
 
     err = ex.value.response["Error"]
