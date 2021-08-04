@@ -3383,11 +3383,14 @@ class PeeringConnectionStatus(object):
 
 
 class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, vpc_pcx_id, vpc, peer_vpc):
+    def __init__(self, backend, vpc_pcx_id, vpc, peer_vpc, tags=[]):
         self.id = vpc_pcx_id
+        self.ec2_backend = backend
         self.vpc = vpc
         self.peer_vpc = peer_vpc
-        self._status = PeeringConnectionStatus()
+        self.add_tags(tags or {})
+
+        self._status = VPCPeeringConnectionStatus()
 
     @staticmethod
     def cloudformation_name_type():
@@ -3433,9 +3436,9 @@ class VPCPeeringConnectionBackend(object):
             if inst is not None:
                 yield inst
 
-    def create_vpc_peering_connection(self, vpc, peer_vpc):
+    def create_vpc_peering_connection(self, vpc, peer_vpc, tags):
         vpc_pcx_id = random_vpc_peering_connection_id()
-        vpc_pcx = VPCPeeringConnection(vpc_pcx_id, vpc, peer_vpc)
+        vpc_pcx = VPCPeeringConnection(self, vpc_pcx_id, vpc, peer_vpc, tags)
         vpc_pcx._status.pending()
         self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
         # insert cross region peering info
@@ -4383,8 +4386,12 @@ class VPCEndPoint(TaggedEC2Resource):
         self.security_group_ids = security_group_ids
         self.tag_specifications = tag_specifications
         self.private_dns_enabled = private_dns_enabled
-        self.created_at = datetime.utcnow()
+        self._created_at = datetime.utcnow()
         self.dns_entries = dns_entries
+
+    @property
+    def created_at(self):
+        return iso_8601_datetime_with_milliseconds(self._created_at)
 
 
 class RouteBackend(object):
