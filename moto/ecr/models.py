@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import hashlib
 import re
 import uuid
+from collections import namedtuple
 from datetime import datetime
 from random import random
 
@@ -21,6 +22,11 @@ from moto.ecr.exceptions import (
 from moto.utilities.tagging_service import TaggingService
 
 DEFAULT_REGISTRY_ID = ACCOUNT_ID
+ECR_REPOSITORY_ARN_PATTERN = "^arn:(?P<partition>[^:]+):ecr:(?P<region>[^:]+):(?P<account_id>[^:]+):repository/(?P<repo_name>.*)$"
+
+EcrRepositoryArn = namedtuple(
+    "EcrRepositoryArn", ["partition", "region", "account_id", "repo_name"]
+)
 
 
 class BaseObject(BaseModel):
@@ -102,7 +108,7 @@ class Repository(BaseObject, CloudFormationModel):
 
     def update(self, image_scan_config=None, image_tag_mutability=None):
         if image_scan_config:
-            self.image_scan_config = image_scan_config
+            self.image_scanning_configuration = image_scan_config
         if image_tag_mutability:
             self.image_tag_mutability = image_tag_mutability
 
@@ -288,6 +294,24 @@ class ECRBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    def _get_repository(self, name, registry_id=None):
+        repo = self.repositories.get(name)
+        reg_id = registry_id or DEFAULT_REGISTRY_ID
+
+        if not repo or repo.registry_id != reg_id:
+            raise RepositoryNotFoundException(name, reg_id)
+        return repo
+
+    @staticmethod
+    def _parse_resource_arn(resource_arn) -> EcrRepositoryArn:
+        match = re.match(ECR_REPOSITORY_ARN_PATTERN, resource_arn)
+        if not match:
+            raise InvalidParameterException(
+                "Invalid parameter at 'resourceArn' failed to satisfy constraint: "
+                "'Invalid ARN'"
+            )
+        return EcrRepositoryArn(**match.groupdict())
+
     def describe_repositories(self, registry_id=None, repository_names=None):
         """
         maxResults and nextToken not implemented
@@ -337,19 +361,15 @@ class ECRBackend(BaseBackend):
         return repository
 
     def delete_repository(self, repository_name, registry_id=None):
-        repo = self.repositories.get(repository_name)
-        if repo:
-            if repo.images:
-                raise RepositoryNotEmptyException(
-                    repository_name, registry_id or DEFAULT_REGISTRY_ID
-                )
+        repo = self._get_repository(repository_name, registry_id)
 
-            self.tagger.delete_all_tags_for_resource(repo.arn)
-            return self.repositories.pop(repository_name)
-        else:
-            raise RepositoryNotFoundException(
+        if repo.images:
+            raise RepositoryNotEmptyException(
                 repository_name, registry_id or DEFAULT_REGISTRY_ID
             )
+
+        self.tagger.delete_all_tags_for_resource(repo.arn)
+        return self.repositories.pop(repository_name)
 
     def list_images(self, repository_name, registry_id=None):
         """
@@ -589,33 +609,24 @@ class ECRBackend(BaseBackend):
         return response
 
     def list_tags_for_resource(self, arn):
-        name = arn.split("/")[-1]
+        resource = self._parse_resource_arn(arn)
+        repo = self._get_repository(resource.repo_name, resource.account_id)
 
-        repo = self.repositories.get(name)
-        if repo:
-            return self.tagger.list_tags_for_resource(repo.arn)
-        else:
-            raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
+        return self.tagger.list_tags_for_resource(repo.arn)
 
     def tag_resource(self, arn, tags):
-        name = arn.split("/")[-1]
+        resource = self._parse_resource_arn(arn)
+        repo = self._get_repository(resource.repo_name, resource.account_id)
+        self.tagger.tag_resource(repo.arn, tags)
 
-        repo = self.repositories.get(name)
-        if repo:
-            self.tagger.tag_resource(repo.arn, tags)
-            return {}
-        else:
-            raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
+        return {}
 
     def untag_resource(self, arn, tag_keys):
-        name = arn.split("/")[-1]
+        resource = self._parse_resource_arn(arn)
+        repo = self._get_repository(resource.repo_name, resource.account_id)
+        self.tagger.untag_resource_using_names(repo.arn, tag_keys)
 
-        repo = self.repositories.get(name)
-        if repo:
-            self.tagger.untag_resource_using_names(repo.arn, tag_keys)
-            return {}
-        else:
-            raise RepositoryNotFoundException(name, DEFAULT_REGISTRY_ID)
+        return {}
 
     def put_image_tag_mutability(
         self, registry_id, repository_name, image_tag_mutability
@@ -626,17 +637,25 @@ class ECRBackend(BaseBackend):
                 "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
             )
 
-        registry_id = registry_id or DEFAULT_REGISTRY_ID
-        repo = self.repositories.get(repository_name)
-        if not repo or repo.registry_id != registry_id:
-            raise RepositoryNotFoundException(repository_name, registry_id)
-
+        repo = self._get_repository(repository_name, registry_id)
         repo.update(image_tag_mutability=image_tag_mutability)
 
         return {
-            "registryId": registry_id,
+            "registryId": repo.registry_id,
             "repositoryName": repository_name,
-            "imageTagMutability": image_tag_mutability,
+            "imageTagMutability": repo.image_tag_mutability,
+        }
+
+    def put_image_scanning_configuration(
+        self, registry_id, repository_name, image_scan_config
+    ):
+        repo = self._get_repository(repository_name, registry_id)
+        repo.update(image_scan_config=image_scan_config)
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "imageScanningConfiguration": repo.image_scanning_configuration,
         }
 
 
