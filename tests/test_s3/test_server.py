@@ -7,7 +7,7 @@ import sure  # noqa
 
 from flask.testing import FlaskClient
 import moto.server as server
-from tests.compat import patch
+from unittest.mock import patch
 
 """
 Test the different server responses

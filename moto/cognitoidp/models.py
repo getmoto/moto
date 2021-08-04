@@ -10,7 +10,7 @@ import time
 import uuid
 from boto3 import Session
 from jose import jws
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from .exceptions import (

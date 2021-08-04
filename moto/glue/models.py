@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from .exceptions import (
     JsonRESTError,
     DatabaseAlreadyExistsException,

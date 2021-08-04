@@ -1,4 +1,4 @@
-from moto.compat import collections_abc
+import collections.abc as collections_abc
 from moto.core.utils import get_random_hex
 
 
