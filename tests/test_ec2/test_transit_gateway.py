@@ -411,3 +411,304 @@ def test_create_transit_gateway_vpc_attachment():
     attachment.should.have.key("SubnetIds").equal(["sub1"])
     attachment.should.have.key("State").equal("available")
     attachment.should.have.key("Tags").equal([])
+
+
+@mock_ec2
+def test_modify_transit_gateway_vpc_attachment_add_subnets():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    response = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1", "sub3"]
+    )
+    attchmnt_id = response["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
+
+    ec2.modify_transit_gateway_vpc_attachment(
+        TransitGatewayAttachmentId=attchmnt_id, AddSubnetIds=["sub2"]
+    )
+
+    attachment = ec2.describe_transit_gateway_vpc_attachments(
+        TransitGatewayAttachmentIds=[attchmnt_id]
+    )["TransitGatewayVpcAttachments"][0]
+    sorted(attachment["SubnetIds"]).should.equal(["sub1", "sub2", "sub3"])
+
+
+@mock_ec2
+def test_modify_transit_gateway_vpc_attachment_remove_subnets():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    response = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1", "sub2", "sub3"]
+    )
+    attchmnt_id = response["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
+
+    ec2.modify_transit_gateway_vpc_attachment(
+        TransitGatewayAttachmentId=attchmnt_id, RemoveSubnetIds=["sub2"]
+    )
+
+    attachment = ec2.describe_transit_gateway_vpc_attachments(
+        TransitGatewayAttachmentIds=[attchmnt_id]
+    )["TransitGatewayVpcAttachments"][0]
+    attachment["SubnetIds"].should.equal(["sub1", "sub3"])
+
+
+@mock_ec2
+def test_modify_transit_gateway_vpc_attachment_change_options():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    response = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id,
+        VpcId="vpc-id",
+        SubnetIds=["sub1"],
+        Options={
+            "DnsSupport": "enable",
+            "Ipv6Support": "enable",
+            "ApplianceModeSupport": "enable",
+        },
+    )
+    attchmnt_id = response["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
+
+    ec2.modify_transit_gateway_vpc_attachment(
+        TransitGatewayAttachmentId=attchmnt_id,
+        Options={"ApplianceModeSupport": "disabled"},
+    )
+
+    attachment = ec2.describe_transit_gateway_vpc_attachments(
+        TransitGatewayAttachmentIds=[attchmnt_id]
+    )["TransitGatewayVpcAttachments"][0]
+    attachment["Options"]["ApplianceModeSupport"].should.equal("disabled")
+    attachment["Options"]["DnsSupport"].should.equal("enable")
+    attachment["Options"]["Ipv6Support"].should.equal("enable")
+
+
+@mock_ec2
+def test_delete_transit_gateway_vpc_attachment():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    a1 = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+    )["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
+    a2 = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+    )["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
+
+    available = ec2.describe_transit_gateway_vpc_attachments(
+        Filters=[{"Name": "state", "Values": ["available"]}]
+    )["TransitGatewayVpcAttachments"]
+    available.should.have.length_of(2)
+
+    a1_removed = ec2.delete_transit_gateway_vpc_attachment(
+        TransitGatewayAttachmentId=a1
+    )["TransitGatewayVpcAttachment"]
+    a1_removed.should.have.key("TransitGatewayAttachmentId").equal(a1)
+    a1_removed.should.have.key("State").equal("deleted")
+
+    all_attchmnts = ec2.describe_transit_gateway_vpc_attachments()[
+        "TransitGatewayVpcAttachments"
+    ]
+    all_attchmnts.should.have.length_of(1)
+    [a["TransitGatewayAttachmentId"] for a in all_attchmnts].should.equal([a2])
+
+
+@mock_ec2
+def test_associate_transit_gateway_route_table():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    attchmnt = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+    )["TransitGatewayVpcAttachment"]
+    table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
+        "TransitGatewayRouteTable"
+    ]
+
+    initial = ec2.get_transit_gateway_route_table_associations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )
+    initial["Associations"].should.equal(
+        [
+            {
+                "TransitGatewayAttachmentId": "",
+                "ResourceId": "",
+                "ResourceType": "",
+                "State": "",
+            }
+        ]
+    )
+
+    ec2.associate_transit_gateway_route_table(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    updated = ec2.get_transit_gateway_route_table_associations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )
+    updated["Associations"].should.equal(
+        [
+            {
+                "TransitGatewayAttachmentId": attchmnt["TransitGatewayAttachmentId"],
+                "ResourceId": "vpc-id",
+                "ResourceType": "vpc",
+                "State": "associated",
+            }
+        ]
+    )
+
+
+@mock_ec2
+def test_enable_transit_gateway_route_table_propagation():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    attchmnt = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+    )["TransitGatewayVpcAttachment"]
+    table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
+        "TransitGatewayRouteTable"
+    ]
+
+    initial = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )
+    initial["TransitGatewayRouteTablePropagations"].should.equal(
+        [
+            {
+                "TransitGatewayAttachmentId": "",
+                "ResourceId": "",
+                "ResourceType": "",
+                "State": "",
+            }
+        ]
+    )
+
+    ec2.associate_transit_gateway_route_table(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    ec2.enable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    enabled = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )
+    enabled["TransitGatewayRouteTablePropagations"].should.equal(
+        [
+            {
+                "TransitGatewayAttachmentId": attchmnt["TransitGatewayAttachmentId"],
+                "ResourceId": "vpc-id",
+                "ResourceType": "vpc",
+                "State": "enabled",
+            }
+        ]
+    )
+
+
+@mock_ec2
+def test_disable_transit_gateway_route_table_propagation_without_enabling_first():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    attchmnt = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+    )["TransitGatewayVpcAttachment"]
+    table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
+        "TransitGatewayRouteTable"
+    ]
+
+    initial = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )
+    initial["TransitGatewayRouteTablePropagations"].should.equal(
+        [
+            {
+                "TransitGatewayAttachmentId": "",
+                "ResourceId": "",
+                "ResourceType": "",
+                "State": "",
+            }
+        ]
+    )
+
+    ec2.associate_transit_gateway_route_table(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    try:
+        ec2.disable_transit_gateway_route_table_propagation(
+            TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+            TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+        )
+        assert False, "Should not be able to disable before enabling it"
+    except Exception:
+        pass
+
+
+@mock_ec2
+def test_disable_transit_gateway_route_table_propagation():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    attchmnt = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+    )["TransitGatewayVpcAttachment"]
+    table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
+        "TransitGatewayRouteTable"
+    ]
+
+    initial = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )
+    initial["TransitGatewayRouteTablePropagations"].should.equal(
+        [
+            {
+                "TransitGatewayAttachmentId": "",
+                "ResourceId": "",
+                "ResourceType": "",
+                "State": "",
+            }
+        ]
+    )
+
+    ec2.associate_transit_gateway_route_table(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    ec2.enable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+    ec2.disable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    disabled = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )
+    disabled["TransitGatewayRouteTablePropagations"].should.equal(
+        [
+            {
+                "ResourceId": "",
+                "ResourceType": "",
+                "State": "",
+                "TransitGatewayAttachmentId": "",
+            }
+        ]
+    )
