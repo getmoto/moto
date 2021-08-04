@@ -3389,7 +3389,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         self.vpc = vpc
         self.peer_vpc = peer_vpc
         self.add_tags(tags or {})
-        self._status = VPCPeeringConnectionStatus()
+        self._status = PeeringConnectionStatus()
 
     @staticmethod
     def cloudformation_name_type():
