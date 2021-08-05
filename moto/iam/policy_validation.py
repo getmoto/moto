@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from moto.iam.exceptions import MalformedPolicyDocument
 
 
@@ -139,10 +139,13 @@ class BaseIAMPolicyValidator:
 
     def _validate_version_syntax(self) -> None:
         if "Version" in self._policy_json:
-            assert self._policy_json["Version"] in VALID_VERSIONS
+            assert self._policy_version() in VALID_VERSIONS
 
     def _validate_version(self) -> None:
-        assert self._policy_json["Version"] == "2012-10-17"
+        assert self._policy_version() == "2012-10-17"
+
+    def _policy_version(self) -> Optional[str]:
+        return self._policy_json.get("Version")
 
     def _validate_sid_uniqueness(self) -> None:
         sids = []
