@@ -52,6 +52,7 @@ test_service() {
   pip install -r requirements-tests.txt > /dev/null
   pip install .[$service] > /dev/null 2>&1
   pip install boto > /dev/null 2>&1
+  pip uninstall setuptools pkg_resources -y > /dev/null 2>&1
   # Restart venv - ensure these deps are loaded
   deactivate
   source ${venv_path}/bin/activate > /dev/null
