@@ -193,6 +193,8 @@ class KinesisResponse(BaseResponse):
             stream_kwargs = {"s3_config": s3_config}
         elif extended_s3_config:
             stream_kwargs = {"extended_s3_config": extended_s3_config}
+        else:
+            stream_kwargs = {}    
 
         stream = self.kinesis_backend.create_delivery_stream(
             stream_name, **stream_kwargs
