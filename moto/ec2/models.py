@@ -5,6 +5,7 @@ import itertools
 import ipaddress
 import json
 import os
+import pathlib
 import re
 import warnings
 
@@ -24,7 +25,6 @@ from moto.packages.boto.ec2.spotinstancerequest import (
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 
 from collections import OrderedDict
-from importlib_resources import files
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -173,23 +173,25 @@ from .utils import (
     describe_tag_filter,
 )
 
-pck_files = files(__package__)
-INSTANCE_TYPES = load_resource(pck_files.joinpath("resources/instance_types.json"))
+INSTANCE_TYPES = load_resource(__name__, "resources/instance_types.json")
 
+root = pathlib.Path(__file__).parent
 offerings_path = "resources/instance_type_offerings"
 INSTANCE_TYPE_OFFERINGS = {}
-for location_type in listdir(pck_files / offerings_path):
+for location_type in listdir(root / offerings_path):
     INSTANCE_TYPE_OFFERINGS[location_type] = {}
-    for region in listdir(pck_files / offerings_path / location_type):
-        full_path = pck_files / offerings_path / location_type / region
+    for region in listdir(root / offerings_path / location_type):
+        full_path = offerings_path + "/" + location_type + "/" + region
         INSTANCE_TYPE_OFFERINGS[location_type][
             region.replace(".json", "")
-        ] = load_resource(full_path)
+        ] = load_resource(__name__, full_path)
 
 
-AMIS = load_resource(
-    os.environ.get("MOTO_AMIS_PATH") or pck_files.joinpath("resources/amis.json"),
-)
+if "MOTO_AMIS_PATH" in os.environ:
+    with open(os.environ.get("MOTO_AMIS_PATH"), "r", encoding="utf-8") as f:
+        AMIS = json.load(f)
+else:
+    AMIS = load_resource(__name__, "resources/amis.json")
 
 OWNER_ID = ACCOUNT_ID
 

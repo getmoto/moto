@@ -21,8 +21,8 @@ from werkzeug.exceptions import HTTPException
 
 import boto3
 from collections import OrderedDict
-from importlib_resources import files
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
+from moto.utilities.utils import load_resource
 from moto import settings
 
 log = logging.getLogger(__name__)
@@ -903,8 +903,7 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path):
-        spec = files("botocore").joinpath(path).read_text()
-        spec = json.loads(spec)
+        spec = load_resource("botocore", path)
 
         self.metadata = spec["metadata"]
         self.operations = spec["operations"]

@@ -39,8 +39,7 @@ install_requires = [
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "more-itertools",
-    "importlib_metadata",
-    "importlib_resources"
+    "importlib_metadata"
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
@@ -54,6 +53,7 @@ _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
 _dep_idna = "idna<3,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
+_setuptools = "setuptools"
 
 all_extra_deps = [
     _dep_PyYAML,
@@ -65,6 +65,7 @@ all_extra_deps = [
     _dep_idna,
     _dep_cfn_lint,
     _dep_sshpubkeys,
+    _setuptools,
 ]
 all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
@@ -84,7 +85,9 @@ extras_per_service = {
     "sns": [],
     "sqs": [],
     "ssm": [_dep_PyYAML],
-    "xray": [_dep_aws_xray_sdk],
+    # XRay module uses pkg_resources, but doesn't have an explicit dependency listed
+    # This should be fixed in the next version: https://github.com/aws/aws-xray-sdk-python/issues/305
+    "xray": [_dep_aws_xray_sdk, _setuptools],
 }
 # When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
 extras_per_service["dynamodb2"] = extras_per_service["awslambda"]

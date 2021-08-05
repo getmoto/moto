@@ -1,5 +1,4 @@
 from moto.utilities.utils import load_resource
-from importlib_resources import files
 
 
 class ReservedKeywords(list):
@@ -22,7 +21,5 @@ class ReservedKeywords(list):
         """
         Get a list of reserved keywords of DynamoDB
         """
-        reserved_keywords = load_resource(
-            files(__package__).joinpath("reserved_keywords.txt"), as_json=False
-        )
+        reserved_keywords = load_resource(__name__, "reserved_keywords.txt", as_json=False)
         return reserved_keywords.split()
