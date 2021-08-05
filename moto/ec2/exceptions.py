@@ -747,6 +747,8 @@ class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
 
 
 class InvalidVpcEndPointIdError(EC2ClientError):
+    code = 404
+
     def __init__(self, vpc_end_point_id: str):
         super().__init__(
             "InvalidVpcEndpointId.NotFound",
