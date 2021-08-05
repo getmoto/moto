@@ -235,7 +235,7 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.add_alias(target_key_id, alias_name)
 
-        return json.dumps({})
+        return json.dumps(None)
 
     def delete_alias(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DeleteAlias.html"""
