@@ -6,7 +6,6 @@ import datetime
 import json
 import logging
 import re
-import io
 import requests
 
 import pytz
@@ -23,6 +22,7 @@ from werkzeug.exceptions import HTTPException
 import boto3
 from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
+from moto.utilities.utils import load_resource
 from moto import settings
 
 log = logging.getLogger(__name__)
@@ -903,12 +903,8 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path):
-        # Importing pkg_resources takes ~60ms; keep it local
-        from pkg_resources import resource_filename  # noqa
+        spec = load_resource("botocore", path)
 
-        self.path = resource_filename("botocore", path)
-        with io.open(self.path, "r", encoding="utf-8") as f:
-            spec = json.load(f)
         self.metadata = spec["metadata"]
         self.operations = spec["operations"]
         self.shapes = spec["shapes"]

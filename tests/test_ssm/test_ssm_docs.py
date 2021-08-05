@@ -5,19 +5,18 @@ import botocore.exceptions
 import sure  # noqa
 import datetime
 import json
-import pkg_resources
 import yaml
 import hashlib
 import copy
+import pkgutil
+
 from moto.core import ACCOUNT_ID
 
 from moto import mock_ssm
 
 
 def _get_yaml_template():
-    template_path = "/".join(["test_ssm", "test_templates", "good.yaml"])
-    resource_path = pkg_resources.resource_string("tests", template_path)
-    return resource_path
+    return pkgutil.get_data(__name__, "test_templates/good.yaml")
 
 
 def _validate_document_description(

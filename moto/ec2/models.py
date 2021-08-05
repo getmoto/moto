@@ -5,11 +5,11 @@ import itertools
 import ipaddress
 import json
 import os
+import pathlib
 import re
 import warnings
 
 from boto3 import Session
-from pkg_resources import resource_filename
 
 from collections import defaultdict
 import weakref
@@ -173,30 +173,25 @@ from .utils import (
     describe_tag_filter,
 )
 
+INSTANCE_TYPES = load_resource(__name__, "resources/instance_types.json")
 
-INSTANCE_TYPES = load_resource(
-    resource_filename(__name__, "resources/instance_types.json")
-)
-
+root = pathlib.Path(__file__).parent
 offerings_path = "resources/instance_type_offerings"
 INSTANCE_TYPE_OFFERINGS = {}
-for location_type in listdir(resource_filename(__name__, offerings_path)):
+for location_type in listdir(root / offerings_path):
     INSTANCE_TYPE_OFFERINGS[location_type] = {}
-    for region in listdir(
-        resource_filename(__name__, offerings_path + "/" + location_type)
-    ):
-        full_path = resource_filename(
-            __name__, offerings_path + "/" + location_type + "/" + region
-        )
+    for region in listdir(root / offerings_path / location_type):
+        full_path = offerings_path + "/" + location_type + "/" + region
         INSTANCE_TYPE_OFFERINGS[location_type][
             region.replace(".json", "")
-        ] = load_resource(full_path)
+        ] = load_resource(__name__, full_path)
 
 
-AMIS = load_resource(
-    os.environ.get("MOTO_AMIS_PATH")
-    or resource_filename(__name__, "resources/amis.json"),
-)
+if "MOTO_AMIS_PATH" in os.environ:
+    with open(os.environ.get("MOTO_AMIS_PATH"), "r", encoding="utf-8") as f:
+        AMIS = json.load(f)
+else:
+    AMIS = load_resource(__name__, "resources/amis.json")
 
 OWNER_ID = ACCOUNT_ID
 
