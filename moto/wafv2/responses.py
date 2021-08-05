@@ -12,6 +12,37 @@ class WAFV2Response(BaseResponse):
         return wafv2_backends[self.region]  # default region is "us-east-1"
 
     @amzn_request_id
+    def associate_web_acl(self):
+        """ https://docs.aws.amazon.com/waf/latest/APIReference/API_AssociateWebACL.html """
+
+        web_acl_arn = self._get_param("WebACLArn")
+        resource_arn = self._get_param("ResourceArn")
+
+        self.wafv2_backend.associate_web_acl(resource_arn, web_acl_arn)
+        response = {}
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    @amzn_request_id
+    def disassociate_web_acl(self):
+        """  https://docs.aws.amazon.com/waf/latest/APIReference/API_DisassociateWebACL.html """
+
+        resource_arn = self._get_param("ResourceArn")
+        self.wafv2_backend.disassociate_web_acl(resource_arn)
+        response = {}
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    @amzn_request_id
+    def get_web_acl_for_resource(self):
+        """ https://docs.aws.amazon.com/waf/latest/APIReference/API_GetWebACLForResource.html """
+        resource_arn = self._get_param("ResourceArn")
+        web_acl = self.wafv2_backend.get_web_acl_for_resource(resource_arn)
+        response = {"WebACL": web_acl} if web_acl else {}
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    @amzn_request_id
     def create_web_acl(self):
         """  https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section) """
 

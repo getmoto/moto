@@ -4,15 +4,18 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.wafv2 import utils
 
-# from moto.ec2.models import elbv2_backends
-from .utils import make_arn_for_wacl, pascal_to_underscores_dict
-from .exceptions import WAFV2DuplicateItemException
+from .utils import (
+    make_arn_for_wacl,
+    pascal_to_underscores_dict,
+    underscores_to_pascal_dict,
+)
+from .exceptions import WAFV2DuplicateItemException, WAFNonexistentItemException
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.elbv2.models import elbv2_backends
 import datetime
 from collections import OrderedDict
 
 
-US_EAST_1_REGION = "us-east-1"
 GLOBAL_REGION = "global"
 
 
@@ -40,6 +43,8 @@ class DefaultAction(BaseModel):
 
 
 # TODO: Add remaining properties
+
+
 class FakeWebACL(BaseModel):
     """
     https://docs.aws.amazon.com/waf/latest/APIReference/API_WebACL.html
@@ -51,7 +56,7 @@ class FakeWebACL(BaseModel):
         self.id = id
         self.arn = arn
         self.description = "Mock WebACL named {0}".format(self.name)
-        self.capacity = 3
+        self.capacity = "Not Implemented"
         self.visibility_config = VisibilityConfig(
             **pascal_to_underscores_dict(visibility_config)
         )
@@ -69,6 +74,20 @@ class FakeWebACL(BaseModel):
             "Name": self.name,
         }
 
+    def to_dict_long(self):
+        # https://docs.aws.amazon.com/waf/latest/APIReference/API_GetWebACLForResource.html (response syntax section)
+        return {
+            "ARN": self.arn,
+            "Description": self.description,
+            "Id": self.id,
+            "Name": self.name,
+            "Capacity": self.capacity,
+            "DefaultAction": underscores_to_pascal_dict(self.default_action.__dict__),
+            "VisibilityConfig": underscores_to_pascal_dict(
+                self.visibility_config.__dict__
+            ),
+        }
+
 
 class WAFV2Backend(BaseBackend):
     """
@@ -79,7 +98,7 @@ class WAFV2Backend(BaseBackend):
         super(WAFV2Backend, self).__init__()
         self.region_name = region_name
         self.wacls = OrderedDict()  # self.wacls[ARN] = FakeWacl
-        # TODO: self.load_balancers = OrderedDict()
+        self.alb_to_wacl = {}  # self.alb_to_wacl[alb_ARN] = wacl_arn
 
     def reset(self):
         region_name = self.region_name
@@ -100,20 +119,48 @@ class WAFV2Backend(BaseBackend):
     def list_web_acls(self):
         return [wacl.to_dict() for wacl in self.wacls.values()]
 
+    # A wacl can be on many ALBS, but an ALB can only have one wacl
+    def associate_web_acl(self, resource_arn, web_acl_arn):
+        # verify valid ALB and valid wacl
+        if (
+            resource_arn not in self.elbv2_backend.load_balancers
+            or web_acl_arn not in self.wacls
+        ):
+            raise WAFNonexistentItemException()
+        self.alb_to_wacl[resource_arn] = web_acl_arn
+
+    def disassociate_web_acl(self, resource_arn):
+        if resource_arn not in self.elbv2_backend.load_balancers:
+            raise WAFNonexistentItemException()
+        self.alb_to_wacl.pop(resource_arn, None)
+
+    def get_web_acl_for_resource(self, resource_arn):
+        self._updateActiveELBv2s()
+        if resource_arn not in self.elbv2_backend.load_balancers:
+            raise WAFNonexistentItemException()
+        if resource_arn not in self.alb_to_wacl:
+            return None
+        return self.wacls[self.alb_to_wacl[resource_arn]].to_dict_long()
+
     def _is_duplicate_name(self, name):
         allWaclNames = set(wacl.name for wacl in self.wacls.values())
         return name in allWaclNames
 
-    # TODO: This is how you link wacl to ALB
-    # @property
-    # def elbv2_backend(self):
-    #     """
-    #     EC2 backend
+    # If you deleted a load balancer in an elbv2, then it should also be deleted here
+    def _updateActiveELBv2s(self):
+        for alb_arn in self.alb_to_wacl:
+            if alb_arn not in self.elbv2_backend.load_balancers:
+                self.alb_to_wacl.pop(alb_arn, None)
 
-    #     :return: EC2 Backend
-    #     :rtype: moto.ec2.models.EC2Backend
-    #     """
-    #     return ec2_backends[self.region_name]
+    @property
+    def elbv2_backend(self):
+        """
+        elbv2 backend
+
+        :return: elbv2 Backend
+        :rtype: moto.elbv2.models.ELBv2Backend
+        """
+        return elbv2_backends[self.region_name]
 
 
 wafv2_backends = {}

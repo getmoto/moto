@@ -1,5 +1,10 @@
 from moto.core import ACCOUNT_ID
-from moto.core.utils import pascal_to_camelcase, camelcase_to_underscores
+from moto.core.utils import (
+    pascal_to_camelcase,
+    camelcase_to_underscores,
+    underscores_to_camelcase,
+    camelcase_to_pascal,
+)
 
 
 def make_arn_for_wacl(name, region_name, id, scope):
@@ -18,4 +23,11 @@ def pascal_to_underscores_dict(original_dict):
     outdict = {}
     for k, v in original_dict.items():
         outdict[camelcase_to_underscores(pascal_to_camelcase(k))] = v
+    return outdict
+
+
+def underscores_to_pascal_dict(original_dict):
+    outdict = {}
+    for k, v in original_dict.items():
+        outdict[camelcase_to_pascal(underscores_to_camelcase(k))] = v
     return outdict
