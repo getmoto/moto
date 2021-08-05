@@ -26,7 +26,7 @@ def load_resource(package, resource, as_json=True):
     load_resource(__name__, "resources/file.json")
     """
     resource = pkgutil.get_data(package, resource)
-    return json.loads(resource) if as_json else resource.decode('utf-8')
+    return json.loads(resource) if as_json else resource.decode("utf-8")
 
 
 def merge_multiple_dicts(*args):
