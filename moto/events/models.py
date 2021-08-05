@@ -340,10 +340,14 @@ class EventBus(CloudFormationModel):
         for sid in statements_to_delete:
             del self._statements[sid]
 
-    def add_permission(self, statement_id, action, principal):
+    def add_permission(self, statement_id, action, principal, condition):
         self._remove_principals_statements(principal)
         statement = EventBusPolicyStatement(
-            sid=statement_id, action=action, principal=principal, resource=self.arn,
+            sid=statement_id,
+            action=action,
+            principal=principal,
+            condition=condition,
+            resource=self.arn,
         )
         self._statements[statement_id] = statement
 
@@ -365,31 +369,43 @@ class EventBus(CloudFormationModel):
 
 
 class EventBusPolicyStatement:
-    def __init__(self, sid, principal, action, resource, effect="Allow"):
+    def __init__(
+        self, sid, principal, action, resource, effect="Allow", condition=None
+    ):
         self.sid = sid
         self.principal = principal
         self.action = action
         self.resource = resource
         self.effect = effect
+        self.condition = condition
 
     def describe(self):
-        return {
-            "Sid": self.sid,
-            "Effect": self.effect,
-            "Principal": self.principal,
-            "Action": self.action,
-            "Resource": self.resource,
-        }
+        statement = dict(
+            Sid=self.sid,
+            Effect=self.effect,
+            Principal=self.principal,
+            Action=self.action,
+            Resource=self.resource,
+        )
+
+        if self.condition:
+            statement["Condition"] = self.condition
+        return statement
 
     @classmethod
     def from_dict(cls, statement_dict):
-        return cls(
+        params = dict(
             sid=statement_dict["Sid"],
             effect=statement_dict["Effect"],
             principal=statement_dict["Principal"],
             action=statement_dict["Action"],
             resource=statement_dict["Resource"],
         )
+        condition = statement_dict.get("Condition")
+        if condition:
+            params["condition"] = condition
+
+        return cls(**params)
 
 
 class Archive(CloudFormationModel):
@@ -1139,25 +1155,54 @@ class EventsBackend(BaseBackend):
                 "ValidationException", "This policy contains invalid Json"
             )
 
-    def _put_permission_from_params(self, event_bus, action, principal, statement_id):
-        if principal is None or self.ACCOUNT_ID.match(principal) is None:
+    @staticmethod
+    def _condition_param_to_stmt_condition(condition):
+        if condition:
+            key = condition["Key"]
+            value = condition["Value"]
+            condition_type = condition["Type"]
+            return {condition_type: {key: value}}
+        return None
+
+    def _put_permission_from_params(
+        self, event_bus, action, principal, statement_id, condition
+    ):
+        if principal is None:
             raise JsonRESTError(
-                "InvalidParameterValue", r"Principal must match ^(\d{1,12}|\*)$"
+                "ValidationException", "Parameter Principal must be specified."
             )
+
+        if condition and principal != "*":
+            raise JsonRESTError(
+                "InvalidParameterValue",
+                "Value of the parameter 'principal' must be '*' when the parameter 'condition' is set.",
+            )
+
+        if not condition and self.ACCOUNT_ID.match(principal) is None:
+            raise JsonRESTError(
+                "InvalidParameterValue",
+                f"Value {principal} at 'principal' failed to satisfy constraint: "
+                r"Member must satisfy regular expression pattern: (\d{12}|\*)",
+            )
+
         if action is None or action != "events:PutEvents":
             raise JsonRESTError(
                 "ValidationException",
                 "Provided value in parameter 'action' is not supported.",
             )
+
         if statement_id is None or self.STATEMENT_ID.match(statement_id) is None:
             raise JsonRESTError(
                 "InvalidParameterValue", r"StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
             )
 
         principal = {"AWS": f"arn:aws:iam::{principal}:root"}
-        event_bus.add_permission(statement_id, action, principal)
+        stmt_condition = self._condition_param_to_stmt_condition(condition)
+        event_bus.add_permission(statement_id, action, principal, stmt_condition)
 
-    def put_permission(self, event_bus_name, action, principal, statement_id, policy):
+    def put_permission(
+        self, event_bus_name, action, principal, statement_id, condition, policy
+    ):
         if not event_bus_name:
             event_bus_name = "default"
 
@@ -1166,7 +1211,9 @@ class EventsBackend(BaseBackend):
         if policy:
             self._put_permission_from_policy(event_bus, policy)
         else:
-            self._put_permission_from_params(event_bus, action, principal, statement_id)
+            self._put_permission_from_params(
+                event_bus, action, principal, statement_id, condition
+            )
 
     def remove_permission(self, event_bus_name, statement_id, remove_all_permissions):
         if not event_bus_name:
