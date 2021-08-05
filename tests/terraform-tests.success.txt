@@ -66,4 +66,3 @@ TestAccAWSUserGroupMembership
 TestAccAWSUserPolicyAttachment
 TestAccAWSUserSSHKey
 TestAccAWSVpc_
-TestAccAWSVpcEndpointRouteTableAssociation
