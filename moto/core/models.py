@@ -5,17 +5,18 @@ from __future__ import absolute_import
 import functools
 import inspect
 import os
-import pkg_resources
 import re
 import types
 from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
+
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
 from distutils.version import LooseVersion
 from http.client import responses as http_responses
+from importlib_metadata import version
 from urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
@@ -30,7 +31,6 @@ from .utils import (
 )
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
-RESPONSES_VERSION = pkg_resources.get_distribution("responses").version
 
 
 class BaseMockAWS:
@@ -306,6 +306,7 @@ def _find_first_match(self, request):
 #  - First request matches on the appropriate S3 URL
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match
+RESPONSES_VERSION = version("responses")
 if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
     responses_mock._find_match = types.MethodType(
         _find_first_match_legacy, responses_mock

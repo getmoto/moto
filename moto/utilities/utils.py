@@ -22,8 +22,8 @@ def load_resource(filename, as_json=True):
     """
     Open a file, and return the contents as JSON.
     Usage:
-    from pkg_resources import resource_filename
-    load_resource(resource_filename(__name__, "resources/file.json"))
+    from importlib_resources import files
+    load_resource(files(__package__).joinpath("resources/file.json"))
     """
     with open(filename, "r", encoding="utf-8") as f:
         return json.load(f) if as_json else f.read()

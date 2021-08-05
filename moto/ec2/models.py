@@ -9,7 +9,6 @@ import re
 import warnings
 
 from boto3 import Session
-from pkg_resources import resource_filename
 
 from collections import defaultdict
 import weakref
@@ -25,6 +24,7 @@ from moto.packages.boto.ec2.spotinstancerequest import (
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 
 from collections import OrderedDict
+from importlib_resources import files
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -173,29 +173,22 @@ from .utils import (
     describe_tag_filter,
 )
 
-
-INSTANCE_TYPES = load_resource(
-    resource_filename(__name__, "resources/instance_types.json")
-)
+pck_files = files(__package__)
+INSTANCE_TYPES = load_resource(pck_files.joinpath("resources/instance_types.json"))
 
 offerings_path = "resources/instance_type_offerings"
 INSTANCE_TYPE_OFFERINGS = {}
-for location_type in listdir(resource_filename(__name__, offerings_path)):
+for location_type in listdir(pck_files / offerings_path):
     INSTANCE_TYPE_OFFERINGS[location_type] = {}
-    for region in listdir(
-        resource_filename(__name__, offerings_path + "/" + location_type)
-    ):
-        full_path = resource_filename(
-            __name__, offerings_path + "/" + location_type + "/" + region
-        )
+    for region in listdir(pck_files / offerings_path / location_type):
+        full_path = pck_files / offerings_path / location_type / region
         INSTANCE_TYPE_OFFERINGS[location_type][
             region.replace(".json", "")
         ] = load_resource(full_path)
 
 
 AMIS = load_resource(
-    os.environ.get("MOTO_AMIS_PATH")
-    or resource_filename(__name__, "resources/amis.json"),
+    os.environ.get("MOTO_AMIS_PATH") or pck_files.joinpath("resources/amis.json"),
 )
 
 OWNER_ID = ACCOUNT_ID
