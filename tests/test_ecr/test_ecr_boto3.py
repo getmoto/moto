@@ -1229,6 +1229,27 @@ def test_list_tags_for_resource_error_not_exists():
 
 
 @mock_ecr
+def test_list_tags_for_resource_error_invalid_param():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_tags_for_resource(resourceArn="invalid",)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+    ex.response["Error"]["Message"].should.equal(
+        "Invalid parameter at 'resourceArn' failed to satisfy constraint: "
+        "'Invalid ARN'"
+    )
+
+
+@mock_ecr
 def test_tag_resource():
     # given
     client = boto3.client("ecr", region_name="eu-central-1")
@@ -1316,6 +1337,131 @@ def test_untag_resource_error_not_exists():
     # then
     ex = e.value
     ex.operation_name.should.equal("UntagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_put_image_tag_mutability():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    response = client.describe_repositories(repositoryNames=[repo_name])
+    response["repositories"][0]["imageTagMutability"].should.equal("MUTABLE")
+
+    # when
+    response = client.put_image_tag_mutability(
+        repositoryName=repo_name, imageTagMutability="IMMUTABLE",
+    )
+
+    # then
+    response["imageTagMutability"].should.equal("IMMUTABLE")
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+
+    response = client.describe_repositories(repositoryNames=[repo_name])
+    response["repositories"][0]["imageTagMutability"].should.equal("IMMUTABLE")
+
+
+@mock_ecr
+def test_put_image_tag_mutability_error_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_image_tag_mutability(
+            repositoryName=repo_name, imageTagMutability="IMMUTABLE",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutImageTagMutability")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_put_image_tag_mutability_error_invalid_param():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_image_tag_mutability(
+            repositoryName=repo_name, imageTagMutability="invalid",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutImageTagMutability")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+    ex.response["Error"]["Message"].should.equal(
+        "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
+        "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
+    )
+
+
+@mock_ecr
+def test_put_image_scanning_configuration():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    response = client.describe_repositories(repositoryNames=[repo_name])
+    response["repositories"][0]["imageScanningConfiguration"].should.equal(
+        {"scanOnPush": False}
+    )
+
+    # when
+    response = client.put_image_scanning_configuration(
+        repositoryName=repo_name, imageScanningConfiguration={"scanOnPush": True}
+    )
+
+    # then
+    response["imageScanningConfiguration"].should.equal({"scanOnPush": True})
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+
+    response = client.describe_repositories(repositoryNames=[repo_name])
+    response["repositories"][0]["imageScanningConfiguration"].should.equal(
+        {"scanOnPush": True}
+    )
+
+
+@mock_ecr
+def test_put_image_scanning_configuration_error_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_image_scanning_configuration(
+            repositoryName=repo_name, imageScanningConfiguration={"scanOnPush": True},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutImageScanningConfiguration")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
     ex.response["Error"]["Message"].should.equal(
