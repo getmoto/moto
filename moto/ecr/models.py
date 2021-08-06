@@ -669,6 +669,8 @@ class ECRBackend(BaseBackend):
             iam_policy_document_validator = IAMPolicyDocumentValidator(policy_text)
             # the repository policy can be defined without a resource field
             iam_policy_document_validator._validate_resource_exist = lambda: None
+            # the repository policy can have the old version 2008-10-17
+            iam_policy_document_validator._validate_version = lambda: None
             iam_policy_document_validator.validate()
         except MalformedPolicyDocument:
             raise InvalidParameterException(
@@ -694,6 +696,21 @@ class ECRBackend(BaseBackend):
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
             "policyText": repo.policy,
+        }
+
+    def delete_repository_policy(self, registry_id, repository_name):
+        repo = self._get_repository(repository_name, registry_id)
+        policy = repo.policy
+
+        if not policy:
+            raise RepositoryPolicyNotFoundException(repository_name, repo.registry_id)
+
+        repo.policy = None
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "policyText": policy,
         }
 
 

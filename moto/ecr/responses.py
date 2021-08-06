@@ -119,10 +119,14 @@ class ECRResponse(BaseResponse):
             )
 
     def delete_repository_policy(self):
-        if self.is_not_dryrun("DeleteRepositoryPolicy"):
-            raise NotImplementedError(
-                "ECR.delete_repository_policy is not yet implemented"
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+
+        return json.dumps(
+            self.ecr_backend.delete_repository_policy(
+                registry_id=registry_id, repository_name=repository_name,
             )
+        )
 
     def generate_presigned_url(self):
         if self.is_not_dryrun("GeneratePresignedUrl"):
