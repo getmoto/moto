@@ -257,9 +257,7 @@ class LogGroup(BaseModel):
     def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
-        self.arn = "arn:aws:logs:{region}:1:log-group:{log_group}".format(
-            region=region, log_group=name
-        )
+        self.arn = f"arn:aws:logs:{region}:{moto_core.ACCOUNT_ID}:log-group:{name}"
         self.creation_time = int(unix_time_millis())
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
