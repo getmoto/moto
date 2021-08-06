@@ -220,7 +220,9 @@ def test_create_elasticsearch_delivery_stream():
                 {
                     "DestinationId": "string",
                     "ElasticsearchDestinationDescription": {
-                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
+                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
+                            ACCOUNT_ID
+                        ),
                         "DomainARN": "arn:aws:es:::domain/kinesis-test",
                         "IndexName": "myIndex",
                         "TypeName": "UNCOMPRESSED",
@@ -233,7 +235,10 @@ def test_create_elasticsearch_delivery_stream():
                             ),
                             "BucketARN": "arn:aws:s3:::kinesis-test",
                             "Prefix": "myFolder/",
-                            "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
+                            "BufferingHints": {
+                                "SizeInMBs": 123,
+                                "IntervalInSeconds": 124,
+                            },
                             "CompressionFormat": "UNCOMPRESSED",
                         },
                     },

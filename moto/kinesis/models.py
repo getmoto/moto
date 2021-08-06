@@ -380,16 +380,24 @@ class DeliveryStream(BaseModel):
                 {
                     "DestinationId": "string",
                     "ElasticsearchDestinationDescription": {
-                        "RoleARN": self.elasticsearch_config.get('RoleARN'),
-                        "DomainARN": self.elasticsearch_config.get('DomainARN'),
-                        "ClusterEndpoint": self.elasticsearch_config.get('ClusterEndpoint'),
-                        "IndexName": self.elasticsearch_config.get('IndexName'),
-                        "TypeName": self.elasticsearch_config.get('TypeName'),
-                        "IndexRotationPeriod": self.elasticsearch_config.get('IndexRotationPeriod'),
-                        "BufferingHints": self.elasticsearch_config.get('BufferingHints'),
-                        "RetryOptions": self.elasticsearch_config.get('RetryOptions'),
-                        "S3DestinationDescription": self.elasticsearch_config.get('S3Configuration')
-                    }
+                        "RoleARN": self.elasticsearch_config.get("RoleARN"),
+                        "DomainARN": self.elasticsearch_config.get("DomainARN"),
+                        "ClusterEndpoint": self.elasticsearch_config.get(
+                            "ClusterEndpoint"
+                        ),
+                        "IndexName": self.elasticsearch_config.get("IndexName"),
+                        "TypeName": self.elasticsearch_config.get("TypeName"),
+                        "IndexRotationPeriod": self.elasticsearch_config.get(
+                            "IndexRotationPeriod"
+                        ),
+                        "BufferingHints": self.elasticsearch_config.get(
+                            "BufferingHints"
+                        ),
+                        "RetryOptions": self.elasticsearch_config.get("RetryOptions"),
+                        "S3DestinationDescription": self.elasticsearch_config.get(
+                            "S3Configuration"
+                        ),
+                    },
                 }
             ]
         else:
