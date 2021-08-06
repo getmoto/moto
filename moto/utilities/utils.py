@@ -1,6 +1,7 @@
 import json
 import random
 import string
+import pkgutil
 
 
 def str2bool(v):
@@ -18,15 +19,14 @@ def random_string(length=None):
     return random_str
 
 
-def load_resource(filename, as_json=True):
+def load_resource(package, resource, as_json=True):
     """
     Open a file, and return the contents as JSON.
     Usage:
-    from pkg_resources import resource_filename
-    load_resource(resource_filename(__name__, "resources/file.json"))
+    load_resource(__name__, "resources/file.json")
     """
-    with open(filename, "r", encoding="utf-8") as f:
-        return json.load(f) if as_json else f.read()
+    resource = pkgutil.get_data(package, resource)
+    return json.loads(resource) if as_json else resource.decode("utf-8")
 
 
 def merge_multiple_dicts(*args):

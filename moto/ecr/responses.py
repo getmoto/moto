@@ -201,3 +201,29 @@ class ECRResponse(BaseResponse):
         tag_keys = self._get_param("tagKeys", [])
 
         return json.dumps(self.ecr_backend.untag_resource(arn, tag_keys))
+
+    def put_image_tag_mutability(self):
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_tag_mutability = self._get_param("imageTagMutability")
+
+        return json.dumps(
+            self.ecr_backend.put_image_tag_mutability(
+                registry_id=registry_id,
+                repository_name=repository_name,
+                image_tag_mutability=image_tag_mutability,
+            )
+        )
+
+    def put_image_scanning_configuration(self):
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_scan_config = self._get_param("imageScanningConfiguration")
+
+        return json.dumps(
+            self.ecr_backend.put_image_scanning_configuration(
+                registry_id=registry_id,
+                repository_name=repository_name,
+                image_scan_config=image_scan_config,
+            )
+        )

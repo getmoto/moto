@@ -1,11 +1,9 @@
-import json
 import re
 import time
 import random
 import string
 
 from datetime import datetime
-import pkg_resources
 
 from boto3 import Session
 
@@ -49,6 +47,7 @@ from moto.config.exceptions import (
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_account_public_access_block_query, s3_config_query
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core.responses import AWSServiceSpec
 
 from moto.iam.config import role_config_query, policy_config_query
 
@@ -419,15 +418,13 @@ class ConfigBackend(BaseBackend):
         self.config_aggregators = {}
         self.aggregation_authorizations = {}
         self.organization_conformance_packs = {}
+        self.config_schema = None
 
-    @staticmethod
-    def _validate_resource_types(resource_list):
-        # Load the service file:
-        resource_package = "botocore"
-        resource_path = "/".join(("data", "config", "2014-11-12", "service-2.json"))
-        config_schema = json.loads(
-            pkg_resources.resource_string(resource_package, resource_path)
-        )
+    def _validate_resource_types(self, resource_list):
+        if not self.config_schema:
+            self.config_schema = AWSServiceSpec(
+                path="data/config/2014-11-12/service-2.json"
+            )
 
         # Verify that each entry exists in the supported list:
         bad_list = []
@@ -435,31 +432,28 @@ class ConfigBackend(BaseBackend):
             # For PY2:
             r_str = str(resource)
 
-            if r_str not in config_schema["shapes"]["ResourceType"]["enum"]:
+            if r_str not in self.config_schema.shapes["ResourceType"]["enum"]:
                 bad_list.append(r_str)
 
         if bad_list:
             raise InvalidResourceTypeException(
-                bad_list, config_schema["shapes"]["ResourceType"]["enum"]
+                bad_list, self.config_schema.shapes["ResourceType"]["enum"]
             )
 
-    @staticmethod
-    def _validate_delivery_snapshot_properties(properties):
-        # Load the service file:
-        resource_package = "botocore"
-        resource_path = "/".join(("data", "config", "2014-11-12", "service-2.json"))
-        conifg_schema = json.loads(
-            pkg_resources.resource_string(resource_package, resource_path)
-        )
+    def _validate_delivery_snapshot_properties(self, properties):
+        if not self.config_schema:
+            self.config_schema = AWSServiceSpec(
+                path="data/config/2014-11-12/service-2.json"
+            )
 
         # Verify that the deliveryFrequency is set to an acceptable value:
         if (
             properties.get("deliveryFrequency", None)
-            not in conifg_schema["shapes"]["MaximumExecutionFrequency"]["enum"]
+            not in self.config_schema.shapes["MaximumExecutionFrequency"]["enum"]
         ):
             raise InvalidDeliveryFrequency(
                 properties.get("deliveryFrequency", None),
-                conifg_schema["shapes"]["MaximumExecutionFrequency"]["enum"],
+                self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],
             )
 
     def put_configuration_aggregator(self, config_aggregator, region):
