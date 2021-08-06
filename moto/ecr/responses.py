@@ -160,10 +160,14 @@ class ECRResponse(BaseResponse):
             raise NotImplementedError("ECR.get_paginator is not yet implemented")
 
     def get_repository_policy(self):
-        if self.is_not_dryrun("GetRepositoryPolicy"):
-            raise NotImplementedError(
-                "ECR.get_repository_policy is not yet implemented"
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+
+        return json.dumps(
+            self.ecr_backend.get_repository_policy(
+                registry_id=registry_id, repository_name=repository_name,
             )
+        )
 
     def get_waiter(self):
         if self.is_not_dryrun("GetWaiter"):

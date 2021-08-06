@@ -18,6 +18,7 @@ from moto.ecr.exceptions import (
     RepositoryAlreadyExistsException,
     RepositoryNotEmptyException,
     InvalidParameterException,
+    RepositoryPolicyNotFoundException,
 )
 from moto.iam.exceptions import MalformedPolicyDocument
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
@@ -676,6 +677,18 @@ class ECRBackend(BaseBackend):
             )
 
         repo.policy = policy_text
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "policyText": repo.policy,
+        }
+
+    def get_repository_policy(self, registry_id, repository_name):
+        repo = self._get_repository(repository_name, registry_id)
+
+        if not repo.policy:
+            raise RepositoryPolicyNotFoundException(repository_name, repo.registry_id)
 
         return {
             "registryId": repo.registry_id,

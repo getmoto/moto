@@ -1561,3 +1561,79 @@ def test_set_repository_policy_error_invalid_param():
         "Invalid parameter at 'PolicyText' failed to satisfy constraint: "
         "'Invalid repository policy provided'"
     )
+
+
+@mock_ecr
+def test_get_repository_policy():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "root",
+                "Effect": "Allow",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Action": ["ecr:DescribeImages"],
+            }
+        ],
+    }
+    client.set_repository_policy(
+        repositoryName=repo_name, policyText=json.dumps(policy),
+    )
+
+    # when
+    response = client.get_repository_policy(repositoryName=repo_name)
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+    json.loads(response["policyText"]).should.equal(policy)
+
+
+@mock_ecr
+def test_get_repository_policy_error_repo_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_repository_policy(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetRepositoryPolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_get_repository_policy_error_policy_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+    client.create_repository(repositoryName=repo_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_repository_policy(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetRepositoryPolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryPolicyNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Repository policy does not exist "
+        f"for the repository with name '{repo_name}' "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )

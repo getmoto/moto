@@ -42,6 +42,20 @@ class RepositoryNotFoundException(JsonRESTError):
         )
 
 
+class RepositoryPolicyNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, repository_name, registry_id):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=(
+                "Repository policy does not exist "
+                f"for the repository with name '{repository_name}' "
+                f"in the registry with id '{registry_id}'"
+            ),
+        )
+
+
 class ImageNotFoundException(JsonRESTError):
     code = 400
 
