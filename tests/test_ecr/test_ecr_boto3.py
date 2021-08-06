@@ -1468,3 +1468,96 @@ def test_put_image_scanning_configuration_error_not_exists():
         f"The repository with name '{repo_name}' does not exist "
         f"in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_set_repository_policy():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "root",
+                "Effect": "Allow",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Action": ["ecr:DescribeImages"],
+            }
+        ],
+    }
+
+    # when
+    response = client.set_repository_policy(
+        repositoryName=repo_name, policyText=json.dumps(policy),
+    )
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+    json.loads(response["policyText"]).should.equal(policy)
+
+
+@mock_ecr
+def test_set_repository_policy_error_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "root",
+                "Effect": "Allow",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Action": ["ecr:DescribeImages"],
+            }
+        ],
+    }
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.set_repository_policy(
+            repositoryName=repo_name, policyText=json.dumps(policy),
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("SetRepositoryPolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_set_repository_policy_error_invalid_param():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Effect": "Allow"}],
+    }
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.set_repository_policy(
+            repositoryName=repo_name, policyText=json.dumps(policy),
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("SetRepositoryPolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+    ex.response["Error"]["Message"].should.equal(
+        "Invalid parameter at 'PolicyText' failed to satisfy constraint: "
+        "'Invalid repository policy provided'"
+    )

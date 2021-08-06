@@ -19,6 +19,8 @@ from moto.ecr.exceptions import (
     RepositoryNotEmptyException,
     InvalidParameterException,
 )
+from moto.iam.exceptions import MalformedPolicyDocument
+from moto.iam.policy_validation import IAMPolicyDocumentValidator
 from moto.utilities.tagging_service import TaggingService
 
 DEFAULT_REGISTRY_ID = ACCOUNT_ID
@@ -77,6 +79,7 @@ class Repository(BaseObject, CloudFormationModel):
         self.encryption_configuration = self._determine_encryption_config(
             encryption_config
         )
+        self.policy = None
         self.images = []
 
     def _determine_encryption_config(self, encryption_config):
@@ -656,6 +659,28 @@ class ECRBackend(BaseBackend):
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
             "imageScanningConfiguration": repo.image_scanning_configuration,
+        }
+
+    def set_repository_policy(self, registry_id, repository_name, policy_text):
+        repo = self._get_repository(repository_name, registry_id)
+
+        try:
+            iam_policy_document_validator = IAMPolicyDocumentValidator(policy_text)
+            # the repository policy can be defined without a resource field
+            iam_policy_document_validator._validate_resource_exist = lambda: None
+            iam_policy_document_validator.validate()
+        except MalformedPolicyDocument:
+            raise InvalidParameterException(
+                "Invalid parameter at 'PolicyText' failed to satisfy constraint: "
+                "'Invalid repository policy provided'"
+            )
+
+        repo.policy = policy_text
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "policyText": repo.policy,
         }
 
 
