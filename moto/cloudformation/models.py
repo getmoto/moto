@@ -665,7 +665,9 @@ class CloudFormationBackend(BaseBackend):
         else:
             for cs in self.change_sets:
                 if self.change_sets[cs].change_set_name == change_set_name:
-                    del self.change_sets[cs]
+                    to_delete = cs
+                    break
+            del self.change_sets[to_delete]
 
     def describe_change_set(self, change_set_name, stack_name=None):
         change_set = None
