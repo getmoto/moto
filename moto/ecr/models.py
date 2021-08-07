@@ -6,6 +6,7 @@ import uuid
 from collections import namedtuple
 from datetime import datetime
 from random import random
+from typing import Dict
 
 from botocore.exceptions import ParamValidationError
 
@@ -20,6 +21,7 @@ from moto.ecr.exceptions import (
     InvalidParameterException,
     RepositoryPolicyNotFoundException,
 )
+from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
 from moto.utilities.tagging_service import TaggingService
@@ -81,6 +83,7 @@ class Repository(BaseObject, CloudFormationModel):
             encryption_config
         )
         self.policy = None
+        self.lifecycle_policy = None
         self.images = []
 
     def _determine_encryption_config(self, encryption_config):
@@ -290,7 +293,7 @@ class Image(BaseObject):
 class ECRBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
-        self.repositories = {}
+        self.repositories: Dict[str, Repository] = {}
         self.tagger = TaggingService(tagName="tags")
 
     def reset(self):
@@ -298,7 +301,7 @@ class ECRBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def _get_repository(self, name, registry_id=None):
+    def _get_repository(self, name, registry_id=None) -> Repository:
         repo = self.repositories.get(name)
         reg_id = registry_id or DEFAULT_REGISTRY_ID
 
@@ -711,6 +714,20 @@ class ECRBackend(BaseBackend):
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
             "policyText": policy,
+        }
+
+    def put_lifecycle_policy(self, registry_id, repository_name, lifecycle_policy_text):
+        repo = self._get_repository(repository_name, registry_id)
+
+        validator = EcrLifecyclePolicyValidator(lifecycle_policy_text)
+        validator.validate()
+
+        repo.lifecycle_policy = lifecycle_policy_text
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "lifecyclePolicyText": repo.lifecycle_policy,
         }
 
 

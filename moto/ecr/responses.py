@@ -245,3 +245,16 @@ class ECRResponse(BaseResponse):
                 image_scan_config=image_scan_config,
             )
         )
+
+    def put_lifecycle_policy(self):
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        lifecycle_policy_text = self._get_param("lifecyclePolicyText")
+
+        return json.dumps(
+            self.ecr_backend.put_lifecycle_policy(
+                registry_id=registry_id,
+                repository_name=repository_name,
+                lifecycle_policy_text=lifecycle_policy_text,
+            )
+        )
