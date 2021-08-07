@@ -125,6 +125,7 @@ class CloudFormationResponse(BaseResponse):
         change_set_name = self._get_param("ChangeSetName")
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
+        description = self._get_param("Description")
         role_arn = self._get_param("RoleARN")
         update_or_create = self._get_param("ChangeSetType", "CREATE")
         parameters_list = self._get_list_prefix("Parameters.member")
@@ -144,6 +145,7 @@ class CloudFormationResponse(BaseResponse):
             change_set_name=change_set_name,
             template=stack_body,
             parameters=parameters,
+            description=description,
             region_name=self.region,
             notification_arns=stack_notification_arns,
             tags=tags,
@@ -638,7 +640,7 @@ DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
     <StackName>{{ change_set.stack_name }}</StackName>
     <Description>{{ change_set.description }}</Description>
     <Parameters>
-      {% for param_name, param_value in change_set.stack_parameters.items() %}
+      {% for param_name, param_value in change_set.parameters.items() %}
        <member>
           <ParameterKey>{{ param_name }}</ParameterKey>
           <ParameterValue>{{ param_value }}</ParameterValue>
