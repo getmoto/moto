@@ -268,3 +268,13 @@ class ECRResponse(BaseResponse):
                 registry_id=registry_id, repository_name=repository_name,
             )
         )
+
+    def delete_lifecycle_policy(self):
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+
+        return json.dumps(
+            self.ecr_backend.delete_lifecycle_policy(
+                registry_id=registry_id, repository_name=repository_name,
+            )
+        )

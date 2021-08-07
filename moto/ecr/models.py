@@ -746,6 +746,24 @@ class ECRBackend(BaseBackend):
             ),
         }
 
+    def delete_lifecycle_policy(self, registry_id, repository_name):
+        repo = self._get_repository(repository_name, registry_id)
+        policy = repo.lifecycle_policy
+
+        if not policy:
+            raise LifecyclePolicyNotFoundException(repository_name, repo.registry_id)
+
+        repo.lifecycle_policy = None
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "lifecyclePolicyText": policy,
+            "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(
+                datetime.utcnow()
+            ),
+        }
+
 
 ecr_backends = {}
 for region, ec2_backend in ec2_backends.items():
