@@ -127,6 +127,7 @@ from .utils import (
     random_ipv6_cidr,
     random_transit_gateway_attachment_id,
     random_transit_gateway_route_table_id,
+    random_vpc_ep_id,
     randor_ipv4_cidr,
     random_launch_template_id,
     random_nat_gateway_id,
@@ -137,7 +138,6 @@ from .utils import (
     random_reservation_id,
     random_route_table_id,
     generate_route_id,
-    generate_vpc_end_point_id,
     create_dns_entries,
     split_route_id,
     random_security_group_id,
@@ -3267,11 +3267,11 @@ class VPCBackend(object):
         dns_entries=None,
         client_token=None,
         security_group_ids=None,
-        tag_specifications=None,
+        tags=None,
         private_dns_enabled=None,
     ):
 
-        vpc_endpoint_id = generate_vpc_end_point_id(vpc_id)
+        vpc_endpoint_id = random_vpc_ep_id()
 
         # validates if vpc is present or not.
         self.get_vpc(vpc_id)
@@ -3308,7 +3308,7 @@ class VPCBackend(object):
             dns_entries,
             client_token,
             security_group_ids,
-            tag_specifications,
+            tags,
             private_dns_enabled,
         )
 
@@ -3378,10 +3378,12 @@ class PeeringConnectionStatus(object):
 
 
 class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, vpc_pcx_id, vpc, peer_vpc):
+    def __init__(self, backend, vpc_pcx_id, vpc, peer_vpc, tags=None):
         self.id = vpc_pcx_id
+        self.ec2_backend = backend
         self.vpc = vpc
         self.peer_vpc = peer_vpc
+        self.add_tags(tags or {})
         self._status = PeeringConnectionStatus()
 
     @staticmethod
@@ -3428,9 +3430,9 @@ class VPCPeeringConnectionBackend(object):
             if inst is not None:
                 yield inst
 
-    def create_vpc_peering_connection(self, vpc, peer_vpc):
+    def create_vpc_peering_connection(self, vpc, peer_vpc, tags=None):
         vpc_pcx_id = random_vpc_peering_connection_id()
-        vpc_pcx = VPCPeeringConnection(vpc_pcx_id, vpc, peer_vpc)
+        vpc_pcx = VPCPeeringConnection(self, vpc_pcx_id, vpc, peer_vpc, tags)
         vpc_pcx._status.pending()
         self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
         # insert cross region peering info
@@ -4362,7 +4364,7 @@ class VPCEndPoint(TaggedEC2Resource):
         dns_entries=None,
         client_token=None,
         security_group_ids=None,
-        tag_specifications=None,
+        tags=None,
         private_dns_enabled=None,
     ):
         self.ec2_backend = ec2_backend
@@ -4376,10 +4378,14 @@ class VPCEndPoint(TaggedEC2Resource):
         self.subnet_ids = subnet_ids
         self.client_token = client_token
         self.security_group_ids = security_group_ids
-        self.tag_specifications = tag_specifications
         self.private_dns_enabled = private_dns_enabled
-        self.created_at = datetime.utcnow()
+        self._created_at = datetime.utcnow()
         self.dns_entries = dns_entries
+        self.add_tags(tags or {})
+
+    @property
+    def created_at(self):
+        return iso_8601_datetime_with_milliseconds(self._created_at)
 
 
 class RouteBackend(object):
