@@ -4,8 +4,64 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.2
+-----
+    General:
+        * Removed the dependency on pkg_resources that was broken in 2.2.1
+        
+    New Services:
+        * WafV2:
+            * create_web_acl()
+            * list_web_acls()
+        
+    New Methods:
+        * Autoscaling:
+            * delete_tags()
+            * resume_processes()
+        * ConfigService:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+        * EC2:
+            * accept_transit_gateway_peering_attachment()
+            * create_transit_gateway_peering_attachment()
+            * delete_transit_gateway_peering_attachment()
+            * describe_transit_gateway_peering_attachments()
+            * reject_transit_gateway_peering_attachment()
+        * ECR:
+            * delete_repository_policy()
+            * get_repository_policy()
+            * list_tags_for_resource()
+            * put_image_tag_mutability()
+            * put_image_scanning_configuration()
+            * set_repository_policy()
+            * tag_resource()
+            * untag_resource()
+        * KMS:
+            * update_alias()
+        * Logs:
+            * delete_resource_policy()
+            * describe_resource_policies()
+        * RDS:
+            * modify_db_subnet_group()
+
+    Miscellaneous:
+        * CloudFormation: Improved support for AWS::ECR::Repository
+        * CloudFormation: execute_change_set() now properly updates the status of a stack
+        * CognitoIDP: list_users() now supports username/status in the Filter-attribute
+        * ECR: create_repository() now supports the parameters encryptionConfiguration, imageScanningConfiguration, imageTagMutability
+        * Events: put_permission() now supports the Policy and Condition-parameters
+        * Events: remove_permission() now supports the RemoveAllPermissions-parameter
+        * Kinesis: create_delivery_stream() now supports the ElasticsearchDestinationConfiguration-parameter
+        * SecretsManager: create_secret() now supports the KmsKeyId-parameter
+        * SecretsManager: update_secret() now supports the KmsKeyId-parameter
+
 2.2.1
 -----
+    Known bugs:
+        * Moto still depends on setuptools (or more specifically pkg_resources), 
+          but this module is not listed as a dependency.
+
     General:
         * We removed Py3.5 support
         * We removed some unnecessary dependencies for the EC2/SQS services.
