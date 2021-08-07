@@ -172,6 +172,9 @@ class KinesisResponse(BaseResponse):
         redshift_config = self.parameters.get("RedshiftDestinationConfiguration")
         s3_config = self.parameters.get("S3DestinationConfiguration")
         extended_s3_config = self.parameters.get("ExtendedS3DestinationConfiguration")
+        elasticsearch_config = self.parameters.get(
+            "ElasticsearchDestinationConfiguration"
+        )
 
         if redshift_config:
             redshift_s3_config = redshift_config["S3Configuration"]
@@ -193,6 +196,10 @@ class KinesisResponse(BaseResponse):
             stream_kwargs = {"s3_config": s3_config}
         elif extended_s3_config:
             stream_kwargs = {"extended_s3_config": extended_s3_config}
+        elif elasticsearch_config:
+            stream_kwargs = {"elasticsearch_config": elasticsearch_config}
+        else:
+            stream_kwargs = {}
 
         stream = self.kinesis_backend.create_delivery_stream(
             stream_name, **stream_kwargs
