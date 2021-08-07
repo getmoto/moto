@@ -6901,7 +6901,7 @@
 - [X] delete_log_stream
 - [ ] delete_metric_filter
 - [ ] delete_query_definition
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
 - [ ] describe_destinations
@@ -6911,7 +6911,7 @@
 - [ ] describe_metric_filters
 - [ ] describe_queries
 - [ ] describe_query_definitions
-- [ ] describe_resource_policies
+- [X] describe_resource_policies
 - [X] describe_subscription_filters
 - [ ] disassociate_kms_key
 - [X] filter_log_events
@@ -6931,6 +6931,7 @@
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
+- [ ] tail
 - [ ] test_metric_filter
 - [X] untag_log_group
 </details>

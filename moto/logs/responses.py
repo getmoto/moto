@@ -1,8 +1,9 @@
-from moto.core.responses import BaseResponse
-from .models import logs_backends
 import json
+
 from .exceptions import InvalidParameterException
 
+from moto.core.responses import BaseResponse
+from .models import logs_backends
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
@@ -167,10 +168,21 @@ class LogsResponse(BaseResponse):
         self.logs_backend.delete_retention_policy(log_group_name)
         return ""
 
+    def describe_resource_policies(self):
+        next_token = self._get_param("nextToken")
+        limit = self._get_param("limit")
+        policies = self.logs_backend.describe_resource_policies(next_token, limit)
+        return json.dumps({"resourcePolicies": policies})
+
     def put_resource_policy(self):
         policy_name = self._get_param("policyName")
         policy_doc = self._get_param("policyDocument")
-        self.logs_backend.put_resource_policy(policy_name, policy_doc)
+        result = self.logs_backend.put_resource_policy(policy_name, policy_doc)
+        return json.dumps(result)
+
+    def delete_resource_policy(self):
+        policy_name = self._get_param("policyName")
+        self.logs_backend.delete_resource_policy(policy_name)
         return ""
 
     def list_tags_log_group(self):
