@@ -2,6 +2,20 @@ from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
+class LifecyclePolicyNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, repository_name, registry_id):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=(
+                "Lifecycle policy does not exist "
+                f"for the repository with name '{repository_name}' "
+                f"in the registry with id '{registry_id}'"
+            ),
+        )
+
+
 class RepositoryAlreadyExistsException(JsonRESTError):
     code = 400
 

@@ -20,6 +20,7 @@ from moto.ecr.exceptions import (
     RepositoryNotEmptyException,
     InvalidParameterException,
     RepositoryPolicyNotFoundException,
+    LifecyclePolicyNotFoundException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
@@ -728,6 +729,21 @@ class ECRBackend(BaseBackend):
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
             "lifecyclePolicyText": repo.lifecycle_policy,
+        }
+
+    def get_lifecycle_policy(self, registry_id, repository_name):
+        repo = self._get_repository(repository_name, registry_id)
+
+        if not repo.lifecycle_policy:
+            raise LifecyclePolicyNotFoundException(repository_name, repo.registry_id)
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "lifecyclePolicyText": repo.lifecycle_policy,
+            "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(
+                datetime.utcnow()
+            ),
         }
 
 
