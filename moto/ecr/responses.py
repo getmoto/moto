@@ -119,10 +119,14 @@ class ECRResponse(BaseResponse):
             )
 
     def delete_repository_policy(self):
-        if self.is_not_dryrun("DeleteRepositoryPolicy"):
-            raise NotImplementedError(
-                "ECR.delete_repository_policy is not yet implemented"
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+
+        return json.dumps(
+            self.ecr_backend.delete_repository_policy(
+                registry_id=registry_id, repository_name=repository_name,
             )
+        )
 
     def generate_presigned_url(self):
         if self.is_not_dryrun("GeneratePresignedUrl"):
@@ -160,10 +164,14 @@ class ECRResponse(BaseResponse):
             raise NotImplementedError("ECR.get_paginator is not yet implemented")
 
     def get_repository_policy(self):
-        if self.is_not_dryrun("GetRepositoryPolicy"):
-            raise NotImplementedError(
-                "ECR.get_repository_policy is not yet implemented"
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+
+        return json.dumps(
+            self.ecr_backend.get_repository_policy(
+                registry_id=registry_id, repository_name=repository_name,
             )
+        )
 
     def get_waiter(self):
         if self.is_not_dryrun("GetWaiter"):
@@ -176,10 +184,20 @@ class ECRResponse(BaseResponse):
             )
 
     def set_repository_policy(self):
-        if self.is_not_dryrun("SetRepositoryPolicy"):
-            raise NotImplementedError(
-                "ECR.set_repository_policy is not yet implemented"
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        policy_text = self._get_param("policyText")
+        # this is usually a safety flag to prevent accidental repository lock outs
+        # but this would need a much deeper validation of the provided policy
+        # force = self._get_param("force")
+
+        return json.dumps(
+            self.ecr_backend.set_repository_policy(
+                registry_id=registry_id,
+                repository_name=repository_name,
+                policy_text=policy_text,
             )
+        )
 
     def upload_layer_part(self):
         if self.is_not_dryrun("UploadLayerPart"):
