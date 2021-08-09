@@ -111,8 +111,6 @@ from .exceptions import (
     InvalidAssociationIDIamProfileAssociationError,
     InvalidVpcEndPointIdError,
     InvalidTaggableResourceType,
-    PrefixListMaxEntriesExceeded,
-    InvalidPrefixListEntriesCidrModification
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -140,7 +138,6 @@ from .utils import (
     random_reservation_id,
     random_route_table_id,
     generate_route_id,
-    generate_vpc_end_point_id,
     random_managed_prefix_list_id,
     create_dns_entries,
     split_route_id,
@@ -3778,7 +3775,7 @@ class SubnetBackend(object):
                 raise InvalidSubnetIdError(list(unknown_ids)[0])
         if filters:
             matches = generic_filter(filters, matches)
-            
+
         return matches
 
     def delete_subnet(self, subnet_id):
@@ -4393,7 +4390,17 @@ class VPCEndPoint(TaggedEC2Resource):
 
 
 class ManagedPrefixList(TaggedEC2Resource):
-    def __init__(self, backend, address_family=None, entry=[], max_entries=None, prefix_list_name=None, region=None, tags={}, owner_id=None):
+    def __init__(
+        self,
+        backend,
+        address_family=None,
+        entry=[],
+        max_entries=None,
+        prefix_list_name=None,
+        region=None,
+        tags={},
+        owner_id=None,
+    ):
         self.ec2_backend = backend
         self.address_family = address_family
         self.max_entries = max_entries
@@ -4418,13 +4425,20 @@ class ManagedPrefixList(TaggedEC2Resource):
 
 
 class ManagedPrefixListBackend(object):
-
     def __init__(self):
         self.managed_prefix_lists = {}
         self.aws_prefix_lists = {}
         super(ManagedPrefixListBackend, self).__init__()
 
-    def create_managed_prefix_list(self, address_family=None, entry=[], max_entries=None, prefix_list_name=None, tags={}, owner_id=None):
+    def create_managed_prefix_list(
+        self,
+        address_family=None,
+        entry=[],
+        max_entries=None,
+        prefix_list_name=None,
+        tags={},
+        owner_id=None,
+    ):
         managed_prefix_list = ManagedPrefixList(
             self,
             address_family=address_family,
@@ -4433,7 +4447,7 @@ class ManagedPrefixListBackend(object):
             prefix_list_name=prefix_list_name,
             region=self.region,
             tags=tags,
-            owner_id=owner_id
+            owner_id=owner_id,
         )
         self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
         return managed_prefix_list
@@ -4477,7 +4491,12 @@ class ManagedPrefixListBackend(object):
                 {"Cidr": "54.231.0.0/16", "Description": "default"},
             ]
 
-            managed_prefix_list = self.create_managed_prefix_list(address_family="IPv4", entry=entry, prefix_list_name=pl_name, owner_id="AWS")
+            managed_prefix_list = self.create_managed_prefix_list(
+                address_family="IPv4",
+                entry=entry,
+                prefix_list_name=pl_name,
+                owner_id="AWS",
+            )
             managed_prefix_list.version = None
             managed_prefix_list.max_entries = None
             self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
@@ -4490,215 +4509,12 @@ class ManagedPrefixListBackend(object):
                 {"Cidr": "52.119.224.0/20", "Description": "default"},
             ]
 
-            managed_prefix_list = self.create_managed_prefix_list(address_family="IPv4", entry=entry, prefix_list_name=pl_name, owner_id="AWS")
-            managed_prefix_list.version = None
-            managed_prefix_list.max_entries = None
-            self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
-
-
-class ManagedPrefixList(TaggedEC2Resource):
-    def __init__(self, backend, address_family=None, entry=[], max_entries=None, prefix_list_name=None, region=None, tags={}, owner_id=None):
-        self.ec2_backend = backend
-        self.address_family = address_family
-        self.max_entries = max_entries
-        self.id = random_managed_prefix_list_id()
-        self.prefix_list_name = prefix_list_name
-        self.prefix_list_arn = self.arn(region)
-        self.state = "create-complete"
-        self.state_message = "create complete"
-        self.add_tags(tags or {})
-        self.version = 1
-        self.entries = {self.version: entry} if entry else {}
-        self.resource_owner_id = owner_id if owner_id else None
-
-    def arn(self, region):
-        return "arn:aws:ec2:{region}:aws:prefix-list/{resource_id}".format(
-            region=region, resource_id=self.id
-        )
-
-    @property
-    def owner_id(self):
-        return ACCOUNT_ID if not self.resource_owner_id else self.resource_owner_id
-
-
-class ManagedPrefixListBackend(object):
-
-    def __init__(self):
-        self.managed_prefix_lists = {}
-        self.aws_prefix_lists = {}
-        super(ManagedPrefixListBackend, self).__init__()
-
-    def create_managed_prefix_list(self, address_family=None, entry=[], max_entries=None, prefix_list_name=None, tags={}, owner_id=None):
-        managed_prefix_list = ManagedPrefixList(
-            self,
-            address_family=address_family,
-            entry=entry,
-            max_entries=max_entries,
-            prefix_list_name=prefix_list_name,
-            region=self.region,
-            tags=tags,
-            owner_id=owner_id
-        )
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
-        return managed_prefix_list
-
-    def describe_managed_prefix_lists(self, prefix_list_ids=None, filters=None):
-        managed_prefix_lists = list(self.managed_prefix_lists.values())
-        attr_pairs = (
-            ("owner-id", "owner_id"),
-            ("prefix-list-id", "id"),
-            ("prefix-list-name", "prefix_list_name"),
-        )
-
-        if prefix_list_ids:
-            managed_prefix_lists = [
-                managed_prefix_list
-                for managed_prefix_list in managed_prefix_lists
-                if managed_prefix_list.id in prefix_list_ids
-            ]
-
-        result = managed_prefix_lists
-        if filters:
-            result = filter_resources(managed_prefix_lists, filters, attr_pairs)
-        return result
-
-    def get_managed_prefix_list_entries(self, prefix_list_id=None):
-        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
-        return managed_prefix_list
-
-    def delete_managed_prefix_list(self, prefix_list_id):
-        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
-        managed_prefix_list.state = "delete-complete"
-        return managed_prefix_list
-
-    def create_default_pls(self):
-        if not self.aws_prefix_lists:
-            print("self.region:", self.region)
-            pl_name = "com.amazonaws.{}.s3".format(self.region)
-            entry = [
-                {"Cidr": "52.216.0.0/15", "Description": "default"},
-                {"Cidr": "3.5.0.0/19", "Description": "default"},
-                {"Cidr": "54.231.0.0/16", "Description": "default"},
-            ]
-
-            managed_prefix_list = self.create_managed_prefix_list(address_family="IPv4", entry=entry, prefix_list_name=pl_name, owner_id="AWS")
-            managed_prefix_list.version = None
-            managed_prefix_list.max_entries = None
-            self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
-
-            pl_name = "com.amazonaws.{}.dynamodb".format(self.region)
-            entry = [
-                {"Cidr": "3.218.182.0/24", "Description": "default"},
-                {"Cidr": "3.218.180.0/23", "Description": "default"},
-                {"Cidr": "52.94.0.0/22", "Description": "default"},
-                {"Cidr": "52.119.224.0/20", "Description": "default"},
-            ]
-
-            managed_prefix_list = self.create_managed_prefix_list(address_family="IPv4", entry=entry, prefix_list_name=pl_name, owner_id="AWS")
-            managed_prefix_list.version = None
-            managed_prefix_list.max_entries = None
-            self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
-
-
-class ManagedPrefixList(TaggedEC2Resource):
-    def __init__(self, backend, address_family=None, entry=[], max_entries=None, prefix_list_name=None, region=None, tags={}, owner_id=None):
-        self.ec2_backend = backend
-        self.address_family = address_family
-        self.max_entries = max_entries
-        self.id = random_managed_prefix_list_id()
-        self.prefix_list_name = prefix_list_name
-        self.prefix_list_arn = self.arn(region)
-        self.state = "create-complete"
-        self.state_message = "create complete"
-        self.add_tags(tags or {})
-        self.version = 1
-        self.entries = {self.version: entry} if entry else {}
-        self.resource_owner_id = owner_id if owner_id else None
-
-    def arn(self, region):
-        return "arn:aws:ec2:{region}:aws:prefix-list/{resource_id}".format(
-            region=region, resource_id=self.id
-        )
-
-    @property
-    def owner_id(self):
-        return ACCOUNT_ID if not self.resource_owner_id else self.resource_owner_id
-
-
-class ManagedPrefixListBackend(object):
-
-    def __init__(self):
-        self.managed_prefix_lists = {}
-        self.aws_prefix_lists = {}
-        super(ManagedPrefixListBackend, self).__init__()
-
-    def create_managed_prefix_list(self, address_family=None, entry=[], max_entries=None, prefix_list_name=None, tags={}, owner_id=None):
-        managed_prefix_list = ManagedPrefixList(
-            self,
-            address_family=address_family,
-            entry=entry,
-            max_entries=max_entries,
-            prefix_list_name=prefix_list_name,
-            region=self.region,
-            tags=tags,
-            owner_id=owner_id
-        )
-        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
-        return managed_prefix_list
-
-    def describe_managed_prefix_lists(self, prefix_list_ids=None, filters=None):
-        managed_prefix_lists = list(self.managed_prefix_lists.values())
-        attr_pairs = (
-            ("owner-id", "owner_id"),
-            ("prefix-list-id", "id"),
-            ("prefix-list-name", "prefix_list_name"),
-        )
-
-        if prefix_list_ids:
-            managed_prefix_lists = [
-                managed_prefix_list
-                for managed_prefix_list in managed_prefix_lists
-                if managed_prefix_list.id in prefix_list_ids
-            ]
-
-        result = managed_prefix_lists
-        if filters:
-            result = filter_resources(managed_prefix_lists, filters, attr_pairs)
-        return result
-
-    def get_managed_prefix_list_entries(self, prefix_list_id=None):
-        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
-        return managed_prefix_list
-
-    def delete_managed_prefix_list(self, prefix_list_id):
-        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
-        managed_prefix_list.state = "delete-complete"
-        return managed_prefix_list
-
-    def create_default_pls(self):
-        if not self.aws_prefix_lists:
-            print("self.region:", self.region)
-            pl_name = "com.amazonaws.{}.s3".format(self.region)
-            entry = [
-                {"Cidr": "52.216.0.0/15", "Description": "default"},
-                {"Cidr": "3.5.0.0/19", "Description": "default"},
-                {"Cidr": "54.231.0.0/16", "Description": "default"},
-            ]
-
-            managed_prefix_list = self.create_managed_prefix_list(address_family="IPv4", entry=entry, prefix_list_name=pl_name, owner_id="AWS")
-            managed_prefix_list.version = None
-            managed_prefix_list.max_entries = None
-            self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
-
-            pl_name = "com.amazonaws.{}.dynamodb".format(self.region)
-            entry = [
-                {"Cidr": "3.218.182.0/24", "Description": "default"},
-                {"Cidr": "3.218.180.0/23", "Description": "default"},
-                {"Cidr": "52.94.0.0/22", "Description": "default"},
-                {"Cidr": "52.119.224.0/20", "Description": "default"},
-            ]
-
-            managed_prefix_list = self.create_managed_prefix_list(address_family="IPv4", entry=entry, prefix_list_name=pl_name, owner_id="AWS")
+            managed_prefix_list = self.create_managed_prefix_list(
+                address_family="IPv4",
+                entry=entry,
+                prefix_list_name=pl_name,
+                owner_id="AWS",
+            )
             managed_prefix_list.version = None
             managed_prefix_list.max_entries = None
             self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list

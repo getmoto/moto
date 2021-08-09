@@ -235,9 +235,7 @@ def generate_vpc_end_point_id(vpc_id):
 
 
 def random_managed_prefix_list_id():
-    return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8
-    )
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8)
 
 
 def create_dns_entries(service_name, vpc_endpoint_id):

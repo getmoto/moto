@@ -644,7 +644,9 @@ class PrefixListMaxEntriesExceeded(EC2ClientError):
             "when calling the ModifyManagedPrefixList operation: You've reached the \
                 maximum number of entries for the prefix list. \
                     This modification saves {} entries and the maximum number of entries \
-                        for this prefix list is {}.".format(actual_value, expected),
+                        for this prefix list is {}.".format(
+                actual_value, expected
+            ),
         )
 
 
@@ -654,5 +656,7 @@ class InvalidPrefixListEntriesCidrModification(EC2ClientError):
             "InvalidPrefixListModification",
             "when calling the ModifyManagedPrefixList operation: \
                 An entry with the CIDR ({}) and description ({description}) \
-                    already exists.".format(cidr, description),
+                    already exists.".format(
+                cidr, description
+            ),
         )

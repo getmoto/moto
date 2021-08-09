@@ -234,7 +234,7 @@ class VPCs(BaseResponse):
             entry=entry,
             max_entries=max_entries,
             prefix_list_name=prefix_list_name,
-            tags=tags
+            tags=tags,
         )
         template = self.response_template(CREATE_MANAGED_PREFIX_LIST)
         return template.render(managed_prefix_list=managed_prefix_list)
@@ -263,7 +263,9 @@ class VPCs(BaseResponse):
 
     def delete_managed_prefix_list(self):
         prefix_list_id = self._get_param("PrefixListId")
-        managed_prefix_list = self.ec2_backend.delete_managed_prefix_list(prefix_list_id)
+        managed_prefix_list = self.ec2_backend.delete_managed_prefix_list(
+            prefix_list_id
+        )
         template = self.response_template(DELETE_MANAGED_PREFIX_LIST)
         return template.render(managed_prefix_list=managed_prefix_list)
 
