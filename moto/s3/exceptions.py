@@ -473,3 +473,12 @@ class InvalidContinuationToken(S3ClientError):
             *args,
             **kwargs
         )
+
+
+class LockNotEnabled(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(LockNotEnabled, self).__init__(
+            "InvalidArgument", "Bucket must have lock enabled"
+        )

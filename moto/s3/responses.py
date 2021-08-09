@@ -53,6 +53,7 @@ from .exceptions import (
     NoSystemTags,
     PreconditionFailed,
     InvalidRange,
+    LockNotEnabled
 )
 from .models import (
     s3_backend,
@@ -803,6 +804,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name, self._acl_from_headers(request.headers)
                 )
 
+            if request.headers.get("x-amz-bucket-object-lock-enabled", False):
+                new_bucket.lock_enabled = True
+                new_bucket.versioning_status = "Enabled"
+
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, {}, template.render(bucket=new_bucket)
 
@@ -1297,6 +1302,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if bucket_key_enabled is not None:
             bucket_key_enabled = str(bucket_key_enabled).lower()
 
+        lock_mode = request.headers.get("x-amz-object-lock-mode", "")
+        lock_until = request.headers.get("x-amz-object-lock-retain-until-date", "")
+        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "")
+
+        if lock_mode or lock_until or legal_hold:
+            lock_enabled = self.backend.get_bucket(bucket_name).object_lock_enabled
+            if not lock_enabled:
+                raise LockNotEnabled
+
         acl = self._acl_from_headers(request.headers)
         if acl is None:
             acl = self.backend.get_bucket(bucket_name).acl
@@ -1358,6 +1372,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 )
             else:
                 return 404, response_headers, ""
+
 
             new_key = self.backend.get_object(bucket_name, key_name)
             mdirective = request.headers.get("x-amz-metadata-directive")

@@ -101,6 +101,9 @@ class FakeKey(BaseModel):
         encryption=None,
         kms_key_id=None,
         bucket_key_enabled=None,
+        lock_mode = None,
+        lock_legal_status = "OFF",
+        lock_until = None
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -115,6 +118,7 @@ class FakeKey(BaseModel):
         self.multipart = multipart
         self.bucket_name = bucket_name
 
+
         self._max_buffer_size = (
             max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
         )
@@ -125,6 +129,10 @@ class FakeKey(BaseModel):
         self.encryption = encryption
         self.kms_key_id = kms_key_id
         self.bucket_key_enabled = bucket_key_enabled
+        
+        self.lock_mode = lock_mode
+        self.lock_legal_status = lock_legal_status
+        self.lock_until = lock_until
 
     @property
     def version_id(self):
@@ -798,6 +806,7 @@ class FakeBucket(CloudFormationModel):
         self.creation_date = datetime.datetime.now(tz=pytz.utc)
         self.public_access_block = None
         self.encryption = None
+        self.object_lock_enabled = False
 
     @property
     def location(self):
@@ -1296,12 +1305,17 @@ class S3Backend(BaseBackend):
             )
         return metrics
 
-    def create_bucket(self, bucket_name, region_name):
+    def create_bucket(self, bucket_name, region_name, lock_enabled = False):
         if bucket_name in self.buckets:
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
+
+        if lock_enabled:
+            new_bucket.versioning_status = "Enabled"
+            new_bucket.object_lock_enabled = True 
+
         self.buckets[bucket_name] = new_bucket
         return new_bucket
 

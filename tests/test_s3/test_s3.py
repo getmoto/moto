@@ -27,7 +27,6 @@ from boto.s3.key import Key
 from freezegun import freeze_time
 import six
 import requests
-import time
 
 from moto.s3 import models
 from moto.s3.responses import DEFAULT_REGION_NAME
@@ -5169,39 +5168,3 @@ def test_get_object_versions_with_prefix():
     versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix="file")
     versions["Versions"].should.have.length_of(3)
     versions["Prefix"].should.equal("file")
-
-@mock_s3
-def test_locked_object():
-    bucket_name = "locked-bucket-crist"
-    s3 = boto3.client("s3")
-    s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=False)
-    key_name = "file.txt"
-    seconds_lock = 5
-
-    try:
-        s3.put_object(Bucket=bucket_name, Body=b"test", Key=key_name, 
-            ObjectLockMode='COMPLIANCE', 
-            ObjectLockLegalHoldStatus='ON')
-    except botocore.client.ClientError as e:
-        e.response['Error']['Code'].should.equal('InvalidArgument')
-
-    s3.delete_bucket(Bucket=bucket_name)
-    s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
-
-    until = datetime.datetime.utcnow() + datetime.timedelta(0,seconds_lock)
-    s3.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt", 
-        ObjectLockMode='COMPLIANCE', 
-        ObjectLockRetainUntilDate=until)
-
-    versions_response = s3.list_object_versions(Bucket=bucket_name)
-    version_id = versions_response['Versions'][0]['VersionId']
-
-    try:
-        s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-    except botocore.client.ClientError as e:
-        e.response['Error']['Code'].should.equal('AccessDenied')
-    
-    #cleaning
-    time.sleep(seconds_lock)
-    s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-    s3.delete_bucket(Bucket=bucket_name)
