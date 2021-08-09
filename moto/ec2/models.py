@@ -3494,7 +3494,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         availability_zone,
         default_for_az,
         map_public_ip_on_launch,
-        owner_id=OWNER_ID,
+        owner_id=None,
         assign_ipv6_address_on_creation=False,
     ):
         self.ec2_backend = ec2_backend
@@ -3754,7 +3754,7 @@ class SubnetBackend(object):
             availability_zone_data,
             default_for_az,
             map_public_ip_on_launch,
-            owner_id=context.get_current_user() if context else OWNER_ID,
+            owner_id=context.get_current_user() if context else ACCOUNT_ID,
             assign_ipv6_address_on_creation=False,
         )
 
@@ -3775,10 +3775,10 @@ class SubnetBackend(object):
             matches = [sn for sn in matches if sn.id in subnet_ids]
             if len(subnet_ids) > len(matches):
                 unknown_ids = set(subnet_ids) - set(matches)
-                raise InvalidSubnetIdError(unknown_ids)
+                raise InvalidSubnetIdError(list(unknown_ids)[0])
         if filters:
             matches = generic_filter(filters, matches)
-
+            
         return matches
 
     def delete_subnet(self, subnet_id):
