@@ -1720,3 +1720,238 @@ def test_delete_repository_policy_error_policy_not_exists():
         f"for the repository with name '{repo_name}' "
         f"in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_put_lifecycle_policy():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    policy = {
+        "rules": [
+            {
+                "rulePriority": 1,
+                "description": "test policy",
+                "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 30,
+                },
+                "action": {"type": "expire"},
+            }
+        ]
+    }
+
+    # when
+    response = client.put_lifecycle_policy(
+        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy),
+    )
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+    json.loads(response["lifecyclePolicyText"]).should.equal(policy)
+
+
+@mock_ecr
+def test_put_lifecycle_policy_error_repo_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+    policy = {
+        "rules": [
+            {
+                "rulePriority": 1,
+                "description": "test policy",
+                "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 30,
+                },
+                "action": {"type": "expire"},
+            }
+        ]
+    }
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_lifecycle_policy(
+            repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy)
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutLifecyclePolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_get_lifecycle_policy():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    policy = {
+        "rules": [
+            {
+                "rulePriority": 1,
+                "description": "test policy",
+                "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 30,
+                },
+                "action": {"type": "expire"},
+            }
+        ]
+    }
+    client.put_lifecycle_policy(
+        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy),
+    )
+
+    # when
+    response = client.get_lifecycle_policy(repositoryName=repo_name)
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+    json.loads(response["lifecyclePolicyText"]).should.equal(policy)
+    response["lastEvaluatedAt"].should.be.a(datetime)
+
+
+@mock_ecr
+def test_get_lifecycle_policy_error_repo_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_lifecycle_policy(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetLifecyclePolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_get_lifecycle_policy_error_policy_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_lifecycle_policy(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetLifecyclePolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("LifecyclePolicyNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Lifecycle policy does not exist "
+        f"for the repository with name '{repo_name}' "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_delete_lifecycle_policy():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    policy = {
+        "rules": [
+            {
+                "rulePriority": 1,
+                "description": "test policy",
+                "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 30,
+                },
+                "action": {"type": "expire"},
+            }
+        ]
+    }
+    client.put_lifecycle_policy(
+        repositoryName=repo_name, lifecyclePolicyText=json.dumps(policy),
+    )
+
+    # when
+    response = client.delete_lifecycle_policy(repositoryName=repo_name)
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+    json.loads(response["lifecyclePolicyText"]).should.equal(policy)
+    response["lastEvaluatedAt"].should.be.a(datetime)
+
+    with pytest.raises(ClientError) as e:
+        client.get_lifecycle_policy(repositoryName=repo_name)
+
+    e.value.response["Error"]["Code"].should.contain("LifecyclePolicyNotFoundException")
+
+
+@mock_ecr
+def test_delete_lifecycle_policy_error_repo_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_lifecycle_policy(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteLifecyclePolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_delete_lifecycle_policy_error_policy_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_lifecycle_policy(repositoryName=repo_name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteLifecyclePolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("LifecyclePolicyNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Lifecycle policy does not exist "
+        f"for the repository with name '{repo_name}' "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
