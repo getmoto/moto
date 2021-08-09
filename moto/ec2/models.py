@@ -6240,12 +6240,8 @@ class TransitGatewayRouteTableBackend(object):
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
 
-    def unset_route_table_association(
-        self, tgw_rt_id
-    ):
-        tgw_rt = self.transit_gateways_route_tables[
-            tgw_rt_id
-        ]
+    def unset_route_table_association(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
         tgw_rt.route_table_association = {}
 
     def set_route_table_propagation(
@@ -6264,12 +6260,8 @@ class TransitGatewayRouteTableBackend(object):
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
 
-    def unset_route_table_propagation(
-        self, tgw_rt_id
-    ):
-        tgw_rt = self.transit_gateways_route_tables[
-            tgw_rt_id
-        ]
+    def unset_route_table_propagation(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
         tgw_rt.route_table_propagation = {}
 
     def disable_route_table_propagation(self, transit_gateway_route_table_id):
@@ -6554,9 +6546,7 @@ class TransitGatewayAttachmentBackend(object):
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
-    def unset_attachment_association(
-        self, tgw_attach_id
-    ):
+    def unset_attachment_association(self, tgw_attach_id):
         self.transit_gateway_attachments.get(tgw_attach_id).association = {}
 
     def set_attachment_propagation(
@@ -6567,9 +6557,7 @@ class TransitGatewayAttachmentBackend(object):
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
-    def unset_attachment_propagation(
-        self, tgw_attach_id
-    ):
+    def unset_attachment_propagation(self, tgw_attach_id):
         self.transit_gateway_attachments.get(tgw_attach_id).propagation = {}
 
     def disable_attachment_propagation(self, transit_gateway_attachment_id=None):
