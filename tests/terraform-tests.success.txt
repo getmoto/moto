@@ -71,3 +71,4 @@ TestAccAWSUserGroupMembership
 TestAccAWSUserPolicyAttachment
 TestAccAWSUserSSHKey
 TestAccAWSVpc_
+TestAccAWSRouteTable_disappears
