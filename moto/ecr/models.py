@@ -804,6 +804,18 @@ class ECRBackend(BaseBackend):
             "policyText": self.registry_policy,
         }
 
+    def delete_registry_policy(self):
+        policy = self.registry_policy
+        if not policy:
+            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+
+        self.registry_policy = None
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": policy,
+        }
+
 
 ecr_backends = {}
 for region, ec2_backend in ec2_backends.items():

@@ -2062,3 +2062,54 @@ def test_get_registry_policy_error_policy_not_exists():
     ex.response["Error"]["Message"].should.equal(
         f"Registry policy does not exist in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_delete_registry_policy():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": ["arn:aws:iam::111111111111:root", "222222222222"]
+                },
+                "Action": ["ecr:CreateRepository", "ecr:ReplicateImage"],
+                "Resource": "*",
+            }
+        ],
+    }
+    client.put_registry_policy(policyText=json.dumps(policy))
+
+    # when
+    response = client.delete_registry_policy()
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    json.loads(response["policyText"]).should.equal(policy)
+
+    with pytest.raises(ClientError) as e:
+        client.get_registry_policy()
+
+    e.value.response["Error"]["Code"].should.contain("RegistryPolicyNotFoundException")
+
+
+@mock_ecr
+def test_delete_registry_policy_error_policy_not_exists():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_registry_policy()
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteRegistryPolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RegistryPolicyNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"Registry policy does not exist in the registry with id '{ACCOUNT_ID}'"
+    )

@@ -286,3 +286,6 @@ class ECRResponse(BaseResponse):
 
     def get_registry_policy(self):
         return json.dumps(self.ecr_backend.get_registry_policy())
+
+    def delete_registry_policy(self):
+        return json.dumps(self.ecr_backend.delete_registry_policy())
