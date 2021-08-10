@@ -11,9 +11,9 @@ import sure
 def test_locked_object():
     s3 = boto3.client("s3")
 
-    bucket_name = "locked-bucket-crist"
+    bucket_name = "locked-bucket"
     key_name = "file.txt"
-    seconds_lock = 5
+    seconds_lock = 2
 
     s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
 
@@ -46,7 +46,7 @@ def test_locked_object():
 
 @mock_s3
 def test_fail_locked_object():
-    bucket_name = "locked-bucket"
+    bucket_name = "locked-bucket2"
     key_name = "file.txt"
 
     s3 = boto3.client("s3")
