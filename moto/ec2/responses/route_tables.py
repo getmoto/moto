@@ -123,6 +123,7 @@ CREATE_ROUTE_TABLE_RESPONSE = """
    <routeTable>
       <routeTableId>{{ route_table.id }}</routeTableId>
       <vpcId>{{ route_table.vpc_id }}</vpcId>
+      <ownerId>{{ route_table.owner_id }}</ownerId>
       <routeSet>
          {% for route in route_table.routes.values() %}
            {% if route.local %}
@@ -157,7 +158,7 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
        <item>
           <routeTableId>{{ route_table.id }}</routeTableId>
           <vpcId>{{ route_table.vpc_id }}</vpcId>
-          <routeSet>
+           <routeSet>
             {% for route in route_table.routes.values() %}
               <item>
                 <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>

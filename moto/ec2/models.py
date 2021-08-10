@@ -3490,7 +3490,6 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         availability_zone,
         default_for_az,
         map_public_ip_on_launch,
-        owner_id=OWNER_ID,
         assign_ipv6_address_on_creation=False,
     ):
         self.ec2_backend = ec2_backend
@@ -3504,7 +3503,6 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
-        self.owner_id = owner_id
         self.assign_ipv6_address_on_creation = assign_ipv6_address_on_creation
         self.ipv6_cidr_block_associations = []
 
@@ -3516,6 +3514,10 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
         self._subnet_ips = {}  # has IP: instance
         self.state = "available"
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
 
     @staticmethod
     def cloudformation_name_type():
@@ -3750,7 +3752,6 @@ class SubnetBackend(object):
             availability_zone_data,
             default_for_az,
             map_public_ip_on_launch,
-            owner_id=context.get_current_user() if context else OWNER_ID,
             assign_ipv6_address_on_creation=False,
         )
 
@@ -4132,6 +4133,10 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.main = main
         self.associations = {}
         self.routes = {}
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
 
     @staticmethod
     def cloudformation_name_type():
