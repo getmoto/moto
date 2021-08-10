@@ -141,7 +141,7 @@ class EventsHandler(BaseResponse):
         rules_obj = {"Rules": []}
 
         for rule in rules["Rules"]:
-            rules_obj["Rules"].append(self._generate_rule_dict(rule))
+            rules_obj["Rules"].append(rule.describe())
 
         if rules.get("NextToken"):
             rules_obj["NextToken"] = rules["NextToken"]
