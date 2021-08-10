@@ -4493,7 +4493,9 @@ class RouteBackend(object):
         route_table = self.get_route_table(route_table_id)
         return route_table.get(route_id)
 
-    def delete_route(self, route_table_id, destination_cidr_block, destination_ipv6_cidr_block=None):
+    def delete_route(
+        self, route_table_id, destination_cidr_block, destination_ipv6_cidr_block=None
+    ):
         cidr = destination_cidr_block
         route_table = self.get_route_table(route_table_id)
         if destination_ipv6_cidr_block:

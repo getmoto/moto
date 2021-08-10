@@ -51,7 +51,9 @@ class RouteTables(BaseResponse):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
-        self.ec2_backend.delete_route(route_table_id, destination_cidr_block, destination_ipv6_cidr_block)
+        self.ec2_backend.delete_route(
+            route_table_id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         template = self.response_template(DELETE_ROUTE_RESPONSE)
         return template.render()
 
