@@ -13,11 +13,13 @@ class InvalidEventPatternException(JsonRESTError):
     code = 400
 
     def __init__(self, reason=None):
-        msg = "Event pattern is not valid."
+        msg = "Event pattern is not valid. "
         if reason:
             msg += f"Reason: {reason}"
 
-        super().__init__("InvalidEventPatternException", msg)
+        super(InvalidEventPatternException, self).__init__(
+            "InvalidEventPatternException", msg
+        )
 
 
 class ResourceNotFoundException(JsonRESTError):
