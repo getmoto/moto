@@ -278,3 +278,8 @@ class ECRResponse(BaseResponse):
                 registry_id=registry_id, repository_name=repository_name,
             )
         )
+
+    def put_registry_policy(self):
+        policy_text = self._get_param("policyText")
+
+        return json.dumps(self.ecr_backend.put_registry_policy(policy_text=policy_text))
