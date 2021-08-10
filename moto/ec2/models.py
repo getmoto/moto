@@ -3490,7 +3490,6 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         availability_zone,
         default_for_az,
         map_public_ip_on_launch,
-        owner_id=OWNER_ID,
         assign_ipv6_address_on_creation=False,
     ):
         self.ec2_backend = ec2_backend
@@ -3504,7 +3503,6 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
-        self.owner_id = owner_id
         self.assign_ipv6_address_on_creation = assign_ipv6_address_on_creation
         self.ipv6_cidr_block_associations = []
 
@@ -3516,6 +3514,10 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
         self._subnet_ips = {}  # has IP: instance
         self.state = "available"
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
 
     @staticmethod
     def cloudformation_name_type():
@@ -3750,7 +3752,6 @@ class SubnetBackend(object):
             availability_zone_data,
             default_for_az,
             map_public_ip_on_launch,
-            owner_id=context.get_current_user() if context else OWNER_ID,
             assign_ipv6_address_on_creation=False,
         )
 
@@ -4132,6 +4133,10 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.main = main
         self.associations = {}
         self.routes = {}
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
 
     @staticmethod
     def cloudformation_name_type():
@@ -6240,6 +6245,10 @@ class TransitGatewayRouteTableBackend(object):
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
 
+    def unset_route_table_association(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
+        tgw_rt.route_table_association = {}
+
     def set_route_table_propagation(
         self, transit_gateway_attachment_id, transit_gateway_route_table_id
     ):
@@ -6255,6 +6264,10 @@ class TransitGatewayRouteTableBackend(object):
             "state": "enabled",
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
+
+    def unset_route_table_propagation(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
+        tgw_rt.route_table_propagation = {}
 
     def disable_route_table_propagation(self, transit_gateway_route_table_id):
         self.transit_gateways_route_tables[
@@ -6538,6 +6551,9 @@ class TransitGatewayAttachmentBackend(object):
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
+    def unset_attachment_association(self, tgw_attach_id):
+        self.transit_gateway_attachments.get(tgw_attach_id).association = {}
+
     def set_attachment_propagation(
         self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
     ):
@@ -6545,6 +6561,9 @@ class TransitGatewayAttachmentBackend(object):
             "state": "enabled",
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
+
+    def unset_attachment_propagation(self, tgw_attach_id):
+        self.transit_gateway_attachments.get(tgw_attach_id).propagation = {}
 
     def disable_attachment_propagation(self, transit_gateway_attachment_id=None):
         self.transit_gateway_attachments[transit_gateway_attachment_id].propagation[
@@ -6714,6 +6733,15 @@ class TransitGatewayRelationsBackend(object):
         )
 
         return transit_gateway_propagation
+
+    def disassociate_transit_gateway_route_table(self, tgw_attach_id, tgw_rt_id):
+        tgw_association = self.transit_gateway_associations.pop(tgw_attach_id)
+        tgw_association.state == "disassociated"
+
+        self.unset_route_table_association(tgw_rt_id)
+        self.unset_attachment_association(tgw_attach_id)
+
+        return tgw_association
 
 
 class NatGateway(CloudFormationModel):
