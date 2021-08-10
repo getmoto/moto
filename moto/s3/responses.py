@@ -53,7 +53,7 @@ from .exceptions import (
     NoSystemTags,
     PreconditionFailed,
     InvalidRange,
-    LockNotEnabled
+    LockNotEnabled,
 )
 from .models import (
     s3_backend,
@@ -424,8 +424,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_BUCKET_CORS_RESPONSE)
             return template.render(cors=cors)
         elif "notification" in querystring:
-            notification_configuration = self.backend.get_bucket_notification_configuration(
-                bucket_name
+            notification_configuration = (
+                self.backend.get_bucket_notification_configuration(bucket_name)
             )
             if not notification_configuration:
                 return 200, {}, ""
@@ -804,8 +804,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name, self._acl_from_headers(request.headers)
                 )
 
-            if request.headers.get("x-amz-bucket-object-lock-enabled", False):
-                new_bucket.lock_enabled = True
+            if request.headers.get("x-amz-bucket-object-lock-enabled", "") == "True":
+                new_bucket.object_lock_enabled = True
                 new_bucket.versioning_status = "Enabled"
 
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
@@ -1302,11 +1302,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if bucket_key_enabled is not None:
             bucket_key_enabled = str(bucket_key_enabled).lower()
 
-        lock_mode = request.headers.get("x-amz-object-lock-mode", "")
-        lock_until = request.headers.get("x-amz-object-lock-retain-until-date", "")
-        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "")
+        lock_mode = request.headers.get("x-amz-object-lock-mode", None)
+        lock_until = request.headers.get("x-amz-object-lock-retain-until-date", None)
+        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
 
-        if lock_mode or lock_until or legal_hold:
+        if lock_mode or lock_until or legal_hold == "ON":
             lock_enabled = self.backend.get_bucket(bucket_name).object_lock_enabled
             if not lock_enabled:
                 raise LockNotEnabled
@@ -1373,7 +1373,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else:
                 return 404, response_headers, ""
 
-
             new_key = self.backend.get_object(bucket_name, key_name)
             mdirective = request.headers.get("x-amz-metadata-directive")
             if mdirective is not None and mdirective == "REPLACE":
@@ -1404,7 +1403,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 encryption=encryption,
                 kms_key_id=kms_key_id,
                 bucket_key_enabled=bucket_key_enabled,
+                lock_mode=lock_mode,
+                lock_legal_status=legal_hold,
+                lock_until=lock_until,
             )
+
             request.streaming = True
             metadata = metadata_from_headers(request.headers)
             metadata.update(metadata_from_headers(query))

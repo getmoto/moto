@@ -482,3 +482,10 @@ class LockNotEnabled(S3ClientError):
         super(LockNotEnabled, self).__init__(
             "InvalidArgument", "Bucket must have lock enabled"
         )
+
+
+class AccessDeniedByLock(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(AccessDeniedByLock, self).__init__("AccessDenied", "Key lock is enabled")

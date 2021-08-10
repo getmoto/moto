@@ -26,6 +26,7 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
+    AccessDeniedByLock,
     BucketAlreadyExists,
     MissingBucket,
     InvalidBucketName,
@@ -101,9 +102,9 @@ class FakeKey(BaseModel):
         encryption=None,
         kms_key_id=None,
         bucket_key_enabled=None,
-        lock_mode = None,
-        lock_legal_status = "OFF",
-        lock_until = None
+        lock_mode=None,
+        lock_legal_status="OFF",
+        lock_until=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -118,7 +119,6 @@ class FakeKey(BaseModel):
         self.multipart = multipart
         self.bucket_name = bucket_name
 
-
         self._max_buffer_size = (
             max_buffer_size if max_buffer_size else get_s3_default_key_buffer_size()
         )
@@ -129,7 +129,7 @@ class FakeKey(BaseModel):
         self.encryption = encryption
         self.kms_key_id = kms_key_id
         self.bucket_key_enabled = bucket_key_enabled
-        
+
         self.lock_mode = lock_mode
         self.lock_legal_status = lock_legal_status
         self.lock_until = lock_until
@@ -299,6 +299,20 @@ class FakeKey(BaseModel):
         )
         self.value = state["value"]
         self.lock = threading.Lock()
+
+    @property
+    def is_locked(self):
+        if self.lock_mode is not None:
+            if self.lock_legal_status == "ON":
+                return True
+
+            now = datetime.datetime.utcnow()
+            until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%SZ")
+
+            if until > now:
+                return True
+
+        return False
 
 
 class FakeMultipart(BaseModel):
@@ -543,7 +557,10 @@ class LifecycleAndFilter(BaseModel):
 
         for key, value in self.tags.items():
             data.append(
-                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value},}
+                {
+                    "type": "LifecycleTagPredicate",
+                    "tag": {"key": key, "value": value},
+                }
             )
 
         return data
@@ -1150,7 +1167,11 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1305,16 +1326,12 @@ class S3Backend(BaseBackend):
             )
         return metrics
 
-    def create_bucket(self, bucket_name, region_name, lock_enabled = False):
+    def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
-
-        if lock_enabled:
-            new_bucket.versioning_status = "Enabled"
-            new_bucket.object_lock_enabled = True 
 
         self.buckets[bucket_name] = new_bucket
         return new_bucket
@@ -1440,6 +1457,9 @@ class S3Backend(BaseBackend):
         encryption=None,
         kms_key_id=None,
         bucket_key_enabled=None,
+        lock_mode=None,
+        lock_legal_status="OFF",
+        lock_until=None,
     ):
         key_name = clean_key_name(key_name)
         if storage is not None and storage not in STORAGE_CLASS:
@@ -1458,6 +1478,9 @@ class S3Backend(BaseBackend):
             encryption=encryption,
             kms_key_id=kms_key_id,
             bucket_key_enabled=bucket_key_enabled,
+            lock_mode=lock_mode,
+            lock_legal_status=lock_legal_status,
+            lock_until=lock_until,
         )
 
         keys = [
@@ -1507,7 +1530,8 @@ class S3Backend(BaseBackend):
             raise MissingKey(key_name)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(
-            key.arn, [{"Key": k, "Value": v} for (k, v) in tags.items()],
+            key.arn,
+            [{"Key": k, "Value": v} for (k, v) in tags.items()],
         )
         return key
 
@@ -1519,7 +1543,8 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         self.tagger.delete_all_tags_for_resource(bucket.arn)
         self.tagger.tag_resource(
-            bucket.arn, [{"Key": key, "Value": value} for key, value in tags.items()],
+            bucket.arn,
+            [{"Key": key, "Value": value} for key, value in tags.items()],
         )
 
     def delete_bucket_tagging(self, bucket_name):
@@ -1705,6 +1730,9 @@ class S3Backend(BaseBackend):
 
         response_meta = {}
 
+        lock_is_enabled = bucket.object_lock_enabled
+        now = until = datetime.datetime.utcnow()
+
         try:
             if not bucket.is_versioned:
                 bucket.keys.pop(key_name)
@@ -1719,6 +1747,10 @@ class S3Backend(BaseBackend):
                     response_meta["delete-marker"] = "false"
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
+
+                            if key.is_locked:
+                                raise AccessDeniedByLock
+
                             if type(key) is FakeDeleteMarker:
                                 response_meta["delete-marker"] = "true"
                             break
