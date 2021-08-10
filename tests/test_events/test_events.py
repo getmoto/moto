@@ -1050,7 +1050,9 @@ def test_create_archive_error_invalid_event_pattern():
     ex.operation_name.should.equal("CreateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: Invalid JSON"
+    )
 
 
 @mock_events
@@ -1080,7 +1082,9 @@ def test_create_archive_error_invalid_event_pattern_not_an_array():
     ex.operation_name.should.equal("CreateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: 'key_6' must be an object or an array"
+    )
 
 
 @mock_events
@@ -1378,7 +1382,9 @@ def test_update_archive_error_invalid_event_pattern():
     ex.operation_name.should.equal("UpdateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: Invalid JSON"
+    )
 
 
 @mock_events
@@ -2399,7 +2405,6 @@ def test_delete_connection_success():
     response = client.delete_connection(Name=conn_name)
 
     # Then
-    expected_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:connection/{conn_name}/"
     assert response["ConnectionArn"] == created_connection["ConnectionArn"]
     assert response["ConnectionState"] == created_connection["ConnectionState"]
     assert response["CreationTime"] == created_connection["CreationTime"]

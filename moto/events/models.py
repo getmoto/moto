@@ -39,8 +39,9 @@ class Rule(CloudFormationModel):
         schedule_exp,
         role_arn,
         event_bus_name,
-        state="ENABLED",
+        state,
         managed_by=None,
+        targets=None,
     ):
         self.name = name
         self.region_name = region_name
@@ -49,10 +50,10 @@ class Rule(CloudFormationModel):
         self.scheduled_expression = schedule_exp
         self.role_arn = role_arn
         self.event_bus_name = event_bus_name
-        self.state = state
+        self.state = state or "ENABLED"
         self.managed_by = managed_by  # can only be set by AWS services
         self.created_by = ACCOUNT_ID
-        self.targets = []
+        self.targets = targets or []
 
     @property
     def arn(self):
@@ -868,7 +869,7 @@ class EventPatternParser:
                     )
             else:
                 raise InvalidEventPatternException(
-                    reason=f'"{attr}" must be an object or an array'
+                    reason=f"'{attr}' must be an object or an array"
                 )
 
     def parse(self):
@@ -876,8 +877,8 @@ class EventPatternParser:
             parsed_pattern = json.loads(self.pattern) if self.pattern else dict()
             self._validate_event_pattern(parsed_pattern)
             return parsed_pattern
-        except JSONDecodeError as err:
-            raise InvalidEventPatternException(reason=str(err))
+        except JSONDecodeError:
+            raise InvalidEventPatternException(reason="Invalid JSON")
 
 
 class EventsBackend(BaseBackend):
@@ -986,6 +987,8 @@ class EventsBackend(BaseBackend):
             ):
                 raise ValidationException("Parameter ScheduleExpression is not valid.")
 
+        existing_rule = self.rules.get(name)
+        targets = existing_rule.targets if existing_rule else list()
         rule = Rule(
             name,
             self.region_name,
@@ -996,6 +999,7 @@ class EventsBackend(BaseBackend):
             event_bus_name,
             state,
             managed_by,
+            targets=targets,
         )
         self.rules[name] = rule
         self.rules_order.append(name)
