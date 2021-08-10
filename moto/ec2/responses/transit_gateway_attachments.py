@@ -88,6 +88,17 @@ class TransitGatewayAttachment(BaseResponse):
         template = self.response_template(TRANSIT_GATEWAY_ASSOCIATION)
         return template.render(transit_gateway_association=transit_gateway_association)
 
+    def disassociate_transit_gateway_route_table(self,):
+        tgw_attach_id = self._get_param("TransitGatewayAttachmentId")
+        tgw_rt_id = self._get_param("TransitGatewayRouteTableId")
+
+        tgw_association = self.ec2_backend.disassociate_transit_gateway_route_table(
+            tgw_attach_id, tgw_rt_id
+        )
+        tgw_association.state == "disassociated"
+        template = self.response_template(TRANSIT_GATEWAY_DISASSOCIATION)
+        return template.render(tgw_association=tgw_association)
+
     def enable_transit_gateway_route_table_propagation(self):
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
@@ -348,6 +359,19 @@ TRANSIT_GATEWAY_ASSOCIATION = """<AssociateTransitGatewayRouteTableResponse xmln
         <transitGatewayRouteTableId>{{ transit_gateway_association.transit_gateway_route_table_id }}</transitGatewayRouteTableId>
     </association>
 </AssociateTransitGatewayRouteTableResponse>
+"""
+
+
+TRANSIT_GATEWAY_DISASSOCIATION = """<DisassociateTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>86a597cf-93ec-44a3-9559-4641863642a5</requestId>
+    <association>
+        <resourceId>{{ tgw_association.resource_id }}</resourceId>
+        <resourceType>{{ tgw_association.resource_type }}</resourceType>
+        <state>{{ tgw_association.state }}</state>
+        <transitGatewayAttachmentId>{{ tgw_association.transit_gateway_attachment_id }}</transitGatewayAttachmentId>
+        <transitGatewayRouteTableId>{{ tgw_association.transit_gateway_route_table_id }}</transitGatewayRouteTableId>
+    </association>
+</DisassociateTransitGatewayRouteTableResponse>
 """
 
 

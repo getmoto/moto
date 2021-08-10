@@ -6240,6 +6240,10 @@ class TransitGatewayRouteTableBackend(object):
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
 
+    def unset_route_table_association(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
+        tgw_rt.route_table_association = {}
+
     def set_route_table_propagation(
         self, transit_gateway_attachment_id, transit_gateway_route_table_id
     ):
@@ -6255,6 +6259,10 @@ class TransitGatewayRouteTableBackend(object):
             "state": "enabled",
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
+
+    def unset_route_table_propagation(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
+        tgw_rt.route_table_propagation = {}
 
     def disable_route_table_propagation(self, transit_gateway_route_table_id):
         self.transit_gateways_route_tables[
@@ -6538,6 +6546,9 @@ class TransitGatewayAttachmentBackend(object):
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
+    def unset_attachment_association(self, tgw_attach_id):
+        self.transit_gateway_attachments.get(tgw_attach_id).association = {}
+
     def set_attachment_propagation(
         self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
     ):
@@ -6545,6 +6556,9 @@ class TransitGatewayAttachmentBackend(object):
             "state": "enabled",
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
+
+    def unset_attachment_propagation(self, tgw_attach_id):
+        self.transit_gateway_attachments.get(tgw_attach_id).propagation = {}
 
     def disable_attachment_propagation(self, transit_gateway_attachment_id=None):
         self.transit_gateway_attachments[transit_gateway_attachment_id].propagation[
@@ -6714,6 +6728,15 @@ class TransitGatewayRelationsBackend(object):
         )
 
         return transit_gateway_propagation
+
+    def disassociate_transit_gateway_route_table(self, tgw_attach_id, tgw_rt_id):
+        tgw_association = self.transit_gateway_associations.pop(tgw_attach_id)
+        tgw_association.state == "disassociated"
+
+        self.unset_route_table_association(tgw_rt_id)
+        self.unset_attachment_association(tgw_attach_id)
+
+        return tgw_association
 
 
 class NatGateway(CloudFormationModel):
