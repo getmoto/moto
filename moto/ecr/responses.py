@@ -283,3 +283,6 @@ class ECRResponse(BaseResponse):
         policy_text = self._get_param("policyText")
 
         return json.dumps(self.ecr_backend.put_registry_policy(policy_text=policy_text))
+
+    def get_registry_policy(self):
+        return json.dumps(self.ecr_backend.get_registry_policy())

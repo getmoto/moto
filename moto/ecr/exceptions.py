@@ -16,6 +16,18 @@ class LifecyclePolicyNotFoundException(JsonRESTError):
         )
 
 
+class RegistryPolicyNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, registry_id):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=(
+                f"Registry policy does not exist in the registry with id '{registry_id}'"
+            ),
+        )
+
+
 class RepositoryAlreadyExistsException(JsonRESTError):
     code = 400
 

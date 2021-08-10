@@ -22,6 +22,7 @@ from moto.ecr.exceptions import (
     InvalidParameterException,
     RepositoryPolicyNotFoundException,
     LifecyclePolicyNotFoundException,
+    RegistryPolicyNotFoundException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
@@ -792,6 +793,15 @@ class ECRBackend(BaseBackend):
         return {
             "registryId": ACCOUNT_ID,
             "policyText": policy_text,
+        }
+
+    def get_registry_policy(self):
+        if not self.registry_policy:
+            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": self.registry_policy,
         }
 
 
