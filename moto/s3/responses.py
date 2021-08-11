@@ -1244,7 +1244,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._set_action("KEY", "PUT", query)
         self._authenticate_and_authorize_s3_action()
 
-        response_headers = {}
+        self.backend.get_bucket(bucket_name).object_lock_enabled
+
+        response_headers = {}        
         if query.get("uploadId") and query.get("partNumber"):
             upload_id = query["uploadId"][0]
             part_number = int(query["partNumber"][0])
@@ -1306,8 +1308,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         lock_until = request.headers.get("x-amz-object-lock-retain-until-date", None)
         legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
 
-        if lock_mode or lock_until or legal_hold == "ON":
-            lock_enabled = self.backend.get_bucket(bucket_name).object_lock_enabled
+        lock_enabled = self.backend.get_bucket(bucket_name).object_lock_enabled
+
+        if 'retention' in query or 'legal-hold' in query or lock_mode or lock_until or legal_hold == "ON":
             if not lock_enabled:
                 raise LockNotEnabled
 
@@ -1315,6 +1318,21 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if acl is None:
             acl = self.backend.get_bucket(bucket_name).acl
         tagging = self._tagging_from_headers(request.headers)
+
+        if 'retention' in query:
+            version_id=query.get('VersionId')
+            key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
+            retention = self._mode_until_from_xml(body)
+            key.lock_mode = retention[0]
+            key.lock_until = retention[1]
+            return 200, response_headers, ""
+        
+        if 'legal-hold' in query:
+            version_id=query.get('VersionId')
+            key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
+            legal_hold_status = self._legal_hold_status_from_xml(body)
+            key.lock_legal_status = legal_hold_status
+            return 200, response_headers, ""
 
         if "acl" in query:
             key = self.backend.get_object(bucket_name, key_name)
@@ -1603,6 +1621,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return [cors for cors in parsed_xml["CORSConfiguration"]["CORSRule"]]
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
+    
+    def _mode_until_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        return parsed_xml["Retention"]["Mode"], parsed_xml["Retention"]["RetainUntilDate"]
+    
+    def _legal_hold_status_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        return parsed_xml["LegalHold"]["Status"]
 
     def _encryption_config_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)

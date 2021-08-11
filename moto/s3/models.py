@@ -302,12 +302,15 @@ class FakeKey(BaseModel):
 
     @property
     def is_locked(self):
-        if self.lock_mode is not None:
-            if self.lock_legal_status == "ON":
-                return True
+        if self.lock_legal_status == "ON":
+            return True
 
+        if self.lock_mode is not None:
             now = datetime.datetime.utcnow()
-            until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%SZ")
+            try:
+                until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%SZ")
+            except:
+                until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%S.%fZ")
 
             if until > now:
                 return True
@@ -1729,9 +1732,6 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
 
         response_meta = {}
-
-        lock_is_enabled = bucket.object_lock_enabled
-        now = until = datetime.datetime.utcnow()
 
         try:
             if not bucket.is_versioned:
