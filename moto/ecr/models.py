@@ -7,7 +7,7 @@ import uuid
 from collections import namedtuple
 from datetime import datetime
 from random import random
-from typing import Dict
+from typing import Dict, List
 
 from botocore.exceptions import ParamValidationError
 
@@ -23,6 +23,7 @@ from moto.ecr.exceptions import (
     RepositoryPolicyNotFoundException,
     LifecyclePolicyNotFoundException,
     RegistryPolicyNotFoundException,
+    LimitExceededException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
@@ -87,7 +88,7 @@ class Repository(BaseObject, CloudFormationModel):
         )
         self.policy = None
         self.lifecycle_policy = None
-        self.images = []
+        self.images: List[Image] = []
 
     def _determine_encryption_config(self, encryption_config):
         if not encryption_config:
@@ -210,6 +211,7 @@ class Image(BaseObject):
         self.registry_id = registry_id
         self.image_digest = digest
         self.image_pushed_at = str(datetime.utcnow().isoformat())
+        self.last_scan_date = None
 
     def _create_digest(self):
         image_contents = "docker_image{0}".format(int(random() * 10 ** 6))
@@ -814,6 +816,49 @@ class ECRBackend(BaseBackend):
         return {
             "registryId": ACCOUNT_ID,
             "policyText": policy,
+        }
+
+    def start_image_scan(self, registry_id, repository_name, image_id):
+        repo = self._get_repository(repository_name, registry_id)
+
+        # you can either search for one or both
+        image = next(
+            (
+                i
+                for i in repo.images
+                if (
+                    not image_id.get("imageTag")
+                    or image_id.get("imageTag") == i.image_tag
+                )
+                and (
+                    not image_id.get("imageDigest")
+                    or image_id.get("imageDigest") == i.image_digest
+                )
+            ),
+            None,
+        )
+
+        if not image:
+            raise ImageNotFoundException(
+                image_id=image_id,
+                repository_name=repository_name,
+                registry_id=repo.registry_id,
+            )
+
+        # scanning an image is only allowed once per day
+        if image.last_scan_date == datetime.today().date():
+            raise LimitExceededException()
+
+        image.last_scan_date = datetime.today().date()
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "imageId": {
+                "imageDigest": image.image_digest,
+                "imageTag": image.image_tag,
+            },
+            "imageScanStatus": {"status": "IN_PROGRESS"},
         }
 
 

@@ -16,6 +16,16 @@ class LifecyclePolicyNotFoundException(JsonRESTError):
         )
 
 
+class LimitExceededException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=("The scan quota per image has been exceeded. Wait and try again."),
+        )
+
+
 class RegistryPolicyNotFoundException(JsonRESTError):
     code = 400
 
