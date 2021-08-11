@@ -15,7 +15,7 @@ jobs:
     - name: Checkout Terraform Tests repo
       uses: actions/checkout@v2
       with:
-        repository: bblommers/moto-terraform-tests
+        repository: localstack/localstack-terraform-test
         path: moto-terraform-tests
         submodules: 'true'
     - uses: actions/setup-go@v2
@@ -210,7 +210,7 @@ jobs:
     - name: Checkout Terraform Tests repo
       uses: actions/checkout@v2
       with:
-        repository: bblommers/moto-terraform-tests
+        repository: localstack/localstack-terraform-test
         path: moto-terraform-tests
         submodules: 'true'
     - name: Set up Python ${{ matrix.python-version }}
@@ -235,8 +235,8 @@ jobs:
     - name: "Create report"
       run: |
         cd moto-terraform-tests
-        bin/create-report
-        bin/create-report-cli
+        echo bin/create-report
+        echo bin/create-report-cli
         cd ..
 
   deploy:
