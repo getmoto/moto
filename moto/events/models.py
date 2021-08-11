@@ -236,6 +236,10 @@ class Rule(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
+
+        if "EventPattern" in properties:
+            properties["EventPattern"] = json.dumps(properties["EventPattern"])
+
         event_name = resource_name
 
         event_pattern = properties.get("EventPattern")
