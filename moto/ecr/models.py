@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import hashlib
+import json
 import re
 import uuid
 from collections import namedtuple
@@ -21,6 +22,7 @@ from moto.ecr.exceptions import (
     InvalidParameterException,
     RepositoryPolicyNotFoundException,
     LifecyclePolicyNotFoundException,
+    RegistryPolicyNotFoundException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
@@ -294,6 +296,7 @@ class Image(BaseObject):
 class ECRBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
+        self.registry_policy = None
         self.repositories: Dict[str, Repository] = {}
         self.tagger = TaggingService(tagName="tags")
 
@@ -762,6 +765,55 @@ class ECRBackend(BaseBackend):
             "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(
                 datetime.utcnow()
             ),
+        }
+
+    def _validate_registry_policy_action(self, policy_text):
+        # only CreateRepository & ReplicateImage actions are allowed
+        VALID_ACTIONS = {"ecr:CreateRepository", "ecr:ReplicateImage"}
+
+        policy = json.loads(policy_text)
+        for statement in policy["Statement"]:
+            if set(statement["Action"]) - VALID_ACTIONS:
+                raise MalformedPolicyDocument()
+
+    def put_registry_policy(self, policy_text):
+        try:
+            iam_policy_document_validator = IAMPolicyDocumentValidator(policy_text)
+            iam_policy_document_validator.validate()
+
+            self._validate_registry_policy_action(policy_text)
+        except MalformedPolicyDocument:
+            raise InvalidParameterException(
+                "Invalid parameter at 'PolicyText' failed to satisfy constraint: "
+                "'Invalid registry policy provided'"
+            )
+
+        self.registry_policy = policy_text
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": policy_text,
+        }
+
+    def get_registry_policy(self):
+        if not self.registry_policy:
+            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": self.registry_policy,
+        }
+
+    def delete_registry_policy(self):
+        policy = self.registry_policy
+        if not policy:
+            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+
+        self.registry_policy = None
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": policy,
         }
 
 

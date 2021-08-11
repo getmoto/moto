@@ -108,10 +108,6 @@ class ECRResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    def can_paginate(self):
-        if self.is_not_dryrun("CanPaginate"):
-            raise NotImplementedError("ECR.can_paginate is not yet implemented")
-
     def complete_layer_upload(self):
         if self.is_not_dryrun("CompleteLayerUpload"):
             raise NotImplementedError(
@@ -127,12 +123,6 @@ class ECRResponse(BaseResponse):
                 registry_id=registry_id, repository_name=repository_name,
             )
         )
-
-    def generate_presigned_url(self):
-        if self.is_not_dryrun("GeneratePresignedUrl"):
-            raise NotImplementedError(
-                "ECR.generate_presigned_url is not yet implemented"
-            )
 
     def get_authorization_token(self):
         registry_ids = self._get_param("registryIds")
@@ -159,10 +149,6 @@ class ECRResponse(BaseResponse):
                 "ECR.get_download_url_for_layer is not yet implemented"
             )
 
-    def get_paginator(self):
-        if self.is_not_dryrun("GetPaginator"):
-            raise NotImplementedError("ECR.get_paginator is not yet implemented")
-
     def get_repository_policy(self):
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
@@ -172,10 +158,6 @@ class ECRResponse(BaseResponse):
                 registry_id=registry_id, repository_name=repository_name,
             )
         )
-
-    def get_waiter(self):
-        if self.is_not_dryrun("GetWaiter"):
-            raise NotImplementedError("ECR.get_waiter is not yet implemented")
 
     def initiate_layer_upload(self):
         if self.is_not_dryrun("InitiateLayerUpload"):
@@ -278,3 +260,14 @@ class ECRResponse(BaseResponse):
                 registry_id=registry_id, repository_name=repository_name,
             )
         )
+
+    def put_registry_policy(self):
+        policy_text = self._get_param("policyText")
+
+        return json.dumps(self.ecr_backend.put_registry_policy(policy_text=policy_text))
+
+    def get_registry_policy(self):
+        return json.dumps(self.ecr_backend.get_registry_policy())
+
+    def delete_registry_policy(self):
+        return json.dumps(self.ecr_backend.delete_registry_policy())
