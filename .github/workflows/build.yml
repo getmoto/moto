@@ -225,12 +225,12 @@ jobs:
     - name: Start MotoServer
       run: |
         python setup.py sdist
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
         python wait_for.py
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt
+        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt
         cd ..
     - name: "Create report"
       run: |
