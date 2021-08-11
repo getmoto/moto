@@ -95,7 +95,6 @@ class TransitGatewayAttachment(BaseResponse):
         tgw_association = self.ec2_backend.disassociate_transit_gateway_route_table(
             tgw_attach_id, tgw_rt_id
         )
-        tgw_association.state == "disassociated"
         template = self.response_template(TRANSIT_GATEWAY_DISASSOCIATION)
         return template.render(tgw_association=tgw_association)
 

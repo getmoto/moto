@@ -118,6 +118,34 @@ def test_describe_transit_gateway_attachments():
 
 
 @mock_ec2
+def test_create_transit_gateway_vpn_attachment():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+
+    vpn_gateway = ec2.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})
+    customer_gateway = ec2.create_customer_gateway(
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534,
+    ).get("CustomerGateway", {})
+    vpn_connection = ec2.create_vpn_connection(
+        Type="ipsec.1",
+        VpnGatewayId=vpn_gateway["VpnGatewayId"],
+        CustomerGatewayId=customer_gateway["CustomerGatewayId"],
+        TransitGatewayId="gateway_id",
+    ).get("VpnConnection", {})
+
+    #
+    # Verify we can retrieve it as a general attachment
+    attachments = ec2.describe_transit_gateway_attachments()[
+        "TransitGatewayAttachments"
+    ]
+    attachments.should.have.length_of(1)
+
+    attachments[0].should.have.key("ResourceType").equal("vpn")
+    attachments[0].should.have.key("ResourceId").equal(
+        vpn_connection["VpnConnectionId"]
+    )
+
+
+@mock_ec2
 def test_create_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway_vpc_attachment(
@@ -562,6 +590,50 @@ def test_associate_transit_gateway_route_table():
             }
         ]
     )
+
+
+@mock_ec2
+def test_disassociate_transit_gateway_route_table():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
+        "TransitGatewayId"
+    ]
+    attchmnt = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+    )["TransitGatewayVpcAttachment"]
+    table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
+        "TransitGatewayRouteTable"
+    ]
+
+    initial = ec2.get_transit_gateway_route_table_associations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["Associations"][0]
+    initial["TransitGatewayAttachmentId"].should.equal("")
+
+    ec2.associate_transit_gateway_route_table(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    updated = ec2.get_transit_gateway_route_table_associations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["Associations"][0]
+    updated["TransitGatewayAttachmentId"].should.equal(
+        attchmnt["TransitGatewayAttachmentId"]
+    )
+    updated["State"].should.equal("associated")
+
+    dis = ec2.disassociate_transit_gateway_route_table(
+        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )["Association"]
+    dis["State"].should.equal("disassociated")
+
+    updated = ec2.get_transit_gateway_route_table_associations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["Associations"][0]
+    updated["TransitGatewayAttachmentId"].should.equal("")
+    updated["State"].should.equal("")
 
 
 @mock_ec2
