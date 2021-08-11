@@ -230,7 +230,7 @@ jobs:
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt
+        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t TestAccAWSEcrRepositoryPolicy
         cd ..
     - name: "Create report"
       run: |
@@ -238,6 +238,12 @@ jobs:
         echo bin/create-report
         echo bin/create-report-cli
         cd ..
+    - name: Archive TF logs
+      uses: actions/upload-artifact@v2
+      with:
+        name: buildfolder
+        path: |
+          moto-terraform-tests/build/*
 
   deploy:
     name: Deploy
