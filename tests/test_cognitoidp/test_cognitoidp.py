@@ -1924,6 +1924,21 @@ def test_initiate_auth_REFRESH_TOKEN():
 
 
 @mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    result = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+    )
+
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["IdToken"].should_not.be.none
+    result["AuthenticationResult"]["RefreshToken"].should_not.be.none
+
+
+@mock_cognitoidp
 def test_initiate_auth_for_unconfirmed_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
