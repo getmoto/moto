@@ -27,7 +27,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache'
+        key: 'terraformcache2'
     - name: Download
       if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
       run: |
@@ -221,7 +221,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache'
+        key: 'terraformcache2'
     - name: Start MotoServer
       run: |
         python setup.py sdist
