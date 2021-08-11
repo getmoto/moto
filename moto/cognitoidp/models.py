@@ -1023,7 +1023,9 @@ class CognitoIdpBackend(BaseBackend):
             session = str(uuid.uuid4())
             self.sessions[session] = user_pool
 
-            access_token, expires_in = user_pool.create_access_token(client_id, username)
+            access_token, expires_in = user_pool.create_access_token(
+                client_id, username
+            )
             id_token, _ = user_pool.create_id_token(client_id, username)
             refresh_token = user_pool.create_refresh_token(client_id, username)
 
