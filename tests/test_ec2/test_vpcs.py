@@ -317,6 +317,31 @@ def test_vpc_dedicated_tenancy():
 
 
 @mock_ec2
+def test_vpc_modify_tenancy_unknown():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    # Create the non default VPC
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", InstanceTenancy="dedicated")
+    vpc.instance_tenancy.should.equal("dedicated")
+
+    with pytest.raises(ClientError) as ex:
+        ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The tenancy value unknown is not supported.")
+    err["Code"].should.equal("UnsupportedTenancy")
+
+    ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="default")
+
+    vpc.reload()
+
+    vpc.instance_tenancy.should.equal("default")
+
+
+@mock_ec2
 def test_vpc_modify_enable_dns_support():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 

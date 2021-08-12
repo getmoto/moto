@@ -97,7 +97,7 @@ class Rule(CloudFormationModel):
 
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]
-        if event_bus_name != self.event_bus_name:
+        if event_bus_name != self.event_bus_name.split("/")[-1]:
             return
 
         if not self.event_pattern.matches_event(event):

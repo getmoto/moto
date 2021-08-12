@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 import boto
 import boto3
+import pytest
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from botocore.exceptions import ClientError
 
 
 @mock_ec2_deprecated
@@ -32,6 +34,49 @@ def test_describe_vpn_gateway():
     vpn_gateway.type.should.equal("ipsec.1")
     vpn_gateway.state.should.equal("available")
     vpn_gateway.availability_zone.should.equal("us-east-1a")
+
+
+@mock_ec2
+def test_attach_unknown_vpn_gateway():
+    """describe_vpn_gateways attachment.vpc-id filter"""
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    with pytest.raises(ClientError) as ex:
+        ec2.attach_vpn_gateway(VpcId=vpc["VpcId"], VpnGatewayId="?")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
+    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+
+
+@mock_ec2
+def test_delete_unknown_vpn_gateway():
+    """describe_vpn_gateways attachment.vpc-id filter"""
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.delete_vpn_gateway(VpnGatewayId="?")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
+    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+
+
+@mock_ec2
+def test_detach_unknown_vpn_gateway():
+    """describe_vpn_gateways attachment.vpc-id filter"""
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    with pytest.raises(ClientError) as ex:
+        ec2.detach_vpn_gateway(VpcId=vpc["VpcId"], VpnGatewayId="?")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
+    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
 
 
 @mock_ec2

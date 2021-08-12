@@ -438,6 +438,9 @@ class NetworkInterfaceBackend(object):
         return deleted
 
     def describe_network_interfaces(self, filters=None):
+        # Note: This is only used in EC2Backend#do_resources_exist
+        # Client-calls use #get_all_network_interfaces()
+        # We should probably merge these at some point..
         enis = self.enis.values()
 
         if filters:
@@ -447,22 +450,6 @@ class NetworkInterfaceBackend(object):
                     enis = [
                         eni for eni in enis if getattr(eni, _filter) in _filter_value
                     ]
-                elif _filter == "group-id":
-                    original_enis = enis
-                    enis = []
-                    for eni in original_enis:
-                        for group in eni.group_set:
-                            if group.id in _filter_value:
-                                enis.append(eni)
-                                break
-                elif _filter == "private-ip-address:":
-                    enis = [
-                        eni for eni in enis if eni.private_ip_address in _filter_value
-                    ]
-                elif _filter == "subnet-id":
-                    enis = [eni for eni in enis if eni.subnet.id in _filter_value]
-                elif _filter == "description":
-                    enis = [eni for eni in enis if eni.description in _filter_value]
                 else:
                     self.raise_not_implemented_error(
                         "The filter '{0}' for DescribeNetworkInterfaces".format(_filter)
@@ -2135,11 +2122,11 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             return attr
 
         if key.startswith("ip-permission"):
-            match = re.search(r"ip-permission.(*)", key)
+            match = re.search(r"ip-permission.(.*)", key)
             ingress_attr = to_attr(match.groups()[0])
 
             for ingress in self.ingress_rules:
-                if getattr(ingress, ingress_attr) in filter_value:
+                if str(getattr(ingress, ingress_attr)) in filter_value:
                     return True
         elif is_tag_filter(key):
             tag_value = self.get_filter_value(key)
@@ -3491,7 +3478,6 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         availability_zone,
         default_for_az,
         map_public_ip_on_launch,
-        owner_id=None,
         assign_ipv6_address_on_creation=False,
     ):
         self.ec2_backend = ec2_backend
@@ -3505,7 +3491,6 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
-        self.owner_id = owner_id
         self.assign_ipv6_address_on_creation = assign_ipv6_address_on_creation
         self.ipv6_cidr_block_associations = []
 
@@ -3517,6 +3502,10 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
         self._subnet_ips = {}  # has IP: instance
         self.state = "available"
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
 
     @staticmethod
     def cloudformation_name_type():
@@ -3751,7 +3740,6 @@ class SubnetBackend(object):
             availability_zone_data,
             default_for_az,
             map_public_ip_on_launch,
-            owner_id=context.get_current_user() if context else ACCOUNT_ID,
             assign_ipv6_address_on_creation=False,
         )
 
@@ -4134,6 +4122,10 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.associations = {}
         self.routes = {}
 
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
     @staticmethod
     def cloudformation_name_type():
         return None
@@ -4385,6 +4377,10 @@ class VPCEndPoint(TaggedEC2Resource):
         self.add_tags(tags or {})
 
     @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
+    @property
     def created_at(self):
         return iso_8601_datetime_with_milliseconds(self._created_at)
 
@@ -4616,12 +4612,17 @@ class RouteBackend(object):
         route_table = self.get_route_table(route_table_id)
         return route_table.get(route_id)
 
-    def delete_route(self, route_table_id, destination_cidr_block):
+    def delete_route(
+        self, route_table_id, destination_cidr_block, destination_ipv6_cidr_block=None
+    ):
+        cidr = destination_cidr_block
         route_table = self.get_route_table(route_table_id)
-        route_id = generate_route_id(route_table_id, destination_cidr_block)
+        if destination_ipv6_cidr_block:
+            cidr = destination_ipv6_cidr_block
+        route_id = generate_route_id(route_table_id, cidr)
         deleted = route_table.routes.pop(route_id, None)
         if not deleted:
-            raise InvalidRouteError(route_table_id, destination_cidr_block)
+            raise InvalidRouteError(route_table_id, cidr)
         return deleted
 
 
@@ -6372,6 +6373,10 @@ class TransitGatewayRouteTableBackend(object):
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
 
+    def unset_route_table_association(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
+        tgw_rt.route_table_association = {}
+
     def set_route_table_propagation(
         self, transit_gateway_attachment_id, transit_gateway_route_table_id
     ):
@@ -6387,6 +6392,10 @@ class TransitGatewayRouteTableBackend(object):
             "state": "enabled",
             "transitGatewayAttachmentId": transit_gateway_attachment_id,
         }
+
+    def unset_route_table_propagation(self, tgw_rt_id):
+        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
+        tgw_rt.route_table_propagation = {}
 
     def disable_route_table_propagation(self, transit_gateway_route_table_id):
         self.transit_gateways_route_tables[
@@ -6670,6 +6679,9 @@ class TransitGatewayAttachmentBackend(object):
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
+    def unset_attachment_association(self, tgw_attach_id):
+        self.transit_gateway_attachments.get(tgw_attach_id).association = {}
+
     def set_attachment_propagation(
         self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None
     ):
@@ -6677,6 +6689,9 @@ class TransitGatewayAttachmentBackend(object):
             "state": "enabled",
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
+
+    def unset_attachment_propagation(self, tgw_attach_id):
+        self.transit_gateway_attachments.get(tgw_attach_id).propagation = {}
 
     def disable_attachment_propagation(self, transit_gateway_attachment_id=None):
         self.transit_gateway_attachments[transit_gateway_attachment_id].propagation[
@@ -6846,6 +6861,15 @@ class TransitGatewayRelationsBackend(object):
         )
 
         return transit_gateway_propagation
+
+    def disassociate_transit_gateway_route_table(self, tgw_attach_id, tgw_rt_id):
+        tgw_association = self.transit_gateway_associations.pop(tgw_attach_id)
+        tgw_association.state = "disassociated"
+
+        self.unset_route_table_association(tgw_rt_id)
+        self.unset_attachment_association(tgw_attach_id)
+
+        return tgw_association
 
 
 class NatGateway(CloudFormationModel):
