@@ -50,7 +50,10 @@ class RouteTables(BaseResponse):
     def delete_route(self):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
-        self.ec2_backend.delete_route(route_table_id, destination_cidr_block)
+        destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        self.ec2_backend.delete_route(
+            route_table_id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         template = self.response_template(DELETE_ROUTE_RESPONSE)
         return template.render()
 
@@ -128,7 +131,11 @@ CREATE_ROUTE_TABLE_RESPONSE = """
          {% for route in route_table.routes.values() %}
            {% if route.local %}
            <item>
-             <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+              {% if route.destination_ipv6_cidr_block %}
+              <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
+              {% else %}
+              <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+              {% endif %}
              <gatewayId>local</gatewayId>
              <state>active</state>
            </item>
@@ -158,10 +165,15 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
        <item>
           <routeTableId>{{ route_table.id }}</routeTableId>
           <vpcId>{{ route_table.vpc_id }}</vpcId>
-           <routeSet>
+          <ownerId>{{ route_table.owner_id }}</ownerId>
+          <routeSet>
             {% for route in route_table.routes.values() %}
               <item>
+                {% if route.destination_ipv6_cidr_block %}
+                <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
+                {% else %}
                 <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+                {% endif %}
                 {% if route.local %}
                   <gatewayId>local</gatewayId>
                   <origin>CreateRouteTable</origin>

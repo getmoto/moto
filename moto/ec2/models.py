@@ -437,6 +437,9 @@ class NetworkInterfaceBackend(object):
         return deleted
 
     def describe_network_interfaces(self, filters=None):
+        # Note: This is only used in EC2Backend#do_resources_exist
+        # Client-calls use #get_all_network_interfaces()
+        # We should probably merge these at some point..
         enis = self.enis.values()
 
         if filters:
@@ -446,22 +449,6 @@ class NetworkInterfaceBackend(object):
                     enis = [
                         eni for eni in enis if getattr(eni, _filter) in _filter_value
                     ]
-                elif _filter == "group-id":
-                    original_enis = enis
-                    enis = []
-                    for eni in original_enis:
-                        for group in eni.group_set:
-                            if group.id in _filter_value:
-                                enis.append(eni)
-                                break
-                elif _filter == "private-ip-address:":
-                    enis = [
-                        eni for eni in enis if eni.private_ip_address in _filter_value
-                    ]
-                elif _filter == "subnet-id":
-                    enis = [eni for eni in enis if eni.subnet.id in _filter_value]
-                elif _filter == "description":
-                    enis = [eni for eni in enis if eni.description in _filter_value]
                 else:
                     self.raise_not_implemented_error(
                         "The filter '{0}' for DescribeNetworkInterfaces".format(_filter)
@@ -2134,11 +2121,11 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             return attr
 
         if key.startswith("ip-permission"):
-            match = re.search(r"ip-permission.(*)", key)
+            match = re.search(r"ip-permission.(.*)", key)
             ingress_attr = to_attr(match.groups()[0])
 
             for ingress in self.ingress_rules:
-                if getattr(ingress, ingress_attr) in filter_value:
+                if str(getattr(ingress, ingress_attr)) in filter_value:
                     return True
         elif is_tag_filter(key):
             tag_value = self.get_filter_value(key)
@@ -4389,6 +4376,10 @@ class VPCEndPoint(TaggedEC2Resource):
         self.add_tags(tags or {})
 
     @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
+    @property
     def created_at(self):
         return iso_8601_datetime_with_milliseconds(self._created_at)
 
@@ -4489,12 +4480,17 @@ class RouteBackend(object):
         route_table = self.get_route_table(route_table_id)
         return route_table.get(route_id)
 
-    def delete_route(self, route_table_id, destination_cidr_block):
+    def delete_route(
+        self, route_table_id, destination_cidr_block, destination_ipv6_cidr_block=None
+    ):
+        cidr = destination_cidr_block
         route_table = self.get_route_table(route_table_id)
-        route_id = generate_route_id(route_table_id, destination_cidr_block)
+        if destination_ipv6_cidr_block:
+            cidr = destination_ipv6_cidr_block
+        route_id = generate_route_id(route_table_id, cidr)
         deleted = route_table.routes.pop(route_id, None)
         if not deleted:
-            raise InvalidRouteError(route_table_id, destination_cidr_block)
+            raise InvalidRouteError(route_table_id, cidr)
         return deleted
 
 
@@ -6736,7 +6732,7 @@ class TransitGatewayRelationsBackend(object):
 
     def disassociate_transit_gateway_route_table(self, tgw_attach_id, tgw_rt_id):
         tgw_association = self.transit_gateway_associations.pop(tgw_attach_id)
-        tgw_association.state == "disassociated"
+        tgw_association.state = "disassociated"
 
         self.unset_route_table_association(tgw_rt_id)
         self.unset_attachment_association(tgw_attach_id)

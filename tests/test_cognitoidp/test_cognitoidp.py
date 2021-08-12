@@ -1924,6 +1924,73 @@ def test_initiate_auth_REFRESH_TOKEN():
 
 
 @mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    result = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+    )
+
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["IdToken"].should_not.be.none
+    result["AuthenticationResult"]["RefreshToken"].should_not.be.none
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_user_not_found():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": "INVALIDUSER", "PASSWORD": result["password"]},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_user_incorrect_password():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={
+                "USERNAME": result["username"],
+                "PASSWORD": "NotAuthorizedException",
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_unconfirmed_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=client_id,
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": password},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotConfirmedException")
+
+
+@mock_cognitoidp
 def test_initiate_auth_for_unconfirmed_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())

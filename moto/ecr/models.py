@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
 
 import hashlib
+import json
 import re
 import uuid
 from collections import namedtuple
 from datetime import datetime
 from random import random
-from typing import Dict
+from typing import Dict, List
 
 from botocore.exceptions import ParamValidationError
 
@@ -21,6 +22,9 @@ from moto.ecr.exceptions import (
     InvalidParameterException,
     RepositoryPolicyNotFoundException,
     LifecyclePolicyNotFoundException,
+    RegistryPolicyNotFoundException,
+    LimitExceededException,
+    ScanNotFoundException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
@@ -85,7 +89,7 @@ class Repository(BaseObject, CloudFormationModel):
         )
         self.policy = None
         self.lifecycle_policy = None
-        self.images = []
+        self.images: List[Image] = []
 
     def _determine_encryption_config(self, encryption_config):
         if not encryption_config:
@@ -95,6 +99,31 @@ class Repository(BaseObject, CloudFormationModel):
                 "kmsKey"
             ] = f"arn:aws:kms:{self.region_name}:{ACCOUNT_ID}:key/{uuid.uuid4()}"
         return encryption_config
+
+    def _get_image(self, image_tag, image_digest):
+        # you can either search for one or both
+        image = next(
+            (
+                i
+                for i in self.images
+                if (not image_tag or image_tag in i.image_tags)
+                and (not image_digest or image_digest == i.get_image_digest())
+            ),
+            None,
+        )
+
+        if not image:
+            image_id_rep = "{{imageDigest:'{0}', imageTag:'{1}'}}".format(
+                image_digest or "null", image_tag or "null"
+            )
+
+            raise ImageNotFoundException(
+                image_id=image_id_rep,
+                repository_name=self.name,
+                registry_id=self.registry_id,
+            )
+
+        return image
 
     @property
     def physical_resource_id(self):
@@ -208,6 +237,7 @@ class Image(BaseObject):
         self.registry_id = registry_id
         self.image_digest = digest
         self.image_pushed_at = str(datetime.utcnow().isoformat())
+        self.last_scan = None
 
     def _create_digest(self):
         image_contents = "docker_image{0}".format(int(random() * 10 ** 6))
@@ -294,6 +324,7 @@ class Image(BaseObject):
 class ECRBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
+        self.registry_policy = None
         self.repositories: Dict[str, Repository] = {}
         self.tagger = TaggingService(tagName="tags")
 
@@ -368,10 +399,10 @@ class ECRBackend(BaseBackend):
 
         return repository
 
-    def delete_repository(self, repository_name, registry_id=None):
+    def delete_repository(self, repository_name, registry_id=None, force=False):
         repo = self._get_repository(repository_name, registry_id)
 
-        if repo.images:
+        if repo.images and not force:
             raise RepositoryNotEmptyException(
                 repository_name, registry_id or DEFAULT_REGISTRY_ID
             )
@@ -404,38 +435,15 @@ class ECRBackend(BaseBackend):
         return images
 
     def describe_images(self, repository_name, registry_id=None, image_ids=None):
-
-        if repository_name in self.repositories:
-            repository = self.repositories[repository_name]
-        else:
-            raise RepositoryNotFoundException(
-                repository_name, registry_id or DEFAULT_REGISTRY_ID
-            )
+        repository = self._get_repository(repository_name, registry_id)
 
         if image_ids:
-            response = set()
-            for image_id in image_ids:
-                found = False
-                for image in repository.images:
-                    if (
-                        "imageDigest" in image_id
-                        and image.get_image_digest() == image_id["imageDigest"]
-                    ) or (
-                        "imageTag" in image_id
-                        and image_id["imageTag"] in image.image_tags
-                    ):
-                        found = True
-                        response.add(image)
-                if not found:
-                    image_id_representation = "{imageDigest:'%s', imageTag:'%s'}" % (
-                        image_id.get("imageDigest", "null"),
-                        image_id.get("imageTag", "null"),
-                    )
-                    raise ImageNotFoundException(
-                        image_id=image_id_representation,
-                        repository_name=repository_name,
-                        registry_id=registry_id or DEFAULT_REGISTRY_ID,
-                    )
+            response = set(
+                repository._get_image(
+                    image_id.get("imageTag"), image_id.get("imageDigest")
+                )
+                for image_id in image_ids
+            )
 
         else:
             response = []
@@ -762,6 +770,130 @@ class ECRBackend(BaseBackend):
             "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(
                 datetime.utcnow()
             ),
+        }
+
+    def _validate_registry_policy_action(self, policy_text):
+        # only CreateRepository & ReplicateImage actions are allowed
+        VALID_ACTIONS = {"ecr:CreateRepository", "ecr:ReplicateImage"}
+
+        policy = json.loads(policy_text)
+        for statement in policy["Statement"]:
+            if set(statement["Action"]) - VALID_ACTIONS:
+                raise MalformedPolicyDocument()
+
+    def put_registry_policy(self, policy_text):
+        try:
+            iam_policy_document_validator = IAMPolicyDocumentValidator(policy_text)
+            iam_policy_document_validator.validate()
+
+            self._validate_registry_policy_action(policy_text)
+        except MalformedPolicyDocument:
+            raise InvalidParameterException(
+                "Invalid parameter at 'PolicyText' failed to satisfy constraint: "
+                "'Invalid registry policy provided'"
+            )
+
+        self.registry_policy = policy_text
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": policy_text,
+        }
+
+    def get_registry_policy(self):
+        if not self.registry_policy:
+            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": self.registry_policy,
+        }
+
+    def delete_registry_policy(self):
+        policy = self.registry_policy
+        if not policy:
+            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+
+        self.registry_policy = None
+
+        return {
+            "registryId": ACCOUNT_ID,
+            "policyText": policy,
+        }
+
+    def start_image_scan(self, registry_id, repository_name, image_id):
+        repo = self._get_repository(repository_name, registry_id)
+
+        image = repo._get_image(image_id.get("imageTag"), image_id.get("imageDigest"))
+
+        # scanning an image is only allowed once per day
+        if image.last_scan and image.last_scan.date() == datetime.today().date():
+            raise LimitExceededException()
+
+        image.last_scan = datetime.today()
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "imageId": {
+                "imageDigest": image.image_digest,
+                "imageTag": image.image_tag,
+            },
+            "imageScanStatus": {"status": "IN_PROGRESS"},
+        }
+
+    def describe_image_scan_findings(self, registry_id, repository_name, image_id):
+        repo = self._get_repository(repository_name, registry_id)
+
+        image = repo._get_image(image_id.get("imageTag"), image_id.get("imageDigest"))
+
+        if not image.last_scan:
+            image_id_rep = "{{imageDigest:'{0}', imageTag:'{1}'}}".format(
+                image_id.get("imageDigest") or "null",
+                image_id.get("imageTag") or "null",
+            )
+            raise ScanNotFoundException(
+                image_id=image_id_rep,
+                repository_name=repository_name,
+                registry_id=repo.registry_id,
+            )
+
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "imageId": {
+                "imageDigest": image.image_digest,
+                "imageTag": image.image_tag,
+            },
+            "imageScanStatus": {
+                "status": "COMPLETE",
+                "description": "The scan was completed successfully.",
+            },
+            "imageScanFindings": {
+                "imageScanCompletedAt": iso_8601_datetime_without_milliseconds(
+                    image.last_scan
+                ),
+                "vulnerabilitySourceUpdatedAt": iso_8601_datetime_without_milliseconds(
+                    datetime.utcnow()
+                ),
+                "findings": [
+                    {
+                        "name": "CVE-9999-9999",
+                        "uri": "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-9999-9999",
+                        "severity": "HIGH",
+                        "attributes": [
+                            {"key": "package_version", "value": "9.9.9"},
+                            {"key": "package_name", "value": "moto_fake"},
+                            {
+                                "key": "CVSS2_VECTOR",
+                                "value": "AV:N/AC:L/Au:N/C:P/I:P/A:P",
+                            },
+                            {"key": "CVSS2_SCORE", "value": "7.5"},
+                        ],
+                    }
+                ],
+                "findingSeverityCounts": {"HIGH": 1},
+            },
         }
 
 
