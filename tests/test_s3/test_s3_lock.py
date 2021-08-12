@@ -1,16 +1,19 @@
 import time
+import boto
 import boto3
 import datetime
 import botocore
 from moto import mock_s3
+import os
+from botocore.config import Config
+from moto.s3.responses import DEFAULT_REGION_NAME
 import sure
-
 
 @mock_s3
 def test_locked_object():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
-    bucket_name = "locked-bucket"
+    bucket_name = "locked-bucket-test"
     key_name = "file.txt"
     seconds_lock = 2
 
@@ -47,10 +50,12 @@ def test_locked_object():
 def test_fail_locked_object():
     bucket_name = "locked-bucket2"
     key_name = "file.txt"
+    seconds_lock = 2
 
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
     s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=False)
+    until = datetime.datetime.utcnow() + datetime.timedelta(0, seconds_lock)
     failed = False
     try:
         s3.put_object(
@@ -58,10 +63,10 @@ def test_fail_locked_object():
             Body=b"test",
             Key=key_name,
             ObjectLockMode="COMPLIANCE",
-            ObjectLockLegalHoldStatus="ON",
+            ObjectLockRetainUntilDate=until,
         )
     except botocore.client.ClientError as e:
-        e.response["Error"]["Code"].should.equal("InvalidArgument")
+        e.response["Error"]["Code"].should.equal("InvalidRequest")
         failed = True
 
     failed.should.equal(True)
@@ -70,9 +75,9 @@ def test_fail_locked_object():
 
 @mock_s3
 def test_put_object_lock():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
-    bucket_name = "default-locked-bucket"
+    bucket_name = "put-lock-bucket-test"
     key_name = "file.txt"
     seconds_lock = 2
 
@@ -107,11 +112,10 @@ def test_put_object_lock():
 
 @mock_s3
 def test_put_object_legal_hold():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
-    bucket_name = "default-locked-bucket"
+    bucket_name = "put-legal-bucket"
     key_name = "file.txt"
-    seconds_lock = 2
 
     s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
 
@@ -141,3 +145,5 @@ def test_put_object_legal_hold():
     LegalHold={'Status': 'OFF'})
     s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
     s3.delete_bucket(Bucket=bucket_name)
+
+
