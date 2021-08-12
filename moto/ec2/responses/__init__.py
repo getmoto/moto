@@ -83,6 +83,7 @@ class EC2Response(
     @property
     def ec2_backend(self):
         from moto.ec2.models import ec2_backends
+
         return ec2_backends[self.region]
 
     @property
