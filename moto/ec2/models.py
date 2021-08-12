@@ -3264,6 +3264,7 @@ class VPCBackend(object):
         # validates if vpc is present or not.
         self.get_vpc(vpc_id)
 
+        service_destination_cidr = None
         if type and type.lower() == "interface":
 
             network_interface_ids = []
@@ -3298,11 +3299,28 @@ class VPCBackend(object):
             security_group_ids,
             tags,
             private_dns_enabled,
+            service_destination_cidr,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
 
         return vpc_end_point
+
+    def delete_vpc_endpoints(self, vpce_ids=[]):
+        vpce_ids
+        for vpce_id in vpce_ids:
+            vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
+            if vpc_endpoint:
+                if vpc_endpoint.type.lower() == "interface":
+                    for eni_id in vpc_endpoint.network_interface_ids:
+                        self.enis.pop(eni_id, None)
+                else:
+                    for route_table_id in vpc_endpoint.route_table_ids:
+                        self.delete_route(
+                            route_table_id, vpc_endpoint.service_destination_cidr
+                        )
+                vpc_endpoint.state = "deleted"
+        return True
 
     def get_vpc_end_point(self, vpc_end_point_ids, filters=None):
         vpc_end_points = self.vpc_end_points.values()
@@ -4359,12 +4377,14 @@ class VPCEndPoint(TaggedEC2Resource):
         security_group_ids=None,
         tags=None,
         private_dns_enabled=None,
+        service_destination_cidr=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.vpc_id = vpc_id
         self.service_name = service_name
         self.type = type
+        self.state = "available"
         self.policy_document = policy_document
         self.route_table_ids = route_table_ids
         self.network_interface_ids = network_interface_ids
@@ -4375,6 +4395,7 @@ class VPCEndPoint(TaggedEC2Resource):
         # self.created_at = utc_date_and_time()
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
+        self.service_destination_cidr = service_destination_cidr
 
     @property
     def owner_id(self):

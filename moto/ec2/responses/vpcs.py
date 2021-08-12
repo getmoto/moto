@@ -218,6 +218,12 @@ class VPCs(BaseResponse):
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
         return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
 
+    def delete_vpc_endpoints(self):
+        vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
+        response = self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids,)
+        template = self.response_template(DELETE_VPC_ENDPOINT_RESPONSE)
+        return template.render(response=response)
+
     def create_managed_prefix_list(self):
         address_family = self._get_param("AddressFamily")
         max_entries = self._get_param("MaxEntries")
@@ -512,7 +518,7 @@ IPV6_DISASSOCIATE_VPC_CIDR_BLOCK_RESPONSE = """
 CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <vpcEndpoint>
         <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
-        <state> available </state>
+        <state>{{ vpc_end_point.state }}</state>
         <vpcEndpointPolicySupported> false </vpcEndpointPolicySupported>
         <serviceName>{{ vpc_end_point.service_name }}</serviceName>
         <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
@@ -595,7 +601,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                 {% if vpc_end_point.policy_document %}
                     <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
                 {% endif %}
-                <state>available</state>
+                <state>{{ vpc_end_point.state }}</state>
                 <privateDnsEnabled>{{ 'true' if vpc_end_point.private_dns_enabled else 'false' }}</privateDnsEnabled>
                 <serviceName>{{ vpc_end_point.service_name }}</serviceName>
                 <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
@@ -655,7 +661,13 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
 </DescribeVpcEndpointsResponse>"""
 
 
-CREATE_MANAGED_PREFIX_LIST = """ <CreateManagedPrefixListResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+DELETE_VPC_ENDPOINT_RESPONSE = """<DeleteVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
+    <unsuccessful>{{ 'Error' if not response else '' }}</unsuccessful>
+</DeleteVpcEndpointsResponse>"""
+
+
+CREATE_MANAGED_PREFIX_LIST = """<CreateManagedPrefixListResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <prefixList>
         <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
         <maxEntries>{{ managed_prefix_list.max_entries }}</maxEntries>
