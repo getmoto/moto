@@ -111,3 +111,17 @@ class InvalidParameterException(JsonRESTError):
 
     def __init__(self, message):
         super().__init__(error_type=__class__.__name__, message=message)
+
+
+class ScanNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, image_id, repository_name, registry_id):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=(
+                f"Image scan does not exist for the image with '{image_id}' "
+                f"in the repository with name '{repository_name}' "
+                f"in the registry with id '{registry_id}'"
+            ),
+        )

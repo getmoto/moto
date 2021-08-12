@@ -284,3 +284,16 @@ class ECRResponse(BaseResponse):
                 image_id=image_id,
             )
         )
+
+    def describe_image_scan_findings(self):
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_id = self._get_param("imageId")
+
+        return json.dumps(
+            self.ecr_backend.describe_image_scan_findings(
+                registry_id=registry_id,
+                repository_name=repository_name,
+                image_id=image_id,
+            )
+        )
