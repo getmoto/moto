@@ -4372,7 +4372,7 @@ class VPCEndPoint(TaggedEC2Resource):
         self.client_token = client_token
         self.security_group_ids = security_group_ids
         self.private_dns_enabled = private_dns_enabled
-        self.created_at = utc_date_and_time()
+        # self.created_at = utc_date_and_time()
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
 
@@ -4382,7 +4382,7 @@ class VPCEndPoint(TaggedEC2Resource):
 
     @property
     def created_at(self):
-        return iso_8601_datetime_with_milliseconds(self._created_at)
+        return utc_date_and_time()
 
 
 class ManagedPrefixList(TaggedEC2Resource):
@@ -4423,7 +4423,7 @@ class ManagedPrefixList(TaggedEC2Resource):
 class ManagedPrefixListBackend(object):
     def __init__(self):
         self.managed_prefix_lists = {}
-        self.aws_prefix_lists = {}
+        self.create_default_pls()
         super(ManagedPrefixListBackend, self).__init__()
 
     def create_managed_prefix_list(
@@ -4478,42 +4478,38 @@ class ManagedPrefixListBackend(object):
         return managed_prefix_list
 
     def create_default_pls(self):
-        if not self.aws_prefix_lists:
-            print("self.region:", self.region)
-            pl_name = "com.amazonaws.{}.s3".format(self.region)
-            entry = [
-                {"Cidr": "52.216.0.0/15", "Description": "default"},
-                {"Cidr": "3.5.0.0/19", "Description": "default"},
-                {"Cidr": "54.231.0.0/16", "Description": "default"},
-            ]
+        entry = [
+            {"Cidr": "52.216.0.0/15", "Description": "default"},
+            {"Cidr": "3.5.0.0/19", "Description": "default"},
+            {"Cidr": "54.231.0.0/16", "Description": "default"},
+        ]
 
-            managed_prefix_list = self.create_managed_prefix_list(
-                address_family="IPv4",
-                entry=entry,
-                prefix_list_name=pl_name,
-                owner_id="AWS",
-            )
-            managed_prefix_list.version = None
-            managed_prefix_list.max_entries = None
-            self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+        managed_prefix_list = self.create_managed_prefix_list(
+            address_family="IPv4",
+            entry=entry,
+            prefix_list_name="com.amazonaws.{}.s3".format(self.region_name),
+            owner_id="AWS",
+        )
+        managed_prefix_list.version = None
+        managed_prefix_list.max_entries = None
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
-            pl_name = "com.amazonaws.{}.dynamodb".format(self.region)
-            entry = [
-                {"Cidr": "3.218.182.0/24", "Description": "default"},
-                {"Cidr": "3.218.180.0/23", "Description": "default"},
-                {"Cidr": "52.94.0.0/22", "Description": "default"},
-                {"Cidr": "52.119.224.0/20", "Description": "default"},
-            ]
+        entry = [
+            {"Cidr": "3.218.182.0/24", "Description": "default"},
+            {"Cidr": "3.218.180.0/23", "Description": "default"},
+            {"Cidr": "52.94.0.0/22", "Description": "default"},
+            {"Cidr": "52.119.224.0/20", "Description": "default"},
+        ]
 
-            managed_prefix_list = self.create_managed_prefix_list(
-                address_family="IPv4",
-                entry=entry,
-                prefix_list_name=pl_name,
-                owner_id="AWS",
-            )
-            managed_prefix_list.version = None
-            managed_prefix_list.max_entries = None
-            self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+        managed_prefix_list = self.create_managed_prefix_list(
+            address_family="IPv4",
+            entry=entry,
+            prefix_list_name="com.amazonaws.{}.dynamodb".format(self.region_name),
+            owner_id="AWS",
+        )
+        managed_prefix_list.version = None
+        managed_prefix_list.max_entries = None
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
 
 class RouteBackend(object):

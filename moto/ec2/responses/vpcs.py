@@ -272,7 +272,6 @@ class VPCs(BaseResponse):
     def describe_prefix_lists(self):
         prefix_list_ids = self._get_multi_param("PrefixListId")
         filters = filters_from_querystring(self.querystring)
-        self.ec2_backend.create_default_pls()
         managed_pls = self.ec2_backend.describe_managed_prefix_lists(
             prefix_list_ids=prefix_list_ids, filters=filters
         )
@@ -755,7 +754,7 @@ DESCRIBE_PREFIX_LIST = """<DescribePrefixListsResponse xmlns="http://ec2.amazona
     {% if pl.prefix_list_name.startswith("com.amazonaws.") %}
         <item>
             <cidrSet>
-                {% for entry in pl.entries %}
+                {% for entry in pl.entries.1 %}
                 <item>{{ entry.Cidr }}</item>
                 {% endfor %}
             </cidrSet>

@@ -40,6 +40,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "reservation": "r",
     "volume": "vol",
     "vpc": "vpc",
+    "vpc-endpoint": "vpce",
     "managed-prefix-list": "pl",
     "vpc-cidr-association-id": "vpc-cidr-assoc",
     "vpc-elastic-ip": "eipalloc",
