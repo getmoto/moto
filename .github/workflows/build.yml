@@ -234,7 +234,7 @@ jobs:
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t TestAccAWSEcrRepositoryPolicy
+        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt
         cd ..
     - name: "Create report"
       run: |
