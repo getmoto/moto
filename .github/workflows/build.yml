@@ -239,8 +239,8 @@ jobs:
     - name: "Create report"
       run: |
         cd moto-terraform-tests
-        echo bin/create-report
-        echo bin/create-report-cli
+        bin/create-report
+        bin/create-report-cli
         cd ..
     - name: Archive TF logs
       uses: actions/upload-artifact@v2
