@@ -28,6 +28,7 @@ from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
+    BucketNeedsToBeNew,
     MissingBucket,
     InvalidBucketName,
     InvalidPart,
@@ -827,6 +828,9 @@ class FakeBucket(CloudFormationModel):
         self.public_access_block = None
         self.encryption = None
         self.object_lock_enabled = False
+        self.default_lock_mode = '' 
+        self.default_lock_days = 0 
+        self.default_lock_years = 0 
 
     @property
     def location(self):
@@ -1549,6 +1553,20 @@ class S3Backend(BaseBackend):
             bucket.arn,
             [{"Key": key, "Value": value} for key, value in tags.items()],
         )
+    
+    def put_bucket_lock(self, bucket_name, lock_enabled, mode, days, years):
+        bucket = self.get_bucket(bucket_name)
+
+        if bucket.keys.item_size() > 0:
+            raise BucketNeedsToBeNew
+
+        if lock_enabled: 
+            bucket.object_lock_enabled = True
+            bucket.versioning_status = "Enabled"
+
+        bucket.default_lock_mode = mode
+        bucket.default_lock_days = days
+        bucket.default_lock_years = years
 
     def delete_bucket_tagging(self, bucket_name):
         bucket = self.get_bucket(bucket_name)

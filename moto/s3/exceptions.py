@@ -495,3 +495,16 @@ class InvalidContentMD5(S3ClientError):
 
     def __init__(self):
         super(InvalidContentMD5, self).__init__("InvalidContentMD5", "Content MD5 header is invalid")
+
+class BucketNeedsToBeNew(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(BucketNeedsToBeNew, self).__init__("InvalidBucket", "Bucket needs to be empty")
+
+
+class BucketMustHaveLockeEnabled(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(BucketMustHaveLockeEnabled, self).__init__("InvalidBucketState", "Object Lock configuration cannot be enabled on existing buckets")

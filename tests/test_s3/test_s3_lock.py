@@ -9,6 +9,7 @@ from botocore.config import Config
 from moto.s3.responses import DEFAULT_REGION_NAME
 import sure
 
+
 @mock_s3
 def test_locked_object():
     s3 = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
@@ -110,6 +111,7 @@ def test_put_object_lock():
     s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
     s3.delete_bucket(Bucket=bucket_name)
 
+
 @mock_s3
 def test_put_object_legal_hold():
     s3 = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
@@ -147,3 +149,57 @@ def test_put_object_legal_hold():
     s3.delete_bucket(Bucket=bucket_name)
 
 
+from boto.mws.connection import MWSConnection
+MWSConnection._parse_response = lambda s, x, y, z: z
+
+# @mock_s3
+def test_put_default_lock():
+    #do not run this test in aws, it will block the deletion for a whole day
+
+    s3 = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
+    bucket_name = "put-default-lock-bucket"
+    key_name = "file.txt"
+
+    days = 1
+    mode = 'GOVERNANCE'
+    enabled = 'Enabled'
+
+    s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
+    s3.put_object_lock_configuration(
+        Bucket=bucket_name,
+        ObjectLockConfiguration={
+            'ObjectLockEnabled': enabled,
+            'Rule': {
+                'DefaultRetention': {
+                    'Mode': mode,
+                    'Days': days,
+                }
+            }
+        },
+    )
+    
+    # s3.put_object(
+    #     Bucket=bucket_name,
+    #     Body=b"test",
+    #     Key=key_name,
+    # )
+    
+    # deleted = False
+    # versions_response = s3.list_object_versions(Bucket=bucket_name)
+    # version_id = versions_response["Versions"][0]["VersionId"]
+
+    # try:
+    #     s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
+    #     deleted = True
+    # except botocore.client.ClientError as e:
+    #     e.response["Error"]["Code"].should.equal("AccessDenied")
+
+    # deleted.should.equal(False)
+
+    response = s3.get_object_lock_configuration(Bucket=bucket_name)
+    print(response)
+    # response['ObjectLockConfiguration']['ObjectLockEnabled'].should.equal(enabled)
+    # response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Mode'].should.equal(mode)
+    # response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Days'].should.equal(days)
+    # response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Years'].should.equal(years)
+    s3.delete_bucket(Bucket=bucket_name)

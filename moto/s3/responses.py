@@ -37,6 +37,7 @@ from moto.s3bucket_path.utils import (
 
 from .exceptions import (
     BucketAlreadyExists,
+    BucketMustHaveLockeEnabled,
     DuplicateTagKeys,
     InvalidContinuationToken,
     S3ClientError,
@@ -343,6 +344,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _bucket_response_get(self, bucket_name, querystring):
         self._set_action("BUCKET", "GET", querystring)
         self._authenticate_and_authorize_s3_action()
+
+        if 'object-lock' in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            template = self.response_template(S3_BUCKET_LOCK_CONFIGURATION)
+
+            return template.render(bucket=bucket)
 
         if "uploads" in querystring:
             for unsup in ("delimiter", "max-uploads"):
@@ -675,6 +682,20 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         self._set_action("BUCKET", "PUT", querystring)
         self._authenticate_and_authorize_s3_action()
+
+        if 'object-lock' in querystring:
+            body_decoded = body.decode()
+            lock_enabled = re.search("<ObjectLockEnabled>([A-Za-z]+)</ObjectLockEnabled>", body_decoded) == "Enabled"
+            mode = re.search("<Mode>([A-Za-z]+)</Mode>", body_decoded)
+            days = re.search("<Days>([0-9]+)</Days>", body_decoded)
+            years = re.search("<Years>([0-9]+)</Years>", body_decoded)
+            if days and years:
+                raise MalformedXML
+            
+            if not self.backend.get_bucket(bucket_name).object_lock_enable:
+                raise BucketMustHaveLockeEnabled
+            self.backend.put_bucket_lock(bucket_name, lock_enabled, mode, days, years)
+            return ""
 
         if "versioning" in querystring:
             ver = re.search("<Status>([A-Za-z]+)</Status>", body.decode())
@@ -1243,8 +1264,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
         self._set_action("KEY", "PUT", query)
         self._authenticate_and_authorize_s3_action()
-
-        self.backend.get_bucket(bucket_name).object_lock_enabled
 
         response_headers = {}        
         if query.get("uploadId") and query.get("partNumber"):
@@ -2518,4 +2537,21 @@ S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
   <BlockPublicPolicy>{{public_block_config.block_public_policy}}</BlockPublicPolicy>
   <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets}}</RestrictPublicBuckets>
 </PublicAccessBlockConfiguration>
+"""
+
+S3_BUCKET_LOCK_CONFIGURATION = """
+<ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    {%if bucket.object_lock_enabled %}
+    <ObjectLockEnabled>Enabled</ObjectLockEnabled>
+    {% else %}
+    <ObjectLockEnabled>Disabled</ObjectLockEnabled>
+    {% endif %}
+    # <Rule>
+        <DefaultRetention>
+            <Years>{{bucket.default_lock_years}}</Years>
+            <Days>{{bucket.default_lock_days}}</Days>
+            <Mode>{{bucket.default_lock_mode}}</Mode>
+        </DefaultRetention>
+    # </Rule>
+</ObjectLockConfiguration>
 """
