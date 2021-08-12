@@ -236,10 +236,27 @@ class Rule(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
-
-        event_backend = events_backends[region_name]
         event_name = resource_name
-        return event_backend.put_rule(name=event_name, **properties)
+
+        event_pattern = properties.get("EventPattern")
+        scheduled_expression = properties.get("ScheduleExpression")
+        state = properties.get("State")
+        desc = properties.get("Description")
+        role_arn = properties.get("RoleArn")
+        event_bus_name = properties.get("EventBusName")
+        tags = properties.get("Tags")
+
+        backend = events_backends[region_name]
+        return backend.put_rule(
+            event_name,
+            scheduled_expression=scheduled_expression,
+            event_pattern=event_pattern,
+            state=state,
+            description=desc,
+            role_arn=role_arn,
+            event_bus_name=event_bus_name,
+            tags=tags,
+        )
 
     @classmethod
     def update_from_cloudformation_json(
