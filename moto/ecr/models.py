@@ -399,10 +399,10 @@ class ECRBackend(BaseBackend):
 
         return repository
 
-    def delete_repository(self, repository_name, registry_id=None):
+    def delete_repository(self, repository_name, registry_id=None, force=False):
         repo = self._get_repository(repository_name, registry_id)
 
-        if repo.images:
+        if repo.images and not force:
             raise RepositoryNotEmptyException(
                 repository_name, registry_id or DEFAULT_REGISTRY_ID
             )

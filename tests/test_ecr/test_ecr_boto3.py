@@ -306,6 +306,38 @@ def test_delete_repository():
 
 
 @mock_ecr
+def test_delete_repository_with_force():
+    client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )
+
+    # when
+    # when
+    response = client.delete_repository(repositoryName=repo_name, force=True)
+
+    # then
+    repo = response["repository"]
+    repo["repositoryName"].should.equal(repo_name)
+    repo["repositoryArn"].should.equal(
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    )
+    repo["registryId"].should.equal(ACCOUNT_ID)
+    repo["repositoryUri"].should.equal(
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    )
+    repo["createdAt"].should.be.a(datetime)
+    repo["imageTagMutability"].should.equal("MUTABLE")
+
+    response = client.describe_repositories()
+    response["repositories"].should.have.length_of(0)
+
+
+@mock_ecr
 def test_put_image():
     client = boto3.client("ecr", region_name="us-east-1")
     _ = client.create_repository(repositoryName="test_repository")

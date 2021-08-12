@@ -51,7 +51,11 @@ class ECRResponse(BaseResponse):
     def delete_repository(self):
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
-        repository = self.ecr_backend.delete_repository(repository_str, registry_id)
+        force = self._get_param("force")
+
+        repository = self.ecr_backend.delete_repository(
+            repository_str, registry_id, force
+        )
         return json.dumps({"repository": repository.response_object})
 
     def put_image(self):
