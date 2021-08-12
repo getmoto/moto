@@ -206,3 +206,48 @@ def test_send_to_sqs_queue():
     body["region"].should.equal("eu-central-1")
     body["resources"].should.be.empty
     body["detail"].should.equal({"key": "value"})
+
+
+@mock_events
+@mock_sqs
+def test_send_to_sqs_queue_with_custom_event_bus():
+    # given
+    client_events = boto3.client("events", "eu-central-1")
+    client_sqs = boto3.client("sqs", region_name="eu-central-1")
+
+    event_bus_arn = client_events.create_event_bus(Name="mock")["EventBusArn"]
+    rule_name = "test-rule"
+    queue_url = client_sqs.create_queue(QueueName="test-queue")["QueueUrl"]
+    queue_arn = client_sqs.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+    client_events.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="ENABLED",
+        EventBusName=event_bus_arn,
+    )
+    client_events.put_targets(
+        Rule=rule_name,
+        Targets=[{"Id": "sqs", "Arn": queue_arn}],
+        EventBusName=event_bus_arn,
+    )
+
+    # when
+    client_events.put_events(
+        Entries=[
+            {
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"key": "value"}),
+                "EventBusName": event_bus_arn,
+            }
+        ],
+    )
+
+    # then
+    response = client_sqs.receive_message(QueueUrl=queue_url)
+    assert len(response["Messages"]) == 1
+
+    body = json.loads(response["Messages"][0]["Body"])
+    body["detail"].should.equal({"key": "value"})
