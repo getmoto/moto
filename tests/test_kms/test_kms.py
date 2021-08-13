@@ -5,7 +5,6 @@ import re
 
 import boto.kms
 import boto3
-import six
 import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -23,7 +22,7 @@ PLAINTEXT_VECTORS = [
 
 
 def _get_encoded_value(plaintext):
-    if isinstance(plaintext, six.binary_type):
+    if isinstance(plaintext, bytes):
         return plaintext
 
     return plaintext.encode("utf-8")
@@ -682,10 +681,7 @@ def test__assert_default_policy():
     )
 
 
-if six.PY2:
-    sort = sorted
-else:
-    sort = lambda l: sorted(l, key=lambda d: d.keys())
+sort = lambda l: sorted(l, key=lambda d: d.keys())
 
 
 @mock_kms

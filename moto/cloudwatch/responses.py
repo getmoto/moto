@@ -1,8 +1,10 @@
 import json
-from moto.core.utils import amzn_request_id
-from moto.core.responses import BaseResponse
-from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
+
 from dateutil.parser import parse as dtparse
+
+from moto.core.responses import BaseResponse
+from moto.core.utils import amzn_request_id
+from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
 
 
 class CloudWatchResponse(BaseResponse):
@@ -19,34 +21,49 @@ class CloudWatchResponse(BaseResponse):
         name = self._get_param("AlarmName")
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
-        metrics = self._get_multi_param("Metrics.member")
+        metrics = self._get_multi_param("Metrics.member", skip_result_conversion=True)
         metric_data_queries = None
         if metrics:
-            metric_data_queries = [
-                MetricDataQuery(
-                    id=metric.get("Id"),
-                    label=metric.get("Label"),
-                    period=metric.get("Period"),
-                    return_data=metric.get("ReturnData"),
-                    expression=metric.get("Expression"),
-                    metric_stat=MetricStat(
-                        metric=Metric(
-                            metric_name=metric.get("MetricStat.Metric.MetricName"),
-                            namespace=metric.get("MetricStat.Metric.Namespace"),
-                            dimensions=[
-                                Dimension(name=dim["Name"], value=dim["Value"])
-                                for dim in metric["MetricStat.Metric.Dimensions.member"]
-                            ],
-                        ),
-                        period=metric.get("MetricStat.Period"),
-                        stat=metric.get("MetricStat.Stat"),
-                        unit=metric.get("MetricStat.Unit"),
-                    )
-                    if "MetricStat.Metric.MetricName" in metric
-                    else None,
+            metric_data_queries = []
+            for metric in metrics:
+                dimensions = []
+                dims = (
+                    metric.get("MetricStat", {})
+                    .get("Metric", {})
+                    .get("Dimensions.member", [])
                 )
-                for metric in metrics
-            ]
+                for dim in dims:
+                    dimensions.append(
+                        Dimension(name=dim.get("Name"), value=dim.get("Value"))
+                    )
+                metric_stat = None
+                stat_metric_name = (
+                    metric.get("MetricStat", {}).get("Metric", {}).get("MetricName")
+                )
+                if stat_metric_name:
+                    stat_details = metric.get("MetricStat", {})
+                    stat_metric_ns = stat_details.get("Metric", {}).get("Namespace")
+                    metric_stat = MetricStat(
+                        metric=Metric(
+                            metric_name=stat_metric_name,
+                            namespace=stat_metric_ns,
+                            dimensions=dimensions,
+                        ),
+                        period=stat_details.get("Period"),
+                        stat=stat_details.get("Stat"),
+                        unit=stat_details.get("Unit"),
+                    )
+                metric_data_queries.append(
+                    MetricDataQuery(
+                        id=metric.get("Id"),
+                        label=metric.get("Label"),
+                        period=metric.get("Period"),
+                        return_data=metric.get("ReturnData"),
+                        expression=metric.get("Expression"),
+                        metric_stat=metric_stat,
+                    )
+                )
+
         comparison_operator = self._get_param("ComparisonOperator")
         evaluation_periods = self._get_param("EvaluationPeriods")
         datapoints_to_alarm = self._get_param("DatapointsToAlarm")
@@ -62,6 +79,8 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member"
         )
         unit = self._get_param("Unit")
+        # fetch AlarmRule to re-use this method for composite alarms as well
+        rule = self._get_param("AlarmRule")
         alarm = self.cloudwatch_backend.put_metric_alarm(
             name,
             namespace,
@@ -81,6 +100,7 @@ class CloudWatchResponse(BaseResponse):
             unit,
             actions_enabled,
             self.region,
+            rule=rule,
         )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
@@ -105,8 +125,13 @@ class CloudWatchResponse(BaseResponse):
         else:
             alarms = self.cloudwatch_backend.get_all_alarms()
 
+        metric_alarms = [a for a in alarms if a.rule is None]
+        composite_alarms = [a for a in alarms if a.rule is not None]
+
         template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
-        return template.render(alarms=alarms)
+        return template.render(
+            metric_alarms=metric_alarms, composite_alarms=composite_alarms
+        )
 
     @amzn_request_id
     def delete_alarms(self):
@@ -145,12 +170,12 @@ class CloudWatchResponse(BaseResponse):
         end_time = dtparse(self._get_param("EndTime"))
         period = int(self._get_param("Period"))
         statistics = self._get_multi_param("Statistics.member")
+        dimensions = self._get_multi_param("Dimensions.member")
 
         # Unsupported Parameters (To Be Implemented)
         unit = self._get_param("Unit")
         extended_statistics = self._get_param("ExtendedStatistics")
-        dimensions = self._get_param("Dimensions")
-        if extended_statistics or dimensions:
+        if extended_statistics:
             raise NotImplementedError()
 
         # TODO: this should instead throw InvalidParameterCombination
@@ -160,7 +185,14 @@ class CloudWatchResponse(BaseResponse):
             )
 
         datapoints = self.cloudwatch_backend.get_metric_statistics(
-            namespace, metric_name, start_time, end_time, period, statistics, unit
+            namespace,
+            metric_name,
+            start_time,
+            end_time,
+            period,
+            statistics,
+            unit,
+            dimensions=dimensions,
         )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
@@ -280,7 +312,8 @@ PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.
 
 DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <DescribeAlarmsResult>
-        <MetricAlarms>
+        {% for tag_name, alarms in (('MetricAlarms', metric_alarms), ('CompositeAlarms', composite_alarms)) %}
+        <{{tag_name}}>
             {% for alarm in alarms %}
             <member>
                 <ActionsEnabled>{{ alarm.actions_enabled }}</ActionsEnabled>
@@ -291,7 +324,7 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 </AlarmActions>
                 <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
                 <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
-                <AlarmDescription>{{ alarm.description }}</AlarmDescription>
+                <AlarmDescription>{{ alarm.description or '' }}</AlarmDescription>
                 <AlarmName>{{ alarm.name }}</AlarmName>
                 <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
                 {% if alarm.dimensions is not none %}
@@ -376,13 +409,19 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 {% if alarm.statistic is not none %}
                 <Statistic>{{ alarm.statistic }}</Statistic>
                 {% endif %}
+                {% if alarm.threshold is not none %}
                 <Threshold>{{ alarm.threshold }}</Threshold>
+                {% endif %}
                 {% if alarm.unit is not none %}
                 <Unit>{{ alarm.unit }}</Unit>
                 {% endif %}
+                {% if alarm.rule is not none %}
+                <AlarmRule>{{ alarm.rule }}</AlarmRule>
+                {% endif %}
             </member>
             {% endfor %}
-        </MetricAlarms>
+        </{{tag_name}}>
+        {% endfor %}
     </DescribeAlarmsResult>
 </DescribeAlarmsResponse>"""
 
@@ -429,7 +468,9 @@ DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="htt
                 <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
                 <StateValue>{{ alarm.state_value }}</StateValue>
                 <Statistic>{{ alarm.statistic }}</Statistic>
+                {% if alarm.threshold is not none %}
                 <Threshold>{{ alarm.threshold }}</Threshold>
+                {% endif %}
                 <Unit>{{ alarm.unit }}</Unit>
             </member>
             {% endfor %}

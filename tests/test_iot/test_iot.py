@@ -538,6 +538,10 @@ def test_certs():
     cert_desc.should.have.key("certificateArn").which.should_not.be.none
     cert_desc.should.have.key("certificateId").which.should_not.be.none
     cert_desc.should.have.key("certificatePem").which.should_not.be.none
+    cert_desc.should.have.key("validity").which.should_not.be.none
+    validity = cert_desc["validity"]
+    validity.should.have.key("notBefore").which.should_not.be.none
+    validity.should.have.key("notAfter").which.should_not.be.none
     cert_desc.should.have.key("status").which.should.equal("ACTIVE")
     cert_pem = cert_desc["certificatePem"]
 

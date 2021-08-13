@@ -18,7 +18,7 @@ import pytest
 from datetime import datetime
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
-from six.moves.urllib import parse
+from urllib import parse
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----

@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import random
 import string
-import six
 import re
 
 from moto.core import ACCOUNT_ID
@@ -56,9 +55,7 @@ def random_password(
     if exclude_characters:
         password = _exclude_characters(password, exclude_characters)
 
-    password = "".join(
-        six.text_type(random.choice(password)) for x in range(password_length)
-    )
+    password = "".join(str(random.choice(password)) for x in range(password_length))
 
     if require_each_included_type:
         password = _add_password_require_each_included_type(

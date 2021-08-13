@@ -290,7 +290,7 @@ def test_ami_filters():
 
     amis_by_architecture = conn.get_all_images(filters={"architecture": "x86_64"})
     set([ami.id for ami in amis_by_architecture]).should.contain(imageB.id)
-    len(amis_by_architecture).should.equal(35)
+    len(amis_by_architecture).should.equal(37)
 
     amis_by_kernel = conn.get_all_images(filters={"kernel-id": "k-abcd1234"})
     set([ami.id for ami in amis_by_kernel]).should.equal(set([imageB.id]))
@@ -303,7 +303,7 @@ def test_ami_filters():
 
     amis_by_platform = conn.get_all_images(filters={"platform": "windows"})
     set([ami.id for ami in amis_by_platform]).should.contain(imageA.id)
-    len(amis_by_platform).should.equal(24)
+    len(amis_by_platform).should.equal(25)
 
     amis_by_id = conn.get_all_images(filters={"image-id": imageA.id})
     set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id]))
@@ -312,14 +312,14 @@ def test_ami_filters():
     ami_ids_by_state = [ami.id for ami in amis_by_state]
     ami_ids_by_state.should.contain(imageA.id)
     ami_ids_by_state.should.contain(imageB.id)
-    len(amis_by_state).should.equal(36)
+    len(amis_by_state).should.equal(38)
 
     amis_by_name = conn.get_all_images(filters={"name": imageA.name})
     set([ami.id for ami in amis_by_name]).should.equal(set([imageA.id]))
 
     amis_by_public = conn.get_all_images(filters={"is-public": "true"})
     set([ami.id for ami in amis_by_public]).should.contain(imageB.id)
-    len(amis_by_public).should.equal(35)
+    len(amis_by_public).should.equal(37)
 
     amis_by_nonpublic = conn.get_all_images(filters={"is-public": "false"})
     set([ami.id for ami in amis_by_nonpublic]).should.contain(imageA.id)

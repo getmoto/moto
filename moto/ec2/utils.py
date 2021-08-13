@@ -5,7 +5,6 @@ import hashlib
 import fnmatch
 import random
 import re
-import six
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
@@ -16,6 +15,9 @@ from moto.iam import iam_backends
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
+    "transit-gateway": "tgw",
+    "transit-gateway-route-table": "tgw-rtb",
+    "transit-gateway-attachment": "tgw-attach",
     "dhcp-options": "dopt",
     "flow-logs": "fl",
     "image": "ami",
@@ -38,6 +40,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "reservation": "r",
     "volume": "vol",
     "vpc": "vpc",
+    "vpc-endpoint": "vpce",
     "vpc-cidr-association-id": "vpc-cidr-assoc",
     "vpc-elastic-ip": "eipalloc",
     "vpc-elastic-ip-association": "eipassoc",
@@ -53,7 +56,7 @@ EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items(
 
 def random_resource_id(size=8):
     chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    resource_id = "".join(six.text_type(random.choice(chars)) for _ in range(size))
+    resource_id = "".join(str(random.choice(chars)) for _ in range(size))
     return resource_id
 
 
@@ -129,6 +132,10 @@ def random_vpc_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc"])
 
 
+def random_vpc_ep_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-endpoint"], size=8)
+
+
 def random_vpc_cidr_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-cidr-association-id"])
 
@@ -169,6 +176,22 @@ def random_nat_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"], size=17)
 
 
+def random_transit_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"], size=17)
+
+
+def random_transit_gateway_route_table_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"], size=17
+    )
+
+
+def random_transit_gateway_attachment_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"], size=17
+    )
+
+
 def random_launch_template_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
 
@@ -205,10 +228,6 @@ def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
     return "%s~%s" % (route_table_id, cidr_block)
-
-
-def generate_vpc_end_point_id(vpc_id):
-    return "%s-%s" % ("vpce", vpc_id[4:])
 
 
 def create_dns_entries(service_name, vpc_endpoint_id):
@@ -343,6 +362,13 @@ def get_obj_tag_values(obj):
     return tags
 
 
+def add_tag_specification(tags):
+    tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
+    tags = (tags or {}).get("Tag", [])
+    tags = {t["Key"]: t["Value"] for t in tags}
+    return tags
+
+
 def tag_filter_matches(obj, filter_name, filter_values):
     regex_filters = [re.compile(simple_aws_filter_to_re(f)) for f in filter_values]
     if filter_name == "tag-key":
@@ -462,7 +488,7 @@ def is_filter_matching(obj, filter, filter_value):
     if filter_value is None:
         return False
 
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         if not isinstance(filter_value, list):
             filter_value = [filter_value]
         if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
@@ -516,6 +542,11 @@ def random_key_pair():
 
 def get_prefix(resource_id):
     resource_id_prefix, separator, after = resource_id.partition("-")
+    if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["transit-gateway"]:
+        if after.startswith("rtb"):
+            resource_id_prefix = EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"]
+        if after.startswith("attach"):
+            resource_id_prefix = EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"]
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["network-interface"]:
         if after.startswith("attach"):
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX["network-interface-attachment"]
@@ -582,7 +613,7 @@ def rsa_public_key_parse(key_material):
     from sshpubkeys.keys import SSHKey
 
     try:
-        if not isinstance(key_material, six.binary_type):
+        if not isinstance(key_material, bytes):
             key_material = key_material.encode("ascii")
 
         decoded_key = base64.b64decode(key_material).decode("ascii")
@@ -648,3 +679,26 @@ def filter_iam_instance_profiles(iam_instance_profile_arn, iam_instance_profile_
             instance_profile = None
 
     return instance_profile
+
+
+def describe_tag_filter(filters, instances):
+    result = instances.copy()
+    for instance in instances:
+        for key in filters:
+            if key.startswith("tag:"):
+                match = re.match(r"tag:(.*)", key)
+                if match:
+                    tag_key_name = match.group(1)
+                    need_delete = True
+                    for tag in instance.get_tags():
+                        if tag.get("key") == tag_key_name and tag.get(
+                            "value"
+                        ) in filters.get(key):
+                            need_delete = False
+                        elif tag.get("key") == tag_key_name and tag.get(
+                            "value"
+                        ) not in filters.get(key):
+                            need_delete = True
+                    if need_delete:
+                        result.remove(instance)
+    return result

@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.error import HTTPError
+from urllib.request import urlopen
+from urllib.error import HTTPError
 
 import boto
 from boto.exception import S3ResponseError

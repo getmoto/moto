@@ -576,5 +576,39 @@
     "name": "suse-sles-11-sp4-v20151207-pv-ssd-x86_64",
     "virtualization_type": "paravirtual",
     "hypervisor": "xen"
+  },
+  {
+    "ami_id": "ami-ekswin",
+    "state": "available",
+    "public": true,
+    "owner_id": "801119661308",
+    "image_location": "amazon/amazon-eks",
+    "sriov": "simple",
+    "root_device_type": "ebs",
+    "root_device_name": "/dev/sda1",
+    "description": "Microsoft Windows Server 2019 Core optimized for EKS and provided by Amazon",
+    "image_type": "machine",
+    "platform": "windows",
+    "architecture": "x86_64",
+    "name": "Windows_Server-2019-English-Core-EKS_Optimized",
+    "virtualization_type": "hvm",
+    "hypervisor": "xen"
+  },
+  {
+    "ami_id": "ami-ekslinux",
+    "state": "available",
+    "public": true,
+    "owner_id": "801119661308",
+    "image_location": "amazon/amazon-eks",
+    "sriov": "simple",
+    "root_device_type": "ebs",
+    "root_device_name": "/dev/sda1",
+    "description": "EKS Kubernetes Worker AMI with AmazonLinux2 image",
+    "image_type": "machine",
+    "platform": "Linux/UNIX",
+    "architecture": "x86_64",
+    "name": "amazon-eks-node-linux",
+    "virtualization_type": "hvm",
+    "hypervisor": "xen"
   }
 ]

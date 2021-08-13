@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import six
 import boto
 import boto.dynamodb
 import sure  # noqa

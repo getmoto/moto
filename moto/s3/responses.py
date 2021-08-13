@@ -4,7 +4,6 @@ import os
 import re
 import sys
 
-import six
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import (
@@ -12,7 +11,7 @@ from moto.core.utils import (
     py2_strip_unicode_keys,
     unix_time_millis,
 )
-from six.moves.urllib.parse import (
+from urllib.parse import (
     parse_qs,
     parse_qsl,
     urlparse,
@@ -64,6 +63,7 @@ from .models import (
     FakeGrant,
     FakeAcl,
     FakeKey,
+    FakeMultipart,
 )
 from .utils import (
     bucket_name_from_url,
@@ -113,6 +113,7 @@ ACTION_MAP = {
         "DELETE": {
             "lifecycle": "PutLifecycleConfiguration",
             "policy": "DeleteBucketPolicy",
+            "website": "DeleteBucketWebsite",
             "tagging": "PutBucketTagging",
             "cors": "PutBucketCORS",
             "public_access_block": "DeletePublicAccessBlock",
@@ -135,7 +136,7 @@ ACTION_MAP = {
         "DELETE": {
             "uploadId": "AbortMultipartUpload",
             "versionId": "DeleteObjectVersion",
-            "DEFAULT": " DeleteObject",
+            "DEFAULT": "DeleteObject",
         },
         "POST": {
             "uploads": "PutObject",
@@ -273,11 +274,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _send_response(response):
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             return 200, {}, response.encode("utf-8")
         else:
             status_code, headers, response_content = response
-            if not isinstance(response_content, six.binary_type):
+            if not isinstance(response_content, bytes):
                 response_content = response_content.encode("utf-8")
 
             return status_code, headers, response_content
@@ -302,7 +303,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             body = request.data
         if body is None:
             body = b""
-        if isinstance(body, six.binary_type):
+        if isinstance(body, bytes):
             body = body.decode("utf-8")
         body = "{0}".format(body).encode("utf-8")
 
@@ -515,7 +516,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get("prefix", [None])[0]
-        if prefix and isinstance(prefix, six.binary_type):
+        if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
@@ -567,7 +568,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             raise InvalidContinuationToken()
 
         prefix = querystring.get("prefix", [None])[0]
-        if prefix and isinstance(prefix, six.binary_type):
+        if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
         result_keys, result_folders = self.backend.prefix_query(
@@ -850,6 +851,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif "tagging" in querystring:
             self.backend.delete_bucket_tagging(bucket_name)
             return 204, {}, ""
+        elif "website" in querystring:
+            self.backend.delete_bucket_website(bucket_name)
+            return 204, {}, ""
         elif "cors" in querystring:
             self.backend.delete_bucket_cors(bucket_name)
             return 204, {}, ""
@@ -1036,7 +1040,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             status_code = 200
             response_content = response
         else:
@@ -1247,7 +1251,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
             if key.last_modified > if_unmodified_since:
                 raise PreconditionFailed("If-Unmodified-Since")
-        if if_match and key.etag != if_match:
+        if if_match and key.etag not in [if_match, '"{0}"'.format(if_match)]:
             raise PreconditionFailed("If-Match")
 
         if if_modified_since:
@@ -1397,7 +1401,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
             src_key = request.headers.get("x-amz-copy-source")
-            if isinstance(src_key, six.binary_type):
+            if isinstance(src_key, bytes):
                 src_key = src_key.decode("utf-8")
             src_key_parsed = urlparse(src_key)
             src_bucket, src_key = (
@@ -1605,6 +1609,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         grants = []
         for header, value in headers.items():
+            header = header.lower()
             if not header.startswith("x-amz-grant-"):
                 continue
 
@@ -1619,7 +1624,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             grantees = []
             for key_and_value in value.split(","):
                 key, value = re.match(
-                    '([^=]+)="([^"]+)"', key_and_value.strip()
+                    '([^=]+)="?([^"]+)"?', key_and_value.strip()
                 ).groups()
                 if key.lower() == "id":
                     grantees.append(FakeGrantee(id=value))
@@ -1872,7 +1877,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if body == b"" and "uploads" in query:
             metadata = metadata_from_headers(request.headers)
-            multipart = self.backend.initiate_multipart(bucket_name, key_name, metadata)
+            multipart = FakeMultipart(key_name, metadata)
+            multipart.storage = request.headers.get("x-amz-storage-class", "STANDARD")
+
+            bucket = self.backend.get_bucket(bucket_name)
+            bucket.multiparts[multipart.id] = multipart
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
@@ -1882,8 +1891,26 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if query.get("uploadId"):
             body = self._complete_multipart_body(body)
-            upload_id = query["uploadId"][0]
-            key = self.backend.complete_multipart(bucket_name, upload_id, body)
+            multipart_id = query["uploadId"][0]
+
+            bucket = self.backend.get_bucket(bucket_name)
+            multipart = bucket.multiparts[multipart_id]
+            value, etag = multipart.complete(body)
+            if value is None:
+                return 400, {}, ""
+
+            del bucket.multiparts[multipart_id]
+
+            key = self.backend.set_object(
+                bucket_name,
+                multipart.key_name,
+                value,
+                storage=multipart.storage,
+                etag=etag,
+                multipart=multipart,
+            )
+            key.set_metadata(multipart.metadata)
+
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             headers = {}
             if key.version_id:
@@ -1895,6 +1922,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name=bucket_name, key_name=key.name, etag=key.etag
                 ),
             )
+
         elif "restore" in query:
             es = minidom.parseString(body).getElementsByTagName("Days")
             days = es[0].childNodes[0].wholeText
@@ -1904,6 +1932,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 r = 200
             key.restore(int(days))
             return r, {}, ""
+
         else:
             raise NotImplementedError(
                 "Method POST had only been implemented for multipart uploads and restore operations, so far"
@@ -2344,7 +2373,7 @@ S3_ALL_MULTIPARTS = (
   <KeyMarker></KeyMarker>
   <UploadIdMarker></UploadIdMarker>
   <MaxUploads>1000</MaxUploads>
-  <IsTruncated>False</IsTruncated>
+  <IsTruncated>false</IsTruncated>
   {% for upload in uploads %}
   <Upload>
     <Key>{{ upload.key_name }}</Key>
@@ -2462,7 +2491,7 @@ S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
-<BucketEncryptionStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01">
+<ServerSideEncryptionConfiguration xmlns="http://doc.s3.amazonaws.com/2006-03-01">
     {% for entry in encryption %}
         <Rule>
             <ApplyServerSideEncryptionByDefault>
@@ -2471,9 +2500,10 @@ S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
                 <KMSMasterKeyID>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
                 {% endif %}
             </ApplyServerSideEncryptionByDefault>
+            <BucketKeyEnabled>{{ 'true' if entry["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
         </Rule>
     {% endfor %}
-</BucketEncryptionStatus>
+</ServerSideEncryptionConfiguration>
 """
 
 S3_INVALID_PRESIGNED_PARAMETERS = """<?xml version="1.0" encoding="UTF-8"?>

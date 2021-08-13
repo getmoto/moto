@@ -1,31 +1,75 @@
+import json
 import os
 import time
 from unittest import SkipTest
+
 import boto3
-import six
-from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa
+from botocore.exceptions import ClientError
 
 from moto import mock_logs, settings
+from moto.core.utils import unix_time_millis
+from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
 
-_logs_region = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
+TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
+
+
+@pytest.fixture
+def json_policy_doc():
+    """Returns a policy document in JSON format.
+
+    The ARN is bogus, but that shouldn't matter for the test.
+    """
+    return json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "Route53LogsToCloudWatchLogs",
+                    "Effect": "Allow",
+                    "Principal": {"Service": ["route53.amazonaws.com"]},
+                    "Action": "logs:PutLogEvents",
+                    "Resource": "log_arn",
+                }
+            ],
+        }
+    )
 
 
 @mock_logs
-def test_create_log_group():
-    conn = boto3.client("logs", "us-west-2")
+@pytest.mark.parametrize(
+    "kms_key_id",
+    [
+        "arn:aws:kms:us-east-1:000000000000:key/51d81fab-b138-4bd2-8a09-07fd6d37224d",
+        None,
+    ],
+)
+def test_create_log_group(kms_key_id):
+    # Given
+    conn = boto3.client("logs", TEST_REGION)
 
-    response = conn.create_log_group(logGroupName="dummy")
+    create_logs_params = dict(logGroupName="dummy")
+    if kms_key_id:
+        create_logs_params["kmsKeyId"] = kms_key_id
+
+    # When
+    response = conn.create_log_group(**create_logs_params)
     response = conn.describe_log_groups()
 
+    # Then
     response["logGroups"].should.have.length_of(1)
-    response["logGroups"][0].should_not.have.key("retentionInDays")
+
+    log_group = response["logGroups"][0]
+    log_group.should_not.have.key("retentionInDays")
+
+    if kms_key_id:
+        log_group.should.have.key("kmsKeyId")
+        log_group["kmsKeyId"].should.equal(kms_key_id)
 
 
 @mock_logs
 def test_exceptions():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     log_stream_name = "dummp-stream"
     conn.create_log_group(logGroupName=log_group_name)
@@ -59,7 +103,7 @@ def test_exceptions():
 
 @mock_logs
 def test_put_logs():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     log_stream_name = "stream"
     conn.create_log_group(logGroupName=log_group_name)
@@ -68,22 +112,22 @@ def test_put_logs():
         {"timestamp": 0, "message": "hello"},
         {"timestamp": 0, "message": "world"},
     ]
-    putRes = conn.put_log_events(
+    put_results = conn.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
     )
     res = conn.get_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name
     )
     events = res["events"]
-    nextSequenceToken = putRes["nextSequenceToken"]
-    assert isinstance(nextSequenceToken, six.string_types) == True
-    assert len(nextSequenceToken) == 56
+    next_sequence_token = put_results["nextSequenceToken"]
+    assert isinstance(next_sequence_token, str)
+    assert len(next_sequence_token) == 56
     events.should.have.length_of(2)
 
 
 @mock_logs
 def test_filter_logs_interleaved():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     log_stream_name = "stream"
     conn.create_log_group(logGroupName=log_group_name)
@@ -109,7 +153,7 @@ def test_filter_logs_interleaved():
 def test_filter_logs_raises_if_filter_pattern():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
         raise SkipTest("Does not work in server mode due to error in Workzeug")
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     log_stream_name = "stream"
     conn.create_log_group(logGroupName=log_group_name)
@@ -131,7 +175,7 @@ def test_filter_logs_raises_if_filter_pattern():
 
 @mock_logs
 def test_filter_logs_paging():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "/aws/dummy"
     log_stream_name = "stream/stage"
     conn.create_log_group(logGroupName=log_group_name)
@@ -190,7 +234,7 @@ def test_filter_logs_paging():
 
 @mock_logs
 def test_put_retention_policy():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     response = conn.create_log_group(logGroupName=log_group_name)
 
@@ -205,7 +249,7 @@ def test_put_retention_policy():
 
 @mock_logs
 def test_delete_retention_policy():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     response = conn.create_log_group(logGroupName=log_group_name)
 
@@ -219,14 +263,130 @@ def test_delete_retention_policy():
 
     response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
     assert len(response["logGroups"]) == 1
-    assert response["logGroups"][0].get("retentionInDays") == None
+    assert response["logGroups"][0].get("retentionInDays") is None
 
-    response = conn.delete_log_group(logGroupName=log_group_name)
+    conn.delete_log_group(logGroupName=log_group_name)
+
+
+@mock_logs
+def test_put_resource_policy():
+    client = boto3.client("logs", TEST_REGION)
+
+    # For this test a policy document with a valid ARN will be used.
+    log_group_name = "test_log_group"
+    client.create_log_group(logGroupName=log_group_name)
+    log_group_info = client.describe_log_groups(logGroupNamePrefix=log_group_name)
+
+    policy_name = "test_policy"
+    policy_doc = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "Route53LogsToCloudWatchLogs",
+                    "Effect": "Allow",
+                    "Principal": {"Service": ["route53.amazonaws.com"]},
+                    "Action": "logs:PutLogEvents",
+                    "Resource": log_group_info["logGroups"][0]["arn"],
+                }
+            ],
+        }
+    )
+    response = client.put_resource_policy(
+        policyName=policy_name, policyDocument=policy_doc
+    )
+
+    assert response["resourcePolicy"]["policyName"] == policy_name
+    assert response["resourcePolicy"]["policyDocument"] == policy_doc
+    assert response["resourcePolicy"]["lastUpdatedTime"] <= int(unix_time_millis())
+
+    client.delete_log_group(logGroupName=log_group_name)
+
+
+@mock_logs
+def test_put_resource_policy_too_many(json_policy_doc):
+    client = boto3.client("logs", TEST_REGION)
+
+    # Create the maximum number of resource policies.
+    for idx in range(MAX_RESOURCE_POLICIES_PER_REGION):
+        policy_name = f"test_policy_{idx}"
+        client.put_resource_policy(
+            policyName=policy_name, policyDocument=json.dumps(json_policy_doc)
+        )
+
+    # Now create one more policy, which should generate an error.
+    with pytest.raises(ClientError) as exc:
+        client.put_resource_policy(
+            policyName="too_many", policyDocument=json.dumps(json_policy_doc)
+        )
+    exc_value = exc.value
+    exc_value.operation_name.should.equal("PutResourcePolicy")
+    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    exc_value.response["Error"]["Code"].should.equal("LimitExceededException")
+    exc_value.response["Error"]["Message"].should.contain("Resource limit exceeded.")
+
+
+@mock_logs
+def test_delete_resource_policy(json_policy_doc):
+    client = boto3.client("logs", TEST_REGION)
+
+    # Create a bunch of resource policies so we can give delete a workout.
+    base_policy_name = "test_policy"
+    for idx in range(MAX_RESOURCE_POLICIES_PER_REGION):
+        client.put_resource_policy(
+            policyName=f"{base_policy_name}_{idx}", policyDocument=json_policy_doc
+        )
+
+    # Verify that all those resource policies can be deleted.
+    for idx in range(MAX_RESOURCE_POLICIES_PER_REGION):
+        client.delete_resource_policy(policyName=f"{base_policy_name}_{idx}")
+
+    # Verify there are no resource policies.
+    response = client.describe_resource_policies()
+    policies = response["resourcePolicies"]
+    assert not policies
+
+    # Try deleting a non-existent resource policy.
+    with pytest.raises(ClientError) as exc:
+        client.delete_resource_policy(policyName="non-existent")
+    exc_value = exc.value
+    exc_value.operation_name.should.equal("DeleteResourcePolicy")
+    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    exc_value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    exc_value.response["Error"]["Message"].should.contain(
+        "Policy with name [non-existent] does not exist"
+    )
+
+
+@mock_logs
+def test_describe_resource_policies(json_policy_doc):
+    client = boto3.client("logs", TEST_REGION)
+
+    # Create the maximum number of resource policies so there's something
+    # to retrieve.
+    for idx in range(MAX_RESOURCE_POLICIES_PER_REGION):
+        policy_name = f"test_policy_{idx}"
+        client.put_resource_policy(
+            policyName=policy_name, policyDocument=json_policy_doc
+        )
+
+    # Retrieve all of the resource policies that were just created.
+    response = client.describe_resource_policies(limit=50)
+    assert "resourcePolicies" in response
+    policies = response["resourcePolicies"]
+    assert len(policies) == MAX_RESOURCE_POLICIES_PER_REGION
+
+    # Verify the retrieved list is valid.
+    now_millis = int(unix_time_millis())
+    for idx, policy in enumerate(policies):
+        assert policy["policyName"] == f"test_policy_{idx}"
+        assert policy["policyDocument"] == json_policy_doc
+        assert policy["lastUpdatedTime"] <= now_millis
 
 
 @mock_logs
 def test_get_log_events():
-    client = boto3.client("logs", "us-west-2")
+    client = boto3.client("logs", TEST_REGION)
     log_group_name = "test"
     log_stream_name = "stream"
     client.create_log_group(logGroupName=log_group_name)
@@ -306,7 +466,7 @@ def test_get_log_events():
 
 @mock_logs
 def test_get_log_events_with_start_from_head():
-    client = boto3.client("logs", "us-west-2")
+    client = boto3.client("logs", TEST_REGION)
     log_group_name = "test"
     log_stream_name = "stream"
     client.create_log_group(logGroupName=log_group_name)
@@ -389,44 +549,44 @@ def test_get_log_events_with_start_from_head():
 
 @mock_logs
 def test_get_log_events_errors():
-    client = boto3.client("logs", "us-west-2")
+    client = boto3.client("logs", TEST_REGION)
     log_group_name = "test"
     log_stream_name = "stream"
     client.create_log_group(logGroupName=log_group_name)
     client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    with pytest.raises(ClientError) as e:
+    with pytest.raises(ClientError) as exc:
         client.get_log_events(
             logGroupName=log_group_name,
             logStreamName=log_stream_name,
             nextToken="n/00000000000000000000000000000000000000000000000000000000",
         )
-    ex = e.value
-    ex.operation_name.should.equal("GetLogEvents")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.response["Error"]["Message"].should.contain(
+    exc_value = exc.value
+    exc_value.operation_name.should.equal("GetLogEvents")
+    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    exc_value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    exc_value.response["Error"]["Message"].should.contain(
         "The specified nextToken is invalid."
     )
 
-    with pytest.raises(ClientError) as e:
+    with pytest.raises(ClientError) as exc:
         client.get_log_events(
             logGroupName=log_group_name,
             logStreamName=log_stream_name,
             nextToken="not-existing-token",
         )
-    ex = e.value
-    ex.operation_name.should.equal("GetLogEvents")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.response["Error"]["Message"].should.contain(
+    exc_value = exc.value
+    exc_value.operation_name.should.equal("GetLogEvents")
+    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    exc_value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    exc_value.response["Error"]["Message"].should.contain(
         "The specified nextToken is invalid."
     )
 
 
 @mock_logs
 def test_list_tags_log_group():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     tags = {"tag_key_1": "tag_value_1", "tag_key_2": "tag_value_2"}
 
@@ -444,7 +604,7 @@ def test_list_tags_log_group():
 
 @mock_logs
 def test_tag_log_group():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     tags = {"tag_key_1": "tag_value_1"}
     response = conn.create_log_group(logGroupName=log_group_name)
@@ -472,7 +632,7 @@ def test_tag_log_group():
 
 @mock_logs
 def test_untag_log_group():
-    conn = boto3.client("logs", "us-west-2")
+    conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
     response = conn.create_log_group(logGroupName=log_group_name)
 
@@ -510,15 +670,15 @@ def test_describe_subscription_filters_errors():
     client = boto3.client("logs", "us-east-1")
 
     # when
-    with pytest.raises(ClientError) as e:
+    with pytest.raises(ClientError) as exc:
         client.describe_subscription_filters(logGroupName="not-existing-log-group",)
 
     # then
-    ex = e.value
-    ex.operation_name.should.equal("DescribeSubscriptionFilters")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
+    exc_value = exc.value
+    exc_value.operation_name.should.equal("DescribeSubscriptionFilters")
+    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    exc_value.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    exc_value.response["Error"]["Message"].should.equal(
         "The specified log group does not exist"
     )
 
@@ -584,7 +744,7 @@ def test_describe_log_streams_paging():
     resp["logStreams"].should.have.length_of(2)
     resp["logStreams"][0]["arn"].should.contain(log_group_name)
     resp["nextToken"].should.equal(
-        u"{}@{}".format(log_group_name, resp["logStreams"][1]["logStreamName"])
+        "{}@{}".format(log_group_name, resp["logStreams"][1]["logStreamName"])
     )
 
     resp = client.describe_log_streams(
@@ -593,7 +753,7 @@ def test_describe_log_streams_paging():
     resp["logStreams"].should.have.length_of(1)
     resp["logStreams"][0]["arn"].should.contain(log_group_name)
     resp["nextToken"].should.equal(
-        u"{}@{}".format(log_group_name, resp["logStreams"][0]["logStreamName"])
+        "{}@{}".format(log_group_name, resp["logStreams"][0]["logStreamName"])
     )
 
     resp = client.describe_log_streams(
@@ -632,7 +792,7 @@ def test_start_query():
 
     assert "queryId" in response
 
-    with pytest.raises(ClientError) as e:
+    with pytest.raises(ClientError) as exc:
         client.start_query(
             logGroupName="/aws/codebuild/lowercase-dev-invalid",
             startTime=int(time.time()),
@@ -641,8 +801,8 @@ def test_start_query():
         )
 
     # then
-    ex = e.value
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
+    exc_value = exc.value
+    exc_value.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    exc_value.response["Error"]["Message"].should.equal(
         "The specified log group does not exist"
     )

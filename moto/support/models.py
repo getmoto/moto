@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 from boto3 import Session
-from pkg_resources import resource_filename
 from moto.core import BaseBackend
 from moto.utilities.utils import load_resource
 import datetime
@@ -8,7 +7,7 @@ import random
 
 
 checks_json = "resources/describe_trusted_advisor_checks.json"
-ADVISOR_CHECKS = load_resource(resource_filename(__name__, checks_json))
+ADVISOR_CHECKS = load_resource(__name__, checks_json)
 
 
 class SupportCase(object):

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
+import json
 from datetime import datetime
 from dateutil.tz import tzutc
 import base64
@@ -7,12 +9,12 @@ import os
 
 import boto3
 import botocore.exceptions
-import six
 import sure  # noqa
 from freezegun import freeze_time
 import pytest
 
 from moto import mock_kms
+from moto.core import ACCOUNT_ID
 
 PLAINTEXT_VECTORS = [
     b"some encodeable plaintext",
@@ -22,7 +24,7 @@ PLAINTEXT_VECTORS = [
 
 
 def _get_encoded_value(plaintext):
-    if isinstance(plaintext, six.binary_type):
+    if isinstance(plaintext, bytes):
         return plaintext
 
     return plaintext.encode("utf-8")
@@ -117,6 +119,33 @@ def test_describe_key():
     response["KeyMetadata"]["KeyUsage"].should.equal("ENCRYPT_DECRYPT")
     response["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
     response["KeyMetadata"].should_not.have.key("SigningAlgorithms")
+
+
+@mock_kms
+def test_get_key_policy_default():
+    # given
+    client = boto3.client("kms", region_name="us-east-1")
+    key_id = client.create_key()["KeyMetadata"]["KeyId"]
+
+    # when
+    policy = client.get_key_policy(KeyId=key_id, PolicyName="default")["Policy"]
+
+    # then
+    json.loads(policy).should.equal(
+        {
+            "Version": "2012-10-17",
+            "Id": "key-default-1",
+            "Statement": [
+                {
+                    "Sid": "Enable IAM User Permissions",
+                    "Effect": "Allow",
+                    "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                    "Action": "kms:*",
+                    "Resource": "*",
+                }
+            ],
+        }
+    )
 
 
 @pytest.mark.parametrize(

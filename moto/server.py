@@ -9,12 +9,11 @@ import signal
 import sys
 from threading import Lock
 
-import six
 from flask import Flask
 from flask_cors import CORS
 from flask.testing import FlaskClient
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
@@ -134,9 +133,7 @@ class DomainDispatcherApplication(object):
         path_info = environ.get("PATH_INFO", "")
 
         # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
-        if six.PY2 and isinstance(path_info, str):
-            path_info = six.u(path_info)
-        if six.PY3 and isinstance(path_info, six.binary_type):
+        if isinstance(path_info, bytes):
             path_info = path_info.decode("utf-8")
 
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
@@ -300,8 +297,11 @@ def main(argv=sys.argv[1:]):
 
     args = parser.parse_args(argv)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    try:
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+    except Exception:
+        pass  # ignore "ValueError: signal only works in main thread"
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

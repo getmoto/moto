@@ -8,7 +8,7 @@ from collections import defaultdict
 from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -43,6 +43,19 @@ class Database(CloudFormationModel):
         "engine": FilterDef(["engine"], "Engine Names"),
     }
 
+    default_engine_versions = {
+        "MySQL": "5.6.21",
+        "mysql": "5.6.21",
+        "oracle-se1": "11.2.0.4.v3",
+        "oracle-se": "11.2.0.4.v3",
+        "oracle-ee": "11.2.0.4.v3",
+        "sqlserver-ee": "11.00.2100.60.v1",
+        "sqlserver-se": "11.00.2100.60.v1",
+        "sqlserver-ex": "11.00.2100.60.v1",
+        "sqlserver-web": "11.00.2100.60.v1",
+        "postgres": "9.3.3",
+    }
+
     def __init__(self, **kwargs):
         self.status = "available"
         self.is_replica = False
@@ -50,18 +63,6 @@ class Database(CloudFormationModel):
         self.region = kwargs.get("region")
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version", None)
-        self.default_engine_versions = {
-            "MySQL": "5.6.21",
-            "mysql": "5.6.21",
-            "oracle-se1": "11.2.0.4.v3",
-            "oracle-se": "11.2.0.4.v3",
-            "oracle-ee": "11.2.0.4.v3",
-            "sqlserver-ee": "11.00.2100.60.v1",
-            "sqlserver-se": "11.00.2100.60.v1",
-            "sqlserver-ex": "11.00.2100.60.v1",
-            "sqlserver-web": "11.00.2100.60.v1",
-            "postgres": "9.3.3",
-        }
         if not self.engine_version and self.engine in self.default_engine_versions:
             self.engine_version = self.default_engine_versions[self.engine]
         self.iops = kwargs.get("iops")
@@ -120,6 +121,7 @@ class Database(CloudFormationModel):
         self.db_parameter_group_name = kwargs.get("db_parameter_group_name")
         if (
             self.db_parameter_group_name
+            and not self.is_default_parameter_group(self.db_parameter_group_name)
             and self.db_parameter_group_name
             not in rds2_backends[self.region].db_parameter_groups
         ):
@@ -160,7 +162,9 @@ class Database(CloudFormationModel):
         return self.db_instance_identifier
 
     def db_parameter_groups(self):
-        if not self.db_parameter_group_name:
+        if not self.db_parameter_group_name or self.is_default_parameter_group(
+            self.db_parameter_group_name
+        ):
             (
                 db_family,
                 db_parameter_group_name,
@@ -182,11 +186,14 @@ class Database(CloudFormationModel):
                 ]
             ]
 
+    def is_default_parameter_group(self, param_group_name):
+        return param_group_name.startswith("default.%s" % self.engine.lower())
+
     def default_db_parameter_group_details(self):
         if not self.engine_version:
             return (None, None)
 
-        minor_engine_version = ".".join(self.engine_version.rsplit(".")[:-1])
+        minor_engine_version = ".".join(str(self.engine_version).rsplit(".")[:-1])
         db_family = "{0}{1}".format(self.engine.lower(), minor_engine_version)
 
         return db_family, "default.{0}".format(db_family)
@@ -1021,6 +1028,16 @@ class RDS2Backend(BaseBackend):
             else:
                 raise DBSubnetGroupNotFoundError(subnet_group_name)
         return self.subnet_groups.values()
+
+    def modify_db_subnet_group(self, subnet_name, description, subnets):
+        subnet_group = self.subnet_groups.pop(subnet_name)
+        if not subnet_group:
+            raise DBSubnetGroupNotFoundError(subnet_name)
+        subnet_group.subnet_name = subnet_name
+        subnet_group.subnets = subnets
+        if description is not None:
+            subnet_group.description = description
+        return subnet_group
 
     def delete_subnet_group(self, subnet_name):
         if subnet_name in self.subnet_groups:

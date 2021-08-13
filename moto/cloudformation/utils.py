@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import uuid
-import six
 import random
 import yaml
 import os
@@ -37,7 +36,7 @@ def generate_stackset_arn(stackset_id, region_name):
 def random_suffix():
     size = 12
     chars = list(range(10)) + list(string.ascii_uppercase)
-    return "".join(six.text_type(random.choice(chars)) for x in range(size))
+    return "".join(str(random.choice(chars)) for x in range(size))
 
 
 def yaml_tag_constructor(loader, tag, node):
@@ -45,6 +44,8 @@ def yaml_tag_constructor(loader, tag, node):
 
     def _f(loader, tag, node):
         if tag == "!GetAtt":
+            if isinstance(node.value, list):
+                return node.value
             return node.value.split(".")
         elif type(node) == yaml.SequenceNode:
             return loader.construct_sequence(node)

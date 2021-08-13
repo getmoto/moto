@@ -13,7 +13,7 @@ import time
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-from six.moves.urllib import parse
+from urllib import parse
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID, CloudFormationModel
 from moto.core.utils import (
@@ -101,6 +101,7 @@ class Policy(CloudFormationModel):
         path=None,
         create_date=None,
         update_date=None,
+        tags=None,
     ):
         self.name = name
 
@@ -108,6 +109,7 @@ class Policy(CloudFormationModel):
         self.description = description or ""
         self.id = random_policy_id()
         self.path = path or "/"
+        self.tags = {tag["Key"]: tag["Value"] for tag in tags or []}
 
         if default_version_id:
             self.default_version_id = default_version_id
@@ -337,9 +339,10 @@ class AWSManagedPolicy(ManagedPolicy):
 # AWS defines some of its own managed policies and we periodically
 # import them via `make aws_managed_policies`
 # FIXME: Takes about 40ms at import time
+aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
 aws_managed_policies = [
     AWSManagedPolicy.from_data(name, d)
-    for name, d in json.loads(aws_managed_policies_data).items()
+    for name, d in aws_managed_policies_data_parsed.items()
 ]
 
 
@@ -646,14 +649,21 @@ class Role(CloudFormationModel):
     def get_tags(self):
         return [self.tags[tag] for tag in self.tags]
 
+    @property
+    def description_escaped(self):
+        import html
+
+        return html.escape(self.description or "")
+
 
 class InstanceProfile(CloudFormationModel):
-    def __init__(self, instance_profile_id, name, path, roles):
+    def __init__(self, instance_profile_id, name, path, roles, tags=None):
         self.id = instance_profile_id
         self.name = name
         self.path = path or "/"
         self.roles = roles if roles else []
         self.create_date = datetime.utcnow()
+        self.tags = {tag["Key"]: tag["Value"] for tag in tags or []}
 
     @property
     def created_iso_8601(self):
@@ -1410,7 +1420,7 @@ class IAMBackend(BaseBackend):
         self.account_aliases = []
         self.saml_providers = {}
         self.open_id_providers = {}
-        self.policy_arn_regex = re.compile(r"^arn:aws:iam::[0-9]*:policy/.*$")
+        self.policy_arn_regex = re.compile(r"^arn:aws:iam::(aws|[0-9]*):policy/.*$")
         self.virtual_mfa_devices = {}
         self.account_password_policy = None
         self.account_summary = AccountSummary(self)
@@ -1496,12 +1506,16 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
         policy.detach_from(self.get_user(user_name))
 
-    def create_policy(self, description, path, policy_document, policy_name):
+    def create_policy(self, description, path, policy_document, policy_name, tags=None):
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
         iam_policy_document_validator.validate()
 
         policy = ManagedPolicy(
-            policy_name, description=description, document=policy_document, path=path
+            policy_name,
+            description=description,
+            document=policy_document,
+            path=path,
+            tags=tags,
         )
         if policy.arn in self.managed_policies:
             raise EntityAlreadyExists(
@@ -1551,9 +1565,9 @@ class IAMBackend(BaseBackend):
     def set_default_policy_version(self, policy_arn, version_id):
         import re
 
-        if re.match("v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
+        if re.match(r"v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
             raise ValidationError(
-                "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?".format(
+                "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\\.[A-Za-z0-9-]*)?".format(
                     version_id
                 )
             )
@@ -1823,7 +1837,7 @@ class IAMBackend(BaseBackend):
                 return
         raise IAMNotFoundException("Policy not found")
 
-    def create_instance_profile(self, name, path, role_ids):
+    def create_instance_profile(self, name, path, role_ids, tags=None):
         if self.instance_profiles.get(name):
             raise IAMConflictException(
                 code="EntityAlreadyExists",
@@ -1833,7 +1847,7 @@ class IAMBackend(BaseBackend):
         instance_profile_id = random_resource_id()
 
         roles = [iam_backend.get_role_by_id(role_id) for role_id in role_ids]
-        instance_profile = InstanceProfile(instance_profile_id, name, path, roles)
+        instance_profile = InstanceProfile(instance_profile_id, name, path, roles, tags)
         self.instance_profiles[name] = instance_profile
         return instance_profile
 

@@ -6,17 +6,12 @@ import uuid
 import boto3
 import pytest
 import sure  # noqa
-import sys
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_acm, settings
 from moto.core import ACCOUNT_ID
 
-if sys.version_info[0] < 3:
-    import mock
-    from unittest import SkipTest
-else:
-    from unittest import SkipTest, mock
+from unittest import SkipTest, mock
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 _GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()

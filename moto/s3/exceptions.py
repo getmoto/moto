@@ -30,10 +30,26 @@ ERROR_WITH_RANGE = """{% extends 'single_error' %}
 
 
 class S3ClientError(RESTError):
+    # S3 API uses <RequestID> as the XML tag in response messages
+    request_id_tag_name = "RequestID"
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("template", "single_error")
         self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super(S3ClientError, self).__init__(*args, **kwargs)
+
+
+class InvalidArgumentError(S3ClientError):
+    code = 400
+
+    def __init__(self, message, name, value, *args, **kwargs):
+        kwargs.setdefault("template", "argument_error")
+        kwargs["name"] = name
+        kwargs["value"] = value
+        self.templates["argument_error"] = ERROR_WITH_ARGUMENT
+        super(InvalidArgumentError, self).__init__(
+            "InvalidArgument", message, *args, **kwargs
+        )
 
 
 class BucketError(S3ClientError):
@@ -508,3 +524,14 @@ class BucketMustHaveLockeEnabled(S3ClientError):
 
     def __init__(self):
         super(BucketMustHaveLockeEnabled, self).__init__("InvalidBucketState", "Object Lock configuration cannot be enabled on existing buckets")
+class InvalidFilterRuleName(InvalidArgumentError):
+    code = 400
+
+    def __init__(self, value, *args, **kwargs):
+        super(InvalidFilterRuleName, self).__init__(
+            "filter rule name must be either prefix or suffix",
+            "FilterRule.Name",
+            value,
+            *args,
+            **kwargs
+        )

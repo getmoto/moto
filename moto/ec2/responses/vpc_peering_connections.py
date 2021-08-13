@@ -6,6 +6,11 @@ from moto.core import ACCOUNT_ID
 class VPCPeeringConnections(BaseResponse):
     def create_vpc_peering_connection(self):
         peer_region = self._get_param("PeerRegion")
+        tags = self._get_multi_param("TagSpecification")
+        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
+        tags = (tags or {}).get("Tag", [])
+        tags = {t["Key"]: t["Value"] for t in tags}
+
         if peer_region == self.region or peer_region is None:
             peer_vpc = self.ec2_backend.get_vpc(self._get_param("PeerVpcId"))
         else:
@@ -13,7 +18,7 @@ class VPCPeeringConnections(BaseResponse):
                 self._get_param("PeerVpcId"), peer_region
             )
         vpc = self.ec2_backend.get_vpc(self._get_param("VpcId"))
-        vpc_pcx = self.ec2_backend.create_vpc_peering_connection(vpc, peer_vpc)
+        vpc_pcx = self.ec2_backend.create_vpc_peering_connection(vpc, peer_vpc, tags)
         template = self.response_template(CREATE_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render(vpc_pcx=vpc_pcx)
 
@@ -68,7 +73,14 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
      <message>Initiating Request to {accepter ID}</message>
     </status>
     <expirationTime>2014-02-18T14:37:25.000Z</expirationTime>
-    <tagSet/>
+    <tagSet>
+    {% for tag in vpc_pcx.get_tags() %}
+      <item>
+        <key>{{ tag.key }}</key>
+        <value>{{ tag.value }}</value>
+      </item>
+    {% endfor %}
+    </tagSet>
  </vpcPeeringConnection>
 </CreateVpcPeeringConnectionResponse>
 """
@@ -105,7 +117,14 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
       <code>{{ vpc_pcx._status.code }}</code>
       <message>{{ vpc_pcx._status.message }}</message>
      </status>
-     <tagSet/>
+     <tagSet>
+     {% for tag in vpc_pcx.get_tags() %}
+       <item>
+         <key>{{ tag.key }}</key>
+         <value>{{ tag.value }}</value>
+       </item>
+     {% endfor %}
+     </tagSet>
  </item>
  {% endfor %}
  </vpcPeeringConnectionSet>
@@ -149,7 +168,14 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
       <code>{{ vpc_pcx._status.code }}</code>
       <message>{{ vpc_pcx._status.message }}</message>
     </status>
-    <tagSet/>
+    <tagSet>
+    {% for tag in vpc_pcx.get_tags() %}
+      <item>
+        <key>{{ tag.key }}</key>
+        <value>{{ tag.value }}</value>
+      </item>
+    {% endfor %}
+    </tagSet>
   </vpcPeeringConnection>
 </AcceptVpcPeeringConnectionResponse>
 """

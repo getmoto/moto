@@ -1013,6 +1013,7 @@ def test_create_change_set_from_s3_url():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_describe_change_set():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_change_set(
@@ -1048,10 +1049,19 @@ def test_describe_change_set():
 
     # Execute change set
     cf_conn.execute_change_set(ChangeSetName="NewChangeSet")
-    # Verify that the changes have been applied
-    stack = cf_conn.describe_change_set(ChangeSetName="NewChangeSet")
-    stack["Changes"].should.have.length_of(1)
 
+    # Verify that the changes have been applied
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ec2.describe_instances()["Reservations"].should.have.length_of(1)
+
+    change_set = cf_conn.describe_change_set(ChangeSetName="NewChangeSet")
+    change_set["Changes"].should.have.length_of(1)
+    change_set["ExecutionStatus"].should.equal("EXECUTE_COMPLETE")
+
+    stack = cf_conn.describe_stacks(StackName="NewStack")["Stacks"][0]
+    stack["StackStatus"].should.equal("CREATE_COMPLETE")
+
+    # create another change set to update the stack
     cf_conn.create_change_set(
         StackName="NewStack",
         TemplateBody=dummy_update_template_json,
@@ -1062,6 +1072,13 @@ def test_describe_change_set():
     stack["ChangeSetName"].should.equal("NewChangeSet2")
     stack["StackName"].should.equal("NewStack")
     stack["Changes"].should.have.length_of(2)
+
+    # Execute change set
+    cf_conn.execute_change_set(ChangeSetName="NewChangeSet2")
+
+    # Verify that the changes have been applied
+    stack = cf_conn.describe_stacks(StackName="NewStack")["Stacks"][0]
+    stack["StackStatus"].should.equal("UPDATE_COMPLETE")
 
 
 @mock_cloudformation

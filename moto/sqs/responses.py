@@ -10,7 +10,7 @@ from moto.core.utils import (
     underscores_to_camelcase,
     camelcase_to_pascal,
 )
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
@@ -91,7 +91,14 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
+        tags = {}
+        tags_param = self._get_multi_param("Tag")
+        # Returns [{'Key': 'Foo', 'Value': 'Bar'}]
+        if tags_param:
+            for tag in tags_param:
+                tags[tag["Key"]] = tag["Value"]
+
+        queue = self.sqs_backend.create_queue(queue_name, tags, **self.attribute)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -202,8 +209,17 @@ class SQSResponse(BaseResponse):
 
     def set_queue_attributes(self):
         # TODO validate self.get_param('QueueUrl')
+        attribute = self.attribute
+
+        # Fixes issue with Policy set to empty str
+        attribute_names = self._get_multi_param("Attribute")
+        if attribute_names:
+            for attr in attribute_names:
+                if attr["Name"] == "Policy" and len(attr["Value"]) == 0:
+                    attribute = {attr["Name"]: None}
+
         queue_name = self._get_queue_name()
-        self.sqs_backend.set_queue_attributes(queue_name, self.attribute)
+        self.sqs_backend.set_queue_attributes(queue_name, attribute)
 
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 

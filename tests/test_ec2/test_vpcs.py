@@ -8,7 +8,7 @@ import boto3
 import boto
 from boto.exception import EC2ResponseError
 
-# import sure  # noqa
+import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
 
@@ -314,6 +314,31 @@ def test_vpc_dedicated_tenancy():
     vpc.is_default.shouldnt.be.ok
 
     vpc.instance_tenancy.should.equal("dedicated")
+
+
+@mock_ec2
+def test_vpc_modify_tenancy_unknown():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    # Create the non default VPC
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", InstanceTenancy="dedicated")
+    vpc.instance_tenancy.should.equal("dedicated")
+
+    with pytest.raises(ClientError) as ex:
+        ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The tenancy value unknown is not supported.")
+    err["Code"].should.equal("UnsupportedTenancy")
+
+    ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="default")
+
+    vpc.reload()
+
+    vpc.instance_tenancy.should.equal("default")
 
 
 @mock_ec2
@@ -919,4 +944,4 @@ def test_describe_vpc_end_points():
             VpcEndpointIds=[route_table.get("RouteTable").get("RouteTableId")]
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidVpcEndPointId.NotFound"
+        assert err.response["Error"]["Code"] == "InvalidVpcEndpointId.NotFound"

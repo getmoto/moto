@@ -38,7 +38,8 @@ def test_delete_customer_gateways():
     cgws[0].id.should.match(customer_gateway.id)
     deleted = conn.delete_customer_gateway(customer_gateway.id)
     cgws = conn.get_all_customer_gateways()
-    cgws.should.have.length_of(0)
+    cgws[0].state.should.equal("deleted")
+    cgws.should.have.length_of(1)
 
 
 @mock_ec2_deprecated

@@ -1044,7 +1044,7 @@ def test_admin_create_user():
 
     result["User"]["Username"].should.equal(username)
     result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
-    result["User"]["Attributes"].should.have.length_of(5)
+    result["User"]["Attributes"].should.have.length_of(1)
 
     def _verify_attribute(name, v):
         attr = [a for a in result["User"]["Attributes"] if a["Name"] == name]
@@ -1052,9 +1052,6 @@ def test_admin_create_user():
         attr[0]["Value"].should.equal(v)
 
     _verify_attribute("thing", value)
-    _verify_attribute("name", "")
-    _verify_attribute("family_name", "")
-    _verify_attribute("email_verified", True)
     result["User"]["Enabled"].should.equal(True)
 
 
@@ -1148,7 +1145,7 @@ def test_admin_get_user():
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(5)
+    result["UserAttributes"].should.have.length_of(1)
 
 
 @mock_cognitoidp
@@ -1173,16 +1170,15 @@ def test_get_user():
     outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
     result = conn.get_user(AccessToken=outputs["access_token"])
     result["Username"].should.equal(outputs["username"])
-    result["UserAttributes"].should.have.length_of(5)
+    result["UserAttributes"].should.have.length_of(1)
 
     def _verify_attribute(name, v):
         attr = [a for a in result["UserAttributes"] if a["Name"] == name]
         attr.should.have.length_of(1)
         attr[0]["Value"].should.equal(v)
 
-    _verify_attribute("name", "")
-    _verify_attribute("family_name", "")
-    _verify_attribute("email_verified", True)
+    for key, value in outputs["additional_fields"].items():
+        _verify_attribute(key, value)
 
 
 @mock_cognitoidp
@@ -1224,6 +1220,43 @@ def test_list_users():
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
+
+
+@mock_cognitoidp
+def test_list_users_inherent_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    result = conn.list_users(UserPoolId=user_pool_id)
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(username)
+
+    # create a confirmed disabled user
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    disabled_user_username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=disabled_user_username)
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=disabled_user_username, ConfirmationCode="123456"
+    )
+    conn.admin_disable_user(UserPoolId=user_pool_id, Username=disabled_user_username)
+
+    # filter, filter value, response field, response field expected value - all target confirmed disabled user
+    filters = [
+        ("username", disabled_user_username, "Username", disabled_user_username),
+        ("status", "Disabled", "Enabled", False),
+        ("cognito:user_status", "CONFIRMED", "UserStatus", "CONFIRMED"),
+    ]
+
+    for filter, filter_value, response_field, response_field_expected_value in filters:
+        result = conn.list_users(
+            UserPoolId=user_pool_id, Filter='{}="{}"'.format(filter, filter_value)
+        )
+        result["Users"].should.have.length_of(1)
+        result["Users"][0][response_field].should.equal(response_field_expected_value)
 
 
 @mock_cognitoidp
@@ -1666,6 +1699,53 @@ def test_confirm_forgot_password():
 
 
 @mock_cognitoidp
+def test_admin_user_global_sign_out():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    conn.admin_user_global_sign_out(
+        UserPoolId=result["user_pool_id"], Username=result["username"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="REFRESH_TOKEN",
+            AuthParameters={
+                "REFRESH_TOKEN": result["refresh_token"],
+                "SECRET_HASH": result["secret_hash"],
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("Refresh Token has been revoked")
+
+
+@mock_cognitoidp
+def test_admin_user_global_sign_out_unknown_userpool():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.admin_user_global_sign_out(
+            UserPoolId="n/a", Username=result["username"],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_cognitoidp
+def test_admin_user_global_sign_out_unknown_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.admin_user_global_sign_out(
+            UserPoolId=result["user_pool_id"], Username="n/a",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+
+
+@mock_cognitoidp
 def test_admin_update_user_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1841,6 +1921,73 @@ def test_initiate_auth_REFRESH_TOKEN():
     )
 
     result["AuthenticationResult"]["AccessToken"].should_not.be.none
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    result = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+    )
+
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["IdToken"].should_not.be.none
+    result["AuthenticationResult"]["RefreshToken"].should_not.be.none
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_user_not_found():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": "INVALIDUSER", "PASSWORD": result["password"]},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_user_incorrect_password():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={
+                "USERNAME": result["username"],
+                "PASSWORD": "NotAuthorizedException",
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_unconfirmed_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=client_id,
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": password},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotConfirmedException")
 
 
 @mock_cognitoidp
@@ -2021,8 +2168,14 @@ def test_admin_set_user_password():
     )
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(5)
-    result["UserStatus"].should.equal("CONFIRMED")
+    result["UserAttributes"].should.have.length_of(1)
+
+    def _verify_attribute(name, v):
+        attr = [a for a in result["UserAttributes"] if a["Name"] == name]
+        attr.should.have.length_of(1)
+        attr[0]["Value"].should.equal(v)
+
+    _verify_attribute("thing", value)
 
 
 @mock_cognitoidp

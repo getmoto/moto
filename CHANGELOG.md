@@ -4,6 +4,197 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.2
+-----
+    General:
+        * Removed the dependency on pkg_resources that was broken in 2.2.1
+        
+    New Services:
+        * WafV2:
+            * create_web_acl()
+            * list_web_acls()
+        
+    New Methods:
+        * Autoscaling:
+            * delete_tags()
+            * resume_processes()
+        * ConfigService:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+        * EC2:
+            * accept_transit_gateway_peering_attachment()
+            * create_transit_gateway_peering_attachment()
+            * delete_transit_gateway_peering_attachment()
+            * describe_transit_gateway_peering_attachments()
+            * reject_transit_gateway_peering_attachment()
+        * ECR:
+            * delete_repository_policy()
+            * get_repository_policy()
+            * list_tags_for_resource()
+            * put_image_tag_mutability()
+            * put_image_scanning_configuration()
+            * set_repository_policy()
+            * tag_resource()
+            * untag_resource()
+        * KMS:
+            * update_alias()
+        * Logs:
+            * delete_resource_policy()
+            * describe_resource_policies()
+        * RDS:
+            * modify_db_subnet_group()
+
+    Miscellaneous:
+        * CloudFormation: Improved support for AWS::ECR::Repository
+        * CloudFormation: execute_change_set() now properly updates the status of a stack
+        * CognitoIDP: list_users() now supports username/status in the Filter-attribute
+        * ECR: create_repository() now supports the parameters encryptionConfiguration, imageScanningConfiguration, imageTagMutability
+        * Events: put_permission() now supports the Policy and Condition-parameters
+        * Events: remove_permission() now supports the RemoveAllPermissions-parameter
+        * Kinesis: create_delivery_stream() now supports the ElasticsearchDestinationConfiguration-parameter
+        * SecretsManager: create_secret() now supports the KmsKeyId-parameter
+        * SecretsManager: update_secret() now supports the KmsKeyId-parameter
+
+2.2.1
+-----
+    Known bugs:
+        * Moto still depends on setuptools (or more specifically pkg_resources), 
+          but this module is not listed as a dependency.
+
+    General:
+        * We removed Py3.5 support
+        * We removed some unnecessary dependencies for the EC2/SQS services.
+
+    New Services:
+        * EFS:
+            * create_file_system
+            * create_mount_target
+            * delete_file_system
+            * delete_mount_target
+            * describe_backup_policy
+            * describe_file_systems
+            * describe_mount_target
+
+    New Methods:
+        * CognitoIDP:
+            * admin_user_global_sign_out()
+        * EC2:
+            * associate_transit_gateway_route_table()
+            * delete_transit_gateway_vpc_attachment()
+            * disable_transit_gateway_route_table_propagation()
+            * enable_transit_gateway_route_table_propagation()
+            * modify_vpc_tenancy()
+            * modify_transit_gateway_vpc_attachment()
+        * Events:
+            * update_connection()
+
+    Miscellaneous:
+        * EC2 - describe_route_tables() now returns the associationState-attribute
+        * EKS - list_clusters() received a pagination bug fix
+        * IOT - describe_certificate() now returns the validity-attribute
+        * SQS - create_queue() now supports empty tags
+        * SQS - set_queue_attributes() now supports setting an empty policy
+
+
+2.2.0
+-----
+    General Changes:
+        * Support for Python 2.7 has been removed.
+          The last release with Python2 support is now 2.1.0
+
+    New Methods:
+        * API Gateway:
+            * delete_domain_name()
+            * delete_method()
+            * update_domain_name()
+            * update_method()
+            * update_method_response()
+        * CognitoIdentity:
+            * update_identity_pool()
+        * EC2:
+            * create_transit_gateway()
+            * create_transit_gateway_route()
+            * create_transit_gateway_route_table()
+            * create_transit_gateway_vpc_attachment()
+            * delete_transit_gateway()
+            * delete_transit_gateway_route()
+            * delete_transit_gateway_route_table()
+            * describe_transit_gateway_attachments()
+            * describe_transit_gateway_route_tables()
+            * describe_transit_gateway_vpc_attachments()
+            * describe_transit_gateways()
+            * modify_transit_gateway()
+            * search_transit_gateway_routes()
+        * Events:
+            * delete_api_destination()
+            * delete_connection()
+            * describe_connection()
+            * update_api_destination()
+        * Logs:
+            * put_resource_policy()
+        * Organizations:
+            * delete_organization()
+        * S3:
+            * delete_bucket_website()
+
+    Miscellaneous:
+        * API Gateway - add_integration() now supports the parameters integration_method, tls_config, cache_namespace
+        * API Gateway - add_method() now supports the parameters request_models, operation_name, authorizer_id, authorization_scopes, request_validator_id
+        * API Gateway - create_integration() now supports the parameters tls_config, cache_namespace
+        * API Gateway - create_method() now supports the parameters request_models, operation_name, authorizer_id, authorization_scopes, request_validator_id
+        * API Gateway - create_method_response() now supports the parameters response_models, response_parameters
+        * API Gateway - create_response() now supports the parameters response_models, response_parameters
+        * API Gateway - create_rest_api() now supports the parameters minimum_compression_size
+        * API Gateway - create_stage() now supports the parameters tags, tracing_enabled
+        * API Gateway - delete_stage() now throws a StageNotFoundException when appropriate
+        * API Gateway - get_api_key() now throws a ApiKeyNotFoundException when appropriate
+        * API Gateway - get_integration_response() now throws a NoIntegrationResponseDefined when appropriate
+        * API Gateway - get_method() now throws a MethodNotFoundException when appropriate
+
+        * ApplicationAutoscaling - put_scaling_policy() now correctly processes the policy_type and policy_body parameters when overwriting an existing policy
+
+        * CloudFormation - now supports the creation of AWS::EC2::TransitGateway
+
+        * CloudWatch - put_metric_alarm() now supports the parameter rule
+        * CloudWatch - get_metric_statistics() now supports the parameter dimensions
+
+        * EC2 - create_customer_gateway() now supports the parameter tags
+        * EC2 - create_security_group() now supports the parameter tags
+        * EC2 - create_vpn_connection() now supports the parameter transit_gateway_id, tags
+        * EC2 - create_vpn_gateway() now supports the parameter amazon_side_asn, availability_zone, tags
+        * EC2 - get_all_customer_gateways() now has improved support for the filter parameter
+
+        * ECS - create_service() now has support for the parameter service_registries
+
+        * ELBv2 - create_load_balancer() now has support for the parameter loadbalancer_type
+
+        * Events - create_api_destination() now has support for the parameter invocation_rate_limit_per_second
+        * Events - create_event_bus() now has support for the parameter tags
+
+        * IAM - create_instance_profile() now has support for the parameter tags
+        * IAM - create_policy() now has support for the parameter tags
+
+        * Logs - create_log_group() now has support for the parameter kms_key_id
+
+        * SecretsManager - list_secrets() now supports pagination
+
+2.1.0
+-----
+    General Changes:
+        * Reduced the default value of DEFAULT_KEY_BUFFER_SIZE (introduced in 2.0.9).
+          In practice, this means that large S3 uploads will now be cached on disk, instead of in-memory.
+        * Removes `cfn-lint` as a dependency for the SSM-module.
+
+    New Methods:
+        * Kinesis
+            * decrease_stream_retention_period
+            * increase_stream_retention_period
+
+    Miscellaneous:
+        * CognitoIDP:admin_create_user(): Fixed a bug where user-supplied attributes would be ignored/overwritten
+        * ELBv2:create_rule(): Increased support for Condition-parameter, to also allow http-header/http-request-method/host-header/path-pattern/query-string/source-ip
+
 2.0.11
 ------
     New Services:

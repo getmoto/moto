@@ -350,6 +350,75 @@ def test_get_metric_statistics():
 
 
 @mock_cloudwatch
+def test_get_metric_statistics_dimensions():
+    conn = boto3.client("cloudwatch", region_name="us-east-1")
+    utc_now = datetime.now(tz=pytz.utc)
+
+    # put metric data with different dimensions
+    dimensions1 = [{"Name": "dim1", "Value": "v1"}]
+    dimensions2 = dimensions1 + [{"Name": "dim2", "Value": "v2"}]
+    metric_name = "metr-stats-dims"
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName=metric_name,
+                Value=1,
+                Timestamp=utc_now,
+                Dimensions=dimensions1,
+            )
+        ],
+    )
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName=metric_name,
+                Value=2,
+                Timestamp=utc_now,
+                Dimensions=dimensions1,
+            )
+        ],
+    )
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(
+                MetricName=metric_name,
+                Value=6,
+                Timestamp=utc_now,
+                Dimensions=dimensions2,
+            )
+        ],
+    )
+
+    # list of (<kwargs>, <expectedSum>, <expectedAverage>)
+    params_list = (
+        # get metric stats with no restriction on dimensions
+        ({}, 9, 3),
+        # get metric stats for dimensions1 (should also cover dimensions2)
+        ({"Dimensions": dimensions1}, 9, 3),
+        # get metric stats for dimensions2 only
+        ({"Dimensions": dimensions2}, 6, 6),
+    )
+
+    for params in params_list:
+        stats = conn.get_metric_statistics(
+            Namespace="tester",
+            MetricName=metric_name,
+            StartTime=utc_now - timedelta(seconds=60),
+            EndTime=utc_now + timedelta(seconds=60),
+            Period=60,
+            Statistics=["Average", "Sum"],
+            **params[0],
+        )
+        stats["Datapoints"].should.have.length_of(1)
+        datapoint = stats["Datapoints"][0]
+        datapoint["Sum"].should.equal(params[1])
+        datapoint["Average"].should.equal(params[2])
+
+
+@mock_cloudwatch
 def test_duplicate_put_metric_data():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=pytz.utc)
@@ -501,16 +570,8 @@ def test_list_metrics():
     # Verify format
     res.should.equal(
         [
-            {
-                u"Namespace": "list_test_1/",
-                u"Dimensions": [],
-                u"MetricName": "metric1",
-            },
-            {
-                u"Namespace": "list_test_1/",
-                u"Dimensions": [],
-                u"MetricName": "metric1",
-            },
+            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1",},
+            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1",},
         ]
     )
     # Verify unknown namespace still has no results

@@ -6,7 +6,6 @@ import datetime
 import json
 import logging
 import re
-import io
 import requests
 
 import pytz
@@ -15,15 +14,15 @@ from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
-import six
-from six.moves.urllib.parse import parse_qs, parse_qsl, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import xmltodict
 from werkzeug.exceptions import HTTPException
 
 import boto3
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
+from moto.utilities.utils import load_resource
 from moto import settings
 
 log = logging.getLogger(__name__)
@@ -32,24 +31,24 @@ log = logging.getLogger(__name__)
 def _decode_dict(d):
     decoded = OrderedDict()
     for key, value in d.items():
-        if isinstance(key, six.binary_type):
+        if isinstance(key, bytes):
             newkey = key.decode("utf-8")
         elif isinstance(key, (list, tuple)):
             newkey = []
             for k in key:
-                if isinstance(k, six.binary_type):
+                if isinstance(k, bytes):
                     newkey.append(k.decode("utf-8"))
                 else:
                     newkey.append(k)
         else:
             newkey = key
 
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             newvalue = value.decode("utf-8")
         elif isinstance(value, (list, tuple)):
             newvalue = []
             for v in value:
-                if isinstance(v, six.binary_type):
+                if isinstance(v, bytes):
                     newvalue.append(v.decode("utf-8"))
                 else:
                     newvalue.append(v)
@@ -193,7 +192,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
-    param_list_regex = re.compile(r"(.*)\.(\d+)\.")
+    # Note: technically, we could remove "member" from the regex below... (leaving it for clarity)
+    param_list_regex = re.compile(r"^(\.?[^.]*(\.member|\.[^.]+)?)\.(\d+)\.?")
+    param_regex = re.compile(r"([^\.]*)\.(\w+)(\..+)?")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
@@ -221,7 +222,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 querystring[key] = [value]
 
         raw_body = self.body
-        if isinstance(self.body, six.binary_type):
+        if isinstance(self.body, bytes):
             self.body = self.body.decode("utf-8")
 
         if not querystring:
@@ -253,7 +254,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                             )
                         )
                     )
-                except UnicodeEncodeError:
+                except (UnicodeEncodeError, UnicodeDecodeError):
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
             querystring.update(headers)
@@ -403,9 +404,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             try:
                 response = method()
             except HTTPException as http_error:
-                response = http_error.description, dict(status=http_error.code)
+                response_headers = dict(http_error.get_headers() or [])
+                response_headers["status"] = http_error.code
+                response = http_error.description, response_headers
 
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, headers, response
             else:
                 return self._send_response(headers, response)
@@ -419,6 +422,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _send_response(headers, response):
+        if response is None:
+            response = "", {}
         if len(response) == 2:
             body, new_headers = response
         else:
@@ -461,15 +466,23 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _get_bool_param(self, param_name, if_none=None):
         val = self._get_param(param_name)
         if val is not None:
+            val = str(val)
             if val.lower() == "true":
                 return True
             elif val.lower() == "false":
                 return False
         return if_none
 
-    def _get_multi_param_helper(self, param_prefix):
+    def _get_multi_param_dict(self, param_prefix):
+        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
+
+    def _get_multi_param_helper(
+        self, param_prefix, skip_result_conversion=False, tracked_prefixes=None
+    ):
         value_dict = dict()
-        tracked_prefixes = set()  # prefixes which have already been processed
+        tracked_prefixes = (
+            tracked_prefixes or set()
+        )  # prefixes which have already been processed
 
         def is_tracked(name_param):
             for prefix_loop in tracked_prefixes:
@@ -498,23 +511,46 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 name = prefix
                 value_dict[name] = value
             else:
-                value_dict[name] = value[0]
+                match = self.param_regex.search(name[len(param_prefix) :])
+                if match:
+                    # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
+                    sub_attr = "%s%s.%s" % (
+                        name[: len(param_prefix)],
+                        match.group(1),
+                        match.group(2),
+                    )
+                    if match.group(3):
+                        value = self._get_multi_param_helper(
+                            sub_attr,
+                            tracked_prefixes=tracked_prefixes,
+                            skip_result_conversion=skip_result_conversion,
+                        )
+                    else:
+                        value = self._get_param(sub_attr)
+                    tracked_prefixes.add(sub_attr)
+                    value_dict[name] = value
+                else:
+                    value_dict[name] = value[0]
 
         if not value_dict:
             return None
 
-        if len(value_dict) > 1:
+        if skip_result_conversion or len(value_dict) > 1:
             # strip off period prefix
             value_dict = {
                 name[len(param_prefix) + 1 :]: value
                 for name, value in value_dict.items()
             }
+            for k in list(value_dict.keys()):
+                parts = k.split(".")
+                if len(parts) != 2 or parts[1] != "member":
+                    value_dict[parts[0]] = value_dict.pop(k)
         else:
             value_dict = list(value_dict.values())[0]
 
         return value_dict
 
-    def _get_multi_param(self, param_prefix):
+    def _get_multi_param(self, param_prefix, skip_result_conversion=False):
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -526,7 +562,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         values = []
         index = 1
         while True:
-            value_dict = self._get_multi_param_helper(prefix + str(index))
+            value_dict = self._get_multi_param_helper(
+                prefix + str(index), skip_result_conversion=skip_result_conversion
+            )
             if not value_dict and value_dict != "":
                 break
 
@@ -556,6 +594,81 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     0
                 ]
         return params
+
+    def _get_params(self):
+        """
+        Given a querystring of
+        {
+            'Action': ['CreatRule'],
+            'Conditions.member.1.Field': ['http-header'],
+            'Conditions.member.1.HttpHeaderConfig.HttpHeaderName': ['User-Agent'],
+            'Conditions.member.1.HttpHeaderConfig.Values.member.1': ['curl'],
+            'Actions.member.1.FixedResponseConfig.StatusCode': ['200'],
+            'Actions.member.1.FixedResponseConfig.ContentType': ['text/plain'],
+            'Actions.member.1.Type': ['fixed-response']
+        }
+
+        returns
+        {
+            'Action': 'CreatRule',
+            'Conditions': [
+                {
+                    'Field': 'http-header',
+                    'HttpHeaderConfig': {
+                        'HttpHeaderName': 'User-Agent',
+                        'Values': ['curl']
+                    }
+                }
+            ],
+            'Actions': [
+                {
+                    'Type': 'fixed-response',
+                    'FixedResponseConfig': {
+                        'StatusCode': '200',
+                        'ContentType': 'text/plain'
+                    }
+                }
+            ]
+        }
+        """
+        params = {}
+        for k, v in sorted(self.querystring.items()):
+            self._parse_param(k, v[0], params)
+        return params
+
+    def _parse_param(self, key, value, params):
+        keylist = key.split(".")
+        obj = params
+        for i, key in enumerate(keylist[:-1]):
+            if key in obj:
+                # step into
+                parent = obj
+                obj = obj[key]
+            else:
+                if key == "member":
+                    if not isinstance(obj, list):
+                        # initialize list
+                        # reset parent
+                        obj = []
+                        parent[keylist[i - 1]] = obj
+                elif key.isdigit():
+                    index = int(key) - 1
+                    if len(obj) <= index:
+                        # initialize list element
+                        obj.insert(index, {})
+                    # step into
+                    parent = obj
+                    obj = obj[index]
+                else:
+                    # initialize dict
+                    obj[key] = {}
+                    # step into
+                    parent = obj
+                    obj = obj[key]
+        if isinstance(obj, list):
+            obj.append(value)
+        else:
+            obj[keylist[-1]] = value
 
     def _get_list_prefix(self, param_prefix):
         """
@@ -790,12 +903,8 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path):
-        # Importing pkg_resources takes ~60ms; keep it local
-        from pkg_resources import resource_filename  # noqa
+        spec = load_resource("botocore", path)
 
-        self.path = resource_filename("botocore", path)
-        with io.open(self.path, "r", encoding="utf-8") as f:
-            spec = json.load(f)
         self.metadata = spec["metadata"]
         self.operations = spec["operations"]
         self.shapes = spec["shapes"]

@@ -37,7 +37,9 @@ def main():
     for region in regions:
         for location_type in TYPES:
             ec2 = boto3.client("ec2", region_name=region)
-            dest = os.path.join(root_dir, "{0}/{1}/{2}.json".format(PATH, location_type, region))
+            dest = os.path.join(
+                root_dir, "{0}/{1}/{2}.json".format(PATH, location_type, region)
+            )
             try:
                 instances = []
                 offerings = ec2.describe_instance_type_offerings(
@@ -47,8 +49,7 @@ def main():
                 next_token = offerings.get("NextToken", "")
                 while next_token:
                     offerings = ec2.describe_instance_type_offerings(
-                        LocationType=location_type,
-                        NextToken=next_token
+                        LocationType=location_type, NextToken=next_token
                     )
                     instances.extend(offerings["InstanceTypeOfferings"])
                     next_token = offerings.get("NextToken", None)

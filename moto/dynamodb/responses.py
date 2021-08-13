@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import json
-import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -28,7 +27,7 @@ class DynamoHandler(BaseResponse):
         if endpoint:
             endpoint = camelcase_to_underscores(endpoint)
             response = getattr(self, endpoint)()
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, self.response_headers, response
 
             else:

@@ -12,6 +12,7 @@ from datetime import datetime
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
+from moto.utilities.utils import random_string
 from .exceptions import (
     CertificateStateException,
     DeleteConflictException,
@@ -21,7 +22,6 @@ from .exceptions import (
     VersionConflictException,
     ResourceAlreadyExistsException,
 )
-from moto.utilities.utils import random_string
 
 
 class FakeThing(BaseModel):
@@ -144,7 +144,8 @@ class FakeCertificate(BaseModel):
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
-
+        self.validity_not_before = time.time() - 86400
+        self.validity_not_after = time.time() + 86400
         self.ca_certificate_id = None
         self.ca_certificate_pem = ca_certificate_pem
         if ca_certificate_pem:
@@ -174,6 +175,10 @@ class FakeCertificate(BaseModel):
             "ownedBy": self.owner,
             "creationDate": self.creation_date,
             "lastModifiedDate": self.last_modified_date,
+            "validity": {
+                "notBefore": self.validity_not_before,
+                "notAfter": self.validity_not_after,
+            },
             "transferData": self.transfer_data,
         }
 

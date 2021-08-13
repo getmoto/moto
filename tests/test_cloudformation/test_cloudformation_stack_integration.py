@@ -2542,7 +2542,8 @@ def test_stack_elbv2_resources_integration():
                     ]
                 },
             }
-        ]
+        ],
+        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}],
     )
     listener_rule[0]["Conditions"].should.equal(
         [{"Field": "path-pattern", "Values": ["/*"]}]

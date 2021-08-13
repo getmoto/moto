@@ -808,6 +808,30 @@ def test_security_group_wildcard_tag_filter_boto3():
 
 
 @mock_ec2
+def test_security_group_filter_ip_permission():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    conn = boto3.client("ec2", region_name="us-east-1")
+    sg = ec2.create_security_group(
+        GroupName="test-sg", Description="Test SG", VpcId=vpc.id
+    )
+
+    ip_permissions = [
+        {"IpProtocol": "tcp", "FromPort": 27017, "ToPort": 27017, "IpRanges": [],},
+    ]
+
+    sg.authorize_ingress(IpPermissions=ip_permissions)
+
+    describe = conn.describe_security_groups(
+        Filters=[{"Name": "ip-permission.from-port", "Values": ["27017"]}]
+    )["SecurityGroups"]
+    describe.should.have.length_of(1)
+
+    describe[0]["GroupName"].should.equal("test-sg")
+
+
+@mock_ec2
 def test_authorize_and_revoke_in_bulk():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 

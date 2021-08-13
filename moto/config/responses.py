@@ -133,6 +133,14 @@ class ConfigResponse(BaseResponse):
         )
         return json.dumps(schema)
 
+    def list_tags_for_resource(self):
+        schema = self.config_backend.list_tags_for_resource(
+            self._get_param("ResourceArn"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(schema)
+
     def get_resource_config_history(self):
         schema = self.config_backend.get_resource_config_history(
             self._get_param("resourceType"), self._get_param("resourceId"), self.region
@@ -201,4 +209,16 @@ class ConfigResponse(BaseResponse):
             self._get_param("OrganizationConformancePackName")
         )
 
+        return ""
+
+    def tag_resource(self):
+        self.config_backend.tag_resource(
+            self._get_param("ResourceArn"), self._get_param("Tags"),
+        )
+        return ""
+
+    def untag_resource(self):
+        self.config_backend.untag_resource(
+            self._get_param("ResourceArn"), self._get_param("TagKeys"),
+        )
         return ""

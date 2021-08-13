@@ -4,6 +4,8 @@ from moto.core.exceptions import RESTError
 
 class EC2ClientError(RESTError):
     code = 400
+    # EC2 uses <RequestID> as tag name in the XML response
+    request_id_tag_name = "RequestID"
 
 
 class DependencyViolationError(EC2ClientError):
@@ -479,6 +481,14 @@ class CidrLimitExceeded(EC2ClientError):
         )
 
 
+class UnsupportedTenancy(EC2ClientError):
+    def __init__(self, tenancy):
+        super(UnsupportedTenancy, self).__init__(
+            "UnsupportedTenancy",
+            "The tenancy value {0} is not supported.".format(tenancy),
+        )
+
+
 class OperationNotPermitted(EC2ClientError):
     def __init__(self, association_id):
         super(OperationNotPermitted, self).__init__(
@@ -612,7 +622,7 @@ class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
 class InvalidVpcEndPointIdError(EC2ClientError):
     def __init__(self, vpc_end_point_id):
         super(InvalidVpcEndPointIdError, self).__init__(
-            "InvalidVpcEndPointId.NotFound",
+            "InvalidVpcEndpointId.NotFound",
             "The VpcEndPoint ID '{0}' does not exist".format(vpc_end_point_id),
         )
 
