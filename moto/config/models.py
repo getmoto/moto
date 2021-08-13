@@ -166,9 +166,7 @@ def validate_tags(tags):
     return proper_tags
 
 
-def compare_class_args_to_params(
-    full_class_name, class_init_func, dict_arg, arg_offset=0
-):
+def convert_to_class_args(full_class_name, class_init_func, dict_arg, arg_offset=0):
     """Return dict that can be used to instantiate it's representative class.
 
     Given a dictionary in the incoming API request, convert the keys to
@@ -548,11 +546,17 @@ class SourceDetail(ConfigEmptyDictable):
     EVENT_SOURCES = ["aws.config"]
 
     def __init__(
-        self, event_source, message_type, max_execution_frequency=DEFAULT_FREQUENCY
+        self,
+        event_source=None,
+        message_type=None,
+        max_execution_frequency=DEFAULT_FREQUENCY,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
+        # If the event_source or message_type fields are not provided,
+        # boto3 reports:  "SourceDetails should be null/empty if the owner is
+        # AWS. SourceDetails should be provided if the owner is CUSTOM_LAMBDA."
+        # It's a confusing error message as the owner is CUSTOM_LAMBDA.
         if not event_source:
-            # boto3 doesn't have a specific error if this field is missing.
             raise ParamValidationError(
                 report=(
                     "Missing required parameter in ConfigRule.SourceDetails: "
@@ -627,13 +631,6 @@ class Source(ConfigEmptyDictable):
 
     def __init__(self, region, owner, source_identifier, source_details=None):
         super().__init__(capitalize_start=True, capitalize_arn=False)
-        if not source_identifier:
-            raise ParamValidationError(
-                report=(
-                    "Missing required parameter in ConfigRule.Source: "
-                    '"SourceIdentifier"'
-                )
-            )
         if owner not in Source.OWNERS:
             raise ValidationException(
                 f"Member must satisfy enum value set: {Source.OWNERS}"
@@ -675,7 +672,7 @@ class Source(ConfigEmptyDictable):
 
         details = []
         for detail in source_details:
-            detail_dict = compare_class_args_to_params(
+            detail_dict = convert_to_class_args(
                 "ConfigRule.Source.SourceDetails", SourceDetail.__init__, detail
             )
             details.append(SourceDetail(**detail_dict))
@@ -712,16 +709,12 @@ class ConfigRule(ConfigEmptyDictable):
 
         self.scope = None
         if "Scope" in config_rule:
-            scope_dict = compare_class_args_to_params(
+            scope_dict = convert_to_class_args(
                 "ConfigRule.Scope", Scope.__init__, config_rule["Scope"]
             )
             self.scope = Scope(**scope_dict)
 
-        if "Source" not in config_rule:
-            raise ParamValidationError(
-                report='Missing required parameter in ConfigRule: "Source"'
-            )
-        source_dict = compare_class_args_to_params(
+        source_dict = convert_to_class_args(
             "ConfigRule.Source", Source.__init__, config_rule["Source"], 1
         )
         self.source = Source(region, **source_dict)
