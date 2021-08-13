@@ -1,3 +1,6 @@
+"""Implementation of the AWS Config Service APIs."""
+import inspect
+import json
 import re
 import time
 import random
@@ -6,6 +9,7 @@ import string
 from datetime import datetime
 
 from boto3 import Session
+from botocore.exceptions import ParamValidationError
 
 from moto.config.exceptions import (
     InvalidResourceTypeException,
@@ -42,14 +46,20 @@ from moto.config.exceptions import (
     InvalidResultTokenException,
     ValidationException,
     NoSuchOrganizationConformancePackException,
+    MaxNumberOfConfigRulesExceededException,
+    ResourceInUseException,
+    InsufficientPermissionsException,
+    NoSuchConfigRuleException,
 )
 
 from moto.core import BaseBackend, BaseModel
-from moto.s3.config import s3_account_public_access_block_query, s3_config_query
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.responses import AWSServiceSpec
-
+from moto.config.aws_managed_rules import AWS_MANAGED_RULES
 from moto.iam.config import role_config_query, policy_config_query
+from moto.s3.config import s3_account_public_access_block_query, s3_config_query
+from moto.awslambda import lambda_backends
+
 
 POP_STRINGS = [
     "capitalizeStart",
@@ -68,6 +78,8 @@ RESOURCE_MAP = {
     "AWS::IAM::Role": role_config_query,
     "AWS::IAM::Policy": policy_config_query,
 }
+
+CAMEL_TO_SNAKE_REGEX = re.compile(r"(?<!^)(?=[A-Z])")
 
 MAX_TAGS_IN_ARG = 50
 
@@ -105,7 +117,8 @@ def validate_tag_key(tag_key, exception_param="tags.X.member.key"):
     """Validates the tag key.
 
     :param tag_key: The tag key to check against.
-    :param exception_param: The exception parameter to send over to help format the message. This is to reflect
+    :param exception_param: The exception parameter to send over to help
+                            format the message. This is to reflect
                             the difference between the tag and untag APIs.
     :return:
     """
@@ -114,7 +127,8 @@ def validate_tag_key(tag_key, exception_param="tags.X.member.key"):
         raise TagKeyTooBig(tag_key, param=exception_param)
 
     # Validate that the tag key fits the proper Regex:
-    # [\w\s_.:/=+\-@]+ SHOULD be the same as the Java regex on the AWS documentation: [\p{L}\p{Z}\p{N}_.:/=+\-@]+
+    # [\w\s_.:/=+\-@]+ SHOULD be the same as the Java regex on the AWS
+    # documentation: [\p{L}\p{Z}\p{N}_.:/=+\-@]+
     match = re.findall(r"[\w\s_.:/=+\-@]+", tag_key)
     # Kudos if you can come up with a better way of doing a global search :)
     if not match or len(match[0]) < len(tag_key):
@@ -152,13 +166,60 @@ def validate_tags(tags):
     return proper_tags
 
 
+def compare_class_args_to_params(
+    full_class_name, class_init_func, dict_arg, arg_offset=0
+):
+    """Return dict that can be used to instantiate it's representative class.
+
+    Given a dictionary in the incoming API request, convert the keys to
+    snake case to use as arguments when instatiating the representative
+    class's __init__().
+
+    If __init__() has parameters (outside of 'self') that are extra (e.g.,
+    'region') and are not found in the API's dictionary, use arg_offset to
+    specify the number of extra arguments.
+
+    Raise exception if class args don't match class __init__ parameters.
+    """
+    # Ignore the "self" argument and args up to arg_offset.
+    class_params = set(inspect.getfullargspec(class_init_func).args[1 + arg_offset :])
+
+    # Convert the dictionary representing the object into a dictionary that
+    # can be used as arguments for the class instantiation.
+    class_args = {}
+    for key, value in dict_arg.items():
+        class_args[CAMEL_TO_SNAKE_REGEX.sub("_", key).lower()] = value
+
+    # Find incoming arguments to class's __init__() that don't have a
+    # corresponding parameter.
+    arg_keys = set(class_args.keys())
+    arg_diffs = arg_keys.difference(class_params)
+    if arg_diffs:
+        raise ParamValidationError(
+            report=(
+                'Unknown parameter{} in {}: "{}", must be one of: {}'.format(
+                    "s" if len(arg_diffs) else "",
+                    full_class_name,
+                    arg_diffs,
+                    class_params,
+                )
+            )
+        )
+    return class_args
+
+
 class ConfigEmptyDictable(BaseModel):
-    """Base class to make serialization easy. This assumes that the sub-class will NOT return 'None's in the JSON."""
+    """Base class to make serialization easy.
+
+    This assumes that the sub-class will NOT return 'None's in the JSON.
+    """
 
     def __init__(self, capitalize_start=False, capitalize_arn=True):
         """Assists with the serialization of the config object
-        :param capitalize_start: For some Config services, the first letter is lowercase -- for others it's capital
-        :param capitalize_arn: For some Config services, the API expects 'ARN' and for others, it expects 'Arn'
+        :param capitalize_start: For some Config services, the first letter
+                                 is lowercase -- for others it's capital
+        :param capitalize_arn: For some Config services, the API expects
+                                 'ARN' and for others, it expects 'Arn'
         """
         self.capitalize_start = capitalize_start
         self.capitalize_arn = capitalize_arn
@@ -265,11 +326,13 @@ class AccountAggregatorSource(ConfigEmptyDictable):
     def __init__(self, account_ids, aws_regions=None, all_aws_regions=None):
         super().__init__(capitalize_start=True)
 
-        # Can't have both the regions and all_regions flag present -- also can't have them both missing:
+        # Can't have both the regions and all_regions flag present -- also
+        # can't have them both missing:
         if aws_regions and all_aws_regions:
             raise InvalidParameterValueException(
-                "Your configuration aggregator contains a list of regions and also specifies "
-                "the use of all regions. You must choose one of these options."
+                "Your configuration aggregator contains a list of regions "
+                "and also specifies the use of all regions. You must choose "
+                "one of these options."
             )
 
         if not (aws_regions or all_aws_regions):
@@ -291,7 +354,8 @@ class OrganizationAggregationSource(ConfigEmptyDictable):
     def __init__(self, role_arn, aws_regions=None, all_aws_regions=None):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
-        # Can't have both the regions and all_regions flag present -- also can't have them both missing:
+        # Can't have both the regions and all_regions flag present -- also
+        # can't have them both missing:
         if aws_regions and all_aws_regions:
             raise InvalidParameterValueException(
                 "Your configuration aggregator contains a list of regions and also specifies "
@@ -411,6 +475,332 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.last_update_time = datetime2int(datetime.utcnow())
 
 
+class Scope(ConfigEmptyDictable):
+
+    """Defines resources that can trigger an evaluation for the rule.
+
+    Per boto3 documentation, Scope can be one of:
+    - one or more resource types,
+    - combo of one resource type and one resource ID,
+    - combo of tag key and value.
+
+    If no scope is specified, evaluations are trigged when any resource
+    in the recording group changes.
+    """
+
+    def __init__(
+        self,
+        compliance_resource_types=None,
+        tag_key=None,
+        tag_value=None,
+        compliance_resource_id=None,
+    ):
+        super().__init__(capitalize_start=True, capitalize_arn=False)
+        self.tags = None
+        if tag_key or tag_value:
+            if tag_value and not tag_key:
+                raise InvalidParameterValueException(
+                    "Tag key should not be empty when tag value is provided in scope"
+                )
+            if tag_key and len(tag_key) > 128:
+                raise TagKeyTooBig(tag_key, "ConfigRule.Scope.TagKey")
+            if tag_value and len(tag_value) > 256:
+                raise TagValueTooBig(tag_value, "ConfigRule.Scope.TagValue")
+            self.tags = {tag_key: tag_value}
+
+        # Can't use more than one combo to specify scope - either tags,
+        # resource types, or resource id and resource type.
+        if self.tags and (compliance_resource_types or compliance_resource_id):
+            raise InvalidParameterValueException(
+                "Scope cannot be applied to both resource and tag"
+            )
+
+        if compliance_resource_id and len(compliance_resource_types) != 1:
+            raise InvalidParameterValueException(
+                "A single resourceType should be provided when resourceId "
+                "is provided in scope"
+            )
+        self.compliance_resource_types = compliance_resource_types
+        self.compliance_resource_id = compliance_resource_id
+
+
+class SourceDetail(ConfigEmptyDictable):
+
+    """Source and type of event triggering AWS Config resource evaluation.
+
+    Applies only to customer rules.
+    """
+
+    MESSAGE_TYPES = [
+        "ConfigurationItemChangeNotification",
+        "OversizedConfigurationItemChangeNotification",
+        "ScheduleNotification",
+        "ConfigurationSnapshotDeliveryCompleted",
+    ]
+    DEFAULT_FREQUENCY = "TwentyFour_Hours"
+    FREQUENCY_TYPES = [
+        "TwentyFour_Hours",
+        "Twelve_Hours",
+        "Three_Hours",
+        "Six_Hours",
+        "One_Hour",
+    ]
+    EVENT_SOURCES = ["aws.config"]
+
+    def __init__(
+        self, event_source, message_type, max_execution_frequency=DEFAULT_FREQUENCY
+    ):
+        super().__init__(capitalize_start=True, capitalize_arn=False)
+        if not event_source:
+            # boto3 doesn't have a specific error if this field is missing.
+            raise ParamValidationError(
+                report=(
+                    "Missing required parameter in ConfigRule.SourceDetails: "
+                    '"EventSource"'
+                )
+            )
+
+        if not message_type:
+            # boto3 doesn't have a specific error if this field is missing.
+            raise ParamValidationError(
+                report=(
+                    "Missing required parameter in ConfigRule.SourceDetails: "
+                    '"MessageType"'
+                )
+            )
+
+        if message_type not in SourceDetail.MESSAGE_TYPES:
+            # botocore.errorfactory.ValidationException: An error occurred
+            # (ValidationException) when calling the PutConfigRule operation: 1
+            # validation error detected: Value 'foo' at
+            # 'configRule.source.sourceDetails.1.member.messageType' failed to
+            # satisfy constraint: Member must satisfy enum value set:
+            # [ConfigurationItemChangeNotification,
+            # OversizedConfigurationItemChangeNotification,
+            # ScheduledNotification, ConfigurationSnapshotDeliveryCompleted]
+            raise ValidationException(
+                f"Member must satisfy enum value set: {SourceDetail.MESSAGE_TYPES}"
+            )
+
+        if max_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
+            # botocore.errorfactory.ValidationException: An error occurred
+            # (ValidationException) when calling the PutConfigRule operation: 1
+            # validation error detected: Value 'foo' at
+            # 'configRule.source.sourceDetails.1.member.maximumExecutionFrequency'
+            # failed to satisfy constraint: Member must satisfy enum value set:
+            # [TwentyFour_Hours, Twelve_Hours, Three_Hours, Six_Hours,
+            # One_Hour]
+            raise ValidationException(
+                f"Member must satisfy enum value set {SourceDetail.FREQUENCY_TYPES}"
+            )
+        if max_execution_frequency and message_type != "ScheduleNotification":
+            # botocore.errorfactory.InvalidParameterValueException: An error
+            # occurred (InvalidParameterValueException) when calling the
+            # PutConfigRule operation: A maximum execution frequency is not
+            # allowed if MessageType is ConfigurationItemChangeNotification or
+            # OversizedConfigurationItemChangeNotification.
+            raise InvalidParameterValueException(
+                "A maximum execution frequency is not allowed if MessageType "
+                "is ConfigurationItemChangeNotification or "
+                "OversizedConfigurationItemChangeNotification"
+            )
+        if event_source not in SourceDetail.EVENT_SOURCES:
+            # botocore.errorfactory.ValidationException: An error occurred
+            # (ValidationException) when calling the PutConfigRule
+            # operation: 1 validation error detected: Value 's3' at
+            # 'configRule.source.sourceDetails.1.member.eventSource' failed
+            # to satisfy constraint: Member must satisfy enum value set:
+            # [aws.config]
+            raise ValidationException(
+                f"Member must satisfy enum value set: {SourceDetail.EVENT_SOURCES}"
+            )
+        self.event_source = event_source
+        self.message_type = message_type
+        self.max_execution_frequency = max_execution_frequency
+
+
+class Source(ConfigEmptyDictable):
+
+    """Defines rule owner, id and notification for triggering evaluation."""
+
+    OWNERS = ["CUSTOM_LAMBDA", "AWS"]
+
+    def __init__(self, region, owner, source_identifier, source_details=None):
+        super().__init__(capitalize_start=True, capitalize_arn=False)
+        if not source_identifier:
+            raise ParamValidationError(
+                report=(
+                    "Missing required parameter in ConfigRule.Source: "
+                    '"SourceIdentifier"'
+                )
+            )
+        if owner not in Source.OWNERS:
+            raise ValidationException(
+                f"Member must satisfy enum value set: {Source.OWNERS}"
+            )
+
+        if owner == "AWS":
+            if source_identifier not in AWS_MANAGED_RULES:
+                raise InvalidParameterValueException(
+                    f"The sourceIdentifier {source_identifier} is invalid.  "
+                    f"Please refer to the documentation for a list of valid "
+                    f"sourceIdentifiers that can be used when AWS is the Owner"
+                )
+            if source_details:
+                raise InvalidParameterValueException(
+                    "SourceDetails should be null/empty if the owner is AWS. "
+                    "SourceDetails should be provided if the owner is "
+                    "CUSTOM_LAMBDA"
+                )
+
+            self.owner = owner
+            self.source_identifier = source_identifier
+            self.source_details = None
+            return
+
+        # Otherwise, owner == "CUSTOM_LAMBDA"
+        if not source_details:
+            raise InvalidParameterValueException(
+                "SourceDetails should be null/empty if the owner is AWS. "
+                "SourceDetails should be provided if the owner is CUSTOM_LAMBDA"
+            )
+
+        lambda_func = lambda_backends[region].get_function(source_identifier)
+        if not lambda_func:
+            raise InsufficientPermissionsException(
+                f"The AWS Lambda function {source_identifier} cannot be "
+                f"invoked. Check the specified function ARN, and check the "
+                f"function's permissions"
+            )
+
+        details = []
+        for detail in source_details:
+            detail_dict = compare_class_args_to_params(
+                "ConfigRule.Source.SourceDetails", SourceDetail.__init__, detail
+            )
+            details.append(SourceDetail(**detail_dict))
+
+        self.source_details = details
+        self.owner = owner
+        self.source_identifier = source_identifier
+
+
+class ConfigRule(ConfigEmptyDictable):
+
+    """AWS Config Rule to evaluate compliance of resources to configuration.
+
+    Can be a managed or custom config rule.  Contains the instantiations of
+    the Source and SourceDetail classes, and optionally the Scope class.
+    """
+
+    MAX_RULES = 150
+    RULE_STATES = ["ACTIVE", "DELETING", "DELETING_RESULTS", "EVALUATION"]
+
+    def __init__(self, region, config_rule, tags):
+        super().__init__(capitalize_start=True, capitalize_arn=False)
+        self.config_rule_name = config_rule.get("ConfigRuleName")
+
+        if config_rule.get("ConfigRuleArn") or config_rule.get("ConfigRuleId"):
+            raise InvalidParameterValueException(
+                "ConfigRule Arn and Id can not be specified when creating a "
+                "new ConfigRule. ConfigRule Arn and Id are generated by the "
+                "service. Please try the request again without specifying "
+                "ConfigRule Arn or Id"
+            )
+
+        self.description = config_rule.get("Description")
+
+        self.scope = None
+        if "Scope" in config_rule:
+            scope_dict = compare_class_args_to_params(
+                "ConfigRule.Scope", Scope.__init__, config_rule["Scope"]
+            )
+            self.scope = Scope(**scope_dict)
+
+        if "Source" not in config_rule:
+            raise ParamValidationError(
+                report='Missing required parameter in ConfigRule: "Source"'
+            )
+        source_dict = compare_class_args_to_params(
+            "ConfigRule.Source", Source.__init__, config_rule["Source"], 1
+        )
+        self.source = Source(region, **source_dict)
+
+        self.input_parameters = config_rule.get("InputParameters")
+        if self.input_parameters:
+            try:
+                json.loads(self.input_parameters)
+            except ValueError:
+                raise InvalidParameterValueException(  # pylint: disable=raise-missing-from
+                    f"Invalid json {self.input_parameters} passed in the "
+                    f"InputParameters field"
+                )
+
+        self.max_execution_frequency = config_rule.get("MaximumExecutionFrequency")
+        if self.max_execution_frequency:
+            if self.max_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
+                raise ValidationException(
+                    f"Member must satisfy enum value set {SourceDetail.FREQUENCY_TYPES}"
+                )
+        else:
+            self.max_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
+
+        self.config_rule_state = config_rule.get("ConfigRuleState", "ACTIVE")
+        if self.config_rule_state not in ConfigRule.RULE_STATES:
+            raise ValidationException(
+                f"Value '{self.config_rule_state}' at "
+                f"'configRule.configRuleState' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: {ConfigRule.RULE_STATES}"
+            )
+        if self.config_rule_state != "ACTIVE":
+            raise InvalidParameterValueException(
+                f"The ConfigRuleState {self.config_rule_state} is invalid.  "
+                f"Only the following values are permitted: ACTIVE"
+            )
+
+        self.created_by = config_rule.get("CreatedBy")
+        if self.created_by:
+            raise InvalidParameterValueException(
+                "AWS Config populates the CreatedBy field for "
+                "ServiceLinkedConfigRule. Try again without populating the "
+                "CreatedBy field"
+            )
+
+        self.config_rule_id = f"config-rule-{random_string():.6}"
+        self.config_rule_arn = f"arn:aws:config:{region}:{DEFAULT_ACCOUNT_ID}:config-rule/{self.config_rule_id}"
+
+        self.last_updated_time = datetime2int(datetime.utcnow())
+        self.tags = tags
+
+    def update(self, tags, config_rule):
+        # TODO - add docstring as well
+        if not self.config_rule_name:
+            raise InvalidParameterValueException(
+                # botocore.errorfactory.InvalidParameterValueException: An
+                # error occurred (InvalidParameterValueException) when calling
+                # the PutConfigRule operation: One or more identifiers needs to
+                # be provided. Provide Name or Id or Arn
+                "One or more identifiers needs to be provided. Provide "
+                "Name or Id or Arn"
+            )
+
+        if config_rule.get("ConfigRuleArn") or config_rule.get("ConfigRuleId"):
+            # botocore.errorfactory.InvalidParameterValueException: An error
+            # occurred (InvalidParameterValueException) when calling the
+            # PutConfigRule operation: ConfigRule Arn and Id can not be
+            # specified when creating a new ConfigRule. ConfigRule Arn and Id
+            # are generated by the service. Please try the request again
+            # without specifying ConfigRule Arn or Id.
+            raise InvalidParameterValueException(
+                "ConfigRule Arn and Id can not be specified when creating a "
+                "new ConfigRule. ConfigRule Arn and Id are generated by the "
+                "service. Please try the request again without specifying "
+                "ConfigRule Arn or Id"
+            )
+        self.last_updated_time = datetime2int(datetime.utcnow())
+        self.tags = tags
+
+
 class ConfigBackend(BaseBackend):
     def __init__(self):
         self.recorders = {}
@@ -418,6 +808,7 @@ class ConfigBackend(BaseBackend):
         self.config_aggregators = {}
         self.aggregation_authorizations = {}
         self.organization_conformance_packs = {}
+        self.config_rules = {}
         self.config_schema = None
 
     def _validate_resource_types(self, resource_list):
@@ -470,14 +861,16 @@ class ConfigBackend(BaseBackend):
         # Tag validation:
         tags = validate_tags(config_aggregator.get("Tags", []))
 
-        # Exception if both AccountAggregationSources and OrganizationAggregationSource are supplied:
+        # Exception if both AccountAggregationSources and
+        # OrganizationAggregationSource are supplied:
         if config_aggregator.get("AccountAggregationSources") and config_aggregator.get(
             "OrganizationAggregationSource"
         ):
             raise InvalidParameterValueException(
-                "The configuration aggregator cannot be created because your request contains both the"
-                " AccountAggregationSource and the OrganizationAggregationSource. Include only "
-                "one aggregation source and try again."
+                "The configuration aggregator cannot be created because your "
+                "request contains both the AccountAggregationSource and the "
+                "OrganizationAggregationSource. Include only one aggregation "
+                "source and try again."
             )
 
         # If neither are supplied:
@@ -485,8 +878,9 @@ class ConfigBackend(BaseBackend):
             "AccountAggregationSources"
         ) and not config_aggregator.get("OrganizationAggregationSource"):
             raise InvalidParameterValueException(
-                "The configuration aggregator cannot be created because your request is missing either "
-                "the AccountAggregationSource or the OrganizationAggregationSource. Include the "
+                "The configuration aggregator cannot be created because your "
+                "request is missing either the AccountAggregationSource or "
+                "the OrganizationAggregationSource. Include the "
                 "appropriate aggregation source and try again."
             )
 
@@ -760,16 +1154,19 @@ class ConfigBackend(BaseBackend):
                 delivery_channel.get("name"), "deliveryChannel.name"
             )
 
-        # We are going to assume that the bucket exists -- but will verify if the bucket provided is blank:
+        # We are going to assume that the bucket exists -- but will verify if
+        # the bucket provided is blank:
         if not delivery_channel.get("s3BucketName"):
             raise NoSuchBucketException()
 
-        # We are going to assume that the bucket has the correct policy attached to it. We are only going to verify
+        # We are going to assume that the bucket has the correct policy
+        # attached to it. We are only going to verify
         # if the prefix provided is not an empty string:
         if delivery_channel.get("s3KeyPrefix", None) == "":
             raise InvalidS3KeyPrefixException()
 
-        # Ditto for SNS -- Only going to assume that the ARN provided is not an empty string:
+        # Ditto for SNS -- Only going to assume that the ARN provided is not
+        # an empty string:
         if delivery_channel.get("snsTopicARN", None) == "":
             raise InvalidSNSTopicARNException()
 
@@ -863,7 +1260,9 @@ class ConfigBackend(BaseBackend):
         limit,
         next_token,
     ):
-        """This will query against the mocked AWS Config (non-aggregated) listing function that must exist for the resource backend.
+        """Queries against AWS Config (non-aggregated) listing function.
+
+        The listing function must exist for the resource backend.
 
         :param resource_type:
         :param backend_region:
@@ -887,8 +1286,9 @@ class ConfigBackend(BaseBackend):
         if resource_ids and len(resource_ids) > 20:
             raise TooManyResourceIds()
 
-        # If the resource type exists and the backend region is implemented in moto, then
-        # call upon the resource type's Config Query class to retrieve the list of resources that match the criteria:
+        # If resource type exists and the backend region is implemented in
+        # moto, then call upon the resource type's Config Query class to
+        # retrieve the list of resources that match the criteria:
         if RESOURCE_MAP.get(resource_type, {}):
             # Is this a global resource type? -- if so, re-write the region to 'global':
             backend_query_region = (
@@ -897,7 +1297,8 @@ class ConfigBackend(BaseBackend):
             if RESOURCE_MAP[resource_type].backends.get("global"):
                 backend_region = "global"
 
-            # For non-aggregated queries, the we only care about the backend_region. Need to verify that moto has implemented
+            # For non-aggregated queries, the we only care about the
+            # backend_region. Need to verify that moto has implemented
             # the region for the given backend:
             if RESOURCE_MAP[resource_type].backends.get(backend_region):
                 # Fetch the resources for the backend's region:
@@ -931,10 +1332,12 @@ class ConfigBackend(BaseBackend):
     def list_aggregate_discovered_resources(
         self, aggregator_name, resource_type, filters, limit, next_token
     ):
-        """This will query against the mocked AWS Config listing function that must exist for the resource backend.
+        """Queries AWS Config listing function that must exist for resource backend.
 
-            As far a moto goes -- the only real difference between this function and the `list_discovered_resources` function is that
-            this will require a Config Aggregator be set up a priori and can search based on resource regions.
+        As far a moto goes -- the only real difference between this function
+        and the `list_discovered_resources` function is that this will require
+        a Config Aggregator be set up a priori and can search based on resource
+        regions.
 
         :param aggregator_name:
         :param resource_type:
@@ -954,8 +1357,9 @@ class ConfigBackend(BaseBackend):
         if limit > DEFAULT_PAGE_SIZE:
             raise InvalidLimitException(limit)
 
-        # If the resource type exists and the backend region is implemented in moto, then
-        # call upon the resource type's Config Query class to retrieve the list of resources that match the criteria:
+        # If the resource type exists and the backend region is implemented
+        # in moto, then call upon the resource type's Config Query class to
+        # retrieve the list of resources that match the criteria:
         if RESOURCE_MAP.get(resource_type, {}):
             # We only care about a filter's Region, Resource Name, and Resource ID:
             resource_region = filters.get("Region")
@@ -994,11 +1398,16 @@ class ConfigBackend(BaseBackend):
         return result
 
     def get_resource_config_history(self, resource_type, resource_id, backend_region):
-        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
+        """Returns configuration of resource for the current regional backend.
 
-        NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
-              As such, the later_time, earlier_time, limit, and next_token are ignored as this will only
-              return 1 item. (If no items, it raises an exception)
+        Item returned in AWS Config format.
+
+        NOTE: This is --NOT-- returning history as it is not supported in
+        moto at this time. (PR's welcome!)
+
+        As such, the later_time, earlier_time, limit, and next_token are
+        ignored as this will only return 1 item. (If no items, it raises an
+        exception).
         """
         # If the type isn't implemented then we won't find the item:
         if resource_type not in RESOURCE_MAP:
@@ -1027,7 +1436,9 @@ class ConfigBackend(BaseBackend):
         return {"configurationItems": [item]}
 
     def batch_get_resource_config(self, resource_keys, backend_region):
-        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
+        """Returns configuration of resource for the current regional backend.
+
+        Item is returned in AWS Config format.
 
         :param resource_keys:
         :param backend_region:
@@ -1078,10 +1489,14 @@ class ConfigBackend(BaseBackend):
     def batch_get_aggregate_resource_config(
         self, aggregator_name, resource_identifiers
     ):
-        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
+        """Returns configuration of resource for current regional backend.
 
-        As far a moto goes -- the only real difference between this function and the `batch_get_resource_config` function is that
-        this will require a Config Aggregator be set up a priori and can search based on resource regions.
+        Item is returned in AWS Config format.
+
+        As far a moto goes -- the only real difference between this function
+        and the `batch_get_resource_config` function is that this will require
+        a Config Aggregator be set up a priori and can search based on resource
+        regions.
 
         Note: moto will IGNORE the resource account ID in the search query.
         """
@@ -1140,7 +1555,8 @@ class ConfigBackend(BaseBackend):
         if not result_token:
             raise InvalidResultTokenException()
 
-        # Moto only supports PutEvaluations with test mode currently (missing rule and token support)
+        # Moto only supports PutEvaluations with test mode currently
+        # (missing rule and token support).
         if not test_mode:
             raise NotImplementedError(
                 "PutEvaluations without TestMode is not yet implemented"
@@ -1206,8 +1622,9 @@ class ConfigBackend(BaseBackend):
 
             if not pack:
                 raise NoSuchOrganizationConformancePackException(
-                    "One or more organization conformance packs with specified names are not present. "
-                    "Ensure your names are correct and try your request again later."
+                    "One or more organization conformance packs with "
+                    "specified names are not present. Ensure your names are "
+                    "correct and try your request again later."
                 )
 
             packs.append(pack.to_dict())
@@ -1224,8 +1641,9 @@ class ConfigBackend(BaseBackend):
 
                 if not pack:
                     raise NoSuchOrganizationConformancePackException(
-                        "One or more organization conformance packs with specified names are not present. "
-                        "Ensure your names are correct and try your request again later."
+                        "One or more organization conformance packs with "
+                        "specified names are not present. Ensure your names "
+                        "are correct and try your request again later."
                     )
 
                 packs.append(pack)
@@ -1271,9 +1689,8 @@ class ConfigBackend(BaseBackend):
 
         if not pack:
             raise NoSuchOrganizationConformancePackException(
-                "Could not find an OrganizationConformancePack for given request with resourceName {}".format(
-                    name
-                )
+                "Could not find an OrganizationConformancePack for given "
+                "request with resourceName {}".format(name)
             )
 
         self.organization_conformance_packs.pop(name)
@@ -1333,7 +1750,9 @@ class ConfigBackend(BaseBackend):
         for tag_key in tag_keys:
             matched_config.tags.pop(tag_key, None)
 
-    def list_tags_for_resource(self, resource_arn, limit, next_token):
+    def list_tags_for_resource(
+        self, resource_arn, limit, next_token
+    ):  # pylint: disable=unused-argument
         """Return list of tags for AWS Config resource."""
         # The limit argument is essentially ignored as a config instance
         # can only have 50 tags, but we'll check the argument anyway.
@@ -1347,6 +1766,48 @@ class ConfigBackend(BaseBackend):
         return {
             "Tags": [{"Key": k, "Value": v} for k, v in matched_config.tags.items()]
         }
+
+    def put_config_rule(self, region, config_rule, tags=None):
+        """Add/Update config rule for evaluating resource compliance."""
+        rule_name = config_rule.get("ConfigRuleName")
+        if len(rule_name) > 128:
+            raise NameTooLongException(rule_name, "configRule.configRuleName", 128)
+
+        rule = self.config_rules.get(rule_name)
+        tags = validate_tags(tags or [])
+
+        if rule:
+            # Update the current rule.
+            rule.update(tags, config_rule)
+        else:
+            # Create a new ConfigRule if the limit hasn't been reached.
+            if len(self.config_rules) == ConfigRule.MAX_RULES:
+                raise MaxNumberOfConfigRulesExceededException(
+                    rule_name, ConfigRule.MAX_RULES
+                )
+            rule = ConfigRule(region, config_rule, tags)
+            self.config_rules[rule_name] = rule
+
+        return ""
+
+    def delete_config_rule(self, rule_name):
+        """Delete config rule used for evaluating resource compliance."""
+        rule = self.config_rules.get(rule_name)
+        if not rule:
+            raise NoSuchConfigRuleException(
+                f"The ConfigRule '{rule_name}' provided in the request is "
+                f"invalid. Please check the configRule name"
+            )
+        if rule.config_rule_state == "DELETING":
+            # botocore.errorfactory.ResourceInUseException: An error occurred
+            # (ResourceInUseException) when calling the DeleteConfigRule
+            # operation: The rule klbS3BucketRule is currently being deleted.
+            # Please retry after some time.
+            raise ResourceInUseException(
+                f"The rule {rule_name} is currently being deleted.  Please "
+                f"retry after some time"
+            )
+        self.config_rules.pop(rule_name)
 
 
 config_backends = {}
