@@ -1343,12 +1343,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
 
         if lock_mode or lock_until or legal_hold == "ON":
-            if not headers.get('Content-MD5'):
+            if not headers.get("Content-MD5"):
                 raise InvalidContentMD5
             if not lock_enabled:
                 raise LockNotEnabled
         elif lock_enabled and bucket.has_default_lock:
-            if not headers.get('Content-MD5'):
+            if not headers.get("Content-MD5"):
                 raise InvalidContentMD5
             lock_until = bucket.default_retention()
             lock_mode = bucket.default_lock_mode

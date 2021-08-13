@@ -308,9 +308,13 @@ class FakeKey(BaseModel):
         if self.lock_mode == "COMPLIANCE":
             now = datetime.datetime.utcnow()
             try:
-                until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%SZ")
+                until = datetime.datetime.strptime(
+                    self.lock_until, "%Y-%m-%dT%H:%M:%SZ"
+                )
             except ValueError:
-                until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%S.%fZ")
+                until = datetime.datetime.strptime(
+                    self.lock_until, "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
 
             if until > now:
                 return True
@@ -819,7 +823,7 @@ class FakeBucket(CloudFormationModel):
         self.public_access_block = None
         self.encryption = None
         self.object_lock_enabled = False
-        self.default_lock_mode = ''
+        self.default_lock_mode = ""
         self.default_lock_days = 0
         self.default_lock_years = 0
 
