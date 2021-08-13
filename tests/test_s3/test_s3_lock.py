@@ -148,10 +148,6 @@ def test_put_object_legal_hold():
     s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
     s3.delete_bucket(Bucket=bucket_name)
 
-
-from boto.mws.connection import MWSConnection
-MWSConnection._parse_response = lambda s, x, y, z: z
-
 @mock_s3
 def test_put_default_lock():
     #do not run this test in aws, it will block the deletion for a whole day
