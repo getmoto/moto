@@ -309,7 +309,7 @@ class FakeKey(BaseModel):
             now = datetime.datetime.utcnow()
             try:
                 until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%SZ")
-            except:
+            except ValueError:
                 until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%S.%fZ")
 
             if until > now:
@@ -819,10 +819,9 @@ class FakeBucket(CloudFormationModel):
         self.public_access_block = None
         self.encryption = None
         self.object_lock_enabled = False
-        self.default_lock_mode = '' 
-        self.default_lock_days = 0 
-        self.default_lock_years = 0 
-    
+        self.default_lock_mode = ''
+        self.default_lock_days = 0
+        self.default_lock_years = 0
 
     @property
     def location(self):
@@ -1279,17 +1278,17 @@ class FakeBucket(CloudFormationModel):
         config_dict["supplementaryConfiguration"] = s_config
 
         return config_dict
-    
+
     @property
     def has_default_lock(self):
         if not self.object_lock_enabled:
             return False
-        
+
         if self.default_lock_mode:
-            return True        
+            return True
 
         return False
-    
+
     def default_retention(self):
         now = datetime.datetime.utcnow()
         now += datetime.timedelta(self.default_lock_days)
@@ -1562,14 +1561,14 @@ class S3Backend(BaseBackend):
             bucket.arn,
             [{"Key": key, "Value": value} for key, value in tags.items()],
         )
-    
+
     def put_bucket_lock(self, bucket_name, lock_enabled, mode, days, years):
         bucket = self.get_bucket(bucket_name)
 
         if bucket.keys.item_size() > 0:
             raise BucketNeedsToBeNew
 
-        if lock_enabled: 
+        if lock_enabled:
             bucket.object_lock_enabled = True
             bucket.versioning_status = "Enabled"
 
