@@ -95,7 +95,7 @@ def test_put_object_lock():
     until = datetime.datetime.utcnow() + datetime.timedelta(0, seconds_lock)
 
     s3.put_object_retention(Bucket=bucket_name, Key=key_name, VersionId=version_id, 
-    Retention={'Mode': 'GOVERNANCE', 'RetainUntilDate':until})
+    Retention={'Mode': 'COMPLIANCE', 'RetainUntilDate':until})
     
     deleted = False
     try:
@@ -152,7 +152,7 @@ def test_put_object_legal_hold():
 from boto.mws.connection import MWSConnection
 MWSConnection._parse_response = lambda s, x, y, z: z
 
-# @mock_s3
+@mock_s3
 def test_put_default_lock():
     #do not run this test in aws, it will block the deletion for a whole day
 
@@ -161,7 +161,7 @@ def test_put_default_lock():
     key_name = "file.txt"
 
     days = 1
-    mode = 'GOVERNANCE'
+    mode = 'COMPLIANCE'
     enabled = 'Enabled'
 
     s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
@@ -178,28 +178,25 @@ def test_put_default_lock():
         },
     )
     
-    # s3.put_object(
-    #     Bucket=bucket_name,
-    #     Body=b"test",
-    #     Key=key_name,
-    # )
+    s3.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+    )
     
-    # deleted = False
-    # versions_response = s3.list_object_versions(Bucket=bucket_name)
-    # version_id = versions_response["Versions"][0]["VersionId"]
+    deleted = False
+    versions_response = s3.list_object_versions(Bucket=bucket_name)
+    version_id = versions_response["Versions"][0]["VersionId"]
 
-    # try:
-    #     s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-    #     deleted = True
-    # except botocore.client.ClientError as e:
-    #     e.response["Error"]["Code"].should.equal("AccessDenied")
+    try:
+        s3.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
+        deleted = True
+    except botocore.client.ClientError as e:
+        e.response["Error"]["Code"].should.equal("AccessDenied")
 
-    # deleted.should.equal(False)
+    deleted.should.equal(False)
 
     response = s3.get_object_lock_configuration(Bucket=bucket_name)
-    print(response)
-    # response['ObjectLockConfiguration']['ObjectLockEnabled'].should.equal(enabled)
-    # response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Mode'].should.equal(mode)
-    # response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Days'].should.equal(days)
-    # response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Years'].should.equal(years)
-    s3.delete_bucket(Bucket=bucket_name)
+    response['ObjectLockConfiguration']['ObjectLockEnabled'].should.equal(enabled)
+    response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Mode'].should.equal(mode)
+    response['ObjectLockConfiguration']['Rule']['DefaultRetention']['Days'].should.equal(days)

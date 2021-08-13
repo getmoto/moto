@@ -831,6 +831,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_mode = '' 
         self.default_lock_days = 0 
         self.default_lock_years = 0 
+    
 
     @property
     def location(self):
@@ -1290,6 +1291,22 @@ class FakeBucket(CloudFormationModel):
         config_dict["supplementaryConfiguration"] = s_config
 
         return config_dict
+    
+    @property
+    def has_default_lock(self):
+        if not self.object_lock_enabled:
+            return False
+        
+        if self.default_lock_mode:
+            return True        
+
+        return False
+    
+    def default_retention(self):
+        now = datetime.datetime.utcnow()
+        now += datetime.timedelta(self.default_lock_days)
+        now += datetime.timedelta(self.default_lock_years * 365)
+        return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class S3Backend(BaseBackend):

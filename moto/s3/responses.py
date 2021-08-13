@@ -345,11 +345,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._set_action("BUCKET", "GET", querystring)
         self._authenticate_and_authorize_s3_action()
 
-        if 'object-lock' in querystring:
+        if "object-lock" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             template = self.response_template(S3_BUCKET_LOCK_CONFIGURATION)
 
-            return template.render(bucket=bucket)
+            return template.render(
+                lock_enabled=bucket.object_lock_enabled,
+                mode=bucket.default_lock_mode,
+                days=bucket.default_lock_days,
+                years=bucket.default_lock_years,
+            )
 
         if "uploads" in querystring:
             for unsup in ("delimiter", "max-uploads"):
@@ -683,18 +688,20 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._set_action("BUCKET", "PUT", querystring)
         self._authenticate_and_authorize_s3_action()
 
-        if 'object-lock' in querystring:
+        if "object-lock" in querystring:
             body_decoded = body.decode()
-            lock_enabled = re.search("<ObjectLockEnabled>([A-Za-z]+)</ObjectLockEnabled>", body_decoded) == "Enabled"
-            mode = re.search("<Mode>([A-Za-z]+)</Mode>", body_decoded)
-            days = re.search("<Days>([0-9]+)</Days>", body_decoded)
-            years = re.search("<Years>([0-9]+)</Years>", body_decoded)
-            if days and years:
-                raise MalformedXML
-            
-            if not self.backend.get_bucket(bucket_name).object_lock_enable:
+            config = self._lock_config_from_xml(body_decoded)
+
+            if not self.backend.get_bucket(bucket_name).object_lock_enabled:
                 raise BucketMustHaveLockeEnabled
-            self.backend.put_bucket_lock(bucket_name, lock_enabled, mode, days, years)
+
+            self.backend.put_bucket_lock(
+                bucket_name,
+                config["enabled"],
+                config["mode"],
+                config["days"],
+                config["years"],
+            )
             return ""
 
         if "versioning" in querystring:
@@ -1265,7 +1272,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._set_action("KEY", "PUT", query)
         self._authenticate_and_authorize_s3_action()
 
-        response_headers = {}        
+        response_headers = {}
         if query.get("uploadId") and query.get("partNumber"):
             upload_id = query["uploadId"][0]
             part_number = int(query["partNumber"][0])
@@ -1323,31 +1330,39 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if bucket_key_enabled is not None:
             bucket_key_enabled = str(bucket_key_enabled).lower()
 
+        bucket = self.backend.get_bucket(bucket_name)
+        lock_enabled = bucket.object_lock_enabled
+
         lock_mode = request.headers.get("x-amz-object-lock-mode", None)
         lock_until = request.headers.get("x-amz-object-lock-retain-until-date", None)
         legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
 
-        lock_enabled = self.backend.get_bucket(bucket_name).object_lock_enabled
-
-        if 'retention' in query or 'legal-hold' in query or lock_mode or lock_until or legal_hold == "ON":
+        if lock_mode or lock_until or legal_hold == "ON":
             if not lock_enabled:
                 raise LockNotEnabled
+        elif lock_enabled and bucket.has_default_lock:
+            lock_until = bucket.default_retention()
+            lock_mode = bucket.default_lock_mode
 
         acl = self._acl_from_headers(request.headers)
         if acl is None:
             acl = self.backend.get_bucket(bucket_name).acl
         tagging = self._tagging_from_headers(request.headers)
 
-        if 'retention' in query:
-            version_id=query.get('VersionId')
+        if "retention" in query:
+            if not lock_enabled:
+                raise LockNotEnabled
+            version_id = query.get("VersionId")
             key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
             retention = self._mode_until_from_xml(body)
             key.lock_mode = retention[0]
             key.lock_until = retention[1]
             return 200, response_headers, ""
-        
-        if 'legal-hold' in query:
-            version_id=query.get('VersionId')
+
+        if "legal-hold" in query:
+            if not lock_enabled:
+                raise LockNotEnabled
+            version_id = query.get("VersionId")
             key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
             legal_hold_status = self._legal_hold_status_from_xml(body)
             key.lock_legal_status = legal_hold_status
@@ -1431,6 +1446,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # Streaming request, more data
             new_key = self.backend.append_to_key(bucket_name, key_name, body)
         else:
+
             # Initial data
             new_key = self.backend.set_object(
                 bucket_name,
@@ -1494,6 +1510,25 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 200, response_headers, ""
         else:
             return 404, response_headers, ""
+
+    def _lock_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        enabled = (
+            parsed_xml["ObjectLockConfiguration"]["ObjectLockEnabled"] == "Enabled"
+        )
+
+        default_retention = parsed_xml["ObjectLockConfiguration"]["Rule"][
+            "DefaultRetention"
+        ]
+
+        mode = default_retention["Mode"]
+        days = int(default_retention["Days"]) if "Days" in default_retention else 0
+        years = int(default_retention["Years"]) if "Years" in default_retention else 0
+
+        if days and years:
+            raise MalformedXML
+
+        return {"enabled": enabled, "mode": mode, "days": days, "years": years}
 
     def _acl_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
@@ -1640,11 +1675,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return [cors for cors in parsed_xml["CORSConfiguration"]["CORSRule"]]
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
-    
+
     def _mode_until_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
-        return parsed_xml["Retention"]["Mode"], parsed_xml["Retention"]["RetainUntilDate"]
-    
+        return (
+            parsed_xml["Retention"]["Mode"],
+            parsed_xml["Retention"]["RetainUntilDate"],
+        )
+
     def _legal_hold_status_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
         return parsed_xml["LegalHold"]["Status"]
@@ -2541,17 +2579,17 @@ S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
 
 S3_BUCKET_LOCK_CONFIGURATION = """
 <ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-    {%if bucket.object_lock_enabled %}
+    {%if lock_enabled %}
     <ObjectLockEnabled>Enabled</ObjectLockEnabled>
     {% else %}
     <ObjectLockEnabled>Disabled</ObjectLockEnabled>
     {% endif %}
-    # <Rule>
+    <Rule>
         <DefaultRetention>
-            <Years>{{bucket.default_lock_years}}</Years>
-            <Days>{{bucket.default_lock_days}}</Days>
-            <Mode>{{bucket.default_lock_mode}}</Mode>
+             <Mode>{{mode}}</Mode>
+             <Days>{{days}}</Days>
+             <Years>{{years}}</Years>
         </DefaultRetention>
-    # </Rule>
+    #</Rule>
 </ObjectLockConfiguration>
 """
