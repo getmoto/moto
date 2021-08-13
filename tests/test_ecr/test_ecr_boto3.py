@@ -2499,6 +2499,7 @@ def test_describe_registry():
     response = client.describe_registry()
 
     # then
+    response["registryId"].should.equal(ACCOUNT_ID)
     response["replicationConfiguration"].should.equal({"rules": []})
 
 

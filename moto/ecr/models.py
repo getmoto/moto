@@ -919,7 +919,10 @@ class ECRBackend(BaseBackend):
         return {"replicationConfiguration": replication_config}
 
     def describe_registry(self):
-        return {"replicationConfiguration": self.replication_config}
+        return {
+            "registryId": DEFAULT_REGISTRY_ID,
+            "replicationConfiguration": self.replication_config,
+        }
 
 
 ecr_backends = {}

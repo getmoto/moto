@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import functools
+import os
 from collections import defaultdict
 import datetime
 import json
@@ -269,8 +270,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.querystring = querystring
         self.data = querystring
         self.method = request.method
-        self.region = self.get_region_from_url(request, full_url)
         self.uri_match = None
+
+        default_region = os.getenv("AWS_DEFAULT_REGION")
+        self.region = (
+            default_region
+            if default_region
+            else self.get_region_from_url(request, full_url)
+        )
 
         self.headers = request.headers
         if "host" not in self.headers:
