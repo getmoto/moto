@@ -310,3 +310,6 @@ class ECRResponse(BaseResponse):
                 replication_config=replication_config
             )
         )
+
+    def describe_registry(self):
+        return json.dumps(self.ecr_backend.describe_registry())

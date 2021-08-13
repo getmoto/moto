@@ -916,7 +916,10 @@ class ECRBackend(BaseBackend):
 
         self.replication_config = replication_config
 
-        return {"replicationConfiguration": {"rules": rules}}
+        return {"replicationConfiguration": replication_config}
+
+    def describe_registry(self):
+        return {"replicationConfiguration": self.replication_config}
 
 
 ecr_backends = {}

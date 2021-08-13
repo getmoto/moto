@@ -2471,7 +2471,7 @@ def test_put_replication_configuration_error_same_source():
     client = boto3.client("ecr", region_name=region_name)
     config = {
         "rules": [
-            {"destinations": [{"region": region_name, "registryId": ACCOUNT_ID},]},
+            {"destinations": [{"region": region_name, "registryId": ACCOUNT_ID}]},
         ]
     }
 
@@ -2488,3 +2488,33 @@ def test_put_replication_configuration_error_same_source():
         "Invalid parameter at 'replicationConfiguration' failed to satisfy constraint: "
         "'Replication destination cannot be the same as the source registry'"
     )
+
+
+@mock_ecr
+def test_describe_registry():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+
+    # when
+    response = client.describe_registry()
+
+    # then
+    response["replicationConfiguration"].should.equal({"rules": []})
+
+
+@mock_ecr
+def test_describe_registry_after_update():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    config = {
+        "rules": [
+            {"destinations": [{"region": "eu-west-1", "registryId": ACCOUNT_ID}]},
+        ]
+    }
+    client.put_replication_configuration(replicationConfiguration=config)
+
+    # when
+    response = client.describe_registry()
+
+    # then
+    response["replicationConfiguration"].should.equal(config)
