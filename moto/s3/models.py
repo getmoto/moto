@@ -305,7 +305,7 @@ class FakeKey(BaseModel):
         if self.lock_legal_status == "ON":
             return True
 
-        if self.lock_mode is not None:
+        if self.lock_mode == "COMPLIANCE":
             now = datetime.datetime.utcnow()
             try:
                 until = datetime.datetime.strptime(self.lock_until, "%Y-%m-%dT%H:%M:%SZ")
