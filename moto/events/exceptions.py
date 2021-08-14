@@ -12,9 +12,13 @@ class IllegalStatusException(JsonRESTError):
 class InvalidEventPatternException(JsonRESTError):
     code = 400
 
-    def __init__(self):
+    def __init__(self, reason=None):
+        msg = "Event pattern is not valid. "
+        if reason:
+            msg += f"Reason: {reason}"
+
         super(InvalidEventPatternException, self).__init__(
-            "InvalidEventPatternException", "Event pattern is not valid."
+            "InvalidEventPatternException", msg
         )
 
 
