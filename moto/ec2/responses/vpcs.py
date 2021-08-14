@@ -260,10 +260,16 @@ class VPCs(BaseResponse):
         managed_prefix_list = self.ec2_backend.get_managed_prefix_list_entries(
             prefix_list_id=prefix_list_id,
         )
-        entries = list(managed_prefix_list.entries.values())[-1]
-        if target_version:
-            target_version = int(target_version)
-            entries = managed_prefix_list.entries.get(target_version)
+        entries = []
+        if managed_prefix_list:
+            entries = (
+                list(managed_prefix_list.entries.values())[-1]
+                if managed_prefix_list.entries.values()
+                else []
+            )
+            if target_version:
+                target_version = int(target_version)
+                entries = managed_prefix_list.entries.get(target_version)
         template = self.response_template(GET_MANAGED_PREFIX_LIST_ENTRIES)
         return template.render(entries=entries)
 
@@ -283,6 +289,25 @@ class VPCs(BaseResponse):
         )
         template = self.response_template(DESCRIBE_PREFIX_LIST)
         return template.render(managed_pls=managed_pls)
+
+    def modify_managed_prefix_list(self):
+        add_entry = self._get_multi_param("AddEntry")
+        prefix_list_id = self._get_param("PrefixListId")
+        current_version = self._get_param("CurrentVersion")
+        prefix_list_name = self._get_param("PrefixListName")
+        remove_entry = self._get_multi_param("RemoveEntry")
+
+        current_version = int(current_version) if current_version else None
+
+        managed_prefix_list = self.ec2_backend.modify_managed_prefix_list(
+            add_entry=add_entry,
+            prefix_list_id=prefix_list_id,
+            current_version=current_version,
+            prefix_list_name=prefix_list_name,
+            remove_entry=remove_entry,
+        )
+        template = self.response_template(MODIFY_PREFIX_LIST)
+        return template.render(managed_prefix_list=managed_prefix_list)
 
 
 CREATE_VPC_RESPONSE = """
@@ -777,4 +802,27 @@ DESCRIBE_PREFIX_LIST = """<DescribePrefixListsResponse xmlns="http://ec2.amazona
     {% endfor %}
     </prefixListSet>
 </DescribePrefixListsResponse>
+"""
+
+MODIFY_PREFIX_LIST = """<ModifyManagedPrefixListResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>602f3752-c348-4b14-81e2-example</requestId>
+    <prefixList>
+        <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+        <maxEntries>{{ managed_prefix_list.max_entries or '' }}</maxEntries>
+        <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+        <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+        <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+        <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+        <state>{{ managed_prefix_list.state }}</state>
+        <tagSet>
+        {% for tag in managed_prefix_list.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
+        <version>{{ managed_prefix_list.version or ''}}</version>
+    </prefixList>
+</ModifyManagedPrefixListResponse>
 """
