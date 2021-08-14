@@ -161,6 +161,53 @@ def test_put_config_rule_errors():
 
 
 @mock_config
+def test_put_config_rule_update_errors():
+    """Test various error conditions when updating ConfigRule."""
+    client = boto3.client("config", region_name=TEST_REGION)
+
+    # No name, arn or id.
+    managed_rule = {
+        "Description": "Managed S3 Public Read Prohibited Bucket Rule",
+        "Scope": {"ComplianceResourceTypes": ["AWS::S3::Bucket"]},
+        "Source": {
+            "Owner": "AWS",
+            "SourceIdentifier": "S3_BUCKET_PUBLIC_READ_PROHIBITED",
+        },
+    }
+    with pytest.raises(ClientError) as exc:
+        client.put_config_rule(ConfigRule=managed_rule)
+    exc_value = exc.value
+    assert exc_value.operation_name == "PutConfigRule"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc_value.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert (
+        "One or more identifiers needs to be provided. Provide Name or Id or Arn"
+        in exc_value.response["Error"]["Message"]
+    )
+
+    # Provide an id for a rule that does not exist.
+    managed_rule = {
+        "ConfigRuleId": "foo",
+        "Description": "Managed S3 Public Read Prohibited Bucket Rule",
+        "Scope": {"ComplianceResourceTypes": ["AWS::S3::Bucket"]},
+        "Source": {
+            "Owner": "AWS",
+            "SourceIdentifier": "S3_BUCKET_PUBLIC_READ_PROHIBITED",
+        },
+    }
+    with pytest.raises(ClientError) as exc:
+        client.put_config_rule(ConfigRule=managed_rule)
+    exc_value = exc.value
+    assert exc_value.operation_name == "PutConfigRule"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc_value.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert (
+        "One or more identifiers needs to be provided. Provide Name or Id or Arn"
+        in exc_value.response["Error"]["Message"]
+    )
+
+
+@mock_config
 def test_config_rule_errors():  # pylint: disable=too-many-statements
     """Test various error conditions in ConfigRule instantiation."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -220,7 +267,7 @@ def test_config_rule_errors():  # pylint: disable=too-many-statements
     assert (
         "Value 'BOGUS' at 'configRule.configRuleState' failed to satisfy "
         "constraint: Member must satisfy enum value set: {ACTIVE, "
-        "DELETING, DELETING_RESULTS, EVALUATION}"
+        "DELETING, DELETING_RESULTS, EVALUATING}"
         in exc_value.response["Error"]["Message"]
     )
 
@@ -539,7 +586,7 @@ def test_delete_config_rules():
 
     # Verify that none are there:
     # TODO
-    # assert not client.describe_aggregation_authorizations()["AggregationAuthorizations"]
+    # assert not client.describe_config_rules()["ConfigRules"]
 
     # Try it again -- it should error indicating the rule could not be found.
     with pytest.raises(ClientError) as exc:
@@ -552,5 +599,3 @@ def test_delete_config_rules():
         f"The ConfigRule '{rule_name}' provided in the request is invalid"
         in exc_value.response["Error"]["Message"]
     )
-
-    # TODO - test the config_rule_state

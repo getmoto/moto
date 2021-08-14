@@ -380,11 +380,12 @@ class MaxNumberOfConfigRulesExceededException(JsonRESTError):
         super().__init__("MaxNumberOfConfigRulesExceededException", message)
 
 
-class ResourceInUseException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message):
-        super().__init__("ResourceInUseException", message)
+# The following ConfigRule exception is not needed as far as I can tell.
+# class ResourceInUseException(JsonRESTError):
+#     code = 400
+#
+#     def __init__(self, message):
+#         super().__init__("ResourceInUseException", message)
 
 
 class InsufficientPermissionsException(JsonRESTError):
