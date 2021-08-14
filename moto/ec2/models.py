@@ -1614,8 +1614,14 @@ class AmiBackend(object):
             if owners:
                 # support filtering by Owners=['self']
                 if "self" in owners:
-                    owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners,))
-                images = [ami for ami in images if ami.owner_id in owners or ami.owner_alias in owners]
+                    owners = list(
+                        map(lambda o: OWNER_ID if o == "self" else o, owners,)
+                    )
+                images = [
+                    ami
+                    for ami in images
+                    if ami.owner_id in owners or ami.owner_alias in owners
+                ]
 
             # Generic filters
             if filters:
