@@ -565,7 +565,9 @@ class SourceDetail(ConfigEmptyDictable):
             )
         if event_source not in SourceDetail.EVENT_SOURCES:
             raise ValidationException(
-                "Member must satisfy enum value set: {"
+                f"Value '{event_source}' at "
+                f"'configRule.source.sourceDetails.eventSource' failed "
+                f"to satisfy constraint: Member must satisfy enum value set: {{"
                 + ", ".join((SourceDetail.EVENT_SOURCES))
                 + "}"
             )
@@ -580,14 +582,19 @@ class SourceDetail(ConfigEmptyDictable):
             )
         if message_type not in SourceDetail.MESSAGE_TYPES:
             raise ValidationException(
-                "Member must satisfy enum value set: {"
+                f"Value '{message_type}' at "
+                f"'configRule.source.sourceDetails.message_type' failed "
+                f"to satisfy constraint: Member must satisfy enum value set: {{"
                 + ", ".join(sorted(SourceDetail.MESSAGE_TYPES))
                 + "}"
             )
 
         if maximum_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
             raise ValidationException(
-                "Member must satisfy enum value set: {"
+                f"Value '{maximum_execution_frequency}' at "
+                f"'configRule.source.sourceDetails.maximumExecutionFrequency' "
+                f"failed to satisfy constraint: "
+                f"Member must satisfy enum value set: {{"
                 + ", ".join(sorted(SourceDetail.FREQUENCY_TYPES))
                 + "}"
             )
@@ -613,7 +620,8 @@ class Source(ConfigEmptyDictable):
         super().__init__(capitalize_start=True, capitalize_arn=False)
         if owner not in Source.OWNERS:
             raise ValidationException(
-                "Member must satisfy enum value set: {"
+                f"Value '{owner}' at 'configRule.source.owner' failed to "
+                f"satisfy constraint: Member must satisfy enum value set: {{"
                 + ", ".join(sorted(Source.OWNERS))
                 + "}"
             )
@@ -716,16 +724,18 @@ class ConfigRule(ConfigEmptyDictable):
                     f"InputParameters field"
                 )
 
-        self.max_execution_frequency = config_rule.get("MaximumExecutionFrequency")
-        if self.max_execution_frequency:
-            if self.max_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
+        self.maximum_execution_frequency = config_rule.get("MaximumExecutionFrequency")
+        if self.maximum_execution_frequency:
+            if self.maximum_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
                 raise ValidationException(
-                    "Member must satisfy enum value set: {"
+                    f"Value '{self.maximum_execution_frequency}' at "
+                    f"'configRule.maximumExecutionFrequency' failed to "
+                    f"satisfy constraint: Member must satisfy enum value set: {{"
                     + ", ".join(sorted(SourceDetail.FREQUENCY_TYPES))
                     + "}"
                 )
         else:
-            self.max_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
+            self.maximum_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
 
         self.config_rule_state = config_rule.get("ConfigRuleState", "ACTIVE")
         if self.config_rule_state not in ConfigRule.RULE_STATES:
@@ -1717,7 +1727,9 @@ class ConfigBackend(BaseBackend):
 
         matched_config = self._match_arn(resource_arn)
         return {
-            "Tags": [{"Key": k, "Value": v} for k, v in matched_config.tags.items()]
+            "Tags": [
+                {"Key": k, "Value": v} for k, v in sorted(matched_config.tags.items())
+            ]
         }
 
     def put_config_rule(self, region, config_rule, tags=None):
@@ -1747,6 +1759,7 @@ class ConfigBackend(BaseBackend):
                     "Name or Id or Arn"
                 )
 
+        tags = validate_tags(tags or [])
         rule = self.config_rules.get(rule_name)
         if rule:
             # Update the current rule.
@@ -1759,17 +1772,43 @@ class ConfigBackend(BaseBackend):
                 )
             rule = ConfigRule(region, config_rule, tags)
             self.config_rules[rule_name] = rule
-        tags = validate_tags(tags or [])
         return ""
+
+    def describe_config_rules(self, config_rule_names, next_token):
+        result = {"ConfigRules": []}
+        if not self.config_rules:
+            return result
+
+        rule_list = []
+        if config_rule_names:
+            for name in config_rule_names:
+                if not self.config_rules.get(name):
+                    raise NoSuchConfigRuleException(name)
+                rule_list.append(name)
+        else:
+            rule_list = list(self.config_rules.keys())
+
+        if not rule_list:
+            return result
+
+        sorted_rules = sorted(rule_list)
+        start = 0
+        if next_token:
+            if not self.config_rules.get(next_token):
+                raise InvalidNextTokenException()
+            start = sorted_rules.index(next_token)
+
+        rule_list = sorted_rules[start : ConfigRule.MAX_RULES]
+        result["ConfigRules"] = [self.config_rules[x].to_dict() for x in rule_list]
+        # There's no point in returning the 'NextToken' as no 'Limit' is
+        # specified as an incoming argument.
+        return result
 
     def delete_config_rule(self, rule_name):
         """Delete config rule used for evaluating resource compliance."""
         rule = self.config_rules.get(rule_name)
         if not rule:
-            raise NoSuchConfigRuleException(
-                f"The ConfigRule '{rule_name}' provided in the request is "
-                f"invalid. Please check the configRule name"
-            )
+            raise NoSuchConfigRuleException(rule_name)
 
         # The following logic is not applicable for moto as far as I can tell.
         # if rule.config_rule_state == "DELETING":

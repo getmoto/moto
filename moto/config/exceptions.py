@@ -398,5 +398,9 @@ class InsufficientPermissionsException(JsonRESTError):
 class NoSuchConfigRuleException(JsonRESTError):
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, rule_name):
+        message = (
+            f"The ConfigRule '{rule_name}' provided in the request is "
+            f"invalid. Please check the configRule name"
+        )
         super().__init__("NoSuchConfigRuleException", message)

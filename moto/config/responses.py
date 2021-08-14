@@ -225,6 +225,12 @@ class ConfigResponse(BaseResponse):
         )
         return ""
 
+    def describe_config_rules(self):
+        rules = self.config_backend.describe_config_rules(
+            self._get_param("ConfigRuleNames"), self._get_param("NextToken"),
+        )
+        return json.dumps(rules)
+
     def delete_config_rule(self):
         self.config_backend.delete_config_rule(self._get_param("ConfigRuleName"))
         return ""

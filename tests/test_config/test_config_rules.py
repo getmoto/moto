@@ -571,6 +571,54 @@ def test_valid_put_config_rule():
 
 
 @mock_config
+def test_describe_config_rules():
+    """Test the describe_config_rules API."""
+    client = boto3.client("config", region_name=TEST_REGION)
+
+    response = client.describe_config_rules()
+    assert len(response["ConfigRules"]) == 0
+
+    rule_name_base = "describe_test_"
+    for idx in range(ConfigRule.MAX_RULES):
+        managed_rule = managed_config_rule()
+        managed_rule["ConfigRuleName"] = f"{rule_name_base}_{idx}"
+        client.put_config_rule(ConfigRule=managed_rule)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_config_rules(
+            ConfigRuleNames=[
+                f"{rule_name_base}_1",
+                f"{rule_name_base}_10",
+                "fooey",
+                f"{rule_name_base}_20",
+            ]
+        )
+    exc_value = exc.value
+    assert exc_value.operation_name == "DescribeConfigRules"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc_value.response["Error"]["Code"] == "NoSuchConfigRuleException"
+    assert (
+        "The ConfigRule 'fooey' provided in the request is invalid"
+        in exc_value.response["Error"]["Message"]
+    )
+
+    response = client.describe_config_rules(
+        ConfigRuleNames=[
+            f"{rule_name_base}_1",
+            f"{rule_name_base}_10",
+            f"{rule_name_base}_20",
+        ]
+    )
+    assert len(response["ConfigRules"]) == 3
+
+    response = client.describe_config_rules()
+    assert len(response["ConfigRules"]) == ConfigRule.MAX_RULES
+
+    # TODO test tokens: InvalidNextTokenException, good token
+    # TODO test content of response
+
+
+@mock_config
 def test_delete_config_rules():
     """Test the delete_config_rule API."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -585,8 +633,7 @@ def test_delete_config_rules():
     client.delete_config_rule(ConfigRuleName=rule_name)
 
     # Verify that none are there:
-    # TODO
-    # assert not client.describe_config_rules()["ConfigRules"]
+    assert not client.describe_config_rules()["ConfigRules"]
 
     # Try it again -- it should error indicating the rule could not be found.
     with pytest.raises(ClientError) as exc:
