@@ -231,10 +231,6 @@ def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
     return "%s~%s" % (route_table_id, cidr_block)
 
 
-def generate_vpc_end_point_id(vpc_id):
-    return "%s-%s%s" % ("vpce", vpc_id[4:], random_resource_id(4))
-
-
 def random_managed_prefix_list_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8)
 
