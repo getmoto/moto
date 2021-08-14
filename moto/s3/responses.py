@@ -1347,6 +1347,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 raise InvalidContentMD5
             if not lock_enabled:
                 raise LockNotEnabled
+
         elif lock_enabled and bucket.has_default_lock:
             if not headers.get("Content-MD5"):
                 raise InvalidContentMD5
