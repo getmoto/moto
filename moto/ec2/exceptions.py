@@ -69,7 +69,7 @@ class InvalidSubnetIdError(EC2ClientError):
     def __init__(self, subnet_id):
         super(InvalidSubnetIdError, self).__init__(
             "InvalidSubnetID.NotFound",
-            "The subnet ID '{0}' does not exist".format(subnet_id),
+            "The subnet ID '{}' does not exist".format(subnet_id),
         )
 
 
