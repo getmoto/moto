@@ -2414,3 +2414,108 @@ def test_describe_image_scan_findings_error_scan_not_exists():
         f"in the repository with name '{repo_name}' "
         f"in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_put_replication_configuration():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    config = {
+        "rules": [
+            {"destinations": [{"region": "eu-west-1", "registryId": ACCOUNT_ID},]},
+        ]
+    }
+
+    # when
+    response = client.put_replication_configuration(replicationConfiguration=config)
+
+    # then
+    response["replicationConfiguration"].should.equal(config)
+
+
+@mock_ecr
+def test_put_replication_configuration_error_feature_disabled():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    config = {
+        "rules": [
+            {
+                "destinations": [
+                    {"region": "eu-central-1", "registryId": "111111111111"},
+                ]
+            },
+            {
+                "destinations": [
+                    {"region": "eu-central-1", "registryId": "222222222222"},
+                ]
+            },
+        ]
+    }
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_replication_configuration(replicationConfiguration=config)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutReplicationConfiguration")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal("This feature is disabled")
+
+
+@mock_ecr
+def test_put_replication_configuration_error_same_source():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    config = {
+        "rules": [
+            {"destinations": [{"region": region_name, "registryId": ACCOUNT_ID}]},
+        ]
+    }
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_replication_configuration(replicationConfiguration=config)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutReplicationConfiguration")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+    ex.response["Error"]["Message"].should.equal(
+        "Invalid parameter at 'replicationConfiguration' failed to satisfy constraint: "
+        "'Replication destination cannot be the same as the source registry'"
+    )
+
+
+@mock_ecr
+def test_describe_registry():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+
+    # when
+    response = client.describe_registry()
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["replicationConfiguration"].should.equal({"rules": []})
+
+
+@mock_ecr
+def test_describe_registry_after_update():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    config = {
+        "rules": [
+            {"destinations": [{"region": "eu-west-1", "registryId": ACCOUNT_ID}]},
+        ]
+    }
+    client.put_replication_configuration(replicationConfiguration=config)
+
+    # when
+    response = client.describe_registry()
+
+    # then
+    response["replicationConfiguration"].should.equal(config)

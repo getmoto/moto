@@ -125,3 +125,10 @@ class ScanNotFoundException(JsonRESTError):
                 f"in the registry with id '{registry_id}'"
             ),
         )
+
+
+class ValidationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__(error_type=__class__.__name__, message=message)

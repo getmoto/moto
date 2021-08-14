@@ -25,6 +25,7 @@ from moto.ecr.exceptions import (
     RegistryPolicyNotFoundException,
     LimitExceededException,
     ScanNotFoundException,
+    ValidationException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
 from moto.iam.exceptions import MalformedPolicyDocument
@@ -325,6 +326,7 @@ class ECRBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.registry_policy = None
+        self.replication_config = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
         self.tagger = TaggingService(tagName="tags")
 
@@ -894,6 +896,32 @@ class ECRBackend(BaseBackend):
                 ],
                 "findingSeverityCounts": {"HIGH": 1},
             },
+        }
+
+    def put_replication_configuration(self, replication_config):
+        rules = replication_config["rules"]
+        if len(rules) > 1:
+            raise ValidationException("This feature is disabled")
+
+        if len(rules) == 1:
+            for dest in rules[0]["destinations"]:
+                if (
+                    dest["region"] == self.region_name
+                    and dest["registryId"] == DEFAULT_REGISTRY_ID
+                ):
+                    raise InvalidParameterException(
+                        "Invalid parameter at 'replicationConfiguration' failed to satisfy constraint: "
+                        "'Replication destination cannot be the same as the source registry'"
+                    )
+
+        self.replication_config = replication_config
+
+        return {"replicationConfiguration": replication_config}
+
+    def describe_registry(self):
+        return {
+            "registryId": DEFAULT_REGISTRY_ID,
+            "replicationConfiguration": self.replication_config,
         }
 
 

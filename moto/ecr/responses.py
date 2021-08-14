@@ -301,3 +301,15 @@ class ECRResponse(BaseResponse):
                 image_id=image_id,
             )
         )
+
+    def put_replication_configuration(self):
+        replication_config = self._get_param("replicationConfiguration")
+
+        return json.dumps(
+            self.ecr_backend.put_replication_configuration(
+                replication_config=replication_config
+            )
+        )
+
+    def describe_registry(self):
+        return json.dumps(self.ecr_backend.describe_registry())
