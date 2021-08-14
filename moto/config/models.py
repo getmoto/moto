@@ -529,39 +529,46 @@ class SourceDetail(ConfigEmptyDictable):
     Applies only to customer rules.
     """
 
-    MESSAGE_TYPES = [
+    MESSAGE_TYPES = {
         "ConfigurationItemChangeNotification",
-        "OversizedConfigurationItemChangeNotification",
-        "ScheduleNotification",
         "ConfigurationSnapshotDeliveryCompleted",
-    ]
+        "OversizedConfigurationItemChangeNotification",
+        "ScheduledNotification",
+    }
     DEFAULT_FREQUENCY = "TwentyFour_Hours"
-    FREQUENCY_TYPES = [
-        "TwentyFour_Hours",
-        "Twelve_Hours",
-        "Three_Hours",
-        "Six_Hours",
+    FREQUENCY_TYPES = {
         "One_Hour",
-    ]
+        "Six_Hours",
+        "Three_Hours",
+        "Twelve_Hours",
+        "TwentyFour_Hours",
+    }
     EVENT_SOURCES = ["aws.config"]
 
     def __init__(
         self,
         event_source=None,
         message_type=None,
-        max_execution_frequency=DEFAULT_FREQUENCY,
+        maximum_execution_frequency=DEFAULT_FREQUENCY,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
+
         # If the event_source or message_type fields are not provided,
         # boto3 reports:  "SourceDetails should be null/empty if the owner is
         # AWS. SourceDetails should be provided if the owner is CUSTOM_LAMBDA."
-        # It's a confusing error message as the owner is CUSTOM_LAMBDA.
+        # It's a confusing error message when the owner *is* CUSTOM_LAMBDA.
         if not event_source:
             raise ParamValidationError(
                 report=(
                     "Missing required parameter in ConfigRule.SourceDetails: "
                     '"EventSource"'
                 )
+            )
+        if event_source not in SourceDetail.EVENT_SOURCES:
+            raise ValidationException(
+                "Member must satisfy enum value set: {"
+                + ", ".join((SourceDetail.EVENT_SOURCES))
+                + "}"
             )
 
         if not message_type:
@@ -572,68 +579,44 @@ class SourceDetail(ConfigEmptyDictable):
                     '"MessageType"'
                 )
             )
-
         if message_type not in SourceDetail.MESSAGE_TYPES:
-            # botocore.errorfactory.ValidationException: An error occurred
-            # (ValidationException) when calling the PutConfigRule operation: 1
-            # validation error detected: Value 'foo' at
-            # 'configRule.source.sourceDetails.1.member.messageType' failed to
-            # satisfy constraint: Member must satisfy enum value set:
-            # [ConfigurationItemChangeNotification,
-            # OversizedConfigurationItemChangeNotification,
-            # ScheduledNotification, ConfigurationSnapshotDeliveryCompleted]
             raise ValidationException(
-                f"Member must satisfy enum value set: {SourceDetail.MESSAGE_TYPES}"
+                "Member must satisfy enum value set: {"
+                + ", ".join(sorted(SourceDetail.MESSAGE_TYPES))
+                + "}"
             )
 
-        if max_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
-            # botocore.errorfactory.ValidationException: An error occurred
-            # (ValidationException) when calling the PutConfigRule operation: 1
-            # validation error detected: Value 'foo' at
-            # 'configRule.source.sourceDetails.1.member.maximumExecutionFrequency'
-            # failed to satisfy constraint: Member must satisfy enum value set:
-            # [TwentyFour_Hours, Twelve_Hours, Three_Hours, Six_Hours,
-            # One_Hour]
+        if maximum_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
             raise ValidationException(
-                f"Member must satisfy enum value set {SourceDetail.FREQUENCY_TYPES}"
+                "Member must satisfy enum value set: {"
+                + ", ".join(sorted(SourceDetail.FREQUENCY_TYPES))
+                + "}"
             )
-        if max_execution_frequency and message_type != "ScheduleNotification":
-            # botocore.errorfactory.InvalidParameterValueException: An error
-            # occurred (InvalidParameterValueException) when calling the
-            # PutConfigRule operation: A maximum execution frequency is not
-            # allowed if MessageType is ConfigurationItemChangeNotification or
-            # OversizedConfigurationItemChangeNotification.
+        if maximum_execution_frequency and message_type != "ScheduledNotification":
             raise InvalidParameterValueException(
                 "A maximum execution frequency is not allowed if MessageType "
                 "is ConfigurationItemChangeNotification or "
                 "OversizedConfigurationItemChangeNotification"
             )
-        if event_source not in SourceDetail.EVENT_SOURCES:
-            # botocore.errorfactory.ValidationException: An error occurred
-            # (ValidationException) when calling the PutConfigRule
-            # operation: 1 validation error detected: Value 's3' at
-            # 'configRule.source.sourceDetails.1.member.eventSource' failed
-            # to satisfy constraint: Member must satisfy enum value set:
-            # [aws.config]
-            raise ValidationException(
-                f"Member must satisfy enum value set: {SourceDetail.EVENT_SOURCES}"
-            )
+
         self.event_source = event_source
         self.message_type = message_type
-        self.max_execution_frequency = max_execution_frequency
+        self.maximum_execution_frequency = maximum_execution_frequency
 
 
 class Source(ConfigEmptyDictable):
 
     """Defines rule owner, id and notification for triggering evaluation."""
 
-    OWNERS = ["CUSTOM_LAMBDA", "AWS"]
+    OWNERS = {"AWS", "CUSTOM_LAMBDA"}
 
     def __init__(self, region, owner, source_identifier, source_details=None):
         super().__init__(capitalize_start=True, capitalize_arn=False)
         if owner not in Source.OWNERS:
             raise ValidationException(
-                f"Member must satisfy enum value set: {Source.OWNERS}"
+                "Member must satisfy enum value set: {"
+                + ", ".join(sorted(Source.OWNERS))
+                + "}"
             )
 
         if owner == "AWS":
@@ -691,7 +674,7 @@ class ConfigRule(ConfigEmptyDictable):
     """
 
     MAX_RULES = 150
-    RULE_STATES = ["ACTIVE", "DELETING", "DELETING_RESULTS", "EVALUATION"]
+    RULE_STATES = {"ACTIVE", "DELETING", "DELETING_RESULTS", "EVALUATION"}
 
     def __init__(self, region, config_rule, tags):
         super().__init__(capitalize_start=True, capitalize_arn=False)
@@ -733,7 +716,9 @@ class ConfigRule(ConfigEmptyDictable):
         if self.max_execution_frequency:
             if self.max_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
                 raise ValidationException(
-                    f"Member must satisfy enum value set {SourceDetail.FREQUENCY_TYPES}"
+                    "Member must satisfy enum value set: {"
+                    + ", ".join(sorted(SourceDetail.FREQUENCY_TYPES))
+                    + "}"
                 )
         else:
             self.max_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
@@ -743,7 +728,9 @@ class ConfigRule(ConfigEmptyDictable):
             raise ValidationException(
                 f"Value '{self.config_rule_state}' at "
                 f"'configRule.configRuleState' failed to satisfy constraint: "
-                f"Member must satisfy enum value set: {ConfigRule.RULE_STATES}"
+                f"Member must satisfy enum value set: {{"
+                + ", ".join(sorted(ConfigRule.RULE_STATES))
+                + "}"
             )
         if self.config_rule_state != "ACTIVE":
             raise InvalidParameterValueException(
