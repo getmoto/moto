@@ -1769,7 +1769,7 @@ class S3Backend(BaseBackend):
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
 
-                            if key.is_locked:
+                            if hasattr(key, "is_locked") and key.is_locked:
                                 raise AccessDeniedByLock
 
                             if type(key) is FakeDeleteMarker:
