@@ -635,28 +635,3 @@ class InvalidTaggableResourceType(EC2ClientError):
                 resource_type
             ),
         )
-
-
-class PrefixListMaxEntriesExceeded(EC2ClientError):
-    def __init__(self, actual_value, expected):
-        super(PrefixListMaxEntriesExceeded, self).__init__(
-            "PrefixListMaxEntriesExceeded",
-            "when calling the ModifyManagedPrefixList operation: You've reached the \
-                maximum number of entries for the prefix list. \
-                    This modification saves {} entries and the maximum number of entries \
-                        for this prefix list is {}.".format(
-                actual_value, expected
-            ),
-        )
-
-
-class InvalidPrefixListEntriesCidrModification(EC2ClientError):
-    def __init__(self, cidr, description):
-        super(InvalidPrefixListEntriesCidrModification, self).__init__(
-            "InvalidPrefixListModification",
-            "when calling the ModifyManagedPrefixList operation: \
-                An entry with the CIDR ({}) and description ({description}) \
-                    already exists.".format(
-                cidr, description
-            ),
-        )
