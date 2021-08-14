@@ -138,6 +138,7 @@ from .utils import (
     random_reservation_id,
     random_route_table_id,
     generate_route_id,
+    random_managed_prefix_list_id,
     create_dns_entries,
     split_route_id,
     random_security_group_id,
@@ -3263,6 +3264,7 @@ class VPCBackend(object):
         # validates if vpc is present or not.
         self.get_vpc(vpc_id)
 
+        service_destination_cidr = None
         if type and type.lower() == "interface":
 
             network_interface_ids = []
@@ -3297,11 +3299,28 @@ class VPCBackend(object):
             security_group_ids,
             tags,
             private_dns_enabled,
+            service_destination_cidr,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
 
         return vpc_end_point
+
+    def delete_vpc_endpoints(self, vpce_ids=[]):
+        vpce_ids
+        for vpce_id in vpce_ids:
+            vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
+            if vpc_endpoint:
+                if vpc_endpoint.type.lower() == "interface":
+                    for eni_id in vpc_endpoint.network_interface_ids:
+                        self.enis.pop(eni_id, None)
+                else:
+                    for route_table_id in vpc_endpoint.route_table_ids:
+                        self.delete_route(
+                            route_table_id, vpc_endpoint.service_destination_cidr
+                        )
+                vpc_endpoint.state = "deleted"
+        return True
 
     def get_vpc_end_point(self, vpc_end_point_ids, filters=None):
         vpc_end_points = self.vpc_end_points.values()
@@ -3759,7 +3778,7 @@ class SubnetBackend(object):
             matches = [sn for sn in matches if sn.id in subnet_ids]
             if len(subnet_ids) > len(matches):
                 unknown_ids = set(subnet_ids) - set(matches)
-                raise InvalidSubnetIdError(unknown_ids)
+                raise InvalidSubnetIdError(list(unknown_ids)[0])
         if filters:
             matches = generic_filter(filters, matches)
 
@@ -4358,12 +4377,14 @@ class VPCEndPoint(TaggedEC2Resource):
         security_group_ids=None,
         tags=None,
         private_dns_enabled=None,
+        service_destination_cidr=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.vpc_id = vpc_id
         self.service_name = service_name
         self.type = type
+        self.state = "available"
         self.policy_document = policy_document
         self.route_table_ids = route_table_ids
         self.network_interface_ids = network_interface_ids
@@ -4371,9 +4392,10 @@ class VPCEndPoint(TaggedEC2Resource):
         self.client_token = client_token
         self.security_group_ids = security_group_ids
         self.private_dns_enabled = private_dns_enabled
-        self._created_at = datetime.utcnow()
+        # self.created_at = utc_date_and_time()
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
+        self.service_destination_cidr = service_destination_cidr
 
     @property
     def owner_id(self):
@@ -4381,7 +4403,170 @@ class VPCEndPoint(TaggedEC2Resource):
 
     @property
     def created_at(self):
-        return iso_8601_datetime_with_milliseconds(self._created_at)
+        return utc_date_and_time()
+
+
+class ManagedPrefixList(TaggedEC2Resource):
+    def __init__(
+        self,
+        backend,
+        address_family=None,
+        entry=[],
+        max_entries=None,
+        prefix_list_name=None,
+        region=None,
+        tags={},
+        owner_id=None,
+    ):
+        self.ec2_backend = backend
+        self.address_family = address_family
+        self.max_entries = max_entries
+        self.id = random_managed_prefix_list_id()
+        self.prefix_list_name = prefix_list_name
+        self.state = "create-complete"
+        self.state_message = "create complete"
+        self.add_tags(tags or {})
+        self.version = 1
+        self.entries = {self.version: entry} if entry else {}
+        self.resource_owner_id = owner_id if owner_id else None
+        self.prefix_list_arn = self.arn(region, self.owner_id)
+        self.delete_counter = 1
+
+    def arn(self, region, owner_id):
+        return "arn:aws:ec2:{region}:{owner_id}:prefix-list/{resource_id}".format(
+            region=region, resource_id=self.id, owner_id=owner_id
+        )
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID if not self.resource_owner_id else self.resource_owner_id
+
+
+class ManagedPrefixListBackend(object):
+    def __init__(self):
+        self.managed_prefix_lists = {}
+        self.create_default_pls()
+        super(ManagedPrefixListBackend, self).__init__()
+
+    def create_managed_prefix_list(
+        self,
+        address_family=None,
+        entry=[],
+        max_entries=None,
+        prefix_list_name=None,
+        tags={},
+        owner_id=None,
+    ):
+        managed_prefix_list = ManagedPrefixList(
+            self,
+            address_family=address_family,
+            entry=entry,
+            max_entries=max_entries,
+            prefix_list_name=prefix_list_name,
+            region=self.region_name,
+            tags=tags,
+            owner_id=owner_id,
+        )
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+        return managed_prefix_list
+
+    def describe_managed_prefix_lists(self, prefix_list_ids=None, filters=None):
+        managed_prefix_lists = list(self.managed_prefix_lists.values())
+        attr_pairs = (
+            ("owner-id", "owner_id"),
+            ("prefix-list-id", "id"),
+            ("prefix-list-name", "prefix_list_name"),
+        )
+
+        if prefix_list_ids:
+            managed_prefix_lists = [
+                managed_prefix_list
+                for managed_prefix_list in managed_prefix_lists
+                if managed_prefix_list.id in prefix_list_ids
+            ]
+
+        result = managed_prefix_lists
+        if filters:
+            result = filter_resources(managed_prefix_lists, filters, attr_pairs)
+
+        for item in result.copy():
+            if not item.delete_counter:
+                self.managed_prefix_lists.pop(item.id, None)
+                result.remove(item)
+            if item.state == "delete-complete":
+                item.delete_counter -= 1
+        return result
+
+    def get_managed_prefix_list_entries(self, prefix_list_id=None):
+        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
+        return managed_prefix_list
+
+    def delete_managed_prefix_list(self, prefix_list_id):
+        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
+        managed_prefix_list.state = "delete-complete"
+        return managed_prefix_list
+
+    def modify_managed_prefix_list(
+        self,
+        add_entry=None,
+        prefix_list_id=None,
+        current_version=None,
+        prefix_list_name=None,
+        remove_entry=None,
+    ):
+        managed_pl = self.managed_prefix_lists.get(prefix_list_id)
+        managed_pl.prefix_list_name = prefix_list_name
+        if remove_entry or add_entry:
+            entries = (
+                managed_pl.entries.get(current_version, managed_pl.version).copy()
+                if managed_pl.entries
+                else []
+            )
+            for item in entries.copy():
+                if item.get("Cidr", "") in remove_entry:
+                    entries.remove(item)
+
+            for item in add_entry:
+                if item not in entries.copy():
+                    entries.append(item)
+            managed_pl.version += 1
+            managed_pl.entries[managed_pl.version] = entries
+        managed_pl.state = "modify-complete"
+        return managed_pl
+
+    def create_default_pls(self):
+        entry = [
+            {"Cidr": "52.216.0.0/15", "Description": "default"},
+            {"Cidr": "3.5.0.0/19", "Description": "default"},
+            {"Cidr": "54.231.0.0/16", "Description": "default"},
+        ]
+
+        managed_prefix_list = self.create_managed_prefix_list(
+            address_family="IPv4",
+            entry=entry,
+            prefix_list_name="com.amazonaws.{}.s3".format(self.region_name),
+            owner_id="aws",
+        )
+        managed_prefix_list.version = None
+        managed_prefix_list.max_entries = None
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+
+        entry = [
+            {"Cidr": "3.218.182.0/24", "Description": "default"},
+            {"Cidr": "3.218.180.0/23", "Description": "default"},
+            {"Cidr": "52.94.0.0/22", "Description": "default"},
+            {"Cidr": "52.119.224.0/20", "Description": "default"},
+        ]
+
+        managed_prefix_list = self.create_managed_prefix_list(
+            address_family="IPv4",
+            entry=entry,
+            prefix_list_name="com.amazonaws.{}.dynamodb".format(self.region_name),
+            owner_id="aws",
+        )
+        managed_prefix_list.version = None
+        managed_prefix_list.max_entries = None
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
 
 class RouteBackend(object):
@@ -7080,6 +7265,7 @@ class EC2Backend(
     SecurityGroupBackend,
     AmiBackend,
     VPCBackend,
+    ManagedPrefixListBackend,
     SubnetBackend,
     SubnetRouteTableAssociationBackend,
     FlowLogsBackend,
