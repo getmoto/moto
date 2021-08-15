@@ -2,7 +2,10 @@ import json
 
 from boto3 import Session
 
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import (
+    iso_8601_datetime_without_milliseconds,
+    iso_8601_datetime_with_nanoseconds,
+)
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.logs import logs_backends
@@ -13,6 +16,7 @@ from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from ..utilities.tagging_service import TaggingService
 
 _EMPTY_LIST = tuple()
 
@@ -89,6 +93,7 @@ def daterange(start, stop, step=timedelta(days=1), inclusive=False):
 class FakeAlarm(BaseModel):
     def __init__(
         self,
+        region_name,
         name,
         namespace,
         metric_name,
@@ -106,11 +111,12 @@ class FakeAlarm(BaseModel):
         insufficient_data_actions,
         unit,
         actions_enabled,
-        region="us-east-1",
+        treat_missing_data,
         rule=None,
     ):
+        self.region_name = region_name
         self.name = name
-        self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
+        self.alarm_arn = make_arn_for_alarm(region_name, DEFAULT_ACCOUNT_ID, name)
         self.namespace = namespace
         self.metric_name = metric_name
         self.metric_data_queries = metric_data_queries
@@ -129,14 +135,19 @@ class FakeAlarm(BaseModel):
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
         self.unit = unit
-        self.configuration_updated_timestamp = datetime.utcnow()
+        self.configuration_updated_timestamp = iso_8601_datetime_with_nanoseconds(
+            datetime.now(tz=tzutc())
+        )
+        self.treat_missing_data = treat_missing_data
 
         self.history = []
 
-        self.state_reason = ""
+        self.state_reason = "Unchecked: Initial alarm creation"
         self.state_reason_data = "{}"
         self.state_value = "OK"
-        self.state_updated_timestamp = datetime.utcnow()
+        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds(
+            datetime.now(tz=tzutc())
+        )
 
         # only used for composite alarms
         self.rule = rule
@@ -156,7 +167,9 @@ class FakeAlarm(BaseModel):
         self.state_reason = reason
         self.state_reason_data = reason_data
         self.state_value = state_value
-        self.state_updated_timestamp = datetime.utcnow()
+        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds(
+            datetime.now(tz=tzutc())
+        )
 
 
 def are_dimensions_same(metric_dimensions, dimensions):
@@ -273,11 +286,18 @@ class Statistics:
 
 
 class CloudWatchBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name):
+        self.region_name = region_name
         self.alarms = {}
         self.dashboards = {}
         self.metric_data = []
         self.paged_metric_data = {}
+        self.tagger = TaggingService()
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
@@ -307,32 +327,36 @@ class CloudWatchBackend(BaseBackend):
         insufficient_data_actions,
         unit,
         actions_enabled,
-        region="us-east-1",
+        treat_missing_data,
         rule=None,
+        tags=None,
     ):
         alarm = FakeAlarm(
-            name,
-            namespace,
-            metric_name,
-            metric_data_queries,
-            comparison_operator,
-            evaluation_periods,
-            datapoints_to_alarm,
-            period,
-            threshold,
-            statistic,
-            description,
-            dimensions,
-            alarm_actions,
-            ok_actions,
-            insufficient_data_actions,
-            unit,
-            actions_enabled,
-            region,
+            region_name=self.region_name,
+            name=name,
+            namespace=namespace,
+            metric_name=metric_name,
+            metric_data_queries=metric_data_queries,
+            comparison_operator=comparison_operator,
+            evaluation_periods=evaluation_periods,
+            datapoints_to_alarm=datapoints_to_alarm,
+            period=period,
+            threshold=threshold,
+            statistic=statistic,
+            description=description,
+            dimensions=dimensions,
+            alarm_actions=alarm_actions,
+            ok_actions=ok_actions,
+            insufficient_data_actions=insufficient_data_actions,
+            unit=unit,
+            actions_enabled=actions_enabled,
+            treat_missing_data=treat_missing_data,
             rule=rule,
         )
 
         self.alarms[name] = alarm
+        self.tagger.tag_resource(alarm.alarm_arn, tags)
+
         return alarm
 
     def get_all_alarms(self):
@@ -629,13 +653,13 @@ class LogGroup(CloudFormationModel):
 
 cloudwatch_backends = {}
 for region in Session().get_available_regions("cloudwatch"):
-    cloudwatch_backends[region] = CloudWatchBackend()
+    cloudwatch_backends[region] = CloudWatchBackend(region)
 for region in Session().get_available_regions(
     "cloudwatch", partition_name="aws-us-gov"
 ):
-    cloudwatch_backends[region] = CloudWatchBackend()
+    cloudwatch_backends[region] = CloudWatchBackend(region)
 for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
-    cloudwatch_backends[region] = CloudWatchBackend()
+    cloudwatch_backends[region] = CloudWatchBackend(region)
 
 # List of services that provide OOTB CW metrics
 # See the S3Backend constructor for an example

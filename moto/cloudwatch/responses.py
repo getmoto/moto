@@ -79,28 +79,31 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member"
         )
         unit = self._get_param("Unit")
+        treat_missing_data = self._get_param("TreatMissingData")
         # fetch AlarmRule to re-use this method for composite alarms as well
         rule = self._get_param("AlarmRule")
+        tags = self._get_multi_param("Tags.member")
         alarm = self.cloudwatch_backend.put_metric_alarm(
-            name,
-            namespace,
-            metric_name,
-            metric_data_queries,
-            comparison_operator,
-            evaluation_periods,
-            datapoints_to_alarm,
-            period,
-            threshold,
-            statistic,
-            description,
-            dimensions,
-            alarm_actions,
-            ok_actions,
-            insufficient_data_actions,
-            unit,
-            actions_enabled,
-            self.region,
+            name=name,
+            namespace=namespace,
+            metric_name=metric_name,
+            metric_data_queries=metric_data_queries,
+            comparison_operator=comparison_operator,
+            evaluation_periods=evaluation_periods,
+            datapoints_to_alarm=datapoints_to_alarm,
+            period=period,
+            threshold=threshold,
+            statistic=statistic,
+            description=description,
+            dimensions=dimensions,
+            alarm_actions=alarm_actions,
+            ok_actions=ok_actions,
+            insufficient_data_actions=insufficient_data_actions,
+            unit=unit,
+            actions_enabled=actions_enabled,
+            treat_missing_data=treat_missing_data,
             rule=rule,
+            tags=tags,
         )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
@@ -414,6 +417,9 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 {% endif %}
                 {% if alarm.unit is not none %}
                 <Unit>{{ alarm.unit }}</Unit>
+                {% endif %}
+                {% if alarm.treat_missing_data is not none %}
+                <TreatMissingData>{{ alarm.treat_missing_data }}</TreatMissingData>
                 {% endif %}
                 {% if alarm.rule is not none %}
                 <AlarmRule>{{ alarm.rule }}</AlarmRule>

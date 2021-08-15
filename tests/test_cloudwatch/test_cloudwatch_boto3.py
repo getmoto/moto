@@ -1,8 +1,9 @@
-# from __future__ import unicode_literals
+from datetime import datetime, timedelta
+from operator import itemgetter
 
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime, timedelta
+from dateutil.tz import tzutc
 from freezegun import freeze_time
 import pytest
 from uuid import uuid4
@@ -917,3 +918,77 @@ def test_get_metric_data_for_multiple_metrics():
 
     res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
     res2["Values"].should.equal([25.0])
+
+
+@mock_cloudwatch
+def test_put_metric_alarm():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+    sns_topic_arn = f"arn:aws:sns:${region_name}:${ACCOUNT_ID}:test-topic"
+
+    # when
+    client.put_metric_alarm(
+        AlarmName=alarm_name,
+        AlarmDescription="test alarm",
+        ActionsEnabled=True,
+        OKActions=[sns_topic_arn],
+        AlarmActions=[sns_topic_arn],
+        InsufficientDataActions=[sns_topic_arn],
+        MetricName="5XXError",
+        Namespace="AWS/ApiGateway",
+        Statistic="Sum",
+        Dimensions=[
+            {"Name": "ApiName", "Value": "test-api"},
+            {"Name": "Stage", "Value": "default"},
+        ],
+        Period=60,
+        Unit="Seconds",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Threshold=1.0,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        TreatMissingData="notBreaching",
+        Tags=[{"Key": "key-1", "Value": "value-1"}],
+    )
+
+    # then
+    alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
+    alarms.should.have.length_of(1)
+
+    alarm = alarms[0]
+    alarm["AlarmName"].should.equal(alarm_name)
+    alarm["AlarmArn"].should.equal(
+        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    )
+    alarm["AlarmDescription"].should.equal("test alarm")
+    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
+    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["ActionsEnabled"].should.be.ok
+    alarm["OKActions"].should.equal([sns_topic_arn])
+    alarm["AlarmActions"].should.equal([sns_topic_arn])
+    alarm["InsufficientDataActions"].should.equal([sns_topic_arn])
+    alarm["StateValue"].should.equal("OK")
+    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
+    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
+    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["MetricName"].should.equal("5XXError")
+    alarm["Namespace"].should.equal("AWS/ApiGateway")
+    alarm["Statistic"].should.equal("Sum")
+    sorted(alarm["Dimensions"], key=itemgetter("Name")).should.equal(
+        sorted(
+            [
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            key=itemgetter("Name"),
+        )
+    )
+    alarm["Period"].should.equal(60)
+    alarm["Unit"].should.equal("Seconds")
+    alarm["EvaluationPeriods"].should.equal(1)
+    alarm["DatapointsToAlarm"].should.equal(1)
+    alarm["Threshold"].should.equal(1.0)
+    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
+    alarm["TreatMissingData"].should.equal("notBreaching")
