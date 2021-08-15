@@ -12,6 +12,8 @@ from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
+
+from .exceptions import ResourceNotFoundException
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
@@ -617,6 +619,12 @@ class CloudWatchBackend(BaseBackend):
 
     def list_tags_for_resource(self, arn):
         return self.tagger.get_tag_dict_for_resource(arn)
+
+    def tag_resource(self, arn, tags):
+        if arn not in self.tagger.tags.keys():
+            raise ResourceNotFoundException
+
+        self.tagger.tag_resource(arn, tags)
 
     def _get_paginated(self, metrics):
         if len(metrics) > 500:
