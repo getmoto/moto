@@ -992,3 +992,53 @@ def test_put_metric_alarm():
     alarm["Threshold"].should.equal(1.0)
     alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
     alarm["TreatMissingData"].should.equal("notBreaching")
+
+
+@mock_cloudwatch
+def test_list_tags_for_resource():
+    # given
+    client = boto3.client("cloudwatch", region_name="eu-central-1")
+    alarm_name = "test-alarm"
+    client.put_metric_alarm(
+        AlarmName=alarm_name,
+        AlarmDescription="test alarm",
+        ActionsEnabled=True,
+        MetricName="5XXError",
+        Namespace="AWS/ApiGateway",
+        Statistic="Sum",
+        Dimensions=[
+            {"Name": "ApiName", "Value": "test-api"},
+            {"Name": "Stage", "Value": "default"},
+        ],
+        Period=60,
+        Unit="Seconds",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Threshold=1.0,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        Tags=[{"Key": "key-1", "Value": "value-1"}],
+    )
+    arn = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"][0]["AlarmArn"]
+
+    # when
+    response = client.list_tags_for_resource(ResourceARN=arn)
+
+    # then
+    response["Tags"].should.equal([{"Key": "key-1", "Value": "value-1"}])
+
+
+@mock_cloudwatch
+def test_list_tags_for_resource_with_unknown_resource():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+
+    # when
+    response = client.list_tags_for_resource(
+        ResourceARN=make_arn_for_alarm(
+            region=region_name, account_id=ACCOUNT_ID, alarm_name="unknown"
+        )
+    )
+
+    # then
+    response["Tags"].should.be.empty

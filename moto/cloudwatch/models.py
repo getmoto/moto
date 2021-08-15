@@ -615,6 +615,9 @@ class CloudWatchBackend(BaseBackend):
                 new_metrics.append(md)
         return new_metrics
 
+    def list_tags_for_resource(self, arn):
+        return self.tagger.get_tag_dict_for_resource(arn)
+
     def _get_paginated(self, metrics):
         if len(metrics) > 500:
             next_token = str(uuid4())

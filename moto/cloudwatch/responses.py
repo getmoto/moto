@@ -304,6 +304,15 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(SET_ALARM_STATE_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
+    def list_tags_for_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+
+        tags = self.cloudwatch_backend.list_tags_for_resource(resource_arn)
+
+        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
+        return template.render(tags=tags)
+
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
@@ -660,3 +669,20 @@ ERROR_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://monitoring.amazonaws.c
   </Error>
   <RequestId>{{ request_id }}</RequestId>
 </ErrorResponse>"""
+
+LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+  <ListTagsForResourceResult>
+    <Tags>
+      {% for key, value in tags.items() %}
+      <member>
+        <Key>{{ key }}</Key>
+        <Value>{{ value }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListTagsForResourceResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ListTagsForResourceResponse>
+"""
