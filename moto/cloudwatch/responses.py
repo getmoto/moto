@@ -84,6 +84,7 @@ class CloudWatchResponse(BaseResponse):
         evaluate_low_sample_count_percentile = self._get_param(
             "EvaluateLowSampleCountPercentile"
         )
+        threshold_metric_id = self._get_param("ThresholdMetricId")
         # fetch AlarmRule to re-use this method for composite alarms as well
         rule = self._get_param("AlarmRule")
         tags = self._get_multi_param("Tags.member")
@@ -108,6 +109,7 @@ class CloudWatchResponse(BaseResponse):
             actions_enabled=actions_enabled,
             treat_missing_data=treat_missing_data,
             evaluate_low_sample_count_percentile=evaluate_low_sample_count_percentile,
+            threshold_metric_id=threshold_metric_id,
             rule=rule,
             tags=tags,
         )
@@ -461,6 +463,9 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 {% endif %}
                 {% if alarm.evaluate_low_sample_count_percentile is not none %}
                 <EvaluateLowSampleCountPercentile>{{ alarm.evaluate_low_sample_count_percentile }}</EvaluateLowSampleCountPercentile>
+                {% endif %}
+                {% if alarm.threshold_metric_id is not none %}
+                <ThresholdMetricId>{{ alarm.threshold_metric_id }}</ThresholdMetricId>
                 {% endif %}
                 {% if alarm.rule is not none %}
                 <AlarmRule>{{ alarm.rule }}</AlarmRule>

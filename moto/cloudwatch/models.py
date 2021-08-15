@@ -121,6 +121,7 @@ class FakeAlarm(BaseModel):
         actions_enabled,
         treat_missing_data,
         evaluate_low_sample_count_percentile,
+        threshold_metric_id,
         rule=None,
     ):
         self.region_name = region_name
@@ -150,6 +151,7 @@ class FakeAlarm(BaseModel):
         )
         self.treat_missing_data = treat_missing_data
         self.evaluate_low_sample_count_percentile = evaluate_low_sample_count_percentile
+        self.threshold_metric_id = threshold_metric_id
 
         self.history = []
 
@@ -341,6 +343,7 @@ class CloudWatchBackend(BaseBackend):
         actions_enabled,
         treat_missing_data,
         evaluate_low_sample_count_percentile,
+        threshold_metric_id,
         rule=None,
         tags=None,
     ):
@@ -379,6 +382,7 @@ class CloudWatchBackend(BaseBackend):
             actions_enabled=actions_enabled,
             treat_missing_data=treat_missing_data,
             evaluate_low_sample_count_percentile=evaluate_low_sample_count_percentile,
+            threshold_metric_id=threshold_metric_id,
             rule=rule,
         )
 

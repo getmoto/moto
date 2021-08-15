@@ -1041,6 +1041,66 @@ def test_put_metric_alarm_with_percentile():
 
 
 @mock_cloudwatch
+def test_put_metric_alarm_with_anomaly_detection():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+    metrics = [
+        {
+            "Id": "m1",
+            "ReturnData": True,
+            "MetricStat": {
+                "Metric": {
+                    "MetricName": "CPUUtilization",
+                    "Namespace": "AWS/EC2",
+                    "Dimensions": [
+                        {"Name": "instanceId", "Value": "i-1234567890abcdef0"}
+                    ],
+                },
+                "Stat": "Average",
+                "Period": 60,
+            },
+        },
+        {
+            "Id": "t1",
+            "ReturnData": False,
+            "Expression": "ANOMALY_DETECTION_BAND(m1, 3)",
+        },
+    ]
+
+    # when
+    client.put_metric_alarm(
+        AlarmName=alarm_name,
+        ActionsEnabled=True,
+        Metrics=metrics,
+        EvaluationPeriods=2,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        ThresholdMetricId="t1",
+    )
+
+    # then
+    alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
+    alarms.should.have.length_of(1)
+
+    alarm = alarms[0]
+    alarm["AlarmName"].should.equal(alarm_name)
+    alarm["AlarmArn"].should.equal(
+        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    )
+    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
+    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["StateValue"].should.equal("OK")
+    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
+    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
+    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["EvaluationPeriods"].should.equal(2)
+    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
+    alarm["Metrics"].should.equal(metrics)
+    alarm["ThresholdMetricId"].should.equal("t1")
+
+
+@mock_cloudwatch
 def test_put_metric_alarm_error_extended_statistic():
     # given
     region_name = "eu-central-1"
