@@ -22,6 +22,13 @@ class ResourceNotFound(RESTError):
         super().__init__(__class__.__name__, "Unknown")
 
 
+class ResourceNotFoundException(RESTError):
+    code = 404
+
+    def __init__(self):
+        super().__init__(__class__.__name__, "Unknown")
+
+
 class ValidationError(RESTError):
     code = 400
 

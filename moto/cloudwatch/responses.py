@@ -323,6 +323,16 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(TAG_RESOURCE_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
+    def untag_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        self.cloudwatch_backend.untag_resource(resource_arn, tag_keys)
+
+        template = self.response_template(UNTAG_RESOURCE_TEMPLATE)
+        return template.render()
+
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
@@ -703,3 +713,10 @@ TAG_RESOURCE_TEMPLATE = """<TagResourceResponse xmlns="http://monitoring.amazona
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </TagResourceResponse>"""
+
+UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+  <UntagResourceResult/>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</UntagResourceResponse>"""

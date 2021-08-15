@@ -17,6 +17,7 @@ from .exceptions import (
     ResourceNotFound,
     ValidationError,
     InvalidParameterValue,
+    ResourceNotFoundException,
 )
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
@@ -616,9 +617,15 @@ class CloudWatchBackend(BaseBackend):
 
     def tag_resource(self, arn, tags):
         if arn not in self.tagger.tags.keys():
-            raise ResourceNotFound
+            raise ResourceNotFoundException
 
         self.tagger.tag_resource(arn, tags)
+
+    def untag_resource(self, arn, tag_keys):
+        if arn not in self.tagger.tags.keys():
+            raise ResourceNotFoundException
+
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
     def _get_paginated(self, metrics):
         if len(metrics) > 500:
