@@ -7,13 +7,17 @@ from moto.core.utils import (
     iso_8601_datetime_with_nanoseconds,
 )
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import (
+    InvalidFormat,
+    ResourceNotFound,
+    ValidationError,
+    InvalidParameterValue,
+)
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
@@ -398,13 +402,6 @@ class CloudWatchBackend(BaseBackend):
 
     def delete_alarms(self, alarm_names):
         for alarm_name in alarm_names:
-            if alarm_name not in self.alarms:
-                raise RESTError(
-                    "ResourceNotFound",
-                    "Alarm {0} not found".format(alarm_name),
-                    status=404,
-                )
-        for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(self, namespace, metric_data):
@@ -575,17 +572,16 @@ class CloudWatchBackend(BaseBackend):
             if reason_data is not None:
                 json.loads(reason_data)
         except ValueError:
-            raise RESTError("InvalidFormat", "StateReasonData is invalid JSON")
+            raise InvalidFormat("Unknown")
 
         if alarm_name not in self.alarms:
-            raise RESTError(
-                "ResourceNotFound", "Alarm {0} not found".format(alarm_name), status=404
-            )
+            raise ResourceNotFound
 
         if state_value not in ("OK", "ALARM", "INSUFFICIENT_DATA"):
-            raise RESTError(
-                "InvalidParameterValue",
-                "StateValue is not one of OK | ALARM | INSUFFICIENT_DATA",
+            raise ValidationError(
+                "1 validation error detected: "
+                f"Value '{state_value}' at 'stateValue' failed to satisfy constraint: "
+                "Member must satisfy enum value set: [INSUFFICIENT_DATA, ALARM, OK]"
             )
 
         self.alarms[alarm_name].update_state(reason, reason_data, state_value)
@@ -593,9 +589,7 @@ class CloudWatchBackend(BaseBackend):
     def list_metrics(self, next_token, namespace, metric_name, dimensions):
         if next_token:
             if next_token not in self.paged_metric_data:
-                raise RESTError(
-                    "PaginationException", "Request parameter NextToken is invalid"
-                )
+                raise InvalidParameterValue("Request parameter NextToken is invalid")
             else:
                 metrics = self.paged_metric_data[next_token]
                 del self.paged_metric_data[next_token]  # Cant reuse same token twice
@@ -622,7 +616,7 @@ class CloudWatchBackend(BaseBackend):
 
     def tag_resource(self, arn, tags):
         if arn not in self.tagger.tags.keys():
-            raise ResourceNotFoundException
+            raise ResourceNotFound
 
         self.tagger.tag_resource(arn, tags)
 
