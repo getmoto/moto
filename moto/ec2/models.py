@@ -5297,7 +5297,7 @@ class SpotFleetBackend(object):
 
 
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, ec2_backend, domain, address=None):
+    def __init__(self, ec2_backend, domain, address=None, tags=None):
         self.ec2_backend = ec2_backend
         if address:
             self.public_ip = address
@@ -5309,6 +5309,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         self.instance = None
         self.eni = None
         self.association_id = None
+        self.add_tags(tags or {})
 
     @staticmethod
     def cloudformation_name_type():
@@ -5329,6 +5330,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         instance_id = None
         if properties:
             domain = properties.get("Domain")
+            # TODO: support tags from cloudformation template
             eip = ec2_backend.allocate_address(domain=domain if domain else "standard")
             instance_id = properties.get("InstanceId")
         else:
@@ -5380,13 +5382,13 @@ class ElasticAddressBackend(object):
         self.addresses = []
         super(ElasticAddressBackend, self).__init__()
 
-    def allocate_address(self, domain, address=None):
+    def allocate_address(self, domain, address=None, tags=None):
         if domain not in ["standard", "vpc"]:
             raise InvalidDomainError(domain)
         if address:
-            address = ElasticAddress(self, domain=domain, address=address)
+            address = ElasticAddress(self, domain=domain, address=address, tags=tags)
         else:
-            address = ElasticAddress(self, domain=domain)
+            address = ElasticAddress(self, domain=domain, tags=tags)
         self.addresses.append(address)
         return address
 
@@ -6940,13 +6942,16 @@ class TransitGatewayRelationsBackend(object):
 
 
 class NatGateway(CloudFormationModel):
-    def __init__(self, backend, subnet_id, allocation_id, tags=[]):
+    def __init__(
+        self, backend, subnet_id, allocation_id, tags=[], connectivity_type="public"
+    ):
         # public properties
         self.id = random_nat_gateway_id()
         self.subnet_id = subnet_id
         self.allocation_id = allocation_id
         self.state = "available"
         self.private_ip = random_private_ip()
+        self.connectivity_type = connectivity_type
 
         # protected properties
         self._created_at = datetime.utcnow()
@@ -7039,8 +7044,12 @@ class NatGatewayBackend(object):
 
         return nat_gateways
 
-    def create_nat_gateway(self, subnet_id, allocation_id, tags=[]):
-        nat_gateway = NatGateway(self, subnet_id, allocation_id, tags)
+    def create_nat_gateway(
+        self, subnet_id, allocation_id, tags=[], connectivity_type="public"
+    ):
+        nat_gateway = NatGateway(
+            self, subnet_id, allocation_id, tags, connectivity_type
+        )
         self.nat_gateways[nat_gateway.id] = nat_gateway
         return nat_gateway
 
