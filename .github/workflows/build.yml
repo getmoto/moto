@@ -15,7 +15,8 @@ jobs:
     - name: Checkout Terraform Tests repo
       uses: actions/checkout@v2
       with:
-        repository: bblommers/moto-terraform-tests
+        repository: localstack/localstack-terraform-test
+        ref: build
         path: moto-terraform-tests
         submodules: 'true'
     - uses: actions/setup-go@v2
@@ -27,8 +28,10 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache'
+        key: 'terraformcache3'
     - name: Download
+      env:
+        DOWNLOAD_TEST_BIN: 1
       if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
       run: |
         cd moto-terraform-tests
@@ -200,8 +203,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: terraformcache
     strategy:
+      fail-fast: false
       matrix:
         python-version: [ 3.8 ]
+        part: ["aa", "ab", "ac"]
 
     steps:
     - uses: actions/checkout@v2
@@ -210,7 +215,8 @@ jobs:
     - name: Checkout Terraform Tests repo
       uses: actions/checkout@v2
       with:
-        repository: bblommers/moto-terraform-tests
+        repository: localstack/localstack-terraform-test
+        ref: build
         path: moto-terraform-tests
         submodules: 'true'
     - name: Set up Python ${{ matrix.python-version }}
@@ -221,16 +227,23 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache'
+        key: 'terraformcache3'
     - name: Start MotoServer
       run: |
         python setup.py sdist
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
-        python wait_for.py
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
+        MOTO_PORT=4566 python wait_for.py
+    # Poor man's parallelization
+    # Running them sequentially takes to much time
+    # And using the build in parallel-argument does not help with reducing runtime
+    # So we simply split the list of tests, and ask our CI for separate VM's to run them in parallel
+    - name: Get list of tests
+      run: |
+        split -n l/3 tests/terraform-tests.success.txt tf-split-
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt
+        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i ../tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
         cd ..
     - name: "Create report"
       run: |
@@ -238,6 +251,12 @@ jobs:
         bin/create-report
         bin/create-report-cli
         cd ..
+    - name: Archive TF logs
+      uses: actions/upload-artifact@v2
+      with:
+        name: buildfolder
+        path: |
+          moto-terraform-tests/build/*
 
   deploy:
     name: Deploy

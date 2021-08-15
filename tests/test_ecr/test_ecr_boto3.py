@@ -306,6 +306,38 @@ def test_delete_repository():
 
 
 @mock_ecr
+def test_delete_repository_with_force():
+    client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )
+
+    # when
+    # when
+    response = client.delete_repository(repositoryName=repo_name, force=True)
+
+    # then
+    repo = response["repository"]
+    repo["repositoryName"].should.equal(repo_name)
+    repo["repositoryArn"].should.equal(
+        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    )
+    repo["registryId"].should.equal(ACCOUNT_ID)
+    repo["repositoryUri"].should.equal(
+        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    )
+    repo["createdAt"].should.be.a(datetime)
+    repo["imageTagMutability"].should.equal("MUTABLE")
+
+    response = client.describe_repositories()
+    response["repositories"].should.have.length_of(0)
+
+
+@mock_ecr
 def test_put_image():
     client = boto3.client("ecr", region_name="us-east-1")
     _ = client.create_repository(repositoryName="test_repository")
@@ -651,24 +683,24 @@ def test_describe_image_that_doesnt_exist():
 
     error_msg1 = re.compile(
         r".*The image with imageId {imageDigest:'null', imageTag:'testtag'} does not exist within "
-        r"the repository with name 'test_repository' in the registry with id '123'.*",
+        r"the repository with name 'test_repository' in the registry with id '123456789012'.*",
         re.MULTILINE,
     )
 
     client.describe_images.when.called_with(
         repositoryName="test_repository",
         imageIds=[{"imageTag": "testtag"}],
-        registryId="123",
+        registryId=ACCOUNT_ID,
     ).should.throw(client.exceptions.ImageNotFoundException, error_msg1)
 
     error_msg2 = re.compile(
-        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
+        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123456789012'.*",
         re.MULTILINE,
     )
     client.describe_images.when.called_with(
         repositoryName="repo-that-doesnt-exist",
         imageIds=[{"imageTag": "testtag"}],
-        registryId="123",
+        registryId=ACCOUNT_ID,
     ).should.throw(ClientError, error_msg2)
 
 
@@ -2113,3 +2145,377 @@ def test_delete_registry_policy_error_policy_not_exists():
     ex.response["Error"]["Message"].should.equal(
         f"Registry policy does not exist in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_start_image_scan():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    image_tag = "latest"
+    image_digest = client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )["image"]["imageId"]["imageDigest"]
+
+    # when
+    response = client.start_image_scan(
+        repositoryName=repo_name, imageId={"imageTag": image_tag}
+    )
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+    response["imageId"].should.equal(
+        {"imageDigest": image_digest, "imageTag": image_tag}
+    )
+    response["imageScanStatus"].should.equal({"status": "IN_PROGRESS"})
+
+
+@mock_ecr
+def test_start_image_scan_error_repo_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_image_scan(
+            repositoryName=repo_name, imageId={"imageTag": "latest"}
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartImageScan")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_start_image_scan_error_image_not_exists():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    image_tag = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_image_scan(
+            repositoryName=repo_name, imageId={"imageTag": image_tag}
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartImageScan")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ImageNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The image with imageId {{imageDigest:'null', imageTag:'{image_tag}'}} does not exist "
+        f"within the repository with name '{repo_name}' "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_start_image_scan_error_image_tag_digest_mismatch():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    image_digest = client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )["image"]["imageId"]["imageDigest"]
+    image_tag = "not-latest"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_image_scan(
+            repositoryName=repo_name,
+            imageId={"imageTag": image_tag, "imageDigest": image_digest},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartImageScan")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ImageNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The image with imageId {{imageDigest:'{image_digest}', imageTag:'{image_tag}'}} does not exist "
+        f"within the repository with name '{repo_name}' "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_start_image_scan_error_daily_limit():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    image_tag = "latest"
+    image_digest = client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )["image"]["imageId"]["imageDigest"]
+    client.start_image_scan(repositoryName=repo_name, imageId={"imageTag": image_tag})
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_image_scan(
+            repositoryName=repo_name, imageId={"imageTag": image_tag}
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartImageScan")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("LimitExceededException")
+    ex.response["Error"]["Message"].should.equal(
+        "The scan quota per image has been exceeded. Wait and try again."
+    )
+
+
+@mock_ecr
+def test_describe_image_scan_findings():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    image_tag = "latest"
+    image_digest = client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag="latest",
+    )["image"]["imageId"]["imageDigest"]
+    client.start_image_scan(repositoryName=repo_name, imageId={"imageTag": image_tag})
+
+    # when
+    response = client.describe_image_scan_findings(
+        repositoryName=repo_name, imageId={"imageTag": image_tag}
+    )
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["repositoryName"].should.equal(repo_name)
+    response["imageId"].should.equal(
+        {"imageDigest": image_digest, "imageTag": image_tag}
+    )
+    response["imageScanStatus"].should.equal(
+        {"status": "COMPLETE", "description": "The scan was completed successfully."}
+    )
+    scan_findings = response["imageScanFindings"]
+    scan_findings["imageScanCompletedAt"].should.be.a(datetime)
+    scan_findings["vulnerabilitySourceUpdatedAt"].should.be.a(datetime)
+    scan_findings["findings"].should.equal(
+        [
+            {
+                "name": "CVE-9999-9999",
+                "uri": "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-9999-9999",
+                "severity": "HIGH",
+                "attributes": [
+                    {"key": "package_version", "value": "9.9.9"},
+                    {"key": "package_name", "value": "moto_fake"},
+                    {"key": "CVSS2_VECTOR", "value": "AV:N/AC:L/Au:N/C:P/I:P/A:P",},
+                    {"key": "CVSS2_SCORE", "value": "7.5"},
+                ],
+            }
+        ]
+    )
+    scan_findings["findingSeverityCounts"].should.equal({"HIGH": 1})
+
+
+@mock_ecr
+def test_describe_image_scan_findings_error_repo_not_exists():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    repo_name = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_image_scan_findings(
+            repositoryName=repo_name, imageId={"imageTag": "latest"}
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeImageScanFindings")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The repository with name '{repo_name}' does not exist "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_describe_image_scan_findings_error_image_not_exists():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    image_tag = "not-exists"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_image_scan_findings(
+            repositoryName=repo_name, imageId={"imageTag": image_tag}
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeImageScanFindings")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ImageNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The image with imageId {{imageDigest:'null', imageTag:'{image_tag}'}} does not exist "
+        f"within the repository with name '{repo_name}' "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_describe_image_scan_findings_error_scan_not_exists():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+    image_tag = "latest"
+    client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag=image_tag,
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_image_scan_findings(
+            repositoryName=repo_name, imageId={"imageTag": image_tag}
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeImageScanFindings")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ScanNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        f"Image scan does not exist for the image with '{{imageDigest:'null', imageTag:'{image_tag}'}}' "
+        f"in the repository with name '{repo_name}' "
+        f"in the registry with id '{ACCOUNT_ID}'"
+    )
+
+
+@mock_ecr
+def test_put_replication_configuration():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    config = {
+        "rules": [
+            {"destinations": [{"region": "eu-west-1", "registryId": ACCOUNT_ID},]},
+        ]
+    }
+
+    # when
+    response = client.put_replication_configuration(replicationConfiguration=config)
+
+    # then
+    response["replicationConfiguration"].should.equal(config)
+
+
+@mock_ecr
+def test_put_replication_configuration_error_feature_disabled():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    config = {
+        "rules": [
+            {
+                "destinations": [
+                    {"region": "eu-central-1", "registryId": "111111111111"},
+                ]
+            },
+            {
+                "destinations": [
+                    {"region": "eu-central-1", "registryId": "222222222222"},
+                ]
+            },
+        ]
+    }
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_replication_configuration(replicationConfiguration=config)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutReplicationConfiguration")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal("This feature is disabled")
+
+
+@mock_ecr
+def test_put_replication_configuration_error_same_source():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("ecr", region_name=region_name)
+    config = {
+        "rules": [
+            {"destinations": [{"region": region_name, "registryId": ACCOUNT_ID}]},
+        ]
+    }
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_replication_configuration(replicationConfiguration=config)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutReplicationConfiguration")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+    ex.response["Error"]["Message"].should.equal(
+        "Invalid parameter at 'replicationConfiguration' failed to satisfy constraint: "
+        "'Replication destination cannot be the same as the source registry'"
+    )
+
+
+@mock_ecr
+def test_describe_registry():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+
+    # when
+    response = client.describe_registry()
+
+    # then
+    response["registryId"].should.equal(ACCOUNT_ID)
+    response["replicationConfiguration"].should.equal({"rules": []})
+
+
+@mock_ecr
+def test_describe_registry_after_update():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    config = {
+        "rules": [
+            {"destinations": [{"region": "eu-west-1", "registryId": ACCOUNT_ID}]},
+        ]
+    }
+    client.put_replication_configuration(replicationConfiguration=config)
+
+    # when
+    response = client.describe_registry()
+
+    # then
+    response["replicationConfiguration"].should.equal(config)

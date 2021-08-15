@@ -138,6 +138,7 @@ from .utils import (
     random_reservation_id,
     random_route_table_id,
     generate_route_id,
+    random_managed_prefix_list_id,
     create_dns_entries,
     split_route_id,
     random_security_group_id,
@@ -1411,6 +1412,7 @@ class Ami(TaggedEC2Resource):
         name=None,
         description=None,
         owner_id=OWNER_ID,
+        owner_alias=None,
         public=False,
         virtualization_type=None,
         architecture=None,
@@ -1432,6 +1434,7 @@ class Ami(TaggedEC2Resource):
         self.image_type = image_type
         self.image_location = image_location
         self.owner_id = owner_id
+        self.owner_alias = owner_alias
         self.description = description
         self.virtualization_type = virtualization_type
         self.architecture = architecture
@@ -1506,6 +1509,8 @@ class Ami(TaggedEC2Resource):
             return self.name
         elif filter_name == "owner-id":
             return self.owner_id
+        elif filter_name == "owner-alias":
+            return self.owner_alias
         else:
             return super(Ami, self).get_filter_value(filter_name, "DescribeImages")
 
@@ -1523,6 +1528,9 @@ class AmiBackend(object):
     def _load_amis(self):
         for ami in AMIS:
             ami_id = ami["ami_id"]
+            # we are assuming the default loaded amis are owned by amazon
+            # owner_alias is required for terraform owner filters
+            ami["owner_alias"] = "amazon"
             self.amis[ami_id] = Ami(self, **ami)
 
     def create_image(
@@ -1606,8 +1614,15 @@ class AmiBackend(object):
             # Limit by owner ids
             if owners:
                 # support filtering by Owners=['self']
-                owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners,))
-                images = [ami for ami in images if ami.owner_id in owners]
+                if "self" in owners:
+                    owners = list(
+                        map(lambda o: OWNER_ID if o == "self" else o, owners,)
+                    )
+                images = [
+                    ami
+                    for ami in images
+                    if ami.owner_id in owners or ami.owner_alias in owners
+                ]
 
             # Generic filters
             if filters:
@@ -3263,6 +3278,7 @@ class VPCBackend(object):
         # validates if vpc is present or not.
         self.get_vpc(vpc_id)
 
+        service_destination_cidr = None
         if type and type.lower() == "interface":
 
             network_interface_ids = []
@@ -3297,11 +3313,28 @@ class VPCBackend(object):
             security_group_ids,
             tags,
             private_dns_enabled,
+            service_destination_cidr,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
 
         return vpc_end_point
+
+    def delete_vpc_endpoints(self, vpce_ids=[]):
+        vpce_ids
+        for vpce_id in vpce_ids:
+            vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
+            if vpc_endpoint:
+                if vpc_endpoint.type.lower() == "interface":
+                    for eni_id in vpc_endpoint.network_interface_ids:
+                        self.enis.pop(eni_id, None)
+                else:
+                    for route_table_id in vpc_endpoint.route_table_ids:
+                        self.delete_route(
+                            route_table_id, vpc_endpoint.service_destination_cidr
+                        )
+                vpc_endpoint.state = "deleted"
+        return True
 
     def get_vpc_end_point(self, vpc_end_point_ids, filters=None):
         vpc_end_points = self.vpc_end_points.values()
@@ -3759,7 +3792,7 @@ class SubnetBackend(object):
             matches = [sn for sn in matches if sn.id in subnet_ids]
             if len(subnet_ids) > len(matches):
                 unknown_ids = set(subnet_ids) - set(matches)
-                raise InvalidSubnetIdError(unknown_ids)
+                raise InvalidSubnetIdError(list(unknown_ids)[0])
         if filters:
             matches = generic_filter(filters, matches)
 
@@ -4286,6 +4319,7 @@ class Route(CloudFormationModel):
         gateway=None,
         instance=None,
         nat_gateway=None,
+        transit_gateway=None,
         interface=None,
         vpc_pcx=None,
     ):
@@ -4299,6 +4333,7 @@ class Route(CloudFormationModel):
         self.gateway = gateway
         self.instance = instance
         self.nat_gateway = nat_gateway
+        self.transit_gateway = transit_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
 
@@ -4325,6 +4360,7 @@ class Route(CloudFormationModel):
         instance_id = properties.get("InstanceId")
         interface_id = properties.get("NetworkInterfaceId")
         nat_gateway_id = properties.get("NatGatewayId")
+        transit_gateway_id = properties.get("TransitGatewayId")
         pcx_id = properties.get("VpcPeeringConnectionId")
 
         route_table_id = properties["RouteTableId"]
@@ -4335,6 +4371,7 @@ class Route(CloudFormationModel):
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,
+            transit_gateway_id=transit_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
         )
@@ -4358,12 +4395,14 @@ class VPCEndPoint(TaggedEC2Resource):
         security_group_ids=None,
         tags=None,
         private_dns_enabled=None,
+        service_destination_cidr=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = id
         self.vpc_id = vpc_id
         self.service_name = service_name
         self.type = type
+        self.state = "available"
         self.policy_document = policy_document
         self.route_table_ids = route_table_ids
         self.network_interface_ids = network_interface_ids
@@ -4371,9 +4410,10 @@ class VPCEndPoint(TaggedEC2Resource):
         self.client_token = client_token
         self.security_group_ids = security_group_ids
         self.private_dns_enabled = private_dns_enabled
-        self._created_at = datetime.utcnow()
+        # self.created_at = utc_date_and_time()
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
+        self.service_destination_cidr = service_destination_cidr
 
     @property
     def owner_id(self):
@@ -4381,7 +4421,170 @@ class VPCEndPoint(TaggedEC2Resource):
 
     @property
     def created_at(self):
-        return iso_8601_datetime_with_milliseconds(self._created_at)
+        return utc_date_and_time()
+
+
+class ManagedPrefixList(TaggedEC2Resource):
+    def __init__(
+        self,
+        backend,
+        address_family=None,
+        entry=[],
+        max_entries=None,
+        prefix_list_name=None,
+        region=None,
+        tags={},
+        owner_id=None,
+    ):
+        self.ec2_backend = backend
+        self.address_family = address_family
+        self.max_entries = max_entries
+        self.id = random_managed_prefix_list_id()
+        self.prefix_list_name = prefix_list_name
+        self.state = "create-complete"
+        self.state_message = "create complete"
+        self.add_tags(tags or {})
+        self.version = 1
+        self.entries = {self.version: entry} if entry else {}
+        self.resource_owner_id = owner_id if owner_id else None
+        self.prefix_list_arn = self.arn(region, self.owner_id)
+        self.delete_counter = 1
+
+    def arn(self, region, owner_id):
+        return "arn:aws:ec2:{region}:{owner_id}:prefix-list/{resource_id}".format(
+            region=region, resource_id=self.id, owner_id=owner_id
+        )
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID if not self.resource_owner_id else self.resource_owner_id
+
+
+class ManagedPrefixListBackend(object):
+    def __init__(self):
+        self.managed_prefix_lists = {}
+        self.create_default_pls()
+        super(ManagedPrefixListBackend, self).__init__()
+
+    def create_managed_prefix_list(
+        self,
+        address_family=None,
+        entry=[],
+        max_entries=None,
+        prefix_list_name=None,
+        tags={},
+        owner_id=None,
+    ):
+        managed_prefix_list = ManagedPrefixList(
+            self,
+            address_family=address_family,
+            entry=entry,
+            max_entries=max_entries,
+            prefix_list_name=prefix_list_name,
+            region=self.region_name,
+            tags=tags,
+            owner_id=owner_id,
+        )
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+        return managed_prefix_list
+
+    def describe_managed_prefix_lists(self, prefix_list_ids=None, filters=None):
+        managed_prefix_lists = list(self.managed_prefix_lists.values())
+        attr_pairs = (
+            ("owner-id", "owner_id"),
+            ("prefix-list-id", "id"),
+            ("prefix-list-name", "prefix_list_name"),
+        )
+
+        if prefix_list_ids:
+            managed_prefix_lists = [
+                managed_prefix_list
+                for managed_prefix_list in managed_prefix_lists
+                if managed_prefix_list.id in prefix_list_ids
+            ]
+
+        result = managed_prefix_lists
+        if filters:
+            result = filter_resources(managed_prefix_lists, filters, attr_pairs)
+
+        for item in result.copy():
+            if not item.delete_counter:
+                self.managed_prefix_lists.pop(item.id, None)
+                result.remove(item)
+            if item.state == "delete-complete":
+                item.delete_counter -= 1
+        return result
+
+    def get_managed_prefix_list_entries(self, prefix_list_id=None):
+        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
+        return managed_prefix_list
+
+    def delete_managed_prefix_list(self, prefix_list_id):
+        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
+        managed_prefix_list.state = "delete-complete"
+        return managed_prefix_list
+
+    def modify_managed_prefix_list(
+        self,
+        add_entry=None,
+        prefix_list_id=None,
+        current_version=None,
+        prefix_list_name=None,
+        remove_entry=None,
+    ):
+        managed_pl = self.managed_prefix_lists.get(prefix_list_id)
+        managed_pl.prefix_list_name = prefix_list_name
+        if remove_entry or add_entry:
+            entries = (
+                managed_pl.entries.get(current_version, managed_pl.version).copy()
+                if managed_pl.entries
+                else []
+            )
+            for item in entries.copy():
+                if item.get("Cidr", "") in remove_entry:
+                    entries.remove(item)
+
+            for item in add_entry:
+                if item not in entries.copy():
+                    entries.append(item)
+            managed_pl.version += 1
+            managed_pl.entries[managed_pl.version] = entries
+        managed_pl.state = "modify-complete"
+        return managed_pl
+
+    def create_default_pls(self):
+        entry = [
+            {"Cidr": "52.216.0.0/15", "Description": "default"},
+            {"Cidr": "3.5.0.0/19", "Description": "default"},
+            {"Cidr": "54.231.0.0/16", "Description": "default"},
+        ]
+
+        managed_prefix_list = self.create_managed_prefix_list(
+            address_family="IPv4",
+            entry=entry,
+            prefix_list_name="com.amazonaws.{}.s3".format(self.region_name),
+            owner_id="aws",
+        )
+        managed_prefix_list.version = None
+        managed_prefix_list.max_entries = None
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
+
+        entry = [
+            {"Cidr": "3.218.182.0/24", "Description": "default"},
+            {"Cidr": "3.218.180.0/23", "Description": "default"},
+            {"Cidr": "52.94.0.0/22", "Description": "default"},
+            {"Cidr": "52.119.224.0/20", "Description": "default"},
+        ]
+
+        managed_prefix_list = self.create_managed_prefix_list(
+            address_family="IPv4",
+            entry=entry,
+            prefix_list_name="com.amazonaws.{}.dynamodb".format(self.region_name),
+            owner_id="aws",
+        )
+        managed_prefix_list.version = None
+        managed_prefix_list.max_entries = None
+        self.managed_prefix_lists[managed_prefix_list.id] = managed_prefix_list
 
 
 class RouteBackend(object):
@@ -4397,11 +4600,13 @@ class RouteBackend(object):
         gateway_id=None,
         instance_id=None,
         nat_gateway_id=None,
+        transit_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
     ):
         gateway = None
         nat_gateway = None
+        transit_gateway = None
 
         route_table = self.get_route_table(route_table_id)
 
@@ -4424,6 +4629,8 @@ class RouteBackend(object):
 
             if nat_gateway_id is not None:
                 nat_gateway = self.nat_gateways.get(nat_gateway_id)
+            if transit_gateway_id is not None:
+                transit_gateway = self.transit_gateways.get(transit_gateway_id)
 
         route = Route(
             route_table,
@@ -4433,6 +4640,7 @@ class RouteBackend(object):
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
             nat_gateway=nat_gateway,
+            transit_gateway=transit_gateway,
             interface=None,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
             if vpc_peering_connection_id
@@ -5098,7 +5306,7 @@ class SpotFleetBackend(object):
 
 
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, ec2_backend, domain, address=None):
+    def __init__(self, ec2_backend, domain, address=None, tags=None):
         self.ec2_backend = ec2_backend
         if address:
             self.public_ip = address
@@ -5110,6 +5318,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         self.instance = None
         self.eni = None
         self.association_id = None
+        self.add_tags(tags or {})
 
     @staticmethod
     def cloudformation_name_type():
@@ -5130,6 +5339,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         instance_id = None
         if properties:
             domain = properties.get("Domain")
+            # TODO: support tags from cloudformation template
             eip = ec2_backend.allocate_address(domain=domain if domain else "standard")
             instance_id = properties.get("InstanceId")
         else:
@@ -5181,13 +5391,13 @@ class ElasticAddressBackend(object):
         self.addresses = []
         super(ElasticAddressBackend, self).__init__()
 
-    def allocate_address(self, domain, address=None):
+    def allocate_address(self, domain, address=None, tags=None):
         if domain not in ["standard", "vpc"]:
             raise InvalidDomainError(domain)
         if address:
-            address = ElasticAddress(self, domain=domain, address=address)
+            address = ElasticAddress(self, domain=domain, address=address, tags=tags)
         else:
-            address = ElasticAddress(self, domain=domain)
+            address = ElasticAddress(self, domain=domain, tags=tags)
         self.addresses.append(address)
         return address
 
@@ -6741,13 +6951,16 @@ class TransitGatewayRelationsBackend(object):
 
 
 class NatGateway(CloudFormationModel):
-    def __init__(self, backend, subnet_id, allocation_id, tags=[]):
+    def __init__(
+        self, backend, subnet_id, allocation_id, tags=[], connectivity_type="public"
+    ):
         # public properties
         self.id = random_nat_gateway_id()
         self.subnet_id = subnet_id
         self.allocation_id = allocation_id
         self.state = "available"
         self.private_ip = random_private_ip()
+        self.connectivity_type = connectivity_type
 
         # protected properties
         self._created_at = datetime.utcnow()
@@ -6840,8 +7053,12 @@ class NatGatewayBackend(object):
 
         return nat_gateways
 
-    def create_nat_gateway(self, subnet_id, allocation_id, tags=[]):
-        nat_gateway = NatGateway(self, subnet_id, allocation_id, tags)
+    def create_nat_gateway(
+        self, subnet_id, allocation_id, tags=[], connectivity_type="public"
+    ):
+        nat_gateway = NatGateway(
+            self, subnet_id, allocation_id, tags, connectivity_type
+        )
         self.nat_gateways[nat_gateway.id] = nat_gateway
         return nat_gateway
 
@@ -7080,6 +7297,7 @@ class EC2Backend(
     SecurityGroupBackend,
     AmiBackend,
     VPCBackend,
+    ManagedPrefixListBackend,
     SubnetBackend,
     SubnetRouteTableAssociationBackend,
     FlowLogsBackend,

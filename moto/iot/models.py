@@ -21,6 +21,7 @@ from .exceptions import (
     InvalidStateTransitionException,
     VersionConflictException,
     ResourceAlreadyExistsException,
+    VersionsLimitExceededException,
 )
 
 
@@ -815,6 +816,8 @@ class IoTBackend(BaseBackend):
         policy = self.get_policy(policy_name)
         if not policy:
             raise ResourceNotFoundException()
+        if len(policy.versions) >= 5:
+            raise VersionsLimitExceededException(policy_name)
         version = FakePolicyVersion(
             policy_name, policy_document, set_as_default, self.region_name
         )
