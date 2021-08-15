@@ -1412,6 +1412,7 @@ class Ami(TaggedEC2Resource):
         name=None,
         description=None,
         owner_id=OWNER_ID,
+        owner_alias=None,
         public=False,
         virtualization_type=None,
         architecture=None,
@@ -1433,6 +1434,7 @@ class Ami(TaggedEC2Resource):
         self.image_type = image_type
         self.image_location = image_location
         self.owner_id = owner_id
+        self.owner_alias = owner_alias
         self.description = description
         self.virtualization_type = virtualization_type
         self.architecture = architecture
@@ -1507,6 +1509,8 @@ class Ami(TaggedEC2Resource):
             return self.name
         elif filter_name == "owner-id":
             return self.owner_id
+        elif filter_name == "owner-alias":
+            return self.owner_alias
         else:
             return super(Ami, self).get_filter_value(filter_name, "DescribeImages")
 
@@ -1524,6 +1528,9 @@ class AmiBackend(object):
     def _load_amis(self):
         for ami in AMIS:
             ami_id = ami["ami_id"]
+            # we are assuming the default loaded amis are owned by amazon
+            # owner_alias is required for terraform owner filters
+            ami["owner_alias"] = "amazon"
             self.amis[ami_id] = Ami(self, **ami)
 
     def create_image(
@@ -1607,8 +1614,15 @@ class AmiBackend(object):
             # Limit by owner ids
             if owners:
                 # support filtering by Owners=['self']
-                owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners,))
-                images = [ami for ami in images if ami.owner_id in owners]
+                if "self" in owners:
+                    owners = list(
+                        map(lambda o: OWNER_ID if o == "self" else o, owners,)
+                    )
+                images = [
+                    ami
+                    for ami in images
+                    if ami.owner_id in owners or ami.owner_alias in owners
+                ]
 
             # Generic filters
             if filters:
