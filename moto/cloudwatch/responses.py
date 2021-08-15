@@ -70,6 +70,7 @@ class CloudWatchResponse(BaseResponse):
         period = self._get_param("Period")
         threshold = self._get_param("Threshold")
         statistic = self._get_param("Statistic")
+        extended_statistic = self._get_param("ExtendedStatistic")
         description = self._get_param("AlarmDescription")
         dimensions = self._get_list_prefix("Dimensions.member")
         alarm_actions = self._get_multi_param("AlarmActions.member")
@@ -80,6 +81,9 @@ class CloudWatchResponse(BaseResponse):
         )
         unit = self._get_param("Unit")
         treat_missing_data = self._get_param("TreatMissingData")
+        evaluate_low_sample_count_percentile = self._get_param(
+            "EvaluateLowSampleCountPercentile"
+        )
         # fetch AlarmRule to re-use this method for composite alarms as well
         rule = self._get_param("AlarmRule")
         tags = self._get_multi_param("Tags.member")
@@ -94,6 +98,7 @@ class CloudWatchResponse(BaseResponse):
             period=period,
             threshold=threshold,
             statistic=statistic,
+            extended_statistic=extended_statistic,
             description=description,
             dimensions=dimensions,
             alarm_actions=alarm_actions,
@@ -102,6 +107,7 @@ class CloudWatchResponse(BaseResponse):
             unit=unit,
             actions_enabled=actions_enabled,
             treat_missing_data=treat_missing_data,
+            evaluate_low_sample_count_percentile=evaluate_low_sample_count_percentile,
             rule=rule,
             tags=tags,
         )
@@ -441,6 +447,9 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 {% if alarm.statistic is not none %}
                 <Statistic>{{ alarm.statistic }}</Statistic>
                 {% endif %}
+                {% if alarm.extended_statistic is not none %}
+                <ExtendedStatistic>{{ alarm.extended_statistic }}</ExtendedStatistic>
+                {% endif %}
                 {% if alarm.threshold is not none %}
                 <Threshold>{{ alarm.threshold }}</Threshold>
                 {% endif %}
@@ -449,6 +458,9 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 {% endif %}
                 {% if alarm.treat_missing_data is not none %}
                 <TreatMissingData>{{ alarm.treat_missing_data }}</TreatMissingData>
+                {% endif %}
+                {% if alarm.evaluate_low_sample_count_percentile is not none %}
+                <EvaluateLowSampleCountPercentile>{{ alarm.evaluate_low_sample_count_percentile }}</EvaluateLowSampleCountPercentile>
                 {% endif %}
                 {% if alarm.rule is not none %}
                 <AlarmRule>{{ alarm.rule }}</AlarmRule>

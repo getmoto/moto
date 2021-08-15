@@ -111,6 +111,7 @@ class FakeAlarm(BaseModel):
         period,
         threshold,
         statistic,
+        extended_statistic,
         description,
         dimensions,
         alarm_actions,
@@ -119,6 +120,7 @@ class FakeAlarm(BaseModel):
         unit,
         actions_enabled,
         treat_missing_data,
+        evaluate_low_sample_count_percentile,
         rule=None,
     ):
         self.region_name = region_name
@@ -133,6 +135,7 @@ class FakeAlarm(BaseModel):
         self.period = period
         self.threshold = threshold
         self.statistic = statistic
+        self.extended_statistic = extended_statistic
         self.description = description
         self.dimensions = [
             Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
@@ -146,6 +149,7 @@ class FakeAlarm(BaseModel):
             datetime.now(tz=tzutc())
         )
         self.treat_missing_data = treat_missing_data
+        self.evaluate_low_sample_count_percentile = evaluate_low_sample_count_percentile
 
         self.history = []
 
@@ -327,6 +331,7 @@ class CloudWatchBackend(BaseBackend):
         period,
         threshold,
         statistic,
+        extended_statistic,
         description,
         dimensions,
         alarm_actions,
@@ -335,9 +340,23 @@ class CloudWatchBackend(BaseBackend):
         unit,
         actions_enabled,
         treat_missing_data,
+        evaluate_low_sample_count_percentile,
         rule=None,
         tags=None,
     ):
+        if extended_statistic and not extended_statistic.startswith("p"):
+            raise InvalidParameterValue(
+                f"The value {extended_statistic} for parameter ExtendedStatistic is not supported."
+            )
+        if (
+            evaluate_low_sample_count_percentile
+            and evaluate_low_sample_count_percentile not in ("evaluate", "ignore")
+        ):
+            raise ValidationError(
+                f"Option {evaluate_low_sample_count_percentile} is not supported. "
+                "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
+            )
+
         alarm = FakeAlarm(
             region_name=self.region_name,
             name=name,
@@ -350,6 +369,7 @@ class CloudWatchBackend(BaseBackend):
             period=period,
             threshold=threshold,
             statistic=statistic,
+            extended_statistic=extended_statistic,
             description=description,
             dimensions=dimensions,
             alarm_actions=alarm_actions,
@@ -358,6 +378,7 @@ class CloudWatchBackend(BaseBackend):
             unit=unit,
             actions_enabled=actions_enabled,
             treat_missing_data=treat_missing_data,
+            evaluate_low_sample_count_percentile=evaluate_low_sample_count_percentile,
             rule=rule,
         )
 

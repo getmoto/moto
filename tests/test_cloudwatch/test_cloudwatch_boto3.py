@@ -973,6 +973,152 @@ def test_put_metric_alarm():
 
 
 @mock_cloudwatch
+def test_put_metric_alarm_with_percentile():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+
+    # when
+    client.put_metric_alarm(
+        AlarmName=alarm_name,
+        AlarmDescription="test alarm",
+        ActionsEnabled=True,
+        MetricName="5XXError",
+        Namespace="AWS/ApiGateway",
+        ExtendedStatistic="p90",
+        Dimensions=[
+            {"Name": "ApiName", "Value": "test-api"},
+            {"Name": "Stage", "Value": "default"},
+        ],
+        Period=60,
+        Unit="Seconds",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Threshold=1.0,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        TreatMissingData="notBreaching",
+        EvaluateLowSampleCountPercentile="ignore",
+    )
+
+    # then
+    alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
+    alarms.should.have.length_of(1)
+
+    alarm = alarms[0]
+    alarm["AlarmName"].should.equal(alarm_name)
+    alarm["AlarmArn"].should.equal(
+        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    )
+    alarm["AlarmDescription"].should.equal("test alarm")
+    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
+    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["ActionsEnabled"].should.be.ok
+    alarm["StateValue"].should.equal("OK")
+    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
+    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
+    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["MetricName"].should.equal("5XXError")
+    alarm["Namespace"].should.equal("AWS/ApiGateway")
+    alarm["ExtendedStatistic"].should.equal("p90")
+    sorted(alarm["Dimensions"], key=itemgetter("Name")).should.equal(
+        sorted(
+            [
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            key=itemgetter("Name"),
+        )
+    )
+    alarm["Period"].should.equal(60)
+    alarm["Unit"].should.equal("Seconds")
+    alarm["EvaluationPeriods"].should.equal(1)
+    alarm["DatapointsToAlarm"].should.equal(1)
+    alarm["Threshold"].should.equal(1.0)
+    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
+    alarm["TreatMissingData"].should.equal("notBreaching")
+    alarm["EvaluateLowSampleCountPercentile"].should.equal("ignore")
+
+
+@mock_cloudwatch
+def test_put_metric_alarm_error_extended_statistic():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_metric_alarm(
+            AlarmName=alarm_name,
+            ActionsEnabled=True,
+            MetricName="5XXError",
+            Namespace="AWS/ApiGateway",
+            ExtendedStatistic="90",
+            Dimensions=[
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            Period=60,
+            Unit="Seconds",
+            EvaluationPeriods=1,
+            DatapointsToAlarm=1,
+            Threshold=1.0,
+            ComparisonOperator="GreaterThanOrEqualToThreshold",
+            TreatMissingData="notBreaching",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutMetricAlarm")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "The value 90 for parameter ExtendedStatistic is not supported."
+    )
+
+
+@mock_cloudwatch
+def test_put_metric_alarm_error_evaluate_low_sample_count_percentile():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_metric_alarm(
+            AlarmName=alarm_name,
+            ActionsEnabled=True,
+            MetricName="5XXError",
+            Namespace="AWS/ApiGateway",
+            ExtendedStatistic="p90",
+            Dimensions=[
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            Period=60,
+            Unit="Seconds",
+            EvaluationPeriods=1,
+            DatapointsToAlarm=1,
+            Threshold=1.0,
+            ComparisonOperator="GreaterThanOrEqualToThreshold",
+            TreatMissingData="notBreaching",
+            EvaluateLowSampleCountPercentile="unknown",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutMetricAlarm")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationError")
+    ex.response["Error"]["Message"].should.equal(
+        "Option unknown is not supported. "
+        "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
+    )
+
+
+@mock_cloudwatch
 def test_list_tags_for_resource():
     # given
     client = boto3.client("cloudwatch", region_name="eu-central-1")
