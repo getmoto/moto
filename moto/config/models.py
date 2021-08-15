@@ -49,6 +49,7 @@ from moto.config.exceptions import (
     MaxNumberOfConfigRulesExceededException,
     InsufficientPermissionsException,
     NoSuchConfigRuleException,
+    ResourceInUseException,
 )
 
 from moto.core import BaseBackend, BaseModel
@@ -700,6 +701,21 @@ class ConfigRule(ConfigEmptyDictable):
 
     def modify_fields(self, region, config_rule, tags):
         """Initialize or update ConfigRule fields."""
+        self.config_rule_state = config_rule.get("ConfigRuleState", "ACTIVE")
+        if self.config_rule_state not in ConfigRule.RULE_STATES:
+            raise ValidationException(
+                f"Value '{self.config_rule_state}' at "
+                f"'configRule.configRuleState' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: {{"
+                + ", ".join(sorted(ConfigRule.RULE_STATES))
+                + "}"
+            )
+        if self.config_rule_state != "ACTIVE":
+            raise InvalidParameterValueException(
+                f"The ConfigRuleState {self.config_rule_state} is invalid.  "
+                f"Only the following values are permitted: ACTIVE"
+            )
+
         self.description = config_rule.get("Description")
 
         self.scope = None
@@ -736,21 +752,6 @@ class ConfigRule(ConfigEmptyDictable):
                 )
         else:
             self.maximum_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
-
-        self.config_rule_state = config_rule.get("ConfigRuleState", "ACTIVE")
-        if self.config_rule_state not in ConfigRule.RULE_STATES:
-            raise ValidationException(
-                f"Value '{self.config_rule_state}' at "
-                f"'configRule.configRuleState' failed to satisfy constraint: "
-                f"Member must satisfy enum value set: {{"
-                + ", ".join(sorted(ConfigRule.RULE_STATES))
-                + "}"
-            )
-        if self.config_rule_state != "ACTIVE":
-            raise InvalidParameterValueException(
-                f"The ConfigRuleState {self.config_rule_state} is invalid.  "
-                f"Only the following values are permitted: ACTIVE"
-            )
 
         self.created_by = config_rule.get("CreatedBy")
         if self.created_by:
@@ -1734,6 +1735,8 @@ class ConfigBackend(BaseBackend):
 
     def put_config_rule(self, region, config_rule, tags=None):
         """Add/Update config rule for evaluating resource compliance."""
+        # If there is no rule_name, use the ARN or ID to get the
+        # rule_name._name._name._name.
         rule_name = config_rule.get("ConfigRuleName")
         if rule_name:
             if len(rule_name) > 128:
@@ -1760,8 +1763,20 @@ class ConfigBackend(BaseBackend):
                 )
 
         tags = validate_tags(tags or [])
+
+        # With the rule_name, determine whether it's for an existing rule
+        # or whether a new rule should be created.
         rule = self.config_rules.get(rule_name)
         if rule:
+            # Rule exists.  Make sure it isn't in use for another activity.
+            rule_state = config_rule.get("ConfigRuleState")
+            if rule_state != "ACTIVE":
+                activity = "deleted" if rule_state.startswith("DELET") else "evaluated"
+                raise ResourceInUseException(
+                    f"The rule {rule_name} is currently being {activity}.  "
+                    f"Please retry after some time"
+                )
+
             # Update the current rule.
             rule.modify_fields(region, config_rule, tags)
         else:

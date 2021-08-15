@@ -18,7 +18,7 @@ from moto.config import mock_config
 from moto.config.models import random_string
 from moto.config.models import ConfigRule
 from moto.core import ACCOUNT_ID
-from moto import settings, mock_iam, mock_s3, mock_lambda
+from moto import settings, mock_iam, mock_lambda
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -73,25 +73,10 @@ def lambda_handler(event, context):
         return zip_output.read()
 
 
-@mock_s3
 @mock_lambda
 def create_lambda_for_config_rule():
     """Return the ARN of a lambda that can be used by a custom rule."""
     role_name = "test-role"
-    bucket_name = "test_config_rule_bucket"
-
-    # Create a s3 bucket and place a zipped lambda function into the bucket.
-    s3_client = boto3.client("s3", region_name=TEST_REGION)
-    s3_client.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": TEST_REGION},
-    )
-
-    zip_content = zipped_lambda_function()
-    s3_client.put_object(
-        Bucket=bucket_name, Key="test_config_rule.zip", Body=zip_content,
-    )
-
     lambda_role = None
     with mock_iam():
         iam_client = boto3.client("iam", region_name=TEST_REGION)
@@ -109,7 +94,7 @@ def create_lambda_for_config_rule():
         Runtime="python3.8",
         Role=lambda_role,
         Handler="lambda_function.lambda_handler",
-        Code={"S3Bucket": bucket_name, "S3Key": "test_config_rule.zip"},
+        Code={"ZipFile": zipped_lambda_function()},
         Description="Lambda test function for config rule",
         Timeout=3,
         MemorySize=128,
