@@ -627,5 +627,22 @@
     "name": "amzn-ami-vpc-nat-2018.03.0.20210721.0-x86_64-ebs",
     "virtualization_type": "hvm",
     "hypervisor": "xen"
+  },
+  {
+    "ami_id": "ami-000c540e28953ace2",
+    "state": "available",
+    "public": true,
+    "owner_id": "137112412989",
+    "image_location": "amazon/amzn-ami-minimal-hvm-2018.03.0.20181129-x86_64-ebs",
+    "sriov": "simple",
+    "root_device_type": "ebs",
+    "root_device_name": "/dev/xvda",
+    "description": "Amazon Linux AMI 2018.03.0.20181129 x86_64 Minimal HVM ebs",
+    "image_type": "machine",
+    "platform": "Linux/UNIX",
+    "architecture": "x86_64",
+    "name": "amzn-ami-minimal-hvm-2018.03.0.20181129-x86_64-ebs",
+    "virtualization_type": "hvm",
+    "hypervisor": "xen"
   }
 ]
