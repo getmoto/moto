@@ -4,6 +4,48 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.3
+-----
+    New Methods:
+        * EC2:
+            * create_managed_prefix_list()
+            * delete_managed_prefix_list()
+            * describe_managed_prefix_lists()
+            * describe_prefix_lists()
+            * get_managed_prefix_list_entries()
+            * delete_vpc_endpoints()
+            * disassociate_transit_gateway_route_table()
+            * modify_managed_prefix_list()
+        * ECR:
+            * delete_lifecycle_policy()
+            * delete_registry_policy()
+            * describe_image_scan_findings()
+            * describe_registry()
+            * get_lifecycle_policy()
+            * get_registry_policy()
+            * put_lifecycle_policy()
+            * put_registry_policy()
+            * put_replication_configuration()
+            * start_image_scan()
+        * CloudWatch:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * CloudWatch: put_metric_alarm() now supports the parameters ExtendedStatistic, TreatMissingData, EvaluateLowSampleCountPercentile, ThresholdMetricId, Tags 
+        * CognitoIdentity: create_identity_pool() now supports the IdentityPoolTags-parameter
+        * CognitoIDP: initiate_auth() now supports the 'USER_PASSWORD_AUTH'-flow
+        * EC2: allocate_address()  now supports the TagSpecifications-parameter
+        * EC2: create_route() now supports the TransitGatewayId-parameter
+        * EC2: delete_route() now supports the DestinationIpv6CidrBlock-parameter
+        * EC2: describe_nat_gateways() now returns the connectivityType-attribute
+        * ECR: delete_repository() now supports the force-parameter
+        * EventBridge: put_events() now supports ARN's for the EventBusName-parameter
+        * EventBridge: put_rule() now supports the Tags-parameter
+        * IOT: create_policy_version() now throws the VersionsLimitExceededException if appropriate
+
+
 2.2.2
 -----
     General:
