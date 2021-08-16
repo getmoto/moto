@@ -4535,8 +4535,9 @@ class ManagedPrefixListBackend(object):
         managed_pl = self.managed_prefix_lists.get(prefix_list_id)
         managed_pl.prefix_list_name = prefix_list_name
         if remove_entry or add_entry:
+            latest_version = managed_pl.entries.get(managed_pl.version)
             entries = (
-                managed_pl.entries.get(current_version, managed_pl.version).copy()
+                managed_pl.entries.get(current_version, latest_version).copy()
                 if managed_pl.entries
                 else []
             )

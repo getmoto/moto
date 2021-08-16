@@ -945,3 +945,34 @@ def test_describe_vpc_end_points():
         )
     except ClientError as err:
         assert err.response["Error"]["Code"] == "InvalidVpcEndpointId.NotFound"
+
+
+@mock_ec2
+def test_delete_vpc_end_points():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    route_table = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
+    vpc_end_point1 = ec2.create_vpc_endpoint(
+        VpcId=vpc["Vpc"]["VpcId"],
+        ServiceName="com.amazonaws.us-east-1.s3",
+        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
+        VpcEndpointType="gateway",
+    )["VpcEndpoint"]
+    vpc_end_point2 = ec2.create_vpc_endpoint(
+        VpcId=vpc["Vpc"]["VpcId"],
+        ServiceName="com.amazonaws.us-east-2.s3",
+        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
+        VpcEndpointType="gateway",
+    )
+
+    vpc_endpoints = ec2.describe_vpc_endpoints()["VpcEndpoints"]
+    vpc_endpoints.should.have.length_of(2)
+
+    ec2.delete_vpc_endpoints(VpcEndpointIds=[vpc_end_point1["VpcEndpointId"]])
+
+    vpc_endpoints = ec2.describe_vpc_endpoints()["VpcEndpoints"]
+    vpc_endpoints.should.have.length_of(2)
+
+    states = set([vpce["State"] for vpce in vpc_endpoints])
+    states.should.equal({"available", "deleted"})
