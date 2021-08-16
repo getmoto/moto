@@ -1,5 +1,4 @@
 """Implementation of the AWS Config Service APIs."""
-import inspect
 import json
 import re
 import time
@@ -9,7 +8,6 @@ import string
 from datetime import datetime
 
 from boto3 import Session
-from botocore.exceptions import ParamValidationError
 
 from moto.config.exceptions import (
     InvalidResourceTypeException,
@@ -50,6 +48,7 @@ from moto.config.exceptions import (
     InsufficientPermissionsException,
     NoSuchConfigRuleException,
     ResourceInUseException,
+    MissingRequiredConfigRuleParameterException,
 )
 
 from moto.core import BaseBackend, BaseModel
@@ -70,6 +69,7 @@ POP_STRINGS = [
     "CapitalizeARN",
 ]
 DEFAULT_PAGE_SIZE = 100
+CONFIG_RULE_PAGE_SIZE = 25
 
 # Map the Config resource type to a backend:
 RESOURCE_MAP = {
@@ -166,43 +166,21 @@ def validate_tags(tags):
     return proper_tags
 
 
-def convert_to_class_args(full_class_name, class_init_func, dict_arg, arg_offset=0):
+def convert_to_class_args(dict_arg):
     """Return dict that can be used to instantiate it's representative class.
 
     Given a dictionary in the incoming API request, convert the keys to
     snake case to use as arguments when instatiating the representative
     class's __init__().
-
-    If __init__() has parameters (outside of 'self') that are extra (e.g.,
-    'region') and are not found in the API's dictionary, use arg_offset to
-    specify the number of extra arguments.
-
-    Raise exception if class args don't match class __init__ parameters.
     """
-    # Ignore the "self" argument and args up to arg_offset.
-    class_params = set(inspect.getfullargspec(class_init_func).args[1 + arg_offset :])
-
     # Convert the dictionary representing the object into a dictionary that
     # can be used as arguments for the class instantiation.
     class_args = {}
     for key, value in dict_arg.items():
         class_args[CAMEL_TO_SNAKE_REGEX.sub("_", key).lower()] = value
 
-    # Find incoming arguments to class's __init__() that don't have a
-    # corresponding parameter.
-    arg_keys = set(class_args.keys())
-    arg_diffs = arg_keys.difference(class_params)
-    if arg_diffs:
-        raise ParamValidationError(
-            report=(
-                'Unknown parameter{} in {}: "{}", must be one of: {}'.format(
-                    "s" if len(arg_diffs) else "",
-                    full_class_name,
-                    arg_diffs,
-                    class_params,
-                )
-            )
-        )
+    # boto detects if extra/unknown arguments are provided, so it's not
+    # necessary to do so here.
     return class_args
 
 
@@ -556,13 +534,11 @@ class SourceDetail(ConfigEmptyDictable):
         # If the event_source or message_type fields are not provided,
         # boto3 reports:  "SourceDetails should be null/empty if the owner is
         # AWS. SourceDetails should be provided if the owner is CUSTOM_LAMBDA."
-        # It's a confusing error message when the owner *is* CUSTOM_LAMBDA.
+        # A more specific message will be used here instead.
         if not event_source:
-            raise ParamValidationError(
-                report=(
-                    "Missing required parameter in ConfigRule.SourceDetails: "
-                    '"EventSource"'
-                )
+            raise MissingRequiredConfigRuleParameterException(
+                "Missing required parameter in ConfigRule.SourceDetails: "
+                "'EventSource'"
             )
         if event_source not in SourceDetail.EVENT_SOURCES:
             raise ValidationException(
@@ -575,11 +551,8 @@ class SourceDetail(ConfigEmptyDictable):
 
         if not message_type:
             # boto3 doesn't have a specific error if this field is missing.
-            raise ParamValidationError(
-                report=(
-                    "Missing required parameter in ConfigRule.SourceDetails: "
-                    '"MessageType"'
-                )
+            raise MissingRequiredConfigRuleParameterException(
+                "Missing required parameter in ConfigRule.SourceDetails: 'MessageType'"
             )
         if message_type not in SourceDetail.MESSAGE_TYPES:
             raise ValidationException(
@@ -663,9 +636,7 @@ class Source(ConfigEmptyDictable):
 
         details = []
         for detail in source_details:
-            detail_dict = convert_to_class_args(
-                "ConfigRule.Source.SourceDetails", SourceDetail.__init__, detail
-            )
+            detail_dict = convert_to_class_args(detail)
             details.append(SourceDetail(**detail_dict))
 
         self.source_details = details
@@ -720,14 +691,10 @@ class ConfigRule(ConfigEmptyDictable):
 
         self.scope = None
         if "Scope" in config_rule:
-            scope_dict = convert_to_class_args(
-                "ConfigRule.Scope", Scope.__init__, config_rule["Scope"]
-            )
+            scope_dict = convert_to_class_args(config_rule["Scope"])
             self.scope = Scope(**scope_dict)
 
-        source_dict = convert_to_class_args(
-            "ConfigRule.Source", Source.__init__, config_rule["Source"], 1
-        )
+        source_dict = convert_to_class_args(config_rule["Source"])
         self.source = Source(region, **source_dict)
 
         self.input_parameters = config_rule.get("InputParameters")
@@ -906,6 +873,8 @@ class ConfigBackend(BaseBackend):
         limit = DEFAULT_PAGE_SIZE if not limit or limit < 0 else limit
         agg_list = []
         result = {"ConfigurationAggregators": []}
+
+        # TODO - NoSuchConfigRuleException, InvalidNextTokenException
 
         if names:
             for name in names:
@@ -1736,7 +1705,7 @@ class ConfigBackend(BaseBackend):
     def put_config_rule(self, region, config_rule, tags=None):
         """Add/Update config rule for evaluating resource compliance."""
         # If there is no rule_name, use the ARN or ID to get the
-        # rule_name._name._name._name.
+        # rule_name.
         rule_name = config_rule.get("ConfigRuleName")
         if rule_name:
             if len(rule_name) > 128:
@@ -1769,7 +1738,7 @@ class ConfigBackend(BaseBackend):
         rule = self.config_rules.get(rule_name)
         if rule:
             # Rule exists.  Make sure it isn't in use for another activity.
-            rule_state = config_rule.get("ConfigRuleState")
+            rule_state = rule["ConfigRuleState"]
             if rule_state != "ACTIVE":
                 activity = "deleted" if rule_state.startswith("DELET") else "evaluated"
                 raise ResourceInUseException(
@@ -1813,10 +1782,11 @@ class ConfigBackend(BaseBackend):
                 raise InvalidNextTokenException()
             start = sorted_rules.index(next_token)
 
-        rule_list = sorted_rules[start : ConfigRule.MAX_RULES]
+        rule_list = sorted_rules[start : start + CONFIG_RULE_PAGE_SIZE]
         result["ConfigRules"] = [self.config_rules[x].to_dict() for x in rule_list]
-        # There's no point in returning the 'NextToken' as no 'Limit' is
-        # specified as an incoming argument.
+
+        if len(sorted_rules) > (start + CONFIG_RULE_PAGE_SIZE):
+            result["NextToken"] = sorted_rules[start + CONFIG_RULE_PAGE_SIZE]
         return result
 
     def delete_config_rule(self, rule_name):

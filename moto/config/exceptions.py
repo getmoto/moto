@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
@@ -341,9 +340,6 @@ class TooManyResourceKeys(JsonRESTError):
                 bad_list=bad_list
             )
         )
-        # For PY2:
-        message = str(message)
-
         super().__init__("ValidationException", message)
 
 
@@ -403,3 +399,10 @@ class NoSuchConfigRuleException(JsonRESTError):
             f"invalid. Please check the configRule name"
         )
         super().__init__("NoSuchConfigRuleException", message)
+
+
+class MissingRequiredConfigRuleParameterException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ParamValidationError", message)
