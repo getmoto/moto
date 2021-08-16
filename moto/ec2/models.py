@@ -142,6 +142,7 @@ from .utils import (
     create_dns_entries,
     split_route_id,
     random_security_group_id,
+    random_security_group_rule_id,
     random_snapshot_id,
     random_spot_fleet_request_id,
     random_spot_request_id,
@@ -158,6 +159,7 @@ from .utils import (
     get_prefix,
     simple_aws_filter_to_re,
     is_valid_cidr,
+    is_valid_ipv6_cidr,
     filter_internet_gateways,
     filter_reservations,
     filter_iam_instance_profile_associations,
@@ -1981,6 +1983,7 @@ class RegionsAndZonesBackend(object):
 
 class SecurityRule(object):
     def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
+        self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol)
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
@@ -1989,6 +1992,27 @@ class SecurityRule(object):
         if self.ip_protocol != "-1":
             self.from_port = int(from_port)
             self.to_port = int(to_port)
+
+        ip_protocol_keywords = {
+            "tcp": "tcp",
+            "6": "tcp",
+            "udp": "udp",
+            "17": "udp",
+            "all": "-1",
+            "-1": "-1",
+            "tCp": "tcp",
+            "6": "tcp",
+            "UDp": "udp",
+            "17": "udp",
+            "ALL": "-1",
+            "icMp": "icmp",
+            "1": "icmp",
+        }
+        self.ip_protocol = ip_protocol_keywords.get(self.ip_protocol)
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
 
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
@@ -2016,7 +2040,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.description = description
         self.ingress_rules = []
         self.egress_rules = [
-            SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], [])
+            SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], []),
         ]
         self.enis = {}
         self.vpc_id = vpc_id
@@ -2027,7 +2051,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         if vpc_id:
             vpc = self.ec2_backend.vpcs.get(vpc_id)
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
-                self.egress_rules.append(SecurityRule("-1", None, None, [], []))
+                self.egress_rules.append(
+                    SecurityRule("-1", None, None, [{"CidrIpv6": "::/0"}], [])
+                )
 
     @staticmethod
     def cloudformation_name_type():
@@ -2282,8 +2308,17 @@ class SecurityGroupBackend(object):
                 ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if (type(cidr) is dict and not is_valid_cidr(cidr["CidrIp"])) or (
-                    type(cidr) is str and not is_valid_cidr(cidr)
+                if (
+                    type(cidr) is dict
+                    and not any(
+                        [
+                            is_valid_cidr(cidr.get("CidrIp", "")),
+                            is_valid_ipv6_cidr(cidr.get("CidrIpv6", "")),
+                        ]
+                    )
+                ) or (
+                    type(cidr) is str
+                    and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
                 ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
@@ -2316,6 +2351,7 @@ class SecurityGroupBackend(object):
             ip_protocol, from_port, to_port, ip_ranges, source_groups
         )
         group.add_ingress_rule(security_rule)
+        return security_rule, group
 
     def revoke_security_group_ingress(
         self,
@@ -2373,7 +2409,18 @@ class SecurityGroupBackend(object):
                 ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr["CidrIp"]):
+                if (
+                    type(cidr) is dict
+                    and not any(
+                        [
+                            is_valid_cidr(cidr.get("CidrIp", "")),
+                            is_valid_ipv6_cidr(cidr.get("CidrIpv6", "")),
+                        ]
+                    )
+                ) or (
+                    type(cidr) is str
+                    and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
+                ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2403,6 +2450,7 @@ class SecurityGroupBackend(object):
             ip_protocol, from_port, to_port, ip_ranges, source_groups
         )
         group.add_egress_rule(security_rule)
+        return security_rule, group
 
     def revoke_security_group_egress(
         self,
@@ -2435,6 +2483,13 @@ class SecurityGroupBackend(object):
         # the ip_range?
         # for ip in ip_ranges:
         #     ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
+
+        if group.vpc_id:
+            vpc = self.vpcs.get(group.vpc_id)
+            if not len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
+                for item in ip_ranges.copy():
+                    if "CidrIpv6" in item:
+                        ip_ranges.remove(item)
 
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups
