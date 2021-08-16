@@ -438,8 +438,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_BUCKET_CORS_RESPONSE)
             return template.render(cors=cors)
         elif "notification" in querystring:
-            notification_configuration = (
-                self.backend.get_bucket_notification_configuration(bucket_name)
+            notification_configuration = self.backend.get_bucket_notification_configuration(
+                bucket_name
             )
             if not notification_configuration:
                 return 200, {}, ""
