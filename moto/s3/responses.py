@@ -438,8 +438,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_BUCKET_CORS_RESPONSE)
             return template.render(cors=cors)
         elif "notification" in querystring:
-            notification_configuration = self.backend.get_bucket_notification_configuration(
-                bucket_name
+            notification_configuration = (
+                self.backend.get_bucket_notification_configuration(bucket_name)
             )
             if not notification_configuration:
                 return 200, {}, ""
@@ -1036,7 +1036,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if isinstance(request, AWSPreparedRequest) and "s3-control" in request.url:
                 response = self._control_response(request, full_url, headers)
             else:
-                response = self._key_response(request, full_url, headers)
+                response = self._key_response(request, full_url, self.headers)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
@@ -1343,13 +1343,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
 
         if lock_mode or lock_until or legal_hold == "ON":
-            if not headers.get("Content-MD5"):
+            if not request.headers.get("Content-Md5"):
                 raise InvalidContentMD5
             if not lock_enabled:
                 raise LockNotEnabled
 
         elif lock_enabled and bucket.has_default_lock:
-            if not headers.get("Content-MD5"):
+            if not request.headers.get("Content-Md5"):
                 raise InvalidContentMD5
             lock_until = bucket.default_retention()
             lock_mode = bucket.default_lock_mode
