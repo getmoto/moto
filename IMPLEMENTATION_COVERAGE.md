@@ -1749,7 +1749,7 @@
 
 ## cloudwatch
 <details>
-<summary>30% implemented</summary>
+<summary>38% implemented</summary>
 
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
@@ -1774,7 +1774,7 @@
 - [X] list_dashboards
 - [ ] list_metric_streams
 - [X] list_metrics
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] put_anomaly_detector
 - [ ] put_composite_alarm
 - [X] put_dashboard
@@ -1785,8 +1785,8 @@
 - [X] set_alarm_state
 - [ ] start_metric_streams
 - [ ] stop_metric_streams
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 </details>
 
 ## codeartifact
@@ -1875,6 +1875,7 @@
 - [ ] stop_build
 - [ ] stop_build_batch
 - [ ] update_project
+- [ ] update_project_visibility
 - [ ] update_report_group
 - [ ] update_webhook
 </details>
@@ -3391,7 +3392,7 @@
 
 ## ec2
 <details>
-<summary>30% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -3459,7 +3460,7 @@
 - [ ] create_launch_template_version
 - [ ] create_local_gateway_route
 - [ ] create_local_gateway_route_table_vpc_association
-- [ ] create_managed_prefix_list
+- [X] create_managed_prefix_list
 - [X] create_nat_gateway
 - [X] create_network_acl
 - [X] create_network_acl_entry
@@ -3518,7 +3519,7 @@
 - [ ] delete_launch_template_versions
 - [ ] delete_local_gateway_route
 - [ ] delete_local_gateway_route_table_vpc_association
-- [ ] delete_managed_prefix_list
+- [X] delete_managed_prefix_list
 - [X] delete_nat_gateway
 - [X] delete_network_acl
 - [X] delete_network_acl_entry
@@ -3553,7 +3554,7 @@
 - [X] delete_vpc
 - [ ] delete_vpc_endpoint_connection_notifications
 - [ ] delete_vpc_endpoint_service_configurations
-- [ ] delete_vpc_endpoints
+- [X] delete_vpc_endpoints
 - [X] delete_vpc_peering_connection
 - [X] delete_vpn_connection
 - [ ] delete_vpn_connection_route
@@ -3622,7 +3623,7 @@
 - [ ] describe_local_gateway_virtual_interface_groups
 - [ ] describe_local_gateway_virtual_interfaces
 - [ ] describe_local_gateways
-- [ ] describe_managed_prefix_lists
+- [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [ ] describe_nat_gateways
 - [X] describe_network_acls
@@ -3709,7 +3710,7 @@
 - [X] disassociate_route_table
 - [ ] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
-- [ ] disassociate_transit_gateway_route_table
+- [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
 - [ ] enable_ebs_encryption_by_default
@@ -3739,7 +3740,7 @@
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
-- [ ] get_managed_prefix_list_entries
+- [X] get_managed_prefix_list_entries
 - [ ] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_serial_console_access_status
@@ -3775,7 +3776,7 @@
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
 - [ ] modify_launch_template
-- [ ] modify_managed_prefix_list
+- [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_reserved_instances
 - [ ] modify_security_group_rules
@@ -3870,26 +3871,26 @@
 
 ## ecr
 <details>
-<summary>47% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
 - [ ] complete_layer_upload
 - [X] create_repository
-- [ ] delete_lifecycle_policy
-- [ ] delete_registry_policy
+- [X] delete_lifecycle_policy
+- [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
-- [ ] describe_image_scan_findings
+- [X] describe_image_scan_findings
 - [X] describe_images
-- [ ] describe_registry
+- [X] describe_registry
 - [X] describe_repositories
 - [ ] get_authorization_token
 - [ ] get_download_url_for_layer
-- [ ] get_lifecycle_policy
+- [X] get_lifecycle_policy
 - [ ] get_lifecycle_policy_preview
-- [ ] get_registry_policy
+- [X] get_registry_policy
 - [X] get_repository_policy
 - [ ] initiate_layer_upload
 - [X] list_images
@@ -3897,11 +3898,11 @@
 - [X] put_image
 - [X] put_image_scanning_configuration
 - [X] put_image_tag_mutability
-- [ ] put_lifecycle_policy
-- [ ] put_registry_policy
-- [ ] put_replication_configuration
+- [X] put_lifecycle_policy
+- [X] put_registry_policy
+- [X] put_replication_configuration
 - [X] set_repository_policy
-- [ ] start_image_scan
+- [X] start_image_scan
 - [ ] start_lifecycle_policy_preview
 - [X] tag_resource
 - [X] untag_resource
@@ -10422,6 +10423,25 @@
 - [ ] update_configuration_set_event_destination
 </details>
 
+## snow-device-management
+<details>
+<summary>0% implemented</summary>
+
+- [ ] cancel_task
+- [ ] create_task
+- [ ] describe_device
+- [ ] describe_device_ec2_instances
+- [ ] describe_execution
+- [ ] describe_task
+- [ ] list_device_resources
+- [ ] list_devices
+- [ ] list_executions
+- [ ] list_tags_for_resource
+- [ ] list_tasks
+- [ ] tag_resource
+- [ ] untag_resource
+</details>
+
 ## snowball
 <details>
 <summary>0% implemented</summary>
@@ -11317,7 +11337,7 @@
 
 ## wafv2
 <details>
-<summary>5% implemented</summary>
+<summary>4% implemented</summary>
 
 - [ ] associate_web_acl
 - [ ] check_capacity
@@ -11336,6 +11356,7 @@
 - [ ] disassociate_web_acl
 - [ ] get_ip_set
 - [ ] get_logging_configuration
+- [ ] get_managed_rule_set
 - [ ] get_permission_policy
 - [ ] get_rate_based_statement_managed_keys
 - [ ] get_regex_pattern_set
@@ -11343,19 +11364,23 @@
 - [ ] get_sampled_requests
 - [ ] get_web_acl
 - [ ] get_web_acl_for_resource
+- [ ] list_available_managed_rule_group_versions
 - [ ] list_available_managed_rule_groups
 - [ ] list_ip_sets
 - [ ] list_logging_configurations
+- [ ] list_managed_rule_sets
 - [ ] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
 - [ ] list_rule_groups
 - [ ] list_tags_for_resource
 - [X] list_web_acls
 - [ ] put_logging_configuration
+- [ ] put_managed_rule_set_versions
 - [ ] put_permission_policy
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_ip_set
+- [ ] update_managed_rule_set_version_expiry_date
 - [ ] update_regex_pattern_set
 - [ ] update_rule_group
 - [ ] update_web_acl
