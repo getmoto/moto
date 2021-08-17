@@ -2215,7 +2215,10 @@ class TestTopicRules:
     def test_deprecate_undeprecate_thing_type(self):
         client = boto3.client("iot", region_name="ap-northeast-1")
         thing_type_name = "my-type-name"
-        client.create_thing_type(thingTypeName=thing_type_name, thingTypeProperties={"searchableAttributes": ["s1", "s2", "s3"]})
+        client.create_thing_type(
+            thingTypeName=thing_type_name,
+            thingTypeProperties={"searchableAttributes": ["s1", "s2", "s3"]},
+        )
 
         res = client.describe_thing_type(thingTypeName=thing_type_name)
         res["thingTypeMetadata"]["deprecated"].should.equal(False)
@@ -2234,4 +2237,6 @@ class TestTopicRules:
         client = boto3.client("iot", region_name="ap-northeast-1")
         thing_type_name = "my-type-name"
         with pytest.raises(client.exceptions.ResourceNotFoundException):
-            client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=False)
+            client.deprecate_thing_type(
+                thingTypeName=thing_type_name, undoDeprecate=False
+            )
