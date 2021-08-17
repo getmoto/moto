@@ -1070,7 +1070,9 @@ def test_delete_thing_group():
     group_name_1a = "my-group-name-1a"
     group_name_2a = "my-group-name-2a"
     tree_dict = {
-        group_name_1a: {group_name_2a: {},},
+        group_name_1a: {
+            group_name_2a: {},
+        },
     }
     group_catalog = generate_thing_group_tree(client, tree_dict)
 
@@ -2147,7 +2149,8 @@ class TestTopicRules:
         payload = self.payload.copy()
         payload["description"] = "new-description"
         client.replace_topic_rule(
-            ruleName=self.name, topicRulePayload=payload,
+            ruleName=self.name,
+            topicRulePayload=payload,
         )
 
         rule = client.get_topic_rule(ruleName=self.name)
