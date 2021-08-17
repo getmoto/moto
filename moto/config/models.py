@@ -1732,7 +1732,6 @@ class ConfigBackend(BaseBackend):
                     "One or more identifiers needs to be provided. Provide "
                     "Name or Id or Arn"
                 )
-            field_value = rule_id if rule_id else rule_arn
             for config_rule_obj in self.config_rules.values():
                 if rule_id and config_rule_obj.config_rule_id == rule_id:
                     rule_name = config_rule_obj.config_rule_name
