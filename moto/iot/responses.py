@@ -106,6 +106,14 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_thing_type(thing_type_name=thing_type_name)
         return json.dumps(dict())
 
+    def deprecate_thing_type(self):
+        thing_type_name = self._get_param("thingTypeName")
+        undo_deprecate = self._get_param("undoDeprecate")
+        thing_type = self.iot_backend.deprecate_thing_type(
+            thing_type_name=thing_type_name, undo_deprecate=undo_deprecate
+        )
+        return json.dumps(thing_type.to_dict())
+
     def update_thing(self):
         thing_name = self._get_param("thingName")
         thing_type_name = self._get_param("thingTypeName")
