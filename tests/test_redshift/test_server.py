@@ -203,6 +203,95 @@ def test_create_and_describe_clusters(is_json):
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
 @mock_redshift
+def test_create_and_describe_cluster_security_group(is_json):
+    backend = server.create_backend_app("redshift")
+    test_client = backend.test_client()
+    security_group_names = ["csg1", "csg2"]
+
+    for csg in security_group_names:
+        create_params = (
+            "?Action=CreateClusterSecurityGroup"
+            "&ClusterSecurityGroupName=" + csg + "&Description=desc for " + csg + ""
+        )
+        if is_json:
+            create_params += "&ContentType=JSON"
+        test_client.post(create_params)
+
+    describe_params = "/?Action=DescribeClusterSecurityGroups"
+    if is_json:
+        describe_params += "&ContentType=JSON"
+    res = test_client.get(describe_params)
+    result = res.data.decode("utf-8")
+
+    if is_json:
+        result = json.loads(result)
+    else:
+        result = xmltodict.parse(result, dict_constructor=dict)
+
+    groups = result["DescribeClusterSecurityGroupsResponse"][
+        "DescribeClusterSecurityGroupsResult"
+    ]["ClusterSecurityGroups"]
+    if not is_json:
+        groups = groups["item"]
+
+    descriptions = [g["Description"] for g in groups]
+    descriptions.should.contain("desc for csg1")
+    descriptions.should.contain("desc for csg2")
+
+    # Describe single SG
+    describe_params = (
+        "/?Action=DescribeClusterSecurityGroups" "&ClusterSecurityGroupName=csg1"
+    )
+    if is_json:
+        describe_params += "&ContentType=JSON"
+    res = test_client.get(describe_params)
+    result = res.data.decode("utf-8")
+
+    if is_json:
+        result = json.loads(result)
+    else:
+        result = xmltodict.parse(result, dict_constructor=dict)
+
+    groups = result["DescribeClusterSecurityGroupsResponse"][
+        "DescribeClusterSecurityGroupsResult"
+    ]["ClusterSecurityGroups"]
+
+    if is_json:
+        groups.should.have.length_of(1)
+        groups[0]["ClusterSecurityGroupName"].should.equal("csg1")
+    else:
+        groups["item"]["ClusterSecurityGroupName"].should.equal("csg1")
+
+
+@pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
+@mock_redshift
+def test_describe_unknown_cluster_security_group(is_json):
+    backend = server.create_backend_app("redshift")
+    test_client = backend.test_client()
+
+    describe_params = (
+        "/?Action=DescribeClusterSecurityGroups" "&ClusterSecurityGroupName=unknown"
+    )
+    if is_json:
+        describe_params += "&ContentType=JSON"
+    res = test_client.get(describe_params)
+
+    res.status_code.should.equal(400)
+
+    if is_json:
+        response = json.loads(res.data.decode("utf-8"))
+    else:
+        response = xmltodict.parse(res.data.decode("utf-8"), dict_constructor=dict)[
+            "RedshiftClientError"
+        ]
+    error = response["Error"]
+
+    error["Code"].should.equal("ClusterSecurityGroupNotFound")
+    error["Message"].should.equal("Security group unknown not found.")
+
+
+@pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
+@mock_redshift
 def test_create_cluster_with_security_group(is_json):
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
