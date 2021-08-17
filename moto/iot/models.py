@@ -629,6 +629,15 @@ class IoTBackend(BaseBackend):
         thing_type = self.describe_thing_type(thing_type_name)
         del self.thing_types[thing_type.arn]
 
+    def deprecate_thing_type(self, thing_type_name, undo_deprecate):
+        thing_types = [
+            _ for _ in self.thing_types.values() if _.thing_type_name == thing_type_name
+        ]
+        if len(thing_types) == 0:
+            raise ResourceNotFoundException()
+        thing_types[0].metadata["deprecated"] = not undo_deprecate
+        return thing_types[0]
+
     def update_thing(
         self,
         thing_name,
