@@ -480,8 +480,8 @@ def test_config_rules_source_details_errors():
 
 
 @mock_config
-def test_valid_put_config_rule():
-    """Test valid put_config_rule API calls."""
+def test_valid_put_config_managed_rule():
+    """Test valid put_config_rule API calls for managed rules."""
     client = boto3.client("config", region_name=TEST_REGION)
 
     # Create managed rule and compare input against describe_config_rule()
@@ -516,6 +516,11 @@ def test_valid_put_config_rule():
     rsp_json = json.dumps(rsp["ConfigRules"][0], sort_keys=True)
     assert managed_rule_json == rsp_json
 
+
+@mock_config
+def test_valid_put_config_custom_rule():
+    """Test valid put_config_rule API calls for custom rules."""
+    client = boto3.client("config", region_name=TEST_REGION)
     # Create custom rule and compare input against describe_config_rule
     # output.
     create_lambda_for_config_rule()
@@ -552,6 +557,33 @@ def test_valid_put_config_rule():
     rsp_json = json.dumps(rsp["ConfigRules"][0], sort_keys=True)
     assert custom_rule_json == rsp_json
 
+    # Update a custom rule specifying just the rule Id.  Test the default
+    # value for MaximumExecutionFrequency while we're at it.
+    del custom_rule["ConfigRuleArn"]
+    rule_name = custom_rule.pop("ConfigRuleName")
+    custom_rule["Source"]["SourceDetails"][0] = {
+        "EventSource": "aws.config",
+        "MessageType": "ConfigurationSnapshotDeliveryCompleted",
+    }
+    client.put_config_rule(ConfigRule=custom_rule)
+    rsp = client.describe_config_rules(ConfigRuleNames=[rule_name])
+    updated_rule = rsp["ConfigRules"][0]
+    assert updated_rule["ConfigRuleName"] == rule_name
+    assert (
+        updated_rule["Source"]["SourceDetails"][0]["MaximumExecutionFrequency"]
+        == "TwentyFour_Hours"
+    )
+
+    # Update a custom rule specifying just the rule ARN.
+    custom_rule["ConfigRuleArn"] = rule_arn
+    del custom_rule["ConfigRuleId"]
+    custom_rule["MaximumExecutionFrequency"] = "Six_Hours"
+    client.put_config_rule(ConfigRule=custom_rule)
+    rsp = client.describe_config_rules(ConfigRuleNames=[rule_name])
+    updated_rule = rsp["ConfigRules"][0]
+    assert updated_rule["ConfigRuleName"] == rule_name
+    assert updated_rule["MaximumExecutionFrequency"] == "Six_Hours"
+
 
 @mock_config
 def test_describe_config_rules():
@@ -561,7 +593,7 @@ def test_describe_config_rules():
     response = client.describe_config_rules()
     assert len(response["ConfigRules"]) == 0
 
-    rule_name_base = "describe_test_"
+    rule_name_base = "describe_test"
     for idx in range(ConfigRule.MAX_RULES):
         managed_rule = managed_config_rule()
         managed_rule["ConfigRuleName"] = f"{rule_name_base}_{idx}"
@@ -580,7 +612,7 @@ def test_describe_config_rules():
     assert err["Code"] == "NoSuchConfigRuleException"
     assert "The ConfigRule 'fooey' provided in the request is invalid" in err["Message"]
 
-    # Request 3 specific ConfigRules.
+    # Request three specific ConfigRules.
     response = client.describe_config_rules(
         ConfigRuleNames=[
             f"{rule_name_base}_1",
@@ -595,8 +627,29 @@ def test_describe_config_rules():
     response = client.describe_config_rules()
     assert len(response["ConfigRules"]) == CONFIG_RULE_PAGE_SIZE
 
-    # TODO test tokens: InvalidNextTokenException, good token
-    # TODO test content of response
+    # Test a bad token.
+    with pytest.raises(ClientError) as exc:
+        client.describe_config_rules(NextToken="foo")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidNextTokenException"
+    assert "The nextToken provided is invalid" in err["Message"]
+
+    # Loop using tokens, verifying the tokens are as expected.
+    expected_tokens = [  # Non-alphanumeric sorted token numbers
+        f"{rule_name_base}_120",
+        f"{rule_name_base}_143",
+        f"{rule_name_base}_31",
+        f"{rule_name_base}_54",
+        f"{rule_name_base}_77",
+        None,
+    ]
+    idx = 0
+    token = f"{rule_name_base}_0"
+    while token:
+        rsp = client.describe_config_rules(NextToken=token)
+        token = rsp.get("NextToken")
+        assert token == expected_tokens[idx]
+        idx += 1
 
 
 @mock_config

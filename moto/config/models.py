@@ -1732,11 +1732,13 @@ class ConfigBackend(BaseBackend):
                     "One or more identifiers needs to be provided. Provide "
                     "Name or Id or Arn"
                 )
-            field_name = "ConfigRuleId" if rule_id else "ConfigRuleArn"
             field_value = rule_id if rule_id else rule_arn
-            for config_rule_obj in self.config_rules:
-                if config_rule_obj[field_name] == field_value:
-                    rule_name = config_rule_obj["ConfigRuleName"]
+            for config_rule_obj in self.config_rules.values():
+                if rule_id and config_rule_obj.config_rule_id == rule_id:
+                    rule_name = config_rule_obj.config_rule_name
+                    break
+                if rule_arn and config_rule_obj.config_rule_arn == rule_arn:
+                    rule_name = config_rule_obj.config_rule_name
                     break
             else:
                 raise InvalidParameterValueException(
@@ -1786,9 +1788,7 @@ class ConfigBackend(BaseBackend):
         else:
             rule_list = list(self.config_rules.keys())
 
-        if not rule_list:
-            return result
-
+        # The rules are not sorted alphanumerically.
         sorted_rules = sorted(rule_list)
         start = 0
         if next_token:
