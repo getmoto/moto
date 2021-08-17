@@ -607,62 +607,69 @@ class ResourceMap(collections_abc.Mapping):
                 )
 
     def diff(self, template, parameters=None):
+
+        self._template = template
+
         if parameters:
             self.input_parameters = parameters
+
         self.load_mapping()
         self.load_parameters()
         self.load_conditions()
 
-        old_template = self._resource_json_map
-        new_template = template["Resources"]
+        old_template_resources = self._resource_json_map
+        new_template_resources = template["Resources"]
 
         resource_names_by_action = {
-            "Add": set(new_template) - set(old_template),
+            "Add": set(new_template_resources) - set(old_template_resources),
             "Modify": set(
                 name
-                for name in new_template
-                if name in old_template and new_template[name] != old_template[name]
+                for name in new_template_resources
+                if name in old_template_resources
+                and new_template_resources[name] != old_template_resources[name]
             ),
-            "Remove": set(old_template) - set(new_template),
+            "Remove": set(old_template_resources) - set(new_template_resources),
         }
         resources_by_action = {"Add": {}, "Modify": {}, "Remove": {}}
 
         for resource_name in resource_names_by_action["Add"]:
             resources_by_action["Add"][resource_name] = {
                 "LogicalResourceId": resource_name,
-                "ResourceType": new_template[resource_name]["Type"],
+                "ResourceType": new_template_resources[resource_name]["Type"],
             }
 
         for resource_name in resource_names_by_action["Modify"]:
             resources_by_action["Modify"][resource_name] = {
                 "LogicalResourceId": resource_name,
-                "ResourceType": new_template[resource_name]["Type"],
+                "ResourceType": new_template_resources[resource_name]["Type"],
             }
 
         for resource_name in resource_names_by_action["Remove"]:
             resources_by_action["Remove"][resource_name] = {
                 "LogicalResourceId": resource_name,
-                "ResourceType": old_template[resource_name]["Type"],
+                "ResourceType": old_template_resources[resource_name]["Type"],
             }
 
         return resources_by_action
 
     def update(self, template, parameters=None):
+
         resources_by_action = self.diff(template, parameters)
 
-        old_template = self._resource_json_map
-        new_template = template["Resources"]
-        self._resource_json_map = new_template
+        old_template_resources = self._resource_json_map
+        new_template_resources = template["Resources"]
+        self._resource_json_map = new_template_resources
 
         for resource_name, resource in resources_by_action["Add"].items():
-            resource_json = new_template[resource_name]
+            resource_json = new_template_resources[resource_name]
             new_resource = parse_and_create_resource(
                 resource_name, resource_json, self, self._region_name
             )
             self._parsed_resources[resource_name] = new_resource
 
+
         for logical_name, _ in resources_by_action["Remove"].items():
-            resource_json = old_template[logical_name]
+            resource_json = old_template_resources[logical_name]
             resource = self._parsed_resources[logical_name]
             # ToDo: Standardize this.
             if hasattr(resource, "physical_resource_id"):
@@ -679,7 +686,7 @@ class ResourceMap(collections_abc.Mapping):
         tries = 1
         while resources_by_action["Modify"] and tries < 5:
             for logical_name, _ in resources_by_action["Modify"].copy().items():
-                resource_json = new_template[logical_name]
+                resource_json = new_template_resources[logical_name]
                 try:
                     changed_resource = parse_and_update_resource(
                         logical_name, resource_json, self, self._region_name

@@ -40,6 +40,18 @@ name_type_template = {
     },
 }
 
+name_type_template_update = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Create a multi-az, load balanced, Auto Scaled sample web site. The Auto Scaling trigger is based on the CPU utilization of the web servers. The AMI is chosen based on the region in which the stack is run. This example creates a web service running across all availability zones in a region. The instances are load balanced with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (8888 by default). **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+    "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {"VisibilityTimeout": {"Ref": "TimeoutParameter"}},
+        }
+    },
+}
+
 name_type_template_with_tabs_json = """
 \t{
 \t\t"AWSTemplateFormatVersion": "2010-09-09",
@@ -242,6 +254,24 @@ def test_parse_stack_with_yaml_template():
     list(stack.resource_map.keys())[0].should.equal("Queue")
     queue = list(stack.resource_map.values())[0]
     queue.should.be.a(Queue)
+
+
+def test_update_stack_uses_updated_template():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=yaml.dump(name_type_template),
+        parameters={},
+        region_name="us-west-1",
+    )
+
+    stack.update(yaml.dump(name_type_template_update))
+
+    stack.resource_map.should.have.length_of(1)
+    list(stack.resource_map.keys())[0].should.equal("Queue")
+    queue = list(stack.resource_map.values())[0]
+    queue.should.be.a(Queue)
+    queue.visibility_timeout.should.equal(61)
 
 
 def test_parse_stack_with_outputs():
