@@ -6,6 +6,7 @@
    delete_config_rule
 """
 from io import BytesIO
+import json
 from string import ascii_lowercase
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -482,9 +483,74 @@ def test_config_rules_source_details_errors():
 def test_valid_put_config_rule():
     """Test valid put_config_rule API calls."""
     client = boto3.client("config", region_name=TEST_REGION)
-    # test both managed and custom, compare field results using describe
-    # test update
-    # TODO
+
+    # Create managed rule and compare input against describe_config_rule()
+    # output.
+    managed_rule = managed_config_rule()
+    managed_rule["Scope"]["ComplianceResourceTypes"] = ["AWS::IAM::Group"]
+    managed_rule["Scope"]["ComplianceResourceId"] = "basic_test"
+    managed_rule["InputParameters"] = '{"RequireUppercaseCharacters":"true"}'
+    managed_rule["ConfigRuleState"] = "ACTIVE"
+    client.put_config_rule(ConfigRule=managed_rule)
+
+    rsp = client.describe_config_rules(ConfigRuleNames=[managed_rule["ConfigRuleName"]])
+    managed_rule_json = json.dumps(managed_rule, sort_keys=True)
+    new_config_rule = rsp["ConfigRules"][0]
+    rule_arn = new_config_rule.pop("ConfigRuleArn")
+    rule_id = new_config_rule.pop("ConfigRuleId")
+    rsp_json = json.dumps(new_config_rule, sort_keys=True)
+    assert managed_rule_json == rsp_json
+
+    # Update managed rule and compare again.
+    managed_rule["ConfigRuleArn"] = rule_arn
+    managed_rule["ConfigRuleId"] = rule_id
+    managed_rule["Description"] = "Updated Managed S3 Public Read Rule"
+    managed_rule["Scope"]["ComplianceResourceTypes"] = ["AWS::S3::Bucket"]
+    managed_rule["Scope"]["ComplianceResourceId"] = "S3-BUCKET_VERSIONING_ENABLED"
+    managed_rule["MaximumExecutionFrequency"] = "Six_Hours"
+    managed_rule["InputParameters"] = "{}"
+    client.put_config_rule(ConfigRule=managed_rule)
+
+    rsp = client.describe_config_rules(ConfigRuleNames=[managed_rule["ConfigRuleName"]])
+    managed_rule_json = json.dumps(managed_rule, sort_keys=True)
+    rsp_json = json.dumps(rsp["ConfigRules"][0], sort_keys=True)
+    assert managed_rule_json == rsp_json
+
+    # Create custom rule and compare input against describe_config_rule
+    # output.
+    create_lambda_for_config_rule()
+    custom_rule = custom_config_rule()
+    custom_rule["Scope"]["ComplianceResourceTypes"] = ["AWS::IAM::Group"]
+    custom_rule["Scope"]["ComplianceResourceId"] = "basic_custom_test"
+    custom_rule["InputParameters"] = '{"TestName":"true"}'
+    custom_rule["ConfigRuleState"] = "ACTIVE"
+    client.put_config_rule(ConfigRule=custom_rule)
+
+    rsp = client.describe_config_rules(ConfigRuleNames=[custom_rule["ConfigRuleName"]])
+    custom_rule_json = json.dumps(custom_rule, sort_keys=True)
+    new_config_rule = rsp["ConfigRules"][0]
+    rule_arn = new_config_rule.pop("ConfigRuleArn")
+    rule_id = new_config_rule.pop("ConfigRuleId")
+    rsp_json = json.dumps(new_config_rule, sort_keys=True)
+    assert custom_rule_json == rsp_json
+
+    # Update custom rule and compare again.
+    custom_rule["ConfigRuleArn"] = rule_arn
+    custom_rule["ConfigRuleId"] = rule_id
+    custom_rule["Description"] = "Updated Managed S3 Public Read Rule"
+    custom_rule["Scope"]["ComplianceResourceTypes"] = ["AWS::S3::Bucket"]
+    custom_rule["Scope"]["ComplianceResourceId"] = "S3-BUCKET_VERSIONING_ENABLED"
+    custom_rule["Source"]["SourceDetails"][0] = {
+        "EventSource": "aws.config",
+        "MessageType": "ConfigurationItemChangeNotification",
+    }
+    custom_rule["InputParameters"] = "{}"
+    client.put_config_rule(ConfigRule=custom_rule)
+
+    rsp = client.describe_config_rules(ConfigRuleNames=[custom_rule["ConfigRuleName"]])
+    custom_rule_json = json.dumps(custom_rule, sort_keys=True)
+    rsp_json = json.dumps(rsp["ConfigRules"][0], sort_keys=True)
+    assert custom_rule_json == rsp_json
 
 
 @mock_config

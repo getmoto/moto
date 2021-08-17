@@ -173,8 +173,6 @@ def convert_to_class_args(dict_arg):
     snake case to use as arguments when instatiating the representative
     class's __init__().
     """
-    # Convert the dictionary representing the object into a dictionary that
-    # can be used as arguments for the class instantiation.
     class_args = {}
     for key, value in dict_arg.items():
         class_args[CAMEL_TO_SNAKE_REGEX.sub("_", key).lower()] = value
@@ -524,10 +522,7 @@ class SourceDetail(ConfigEmptyDictable):
     EVENT_SOURCES = ["aws.config"]
 
     def __init__(
-        self,
-        event_source=None,
-        message_type=None,
-        maximum_execution_frequency=DEFAULT_FREQUENCY,
+        self, event_source=None, message_type=None, maximum_execution_frequency=None
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
@@ -563,21 +558,34 @@ class SourceDetail(ConfigEmptyDictable):
                 + "}"
             )
 
-        if maximum_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
-            raise ValidationException(
-                f"Value '{maximum_execution_frequency}' at "
-                f"'configRule.source.sourceDetails.maximumExecutionFrequency' "
-                f"failed to satisfy constraint: "
-                f"Member must satisfy enum value set: {{"
-                + ", ".join(sorted(SourceDetail.FREQUENCY_TYPES))
-                + "}"
-            )
-        if maximum_execution_frequency and message_type != "ScheduledNotification":
-            raise InvalidParameterValueException(
-                "A maximum execution frequency is not allowed if MessageType "
-                "is ConfigurationItemChangeNotification or "
-                "OversizedConfigurationItemChangeNotification"
-            )
+        if maximum_execution_frequency:
+            if maximum_execution_frequency not in SourceDetail.FREQUENCY_TYPES:
+                raise ValidationException(
+                    f"Value '{maximum_execution_frequency}' at "
+                    f"'configRule.source.sourceDetails.maximumExecutionFrequency' "
+                    f"failed to satisfy constraint: "
+                    f"Member must satisfy enum value set: {{"
+                    + ", ".join(sorted(SourceDetail.FREQUENCY_TYPES))
+                    + "}"
+                )
+            if message_type in [
+                "ConfigurationItemChangeNotification",
+                "OversizedConfigurationItemChangeNotification",
+            ]:
+                raise InvalidParameterValueException(
+                    "A maximum execution frequency is not allowed if "
+                    "MessageType is ConfigurationItemChangeNotification or "
+                    "OversizedConfigurationItemChangeNotification"
+                )
+        else:
+            # If no value is specified, use a default value for
+            # maximum_execution_frequency for message types representing a
+            # periodic trigger.
+            if message_type in [
+                "ScheduledNotification",
+                "ConfigurationSnapshotDeliveryCompleted",
+            ]:
+                maximum_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
 
         self.event_source = event_source
         self.message_type = message_type
@@ -642,6 +650,13 @@ class Source(ConfigEmptyDictable):
         self.source_details = details
         self.owner = owner
         self.source_identifier = source_identifier
+
+    def to_dict(self):
+        """Format the SourceDetails properly."""
+        result = super().to_dict()
+        if self.source_details:
+            result["SourceDetails"] = [x.to_dict() for x in self.source_details]
+        return result
 
 
 class ConfigRule(ConfigEmptyDictable):
@@ -873,8 +888,6 @@ class ConfigBackend(BaseBackend):
         limit = DEFAULT_PAGE_SIZE if not limit or limit < 0 else limit
         agg_list = []
         result = {"ConfigurationAggregators": []}
-
-        # TODO - NoSuchConfigRuleException, InvalidNextTokenException
 
         if names:
             for name in names:
@@ -1738,7 +1751,7 @@ class ConfigBackend(BaseBackend):
         rule = self.config_rules.get(rule_name)
         if rule:
             # Rule exists.  Make sure it isn't in use for another activity.
-            rule_state = rule["ConfigRuleState"]
+            rule_state = rule.config_rule_state
             if rule_state != "ACTIVE":
                 activity = "deleted" if rule_state.startswith("DELET") else "evaluated"
                 raise ResourceInUseException(
@@ -1759,6 +1772,7 @@ class ConfigBackend(BaseBackend):
         return ""
 
     def describe_config_rules(self, config_rule_names, next_token):
+        """Return details for the given ConfigRule names or for all rules."""
         result = {"ConfigRules": []}
         if not self.config_rules:
             return result
