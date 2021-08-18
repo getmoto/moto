@@ -667,7 +667,6 @@ class ResourceMap(collections_abc.Mapping):
             )
             self._parsed_resources[resource_name] = new_resource
 
-
         for logical_name, _ in resources_by_action["Remove"].items():
             resource_json = old_template_resources[logical_name]
             resource = self._parsed_resources[logical_name]
