@@ -64,7 +64,7 @@ jobs:
       - name: Update pip
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
-          python -m pip install pip==21.1.3
+          python -m pip install --upgrade pip
       - name: Install project dependencies
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
@@ -96,8 +96,7 @@ jobs:
     # Update PIP
     - name: Update pip
       run: |
-        # https://github.com/pypa/pip/issues/10201
-        python -m pip install pip==21.1.3
+        python -m pip install --upgrade pip
     # Still need to properly install the dependencies - it will only skip the download part
     - name: Install project dependencies
       run: |
@@ -134,12 +133,14 @@ jobs:
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
     - name: Update pip
       run: |
-        python -m pip install pip==21.1.3
+        python -m pip install --upgrade pip
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
         pip install pytest-cov
         pip install pytest-github-actions-annotate-failures
+        # https://github.com/aws/aws-xray-sdk-python/issues/196
+        pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
         make test-coverage
@@ -182,10 +183,11 @@ jobs:
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
     - name: Update pip
       run: |
-        python -m pip install pip==21.1.3
+        python -m pip install --upgrade pip
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
+        pip install "coverage<=4.5.4"
     - name: Test ServerMode/Coverage
       env:
         TEST_SERVER_MODE: ${{ true }}
