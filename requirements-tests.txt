@@ -1,7 +1,4 @@
 pytest
-# Last dependency that has coverage<5
-# We need coverage<5 because of https://github.com/aws/aws-xray-sdk-python/issues/196
-# We can't pin coverage==4.5.4 as done before, because of https://github.com/pypa/pip/issues/10201
-pytest-cov<2.0.0
+pytest-cov
 sure==1.4.11
 freezegun
