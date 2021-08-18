@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from datetime import datetime
+from uuid import uuid4
 
 from boto3 import Session
 
@@ -190,7 +191,7 @@ class FargateProfile:
             tags = dict()
 
         self.created_at = iso_8601_datetime_without_milliseconds(datetime.now())
-        self.uuid = generate_uuid()
+        self.uuid = str(uuid4())
         self.fargate_profile_arn = FARGATE_PROFILE_ARN_TEMPLATE.format(
             partition=aws_partition,
             region=region_name,
@@ -250,7 +251,7 @@ class ManagedNodegroup:
         if taints is None:
             taints = dict()
 
-        self.uuid = generate_uuid()
+        self.uuid = str(uuid4())
         self.arn = NODEGROUP_ARN_TEMPLATE.format(
             partition=aws_partition,
             region=region_name,
@@ -730,10 +731,6 @@ def _validate_fargate_profile_selectors(selectors):
         # If a selector has labels, it can not have more than 5
         if len(selector.get("labels", {})) > 5:
             raise_exception(message=FARGATE_PROFILE_TOO_MANY_LABELS)
-
-
-def generate_uuid():
-    return "-".join([random_string(_) for _ in [8, 4, 4, 4, 12]]).lower()
 
 
 eks_backends = {}

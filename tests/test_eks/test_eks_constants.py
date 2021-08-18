@@ -6,6 +6,7 @@ from enum import Enum
 
 from boto3 import Session
 
+from moto.core import ACCOUNT_ID
 from moto.eks import REGION as DEFAULT_REGION
 
 DEFAULT_ENCODING = "utf-8"
@@ -49,10 +50,10 @@ LOGGING_KEY = "logging"
 LOGGING_VALUE = {"clusterLogging": [{"types": ["api"], "enabled": True}]}
 
 NODEROLE_ARN_KEY = "nodeRole"
-NODEROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
+NODEROLE_ARN_VALUE = "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/role_name"
 
 POD_EXECUTION_ROLE_ARN_KEY = "podExecutionRoleArn"
-POD_EXECUTION_ROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
+POD_EXECUTION_ROLE_ARN_VALUE = "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/role_name"
 
 REMOTE_ACCESS_KEY = "remoteAccess"
 REMOTE_ACCESS_VALUE = {"ec2SshKey": "eksKeypair"}
@@ -65,7 +66,7 @@ RESOURCES_VPC_CONFIG_VALUE = {
 }
 
 ROLE_ARN_KEY = "roleArn"
-ROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
+ROLE_ARN_VALUE = "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/role_name"
 
 SCALING_CONFIG_KEY = "scalingConfig"
 SCALING_CONFIG_VALUE = {"minSize": 2, "maxSize": 3, "desiredSize": 2}

@@ -1039,7 +1039,7 @@ def test_create_fargate_profile_generates_valid_created_timestamp(
     )
 
     if settings.TEST_SERVER_MODE:
-        RegExTemplates.ISO8601_FORMAT.match(result_time).should.be.true
+        RegExTemplates.ISO8601_FORMAT.should.match(result_time)
     else:
         result_time.should.equal(FROZEN_TIME)
 

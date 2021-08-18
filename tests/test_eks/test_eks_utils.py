@@ -6,7 +6,7 @@ try:
 except ImportError:
     from urlparse import urlparse
 
-from moto.utilities.utils import random_string
+from moto.utilities.utils import random_string as generate_random_name
 from tests.test_eks.test_eks_constants import (
     ClusterAttributes,
     ClusterInputs,
@@ -17,8 +17,6 @@ from tests.test_eks.test_eks_constants import (
     ResponseAttributes,
     STATUS,
 )
-
-generate_random_name = random_string
 
 
 def attributes_to_test(inputs, name):
