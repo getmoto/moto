@@ -1753,3 +1753,35 @@ def test_filter_wildcard_in_specified_tag_only():
     instances = [i for r in response["Reservations"] for i in r["Instances"]]
     instances.should.have.length_of(1)
     instances[0]["Tags"][0].should.have.key("Key").should.equal("Name")
+
+
+@mock_ec2
+def test_instance_termination_protection():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiTermination={"Value": True}
+    )
+    client.stop_instances(InstanceIds=[instance_id], Force=True)
+
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=[instance_id])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("OperationNotPermitted")
+    ex.value.response["Error"]["Message"].should.match(
+        r"The instance '{}' may not be terminated.*$".format(instance_id)
+    )
+
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiTermination={"Value": False}
+    )
+    client.terminate_instances(InstanceIds=[instance_id])
+
+    resp = client.describe_instances(InstanceIds=[instance_id])
+    instances = resp["Reservations"][0]["Instances"]
+    instances.should.have.length_of(1)
+    instance = instances[0]
+    instance["State"]["Name"].should.equal("terminated")
