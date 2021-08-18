@@ -2222,18 +2222,12 @@ class TestTopicRules:
 
         res = client.describe_thing_type(thingTypeName=thing_type_name)
         res["thingTypeMetadata"]["deprecated"].should.equal(False)
-        client.deprecate_thing_type(
-            thingTypeName=thing_type_name,
-            undoDeprecate=False,
-        )
+        client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=False)
 
         res = client.describe_thing_type(thingTypeName=thing_type_name)
         res["thingTypeMetadata"]["deprecated"].should.equal(True)
 
-        client.deprecate_thing_type(
-            thingTypeName=thing_type_name,
-            undoDeprecate=True,
-        )
+        client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=True)
 
         res = client.describe_thing_type(thingTypeName=thing_type_name)
         res["thingTypeMetadata"]["deprecated"].should.equal(False)
@@ -2244,6 +2238,5 @@ class TestTopicRules:
         thing_type_name = "my-type-name"
         with pytest.raises(client.exceptions.ResourceNotFoundException):
             client.deprecate_thing_type(
-                thingTypeName=thing_type_name,
-                undoDeprecate=False,
+                thingTypeName=thing_type_name, undoDeprecate=False
             )
