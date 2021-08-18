@@ -8,19 +8,20 @@ and info is extracted with the final results written to a JSON file.
 The JSON output will look as follows:
 
 {
-    "ManagedRuleIds": [
+    "ManagedRules": [
         {
-            "AWS Region": "All supported AWS regions",
-            "Identifier": "ACCESS_KEYS_ROTATED",
-            "Parameters": [
-                {
-                    "Default": "90",
-                    "Name": "maxAccessKeyAgeType",
-                    "Optional": false,
-                    "Type": "intDefault"
-                    }
-            ],
-            "Trigger type": "Periodic"
+            "ACCESS_KEYS_ROTATED": {
+                "AWS Region": "All supported AWS regions",
+                "Parameters": [
+                    {
+                        "Default": "90",
+                        "Name": "maxAccessKeyAgeType",
+                        "Optional": false,
+                        "Type": "intDefault"
+                        }
+                ],
+                "Trigger type": "Periodic"
+            },
         },
         ...
     ]
@@ -63,13 +64,12 @@ def managed_rule_info(lines):
             # A new header marks the end of the parameters.
             if line.startswith("##"):
                 rule_info["Parameters"] = params
-                params = []
-                collecting_params = False
+                break
 
             if "Type: " in line:
                 values = re.split(r":\s?", line)
                 # If there is no Optional keyword, then sometimes there
-                # isn't a space between the paramert name and "Type".
+                # isn't a space between the parameter name and "Type".
                 name = re.sub("Type$", "", values[0])
 
                 optional = False
@@ -117,14 +117,15 @@ def main():
     link_pattern = re.compile(r"\+ \[[^\]]+\]\(([^)]+)\)")
     markdown_files = link_pattern.findall(req.text)
 
-    markdown = {"ManagedRuleIds": []}
+    markdown = {"ManagedRules": {}}
     for markdown_file in markdown_files:
         req = requests.get(AWS_MARKDOWN_URL_START + markdown_file)
         rules = managed_rule_info(req.text.split("\n"))
-        markdown["ManagedRuleIds"].append(rules)
+        rule_id = rules.pop("Identifier")
+        markdown["ManagedRules"][rule_id] = rules
 
     with open(MANAGED_RULES_OUTPUT_FILENAME, "w") as fhandle:
-        json.dump(markdown, fhandle, sort_keys=True, indent=4)
+        json.dump(markdown, fhandle, sort_keys=True, indent=2)
     return 0
 
 
