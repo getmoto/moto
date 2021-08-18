@@ -45,7 +45,7 @@ rule_template = Template(
                     "Type": "AWS::Events::Rule",
                     "Properties": {
                         "Name": "${rule_name}",
-                        "EventPattern": {"detail-type": ["meteor"]},
+                        "EventPattern": {"detail-type": ["SomeDetailType"]},
                     },
                 }
             },
@@ -153,3 +153,4 @@ def test_create_rule():
     response = events_client.describe_rule(Name=name)
 
     response["Arn"].should.equal(rule_arn)
+    response["EventPattern"].should.equal('{"detail-type": ["SomeDetailType"]}')
