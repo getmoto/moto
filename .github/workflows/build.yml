@@ -256,7 +256,7 @@ jobs:
     - name: Archive TF logs
       uses: actions/upload-artifact@v2
       with:
-        name: buildfolder
+        name: buildfolder-${{ matrix.part }}
         path: |
           moto-terraform-tests/build/*
 
