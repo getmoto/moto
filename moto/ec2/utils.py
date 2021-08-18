@@ -362,8 +362,10 @@ def get_obj_tag_names(obj):
     return tags
 
 
-def get_obj_tag_values(obj):
-    tags = set((tag["value"] for tag in obj.get_tags()))
+def get_obj_tag_values(obj, key=None):
+    tags = set(
+        (tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None)
+    )
     return tags
 
 
@@ -381,7 +383,8 @@ def tag_filter_matches(obj, filter_name, filter_values):
     elif filter_name == "tag-value":
         tag_values = get_obj_tag_values(obj)
     elif filter_name.startswith("tag:"):
-        tag_values = get_obj_tag_values(obj)
+        key = filter_name[4:]
+        tag_values = get_obj_tag_values(obj, key=key)
     else:
         tag_values = [get_obj_tag(obj, filter_name) or ""]
 

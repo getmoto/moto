@@ -1724,3 +1724,32 @@ def test_warn_on_invalid_ami():
         match=r"Could not find AMI with image-id:invalid-ami.+",
     ):
         ec2.create_instances(ImageId="invalid-ami", MinCount=1, MaxCount=1)
+
+
+@mock_ec2
+def test_filter_wildcard_in_specified_tag_only():
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+
+    tags_name = [{"Key": "Name", "Value": "alice in wonderland"}]
+    ec2_client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MaxCount=1,
+        MinCount=1,
+        TagSpecifications=[{"ResourceType": "instance", "Tags": tags_name}],
+    )
+
+    tags_owner = [{"Key": "Owner", "Value": "alice in wonderland"}]
+    ec2_client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MaxCount=1,
+        MinCount=1,
+        TagSpecifications=[{"ResourceType": "instance", "Tags": tags_owner}],
+    )
+
+    # should only match the Name tag
+    response = ec2_client.describe_instances(
+        Filters=[{"Name": "tag:Name", "Values": ["*alice*"]}]
+    )
+    instances = [i for r in response["Reservations"] for i in r["Instances"]]
+    instances.should.have.length_of(1)
+    instances[0]["Tags"][0].should.have.key("Key").should.equal("Name")
