@@ -68,9 +68,17 @@ def managed_rule_info(lines):
 
             if "Type: " in line:
                 values = re.split(r":\s?", line)
+                name = values[0]
+                param_type = values[1]
+
                 # If there is no Optional keyword, then sometimes there
                 # isn't a space between the parameter name and "Type".
-                name = re.sub("Type$", "", values[0])
+                name = re.sub("Type$", "", name)
+
+                # Sometimes there isn't a space between the type and the
+                # word "Default".
+                if "Default" in param_type:
+                    param_type = re.sub("Default$", "", param_type)
 
                 optional = False
                 if "Optional" in line:
@@ -81,7 +89,7 @@ def managed_rule_info(lines):
                 values_dict = {
                     "Name": name,
                     "Optional": optional,
-                    "Type": values[1],
+                    "Type": param_type,
                 }
 
                 # A default value isn't always provided.

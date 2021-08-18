@@ -7,7 +7,7 @@
           "Default": "90",
           "Name": "maxAccessKeyAge",
           "Optional": false,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Periodic"
@@ -30,7 +30,7 @@
           "Default": "14",
           "Name": "daysToExpiration",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -90,7 +90,7 @@
           "Default": "ERROR,INFO",
           "Name": "loggingLevel",
           "Optional": true,
-          "Type": "StringDefault"
+          "Type": "String"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -129,7 +129,7 @@
           "Default": "tag-key",
           "Name": "amisByTagKeyAndValue",
           "Optional": false,
-          "Type": "StringMapDefault"
+          "Type": "StringMap"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -277,19 +277,19 @@
           "Default": "true",
           "Name": "alarmActionRequired",
           "Optional": false,
-          "Type": "StringDefault"
+          "Type": "String"
         },
         {
           "Default": "true",
           "Name": "insufficientDataActionRequired",
           "Optional": false,
-          "Type": "StringDefault"
+          "Type": "String"
         },
         {
           "Default": "false",
           "Name": "okActionRequired",
           "Optional": false,
-          "Type": "StringDefault"
+          "Type": "String"
         },
         {
           "Name": "action1",
@@ -357,7 +357,7 @@
           "Default": "300",
           "Name": "period",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Name": "comparisonOperator",
@@ -458,7 +458,7 @@
           "Default": "3",
           "Name": "regionFanoutFactor",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -616,13 +616,13 @@
           "Default": "80",
           "Name": "accountRCUThresholdPercentage",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "80",
           "Name": "accountWCUThresholdPercentage",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Periodic"
@@ -785,7 +785,7 @@
           "Default": "30",
           "Name": "AllowedDays",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Periodic"
@@ -856,7 +856,7 @@
           "Default": "15",
           "Name": "snapshotRetentionPeriod",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Periodic"
@@ -1115,19 +1115,19 @@
           "Default": "30",
           "Name": "daysLowSev",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "7",
           "Name": "daysMediumSev",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "1",
           "Name": "daysHighSev",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Periodic"
@@ -1171,43 +1171,43 @@
           "Default": "true",
           "Name": "RequireUppercaseCharacters",
           "Optional": true,
-          "Type": "booleanDefault"
+          "Type": "boolean"
         },
         {
           "Default": "true",
           "Name": "RequireLowercaseCharacters",
           "Optional": true,
-          "Type": "booleanDefault"
+          "Type": "boolean"
         },
         {
           "Default": "true",
           "Name": "RequireSymbols",
           "Optional": true,
-          "Type": "booleanDefault"
+          "Type": "boolean"
         },
         {
           "Default": "true",
           "Name": "RequireNumbers",
           "Optional": true,
-          "Type": "booleanDefault"
+          "Type": "boolean"
         },
         {
           "Default": "14",
           "Name": "MinimumPasswordLength",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "24",
           "Name": "PasswordReusePrevention",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "90",
           "Name": "MaxPasswordAge",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Periodic"
@@ -1219,7 +1219,7 @@
           "Default": "arn",
           "Name": "policyArns",
           "Optional": false,
-          "Type": "CSVDefault"
+          "Type": "CSV"
         },
         {
           "Name": "exceptionList",
@@ -1299,7 +1299,7 @@
           "Default": "90",
           "Name": "maxCredentialUsageAge",
           "Optional": false,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Periodic"
@@ -1391,13 +1391,13 @@
           "Default": "3",
           "Name": "timeout",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "128",
           "Name": "memorySize",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -1577,19 +1577,19 @@
           "Default": "true",
           "Name": "clusterDbEncrypted",
           "Optional": false,
-          "Type": "booleanDefault"
+          "Type": "boolean"
         },
         {
           "Default": "true",
           "Name": "loggingEnabled",
           "Optional": false,
-          "Type": "booleanDefault"
+          "Type": "boolean"
         },
         {
           "Default": "dc1.large",
           "Name": "nodeTypes",
           "Optional": true,
-          "Type": "CSVDefault"
+          "Type": "CSV"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -1612,7 +1612,7 @@
           "Default": "true",
           "Name": "allowVersionUpgrade",
           "Optional": false,
-          "Type": "booleanDefault"
+          "Type": "boolean"
         },
         {
           "Name": "preferredMaintenanceWindow",
@@ -1623,7 +1623,7 @@
           "Default": "1",
           "Name": "automatedSnapshotRetentionPeriod",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -1650,7 +1650,7 @@
           "Default": "CostCenter",
           "Name": "tag1Key",
           "Optional": false,
-          "Type": "StringDefault"
+          "Type": "String"
         },
         {
           "Name": "tag1Value",
@@ -1717,31 +1717,31 @@
           "Default": "20",
           "Name": "blockedPort1",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "21",
           "Name": "blockedPort2",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "3389",
           "Name": "blockedPort3",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "3306",
           "Name": "blockedPort4",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         },
         {
           "Default": "4333",
           "Name": "blockedPort5",
           "Optional": true,
-          "Type": "intDefault"
+          "Type": "int"
         }
       ],
       "Trigger type": "Configuration changes"
@@ -1763,25 +1763,25 @@
           "Default": "True",
           "Name": "IgnorePublicAcls",
           "Optional": true,
-          "Type": "StringDefault"
+          "Type": "String"
         },
         {
           "Default": "True",
           "Name": "BlockPublicPolicy",
           "Optional": true,
-          "Type": "StringDefault"
+          "Type": "String"
         },
         {
           "Default": "True",
           "Name": "BlockPublicAcls",
           "Optional": true,
-          "Type": "StringDefault"
+          "Type": "String"
         },
         {
           "Default": "True",
           "Name": "RestrictPublicBuckets",
           "Optional": true,
-          "Type": "StringDefault"
+          "Type": "String"
         }
       ],
       "Trigger type": "Configuration changes (current status not checked, only evaluted when changes generate new events)"
