@@ -3,7 +3,6 @@
 
 black==19.10b0
 regex==2019.11.1
-coverage==4.5.4
 flake8==3.7.8
 boto>=2.45.0
 click
