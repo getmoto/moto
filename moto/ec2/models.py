@@ -111,6 +111,7 @@ from .exceptions import (
     InvalidAssociationIDIamProfileAssociationError,
     InvalidVpcEndPointIdError,
     InvalidTaggableResourceType,
+    InvalidGatewayIDError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -4833,6 +4834,8 @@ class EgressOnlyInternetGatewayBackend(object):
 
     def delete_egress_only_internet_gateway(self, id):
         egress_only_igw = self.egress_only_internet_gateway_backend.get(id)
+        if not egress_only_igw:
+            raise InvalidGatewayIDError(id)
         if egress_only_igw:
             self.egress_only_internet_gateway_backend.pop(id)
 
