@@ -23,6 +23,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "image": "ami",
     "instance": "i",
     "internet-gateway": "igw",
+    "egress-only-internet-gateway": "eigw",
     "launch-template": "lt",
     "nat-gateway": "nat",
     "network-acl": "acl",
@@ -151,6 +152,12 @@ def random_eip_association_id():
 
 def random_internet_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["internet-gateway"])
+
+
+def random_egress_only_internet_gateway_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"], size=17
+    )
 
 
 def random_route_table_id():
