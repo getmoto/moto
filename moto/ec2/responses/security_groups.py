@@ -33,6 +33,14 @@ def parse_sg_attributes_from_dict(sg_attributes):
 
         ip_ranges.append(ip_range)
 
+    if "CidrIp" in sg_attributes:
+        cidr_ip = sg_attributes.get("CidrIp")[0]
+        ip_ranges.append({"CidrIp": cidr_ip})
+
+    if "CidrIpv6" in sg_attributes:
+        cidr_ipv6 = sg_attributes.get("CidrIpv6")[0]
+        ip_ranges.append({"CidrIpv6": cidr_ipv6})
+
     source_groups = []
     source_group_ids = []
     groups_tree = sg_attributes.get("Groups") or {}
