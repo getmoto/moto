@@ -5058,7 +5058,7 @@ def test_presigned_put_url_with_custom_headers():
 def test_request_partial_content_should_contain_content_length():
     bucket = "bucket"
     object_key = "key"
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
     s3.Object(bucket, object_key).put(Body="some text")
 
@@ -5071,7 +5071,7 @@ def test_request_partial_content_should_contain_content_length():
 def test_request_partial_content_should_contain_actual_content_length():
     bucket = "bucket"
     object_key = "key"
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
     s3.Object(bucket, object_key).put(Body="some text")
 
@@ -5123,7 +5123,7 @@ def test_request_partial_content_without_specifying_range_should_return_full_obj
 @mock_s3
 def test_object_headers():
     bucket = "my-bucket"
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
 
     res = s3.put_object(
@@ -5149,8 +5149,8 @@ def test_object_headers():
 @mock_s3
 def test_get_object_versions_with_prefix():
     bucket_name = "testbucket-3113"
-    s3_resource = boto3.resource("s3")
-    s3_client = boto3.client("s3")
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_versioning = s3_resource.BucketVersioning(bucket_name)
     bucket_versioning.enable()
