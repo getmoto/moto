@@ -1982,11 +1982,20 @@ class RegionsAndZonesBackend(object):
 
 
 class SecurityRule(object):
-    def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
+    def __init__(
+        self,
+        ip_protocol,
+        from_port,
+        to_port,
+        ip_ranges,
+        source_groups,
+        prefix_list_ids=None,
+    ):
         self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol)
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
+        self.prefix_list_ids = prefix_list_ids or []
         self.from_port = self.to_port = None
 
         if self.ip_protocol != "-1":
@@ -2021,6 +2030,8 @@ class SecurityRule(object):
             return False
         if self.source_groups != other.source_groups:
             return False
+        if self.prefix_list_ids != other.prefix_list_ids:
+            return False
         if self.ip_protocol != "-1":
             if self.from_port != other.from_port:
                 return False
@@ -2044,7 +2055,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         ]
         self.enis = {}
         self.vpc_id = vpc_id
-        self.owner_id = OWNER_ID
+        self.owner_id = ACCOUNT_ID
         self.add_tags(tags or {})
 
         # Append default IPv6 egress rule for VPCs with IPv6 support
@@ -2296,6 +2307,7 @@ class SecurityGroupBackend(object):
         ip_ranges,
         source_group_names=None,
         source_group_ids=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -2348,7 +2360,7 @@ class SecurityGroupBackend(object):
                 source_groups.append(source_group)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups
+            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
         )
         group.add_ingress_rule(security_rule)
         return security_rule, group
@@ -2362,6 +2374,7 @@ class SecurityGroupBackend(object):
         ip_ranges,
         source_group_names=None,
         source_group_ids=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
 
@@ -2379,7 +2392,7 @@ class SecurityGroupBackend(object):
                 source_groups.append(source_group)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups
+            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
         )
         if security_rule in group.ingress_rules:
             group.ingress_rules.remove(security_rule)
@@ -2395,6 +2408,7 @@ class SecurityGroupBackend(object):
         ip_ranges,
         source_group_names=None,
         source_group_ids=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
 
@@ -2447,7 +2461,7 @@ class SecurityGroupBackend(object):
                 source_groups.append(source_group)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups
+            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
         )
         group.add_egress_rule(security_rule)
         return security_rule, group
@@ -2461,6 +2475,7 @@ class SecurityGroupBackend(object):
         ip_ranges,
         source_group_names=None,
         source_group_ids=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
 
@@ -2492,7 +2507,7 @@ class SecurityGroupBackend(object):
                         ip_ranges.remove(item)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups
+            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
         )
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)

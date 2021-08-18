@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
-from moto.core import ACCOUNT_ID
 
 
 def try_parse_int(value, default=None):
@@ -43,7 +42,27 @@ def parse_sg_attributes_from_dict(sg_attributes):
             source_group_ids.append(group_dict["GroupId"][0])
         elif "GroupName" in group_dict:
             source_groups.append(group_dict["GroupName"][0])
-    return ip_protocol, from_port, to_port, ip_ranges, source_groups, source_group_ids
+
+    prefix_list_ids = []
+    pl_tree = sg_attributes.get("PrefixListIds") or {}
+    for pl_index in sorted(pl_tree):
+        pl_dict = pl_tree.get(pl_index, {})
+        pl_item = {}
+        if "PrefixListId" in pl_dict:
+            pl_item["PrefixListId"] = pl_dict.get("PrefixListId")[0]
+        if "Description" in pl_dict:
+            pl_item["Description"] = pl_dict.get("Description")[0]
+        if pl_item:
+            prefix_list_ids.append(pl_item)
+    return (
+        ip_protocol,
+        from_port,
+        to_port,
+        ip_ranges,
+        source_groups,
+        source_group_ids,
+        prefix_list_ids,
+    )
 
 
 class SecurityGroups(BaseResponse):
@@ -71,6 +90,7 @@ class SecurityGroups(BaseResponse):
                 ip_ranges,
                 source_groups,
                 source_group_ids,
+                prefix_list_ids,
             ) = parse_sg_attributes_from_dict(querytree)
 
             yield (
@@ -81,6 +101,7 @@ class SecurityGroups(BaseResponse):
                 ip_ranges,
                 source_groups,
                 source_group_ids,
+                prefix_list_ids,
             )
 
         ip_permissions = querytree.get("IpPermissions") or {}
@@ -94,6 +115,7 @@ class SecurityGroups(BaseResponse):
                 ip_ranges,
                 source_groups,
                 source_group_ids,
+                prefix_list_ids,
             ) = parse_sg_attributes_from_dict(ip_permission)
 
             yield (
@@ -104,6 +126,7 @@ class SecurityGroups(BaseResponse):
                 ip_ranges,
                 source_groups,
                 source_group_ids,
+                prefix_list_ids,
             )
 
     def authorize_security_group_egress(self):
@@ -190,15 +213,12 @@ DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazon
   <return>true</return>
 </DeleteSecurityGroupResponse>"""
 
-DESCRIBE_SECURITY_GROUPS_RESPONSE = (
-    """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <securityGroupInfo>
       {% for group in groups %}
           <item>
-             <ownerId>"""
-    + ACCOUNT_ID
-    + """</ownerId>
+             <ownerId>{{ group.owner_id }}</ownerId>
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
@@ -218,9 +238,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>"""
-    + ACCOUNT_ID
-    + """</userId>
+                                 <userId>{{ source_group.owner_id }}</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -230,9 +248,9 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                           {% for ip_range in rule.ip_ranges %}
                              {% if ip_range['CidrIp'] %}
                               <item>
-                                 <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                    <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
                                     {% if ip_range['Description'] %}
-                                        <description>{{ ip_range['Description'] }}</description>
+                                    <description>{{ ip_range['Description'] }}</description>
                                     {% endif %}
                               </item>
                               {% endif %}
@@ -243,14 +261,21 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                             {% if ip_range['CidrIpv6'] %}
                             <item>
                                 <cidrIpv6>{{ ip_range['CidrIpv6'] }}</cidrIpv6>
-                                    {% if ip_range['Description'] %}
-                                        <description>{{ ip_range['Description'] }}</description>
-                                    {% endif %}
+                                {% if ip_range['Description'] %}
+                                <description>{{ ip_range['Description'] }}</description>
+                                {% endif %}
                             </item>
                             {% endif %}
                         {% endfor %}
                         </ipv6Ranges>
-                       <prefixListIds/>
+                        <prefixListIds>
+                            {% for prefix_list in rule.prefix_list_ids %}
+                            <item>
+                                <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
+                                <description>{{ prefix_list.Description }}</description>
+                            </item>
+                        {% endfor %}
+                       </prefixListIds>
                     </item>
                 {% endfor %}
              </ipPermissions>
@@ -267,9 +292,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>"""
-    + ACCOUNT_ID
-    + """</userId>
+                                 <userId>{{ source_group.owner_id }}</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -279,9 +302,9 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                           {% for ip_range in rule.ip_ranges %}
                              {% if ip_range['CidrIp'] %}
                               <item>
-                                 <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                    <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
                                     {% if ip_range['Description'] %}
-                                        <description>{{ ip_range['Description'] }}</description>
+                                    <description>{{ ip_range['Description'] }}</description>
                                     {% endif %}
                               </item>
                               {% endif %}
@@ -291,15 +314,24 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                         {% for ip_range in rule.ip_ranges %}
                             {% if ip_range['CidrIpv6'] %}
                             <item>
-                                <cidrIpv6>{{ ip_range['CidrIpv6'] }}</cidrIpv6>
+                                    <cidrIpv6>{{ ip_range['CidrIpv6'] }}</cidrIpv6>
                                     {% if ip_range['Description'] %}
-                                        <description>{{ ip_range['Description'] }}</description>
+                                    <description>{{ ip_range['Description'] }}</description>
                                     {% endif %}
                             </item>
                             {% endif %}
                         {% endfor %}
                         </ipv6Ranges>
-                       <prefixListIds/>
+                        <prefixListIds>
+                            {% if rule.prefix_list_ids %}
+                            {% for prefix_list in rule.prefix_list_ids %}
+                            <item>
+                                <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
+                                <description>{{ prefix_list.Description }}</description>
+                            </item>
+                            {% endfor %}
+                            {% endif %}
+                        </prefixListIds>
                     </item>
                {% endfor %}
              </ipPermissionsEgress>
@@ -315,7 +347,6 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
       {% endfor %}
    </securityGroupInfo>
 </DescribeSecurityGroupsResponse>"""
-)
 
 AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE = """<AuthorizeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>b1f67202-c2c2-4ba4-8464-c8b1d8f5af7a</requestId>
@@ -329,6 +360,23 @@ AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE = """<AuthorizeSecurityGroupIngressRes
             {% if item.CidrIpv6 %}
             <cidrIpv6>{{ item.CidrIpv6 }}</cidrIpv6>
             {% endif %}
+            <description>{{ item.Description or '' }}</description>
+            {% if rule.from_port is not none %}
+            <fromPort>{{ rule.from_port }}</fromPort>
+            {% endif %}
+            <groupId>{{ group.id }}</groupId>
+            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+            <isEgress>false</isEgress>
+            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+            {% if rule.to_port is not none %}
+            <toPort>{{ rule.to_port }}</toPort>
+            {% endif %}
+        </item>
+    {% endfor %}
+    {% for item in rule.prefix_list_ids %}
+        <item>
+            <prefixListId>{{ item.PrefixListId }}</prefixListId>
             <description>{{ item.Description or '' }}</description>
             {% if rule.from_port is not none %}
             <fromPort>{{ rule.from_port }}</fromPort>
@@ -363,6 +411,23 @@ AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE = """<AuthorizeSecurityGroupEgressRespo
             {% if item.CidrIpv6 %}
             <cidrIpv6>{{ item.CidrIpv6 }}</cidrIpv6>
             {% endif %}
+            <description>{{ item.Description or '' }}</description>
+            {% if rule.from_port is not none %}
+            <fromPort>{{ rule.from_port }}</fromPort>
+            {% endif %}
+            <groupId>{{ group.id }}</groupId>
+            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+            <isEgress>true</isEgress>
+            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+            {% if rule.to_port is not none %}
+            <toPort>{{ rule.to_port }}</toPort>
+            {% endif %}
+        </item>
+    {% endfor %}
+    {% for item in rule.prefix_list_ids %}
+        <item>
+            <prefixListId>{{ item.PrefixListId }}</prefixListId>
             <description>{{ item.Description or '' }}</description>
             {% if rule.from_port is not none %}
             <fromPort>{{ rule.from_port }}</fromPort>
