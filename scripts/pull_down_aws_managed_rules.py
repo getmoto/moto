@@ -47,40 +47,47 @@ def managed_rule_info(lines):
     # Examples of parameter definitions:
     #    maxAccessKeyAgeType: intDefault: 90
     #    IgnorePublicAcls \(Optional\)Type: StringDefault: True
-    params_pattern = re.compile(
-        r"(?P<name>\s?.*)?\:\s+(?P<type>.*)\:\s+(?P<default>.*)"
-    )
-
+    #    MasterAccountId \(Optional\)Type: String
+    #    endpointConfigurationTypesType: String
+    #
     collecting_params = False
     params = []
     for line in lines:
         if not line:
             continue
-        line = line.strip()
+        line = line.replace("\\", "").strip()
 
         # Parameters are listed in the lines following the label, so they
         # require special processing.
         if collecting_params:
+            # A new header marks the end of the parameters.
             if line.startswith("##"):
                 rule_info["Parameters"] = params
                 params = []
                 collecting_params = False
 
-            if "Default: " in line:
-                matches = re.match(params_pattern, line)
+            if "Type: " in line:
+                values = re.split(r":\s?", line)
+                # If there is no Optional keyword, then sometimes there
+                # isn't a space between the paramert name and "Type".
+                name = re.sub("Type$", "", values[0])
+
                 optional = False
-                name = matches.group("name")
                 if "Optional" in line:
                     optional = True
+                    # Remove "Optional" from the line.
                     name = name.split()[0]
-                params.append(
-                    {
-                        "Name": name,
-                        "Optional": optional,
-                        "Type": matches.group("type"),
-                        "Default": matches.group("default"),
-                    }
-                )
+
+                values_dict = {
+                    "Name": name,
+                    "Optional": optional,
+                    "Type": values[1],
+                }
+
+                # A default value isn't always provided.
+                if len(values) > 2:
+                    values_dict["Default"] = values[2]
+                params.append(values_dict)
             continue
 
         # Check for a label starting with two asterisks.

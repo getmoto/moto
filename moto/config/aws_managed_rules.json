@@ -6,7 +6,7 @@
             "Parameters": [
                 {
                     "Default": "90",
-                    "Name": "maxAccessKeyAgeType",
+                    "Name": "maxAccessKeyAge",
                     "Optional": false,
                     "Type": "intDefault"
                 }
@@ -16,7 +16,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Osaka) Region",
             "Identifier": "ACCOUNT_PART_OF_ORGANIZATIONS",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "MasterAccountId",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -47,13 +53,25 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "ALB_WAF_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "wafWebAclIds",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "API_GW_ASSOCIATED_WITH_WAF",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "WebAclArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -65,7 +83,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "API_GW_ENDPOINT_TYPE_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "endpointConfigurationTypes",
+                    "Optional": false,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -84,7 +108,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "API_GW_SSL_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "CertificateIDs",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -96,7 +126,13 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "APPROVED_AMIS_BY_ID",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "amiIds",
+                    "Optional": false,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -104,8 +140,8 @@
             "Identifier": "APPROVED_AMIS_BY_TAG",
             "Parameters": [
                 {
-                    "Default": "tag\\-key:tag\\-value,other\\-tag\\-key",
-                    "Name": "amisByTagKeyAndValueType",
+                    "Default": "tag-key",
+                    "Name": "amisByTagKeyAndValue",
                     "Optional": false,
                     "Type": "StringMapDefault"
                 }
@@ -115,7 +151,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Hong Kong), Asia Pacific (Osaka), Europe (Milan), Europe (Stockholm), Middle East (Bahrain), Africa (Cape Town), South America (Sao Paulo) Region",
             "Identifier": "AURORA_MYSQL_BACKTRACKING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "BacktrackWindowInHours",
+                    "Optional": true,
+                    "Type": "double"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -139,25 +181,69 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Hong Kong), Asia Pacific (Osaka), Europe (Milan), Europe (Paris), Europe (Stockholm), Middle East (Bahrain), Africa (Cape Town) Region",
             "Identifier": "CLOUDFORMATION_STACK_DRIFT_DETECTION_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "cloudformationRoleArn",
+                    "Optional": false,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Hong Kong), Asia Pacific (Osaka), Europe (Milan), Europe (Paris), Europe (Stockholm), Middle East (Bahrain), Africa (Cape Town) Region",
             "Identifier": "CLOUDFORMATION_STACK_NOTIFICATION_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "snsTopic1",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "snsTopic2",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "snsTopic3",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "snsTopic4",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "snsTopic5",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "Only available in US East (N. Virginia) Region",
             "Identifier": "CLOUDFRONT_ACCESSLOGS_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "S3BucketName",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "Only available in US East (N. Virginia) Region",
             "Identifier": "CLOUDFRONT_ASSOCIATED_WITH_WAF",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "wafWebAclIds",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -199,7 +285,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "CLOUDTRAIL_S3_DATAEVENTS_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "S3BucketNames",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -214,21 +306,46 @@
             "Parameters": [
                 {
                     "Default": "true",
-                    "Name": "alarmActionRequiredType",
+                    "Name": "alarmActionRequired",
                     "Optional": false,
                     "Type": "StringDefault"
                 },
                 {
                     "Default": "true",
-                    "Name": "insufficientDataActionRequiredType",
+                    "Name": "insufficientDataActionRequired",
                     "Optional": false,
                     "Type": "StringDefault"
                 },
                 {
                     "Default": "false",
-                    "Name": "okActionRequiredType",
+                    "Name": "okActionRequired",
                     "Optional": false,
                     "Type": "StringDefault"
+                },
+                {
+                    "Name": "action1",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "action2",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "action3",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "action4",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "action5",
+                    "Optional": true,
+                    "Type": "String"
                 }
             ],
             "Trigger type": "Configuration changes"
@@ -236,7 +353,18 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "CLOUDWATCH_ALARM_RESOURCE_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "resourceType",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "metricName",
+                    "Optional": false,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -244,10 +372,35 @@
             "Identifier": "CLOUDWATCH_ALARM_SETTINGS_CHECK",
             "Parameters": [
                 {
+                    "Name": "metricName",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "threshold",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "evaluationPeriods",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
                     "Default": "300",
                     "Name": "period",
                     "Optional": true,
                     "Type": "intDefault"
+                },
+                {
+                    "Name": "comparisonOperator",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "statistic",
+                    "Optional": true,
+                    "Type": "String"
                 }
             ],
             "Trigger type": "Configuration changes"
@@ -255,19 +408,47 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), Asia Pacific (Osaka) Region",
             "Identifier": "CLOUDWATCH_LOG_GROUP_ENCRYPTED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "KmsKeyId",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "CLOUD_TRAIL_CLOUD_WATCH_LOGS_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "expectedDeliveryWindowAge",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "CLOUD_TRAIL_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "s3BucketName",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "snsTopicArn",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "cloudWatchLogsLogGroupArn",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -303,7 +484,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Hong Kong), Asia Pacific (Osaka), Europe (Milan), Europe (Stockholm), Middle East (Bahrain), Africa (Cape Town) Region",
             "Identifier": "CODEPIPELINE_DEPLOYMENT_COUNT_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "deploymentLimit",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -322,7 +509,18 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "CW_LOGGROUP_RETENTION_PERIOD_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "LogGroupNames",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "MinRetentionTime",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -334,19 +532,62 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "DB_INSTANCE_BACKUP_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "backupRetentionPeriod",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "backupRetentionMinimum",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "preferredBackupWindow",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "checkReadReplicas",
+                    "Optional": true,
+                    "Type": "boolean"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "DESIRED_INSTANCE_TENANCY",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "tenancy",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "imageId",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "hostId",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "DESIRED_INSTANCE_TYPE",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "instanceType",
+                    "Optional": false,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -358,7 +599,38 @@
         {
             "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
             "Identifier": "DYNAMODB_AUTOSCALING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "minProvisionedReadCapacity",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "maxProvisionedReadCapacity",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "targetReadUtilization",
+                    "Optional": true,
+                    "Type": "double"
+                },
+                {
+                    "Name": "minProvisionedWriteCapacity",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "maxProvisionedWriteCapacity",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "targetWriteUtilization",
+                    "Optional": true,
+                    "Type": "double"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -376,7 +648,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "DYNAMODB_TABLE_ENCRYPTED_KMS",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -449,7 +727,13 @@
         {
             "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "EC2_INSTANCE_MULTIPLE_ENI_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "NetworkInterfaceIds",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -461,19 +745,47 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "EC2_INSTANCE_PROFILE_ATTACHED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "IamInstanceProfileArnList",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "EC2_MANAGEDINSTANCE_APPLICATIONS_BLACKLISTED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "applicationNames",
+                    "Optional": false,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "platformType",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "EC2_MANAGEDINSTANCE_APPLICATIONS_REQUIRED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "applicationNames",
+                    "Optional": false,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "platformType",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -485,7 +797,18 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "EC2_MANAGEDINSTANCE_INVENTORY_BLACKLISTED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "inventoryNames",
+                    "Optional": false,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "platformType",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -497,7 +820,28 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "EC2_MANAGEDINSTANCE_PLATFORM_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "platformType",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "platformVersion",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "agentVersion",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "platformName",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -522,19 +866,37 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "EC2_VOLUME_INUSE_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "deleteOnTermination",
+                    "Optional": true,
+                    "Type": "boolean"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "ECS_TASK_DEFINITION_USER_FOR_HOST_MODE_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "SkipInactiveTaskDefinitions",
+                    "Optional": true,
+                    "Type": "boolean"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "EFS_ENCRYPTED_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "KmsKeyId",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -558,7 +920,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan), US West (N. California), Africa (Cape Town) Region",
             "Identifier": "EKS_SECRETS_ENCRYPTED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -589,7 +957,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
             "Identifier": "ELASTICSEARCH_LOGS_TO_CLOUDWATCH",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "logTypes",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -601,13 +975,25 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "ELASTIC_BEANSTALK_MANAGED_UPDATES_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "UpdateLevel",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "ELBV2_ACM_CERTIFICATE_REQUIRED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "AcmCertificatesAllowed",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -625,7 +1011,13 @@
         {
             "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "ELB_CUSTOM_SECURITY_POLICY_SSL_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "sslProtocolsAndCiphers",
+                    "Optional": false,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -637,13 +1029,25 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "ELB_LOGGING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "s3BucketNames",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "ELB_PREDEFINED_SECURITY_POLICY_SSL_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "predefinedPolicyName",
+                    "Optional": false,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -655,7 +1059,33 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "EMR_KERBEROS_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "TicketLifetimeInHours",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "Realm",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "Domain",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "AdminServer",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "KdcServer",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -667,31 +1097,116 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "ENCRYPTED_VOLUMES",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsId",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
             "Identifier": "FMS_SHIELD_RESOURCE_POLICY_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "webACLId",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "resourceTypes",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "resourceTags",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "excludeResourceTags",
+                    "Optional": true,
+                    "Type": "boolean"
+                },
+                {
+                    "Name": "fmsManagedToken",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "fmsRemediationEnabled",
+                    "Optional": true,
+                    "Type": "boolean"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
             "Identifier": "FMS_WEBACL_RESOURCE_POLICY_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "webACLId",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "resourceTags",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "excludeResourceTags",
+                    "Optional": true,
+                    "Type": "boolean"
+                },
+                {
+                    "Name": "fmsManagedToken",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "fmsRemediationEnabled",
+                    "Optional": true,
+                    "Type": "boolean"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
             "Identifier": "FMS_WEBACL_RULEGROUP_ASSOCIATION_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "ruleGroups",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "fmsManagedToken",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "fmsRemediationEnabled",
+                    "Optional": true,
+                    "Type": "boolean"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), Asia Pacific (Osaka), Europe (Milan), Middle East (Bahrain), Africa (Cape Town) Region",
             "Identifier": "GUARDDUTY_ENABLED_CENTRALIZED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "CentralMonitoringAccount",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -722,7 +1237,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "IAM_CUSTOMER_POLICY_BLOCKED_KMS_ACTIONS",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "blockedActionsPatterns",
+                    "Optional": false,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -734,7 +1255,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "IAM_INLINE_POLICY_BLOCKED_KMS_ACTIONS",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "blockedActionsPatterns",
+                    "Optional": false,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -797,10 +1324,15 @@
             "Identifier": "IAM_POLICY_BLACKLISTED_CHECK",
             "Parameters": [
                 {
-                    "Default": "arn:aws:iam::aws:policy/AdministratorAccess",
-                    "Name": "policyArnsType",
+                    "Default": "arn",
+                    "Name": "policyArns",
                     "Optional": false,
                     "Type": "CSVDefault"
+                },
+                {
+                    "Name": "exceptionList",
+                    "Optional": true,
+                    "Type": "CSV"
                 }
             ],
             "Trigger type": "Configuration changes"
@@ -808,7 +1340,18 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "IAM_POLICY_IN_USE",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "policyARN",
+                    "Optional": false,
+                    "Type": "String"
+                },
+                {
+                    "Name": "policyUsageType",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -826,7 +1369,13 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "IAM_ROLE_MANAGED_POLICY_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "managedPolicyArns",
+                    "Optional": false,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -838,7 +1387,13 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "IAM_USER_GROUP_MEMBERSHIP_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "groupNames",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -859,7 +1414,7 @@
             "Parameters": [
                 {
                     "Default": "90",
-                    "Name": "maxCredentialUsageAgeType",
+                    "Name": "maxCredentialUsageAge",
                     "Optional": false,
                     "Type": "intDefault"
                 }
@@ -875,31 +1430,66 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "INSTANCES_IN_VPC",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "vpcId",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "INTERNET_GATEWAY_AUTHORIZED_VPC_ONLY",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "AuthorizedVpcIds",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan) Region",
             "Identifier": "KMS_CMK_NOT_SCHEDULED_FOR_DELETION",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyIds",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions except China (Ningxia), Asia Pacific (Osaka) Region",
             "Identifier": "LAMBDA_CONCURRENCY_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "ConcurrencyLimitLow",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "ConcurrencyLimitHigh",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Ningxia), Asia Pacific (Osaka) Region",
             "Identifier": "LAMBDA_DLQ_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "dlqArns",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -912,6 +1502,16 @@
             "AWS Region": "All supported AWS regions except China (Ningxia), Asia Pacific (Osaka) Region",
             "Identifier": "LAMBDA_FUNCTION_SETTINGS_CHECK",
             "Parameters": [
+                {
+                    "Name": "runtime",
+                    "Optional": false,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "role",
+                    "Optional": true,
+                    "Type": "String"
+                },
                 {
                     "Default": "3",
                     "Name": "timeout",
@@ -930,7 +1530,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Ningxia), Asia Pacific (Osaka) Region",
             "Identifier": "LAMBDA_INSIDE_VPC",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "subnetIds",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -942,13 +1548,45 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "MULTI_REGION_CLOUD_TRAIL_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "s3BucketName",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "snsTopicArn",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "cloudWatchLogsLogGroupArn",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "includeManagementEvents",
+                    "Optional": true,
+                    "Type": "boolean"
+                },
+                {
+                    "Name": "readWriteType",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "NO_UNRESTRICTED_ROUTE_TO_IGW",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "routeTableIds",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -978,13 +1616,25 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "RDS_ENHANCED_MONITORING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "monitoringInterval",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "RDS_INSTANCE_DELETION_PROTECTION_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "databaseEngines",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1008,7 +1658,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Ningxia), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "RDS_LOGGING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "additionalLogs",
+                    "Optional": true,
+                    "Type": "StringMap"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1032,13 +1688,30 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "RDS_STORAGE_ENCRYPTED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyId",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Ningxia), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "REDSHIFT_BACKUP_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "MinRetentionPeriod",
+                    "Optional": true,
+                    "Type": "int"
+                },
+                {
+                    "Name": "MaxRetentionPeriod",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1047,18 +1720,18 @@
             "Parameters": [
                 {
                     "Default": "true",
-                    "Name": "clusterDbEncryptedType",
+                    "Name": "clusterDbEncrypted",
                     "Optional": false,
                     "Type": "booleanDefault"
                 },
                 {
                     "Default": "true",
-                    "Name": "loggingEnabledType",
+                    "Name": "loggingEnabled",
                     "Optional": false,
                     "Type": "booleanDefault"
                 },
                 {
-                    "Default": "dc1\\.large",
+                    "Default": "dc1.large",
                     "Name": "nodeTypes",
                     "Optional": true,
                     "Type": "CSVDefault"
@@ -1069,7 +1742,13 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "REDSHIFT_CLUSTER_KMS_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1078,9 +1757,14 @@
             "Parameters": [
                 {
                     "Default": "true",
-                    "Name": "allowVersionUpgradeType",
+                    "Name": "allowVersionUpgrade",
                     "Optional": false,
                     "Type": "booleanDefault"
+                },
+                {
+                    "Name": "preferredMaintenanceWindow",
+                    "Optional": true,
+                    "Type": "String"
                 },
                 {
                     "Default": "1",
@@ -1115,9 +1799,64 @@
             "Parameters": [
                 {
                     "Default": "CostCenter",
-                    "Name": "tag1KeyType",
+                    "Name": "tag1Key",
                     "Optional": false,
                     "Type": "StringDefault"
+                },
+                {
+                    "Name": "tag1Value",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "tag2Key",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "tag2Value",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "tag3Key",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "tag3Value",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "tag4Key",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "tag4Value",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "tag5Key",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "tag5Value",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "tag6Key",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "tag6Value",
+                    "Optional": true,
+                    "Type": "CSV"
                 }
             ],
             "Trigger type": "Configuration changes"
@@ -1205,43 +1944,125 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
             "Identifier": "S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "IgnorePublicAcls",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "BlockPublicPolicy",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "BlockPublicAcls",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "RestrictPublicBuckets",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "S3_BUCKET_BLACKLISTED_ACTIONS_PROHIBITED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "blacklistedActionPattern",
+                    "Optional": false,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "S3_BUCKET_DEFAULT_LOCK_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "mode",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "excludedPublicBuckets",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "S3_BUCKET_LOGGING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "targetBucket",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "targetPrefix",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "S3_BUCKET_POLICY_GRANTEE_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "awsPrincipals",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "servicePrincipals",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "federatedUsers",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "ipAddresses",
+                    "Optional": true,
+                    "Type": "CSV"
+                },
+                {
+                    "Name": "vpcIds",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "S3_BUCKET_POLICY_NOT_MORE_PERMISSIVE",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "controlPolicy",
+                    "Optional": false,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1277,25 +2098,49 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "S3_BUCKET_VERSIONING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "isMfaDeleteEnabled",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "S3_DEFAULT_ENCRYPTION_KMS",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "SAGEMAKER_ENDPOINT_CONFIGURATION_KMS_KEY_CONFIGURED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyArns",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "SAGEMAKER_NOTEBOOK_INSTANCE_KMS_KEY_CONFIGURED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyArns",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -1307,7 +2152,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "SECRETSMANAGER_ROTATION_ENABLED_CHECK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "maximumAllowedRotationFrequency",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1319,19 +2170,37 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "SECRETSMANAGER_SECRET_PERIODIC_ROTATION",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "maxDaysSinceRotation",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "SECRETSMANAGER_SECRET_UNUSED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "unusedForDays",
+                    "Optional": true,
+                    "Type": "int"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
             "Identifier": "SECRETSMANAGER_USING_CMK",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1343,7 +2212,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "SERVICE_VPC_ENDPOINT_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "serviceName",
+                    "Optional": false,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -1361,7 +2236,13 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "SNS_ENCRYPTED_KMS",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "kmsKeyIds",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1385,7 +2266,13 @@
         {
             "AWS Region": "All supported AWS regions",
             "Identifier": "VPC_FLOW_LOGS_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "trafficType",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
@@ -1397,7 +2284,18 @@
         {
             "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
             "Identifier": "VPC_SG_OPEN_ONLY_TO_AUTHORIZED_PORTS",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "authorizedTcpPorts",
+                    "Optional": true,
+                    "Type": "String"
+                },
+                {
+                    "Name": "authorizedUdpPorts",
+                    "Optional": true,
+                    "Type": "String"
+                }
+            ],
             "Trigger type": "Configuration changes"
         },
         {
@@ -1409,13 +2307,25 @@
         {
             "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
             "Identifier": "WAFV2_LOGGING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "KinesisFirehoseDeliveryStreamArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Periodic"
         },
         {
             "AWS Region": "Only available in US East (N. Virginia) Region",
             "Identifier": "WAF_CLASSIC_LOGGING_ENABLED",
-            "Parameters": [],
+            "Parameters": [
+                {
+                    "Name": "KinesisFirehoseDeliveryStreamArns",
+                    "Optional": true,
+                    "Type": "CSV"
+                }
+            ],
             "Trigger type": "Periodic"
         }
     ]
