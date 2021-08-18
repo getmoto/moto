@@ -974,7 +974,11 @@ def test_update_stack_from_s3_url():
         ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
     )
 
-    cf_conn.update_stack(StackName="update_stack_from_url", TemplateURL=key_url)
+    cf_conn.update_stack(
+        StackName="update_stack_from_url",
+        TemplateURL=key_url,
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
+    )
 
     cf_conn.get_template(StackName="update_stack_from_url")[
         "TemplateBody"
@@ -1067,7 +1071,9 @@ def test_describe_change_set():
         TemplateBody=dummy_update_template_json,
         ChangeSetName="NewChangeSet2",
         ChangeSetType="UPDATE",
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
     )
+
     stack = cf_conn.describe_change_set(ChangeSetName="NewChangeSet2")
     stack["ChangeSetName"].should.equal("NewChangeSet2")
     stack["StackName"].should.equal("NewStack")
@@ -1336,6 +1342,7 @@ def test_describe_updated_stack():
         RoleARN="arn:aws:iam::{}:role/moto".format(ACCOUNT_ID),
         TemplateBody=dummy_update_template_json,
         Tags=[{"Key": "foo", "Value": "baz"}],
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
     )
 
     stack = cf_conn.describe_stacks(StackName="test_stack")["Stacks"][0]
@@ -1405,7 +1412,10 @@ def test_stack_tags():
 def test_stack_events():
     cf = boto3.resource("cloudformation", region_name="us-east-1")
     stack = cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
-    stack.update(TemplateBody=dummy_update_template_json)
+    stack.update(
+        TemplateBody=dummy_update_template_json,
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
+    )
     stack = cf.Stack(stack.stack_id)
     stack.delete()
 
