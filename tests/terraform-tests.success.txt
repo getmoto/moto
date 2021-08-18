@@ -87,3 +87,4 @@ TestAccAWSRouteTable_IPv4_To_TransitGateway
 TestAccAWSRouteTable_disappears
 TestAccAWSRouteTable_basic
 TestAccAwsEc2ManagedPrefixList
+TestAccAWSEgressOnlyInternetGateway
