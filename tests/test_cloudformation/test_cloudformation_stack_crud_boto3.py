@@ -1166,7 +1166,7 @@ def test_describe_stack_resource_when_resource_does_not_exist():
 
     with pytest.raises(ClientError, match="does not exist for stack"):
         cf_conn.describe_stack_resource(
-            StackName=stack["StackName"], LogicalResourceId="poop"
+            StackName=stack["StackName"], LogicalResourceId="DoesNotExist"
         )
 
 
