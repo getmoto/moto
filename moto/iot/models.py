@@ -515,6 +515,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                # note - typo (depreated) exists also in the original exception.
+                raise InvalidRequestException(
+                    msg=f"Can not create new thing with depreated thing type:{thing_type_name}"
+                )
         if attribute_payload is None:
             attributes = {}
         elif "attributes" not in attribute_payload:
@@ -662,6 +668,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                raise InvalidRequestException(
+                    msg=f"Can not update a thing to use deprecated thing type: {thing_type_name}"
+                )
+
             thing.thing_type = thing_type
 
         if remove_thing_type:
@@ -1365,7 +1377,7 @@ class IoTBackend(BaseBackend):
             topic_pattern=topic,
             sql=sql,
             region_name=self.region_name,
-            **kwargs
+            **kwargs,
         )
 
     def replace_topic_rule(self, rule_name, **kwargs):
