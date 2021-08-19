@@ -678,6 +678,9 @@ class ResourceMap(collections_abc.Mapping):
         self._resource_json_map = template["Resources"]
 
         for logical_name in resource_names_by_action["Add"]:
+
+            # call __getitem__ to initialize the resource
+            # TODO: usage of indexer to initalize the resource is questionable
             _ = self[logical_name]
 
         tries = 1
