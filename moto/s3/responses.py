@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import io
 import os
 import re
 import sys
@@ -1022,6 +1023,21 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         response_headers["content-length"] = len(content)
         return 206, response_headers, content
 
+    def _handle_v4_chunk_signatures(self, body, content_length):
+        body_io = io.BytesIO(body)
+        new_body = bytearray(content_length)
+        pos = 0
+        line = body_io.readline()
+        while line:
+            # https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-streaming.html#sigv4-chunked-body-definition
+            # str(hex(chunk-size)) + ";chunk-signature=" + signature + \r\n + chunk-data + \r\n
+            chunk_size = int(line[: line.find(b";")].decode("utf8"), 16)
+            new_body[pos : pos + chunk_size] = body_io.read(chunk_size)
+            pos = pos + chunk_size
+            body_io.read(2)  # skip trailing \r\n
+            line = body_io.readline()
+        return bytes(new_body)
+
     def key_or_control_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
@@ -1191,6 +1207,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if body is None:
             body = b""
+
+        if (
+            request.headers.get("x-amz-content-sha256", None)
+            == "STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
+        ):
+            body = self._handle_v4_chunk_signatures(
+                body, int(request.headers["x-amz-decoded-content-length"])
+            )
 
         if method == "GET":
             return self._key_response_get(
