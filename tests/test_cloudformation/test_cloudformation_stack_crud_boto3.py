@@ -104,18 +104,15 @@ Resources:
 dummy_empty_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {},
-    "Resources": {}
+    "Resources": {},
 }
 
 dummy_parametrized_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
-        "KeyName": {
-            "Description": "A template parameter",
-            "Type": "String"
-        }
+        "KeyName": {"Description": "A template parameter", "Type": "String"}
     },
-    "Resources": {}
+    "Resources": {},
 }
 
 dummy_update_template = {
@@ -780,7 +777,9 @@ def test_boto3_create_stack_fail_missing_parameter():
 
     with pytest.raises(ClientError, match="Missing parameter KeyName"):
 
-        cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_parametrized_template_json)
+        cf_conn.create_stack(
+            StackName="test_stack", TemplateBody=dummy_parametrized_template_json
+        )
 
 
 @mock_cloudformation
@@ -950,7 +949,7 @@ def test_create_stack_from_s3_url():
 @mock_cloudformation
 def test_boto3_update_stack_fail_missing_new_parameter():
 
-    name = 'update_stack_fail_missing_new_parameter'
+    name = "update_stack_fail_missing_new_parameter"
 
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -958,26 +957,30 @@ def test_boto3_update_stack_fail_missing_new_parameter():
 
     with pytest.raises(ClientError, match="Missing parameter KeyName"):
 
-        cf_conn.update_stack(StackName=name, TemplateBody=dummy_parametrized_template_json)
+        cf_conn.update_stack(
+            StackName=name, TemplateBody=dummy_parametrized_template_json
+        )
 
 
 @mock_cloudformation
 def test_boto3_update_stack_deleted_resources_can_reference_deleted_parameters():
 
-    name = 'update_stack_deleted_resources_can_reference_deleted_parameters'
+    name = "update_stack_deleted_resources_can_reference_deleted_parameters"
 
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
-    template_json = json.dumps({
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
-        "Resources": {
-            "Queue": {
-                "Type": "AWS::SQS::Queue",
-                "Properties": {"VisibilityTimeout": {"Ref": "TimeoutParameter"}},
-            }
-        },
-    })
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
+            "Resources": {
+                "Queue": {
+                    "Type": "AWS::SQS::Queue",
+                    "Properties": {"VisibilityTimeout": {"Ref": "TimeoutParameter"}},
+                }
+            },
+        }
+    )
 
     cf_conn.create_stack(StackName=name, TemplateBody=template_json)
 
@@ -993,29 +996,26 @@ def test_boto3_update_stack_deleted_resources_can_reference_deleted_parameters()
 @mock_cloudformation
 def test_boto3_update_stack_deleted_resources_can_reference_deleted_resources():
 
-    name = 'update_stack_deleted_resources_can_reference_deleted_resources'
+    name = "update_stack_deleted_resources_can_reference_deleted_resources"
 
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
-    template_json = json.dumps({
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
-        "Resources": {
-            "VPC": {
-                "Type": "AWS::EC2::VPC",
-                "Properties": {
-                    "CidrBlock": "10.0.0.0/16"
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
+            "Resources": {
+                "VPC": {
+                    "Type": "AWS::EC2::VPC",
+                    "Properties": {"CidrBlock": "10.0.0.0/16"},
+                },
+                "Subnet": {
+                    "Type": "AWS::EC2::Subnet",
+                    "Properties": {"VpcId": {"Ref": "VPC"}, "CidrBlock": "10.0.0.0/24"},
                 },
             },
-            "Subnet": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "VpcId": {"Ref": "VPC"},
-                    "CidrBlock": "10.0.0.0/24"
-                },
-            },
-        },
-    })
+        }
+    )
 
     cf_conn.create_stack(StackName=name, TemplateBody=template_json)
 
