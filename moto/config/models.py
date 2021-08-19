@@ -51,13 +51,13 @@ from moto.config.exceptions import (
     MissingRequiredConfigRuleParameterException,
 )
 
+from moto.awslambda import lambda_backends
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.responses import AWSServiceSpec
-from moto.config.aws_managed_rules import AWS_MANAGED_RULES
 from moto.iam.config import role_config_query, policy_config_query
 from moto.s3.config import s3_account_public_access_block_query, s3_config_query
-from moto.awslambda import lambda_backends
+from moto.utilities.utils import load_resource
 
 
 POP_STRINGS = [
@@ -82,6 +82,9 @@ RESOURCE_MAP = {
 CAMEL_TO_SNAKE_REGEX = re.compile(r"(?<!^)(?=[A-Z])")
 
 MAX_TAGS_IN_ARG = 50
+
+MANAGED_RULES = load_resource(__name__, "resources/aws_managed_rules.json")
+MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]
 
 
 def datetime2int(date):
@@ -609,7 +612,8 @@ class Source(ConfigEmptyDictable):
             )
 
         if owner == "AWS":
-            if source_identifier not in AWS_MANAGED_RULES:
+            # Can the Source ID be found in the dict of managed rule IDs?
+            if source_identifier not in MANAGED_RULES_CONSTRAINTS:
                 raise InvalidParameterValueException(
                     f"The sourceIdentifier {source_identifier} is invalid.  "
                     f"Please refer to the documentation for a list of valid "
@@ -681,6 +685,7 @@ class ConfigRule(ConfigEmptyDictable):
                 "ConfigRule Arn or Id"
             )
 
+        self.maximum_execution_frequency = None  # keeps pylint happy
         self.modify_fields(region, config_rule, tags)
         self.config_rule_id = f"config-rule-{random_string():.6}"
         self.config_rule_arn = f"arn:aws:config:{region}:{DEFAULT_ACCOUNT_ID}:config-rule/{self.config_rule_id}"
@@ -713,9 +718,12 @@ class ConfigRule(ConfigEmptyDictable):
         self.source = Source(region, **source_dict)
 
         self.input_parameters = config_rule.get("InputParameters")
+        self.input_parameters_dict = {}
         if self.input_parameters:
             try:
-                json.loads(self.input_parameters)
+                # A dictionary will be more useful when these parameters
+                # are actually needed.
+                self.input_parameters_dict = json.loads(self.input_parameters)
             except ValueError:
                 raise InvalidParameterValueException(  # pylint: disable=raise-missing-from
                     f"Invalid json {self.input_parameters} passed in the "
@@ -732,8 +740,34 @@ class ConfigRule(ConfigEmptyDictable):
                     + ", ".join(sorted(SourceDetail.FREQUENCY_TYPES))
                     + "}"
                 )
+
+        # For an AWS managed rule, validate the parameters and trigger type.
+        # Verify the MaximumExecutionFrequency makes sense as well.
+        if self.source.owner == "AWS":
+            self.validate_managed_rule()
         else:
-            self.maximum_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
+            # Per the AWS documentation for a custom rule, ConfigRule's
+            # MaximumExecutionFrequency can only be set if the message type
+            # is ConfigSnapshotDeliveryProperties. However, if
+            # ConfigSnapshotDeliveryProperties is used, the AWS console
+            # leaves the Trigger Type blank and doesn't show the frequency.
+            # If you edit the rule, it doesn't show the frequency either.
+            #
+            # If you provide two custom rules, one with a message type of
+            # ConfigurationSnapshotDeliveryCompleted, one with
+            # ScheduleNotification and specify a MaximumExecutionFrequency
+            # for each, the first one is shown on the AWS console and the
+            # second frequency is shown on the edit page.
+            #
+            # If you provide a custom rule for
+            # OversizedConfigurationItemChangeNotification (not a periodic
+            # trigger) with a MaximumExecutionFrequency for ConfigRule itself,
+            # boto3 doesn't complain and describe_config_rule() shows the
+            # frequency, but the AWS console and the edit page does not.
+            #
+            # So I'm not sure how to validate this situation or when to
+            # set this value to a default value.
+            pass
 
         self.created_by = config_rule.get("CreatedBy")
         if self.created_by:
@@ -745,6 +779,66 @@ class ConfigRule(ConfigEmptyDictable):
 
         self.last_updated_time = datetime2int(datetime.utcnow())
         self.tags = tags
+
+    def validate_managed_rule(self):
+        """Validate parameters specific to managed rules."""
+        rule_info = MANAGED_RULES_CONSTRAINTS[self.source.source_identifier]
+        param_names = self.input_parameters_dict.keys()
+
+        # Verify input parameter names are actual parameters for the rule ID.
+        if param_names:
+            allowed_names = {x["Name"] for x in rule_info["Parameters"]}
+            if allowed_names.difference(set(param_names)):
+                raise InvalidParameterValueException(
+                    "Unknown parameters provided in the inputParameters: "
+                    + self.input_parameters.replace('"', '\\"')
+                )
+
+        # Verify all the required parameters are specified.
+        required_names = {
+            x["Name"] for x in rule_info["Parameters"] if not x["Optional"]
+        }
+        diffs = required_names.difference(set(param_names))
+        if diffs:
+            raise InvalidParameterValueException(
+                "The required parameter ["
+                + ", ".join(sorted(diffs))
+                + "] is not present in the inputParameters"
+            )
+
+        # boto3 doesn't appear to be checking for valid types in the
+        # InputParameters.  It did give an error if a unquoted number was
+        # used:  "Blank spaces are not acceptable for input parameter:
+        # MinimumPasswordLength.  InputParameters':
+        # '{"RequireNumbers":"true","MinimumPasswordLength":10}'
+        # but I'm not going to attempt to detect that error.  I could
+        # check for ints, floats, strings and stringmaps, but boto3 doesn't
+        # check.
+
+        # WARNING: The AWS documentation indicates MaximumExecutionFrequency
+        # can be specified for managed rules triggered at a periodic frequency.
+        # However, boto3 allows a MaximumExecutionFrequency to be specified
+        # for a AWS managed rule regardless of the frequency type.  Also of
+        # interest:  triggers of "Configuration Changes and Periodic",
+        # i.e., both trigger types.  But again, the trigger type is ignored.
+        # if rule_info["Trigger type"] == "Configuration changes":
+        #     if self.maximum_execution_frequency:
+        #         raise InvalidParameterValueException(
+        #             "A maximum execution frequency is not allowed for "
+        #             "rules triggered by configuration changes"
+        #         )
+        #
+        # WARNING:  boto3's describe_config_rule is not showing the
+        # MaximumExecutionFrequency value as being updated, but the AWS
+        # console shows the default value on the console. The default value
+        # is used even if the rule is non-periodic
+        # if "Periodic" in rule_info["Trigger type"]:
+        #     if not self.maximum_execution_frequency:
+        #         self.maximum_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
+        # if not self.maximum_execution_frequency:
+        #     self.maximum_execution_frequency = SourceDetail.DEFAULT_FREQUENCY
+
+        # Verify the rule is allowed for this region -- not yet implemented.
 
 
 class ConfigBackend(BaseBackend):

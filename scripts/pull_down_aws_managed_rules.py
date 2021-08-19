@@ -33,7 +33,7 @@ import sys
 
 import requests
 
-MANAGED_RULES_OUTPUT_FILENAME = "../moto/config/aws_managed_rules.json"
+MANAGED_RULES_OUTPUT_FILENAME = "../moto/config/resources/aws_managed_rules.json"
 
 AWS_MARKDOWN_URL_START = "https://raw.githubusercontent.com/awsdocs/aws-config-developer-guide/main/doc_source/"
 

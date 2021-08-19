@@ -257,6 +257,54 @@ def test_config_rule_errors():  # pylint: disable=too-many-statements
 
 
 @mock_config
+def test_aws_managed_rule_errors():
+    """Test various error conditions in ConfigRule instantiation."""
+    client = boto3.client("config", region_name=TEST_REGION)
+
+    # Extra, unknown input parameter should raise an error.
+    managed_rule = managed_config_rule()
+    managed_rule["Source"]["SourceIdentifier"] = "IAM_PASSWORD_POLICY"
+    managed_rule["InputParameters"] = '{"RequireNumbers":"true","Extra":"10"}'
+    with pytest.raises(ClientError) as exc:
+        client.put_config_rule(ConfigRule=managed_rule)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValueException"
+    assert (
+        f"Unknown parameters provided in the inputParameters: "
+        f"{managed_rule['InputParameters']}" in err["Message"]
+    )
+
+    # Missing required parameters should raise an error.
+    managed_rule = managed_config_rule()
+    managed_rule["Source"]["SourceIdentifier"] = "CLOUDWATCH_ALARM_ACTION_CHECK"
+    with pytest.raises(ClientError) as exc:
+        client.put_config_rule(ConfigRule=managed_rule)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValueException"
+    assert (
+        "The required parameter [alarmActionRequired, "
+        "insufficientDataActionRequired, okActionRequired] is not present "
+        "in the inputParameters" in err["Message"]
+    )
+
+    # If no MaxExecutionFrequency specified, set it to the default.
+    # rule_name = f"managed_rule_{random_string()}"
+    # managed_rule = {
+    #     "ConfigRuleName": rule_name,
+    #     "Description": "Managed S3 Public Read Prohibited Bucket Rule",
+    #     "Scope": {"ComplianceResourceTypes": ["AWS::IAM::Group"]},
+    #     "Source": {
+    #         "Owner": "AWS",
+    #         "SourceIdentifier": "IAM_PASSWORD_POLICY",
+    #     },
+    # }
+    # client.put_config_rule(ConfigRule=managed_rule)
+    # rsp = client.describe_config_rules(ConfigRuleNames=[rule_name])
+    # new_config_rule = rsp["ConfigRules"][0]
+    # assert new_config_rule["MaximumExecutionFrequency"] == "TwentyFour_Hours"
+
+
+@mock_config
 def test_config_rules_scope_errors():  # pylint: disable=too-many-statements
     """Test various error conditions in ConfigRule.Scope instantiation."""
     client = boto3.client("config", region_name=TEST_REGION)
