@@ -7,11 +7,15 @@ class NatGateways(BaseResponse):
     def create_nat_gateway(self):
         subnet_id = self._get_param("SubnetId")
         allocation_id = self._get_param("AllocationId")
+        connectivity_type = self._get_param("ConnectivityType")
         tags = self._get_multi_param("TagSpecification")
         if tags:
             tags = tags[0].get("Tag")
         nat_gateway = self.ec2_backend.create_nat_gateway(
-            subnet_id=subnet_id, allocation_id=allocation_id, tags=tags
+            subnet_id=subnet_id,
+            allocation_id=allocation_id,
+            tags=tags,
+            connectivity_type=connectivity_type,
         )
         template = self.response_template(CREATE_NAT_GATEWAY)
         return template.render(nat_gateway=nat_gateway)
@@ -46,6 +50,7 @@ DESCRIBE_NAT_GATEWAYS_RESPONSE = """<DescribeNatGatewaysResponse xmlns="http://e
             <createTime>{{ nat_gateway.create_time }}</createTime>
             <vpcId>{{ nat_gateway.vpc_id }}</vpcId>
             <natGatewayId>{{ nat_gateway.id }}</natGatewayId>
+            <connectivityType>{{ nat_gateway.connectivity_type }}</connectivityType>
             <state>{{ nat_gateway.state }}</state>
             {% if nat_gateway.tags %}
                 <tagSet>
@@ -75,6 +80,7 @@ CREATE_NAT_GATEWAY = """<CreateNatGatewayResponse xmlns="http://ec2.amazonaws.co
         <createTime>{{ nat_gateway.create_time }}</createTime>
         <vpcId>{{ nat_gateway.vpc_id }}</vpcId>
         <natGatewayId>{{ nat_gateway.id }}</natGatewayId>
+        <connectivityType>{{ nat_gateway.connectivity_type }}</connectivityType>
         <state>{{ nat_gateway.state }}</state>
     </natGateway>
 </CreateNatGatewayResponse>

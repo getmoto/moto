@@ -103,6 +103,7 @@ from .exceptions import (
     OperationNotPermitted,
     OperationNotPermitted2,
     OperationNotPermitted3,
+    OperationNotPermitted4,
     ResourceAlreadyAssociatedError,
     RulesPerSecurityGroupLimitExceededError,
     TagLimitExceeded,
@@ -111,6 +112,7 @@ from .exceptions import (
     InvalidAssociationIDIamProfileAssociationError,
     InvalidVpcEndPointIdError,
     InvalidTaggableResourceType,
+    InvalidGatewayIDError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -123,6 +125,7 @@ from .utils import (
     random_eni_id,
     random_instance_id,
     random_internet_gateway_id,
+    random_egress_only_internet_gateway_id,
     random_ip,
     random_ipv6_cidr,
     random_transit_gateway_attachment_id,
@@ -1026,6 +1029,8 @@ class InstanceBackend(object):
                 "InvalidParameterCombination", "No instances specified"
             )
         for instance in self.get_multi_instances_by_id(instance_ids):
+            if instance.disable_api_termination == "true":
+                raise OperationNotPermitted4(instance.id)
             instance.terminate()
             terminated_instances.append(instance)
 
@@ -1414,6 +1419,7 @@ class Ami(TaggedEC2Resource):
         name=None,
         description=None,
         owner_id=OWNER_ID,
+        owner_alias=None,
         public=False,
         virtualization_type=None,
         architecture=None,
@@ -1435,6 +1441,7 @@ class Ami(TaggedEC2Resource):
         self.image_type = image_type
         self.image_location = image_location
         self.owner_id = owner_id
+        self.owner_alias = owner_alias
         self.description = description
         self.virtualization_type = virtualization_type
         self.architecture = architecture
@@ -1509,6 +1516,8 @@ class Ami(TaggedEC2Resource):
             return self.name
         elif filter_name == "owner-id":
             return self.owner_id
+        elif filter_name == "owner-alias":
+            return self.owner_alias
         else:
             return super(Ami, self).get_filter_value(filter_name, "DescribeImages")
 
@@ -1526,6 +1535,9 @@ class AmiBackend(object):
     def _load_amis(self):
         for ami in AMIS:
             ami_id = ami["ami_id"]
+            # we are assuming the default loaded amis are owned by amazon
+            # owner_alias is required for terraform owner filters
+            ami["owner_alias"] = "amazon"
             self.amis[ami_id] = Ami(self, **ami)
 
     def create_image(
@@ -1609,8 +1621,15 @@ class AmiBackend(object):
             # Limit by owner ids
             if owners:
                 # support filtering by Owners=['self']
-                owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners,))
-                images = [ami for ami in images if ami.owner_id in owners]
+                if "self" in owners:
+                    owners = list(
+                        map(lambda o: OWNER_ID if o == "self" else o, owners,)
+                    )
+                images = [
+                    ami
+                    for ami in images
+                    if ami.owner_id in owners or ami.owner_alias in owners
+                ]
 
             # Generic filters
             if filters:
@@ -4393,6 +4412,7 @@ class Route(CloudFormationModel):
         gateway=None,
         instance=None,
         nat_gateway=None,
+        transit_gateway=None,
         interface=None,
         vpc_pcx=None,
     ):
@@ -4406,6 +4426,7 @@ class Route(CloudFormationModel):
         self.gateway = gateway
         self.instance = instance
         self.nat_gateway = nat_gateway
+        self.transit_gateway = transit_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
 
@@ -4432,6 +4453,7 @@ class Route(CloudFormationModel):
         instance_id = properties.get("InstanceId")
         interface_id = properties.get("NetworkInterfaceId")
         nat_gateway_id = properties.get("NatGatewayId")
+        transit_gateway_id = properties.get("TransitGatewayId")
         pcx_id = properties.get("VpcPeeringConnectionId")
 
         route_table_id = properties["RouteTableId"]
@@ -4442,6 +4464,7 @@ class Route(CloudFormationModel):
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,
+            transit_gateway_id=transit_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
         )
@@ -4605,8 +4628,9 @@ class ManagedPrefixListBackend(object):
         managed_pl = self.managed_prefix_lists.get(prefix_list_id)
         managed_pl.prefix_list_name = prefix_list_name
         if remove_entry or add_entry:
+            latest_version = managed_pl.entries.get(managed_pl.version)
             entries = (
-                managed_pl.entries.get(current_version, managed_pl.version).copy()
+                managed_pl.entries.get(current_version, latest_version).copy()
                 if managed_pl.entries
                 else []
             )
@@ -4670,11 +4694,13 @@ class RouteBackend(object):
         gateway_id=None,
         instance_id=None,
         nat_gateway_id=None,
+        transit_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
     ):
         gateway = None
         nat_gateway = None
+        transit_gateway = None
 
         route_table = self.get_route_table(route_table_id)
 
@@ -4697,6 +4723,8 @@ class RouteBackend(object):
 
             if nat_gateway_id is not None:
                 nat_gateway = self.nat_gateways.get(nat_gateway_id)
+            if transit_gateway_id is not None:
+                transit_gateway = self.transit_gateways.get(transit_gateway_id)
 
         route = Route(
             route_table,
@@ -4706,6 +4734,7 @@ class RouteBackend(object):
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
             nat_gateway=nat_gateway,
+            transit_gateway=transit_gateway,
             interface=None,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
             if vpc_peering_connection_id
@@ -4854,6 +4883,52 @@ class InternetGatewayBackend(object):
     def get_internet_gateway(self, internet_gateway_id):
         igw_ids = [internet_gateway_id]
         return self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+
+
+class EgressOnlyInternetGateway(TaggedEC2Resource):
+    def __init__(self, ec2_backend, vpc_id, tags=None):
+        self.id = random_egress_only_internet_gateway_id()
+        self.ec2_backend = ec2_backend
+        self.vpc_id = vpc_id
+        self.state = "attached"
+        self.add_tags(tags or {})
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+
+class EgressOnlyInternetGatewayBackend(object):
+    def __init__(self):
+        self.egress_only_internet_gateway_backend = {}
+        super(EgressOnlyInternetGatewayBackend, self).__init__()
+
+    def create_egress_only_internet_gateway(self, vpc_id, tags=None):
+        vpc = self.get_vpc(vpc_id)
+        if not vpc:
+            raise InvalidVPCIdError(vpc_id)
+        egress_only_igw = EgressOnlyInternetGateway(self, vpc_id, tags)
+        self.egress_only_internet_gateway_backend[egress_only_igw.id] = egress_only_igw
+        return egress_only_igw
+
+    def describe_egress_only_internet_gateways(self, ids=None, filters=None):
+        # TODO: support filtering based on tag
+        egress_only_igws = list(self.egress_only_internet_gateway_backend.values())
+
+        if ids:
+            egress_only_igws = [
+                egress_only_igw
+                for egress_only_igw in egress_only_igws
+                if egress_only_igw.id in ids
+            ]
+        return egress_only_igws
+
+    def delete_egress_only_internet_gateway(self, id):
+        egress_only_igw = self.egress_only_internet_gateway_backend.get(id)
+        if not egress_only_igw:
+            raise InvalidGatewayIDError(id)
+        if egress_only_igw:
+            self.egress_only_internet_gateway_backend.pop(id)
 
 
 class VPCGatewayAttachment(CloudFormationModel):
@@ -5371,7 +5446,7 @@ class SpotFleetBackend(object):
 
 
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, ec2_backend, domain, address=None):
+    def __init__(self, ec2_backend, domain, address=None, tags=None):
         self.ec2_backend = ec2_backend
         if address:
             self.public_ip = address
@@ -5383,6 +5458,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         self.instance = None
         self.eni = None
         self.association_id = None
+        self.add_tags(tags or {})
 
     @staticmethod
     def cloudformation_name_type():
@@ -5403,6 +5479,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         instance_id = None
         if properties:
             domain = properties.get("Domain")
+            # TODO: support tags from cloudformation template
             eip = ec2_backend.allocate_address(domain=domain if domain else "standard")
             instance_id = properties.get("InstanceId")
         else:
@@ -5454,13 +5531,13 @@ class ElasticAddressBackend(object):
         self.addresses = []
         super(ElasticAddressBackend, self).__init__()
 
-    def allocate_address(self, domain, address=None):
+    def allocate_address(self, domain, address=None, tags=None):
         if domain not in ["standard", "vpc"]:
             raise InvalidDomainError(domain)
         if address:
-            address = ElasticAddress(self, domain=domain, address=address)
+            address = ElasticAddress(self, domain=domain, address=address, tags=tags)
         else:
-            address = ElasticAddress(self, domain=domain)
+            address = ElasticAddress(self, domain=domain, tags=tags)
         self.addresses.append(address)
         return address
 
@@ -7014,13 +7091,16 @@ class TransitGatewayRelationsBackend(object):
 
 
 class NatGateway(CloudFormationModel):
-    def __init__(self, backend, subnet_id, allocation_id, tags=[]):
+    def __init__(
+        self, backend, subnet_id, allocation_id, tags=[], connectivity_type="public"
+    ):
         # public properties
         self.id = random_nat_gateway_id()
         self.subnet_id = subnet_id
         self.allocation_id = allocation_id
         self.state = "available"
         self.private_ip = random_private_ip()
+        self.connectivity_type = connectivity_type
 
         # protected properties
         self._created_at = datetime.utcnow()
@@ -7113,8 +7193,12 @@ class NatGatewayBackend(object):
 
         return nat_gateways
 
-    def create_nat_gateway(self, subnet_id, allocation_id, tags=[]):
-        nat_gateway = NatGateway(self, subnet_id, allocation_id, tags)
+    def create_nat_gateway(
+        self, subnet_id, allocation_id, tags=[], connectivity_type="public"
+    ):
+        nat_gateway = NatGateway(
+            self, subnet_id, allocation_id, tags, connectivity_type
+        )
         self.nat_gateways[nat_gateway.id] = nat_gateway
         return nat_gateway
 
@@ -7363,6 +7447,7 @@ class EC2Backend(
     RouteTableBackend,
     RouteBackend,
     InternetGatewayBackend,
+    EgressOnlyInternetGatewayBackend,
     VPCGatewayAttachmentBackend,
     SpotFleetBackend,
     SpotRequestBackend,

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pytz
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ValidationError
 import sure  # noqa
 
 import pytest
@@ -1137,6 +1137,37 @@ def test_describe_stack_pagination():
     stacks.extend(resp2["Stacks"])
     stacks.should.have.length_of(100)
     assert "NextToken" not in resp2.keys()
+
+
+@mock_cloudformation
+def test_describe_stack_resource():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
+
+    stack = cf_conn.describe_stacks(StackName="test_stack")["Stacks"][0]
+
+    response = cf_conn.describe_stack_resource(
+        StackName=stack["StackName"], LogicalResourceId="EC2Instance1"
+    )
+
+    resource = response["StackResourceDetail"]
+    resource["LogicalResourceId"].should.equal("EC2Instance1")
+    resource["ResourceStatus"].should.equal("CREATE_COMPLETE")
+    resource["ResourceType"].should.equal("AWS::EC2::Instance")
+    resource["StackId"].should.equal(stack["StackId"])
+
+
+@mock_cloudformation
+def test_describe_stack_resource_when_resource_does_not_exist():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
+
+    stack = cf_conn.describe_stacks(StackName="test_stack")["Stacks"][0]
+
+    with pytest.raises(ClientError, match="does not exist for stack"):
+        cf_conn.describe_stack_resource(
+            StackName=stack["StackName"], LogicalResourceId="DoesNotExist"
+        )
 
 
 @mock_cloudformation

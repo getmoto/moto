@@ -56,6 +56,35 @@ class EKSResponse(BaseResponse):
             # Backend will capture this and re-raise it as a ClientError.
             return e.response()
 
+    def create_fargate_profile(self):
+        fargate_profile_name = self._get_param("fargateProfileName")
+        cluster_name = self._get_param("name")
+        pod_execution_role_arn = self._get_param("podExecutionRoleArn")
+        subnets = self._get_param("subnets")
+        selectors = self._get_param("selectors")
+        client_request_token = self._get_param("clientRequestToken")
+        tags = self._get_param("tags")
+
+        try:
+            fargate_profile = self.eks_backend.create_fargate_profile(
+                fargate_profile_name=fargate_profile_name,
+                cluster_name=cluster_name,
+                pod_execution_role_arn=pod_execution_role_arn,
+                subnets=subnets,
+                selectors=selectors,
+                client_request_token=client_request_token,
+                tags=tags,
+            )
+
+            return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
+        except (
+            ResourceNotFoundException,
+            ResourceInUseException,
+            InvalidParameterException,
+            InvalidRequestException,
+        ) as e:
+            return e.response()
+
     def create_nodegroup(self):
         cluster_name = self._get_param("name")
         nodegroup_name = self._get_param("nodegroupName")
@@ -113,6 +142,18 @@ class EKSResponse(BaseResponse):
         except (ResourceInUseException, ResourceNotFoundException) as e:
             return e.response()
 
+    def describe_fargate_profile(self):
+        cluster_name = self._get_param("name")
+        fargate_profile_name = self._get_param("fargateProfileName")
+
+        try:
+            fargate_profile = self.eks_backend.describe_fargate_profile(
+                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name,
+            )
+            return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
+        except (ResourceInUseException, ResourceNotFoundException) as e:
+            return e.response()
+
     def describe_nodegroup(self):
         cluster_name = self._get_param("name")
         nodegroup_name = self._get_param("nodegroupName")
@@ -135,6 +176,23 @@ class EKSResponse(BaseResponse):
         )
 
         return 200, {}, json.dumps(dict(clusters=clusters, nextToken=next_token))
+
+    def list_fargate_profiles(self):
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        fargate_profile_names, next_token = self.eks_backend.list_fargate_profiles(
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token,
+        )
+
+        return (
+            200,
+            {},
+            json.dumps(
+                dict(fargateProfileNames=fargate_profile_names, nextToken=next_token)
+            ),
+        )
 
     def list_nodegroups(self):
         cluster_name = self._get_param("name")
@@ -159,6 +217,19 @@ class EKSResponse(BaseResponse):
 
             return 200, {}, json.dumps({"cluster": dict(cluster)})
         except (ResourceInUseException, ResourceNotFoundException) as e:
+            return e.response()
+
+    def delete_fargate_profile(self):
+        cluster_name = self._get_param("name")
+        fargate_profile_name = self._get_param("fargateProfileName")
+
+        try:
+            fargate_profile = self.eks_backend.delete_fargate_profile(
+                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name,
+            )
+
+            return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
+        except ResourceNotFoundException as e:
             return e.response()
 
     def delete_nodegroup(self):
