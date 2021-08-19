@@ -962,6 +962,61 @@ def test_boto3_update_stack_fail_missing_new_parameter():
 
 
 @mock_cloudformation
+def test_boto3_update_stack_deleted_resources_can_reference_deleted_parameters():
+
+    name = 'update_stack_deleted_resources_can_reference_deleted_parameters'
+
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    template_json = json.dumps({
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
+        "Resources": {
+            "Queue": {
+                "Type": "AWS::SQS::Queue",
+                "Properties": {"VisibilityTimeout": {"Ref": "TimeoutParameter"}},
+            }
+        },
+    })
+
+    cf_conn.create_stack(StackName=name, TemplateBody=template_json)
+
+    cf_conn.update_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+
+@mock_cloudformation
+def test_boto3_update_stack_deleted_resources_can_reference_deleted_resources():
+
+    name = 'update_stack_deleted_resources_can_reference_deleted_resources'
+
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    template_json = json.dumps({
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
+        "Resources": {
+            "VPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16"
+                },
+            },
+            "Subnet": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "VpcId": {"Ref": "VPC"},
+                    "CidrBlock": "10.0.0.0/24"
+                },
+            },
+        },
+    })
+
+    cf_conn.create_stack(StackName=name, TemplateBody=template_json)
+
+    cf_conn.update_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+
+@mock_cloudformation
 def test_update_stack_with_previous_value():
     name = "update_stack_with_previous_value"
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
