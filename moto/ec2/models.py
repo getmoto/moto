@@ -103,6 +103,7 @@ from .exceptions import (
     OperationNotPermitted,
     OperationNotPermitted2,
     OperationNotPermitted3,
+    OperationNotPermitted4,
     ResourceAlreadyAssociatedError,
     RulesPerSecurityGroupLimitExceededError,
     TagLimitExceeded,
@@ -1026,6 +1027,8 @@ class InstanceBackend(object):
                 "InvalidParameterCombination", "No instances specified"
             )
         for instance in self.get_multi_instances_by_id(instance_ids):
+            if instance.disable_api_termination == "true":
+                raise OperationNotPermitted4(instance.id)
             instance.terminate()
             terminated_instances.append(instance)
 
