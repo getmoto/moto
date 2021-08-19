@@ -111,6 +111,7 @@ from .exceptions import (
     InvalidAssociationIDIamProfileAssociationError,
     InvalidVpcEndPointIdError,
     InvalidTaggableResourceType,
+    InvalidGatewayIDError,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -123,6 +124,7 @@ from .utils import (
     random_eni_id,
     random_instance_id,
     random_internet_gateway_id,
+    random_egress_only_internet_gateway_id,
     random_ip,
     random_ipv6_cidr,
     random_transit_gateway_attachment_id,
@@ -4792,6 +4794,52 @@ class InternetGatewayBackend(object):
         return self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
 
 
+class EgressOnlyInternetGateway(TaggedEC2Resource):
+    def __init__(self, ec2_backend, vpc_id, tags=None):
+        self.id = random_egress_only_internet_gateway_id()
+        self.ec2_backend = ec2_backend
+        self.vpc_id = vpc_id
+        self.state = "attached"
+        self.add_tags(tags or {})
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+
+class EgressOnlyInternetGatewayBackend(object):
+    def __init__(self):
+        self.egress_only_internet_gateway_backend = {}
+        super(EgressOnlyInternetGatewayBackend, self).__init__()
+
+    def create_egress_only_internet_gateway(self, vpc_id, tags=None):
+        vpc = self.get_vpc(vpc_id)
+        if not vpc:
+            raise InvalidVPCIdError(vpc_id)
+        egress_only_igw = EgressOnlyInternetGateway(self, vpc_id, tags)
+        self.egress_only_internet_gateway_backend[egress_only_igw.id] = egress_only_igw
+        return egress_only_igw
+
+    def describe_egress_only_internet_gateways(self, ids=None, filters=None):
+        # TODO: support filtering based on tag
+        egress_only_igws = list(self.egress_only_internet_gateway_backend.values())
+
+        if ids:
+            egress_only_igws = [
+                egress_only_igw
+                for egress_only_igw in egress_only_igws
+                if egress_only_igw.id in ids
+            ]
+        return egress_only_igws
+
+    def delete_egress_only_internet_gateway(self, id):
+        egress_only_igw = self.egress_only_internet_gateway_backend.get(id)
+        if not egress_only_igw:
+            raise InvalidGatewayIDError(id)
+        if egress_only_igw:
+            self.egress_only_internet_gateway_backend.pop(id)
+
+
 class VPCGatewayAttachment(CloudFormationModel):
     def __init__(self, gateway_id, vpc_id):
         self.gateway_id = gateway_id
@@ -7308,6 +7356,7 @@ class EC2Backend(
     RouteTableBackend,
     RouteBackend,
     InternetGatewayBackend,
+    EgressOnlyInternetGatewayBackend,
     VPCGatewayAttachmentBackend,
     SpotFleetBackend,
     SpotRequestBackend,

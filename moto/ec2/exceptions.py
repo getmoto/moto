@@ -398,6 +398,14 @@ class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
         )
 
 
+class InvalidGatewayIDError(EC2ClientError):
+    def __init__(self, gateway_id):
+        super(InvalidGatewayIDError, self).__init__(
+            "InvalidGatewayID.NotFound",
+            "The eigw ID '{0}' does not exist".format(gateway_id),
+        )
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
     def __init__(self, internet_gateway_id):
         super(InvalidInternetGatewayIdError, self).__init__(
