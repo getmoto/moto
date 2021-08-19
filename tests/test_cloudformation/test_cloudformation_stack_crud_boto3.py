@@ -101,6 +101,23 @@ Resources:
           Value: !Ref TagName
 """
 
+dummy_empty_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {},
+    "Resources": {}
+}
+
+dummy_parametrized_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "KeyName": {
+            "Description": "A template parameter",
+            "Type": "String"
+        }
+    },
+    "Resources": {}
+}
+
 dummy_update_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
@@ -194,6 +211,8 @@ dummy_template_json = json.dumps(dummy_template)
 dummy_template_special_chars_in_description_json = json.dumps(
     dummy_template_special_chars_in_description
 )
+dummy_empty_template_json = json.dumps(dummy_empty_template)
+dummy_parametrized_template_json = json.dumps(dummy_parametrized_template)
 dummy_update_template_json = json.dumps(dummy_update_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
 dummy_import_template_json = json.dumps(dummy_import_template)
@@ -620,6 +639,7 @@ def test_boto3_list_stack_set_operations():
 @mock_cloudformation
 def test_boto3_bad_list_stack_resources():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
     with pytest.raises(ClientError):
         cf_conn.list_stack_resources(StackName="test_stack_set")
 
@@ -752,6 +772,15 @@ def test_boto3_create_stack():
     cf_conn.get_template(StackName="test_stack")["TemplateBody"].should.equal(
         json.loads(dummy_template_json, object_pairs_hook=OrderedDict)
     )
+
+
+@mock_cloudformation
+def test_boto3_create_stack_fail_missing_parameter():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    with pytest.raises(ClientError, match="Missing parameter KeyName"):
+
+        cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_parametrized_template_json)
 
 
 @mock_cloudformation
@@ -916,6 +945,20 @@ def test_create_stack_from_s3_url():
     cf_conn.get_template(StackName="stack_from_url")["TemplateBody"].should.equal(
         json.loads(dummy_template_json, object_pairs_hook=OrderedDict)
     )
+
+
+@mock_cloudformation
+def test_boto3_update_stack_fail_missing_new_parameter():
+
+    name = 'update_stack_fail_missing_new_parameter'
+
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    cf_conn.create_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+    with pytest.raises(ClientError, match="Missing parameter KeyName"):
+
+        cf_conn.update_stack(StackName=name, TemplateBody=dummy_parametrized_template_json)
 
 
 @mock_cloudformation
