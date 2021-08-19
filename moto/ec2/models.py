@@ -2214,6 +2214,9 @@ class SecurityGroupBackend(object):
     def __init__(self):
         # the key in the dict group is the vpc_id or None (non-vpc)
         self.groups = defaultdict(dict)
+        # This will help us in RuleLimitExceed errors.
+        self.sg_old_ingress_ruls = {}
+        self.sg_old_egress_ruls = {}
 
         # Create the default security group
         self.create_security_group("default", "default group")
@@ -2348,16 +2351,18 @@ class SecurityGroupBackend(object):
         source_groups = []
         for source_group_name in source_group_names:
             source_group = self.get_security_group_from_name(source_group_name, vpc_id)
-            # TODO raise exception if source_group is None?
             if source_group:
                 source_groups.append(source_group)
+            else:
+                raise InvalidSecurityGroupNotFoundError(source_group_name)
 
         # for VPCs
         for source_group_id in source_group_ids:
             source_group = self.get_security_group_from_id(source_group_id)
-            # TODO raise exception if source_group is None?
             if source_group:
                 source_groups.append(source_group)
+            else:
+                raise InvalidSecurityGroupNotFoundError(source_group_id)
 
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
@@ -2396,6 +2401,7 @@ class SecurityGroupBackend(object):
         )
         if security_rule in group.ingress_rules:
             group.ingress_rules.remove(security_rule)
+            self.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
             return security_rule
         raise InvalidPermissionNotFoundError()
 
@@ -2411,7 +2417,6 @@ class SecurityGroupBackend(object):
         prefix_list_ids=None,
         vpc_id=None,
     ):
-
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if group is None:
             raise InvalidSecurityGroupNotFoundError(group_name_or_id)
@@ -2436,13 +2441,13 @@ class SecurityGroupBackend(object):
                     and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
                 ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
-
         self._verify_group_will_respect_rule_count_limit(
             group,
             group.get_number_of_egress_rules(),
             ip_ranges,
             source_group_names,
             source_group_ids,
+            egress=True,
         )
 
         source_group_names = source_group_names if source_group_names else []
@@ -2459,6 +2464,13 @@ class SecurityGroupBackend(object):
             source_group = self.get_security_group_from_id(source_group_id)
             if source_group:
                 source_groups.append(source_group)
+
+        if group.vpc_id:
+            vpc = self.vpcs.get(group.vpc_id)
+            if vpc and not len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
+                for item in ip_ranges.copy():
+                    if "CidrIpv6" in item:
+                        ip_ranges.remove(item)
 
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
@@ -2501,7 +2513,7 @@ class SecurityGroupBackend(object):
 
         if group.vpc_id:
             vpc = self.vpcs.get(group.vpc_id)
-            if not len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
+            if vpc and not len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 for item in ip_ranges.copy():
                     if "CidrIpv6" in item:
                         ip_ranges.remove(item)
@@ -2511,6 +2523,7 @@ class SecurityGroupBackend(object):
         )
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)
+            self.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
             return security_rule
         raise InvalidPermissionNotFoundError()
 
@@ -2521,6 +2534,7 @@ class SecurityGroupBackend(object):
         ip_ranges,
         source_group_names=None,
         source_group_ids=None,
+        egress=False,
     ):
         max_nb_rules = 50 if group.vpc_id else 100
         future_group_nb_rules = current_rule_nb
@@ -2531,6 +2545,10 @@ class SecurityGroupBackend(object):
         if source_group_names:
             future_group_nb_rules += len(source_group_names)
         if future_group_nb_rules > max_nb_rules:
+            if group and not egress:
+                group.ingress_rules = self.sg_old_ingress_ruls[group.id]
+            if group and egress:
+                group.egress_rules = self.sg_old_egress_ruls[group.id]
             raise RulesPerSecurityGroupLimitExceededError
 
 

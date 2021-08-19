@@ -141,6 +141,7 @@ class SecurityGroups(BaseResponse):
         if self.is_not_dryrun("GrantSecurityGroupEgress"):
             for args in self._process_rules_from_querystring():
                 rule, group = self.ec2_backend.authorize_security_group_egress(*args)
+            self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
             template = self.response_template(AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE)
             return template.render(rule=rule, group=group)
 
@@ -148,6 +149,7 @@ class SecurityGroups(BaseResponse):
         if self.is_not_dryrun("GrantSecurityGroupIngress"):
             for args in self._process_rules_from_querystring():
                 rule, group = self.ec2_backend.authorize_security_group_ingress(*args)
+            self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
             template = self.response_template(AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE)
             return template.render(rule=rule, group=group)
 
@@ -164,6 +166,13 @@ class SecurityGroups(BaseResponse):
             group = self.ec2_backend.create_security_group(
                 name, description, vpc_id=vpc_id, tags=tags
             )
+            if group:
+                self.ec2_backend.sg_old_ingress_ruls[
+                    group.id
+                ] = group.ingress_rules.copy()
+                self.ec2_backend.sg_old_egress_ruls[
+                    group.id
+                ] = group.egress_rules.copy()
             template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
             return template.render(group=group)
 

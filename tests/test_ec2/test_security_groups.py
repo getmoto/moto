@@ -378,6 +378,8 @@ def test_authorize_other_group_egress_and_revoke():
             {"GroupId": sg02.id, "GroupName": "sg02", "UserId": sg02.owner_id}
         ],
         "IpRanges": [],
+        "Ipv6Ranges": [],
+        "PrefixListIds": [],
     }
 
     sg01.authorize_egress(IpPermissions=[ip_permission])
@@ -989,6 +991,8 @@ def test_revoke_security_group_egress():
                 "IpProtocol": "-1",
                 "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "UserIdGroupPairs": [],
+                "Ipv6Ranges": [],
+                "PrefixListIds": [],
             }
         ]
     )
@@ -999,6 +1003,8 @@ def test_revoke_security_group_egress():
                 "IpProtocol": "-1",
                 "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "UserIdGroupPairs": [],
+                "Ipv6Ranges": [],
+                "PrefixListIds": [],
             }
         ]
     )
