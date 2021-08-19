@@ -23,6 +23,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "image": "ami",
     "instance": "i",
     "internet-gateway": "igw",
+    "egress-only-internet-gateway": "eigw",
     "launch-template": "lt",
     "nat-gateway": "nat",
     "network-acl": "acl",
@@ -156,6 +157,12 @@ def random_eip_association_id():
 
 def random_internet_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["internet-gateway"])
+
+
+def random_egress_only_internet_gateway_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"], size=17
+    )
 
 
 def random_route_table_id():
@@ -367,8 +374,10 @@ def get_obj_tag_names(obj):
     return tags
 
 
-def get_obj_tag_values(obj):
-    tags = set((tag["value"] for tag in obj.get_tags()))
+def get_obj_tag_values(obj, key=None):
+    tags = set(
+        (tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None)
+    )
     return tags
 
 
@@ -386,7 +395,8 @@ def tag_filter_matches(obj, filter_name, filter_values):
     elif filter_name == "tag-value":
         tag_values = get_obj_tag_values(obj)
     elif filter_name.startswith("tag:"):
-        tag_values = get_obj_tag_values(obj)
+        key = filter_name[4:]
+        tag_values = get_obj_tag_values(obj, key=key)
     else:
         tag_values = [get_obj_tag(obj, filter_name) or ""]
 

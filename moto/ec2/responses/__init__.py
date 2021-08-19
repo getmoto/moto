@@ -12,6 +12,7 @@ from .elastic_network_interfaces import ElasticNetworkInterfaces
 from .general import General
 from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
+from .egress_only_internet_gateways import EgressOnlyInternetGateway
 from .ip_addresses import IPAddresses
 from .key_pairs import KeyPairs
 from .launch_templates import LaunchTemplates
@@ -53,6 +54,7 @@ class EC2Response(
     General,
     InstanceResponse,
     InternetGateways,
+    EgressOnlyInternetGateway,
     IPAddresses,
     KeyPairs,
     LaunchTemplates,

@@ -2,17 +2,28 @@ import json
 
 from boto3 import Session
 
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import (
+    iso_8601_datetime_without_milliseconds,
+    iso_8601_datetime_with_nanoseconds,
+)
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
+
+from .exceptions import (
+    InvalidFormat,
+    ResourceNotFound,
+    ValidationError,
+    InvalidParameterValue,
+    ResourceNotFoundException,
+)
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from ..utilities.tagging_service import TaggingService
 
 _EMPTY_LIST = tuple()
 
@@ -89,6 +100,7 @@ def daterange(start, stop, step=timedelta(days=1), inclusive=False):
 class FakeAlarm(BaseModel):
     def __init__(
         self,
+        region_name,
         name,
         namespace,
         metric_name,
@@ -99,6 +111,7 @@ class FakeAlarm(BaseModel):
         period,
         threshold,
         statistic,
+        extended_statistic,
         description,
         dimensions,
         alarm_actions,
@@ -106,11 +119,14 @@ class FakeAlarm(BaseModel):
         insufficient_data_actions,
         unit,
         actions_enabled,
-        region="us-east-1",
+        treat_missing_data,
+        evaluate_low_sample_count_percentile,
+        threshold_metric_id,
         rule=None,
     ):
+        self.region_name = region_name
         self.name = name
-        self.alarm_arn = make_arn_for_alarm(region, DEFAULT_ACCOUNT_ID, name)
+        self.alarm_arn = make_arn_for_alarm(region_name, DEFAULT_ACCOUNT_ID, name)
         self.namespace = namespace
         self.metric_name = metric_name
         self.metric_data_queries = metric_data_queries
@@ -120,6 +136,7 @@ class FakeAlarm(BaseModel):
         self.period = period
         self.threshold = threshold
         self.statistic = statistic
+        self.extended_statistic = extended_statistic
         self.description = description
         self.dimensions = [
             Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
@@ -129,14 +146,21 @@ class FakeAlarm(BaseModel):
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
         self.unit = unit
-        self.configuration_updated_timestamp = datetime.utcnow()
+        self.configuration_updated_timestamp = iso_8601_datetime_with_nanoseconds(
+            datetime.now(tz=tzutc())
+        )
+        self.treat_missing_data = treat_missing_data
+        self.evaluate_low_sample_count_percentile = evaluate_low_sample_count_percentile
+        self.threshold_metric_id = threshold_metric_id
 
         self.history = []
 
-        self.state_reason = ""
+        self.state_reason = "Unchecked: Initial alarm creation"
         self.state_reason_data = "{}"
         self.state_value = "OK"
-        self.state_updated_timestamp = datetime.utcnow()
+        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds(
+            datetime.now(tz=tzutc())
+        )
 
         # only used for composite alarms
         self.rule = rule
@@ -156,7 +180,9 @@ class FakeAlarm(BaseModel):
         self.state_reason = reason
         self.state_reason_data = reason_data
         self.state_value = state_value
-        self.state_updated_timestamp = datetime.utcnow()
+        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds(
+            datetime.now(tz=tzutc())
+        )
 
 
 def are_dimensions_same(metric_dimensions, dimensions):
@@ -273,11 +299,18 @@ class Statistics:
 
 
 class CloudWatchBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name):
+        self.region_name = region_name
         self.alarms = {}
         self.dashboards = {}
         self.metric_data = []
         self.paged_metric_data = {}
+        self.tagger = TaggingService()
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
@@ -300,6 +333,7 @@ class CloudWatchBackend(BaseBackend):
         period,
         threshold,
         statistic,
+        extended_statistic,
         description,
         dimensions,
         alarm_actions,
@@ -307,32 +341,54 @@ class CloudWatchBackend(BaseBackend):
         insufficient_data_actions,
         unit,
         actions_enabled,
-        region="us-east-1",
+        treat_missing_data,
+        evaluate_low_sample_count_percentile,
+        threshold_metric_id,
         rule=None,
+        tags=None,
     ):
+        if extended_statistic and not extended_statistic.startswith("p"):
+            raise InvalidParameterValue(
+                f"The value {extended_statistic} for parameter ExtendedStatistic is not supported."
+            )
+        if (
+            evaluate_low_sample_count_percentile
+            and evaluate_low_sample_count_percentile not in ("evaluate", "ignore")
+        ):
+            raise ValidationError(
+                f"Option {evaluate_low_sample_count_percentile} is not supported. "
+                "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
+            )
+
         alarm = FakeAlarm(
-            name,
-            namespace,
-            metric_name,
-            metric_data_queries,
-            comparison_operator,
-            evaluation_periods,
-            datapoints_to_alarm,
-            period,
-            threshold,
-            statistic,
-            description,
-            dimensions,
-            alarm_actions,
-            ok_actions,
-            insufficient_data_actions,
-            unit,
-            actions_enabled,
-            region,
+            region_name=self.region_name,
+            name=name,
+            namespace=namespace,
+            metric_name=metric_name,
+            metric_data_queries=metric_data_queries,
+            comparison_operator=comparison_operator,
+            evaluation_periods=evaluation_periods,
+            datapoints_to_alarm=datapoints_to_alarm,
+            period=period,
+            threshold=threshold,
+            statistic=statistic,
+            extended_statistic=extended_statistic,
+            description=description,
+            dimensions=dimensions,
+            alarm_actions=alarm_actions,
+            ok_actions=ok_actions,
+            insufficient_data_actions=insufficient_data_actions,
+            unit=unit,
+            actions_enabled=actions_enabled,
+            treat_missing_data=treat_missing_data,
+            evaluate_low_sample_count_percentile=evaluate_low_sample_count_percentile,
+            threshold_metric_id=threshold_metric_id,
             rule=rule,
         )
 
         self.alarms[name] = alarm
+        self.tagger.tag_resource(alarm.alarm_arn, tags)
+
         return alarm
 
     def get_all_alarms(self):
@@ -371,13 +427,6 @@ class CloudWatchBackend(BaseBackend):
         )
 
     def delete_alarms(self, alarm_names):
-        for alarm_name in alarm_names:
-            if alarm_name not in self.alarms:
-                raise RESTError(
-                    "ResourceNotFound",
-                    "Alarm {0} not found".format(alarm_name),
-                    status=404,
-                )
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
 
@@ -549,17 +598,16 @@ class CloudWatchBackend(BaseBackend):
             if reason_data is not None:
                 json.loads(reason_data)
         except ValueError:
-            raise RESTError("InvalidFormat", "StateReasonData is invalid JSON")
+            raise InvalidFormat("Unknown")
 
         if alarm_name not in self.alarms:
-            raise RESTError(
-                "ResourceNotFound", "Alarm {0} not found".format(alarm_name), status=404
-            )
+            raise ResourceNotFound
 
         if state_value not in ("OK", "ALARM", "INSUFFICIENT_DATA"):
-            raise RESTError(
-                "InvalidParameterValue",
-                "StateValue is not one of OK | ALARM | INSUFFICIENT_DATA",
+            raise ValidationError(
+                "1 validation error detected: "
+                f"Value '{state_value}' at 'stateValue' failed to satisfy constraint: "
+                "Member must satisfy enum value set: [INSUFFICIENT_DATA, ALARM, OK]"
             )
 
         self.alarms[alarm_name].update_state(reason, reason_data, state_value)
@@ -567,9 +615,7 @@ class CloudWatchBackend(BaseBackend):
     def list_metrics(self, next_token, namespace, metric_name, dimensions):
         if next_token:
             if next_token not in self.paged_metric_data:
-                raise RESTError(
-                    "PaginationException", "Request parameter NextToken is invalid"
-                )
+                raise InvalidParameterValue("Request parameter NextToken is invalid")
             else:
                 metrics = self.paged_metric_data[next_token]
                 del self.paged_metric_data[next_token]  # Cant reuse same token twice
@@ -590,6 +636,21 @@ class CloudWatchBackend(BaseBackend):
             ):
                 new_metrics.append(md)
         return new_metrics
+
+    def list_tags_for_resource(self, arn):
+        return self.tagger.get_tag_dict_for_resource(arn)
+
+    def tag_resource(self, arn, tags):
+        if arn not in self.tagger.tags.keys():
+            raise ResourceNotFoundException
+
+        self.tagger.tag_resource(arn, tags)
+
+    def untag_resource(self, arn, tag_keys):
+        if arn not in self.tagger.tags.keys():
+            raise ResourceNotFoundException
+
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
     def _get_paginated(self, metrics):
         if len(metrics) > 500:
@@ -629,13 +690,13 @@ class LogGroup(CloudFormationModel):
 
 cloudwatch_backends = {}
 for region in Session().get_available_regions("cloudwatch"):
-    cloudwatch_backends[region] = CloudWatchBackend()
+    cloudwatch_backends[region] = CloudWatchBackend(region)
 for region in Session().get_available_regions(
     "cloudwatch", partition_name="aws-us-gov"
 ):
-    cloudwatch_backends[region] = CloudWatchBackend()
+    cloudwatch_backends[region] = CloudWatchBackend(region)
 for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
-    cloudwatch_backends[region] = CloudWatchBackend()
+    cloudwatch_backends[region] = CloudWatchBackend(region)
 
 # List of services that provide OOTB CW metrics
 # See the S3Backend constructor for an example

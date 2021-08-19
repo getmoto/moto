@@ -398,6 +398,14 @@ class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
         )
 
 
+class InvalidGatewayIDError(EC2ClientError):
+    def __init__(self, gateway_id):
+        super(InvalidGatewayIDError, self).__init__(
+            "InvalidGatewayID.NotFound",
+            "The eigw ID '{0}' does not exist".format(gateway_id),
+        )
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
     def __init__(self, internet_gateway_id):
         super(InvalidInternetGatewayIdError, self).__init__(
@@ -582,6 +590,15 @@ class OperationNotPermitted3(EC2ClientError):
             "VPC peering connection {1} must be accepted or rejected in region {2}".format(
                 client_region, pcx_id, acceptor_region
             ),
+        )
+
+
+class OperationNotPermitted4(EC2ClientError):
+    def __init__(self, instance_id):
+        super(OperationNotPermitted4, self).__init__(
+            "OperationNotPermitted",
+            "The instance '{0}' may not be terminated. Modify its 'disableApiTermination' "
+            "instance attribute and try again.".format(instance_id),
         )
 
 

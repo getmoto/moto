@@ -1126,6 +1126,45 @@ def test_multipart_upload_from_file_to_presigned_url():
 
 
 @mock_s3
+def test_put_chunked_with_v4_signature_in_body():
+    bucket_name = "mybucket"
+    file_name = "file"
+    content = "CONTENT"
+    content_bytes = bytes(content, encoding="utf8")
+    # 'CONTENT' as received in moto, when PutObject is called in java AWS SDK v2
+    chunked_body = b"7;chunk-signature=bd479c607ec05dd9d570893f74eed76a4b333dfa37ad6446f631ec47dc52e756\r\nCONTENT\r\n0;chunk-signature=d192ec4075ddfc18d2ef4da4f55a87dc762ba4417b3bd41e70c282f8bec2ece0\r\n\r\n"
+
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket=bucket_name)
+
+    model = MyModel(file_name, content)
+    model.save()
+
+    boto_etag = s3.get_object(Bucket=bucket_name, Key=file_name)["ETag"]
+
+    params = {"Bucket": bucket_name, "Key": file_name}
+    # We'll use manipulated presigned PUT, to mimick PUT from SDK
+    presigned_url = boto3.client("s3").generate_presigned_url(
+        "put_object", params, ExpiresIn=900
+    )
+    requests.put(
+        presigned_url,
+        data=chunked_body,
+        headers={
+            "Content-Type": "application/octet-stream",
+            "x-amz-content-sha256": "STREAMING-AWS4-HMAC-SHA256-PAYLOAD",
+            "x-amz-decoded-content-length": str(len(content_bytes)),
+        },
+    )
+    resp = s3.get_object(Bucket=bucket_name, Key=file_name)
+    body = resp["Body"].read()
+    assert body == content_bytes
+
+    etag = resp["ETag"]
+    assert etag == boto_etag
+
+
+@mock_s3
 def test_default_key_buffer_size():
     # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
     original_default_key_buffer_size = os.environ.get(
@@ -5058,7 +5097,7 @@ def test_presigned_put_url_with_custom_headers():
 def test_request_partial_content_should_contain_content_length():
     bucket = "bucket"
     object_key = "key"
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
     s3.Object(bucket, object_key).put(Body="some text")
 
@@ -5071,7 +5110,7 @@ def test_request_partial_content_should_contain_content_length():
 def test_request_partial_content_should_contain_actual_content_length():
     bucket = "bucket"
     object_key = "key"
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
     s3.Object(bucket, object_key).put(Body="some text")
 
@@ -5123,7 +5162,7 @@ def test_request_partial_content_without_specifying_range_should_return_full_obj
 @mock_s3
 def test_object_headers():
     bucket = "my-bucket"
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
 
     res = s3.put_object(
@@ -5149,8 +5188,8 @@ def test_object_headers():
 @mock_s3
 def test_get_object_versions_with_prefix():
     bucket_name = "testbucket-3113"
-    s3_resource = boto3.resource("s3")
-    s3_client = boto3.client("s3")
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_versioning = s3_resource.BucketVersioning(bucket_name)
     bucket_versioning.enable()

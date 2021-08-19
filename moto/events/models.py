@@ -236,6 +236,10 @@ class Rule(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
+
+        if "EventPattern" in properties:
+            properties["EventPattern"] = json.dumps(properties["EventPattern"])
+
         event_name = resource_name
 
         event_pattern = properties.get("EventPattern")
@@ -266,14 +270,6 @@ class Rule(CloudFormationModel):
         return cls.create_from_cloudformation_json(
             new_resource_name, cloudformation_json, region_name
         )
-
-    @classmethod
-    def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-        event_backend = events_backends[region_name]
-        event_name = resource_name
-        event_backend.delete_rule(name=event_name)
 
     def describe(self):
         attributes = {
@@ -577,13 +573,6 @@ class Archive(CloudFormationModel):
             return cls.create_from_cloudformation_json(
                 new_resource_name, cloudformation_json, region_name
             )
-
-    @classmethod
-    def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-        event_backend = events_backends[region_name]
-        event_backend.delete_archive(resource_name)
 
 
 @unique
