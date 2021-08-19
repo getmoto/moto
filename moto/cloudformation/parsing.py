@@ -606,63 +606,55 @@ class ResourceMap(collections_abc.Mapping):
                     [self[resource].physical_resource_id], self.tags
                 )
 
-    def diff(self, template, parameters=None):
-        if parameters:
-            self.input_parameters = parameters
-        self.load_mapping()
-        self.load_parameters()
-        self.load_conditions()
+    def build_resource_diff(self, other_template):
 
-        old_template = self._resource_json_map
-        new_template = template["Resources"]
+        old = self._resource_json_map
+        new = other_template["Resources"]
+
+        resource_names_by_action = {"Add": {}, "Modify": {}, "Remove": {}}
 
         resource_names_by_action = {
-            "Add": set(new_template) - set(old_template),
+            "Add": set(new) - set(old),
             "Modify": set(
-                name
-                for name in new_template
-                if name in old_template and new_template[name] != old_template[name]
+                name for name in new if name in old and new[name] != old[name]
             ),
-            "Remove": set(old_template) - set(new_template),
+            "Remove": set(old) - set(new),
         }
+
+        return resource_names_by_action
+
+    def build_change_set_actions(self, template, parameters):
+
+        resource_names_by_action = self.build_resource_diff(template)
+
         resources_by_action = {"Add": {}, "Modify": {}, "Remove": {}}
 
         for resource_name in resource_names_by_action["Add"]:
             resources_by_action["Add"][resource_name] = {
                 "LogicalResourceId": resource_name,
-                "ResourceType": new_template[resource_name]["Type"],
+                "ResourceType": template["Resources"][resource_name]["Type"],
             }
 
         for resource_name in resource_names_by_action["Modify"]:
             resources_by_action["Modify"][resource_name] = {
                 "LogicalResourceId": resource_name,
-                "ResourceType": new_template[resource_name]["Type"],
+                "ResourceType": template["Resources"][resource_name]["Type"],
             }
 
         for resource_name in resource_names_by_action["Remove"]:
             resources_by_action["Remove"][resource_name] = {
                 "LogicalResourceId": resource_name,
-                "ResourceType": old_template[resource_name]["Type"],
+                "ResourceType": self._resource_json_map[resource_name]["Type"],
             }
 
         return resources_by_action
 
     def update(self, template, parameters=None):
-        resources_by_action = self.diff(template, parameters)
 
-        old_template = self._resource_json_map
-        new_template = template["Resources"]
-        self._resource_json_map = new_template
+        resource_names_by_action = self.build_resource_diff(template)
 
-        for resource_name, resource in resources_by_action["Add"].items():
-            resource_json = new_template[resource_name]
-            new_resource = parse_and_create_resource(
-                resource_name, resource_json, self, self._region_name
-            )
-            self._parsed_resources[resource_name] = new_resource
-
-        for logical_name, _ in resources_by_action["Remove"].items():
-            resource_json = old_template[logical_name]
+        for logical_name in resource_names_by_action["Remove"]:
+            resource_json = self._resource_json_map[logical_name]
             resource = self._parsed_resources[logical_name]
             # ToDo: Standardize this.
             if hasattr(resource, "physical_resource_id"):
@@ -676,10 +668,25 @@ class ResourceMap(collections_abc.Mapping):
             )
             self._parsed_resources.pop(logical_name)
 
+        self._template = template
+        if parameters:
+            self.input_parameters = parameters
+        self.load_mapping()
+        self.load_parameters()
+        self.load_conditions()
+
+        self._resource_json_map = template["Resources"]
+
+        for logical_name in resource_names_by_action["Add"]:
+
+            # call __getitem__ to initialize the resource
+            # TODO: usage of indexer to initalize the resource is questionable
+            _ = self[logical_name]
+
         tries = 1
-        while resources_by_action["Modify"] and tries < 5:
-            for logical_name, _ in resources_by_action["Modify"].copy().items():
-                resource_json = new_template[logical_name]
+        while resource_names_by_action["Modify"] and tries < 5:
+            for logical_name in resource_names_by_action["Modify"].copy():
+                resource_json = self._resource_json_map[logical_name]
                 try:
                     changed_resource = parse_and_update_resource(
                         logical_name, resource_json, self, self._region_name
@@ -690,7 +697,7 @@ class ResourceMap(collections_abc.Mapping):
                     last_exception = e
                 else:
                     self._parsed_resources[logical_name] = changed_resource
-                    del resources_by_action["Modify"][logical_name]
+                    resource_names_by_action["Modify"].remove(logical_name)
             tries += 1
         if tries == 5:
             raise last_exception

@@ -101,6 +101,20 @@ Resources:
           Value: !Ref TagName
 """
 
+dummy_empty_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {},
+    "Resources": {},
+}
+
+dummy_parametrized_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "KeyName": {"Description": "A template parameter", "Type": "String"}
+    },
+    "Resources": {},
+}
+
 dummy_update_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
@@ -194,6 +208,8 @@ dummy_template_json = json.dumps(dummy_template)
 dummy_template_special_chars_in_description_json = json.dumps(
     dummy_template_special_chars_in_description
 )
+dummy_empty_template_json = json.dumps(dummy_empty_template)
+dummy_parametrized_template_json = json.dumps(dummy_parametrized_template)
 dummy_update_template_json = json.dumps(dummy_update_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
 dummy_import_template_json = json.dumps(dummy_import_template)
@@ -620,6 +636,7 @@ def test_boto3_list_stack_set_operations():
 @mock_cloudformation
 def test_boto3_bad_list_stack_resources():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
     with pytest.raises(ClientError):
         cf_conn.list_stack_resources(StackName="test_stack_set")
 
@@ -752,6 +769,17 @@ def test_boto3_create_stack():
     cf_conn.get_template(StackName="test_stack")["TemplateBody"].should.equal(
         json.loads(dummy_template_json, object_pairs_hook=OrderedDict)
     )
+
+
+@mock_cloudformation
+def test_boto3_create_stack_fail_missing_parameter():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    with pytest.raises(ClientError, match="Missing parameter KeyName"):
+
+        cf_conn.create_stack(
+            StackName="test_stack", TemplateBody=dummy_parametrized_template_json
+        )
 
 
 @mock_cloudformation
@@ -919,6 +947,88 @@ def test_create_stack_from_s3_url():
 
 
 @mock_cloudformation
+def test_boto3_update_stack_fail_missing_new_parameter():
+
+    name = "update_stack_fail_missing_new_parameter"
+
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    cf_conn.create_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+    with pytest.raises(ClientError, match="Missing parameter KeyName"):
+
+        cf_conn.update_stack(
+            StackName=name, TemplateBody=dummy_parametrized_template_json
+        )
+
+
+@mock_cloudformation
+def test_boto3_update_stack_deleted_resources_can_reference_deleted_parameters():
+
+    name = "update_stack_deleted_resources_can_reference_deleted_parameters"
+
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
+            "Resources": {
+                "Queue": {
+                    "Type": "AWS::SQS::Queue",
+                    "Properties": {"VisibilityTimeout": {"Ref": "TimeoutParameter"}},
+                }
+            },
+        }
+    )
+
+    cf_conn.create_stack(StackName=name, TemplateBody=template_json)
+
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(1)
+
+    cf_conn.update_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(0)
+
+
+@mock_cloudformation
+def test_boto3_update_stack_deleted_resources_can_reference_deleted_resources():
+
+    name = "update_stack_deleted_resources_can_reference_deleted_resources"
+
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
+            "Resources": {
+                "VPC": {
+                    "Type": "AWS::EC2::VPC",
+                    "Properties": {"CidrBlock": "10.0.0.0/16"},
+                },
+                "Subnet": {
+                    "Type": "AWS::EC2::Subnet",
+                    "Properties": {"VpcId": {"Ref": "VPC"}, "CidrBlock": "10.0.0.0/24"},
+                },
+            },
+        }
+    )
+
+    cf_conn.create_stack(StackName=name, TemplateBody=template_json)
+
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(2)
+
+    cf_conn.update_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(0)
+
+
+@mock_cloudformation
 def test_update_stack_with_previous_value():
     name = "update_stack_with_previous_value"
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
@@ -974,7 +1084,11 @@ def test_update_stack_from_s3_url():
         ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
     )
 
-    cf_conn.update_stack(StackName="update_stack_from_url", TemplateURL=key_url)
+    cf_conn.update_stack(
+        StackName="update_stack_from_url",
+        TemplateURL=key_url,
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
+    )
 
     cf_conn.get_template(StackName="update_stack_from_url")[
         "TemplateBody"
@@ -1067,7 +1181,9 @@ def test_describe_change_set():
         TemplateBody=dummy_update_template_json,
         ChangeSetName="NewChangeSet2",
         ChangeSetType="UPDATE",
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
     )
+
     stack = cf_conn.describe_change_set(ChangeSetName="NewChangeSet2")
     stack["ChangeSetName"].should.equal("NewChangeSet2")
     stack["StackName"].should.equal("NewStack")
@@ -1336,6 +1452,7 @@ def test_describe_updated_stack():
         RoleARN="arn:aws:iam::{}:role/moto".format(ACCOUNT_ID),
         TemplateBody=dummy_update_template_json,
         Tags=[{"Key": "foo", "Value": "baz"}],
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
     )
 
     stack = cf_conn.describe_stacks(StackName="test_stack")["Stacks"][0]
@@ -1405,7 +1522,10 @@ def test_stack_tags():
 def test_stack_events():
     cf = boto3.resource("cloudformation", region_name="us-east-1")
     stack = cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
-    stack.update(TemplateBody=dummy_update_template_json)
+    stack.update(
+        TemplateBody=dummy_update_template_json,
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
+    )
     stack = cf.Stack(stack.stack_id)
     stack.delete()
 
