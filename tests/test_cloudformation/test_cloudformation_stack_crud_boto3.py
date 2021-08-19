@@ -981,7 +981,13 @@ def test_boto3_update_stack_deleted_resources_can_reference_deleted_parameters()
 
     cf_conn.create_stack(StackName=name, TemplateBody=template_json)
 
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(1)
+
     cf_conn.update_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(0)
 
 
 @mock_cloudformation
@@ -1013,7 +1019,13 @@ def test_boto3_update_stack_deleted_resources_can_reference_deleted_resources():
 
     cf_conn.create_stack(StackName=name, TemplateBody=template_json)
 
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(2)
+
     cf_conn.update_stack(StackName=name, TemplateBody=dummy_empty_template_json)
+
+    response = cf_conn.describe_stack_resources(StackName=name)
+    len(response["StackResources"]).should.equal(0)
 
 
 @mock_cloudformation
