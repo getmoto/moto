@@ -640,6 +640,7 @@ class Source(ConfigEmptyDictable):
         # Import is slow and as it's not needed for all config service
         # operations, only load it if needed.
         from moto.awslambda import lambda_backends
+
         lambda_func = lambda_backends[region].get_function(source_identifier)
         if not lambda_func:
             raise InsufficientPermissionsException(
