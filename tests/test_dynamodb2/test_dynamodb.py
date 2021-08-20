@@ -476,58 +476,6 @@ def test_item_add_long_string_range_key_exception():
 
 
 @mock_dynamodb2
-def test_item_add_long_string_range_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "someone@somewhere.edu"},
-            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
-        },
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.put_item(
-            TableName=name,
-            Item={
-                "forum_name": {"S": "LOLCat Forum"},
-                "subject": {"S": "Check this out!"},
-                "Body": {"S": "http://url_to_lolcat.gif"},
-                "SentBy": {"S": "someone@somewhere.edu"},
-                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
-            },
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
-    )
-
-
-@mock_dynamodb2
 def test_update_item_with_long_string_hash_key_exception():
     name = "TestTable"
     conn = boto3.client(

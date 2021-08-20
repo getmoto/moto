@@ -146,7 +146,7 @@ def test_create_transit_gateway_vpn_attachment():
 
 
 @mock_ec2
-def test_create_transit_gateway_vpc_attachment():
+def test_create_and_describe_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway_vpc_attachment(
         TransitGatewayId="gateway_id", VpcId="some-vpc-id", SubnetIds=["sub1"]

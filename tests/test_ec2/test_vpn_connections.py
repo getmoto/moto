@@ -77,7 +77,7 @@ def test_create_vpn_connection_with_vpn_gateway():
 
 
 @mock_ec2
-def test_describe_vpn_connections():
+def test_describe_vpn_connections_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
 
     vpn_gateway = client.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})

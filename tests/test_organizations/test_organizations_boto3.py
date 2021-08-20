@@ -1163,16 +1163,6 @@ def test__get_resource_for_tagging_non_existing_policy():
     ex.message.should.equal("You specified a target that doesn't exist.")
 
 
-def test__get_resource_for_tagging_non_existing_policy():
-    org_backend = OrganizationsBackend()
-    with pytest.raises(TargetNotFoundException) as e:
-        org_backend._get_resource_for_tagging("p-y1vas4da")
-    ex = e.value
-    ex.code.should.equal(400)
-    ex.description.should.contain("TargetNotFoundException")
-    ex.message.should.equal("You specified a target that doesn't exist.")
-
-
 def test__get_resource_to_tag_incorrect_resource():
     org_backend = OrganizationsBackend()
     with pytest.raises(InvalidInputException) as e:
