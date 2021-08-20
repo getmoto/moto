@@ -860,11 +860,8 @@ class ConfigBackend(BaseBackend):
         # Verify that each entry exists in the supported list:
         bad_list = []
         for resource in resource_list:
-            # For PY2:
-            r_str = str(resource)
-
-            if r_str not in self.config_schema.shapes["ResourceType"]["enum"]:
-                bad_list.append(r_str)
+            if resource not in self.config_schema.shapes["ResourceType"]["enum"]:
+                bad_list.append(resource)
 
         if bad_list:
             raise InvalidResourceTypeException(
@@ -1810,7 +1807,12 @@ class ConfigBackend(BaseBackend):
         }
 
     def put_config_rule(self, region, config_rule, tags=None):
-        """Add/Update config rule for evaluating resource compliance."""
+        """Add/Update config rule for evaluating resource compliance.
+
+        TBD - Only the "accounting" of config rules are handled at the
+        moment.  No events are created or triggered.  There is no
+        interaction with the config recorder.
+        """
         # If there is no rule_name, use the ARN or ID to get the
         # rule_name.
         rule_name = config_rule.get("ConfigRuleName")
