@@ -763,7 +763,7 @@ class ConfigRule(ConfigEmptyDictable):
             # OversizedConfigurationItemChangeNotification (not a periodic
             # trigger) with a MaximumExecutionFrequency for ConfigRule itself,
             # boto3 doesn't complain and describe_config_rule() shows the
-            # frequency, but the AWS console and the edit page does not.
+            # frequency, but the AWS console and the edit page do not.
             #
             # So I'm not sure how to validate this situation or when to
             # set this value to a default value.
