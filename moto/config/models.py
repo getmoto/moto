@@ -51,7 +51,6 @@ from moto.config.exceptions import (
     MissingRequiredConfigRuleParameterException,
 )
 
-from moto.awslambda import lambda_backends
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.responses import AWSServiceSpec
@@ -638,6 +637,9 @@ class Source(ConfigEmptyDictable):
                 "SourceDetails should be provided if the owner is CUSTOM_LAMBDA"
             )
 
+        # Import is slow and as it's not needed for all config service
+        # operations, only load it if needed.
+        from moto.awslambda import lambda_backends
         lambda_func = lambda_backends[region].get_function(source_identifier)
         if not lambda_func:
             raise InsufficientPermissionsException(
