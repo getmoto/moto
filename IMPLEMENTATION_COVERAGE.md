@@ -2445,7 +2445,7 @@
 
 ## config
 <details>
-<summary>33% implemented</summary>
+<summary>37% implemented</summary>
 
 - [X] batch_get_aggregate_resource_config
 - [X] batch_get_resource_config
@@ -3270,6 +3270,7 @@
 - [ ] deregister_certificate
 - [ ] deregister_event_topic
 - [ ] describe_certificate
+- [ ] describe_client_authentication_settings
 - [ ] describe_conditional_forwarders
 - [ ] describe_directories
 - [ ] describe_domain_controllers
@@ -3392,7 +3393,7 @@
 
 ## ec2
 <details>
-<summary>31% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -3447,7 +3448,7 @@
 - [ ] create_default_subnet
 - [ ] create_default_vpc
 - [X] create_dhcp_options
-- [ ] create_egress_only_internet_gateway
+- [X] create_egress_only_internet_gateway
 - [ ] create_fleet
 - [X] create_flow_logs
 - [ ] create_fpga_image
@@ -3508,7 +3509,7 @@
 - [ ] delete_client_vpn_route
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
-- [ ] delete_egress_only_internet_gateway
+- [X] delete_egress_only_internet_gateway
 - [ ] delete_fleets
 - [X] delete_flow_logs
 - [ ] delete_fpga_image
@@ -3583,7 +3584,7 @@
 - [ ] describe_conversion_tasks
 - [ ] describe_customer_gateways
 - [X] describe_dhcp_options
-- [ ] describe_egress_only_internet_gateways
+- [X] describe_egress_only_internet_gateways
 - [ ] describe_elastic_gpus
 - [ ] describe_export_image_tasks
 - [ ] describe_export_tasks
@@ -4031,29 +4032,29 @@
 
 ## eks
 <details>
-<summary>25% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
 - [ ] create_addon
 - [X] create_cluster
-- [ ] create_fargate_profile
+- [X] create_fargate_profile
 - [X] create_nodegroup
 - [ ] delete_addon
 - [X] delete_cluster
-- [ ] delete_fargate_profile
+- [X] delete_fargate_profile
 - [X] delete_nodegroup
 - [ ] describe_addon
 - [ ] describe_addon_versions
 - [X] describe_cluster
-- [ ] describe_fargate_profile
+- [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
 - [X] describe_nodegroup
 - [ ] describe_update
 - [ ] disassociate_identity_provider_config
 - [ ] list_addons
 - [X] list_clusters
-- [ ] list_fargate_profiles
+- [X] list_fargate_profiles
 - [ ] list_identity_provider_configs
 - [X] list_nodegroups
 - [ ] list_tags_for_resource
@@ -5628,7 +5629,7 @@
 
 ## iot
 <details>
-<summary>28% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -5703,7 +5704,7 @@
 - [X] delete_topic_rule
 - [ ] delete_topic_rule_destination
 - [ ] delete_v2_logging_level
-- [ ] deprecate_thing_type
+- [X] deprecate_thing_type
 - [ ] describe_account_audit_configuration
 - [ ] describe_audit_finding
 - [ ] describe_audit_mitigation_actions_task
@@ -7587,6 +7588,47 @@
 - [ ] update_vod_source
 </details>
 
+## memorydb
+<details>
+<summary>0% implemented</summary>
+
+- [ ] batch_update_cluster
+- [ ] copy_snapshot
+- [ ] create_acl
+- [ ] create_cluster
+- [ ] create_parameter_group
+- [ ] create_snapshot
+- [ ] create_subnet_group
+- [ ] create_user
+- [ ] delete_acl
+- [ ] delete_cluster
+- [ ] delete_parameter_group
+- [ ] delete_snapshot
+- [ ] delete_subnet_group
+- [ ] delete_user
+- [ ] describe_acls
+- [ ] describe_clusters
+- [ ] describe_engine_versions
+- [ ] describe_events
+- [ ] describe_parameter_groups
+- [ ] describe_parameters
+- [ ] describe_service_updates
+- [ ] describe_snapshots
+- [ ] describe_subnet_groups
+- [ ] describe_users
+- [ ] failover_shard
+- [ ] list_allowed_node_type_updates
+- [ ] list_tags
+- [ ] reset_parameter_group
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_acl
+- [ ] update_cluster
+- [ ] update_parameter_group
+- [ ] update_subnet_group
+- [ ] update_user
+</details>
+
 ## meteringmarketplace
 <details>
 <summary>0% implemented</summary>
@@ -9352,20 +9394,20 @@
 
 ## s3
 <details>
-<summary>25% implemented</summary>
+<summary>52% implemented</summary>
 
-- [ ] abort_multipart_upload
-- [ ] complete_multipart_upload
-- [ ] copy_object
+- [X] abort_multipart_upload
+- [X] complete_multipart_upload
+- [X] copy_object
 - [X] create_bucket
-- [ ] create_multipart_upload
+- [X] create_multipart_upload
 - [X] delete_bucket
 - [ ] delete_bucket_analytics_configuration
 - [X] delete_bucket_cors
 - [X] delete_bucket_encryption
 - [ ] delete_bucket_intelligent_tiering_configuration
 - [ ] delete_bucket_inventory_configuration
-- [ ] delete_bucket_lifecycle
+- [X] delete_bucket_lifecycle
 - [ ] delete_bucket_metrics_configuration
 - [ ] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
@@ -9374,8 +9416,8 @@
 - [X] delete_bucket_website
 - [X] delete_object
 - [X] delete_object_tagging
-- [ ] delete_objects
-- [ ] delete_public_access_block
+- [X] delete_objects
+- [X] delete_public_access_block
 - [ ] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
@@ -9383,9 +9425,9 @@
 - [X] get_bucket_encryption
 - [ ] get_bucket_intelligent_tiering_configuration
 - [ ] get_bucket_inventory_configuration
-- [ ] get_bucket_lifecycle
+- [X] get_bucket_lifecycle
 - [ ] get_bucket_lifecycle_configuration
-- [ ] get_bucket_location
+- [X] get_bucket_location
 - [X] get_bucket_logging
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
@@ -9399,55 +9441,55 @@
 - [X] get_bucket_versioning
 - [ ] get_bucket_website
 - [X] get_object
-- [ ] get_object_acl
+- [X] get_object_acl
 - [ ] get_object_legal_hold
-- [ ] get_object_lock_configuration
+- [X] get_object_lock_configuration
 - [ ] get_object_retention
-- [ ] get_object_tagging
+- [X] get_object_tagging
 - [ ] get_object_torrent
-- [ ] get_public_access_block
-- [ ] head_bucket
-- [ ] head_object
+- [X] get_public_access_block
+- [X] head_bucket
+- [X] head_object
 - [ ] list_bucket_analytics_configurations
 - [ ] list_bucket_intelligent_tiering_configurations
 - [ ] list_bucket_inventory_configurations
 - [ ] list_bucket_metrics_configurations
-- [ ] list_buckets
+- [X] list_buckets
 - [ ] list_multipart_uploads
-- [ ] list_object_versions
+- [X] list_object_versions
 - [ ] list_objects
 - [ ] list_objects_v2
 - [ ] list_parts
 - [X] put_bucket_accelerate_configuration
-- [ ] put_bucket_acl
+- [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
 - [ ] put_bucket_inventory_configuration
-- [ ] put_bucket_lifecycle
+- [X] put_bucket_lifecycle
 - [ ] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
 - [X] put_bucket_notification_configuration
 - [ ] put_bucket_ownership_controls
-- [ ] put_bucket_policy
+- [X] put_bucket_policy
 - [ ] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
 - [ ] put_bucket_versioning
 - [ ] put_bucket_website
-- [ ] put_object
-- [ ] put_object_acl
-- [ ] put_object_legal_hold
-- [ ] put_object_lock_configuration
-- [ ] put_object_retention
+- [X] put_object
+- [X] put_object_acl
+- [X] put_object_legal_hold
+- [X] put_object_lock_configuration
+- [X] put_object_retention
 - [ ] put_object_tagging
 - [ ] put_public_access_block
 - [ ] restore_object
 - [ ] select_object_content
-- [ ] upload_part
+- [X] upload_part
 - [ ] upload_part_copy
 - [ ] write_get_object_response
 </details>
@@ -9791,6 +9833,7 @@
 <summary>0% implemented</summary>
 
 - [ ] invoke_endpoint
+- [ ] invoke_endpoint_async
 </details>
 
 ## savingsplans
