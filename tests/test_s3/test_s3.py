@@ -2675,6 +2675,7 @@ def test_boto3_multipart_etag():
             Body=part2,
         )["ETag"]
     )
+
     s3.complete_multipart_upload(
         Bucket="mybucket",
         Key="the-key",
@@ -4540,7 +4541,7 @@ def test_s3_lifecycle_config_dict():
             "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1},
         },
     ]
-    s3_config_query.backends["global"].set_bucket_lifecycle("bucket1", lifecycle)
+    s3_config_query.backends["global"].put_bucket_lifecycle("bucket1", lifecycle)
 
     # Get the rules for this:
     lifecycles = [
@@ -4755,7 +4756,7 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(id=OWNER)], "FULL_CONTROL"),
         ]
     )
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
 
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
     assert acls == {
@@ -4781,7 +4782,7 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(id=OWNER)], "WRITE_ACP"),
         ]
     )
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
     assert acls == {
         "grantSet": None,
@@ -4828,7 +4829,7 @@ def test_s3_config_dict():
         ]
     )
 
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
     s3_config_query.backends["global"].put_bucket_logging(
         "bucket1", {"TargetBucket": "logbucket", "TargetPrefix": ""}
     )
@@ -4848,7 +4849,7 @@ def test_s3_config_dict():
 
     # The policy is a byte array -- need to encode in Python 3
     pass_policy = bytes(policy, "utf-8")
-    s3_config_query.backends["global"].set_bucket_policy("bucket1", pass_policy)
+    s3_config_query.backends["global"].put_bucket_policy("bucket1", pass_policy)
 
     # Get the us-west-2 bucket and verify that it works properly:
     bucket1_result = s3_config_query.get_config_resource("bucket1")
