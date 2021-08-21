@@ -2450,7 +2450,7 @@
 - [X] batch_get_aggregate_resource_config
 - [X] batch_get_resource_config
 - [X] delete_aggregation_authorization
-- [ ] delete_config_rule
+- [X] delete_config_rule
 - [X] delete_configuration_aggregator
 - [X] delete_configuration_recorder
 - [ ] delete_conformance_pack
@@ -2471,7 +2471,7 @@
 - [ ] describe_compliance_by_config_rule
 - [ ] describe_compliance_by_resource
 - [ ] describe_config_rule_evaluation_status
-- [ ] describe_config_rules
+- [X] describe_config_rules
 - [ ] describe_configuration_aggregator_sources_status
 - [X] describe_configuration_aggregators
 - [X] describe_configuration_recorder_status
@@ -2511,7 +2511,7 @@
 - [ ] list_stored_queries
 - [X] list_tags_for_resource
 - [X] put_aggregation_authorization
-- [ ] put_config_rule
+- [X] put_config_rule
 - [X] put_configuration_aggregator
 - [X] put_configuration_recorder
 - [ ] put_conformance_pack

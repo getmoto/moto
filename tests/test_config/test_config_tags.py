@@ -125,7 +125,28 @@ def test_tag_resource():
     updated_rsp = client.list_tags_for_resource(ResourceArn=agg_auth_arn)
     assert tags == updated_rsp["Tags"]
 
-    # Verify keys added to ConfigRule, when implemented.
+    # Verify keys added to ConfigRule.
+    config_rule_name = f"config-rule-test-{random_string()}"
+    client.put_config_rule(
+        ConfigRule={
+            "ConfigRuleName": config_rule_name,
+            "Scope": {"ComplianceResourceTypes": ["AWS::IAM::Group"]},
+            "Source": {"Owner": "AWS", "SourceIdentifier": "IAM_PASSWORD_POLICY"},
+        },
+        Tags=[{"Key": f"{x}", "Value": f"{x}"} for x in range(10)],
+    )
+    config_rule = client.describe_config_rules(ConfigRuleNames=[config_rule_name])[
+        "ConfigRules"
+    ][0]
+    config_rule_arn = config_rule["ConfigRuleArn"]
+    rsp = client.list_tags_for_resource(ResourceArn=config_rule_arn)
+    tags = rsp["Tags"]
+
+    client.tag_resource(ResourceArn=config_rule_arn, Tags=new_tags)
+    tags.extend(new_tags)
+
+    updated_rsp = client.list_tags_for_resource(ResourceArn=config_rule_arn)
+    assert tags == updated_rsp["Tags"]
 
 
 @mock_config
@@ -225,7 +246,28 @@ def test_untag_resource():
     updated_rsp = client.list_tags_for_resource(ResourceArn=good_arn)
     assert not updated_rsp["Tags"]
 
-    # Verify keys removed from ConfigRule, when implemented.
+    # Verify keys removed from ConfigRule.  Add a new tag to the current set
+    # of tags, then delete the new tag.  The original set of tags should remain.
+    rule_name = f"config-rule-delete-tags-test-{random_string()}"
+    client.put_config_rule(
+        ConfigRule={
+            "ConfigRuleName": rule_name,
+            "Scope": {"ComplianceResourceTypes": ["AWS::IAM::Group"]},
+            "Source": {"Owner": "AWS", "SourceIdentifier": "IAM_PASSWORD_POLICY"},
+        },
+        Tags=[{"Key": f"{x}", "Value": f"{x}"} for x in range(10)],
+    )
+    config_rule_arn = client.describe_config_rules(ConfigRuleNames=[rule_name])[
+        "ConfigRules"
+    ][0]["ConfigRuleArn"]
+    tags = client.list_tags_for_resource(ResourceArn=config_rule_arn)["Tags"]
+
+    test_tags = [{"Key": "cr_test_key", "Value": "cr_test_value"}]
+    client.tag_resource(ResourceArn=config_rule_arn, Tags=test_tags)
+    client.untag_resource(ResourceArn=config_rule_arn, TagKeys=[test_tags[0]["Key"]])
+
+    updated_rsp = client.list_tags_for_resource(ResourceArn=config_rule_arn)
+    assert tags == updated_rsp["Tags"]
 
 
 @mock_config
