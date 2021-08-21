@@ -2813,7 +2813,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
 
 @mock_sqs
-def test_message_attributes_in_receive_message():
+def test_message_attributes_contains_trace_header():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
     conn.create_queue(QueueName="test-queue")

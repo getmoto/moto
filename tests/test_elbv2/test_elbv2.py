@@ -1565,7 +1565,7 @@ def test_set_security_groups():
 
 @mock_elbv2
 @mock_ec2
-def test_set_subnets():
+def test_set_subnets_errors():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
