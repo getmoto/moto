@@ -7,6 +7,7 @@ import uuid
 import datetime
 
 from boto3 import Session
+from typing import List, Tuple
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
@@ -60,6 +61,7 @@ class FakeSecret:
         secret_binary=None,
         description=None,
         tags=[],
+        kms_key_id=None,
         version_id=None,
         version_stages=None,
     ):
@@ -70,6 +72,7 @@ class FakeSecret:
         self.secret_binary = secret_binary
         self.description = description
         self.tags = tags
+        self.kms_key_id = kms_key_id
         self.version_id = version_id
         self.version_stages = version_stages
         self.rotation_enabled = False
@@ -77,9 +80,12 @@ class FakeSecret:
         self.auto_rotate_after_days = 0
         self.deleted_date = None
 
-    def update(self, description=None, tags=[]):
+    def update(self, description=None, tags=[], kms_key_id=None):
         self.description = description
         self.tags = tags
+
+        if kms_key_id is not None:
+            self.kms_key_id = kms_key_id
 
     def set_versions(self, versions):
         self.versions = versions
@@ -126,7 +132,7 @@ class FakeSecret:
             "ARN": self.arn,
             "Name": self.name,
             "Description": self.description or "",
-            "KmsKeyId": "",
+            "KmsKeyId": self.kms_key_id,
             "RotationEnabled": self.rotation_enabled,
             "RotationLambdaARN": self.rotation_lambda_arn,
             "RotationRules": {"AutomaticallyAfterDays": self.auto_rotate_after_days},
@@ -241,7 +247,12 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def update_secret(
-        self, secret_id, secret_string=None, secret_binary=None, **kwargs
+        self,
+        secret_id,
+        secret_string=None,
+        secret_binary=None,
+        kms_key_id=None,
+        **kwargs
     ):
 
         # error if secret does not exist
@@ -264,12 +275,19 @@ class SecretsManagerBackend(BaseBackend):
             secret_binary=secret_binary,
             description=description,
             tags=tags,
+            kms_key_id=kms_key_id,
         )
 
         return secret.to_short_dict()
 
     def create_secret(
-        self, name, secret_string=None, secret_binary=None, description=None, tags=[]
+        self,
+        name,
+        secret_string=None,
+        secret_binary=None,
+        description=None,
+        tags=[],
+        kms_key_id=None,
     ):
 
         # error if secret exists
@@ -284,6 +302,7 @@ class SecretsManagerBackend(BaseBackend):
             secret_binary=secret_binary,
             description=description,
             tags=tags,
+            kms_key_id=kms_key_id,
         )
 
         return secret.to_short_dict()
@@ -295,6 +314,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         description=None,
         tags=[],
+        kms_key_id=None,
         version_id=None,
         version_stages=None,
     ):
@@ -318,7 +338,8 @@ class SecretsManagerBackend(BaseBackend):
 
         if secret_id in self.secrets:
             secret = self.secrets[secret_id]
-            secret.update(description, tags)
+
+            secret.update(description, tags, kms_key_id)
 
             if "AWSPENDING" in version_stages:
                 secret.versions[version_id] = secret_version
@@ -332,6 +353,7 @@ class SecretsManagerBackend(BaseBackend):
                 secret_binary=secret_binary,
                 description=description,
                 tags=tags,
+                kms_key_id=kms_key_id,
             )
             secret.set_versions({version_id: secret_version})
             secret.set_default_version_id(version_id)
@@ -566,15 +588,46 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
-    def list_secrets(self, filters, max_results, next_token):
-        # TODO implement pagination and limits
+    def list_secrets(
+        self, filters: List, max_results: int = 100, next_token: str = None
+    ) -> Tuple[List, str]:
+        """
+        Returns secrets from secretsmanager.
+        The result is paginated and page items depends on the token value, because token contains start element
+        number of secret list.
+        Response example:
+        {
+            SecretList: [
+                {
+                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test1-gEcah',
+                    Name: 'test1',
+                    ...
+                },
+                {
+                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test2-KZwml',
+                    Name: 'test2',
+                    ...
+                }
+            ],
+            NextToken: '2'
+        }
 
+        :param filters: (List) Filter parameters.
+        :param max_results: (int) Max number of results per page.
+        :param next_token: (str) Page token.
+        :return: (Tuple[List,str]) Returns result list and next token.
+        """
         secret_list = []
         for secret in self.secrets.values():
             if _matches(secret, filters):
                 secret_list.append(secret.to_dict())
 
-        return secret_list, None
+        starting_point = int(next_token or 0)
+        ending_point = starting_point + int(max_results or 100)
+        secret_page = secret_list[starting_point:ending_point]
+        new_next_token = str(ending_point) if ending_point < len(secret_list) else None
+
+        return secret_page, new_next_token
 
     def delete_secret(
         self, secret_id, recovery_window_in_days, force_delete_without_recovery

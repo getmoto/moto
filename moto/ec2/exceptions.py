@@ -4,6 +4,8 @@ from moto.core.exceptions import RESTError
 
 class EC2ClientError(RESTError):
     code = 400
+    # EC2 uses <RequestID> as tag name in the XML response
+    request_id_tag_name = "RequestID"
 
 
 class DependencyViolationError(EC2ClientError):
@@ -67,7 +69,7 @@ class InvalidSubnetIdError(EC2ClientError):
     def __init__(self, subnet_id):
         super(InvalidSubnetIdError, self).__init__(
             "InvalidSubnetID.NotFound",
-            "The subnet ID '{0}' does not exist".format(subnet_id),
+            "The subnet ID '{}' does not exist".format(subnet_id),
         )
 
 
@@ -396,6 +398,14 @@ class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
         )
 
 
+class InvalidGatewayIDError(EC2ClientError):
+    def __init__(self, gateway_id):
+        super(InvalidGatewayIDError, self).__init__(
+            "InvalidGatewayID.NotFound",
+            "The eigw ID '{0}' does not exist".format(gateway_id),
+        )
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
     def __init__(self, internet_gateway_id):
         super(InvalidInternetGatewayIdError, self).__init__(
@@ -476,6 +486,14 @@ class CidrLimitExceeded(EC2ClientError):
             "This network '{0}' has met its maximum number of allowed CIDRs: {1}".format(
                 vpc_id, max_cidr_limit
             ),
+        )
+
+
+class UnsupportedTenancy(EC2ClientError):
+    def __init__(self, tenancy):
+        super(UnsupportedTenancy, self).__init__(
+            "UnsupportedTenancy",
+            "The tenancy value {0} is not supported.".format(tenancy),
         )
 
 
@@ -575,6 +593,15 @@ class OperationNotPermitted3(EC2ClientError):
         )
 
 
+class OperationNotPermitted4(EC2ClientError):
+    def __init__(self, instance_id):
+        super(OperationNotPermitted4, self).__init__(
+            "OperationNotPermitted",
+            "The instance '{0}' may not be terminated. Modify its 'disableApiTermination' "
+            "instance attribute and try again.".format(instance_id),
+        )
+
+
 class InvalidLaunchTemplateNameError(EC2ClientError):
     def __init__(self):
         super(InvalidLaunchTemplateNameError, self).__init__(
@@ -612,7 +639,7 @@ class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
 class InvalidVpcEndPointIdError(EC2ClientError):
     def __init__(self, vpc_end_point_id):
         super(InvalidVpcEndPointIdError, self).__init__(
-            "InvalidVpcEndPointId.NotFound",
+            "InvalidVpcEndpointId.NotFound",
             "The VpcEndPoint ID '{0}' does not exist".format(vpc_end_point_id),
         )
 

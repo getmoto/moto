@@ -96,6 +96,17 @@ def test_describe_unknown_channel_throws_error():
 
 
 @mock_mediapackage
+def test_delete_unknown_channel_throws_error():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_id = "unknown-channel"
+    with pytest.raises(ClientError) as err:
+        client.delete_channel(Id=channel_id)
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("channel with id={} not found".format(str(channel_id)))
+
+
+@mock_mediapackage
 def test_delete_channel_successfully_deletes():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
@@ -167,6 +178,19 @@ def test_describe_origin_endpoint_succeeds():
 
 
 @mock_mediapackage
+def test_describe_unknown_origin_endpoint_throws_error():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_id = "unknown-channel"
+    with pytest.raises(ClientError) as err:
+        client.describe_origin_endpoint(Id=channel_id)
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal(
+        "origin endpoint with id={} not found".format(str(channel_id))
+    )
+
+
+@mock_mediapackage
 def test_delete_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -184,6 +208,19 @@ def test_delete_origin_endpoint_succeeds():
 
 
 @mock_mediapackage
+def test_delete_unknown_origin_endpoint_throws_error():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_id = "unknown-channel"
+    with pytest.raises(ClientError) as err:
+        client.delete_origin_endpoint(Id=channel_id)
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal(
+        "origin endpoint with id={} not found".format(str(channel_id))
+    )
+
+
+@mock_mediapackage
 def test_update_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -195,6 +232,23 @@ def test_update_origin_endpoint_succeeds():
     )
     update_response["Description"].should.equal("updated-channel-description")
     update_response["ManifestName"].should.equal("updated-manifest-name")
+
+
+@mock_mediapackage
+def test_update_unknown_origin_endpoint_throws_error():
+    client = boto3.client("mediapackage", region_name=region)
+    channel_id = "unknown-channel"
+    with pytest.raises(ClientError) as err:
+        client.update_origin_endpoint(
+            Id=channel_id,
+            Description="updated-channel-description",
+            ManifestName="updated-manifest-name",
+        )
+    err = err.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal(
+        "origin endpoint with id={} not found".format(str(channel_id))
+    )
 
 
 @mock_mediapackage

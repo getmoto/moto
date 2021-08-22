@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 import base64
 
-import six
-
 from moto.core.responses import BaseResponse
 from .models import ses_backend
 from datetime import datetime
@@ -59,7 +57,7 @@ class EmailResponse(BaseResponse):
         destinations = {"ToAddresses": [], "CcAddresses": [], "BccAddresses": []}
         for dest_type in destinations:
             # consume up to 51 to allow exception
-            for i in six.moves.range(1, 52):
+            for i in range(1, 52):
                 field = "Destination.%s.member.%s" % (dest_type, i)
                 address = self.querystring.get(field)
                 if address is None:
@@ -80,7 +78,7 @@ class EmailResponse(BaseResponse):
         destinations = {"ToAddresses": [], "CcAddresses": [], "BccAddresses": []}
         for dest_type in destinations:
             # consume up to 51 to allow exception
-            for i in six.moves.range(1, 52):
+            for i in range(1, 52):
                 field = "Destination.%s.member.%s" % (dest_type, i)
                 address = self.querystring.get(field)
                 if address is None:
@@ -100,11 +98,10 @@ class EmailResponse(BaseResponse):
 
         raw_data = self.querystring.get("RawMessage.Data")[0]
         raw_data = base64.b64decode(raw_data)
-        if six.PY3:
-            raw_data = raw_data.decode("utf-8")
+        raw_data = raw_data.decode("utf-8")
         destinations = []
         # consume up to 51 to allow exception
-        for i in six.moves.range(1, 52):
+        for i in range(1, 52):
             field = "Destinations.member.%s" % i
             address = self.querystring.get(field)
             if address is None:

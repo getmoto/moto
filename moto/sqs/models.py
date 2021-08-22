@@ -7,7 +7,6 @@ import random
 import re
 import string
 
-import six
 import struct
 from copy import deepcopy
 from xml.sax.saxutils import escape
@@ -147,7 +146,7 @@ class Message(BaseModel):
 
     @staticmethod
     def utf8(string):
-        if isinstance(string, six.string_types):
+        if isinstance(string, str):
             return string.encode("utf-8")
         return string
 
@@ -307,7 +306,7 @@ class Queue(CloudFormationModel):
         )
         bool_fields = ("ContentBasedDeduplication", "FifoQueue")
 
-        for key, value in six.iteritems(attributes):
+        for key, value in attributes.items():
             if key in integer_fields:
                 value = int(value)
             if key in bool_fields:
@@ -328,7 +327,7 @@ class Queue(CloudFormationModel):
 
     def _setup_dlq(self, policy):
 
-        if isinstance(policy, six.text_type):
+        if isinstance(policy, str):
             try:
                 self.redrive_policy = json.loads(policy)
             except ValueError:
@@ -478,6 +477,7 @@ class Queue(CloudFormationModel):
 
     @property
     def messages(self):
+        # TODO: This can become very inefficient if a large number of messages are in-flight
         return [
             message
             for message in self._messages
@@ -498,7 +498,6 @@ class Queue(CloudFormationModel):
                         return
 
         self._messages.append(message)
-        from moto.awslambda import lambda_backends
 
         for arn, esm in self.lambda_event_source_mappings.items():
             backend = sqs_backends[self.region]
@@ -515,6 +514,8 @@ class Queue(CloudFormationModel):
                 self.receive_message_wait_time_seconds,
                 self.visibility_timeout,
             )
+
+            from moto.awslambda import lambda_backends
 
             result = lambda_backends[self.region].send_sqs_batch(
                 arn, messages, self.queue_arn
@@ -706,7 +707,13 @@ class SQSBackend(BaseBackend):
             message.sequence_number = "".join(
                 random.choice(string.digits) for _ in range(20)
             )
-        if group_id is not None:
+
+        if group_id is None:
+            # MessageGroupId is a mandatory parameter for all
+            # messages in a fifo queue
+            if queue.fifo_queue:
+                raise MissingParameter("MessageGroupId")
+        else:
             message.group_id = group_id
 
         if message_attributes:
@@ -827,6 +834,7 @@ class SQSBackend(BaseBackend):
 
                 if (
                     queue.dead_letter_queue is not None
+                    and queue.redrive_policy
                     and message.approximate_receive_count
                     >= queue.redrive_policy["maxReceiveCount"]
                 ):
@@ -925,7 +933,7 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not actions:
-            raise MissingParameter()
+            raise MissingParameter("Actions")
 
         if not account_ids:
             raise InvalidParameterValue(
@@ -998,14 +1006,11 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not len(tags):
-            raise RESTError(
-                "MissingParameter", "The request must contain the parameter Tags."
-            )
+            raise MissingParameter("Tags")
 
         if len(tags) > 50:
-            raise RESTError(
-                "InvalidParameterValue",
-                "Too many tags added for queue {}.".format(queue_name),
+            raise InvalidParameterValue(
+                "Too many tags added for queue {}.".format(queue_name)
             )
 
         queue.tags.update(tags)

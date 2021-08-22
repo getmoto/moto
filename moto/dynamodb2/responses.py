@@ -5,7 +5,6 @@ import json
 import re
 
 import itertools
-import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
@@ -87,7 +86,7 @@ class DynamoHandler(BaseResponse):
         if endpoint:
             endpoint = camelcase_to_underscores(endpoint)
             response = getattr(self, endpoint)()
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, self.response_headers, response
 
             else:
@@ -482,8 +481,7 @@ class DynamoHandler(BaseResponse):
                 index = table.schema
 
             reverse_attribute_lookup = dict(
-                (v, k)
-                for k, v in six.iteritems(self.body.get("ExpressionAttributeNames", {}))
+                (v, k) for k, v in self.body.get("ExpressionAttributeNames", {}).items()
             )
 
             if " and " in key_condition_expression.lower():
@@ -986,3 +984,60 @@ class DynamoHandler(BaseResponse):
         )
 
         return json.dumps({"ContinuousBackupsDescription": response})
+
+    def list_backups(self):
+        body = self.body
+        table_name = body.get("TableName")
+        backups = self.dynamodb_backend.list_backups(table_name)
+        response = {"BackupSummaries": [backup.summary for backup in backups]}
+        return dynamo_json_dump(response)
+
+    def create_backup(self):
+        body = self.body
+        table_name = body.get("TableName")
+        backup_name = body.get("BackupName")
+        try:
+            backup = self.dynamodb_backend.create_backup(table_name, backup_name)
+            response = {"BackupDetails": backup.details}
+            return dynamo_json_dump(response)
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#TableNotFoundException"
+            return self.error(er, "Table not found: %s" % table_name)
+
+    def delete_backup(self):
+        body = self.body
+        backup_arn = body.get("BackupArn")
+        try:
+            backup = self.dynamodb_backend.delete_backup(backup_arn)
+            response = {"BackupDescription": backup.description}
+            return dynamo_json_dump(response)
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
+            return self.error(er, "Backup not found: %s" % backup_arn)
+
+    def describe_backup(self):
+        body = self.body
+        backup_arn = body.get("BackupArn")
+        try:
+            backup = self.dynamodb_backend.describe_backup(backup_arn)
+            response = {"BackupDescription": backup.description}
+            return dynamo_json_dump(response)
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
+            return self.error(er, "Backup not found: %s" % backup_arn)
+
+    def restore_table_from_backup(self):
+        body = self.body
+        target_table_name = body.get("TargetTableName")
+        backup_arn = body.get("BackupArn")
+        try:
+            restored_table = self.dynamodb_backend.restore_table_from_backup(
+                target_table_name, backup_arn
+            )
+            return dynamo_json_dump(restored_table.describe())
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
+            return self.error(er, "Backup not found: %s" % backup_arn)
+        except ValueError:
+            er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
+            return self.error(er, "Table already exists: %s" % target_table_name)

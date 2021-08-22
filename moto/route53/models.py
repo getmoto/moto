@@ -208,7 +208,7 @@ class RecordSet(CloudFormationModel):
         return template.render(record_set=self)
 
     def delete(self, *args, **kwargs):
-        """ Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored """
+        """Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored"""
         hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
         if not hosted_zone:
             hosted_zone = route53_backend.get_hosted_zone(self.hosted_zone_id)

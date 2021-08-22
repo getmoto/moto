@@ -1,17 +1,17 @@
 from __future__ import unicode_literals
-import random
 
 import datetime
 import re
 from jinja2 import Template
 from botocore.exceptions import ParamValidationError
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     underscores_to_camelcase,
     iso_8601_datetime_with_milliseconds,
+    get_random_hex,
 )
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
@@ -70,6 +70,7 @@ class FakeTargetGroup(CloudFormationModel):
         healthcheck_path=None,
         healthcheck_interval_seconds=None,
         healthcheck_timeout_seconds=None,
+        healthcheck_enabled=None,
         healthy_threshold_count=None,
         unhealthy_threshold_count=None,
         matcher=None,
@@ -82,19 +83,21 @@ class FakeTargetGroup(CloudFormationModel):
         self.vpc_id = vpc_id
         self.protocol = protocol
         self.port = port
-        self.healthcheck_protocol = healthcheck_protocol or "HTTP"
-        self.healthcheck_port = healthcheck_port or str(self.port)
-        self.healthcheck_path = healthcheck_path or "/"
+        self.healthcheck_protocol = healthcheck_protocol or self.protocol
+        self.healthcheck_port = healthcheck_port
+        self.healthcheck_path = healthcheck_path
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
+        self.healthcheck_enabled = healthcheck_enabled
         self.healthy_threshold_count = healthy_threshold_count or 5
         self.unhealthy_threshold_count = unhealthy_threshold_count or 2
         self.load_balancer_arns = []
         self.tags = {}
-        if matcher is None:
-            self.matcher = {"HttpCode": "200"}
-        else:
-            self.matcher = matcher
+        self.matcher = matcher
+        if self.protocol != "TCP":
+            self.matcher = self.matcher or {"HttpCode": "200"}
+            self.healthcheck_path = self.healthcheck_path or "/"
+            self.healthcheck_port = self.healthcheck_port or str(self.port)
         self.target_type = target_type
 
         self.attributes = {
@@ -209,7 +212,7 @@ class FakeListener(CloudFormationModel):
     ):
         self.load_balancer_arn = load_balancer_arn
         self.arn = arn
-        self.protocol = protocol.upper()
+        self.protocol = (protocol or "").upper()
         self.port = port
         self.ssl_policy = ssl_policy
         self.certificate = certificate
@@ -224,6 +227,7 @@ class FakeListener(CloudFormationModel):
             actions=default_actions,
             is_default=True,
         )
+        self.tags = {}
 
     @property
     def physical_resource_id(self):
@@ -263,37 +267,35 @@ class FakeListener(CloudFormationModel):
         port = properties.get("Port")
         ssl_policy = properties.get("SslPolicy")
         certificates = properties.get("Certificates")
-        # transform default actions to confirm with the rest of the code and XML templates
-        default_actions = []
-        for i, action in enumerate(properties["DefaultActions"]):
-            action_type = action["Type"]
-            if action_type == "forward":
-                default_actions.append(
-                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
-                )
-            elif action_type in [
-                "redirect",
-                "authenticate-cognito",
-                "fixed-response",
-            ]:
-                redirect_action = {"type": action_type}
-                key = (
-                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
-                    + "Config"
-                )
-                for redirect_config_key, redirect_config_value in action[key].items():
-                    # need to match the output of _get_list_prefix
-                    redirect_action[
-                        camelcase_to_underscores(key)
-                        + "._"
-                        + camelcase_to_underscores(redirect_config_key)
-                    ] = redirect_config_value
-                default_actions.append(redirect_action)
-            else:
-                raise InvalidActionTypeError(action_type, i + 1)
 
+        default_actions = elbv2_backend.convert_and_validate_properties(properties)
+        certificates = elbv2_backend.convert_and_validate_certificates(certificates)
         listener = elbv2_backend.create_listener(
             load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
+        )
+        return listener
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+
+        elbv2_backend = elbv2_backends[region_name]
+        protocol = properties.get("Protocol")
+        port = properties.get("Port")
+        ssl_policy = properties.get("SslPolicy")
+        certificates = properties.get("Certificates")
+
+        default_actions = elbv2_backend.convert_and_validate_properties(properties)
+        certificates = elbv2_backend.convert_and_validate_certificates(certificates)
+        listener = elbv2_backend.modify_listener(
+            original_resource.arn,
+            port,
+            protocol,
+            ssl_policy,
+            certificates,
+            default_actions,
         )
         return listener
 
@@ -326,37 +328,26 @@ class FakeListenerRule(CloudFormationModel):
         listener_arn = properties.get("ListenerArn")
         priority = properties.get("Priority")
         conditions = properties.get("Conditions")
-        # transform Actions to confirm with the rest of the code and XML templates
-        default_actions = []
-        for i, action in enumerate(properties["Actions"]):
-            action_type = action["Type"]
-            if action_type == "forward":
-                default_actions.append(
-                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
-                )
-            elif action_type in [
-                "redirect",
-                "authenticate-cognito",
-                "fixed-response",
-            ]:
-                redirect_action = {"type": action_type}
-                key = (
-                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
-                    + "Config"
-                )
-                for redirect_config_key, redirect_config_value in action[key].items():
-                    # need to match the output of _get_list_prefix
-                    redirect_action[
-                        camelcase_to_underscores(key)
-                        + "._"
-                        + camelcase_to_underscores(redirect_config_key)
-                    ] = redirect_config_value
-                default_actions.append(redirect_action)
-            else:
-                raise InvalidActionTypeError(action_type, i + 1)
 
+        actions = elbv2_backend.convert_and_validate_action_properties(properties)
         listener_rule = elbv2_backend.create_rule(
-            listener_arn, conditions, priority, default_actions
+            listener_arn, conditions, priority, actions
+        )
+        return listener_rule
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+
+        properties = cloudformation_json["Properties"]
+
+        elbv2_backend = elbv2_backends[region_name]
+        conditions = properties.get("Conditions")
+
+        actions = elbv2_backend.convert_and_validate_action_properties(properties)
+        listener_rule = elbv2_backend.modify_rule(
+            original_resource.arn, conditions, actions
         )
         return listener_rule
 
@@ -381,7 +372,19 @@ class FakeAction(BaseModel):
     def to_xml(self):
         template = Template(
             """<Type>{{ action.type }}</Type>
-            {% if action.type == "forward" %}
+            {% if action.type == "forward" and "forward_config" in action.data %}
+            <ForwardConfig>
+              <TargetGroups>
+                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                <member>
+                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
+                  <Weight>{{ target_group["weight"] }}</Weight>
+                </member>
+                {% endfor %}
+              </TargetGroups>
+            </ForwardConfig>
+            {% endif %}
+            {% if action.type == "forward" and "forward_config" not in action.data %}
             <TargetGroupArn>{{ action.data["target_group_arn"] }}</TargetGroupArn>
             {% elif action.type == "redirect" %}
             <RedirectConfig>
@@ -438,6 +441,7 @@ class FakeLoadBalancer(CloudFormationModel):
         dns_name,
         state,
         scheme="internet-facing",
+        loadbalancer_type=None,
     ):
         self.name = name
         self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
@@ -450,14 +454,15 @@ class FakeLoadBalancer(CloudFormationModel):
         self.arn = arn
         self.dns_name = dns_name
         self.state = state
+        self.loadbalancer_type = loadbalancer_type or "application"
 
         self.stack = "ipv4"
         self.attrs = {
-            "access_logs.s3.enabled": "false",
+            # "access_logs.s3.enabled": "false",  # commented out for TF compatibility
             "access_logs.s3.bucket": None,
             "access_logs.s3.prefix": None,
             "deletion_protection.enabled": "false",
-            "idle_timeout.timeout_seconds": "60",
+            # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
         }
 
     @property
@@ -481,7 +486,7 @@ class FakeLoadBalancer(CloudFormationModel):
             self.state = "active"
 
     def delete(self, region):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         elbv2_backends[region].delete_load_balancer(self.arn)
 
     @staticmethod
@@ -574,7 +579,12 @@ class ELBv2Backend(BaseBackend):
         self.__init__(region_name)
 
     def create_load_balancer(
-        self, name, security_groups, subnet_ids, scheme="internet-facing"
+        self,
+        name,
+        security_groups,
+        subnet_ids,
+        scheme="internet-facing",
+        loadbalancer_type=None,
     ):
         vpc_id = None
         subnets = []
@@ -606,9 +616,59 @@ class ELBv2Backend(BaseBackend):
             vpc_id=vpc_id,
             dns_name=dns_name,
             state=state,
+            loadbalancer_type=loadbalancer_type,
         )
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
+
+    def convert_and_validate_action_properties(self, properties):
+
+        # transform Actions to confirm with the rest of the code and XML templates
+        default_actions = []
+        for i, action in enumerate(properties["Actions"]):
+            action_type = action["Type"]
+            if action_type == "forward" and "ForwardConfig" in action:
+                action_forward_config = action["ForwardConfig"]
+                action_target_groups = action_forward_config["TargetGroups"]
+                target_group_action = []
+                for action_target_group in action_target_groups:
+                    target_group_action.append(
+                        {
+                            "target_group_arn": action_target_group["TargetGroupArn"],
+                            "weight": action_target_group["Weight"],
+                        }
+                    )
+                default_actions.append(
+                    {
+                        "type": action_type,
+                        "forward_config": {"target_groups": target_group_action},
+                    }
+                )
+            elif action_type == "forward" and "ForwardConfig" not in action:
+                default_actions.append(
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"]}
+                )
+            elif action_type in [
+                "redirect",
+                "authenticate-cognito",
+                "fixed-response",
+            ]:
+                redirect_action = {"type": action_type}
+                key = (
+                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
+                    + "Config"
+                )
+                for redirect_config_key, redirect_config_value in action[key].items():
+                    # need to match the output of _get_list_prefix
+                    redirect_action[
+                        camelcase_to_underscores(key)
+                        + "._"
+                        + camelcase_to_underscores(redirect_config_key)
+                    ] = redirect_config_value
+                default_actions.append(redirect_action)
+            else:
+                raise InvalidActionTypeError(action_type, i + 1)
+        return default_actions
 
     def create_rule(self, listener_arn, conditions, priority, actions):
         actions = [FakeAction(action) for action in actions]
@@ -618,23 +678,12 @@ class ELBv2Backend(BaseBackend):
         listener = listeners[0]
 
         # validate conditions
-        for condition in conditions:
-            if "field" in condition:
-                field = condition["field"]
-                if field not in ["path-pattern", "host-header"]:
-                    raise InvalidConditionFieldError(field)
+        # see: https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-rule.html
+        self._validate_conditions(conditions)
 
-                values = condition["values"]
-                if len(values) == 0:
-                    raise InvalidConditionValueError(
-                        "A condition value must be specified"
-                    )
-                if len(values) > 1:
-                    raise InvalidConditionValueError(
-                        "The '%s' field contains too many values; the limit is '1'"
-                        % field
-                    )
-
+        # TODO: check QueryStringConfig condition
+        # TODO: check HttpRequestMethodConfig condition
+        # TODO: check SourceIpConfig condition
         # TODO: check pattern of value for 'host-header'
         # TODO: check pattern of value for 'path-pattern'
 
@@ -644,11 +693,8 @@ class ELBv2Backend(BaseBackend):
                 raise PriorityInUseError()
 
         self._validate_actions(actions)
-        arn = (
-            listener_arn.replace(":listener/", ":listener-rule/")
-            + "{}".format(random.randint(0, 50))
-            + "/%s" % (id(self))
-        )
+        arn = listener_arn.replace(":listener/", ":listener-rule/")
+        arn += "/%s" % (get_random_hex(16))
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
@@ -658,6 +704,140 @@ class ELBv2Backend(BaseBackend):
         listener.register(arn, rule)
         return rule
 
+    def _validate_conditions(self, conditions):
+        for condition in conditions:
+            if "Field" in condition:
+                field = condition["Field"]
+                if field not in [
+                    "host-header",
+                    "http-header",
+                    "http-request-method",
+                    "path-pattern",
+                    "query-string",
+                    "source-ip",
+                ]:
+                    raise InvalidConditionFieldError(field)
+                if "Values" in condition and field not in [
+                    "host-header",
+                    "path-pattern",
+                ]:
+                    raise InvalidConditionValueError(
+                        "The 'Values' field is not compatible with '%s'" % field
+                    )
+                else:
+                    method_name = "_validate_" + field.replace("-", "_") + "_condition"
+                    func = getattr(self, method_name)
+                    func(condition)
+
+    def _validate_host_header_condition(self, condition):
+        values = None
+        if "HostHeaderConfig" in condition:
+            values = condition["HostHeaderConfig"]["Values"]
+        elif "Values" in condition:
+            values = condition["Values"]
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The 'host-header' field contains too many values; the limit is '1'"
+                )
+        if values is None or len(values) == 0:
+            raise InvalidConditionValueError("A condition value must be specified")
+        for value in values:
+            if len(value) > 128:
+                raise InvalidConditionValueError(
+                    "The 'host-header' value is too long; the limit is '128'"
+                )
+
+    def _validate_http_header_condition(self, condition):
+        if "HttpHeaderConfig" in condition:
+            config = condition["HttpHeaderConfig"]
+            name = config.get("HttpHeaderName")
+            if len(name) > 40:
+                raise InvalidConditionValueError(
+                    "The 'HttpHeaderName' value is too long; the limit is '40'"
+                )
+            values = config["Values"]
+            for value in values:
+                if len(value) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'http-header' value is too long; the limit is '128'"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'HttpHeaderConfig' must be specified with 'http-header'"
+            )
+
+    def _validate_http_request_method_condition(self, condition):
+        if "HttpRequestMethodConfig" in condition:
+            for value in condition["HttpRequestMethodConfig"]["Values"]:
+                if len(value) > 40:
+                    raise InvalidConditionValueError(
+                        "The 'http-request-method' value is too long; the limit is '40'"
+                    )
+                if not re.match("[A-Z_-]+", value):
+                    raise InvalidConditionValueError(
+                        "The 'http-request-method' value is invalid; the allowed characters are A-Z, hyphen and underscore"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'HttpRequestMethodConfig' must be specified with 'http-request-method'"
+            )
+
+    def _validate_path_pattern_condition(self, condition):
+        values = None
+        if "PathPatternConfig" in condition:
+            values = condition["PathPatternConfig"]["Values"]
+        elif "Values" in condition:
+            values = condition["Values"]
+            if len(values) > 1:
+                raise InvalidConditionValueError(
+                    "The 'path-pattern' field contains too many values; the limit is '1'"
+                )
+        if values is None or len(values) == 0:
+            raise InvalidConditionValueError("A condition value must be specified")
+        if condition.get("Values") and condition.get("PathPatternConfig"):
+            raise InvalidConditionValueError(
+                "You cannot provide both Values and 'PathPatternConfig' for a condition of type 'path-pattern'"
+            )
+        for value in values:
+            if len(value) > 128:
+                raise InvalidConditionValueError(
+                    "The 'path-pattern' value is too long; the limit is '128'"
+                )
+
+    def _validate_source_ip_condition(self, condition):
+        if "SourceIpConfig" in condition:
+            values = condition["SourceIpConfig"].get("Values", [])
+            if len(values) == 0:
+                raise InvalidConditionValueError(
+                    "A 'source-ip' value must be specified"
+                )
+        else:
+            raise InvalidConditionValueError(
+                "A 'SourceIpConfig' must be specified with 'source-ip'"
+            )
+
+    def _validate_query_string_condition(self, condition):
+        if "QueryStringConfig" in condition:
+            config = condition["QueryStringConfig"]
+            values = config["Values"]
+            for value in values:
+                if "Value" not in value:
+                    raise InvalidConditionValueError(
+                        "A 'Value' must be specified in 'QueryStringKeyValuePair'"
+                    )
+                if "Key" in value and len(value["Key"]) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'Key' value is too long; the limit is '128'"
+                    )
+                if len(value["Value"]) > 128:
+                    raise InvalidConditionValueError(
+                        "The 'Value' value is too long; the limit is '128'"
+                    )
+        else:
+            raise InvalidConditionValueError(
+                "A 'QueryStringConfig' must be specified with 'query-string'"
+            )
+
     def _validate_actions(self, actions):
         # validate Actions
         target_group_arns = [
@@ -666,13 +846,23 @@ class ELBv2Backend(BaseBackend):
         for i, action in enumerate(actions):
             index = i + 1
             action_type = action.type
-            if action_type == "forward":
+            if action_type == "forward" and "target_group_arn" in action.data:
                 action_target_group_arn = action.data["target_group_arn"]
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
             elif action_type == "fixed-response":
                 self._validate_fixed_response_action(action, i, index)
             elif action_type in ["redirect", "authenticate-cognito"]:
+                pass
+            # pass if listener rule has forward_config as an Action property
+            elif (
+                action_type == "forward"
+                and "forward_config._target_groups.member.{}._target_group_arn".format(
+                    index
+                )
+                in action.data.keys()
+                or "forward_config" in action.data.keys()
+            ):
                 pass
             else:
                 raise InvalidActionTypeError(action_type, index)
@@ -768,6 +958,46 @@ Member must satisfy regular expression pattern: {}".format(
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
         return target_group
+
+    def convert_and_validate_certificates(self, certificates):
+
+        # transform default certificate to conform with the rest of the code and XML templates
+        for cert in certificates or []:
+            cert["certificate_arn"] = cert["CertificateArn"]
+
+        return certificates
+
+    def convert_and_validate_properties(self, properties):
+
+        # transform default actions to confirm with the rest of the code and XML templates
+        default_actions = []
+        for i, action in enumerate(properties["DefaultActions"]):
+            action_type = action["Type"]
+            if action_type == "forward":
+                default_actions.append(
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"]}
+                )
+            elif action_type in [
+                "redirect",
+                "authenticate-cognito",
+                "fixed-response",
+            ]:
+                redirect_action = {"type": action_type}
+                key = (
+                    underscores_to_camelcase(action_type.capitalize().replace("-", "_"))
+                    + "Config"
+                )
+                for redirect_config_key, redirect_config_value in action[key].items():
+                    # need to match the output of _get_list_prefix
+                    redirect_action[
+                        camelcase_to_underscores(key)
+                        + "._"
+                        + camelcase_to_underscores(redirect_config_key)
+                    ] = redirect_config_value
+                default_actions.append(redirect_action)
+            else:
+                raise InvalidActionTypeError(action_type, i + 1)
+        return default_actions
 
     def create_listener(
         self,
@@ -957,24 +1187,9 @@ Member must satisfy regular expression pattern: {}".format(
             raise RuleNotFoundError()
         rule = rules[0]
 
-        if conditions:
-            for condition in conditions:
-                field = condition["field"]
-                if field not in ["path-pattern", "host-header"]:
-                    raise InvalidConditionFieldError(field)
-
-                values = condition["values"]
-                if len(values) == 0:
-                    raise InvalidConditionValueError(
-                        "A condition value must be specified"
-                    )
-                if len(values) > 1:
-                    raise InvalidConditionValueError(
-                        "The '%s' field contains too many values; the limit is '1'"
-                        % field
-                    )
-                # TODO: check pattern of value for 'host-header'
-                # TODO: check pattern of value for 'path-pattern'
+        self._validate_conditions(conditions)
+        # TODO: check pattern of value for 'host-header'
+        # TODO: check pattern of value for 'path-pattern'
 
         # validate Actions
         self._validate_actions(actions)
@@ -1145,6 +1360,7 @@ Member must satisfy regular expression pattern: {}".format(
         healthy_threshold_count=None,
         unhealthy_threshold_count=None,
         http_codes=None,
+        health_check_enabled=None,
     ):
         target_group = self.target_groups.get(arn)
         if target_group is None:
@@ -1171,6 +1387,8 @@ Member must satisfy regular expression pattern: {}".format(
             target_group.healthcheck_protocol = health_check_proto
         if health_check_timeout is not None:
             target_group.healthcheck_timeout_seconds = health_check_timeout
+        if health_check_enabled is not None:
+            target_group.healthcheck_enabled = health_check_enabled
         if healthy_threshold_count is not None:
             target_group.healthy_threshold_count = healthy_threshold_count
         if unhealthy_threshold_count is not None:
@@ -1200,8 +1418,6 @@ Member must satisfy regular expression pattern: {}".format(
             for listener_arn, current_listener in load_balancer.listeners.items():
                 if listener_arn == arn:
                     continue
-                if listener.port == port:
-                    raise DuplicateListenerError()
 
             listener.port = port
 
@@ -1214,41 +1430,24 @@ Member must satisfy regular expression pattern: {}".format(
 
             # HTTPS checks
             if protocol == "HTTPS":
-                # HTTPS
-
-                # Might already be HTTPS so may not provide certs
-                if certificates is None and listener.protocol != "HTTPS":
-                    raise RESTError(
-                        "InvalidConfigurationRequest",
-                        "Certificates must be provided for HTTPS",
-                    )
-
                 # Check certificates exist
-                if certificates is not None:
-                    default_cert = None
-                    all_certs = set()  # for SNI
-                    for cert in certificates:
-                        if cert["is_default"] == "true":
-                            default_cert = cert["certificate_arn"]
-                        try:
-                            self.acm_backend.get_certificate(cert["certificate_arn"])
-                        except Exception:
-                            raise RESTError(
-                                "CertificateNotFound",
-                                "Certificate {0} not found".format(
-                                    cert["certificate_arn"]
-                                ),
-                            )
-
-                        all_certs.add(cert["certificate_arn"])
-
-                    if default_cert is None:
+                if certificates:
+                    default_cert = certificates[0]
+                    default_cert_arn = default_cert["certificate_arn"]
+                    try:
+                        self.acm_backend.get_certificate(default_cert_arn)
+                    except Exception:
                         raise RESTError(
-                            "InvalidConfigurationRequest", "No default certificate"
+                            "CertificateNotFound",
+                            "Certificate {0} not found".format(default_cert_arn),
                         )
-
-                    listener.certificate = default_cert
-                    listener.certificates = list(all_certs)
+                    listener.certificate = default_cert_arn
+                    listener.certificates = certificates
+                else:
+                    raise RESTError(
+                        "CertificateWereNotPassed",
+                        "You must provide a list containing exactly one certificate if the listener protocol is HTTPS.",
+                    )
 
             listener.protocol = protocol
 

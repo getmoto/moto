@@ -10,24 +10,16 @@ import hashlib
 import boto
 import boto3
 import botocore.exceptions
-import six
-import sys
 import sure  # noqa
 from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_sqs, mock_sqs_deprecated, mock_lambda, mock_logs, settings
-from unittest import SkipTest
+from moto import mock_sqs, mock_sqs_deprecated, mock_logs, settings
 
-if sys.version_info[0] < 3:
-    import mock
-    from unittest import SkipTest
-else:
-    from unittest import SkipTest, mock
+from unittest import SkipTest, mock
 import pytest
 from tests.helpers import requires_boto_gte
-from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
 from moto.core import ACCOUNT_ID
 from moto.sqs.models import (
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
@@ -168,12 +160,13 @@ def test_create_queue_kms():
 def test_create_queue_with_tags():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
-        QueueName="test-queue-with-tags", tags={"tag_key_1": "tag_value_1"}
+        QueueName="test-queue-with-tags",
+        tags={"tag_key_1": "tag_value_1", "tag_key_2": ""},
     )
     queue_url = response["QueueUrl"]
 
     client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
-        {"tag_key_1": "tag_value_1"}
+        {"tag_key_1": "tag_value_1", "tag_key_2": "",}
     )
 
 
@@ -204,6 +197,31 @@ def test_create_queue_with_policy():
             "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
         }
     )
+
+
+@mock_sqs
+def test_set_queue_attribute_empty_policy_removes_attr():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName="test-queue",
+        Attributes={
+            "Policy": json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Id": "test",
+                    "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
+                }
+            )
+        },
+    )
+    queue_url = response["QueueUrl"]
+
+    empty_policy = {"Policy": ""}
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=empty_policy)
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    response.shouldnt.have.key("Policy")
 
 
 @mock_sqs
@@ -587,9 +605,9 @@ def test_get_queue_attributes():
     response["Attributes"]["ApproximateNumberOfMessages"].should.equal("0")
     response["Attributes"]["ApproximateNumberOfMessagesDelayed"].should.equal("0")
     response["Attributes"]["ApproximateNumberOfMessagesNotVisible"].should.equal("0")
-    response["Attributes"]["CreatedTimestamp"].should.be.a(six.string_types)
+    response["Attributes"]["CreatedTimestamp"].should.be.a(str)
     response["Attributes"]["DelaySeconds"].should.equal("0")
-    response["Attributes"]["LastModifiedTimestamp"].should.be.a(six.string_types)
+    response["Attributes"]["LastModifiedTimestamp"].should.be.a(str)
     response["Attributes"]["MaximumMessageSize"].should.equal("262144")
     response["Attributes"]["MessageRetentionPeriod"].should.equal("345600")
     response["Attributes"]["QueueArn"].should.equal(
@@ -1715,6 +1733,34 @@ def test_send_message_batch():
 
 
 @mock_sqs
+def test_delete_message_batch_with_duplicates():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName="test-queue")
+    queue_url = response["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="coucou")
+
+    messages = client.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=0, VisibilityTimeout=0
+    )["Messages"]
+    assert messages, "at least one msg"
+    entries = [
+        {"Id": msg["MessageId"], "ReceiptHandle": msg["ReceiptHandle"]}
+        for msg in [messages[0], messages[0]]
+    ]
+
+    with pytest.raises(ClientError) as e:
+        client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+    ex = e.value
+    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+
+    # no messages are deleted
+    messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
+        "Messages", []
+    )
+    assert messages, "message still in the queue"
+
+
+@mock_sqs
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -2555,7 +2601,7 @@ def test_list_queues_limits_to_1000_queues():
 
 
 @mock_sqs
-def test_send_messages_to_fifo_without_message_group_id():
+def test_send_message_to_fifo_without_message_group_id():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(
         QueueName="blah.fifo",
@@ -2571,62 +2617,23 @@ def test_send_messages_to_fifo_without_message_group_id():
     )
 
 
-@mock_logs
-@mock_lambda
 @mock_sqs
-def test_invoke_function_from_sqs_exception():
-    logs_conn = boto3.client("logs", region_name="us-east-1")
-    sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(QueueName="test-sqs-queue1")
-
-    conn = boto3.client("lambda", region_name="us-east-1")
-    func = conn.create_function(
-        FunctionName="testFunction",
-        Runtime="python2.7",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1()},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
+def test_send_messages_to_fifo_without_message_group_id():
+    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    queue = sqs.create_queue(
+        QueueName="blah.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
 
-    response = conn.create_event_source_mapping(
-        EventSourceArn=queue.attributes["QueueArn"], FunctionName=func["FunctionArn"]
-    )
-
-    assert response["EventSourceArn"] == queue.attributes["QueueArn"]
-    assert response["State"] == "Enabled"
-
-    entries = [
-        {
-            "Id": "1",
-            "MessageBody": json.dumps({"uuid": str(uuid.uuid4()), "test": "test"}),
-        }
-    ]
-
-    queue.send_messages(Entries=entries)
-
-    start = time.time()
-    while (time.time() - start) < 30:
-        result = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
-        log_streams = result.get("logStreams")
-        if not log_streams:
-            time.sleep(1)
-            continue
-        assert len(log_streams) >= 1
-
-        result = logs_conn.get_log_events(
-            logGroupName="/aws/lambda/testFunction",
-            logStreamName=log_streams[0]["logStreamName"],
+    with pytest.raises(Exception) as e:
+        queue.send_messages(
+            Entries=[{"Id": "id_1", "MessageBody": "body_1",},]
         )
-        for event in result.get("events"):
-            if "custom log event" in event["message"]:
-                return
-        time.sleep(1)
-
-    assert False, "Test Failed"
+    ex = e.value
+    ex.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter MessageGroupId."
+    )
 
 
 @mock_sqs
@@ -2806,7 +2813,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
 
 @mock_sqs
-def test_message_attributes_in_receive_message():
+def test_message_attributes_contains_trace_header():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
     conn.create_queue(QueueName="test-queue")

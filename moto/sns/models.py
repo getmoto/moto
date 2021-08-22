@@ -5,19 +5,17 @@ import uuid
 import json
 
 import requests
-import six
 import re
 
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
 )
 from moto.sqs import sqs_backends
-from moto.awslambda import lambda_backends
 
 from .exceptions import (
     SNSNotFoundError,
@@ -59,7 +57,7 @@ class Topic(CloudFormationModel):
         self._tags = {}
 
     def publish(self, message, subject=None, message_attributes=None):
-        message_id = six.text_type(uuid.uuid4())
+        message_id = str(uuid.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
             subscription.publish(
@@ -212,6 +210,8 @@ class Subscription(BaseModel):
             else:
                 assert False
 
+            from moto.awslambda import lambda_backends
+
             lambda_backends[region].send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
             )
@@ -228,7 +228,7 @@ class Subscription(BaseModel):
         def _field_match(field, rules, message_attributes):
             for rule in rules:
                 #  TODO: boolean value matching is not supported, SNS behavior unknown
-                if isinstance(rule, six.string_types):
+                if isinstance(rule, str):
                     if field not in message_attributes:
                         return False
                     if message_attributes[field]["Value"] == rule:
@@ -239,7 +239,7 @@ class Subscription(BaseModel):
                             return True
                     except (ValueError, TypeError):
                         pass
-                if isinstance(rule, (six.integer_types, float)):
+                if isinstance(rule, (int, float)):
                     if field not in message_attributes:
                         return False
                     if message_attributes[field]["Type"] == "Number":
@@ -273,7 +273,7 @@ class Subscription(BaseModel):
 
         return all(
             _field_match(field, rules, message_attributes)
-            for field, rules in six.iteritems(self._filter_policy)
+            for field, rules in self._filter_policy.items()
         )
 
     def get_post_data(self, message, message_id, subject, message_attributes=None):
@@ -356,7 +356,7 @@ class PlatformEndpoint(BaseModel):
             raise SnsEndpointDisabled("Endpoint %s disabled" % self.id)
 
         # This is where we would actually send a message
-        message_id = six.text_type(uuid.uuid4())
+        message_id = str(uuid.uuid4())
         self.messages[message_id] = message
         return message_id
 
@@ -442,7 +442,7 @@ class SNSBackend(BaseBackend):
         return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic_subscriptions(self, topic):
-        for key, value in self.subscriptions.items():
+        for key, value in dict(self.subscriptions).items():
             if value.topic == topic:
                 self.subscriptions.pop(key)
 
@@ -540,7 +540,7 @@ class SNSBackend(BaseBackend):
             if len(message) > MAXIMUM_SMS_MESSAGE_BYTES:
                 raise ValueError("SMS message must be less than 1600 bytes")
 
-            message_id = six.text_type(uuid.uuid4())
+            message_id = str(uuid.uuid4())
             self.sms_messages[message_id] = (phone_number, message)
             return message_id
 
@@ -584,10 +584,16 @@ class SNSBackend(BaseBackend):
     def create_platform_endpoint(
         self, region, application, custom_user_data, token, attributes
     ):
-        if any(
-            token == endpoint.token for endpoint in self.platform_endpoints.values()
-        ):
-            raise DuplicateSnsEndpointError("Duplicate endpoint token: %s" % token)
+        for endpoint in self.platform_endpoints.values():
+            if token == endpoint.token:
+                if (
+                    attributes.get("Enabled", "").lower()
+                    == endpoint.attributes["Enabled"]
+                ):
+                    return endpoint
+                raise DuplicateSnsEndpointError(
+                    "Duplicate endpoint token with different attributes: %s" % token
+                )
         platform_endpoint = PlatformEndpoint(
             region, application, custom_user_data, token, attributes
         )
@@ -653,7 +659,7 @@ class SNSBackend(BaseBackend):
     def _validate_filter_policy(self, value):
         # TODO: extend validation checks
         combinations = 1
-        for rules in six.itervalues(value):
+        for rules in value.values():
             combinations *= len(rules)
         # Even the official documentation states the total combination of values must not exceed 100, in reality it is 150
         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
@@ -662,15 +668,15 @@ class SNSBackend(BaseBackend):
                 "Invalid parameter: FilterPolicy: Filter policy is too complex"
             )
 
-        for field, rules in six.iteritems(value):
+        for field, rules in value.items():
             for rule in rules:
                 if rule is None:
                     continue
-                if isinstance(rule, six.string_types):
+                if isinstance(rule, str):
                     continue
                 if isinstance(rule, bool):
                     continue
-                if isinstance(rule, (six.integer_types, float)):
+                if isinstance(rule, (int, float)):
                     if rule <= -1000000000 or rule >= 1000000000:
                         raise InternalError("Unknown")
                     continue

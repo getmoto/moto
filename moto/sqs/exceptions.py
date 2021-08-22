@@ -123,9 +123,10 @@ class InvalidParameterValue(RESTError):
 class MissingParameter(RESTError):
     code = 400
 
-    def __init__(self):
+    def __init__(self, parameter):
         super(MissingParameter, self).__init__(
-            "MissingParameter", "The request must contain the parameter Actions."
+            "MissingParameter",
+            "The request must contain the parameter {}.".format(parameter),
         )
 
 

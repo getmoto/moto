@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ec2, mock_ssm
+from moto.core import ACCOUNT_ID
 from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
 from tests import EXAMPLE_AMI_ID
 
@@ -120,8 +121,8 @@ def test_get_parameters_by_path():
     {p["ARN"] for p in response["Parameters"]}.should.equal(
         set(
             [
-                "arn:aws:ssm:us-east-1:1234567890:parameter/foo",
-                "arn:aws:ssm:us-east-1:1234567890:parameter/baz",
+                "arn:aws:ssm:us-east-1:{}:parameter/foo".format(ACCOUNT_ID),
+                "arn:aws:ssm:us-east-1:{}:parameter/baz".format(ACCOUNT_ID),
             ]
         )
     )
@@ -227,43 +228,46 @@ def test_get_parameters_by_path():
     )
 
 
+@pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
 @mock_ssm
-def test_put_parameter():
+def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
 
     response = client.put_parameter(
-        Name="test", Description="A test parameter", Value="value", Type="String"
+        Name=name, Description="A test parameter", Value="value", Type="String"
     )
 
     response["Version"].should.equal(1)
 
-    response = client.get_parameters(Names=["test"], WithDecryption=False)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
     len(response["Parameters"]).should.equal(1)
-    response["Parameters"][0]["Name"].should.equal("test")
+    response["Parameters"][0]["Name"].should.equal(name)
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
     response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
     initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
 
     try:
         client.put_parameter(
-            Name="test", Description="desc 2", Value="value 2", Type="String"
+            Name=name, Description="desc 2", Value="value 2", Type="String"
         )
         raise RuntimeError("Should fail")
     except botocore.exceptions.ClientError as err:
         err.operation_name.should.equal("PutParameter")
-        err.response["Error"]["Message"].should.equal("Parameter test already exists.")
+        err.response["Error"]["Message"].should.equal(
+            "Parameter {} already exists.".format(name)
+        )
 
-    response = client.get_parameters(Names=["test"], WithDecryption=False)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
     # without overwrite nothing change
     len(response["Parameters"]).should.equal(1)
-    response["Parameters"][0]["Name"].should.equal("test")
+    response["Parameters"][0]["Name"].should.equal(name)
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
@@ -271,24 +275,20 @@ def test_put_parameter():
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
 
     response = client.put_parameter(
-        Name="test",
-        Description="desc 3",
-        Value="value 3",
-        Type="String",
-        Overwrite=True,
+        Name=name, Description="desc 3", Value="value 3", Type="String", Overwrite=True,
     )
 
     response["Version"].should.equal(2)
 
-    response = client.get_parameters(Names=["test"], WithDecryption=False)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
     # without overwrite nothing change
     len(response["Parameters"]).should.equal(1)
-    response["Parameters"][0]["Name"].should.equal("test")
+    response["Parameters"][0]["Name"].should.equal(name)
     response["Parameters"][0]["Value"].should.equal("value 3")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(2)
@@ -296,7 +296,7 @@ def test_put_parameter():
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
 
 
@@ -409,7 +409,7 @@ def test_get_parameter():
     response["Parameter"]["Type"].should.equal("String")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/test".format(ACCOUNT_ID)
     )
 
 
@@ -435,7 +435,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["Type"].should.equal("String")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test-1"
+        "arn:aws:ssm:us-east-1:{}:parameter/test-1".format(ACCOUNT_ID)
     )
 
     response = client.get_parameter(Name="test-2:1", WithDecryption=False)
@@ -444,7 +444,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["Type"].should.equal("String")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+        "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
     )
 
     response = client.get_parameter(Name="test-2:test-label", WithDecryption=False)
@@ -453,7 +453,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["Type"].should.equal("String")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+        "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
     )
 
     with pytest.raises(ClientError) as ex:
@@ -1393,7 +1393,7 @@ def test_label_parameter_version_invalid_name():
 
     test_parameter_name = "test"
 
-    response = client.label_parameter_version.when.called_with(
+    client.label_parameter_version.when.called_with(
         Name=test_parameter_name, Labels=["test-label"]
     ).should.throw(
         ClientError,
@@ -1414,7 +1414,7 @@ def test_label_parameter_version_invalid_parameter_version():
         Type="String",
     )
 
-    response = client.label_parameter_version.when.called_with(
+    client.label_parameter_version.when.called_with(
         Name=test_parameter_name, Labels=["test-label"], ParameterVersion=5
     ).should.throw(
         ClientError,

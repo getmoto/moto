@@ -5,7 +5,7 @@ from collections import namedtuple
 
 from botocore.utils import merge_dicts
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 
 FilterDef = namedtuple(
     "FilterDef",

@@ -1,19 +1,22 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from moto.ec2.utils import filters_from_querystring, add_tag_specification
 
 
 class ElasticIPAddresses(BaseResponse):
     def allocate_address(self):
         domain = self._get_param("Domain", if_none="standard")
         reallocate_address = self._get_param("Address", if_none=None)
+        tags = self._get_multi_param("TagSpecification")
+        tags = add_tag_specification(tags)
+
         if self.is_not_dryrun("AllocateAddress"):
             if reallocate_address:
                 address = self.ec2_backend.allocate_address(
-                    domain, address=reallocate_address
+                    domain, address=reallocate_address, tags=tags
                 )
             else:
-                address = self.ec2_backend.allocate_address(domain)
+                address = self.ec2_backend.allocate_address(domain, tags=tags)
             template = self.response_template(ALLOCATE_ADDRESS_RESPONSE)
             return template.render(address=address)
 
@@ -152,14 +155,12 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
             <associationId>{{ address.association_id }}</associationId>
           {% endif %}
           <tagSet>
-            {% for tag in address.get_tags() %}
+          {% for tag in address.get_tags() %}
               <item>
-                <resourceId>{{ tag.resource_id }}</resourceId>
-                <resourceType>{{ tag.resource_type }}</resourceType>
-                <key>{{ tag.key }}</key>
-                <value>{{ tag.value }}</value>
+                  <key>{{ tag.key }}</key>
+                  <value>{{ tag.value }}</value>
               </item>
-            {% endfor %}
+          {% endfor %}
           </tagSet>
         </item>
     {% endfor %}

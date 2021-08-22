@@ -1,3 +1,4 @@
+import os
 import time
 
 try:
@@ -18,10 +19,13 @@ except ImportError:
 
 
 start_ts = time.time()
-print("Waiting for service to come up")
+expected_port = os.environ.get("MOTO_PORT", "5000")
+expected_host = "http://localhost:{}/".format(expected_port)
+print("Waiting for service to come up on {}".format(expected_host))
 while True:
     try:
-        urllib.urlopen("http://localhost:5000/", timeout=1)
+
+        urllib.urlopen(expected_host, timeout=1)
         break
     except EXCEPTIONS:
         elapsed_s = time.time() - start_ts

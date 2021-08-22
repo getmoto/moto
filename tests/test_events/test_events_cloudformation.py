@@ -35,6 +35,31 @@ archive_template = Template(
 )
 
 
+rule_template = Template(
+    json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Description": "EventBridge Rule Test",
+            "Resources": {
+                "Rule": {
+                    "Type": "AWS::Events::Rule",
+                    "Properties": {
+                        "Name": "${rule_name}",
+                        "EventPattern": {"detail-type": ["SomeDetailType"]},
+                    },
+                }
+            },
+            "Outputs": {
+                "Arn": {
+                    "Description": "Rule Arn",
+                    "Value": {"Fn::GetAtt": ["Rule", "Arn"]},
+                }
+            },
+        }
+    )
+)
+
+
 @mock_events
 @mock_cloudformation
 def test_create_archive():
@@ -105,3 +130,27 @@ def test_delete_archive():
     events_client = boto3.client("events", region_name="eu-central-1")
     response = events_client.list_archives(NamePrefix="test")["Archives"]
     response.should.have.length_of(0)
+
+
+@mock_events
+@mock_cloudformation
+def test_create_rule():
+    # given
+    cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
+    name = "test-rule"
+    stack_name = "test-stack"
+    template = rule_template.substitute({"rule_name": name})
+
+    # when
+    cfn_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    # then
+    rule_arn = "arn:aws:events:eu-central-1:{0}:rule/{1}".format(ACCOUNT_ID, name)
+    stack = cfn_client.describe_stacks(StackName=stack_name)["Stacks"][0]
+    stack["Outputs"][0]["OutputValue"].should.equal(rule_arn)
+
+    events_client = boto3.client("events", region_name="eu-central-1")
+    response = events_client.describe_rule(Name=name)
+
+    response["Arn"].should.equal(rule_arn)
+    response["EventPattern"].should.equal('{"detail-type": ["SomeDetailType"]}')

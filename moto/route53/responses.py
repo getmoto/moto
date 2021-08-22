@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 from jinja2 import Template
-from six.moves.urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import BaseResponse
 from .models import route53_backend
 import xmltodict
+
+XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
 class Route53(BaseResponse):
@@ -83,7 +85,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return 404, headers, "Zone %s not Found" % zoneid
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if request.method == "GET":
             template = Template(GET_HOSTED_ZONE_RESPONSE)
@@ -102,7 +104,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return 404, headers, "Zone %s Not Found" % zoneid
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if method == "POST":
             elements = xmltodict.parse(self.body)
@@ -254,6 +256,20 @@ class Route53(BaseResponse):
             change_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id)
+
+
+def no_such_hosted_zone_error(zoneid, headers={}):
+    headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
+    headers["Content-Type"] = "text/xml"
+    message = "Zone %s Not Found" % zoneid
+    error_response = (
+        "<Error><Code>NoSuchHostedZone</Code><Message>%s</Message></Error>" % message
+    )
+    error_response = '<ErrorResponse xmlns="%s">%s</ErrorResponse>' % (
+        XMLNS,
+        error_response,
+    )
+    return 404, headers, error_response
 
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """

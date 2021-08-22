@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import batch_backends
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 
 from .exceptions import AWSError
 

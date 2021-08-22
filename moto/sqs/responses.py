@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 
+from moto.core.exceptions import RESTError
 from moto.core.responses import BaseResponse
 from moto.core.utils import (
     amz_crc32,
@@ -9,13 +10,14 @@ from moto.core.utils import (
     underscores_to_camelcase,
     camelcase_to_pascal,
 )
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
     InvalidAttributeName,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
+    BatchEntryIdsNotDistinct,
 )
 from .models import sqs_backends
 from .utils import parse_message_attributes, extract_input_message_attributes
@@ -89,7 +91,14 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
+        tags = {}
+        tags_param = self._get_multi_param("Tag")
+        # Returns [{'Key': 'Foo', 'Value': 'Bar'}]
+        if tags_param:
+            for tag in tags_param:
+                tags[tag["Key"]] = tag["Value"]
+
+        queue = self.sqs_backend.create_queue(queue_name, tags, **self.attribute)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -200,8 +209,17 @@ class SQSResponse(BaseResponse):
 
     def set_queue_attributes(self):
         # TODO validate self.get_param('QueueUrl')
+        attribute = self.attribute
+
+        # Fixes issue with Policy set to empty str
+        attribute_names = self._get_multi_param("Attribute")
+        if attribute_names:
+            for attr in attribute_names:
+                if attr["Name"] == "Policy" and len(attr["Value"]) == 0:
+                    attribute = {attr["Name"]: None}
+
         queue_name = self._get_queue_name()
-        self.sqs_backend.set_queue_attributes(queue_name, self.attribute)
+        self.sqs_backend.set_queue_attributes(queue_name, attribute)
 
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
@@ -234,23 +252,19 @@ class SQSResponse(BaseResponse):
 
         queue_name = self._get_queue_name()
 
-        if not message_group_id:
-            queue = self.sqs_backend.get_queue(queue_name)
-            if queue.attributes.get("FifoQueue", False):
-                return self._error(
-                    "MissingParameter",
-                    "The request must contain the parameter MessageGroupId.",
-                )
+        try:
+            message = self.sqs_backend.send_message(
+                queue_name,
+                message,
+                message_attributes=message_attributes,
+                delay_seconds=delay_seconds,
+                deduplication_id=message_dedupe_id,
+                group_id=message_group_id,
+                system_attributes=system_message_attributes,
+            )
+        except RESTError as err:
+            return self._error(err.error_type, err.message)
 
-        message = self.sqs_backend.send_message(
-            queue_name,
-            message,
-            message_attributes=message_attributes,
-            delay_seconds=delay_seconds,
-            deduplication_id=message_dedupe_id,
-            group_id=message_group_id,
-            system_attributes=system_message_attributes,
-        )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
 
@@ -333,7 +347,8 @@ class SQSResponse(BaseResponse):
         """
         queue_name = self._get_queue_name()
 
-        message_ids = []
+        receipts = []
+
         for index in range(1, 11):
             # Loop through looking for messages
             receipt_key = "DeleteMessageBatchRequestEntry.{0}.ReceiptHandle".format(
@@ -344,12 +359,25 @@ class SQSResponse(BaseResponse):
                 # Found all messages
                 break
 
-            self.sqs_backend.delete_message(queue_name, receipt_handle[0])
-
             message_user_id_key = "DeleteMessageBatchRequestEntry.{0}.Id".format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
-            message_ids.append(message_user_id)
+            receipts.append(
+                {"receipt_handle": receipt_handle[0], "msg_user_id": message_user_id}
+            )
 
+        receipt_seen = set()
+        for receipt_and_id in receipts:
+            receipt = receipt_and_id["receipt_handle"]
+            if receipt in receipt_seen:
+                raise BatchEntryIdsNotDistinct(receipt_and_id["msg_user_id"])
+            receipt_seen.add(receipt)
+
+        for receipt_and_id in receipts:
+            self.sqs_backend.delete_message(
+                queue_name, receipt_and_id["receipt_handle"]
+            )
+
+        message_ids = [r["msg_user_id"] for r in receipts]
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(message_ids=message_ids)
 

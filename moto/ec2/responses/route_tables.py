@@ -21,6 +21,7 @@ class RouteTables(BaseResponse):
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
         nat_gateway_id = self._get_param("NatGatewayId")
+        transit_gateway_id = self._get_param("TransitGatewayId")
         interface_id = self._get_param("NetworkInterfaceId")
         pcx_id = self._get_param("VpcPeeringConnectionId")
 
@@ -31,6 +32,7 @@ class RouteTables(BaseResponse):
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,
+            transit_gateway_id=transit_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
         )
@@ -40,9 +42,9 @@ class RouteTables(BaseResponse):
 
     def create_route_table(self):
         vpc_id = self._get_param("VpcId")
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
         if tags:
-            tags = tags[0].get("Tag")
+            tags = tags[0].get("Tag") or []
         route_table = self.ec2_backend.create_route_table(vpc_id, tags)
         template = self.response_template(CREATE_ROUTE_TABLE_RESPONSE)
         return template.render(route_table=route_table)
@@ -50,7 +52,10 @@ class RouteTables(BaseResponse):
     def delete_route(self):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
-        self.ec2_backend.delete_route(route_table_id, destination_cidr_block)
+        destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        self.ec2_backend.delete_route(
+            route_table_id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         template = self.response_template(DELETE_ROUTE_RESPONSE)
         return template.render()
 
@@ -123,11 +128,16 @@ CREATE_ROUTE_TABLE_RESPONSE = """
    <routeTable>
       <routeTableId>{{ route_table.id }}</routeTableId>
       <vpcId>{{ route_table.vpc_id }}</vpcId>
+      <ownerId>{{ route_table.owner_id }}</ownerId>
       <routeSet>
          {% for route in route_table.routes.values() %}
            {% if route.local %}
            <item>
-             <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+              {% if route.destination_ipv6_cidr_block %}
+              <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
+              {% else %}
+              <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+              {% endif %}
              <gatewayId>local</gatewayId>
              <state>active</state>
            </item>
@@ -157,10 +167,15 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
        <item>
           <routeTableId>{{ route_table.id }}</routeTableId>
           <vpcId>{{ route_table.vpc_id }}</vpcId>
+          <ownerId>{{ route_table.owner_id }}</ownerId>
           <routeSet>
             {% for route in route_table.routes.values() %}
               <item>
+                {% if route.destination_ipv6_cidr_block %}
+                <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
+                {% else %}
                 <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+                {% endif %}
                 {% if route.local %}
                   <gatewayId>local</gatewayId>
                   <origin>CreateRouteTable</origin>
@@ -185,6 +200,10 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                   <natGatewayId>{{ route.nat_gateway.id }}</natGatewayId>
                   <state>active</state>
                 {% endif %}
+                {% if route.transit_gateway %}
+                  <transitGatewayId>{{ route.transit_gateway.id }}</transitGatewayId>
+                  <state>active</state>
+                {% endif %}
               </item>
             {% endfor %}
           </routeSet>
@@ -195,6 +214,9 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 <routeTableId>{{ route_table.id }}</routeTableId>
                 <main>true</main>
                 <subnetId>{{ subnet_id }}</subnetId>
+                <associationState>
+                  <state>associated</state>
+                </associationState>
               </item>
             {% endfor %}
           </associationSet>
