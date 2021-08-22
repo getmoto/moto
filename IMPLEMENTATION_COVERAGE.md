@@ -1029,7 +1029,7 @@
 <details>
 <summary>78% implemented</summary>
 
-- [ ] cancel_job
+- [X] cancel_job
 - [X] create_compute_environment
 - [X] create_job_queue
 - [X] delete_compute_environment
