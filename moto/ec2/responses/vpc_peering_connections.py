@@ -47,11 +47,19 @@ class VPCPeeringConnections(BaseResponse):
 
     def modify_vpc_peering_connection_options(self):
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
-        accepter_options = self._get_multi_param_dict("AccepterPeeringConnectionOptions")
-        requester_options = self._get_multi_param_dict("RequesterPeeringConnectionOptions")
-        self.ec2_backend.modify_vpc_peering_connection_options(vpc_pcx_id, accepter_options, requester_options)
+        accepter_options = self._get_multi_param_dict(
+            "AccepterPeeringConnectionOptions"
+        )
+        requester_options = self._get_multi_param_dict(
+            "RequesterPeeringConnectionOptions"
+        )
+        self.ec2_backend.modify_vpc_peering_connection_options(
+            vpc_pcx_id, accepter_options, requester_options
+        )
         template = self.response_template(MODIFY_VPC_PEERING_CONNECTION_RESPONSE)
-        return template.render(accepter_options=accepter_options, requester_options=requester_options)
+        return template.render(
+            accepter_options=accepter_options, requester_options=requester_options
+        )
 
 
 # we are assuming that the owner id for accepter and requester vpc are same

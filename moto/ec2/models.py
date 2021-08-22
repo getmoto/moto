@@ -3406,8 +3406,9 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
     DEFAULT_OPTIONS = {
         "AllowEgressFromLocalClassicLinkToRemoteVpc": "false",
         "AllowEgressFromLocalVpcToRemoteClassicLink": "false",
-        "AllowDnsResolutionFromRemoteVpc": "false"
+        "AllowDnsResolutionFromRemoteVpc": "false",
     }
+
     def __init__(self, backend, vpc_pcx_id, vpc, peer_vpc, tags=None):
         self.id = vpc_pcx_id
         self.ec2_backend = backend
@@ -3511,7 +3512,9 @@ class VPCPeeringConnectionBackend(object):
         vpc_pcx._status.reject()
         return vpc_pcx
 
-    def modify_vpc_peering_connection_options(self, vpc_pcx_id, accepter_options=None, requester_options=None):
+    def modify_vpc_peering_connection_options(
+        self, vpc_pcx_id, accepter_options=None, requester_options=None
+    ):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
         if not vpc_pcx:
             raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
