@@ -556,15 +556,30 @@ def test_detach_policy():
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
-    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
-    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
-    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=ou_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=root_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=account_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    # Attach/List/Detach policy
+    for name, target in [("OU", ou_id), ("Root", root_id), ("Account", account_id)]:
+        #
+        with sure.ensure("We should start with 0 policies"):
+            get_nonaws_policies(target, client).should.have.length_of(0)
+        #
+        client.attach_policy(PolicyId=policy_id, TargetId=target)
+        with sure.ensure("Expecting 1 policy after creation of target={0}", name):
+            get_nonaws_policies(target, client).should.have.length_of(1)
+        #
+        response = client.detach_policy(PolicyId=policy_id, TargetId=target)
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        with sure.ensure("Expecting 0 policies after deletion of target={0}", name):
+            get_nonaws_policies(target, client).should.have.length_of(0)
+
+
+def get_nonaws_policies(account_id, client):
+    return [
+        p
+        for p in client.list_policies_for_target(
+            TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
+        )["Policies"]
+        if not p["AwsManaged"]
+    ]
 
 
 @mock_organizations
