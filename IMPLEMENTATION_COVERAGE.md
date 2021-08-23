@@ -4508,10 +4508,14 @@
 <details>
 <summary>0% implemented</summary>
 
-- [ ] create_delivery_stream
-- [ ] delete_delivery_stream
-- [ ] describe_delivery_stream
-- [ ] list_delivery_streams
+- [ ] can_paginate
+- [X] create_delivery_stream
+- [X] delete_delivery_stream
+- [X] describe_delivery_stream
+- [ ] generate_presigned_url
+- [ ] get_paginator
+- [ ] get_waiter
+- [X] list_delivery_streams
 - [ ] list_tags_for_delivery_stream
 - [ ] put_record
 - [ ] put_record_batch
