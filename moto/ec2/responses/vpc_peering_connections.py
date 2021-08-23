@@ -177,15 +177,15 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpcPeeringConnection>
     <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
-    <accepterVpcInfo>
+    <requesterVpcInfo>
       <ownerId>"""
     + ACCOUNT_ID
     + """</ownerId>
       <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
       <region>{{ vpc_pcx.vpc.ec2_backend.region_name }}</region>
-    </accepterVpcInfo>
-    <requesterVpcInfo>
+    </requesterVpcInfo>
+    <accepterVpcInfo>
       <ownerId>"""
     + ACCOUNT_ID
     + """</ownerId>
@@ -197,7 +197,7 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
         <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
       </peeringOptions>
       <region>{{ vpc_pcx.peer_vpc.ec2_backend.region_name }}</region>
-    </requesterVpcInfo>
+    </accepterVpcInfo>
     <status>
       <code>{{ vpc_pcx._status.code }}</code>
       <message>{{ vpc_pcx._status.message }}</message>
