@@ -36,6 +36,8 @@ from .exceptions import (
     DuplicateDocumentVersionName,
     DuplicateDocumentContent,
     ParameterMaxVersionLimitExceeded,
+    DocumentPermissionLimit,
+    InvalidPermissionType,
 )
 
 
@@ -181,6 +183,7 @@ class Documents(BaseModel):
         self.versions = {version: ssm_document}
         self.default_version = version
         self.latest_version = version
+        self.permissions = {}  # {AccountID: version }
 
     def get_default_version(self):
         return self.versions.get(self.default_version)
@@ -283,6 +286,33 @@ class Documents(BaseModel):
             base["Tags"] = document.tags
 
         return base
+
+    def modify_permissions(self, accounts_to_add, accounts_to_remove, version):
+        if "all" in accounts_to_add:
+            self.permissions.clear()
+        else:
+            self.permissions.pop("all", None)
+
+        new_permissions = {account_id: version for account_id in accounts_to_add}
+        self.permissions.update(**new_permissions)
+
+        if "all" in accounts_to_remove:
+            self.permissions.clear()
+        else:
+            for account_id in accounts_to_remove:
+                self.permissions.pop(account_id, None)
+
+    def describe_permissions(self):
+        return {
+            "AccountIds": list(self.permissions.keys()),
+            "AccountSharingInfoList": [
+                {"AccountId": account_id, "SharedDocumentVersion": document_version}
+                for account_id, document_version in self.permissions.items()
+            ],
+        }
+
+    def is_shared(self):
+        return len(self.permissions) > 0
 
 
 class Document(BaseModel):
@@ -733,6 +763,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def delete_document(self, name, document_version, version_name, force):
         documents = self._get_documents(name)
+
+        if documents.is_shared():
+            raise InvalidDocumentOperation("Must unshare document first before delete")
+
         keys_to_delete = set()
 
         if documents:
@@ -900,6 +934,72 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         # If we've fallen out of the loop, theres no more documents. No next token.
         return results, ""
+
+    def describe_document_permission(
+        self, name, max_results=None, permission_type=None, next_token=None
+    ):
+        # Parameters max_results, permission_type, and next_token not used because
+        # this current implementation doesn't support pagination.
+        document = self._get_documents(name)
+        return document.describe_permissions()
+
+    def modify_document_permission(
+        self,
+        name,
+        account_ids_to_add,
+        account_ids_to_remove,
+        shared_document_version,
+        permission_type,
+    ):
+
+        account_id_regex = re.compile(r"(all|[0-9]{12})")
+        version_regex = re.compile(r"^([$]LATEST|[$]DEFAULT|[$]ALL)$")
+
+        account_ids_to_add = account_ids_to_add or []
+        account_ids_to_remove = account_ids_to_remove or []
+
+        if not version_regex.match(shared_document_version):
+            raise ValidationException(
+                f"Value '{shared_document_version}' at 'sharedDocumentVersion' failed to satisfy constraint: "
+                f"Member must satisfy regular expression pattern: ([$]LATEST|[$]DEFAULT|[$]ALL)."
+            )
+
+        for account_id in account_ids_to_add:
+            if not account_id_regex.match(account_id):
+                raise ValidationException(
+                    f"Value '[{account_id}]' at 'accountIdsToAdd' failed to satisfy constraint: "
+                    "Member must satisfy regular expression pattern: (all|[0-9]{12}])."
+                )
+
+        for account_id in account_ids_to_remove:
+            if not account_id_regex.match(account_id):
+                raise ValidationException(
+                    f"Value '[{account_id}]' at 'accountIdsToRemove' failed to satisfy constraint: "
+                    "Member must satisfy regular expression pattern: (?i)all|[0-9]{12}]."
+                )
+
+        accounts_to_add = set(account_ids_to_add)
+        if "all" in accounts_to_add and len(accounts_to_add) > 1:
+            raise DocumentPermissionLimit(
+                "Accounts can either be all or a group of AWS accounts"
+            )
+
+        accounts_to_remove = set(account_ids_to_remove)
+        if "all" in accounts_to_remove and len(accounts_to_remove) > 1:
+            raise DocumentPermissionLimit(
+                "Accounts can either be all or a group of AWS accounts"
+            )
+
+        if permission_type != "Share":
+            raise InvalidPermissionType(
+                f"Value '{permission_type}' at 'permissionType' failed to satisfy constraint: "
+                "Member must satisfy enum value set: [Share]."
+            )
+
+        document = self._get_documents(name)
+        document.modify_permissions(
+            accounts_to_add, accounts_to_remove, shared_document_version
+        )
 
     def delete_parameter(self, name):
         return self._parameters.pop(name, None)
