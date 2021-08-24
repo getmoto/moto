@@ -3403,11 +3403,19 @@ class PeeringConnectionStatus(object):
 
 
 class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
+    DEFAULT_OPTIONS = {
+        "AllowEgressFromLocalClassicLinkToRemoteVpc": "false",
+        "AllowEgressFromLocalVpcToRemoteClassicLink": "false",
+        "AllowDnsResolutionFromRemoteVpc": "false",
+    }
+
     def __init__(self, backend, vpc_pcx_id, vpc, peer_vpc, tags=None):
         self.id = vpc_pcx_id
         self.ec2_backend = backend
         self.vpc = vpc
         self.peer_vpc = peer_vpc
+        self.requester_options = self.DEFAULT_OPTIONS.copy()
+        self.accepter_options = self.DEFAULT_OPTIONS.copy()
         self.add_tags(tags or {})
         self._status = PeeringConnectionStatus()
 
@@ -3503,6 +3511,18 @@ class VPCPeeringConnectionBackend(object):
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.reject()
         return vpc_pcx
+
+    def modify_vpc_peering_connection_options(
+        self, vpc_pcx_id, accepter_options=None, requester_options=None
+    ):
+        vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
+        if not vpc_pcx:
+            raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
+        # TODO: check if actual vpc has this options enabled
+        if accepter_options:
+            vpc_pcx.accepter_options.update(accepter_options)
+        if requester_options:
+            vpc_pcx.requester_options.update(requester_options)
 
 
 class Subnet(TaggedEC2Resource, CloudFormationModel):
