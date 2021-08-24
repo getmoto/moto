@@ -686,6 +686,12 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         return base
 
+    def _get_documents(self, name):
+        documents = self._documents.get(name)
+        if not documents:
+            raise InvalidDocument("The specified document does not exist.")
+        return documents
+
     def create_document(
         self,
         content,
@@ -771,12 +777,6 @@ class SimpleSystemManagerBackend(BaseBackend):
 
             if len(documents.versions) == 0:
                 del self._documents[name]
-
-    def _get_documents(self, name):
-        documents = self._documents.get(name)
-        if not documents:
-            raise InvalidDocument("The specified document does not exist.")
-        return documents
 
     def get_document(self, name, document_version, version_name, document_format):
 
