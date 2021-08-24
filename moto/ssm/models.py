@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import re
-from dataclasses import dataclass, field
 from typing import Dict
 
 from boto3 import Session
@@ -147,34 +146,6 @@ def generate_ssm_doc_param_list(parameters):
         param_list.append(final_dict)
 
     return param_list
-
-
-@dataclass
-class AccountSharingInfo:
-    account_id: str
-    shared_document_version: str
-
-    def describe(self):
-        return {
-            "AccountId": self.account_id,
-            "SharedDocumentVersion": self.shared_document_version,
-        }
-
-
-@dataclass
-class DocumentPermission:
-    account_ids: set
-    account_sharing_info_list: list = field(default_factory=list)
-
-    def describe(self):
-        description = {
-            "AccountIds": list(self.account_ids),
-        }
-        if self.account_sharing_info_list:
-            description["AccountSharingInfoList"] = [
-                info.describe() for info in self.account_sharing_info_list
-            ]
-        return description
 
 
 class Documents(BaseModel):
