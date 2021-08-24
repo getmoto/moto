@@ -11,12 +11,16 @@ from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
 
+try:
+    from importlib.metadata import version
+except ImportError:
+    from importlib_metadata import version
+
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
 from distutils.version import LooseVersion
 from http.client import responses as http_responses
-from importlib_metadata import version
 from urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
