@@ -2161,11 +2161,10 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         return False
 
     def filter_egress__ip_permission__from_port(self, values):
-        if self.ip_protocol != "-1":
-            for value in values:
-                for rule in self.egress_rules:
-                    if glob_matches(value, str(rule.from_port)):
-                        return True
+        for value in values:
+            for rule in self.egress_rules:
+                if rule.ip_protocol != -1 and glob_matches(value, str(rule.from_port)):
+                    return True
         return False
 
     def filter_egress__ip_permission__group_id(self, values):
