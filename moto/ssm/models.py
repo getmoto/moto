@@ -666,23 +666,16 @@ class SimpleSystemManagerBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    @staticmethod
-    def _generate_document_information(ssm_document, document_format):
+    def _generate_document_information(self, ssm_document, document_format):
+        content = self._get_document_content(document_format, ssm_document)
         base = {
             "Name": ssm_document.name,
             "DocumentVersion": ssm_document.document_version,
             "Status": ssm_document.status,
-            "Content": ssm_document.content,
+            "Content": content,
             "DocumentType": ssm_document.document_type,
             "DocumentFormat": document_format,
         }
-
-        if document_format == "JSON":
-            base["Content"] = json.dumps(ssm_document.content_json)
-        elif document_format == "YAML":
-            base["Content"] = yaml.dump(ssm_document.content_json)
-        else:
-            raise ValidationException("Invalid document format " + str(document_format))
 
         if ssm_document.version_name:
             base["VersionName"] = ssm_document.version_name
@@ -692,6 +685,18 @@ class SimpleSystemManagerBackend(BaseBackend):
             base["AttachmentsContent"] = ssm_document.attachments
 
         return base
+
+    @staticmethod
+    def _get_document_content(document_format, ssm_document):
+        if document_format == ssm_document.document_format:
+            content = ssm_document.content
+        elif document_format == "JSON":
+            content = json.dumps(ssm_document.content_json)
+        elif document_format == "YAML":
+            content = yaml.dump(ssm_document.content_json)
+        else:
+            raise ValidationException("Invalid document format " + str(document_format))
+        return content
 
     @staticmethod
     def _generate_document_list_information(ssm_document):
