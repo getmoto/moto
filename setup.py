@@ -39,7 +39,7 @@ install_requires = [
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "more-itertools",
-    "importlib_metadata"
+    "importlib_metadata ; python_version < '3.8'"
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
