@@ -745,6 +745,13 @@ class OutputMap(collections_abc.Mapping):
     def __init__(self, resources, template, stack_id):
         self._template = template
         self._stack_id = stack_id
+
+        if "Outputs" in template and template["Outputs"] is None:
+            raise ValidationError(
+                stack_id,  # not sure why we need to supply this when also supplying message
+                message="[/Outputs] 'null' values are not allowed in templates",
+            )
+
         self._output_json_map = template.get("Outputs")
 
         # Create the default resources
