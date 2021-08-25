@@ -2192,7 +2192,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def filter_egress__ip_permission__protocol(self, values):
         for value in values:
             for rule in self.egress_rules:
-                if glob_matches(value, rule.protocol):
+                if glob_matches(value, rule.ip_protocol):
                     return True
         return False
 

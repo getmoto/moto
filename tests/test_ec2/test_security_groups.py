@@ -1259,6 +1259,47 @@ def test_filter_egress__ip_permission__group_name():
     assert security_groups[0].group_id == sg1.group_id
 
 @mock_ec2
+def test_filter_egress__ip_permission__protocol():
+    ec2r = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
+
+    sg1 = vpc.create_security_group(
+        Description="A Described Description Descriptor", GroupName="test-1"
+    )
+    sg2 = vpc.create_security_group(
+        Description="Another Description That Awes The Human Mind", GroupName="test-2"
+    )
+
+    sg1.authorize_egress(
+            IpPermissions = [
+                {
+                    'FromPort' : 7357,
+                    'ToPort': 7359,
+                    'IpProtocol': 'tcp',
+                    'IpRanges' : [ {'CidrIp': '10.250.0.0/16'}, {'CidrIp': '10.251.0.0/16'}]
+                }
+            ]
+    )
+    sg2.authorize_egress(
+            IpPermissions = [
+                {
+                    'FromPort' : 7357,
+                    'ToPort': 7359,
+                    'IpProtocol': 'udp',
+                    'IpRanges' : [ {'CidrIp': '10.250.0.0/16'}, {'CidrIp': '10.251.0.0/16'}]
+                }
+            ]
+    )
+    filter_to_match_group_1 = {"Name": "egress.ip-permission.protocol", "Values": ['tcp']}
+    security_groups = ec2r.security_groups.filter(
+        Filters=[filter_to_match_group_1]
+    )
+
+    security_groups = list(security_groups)
+    assert len(security_groups) == 1
+    assert security_groups[0].group_id == sg1.group_id
+
+@mock_ec2
 def test_get_groups_by_ippermissions_group_id_filter():
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.0.0/16")
