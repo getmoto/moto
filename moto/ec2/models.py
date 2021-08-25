@@ -4247,6 +4247,16 @@ class RouteTableBackend(object):
         # AWS creates a default local route.
         self.create_route(route_table_id, vpc.cidr_block, local=True)
 
+        # if ipV6 support is enabled
+        ipv6_cidrs = vpc.get_cidr_block_association_set(ipv6=True)
+        for ipv6_cidr in ipv6_cidrs:
+            self.create_route(
+                route_table_id,
+                destination_cidr_block=None,
+                local=True,
+                destination_ipv6_cidr_block=ipv6_cidr,
+            )
+
         return route_table
 
     def get_route_table(self, route_table_id):
@@ -4344,6 +4354,7 @@ class Route(CloudFormationModel):
         gateway=None,
         instance=None,
         nat_gateway=None,
+        egress_only_igw=None,
         transit_gateway=None,
         interface=None,
         vpc_pcx=None,
@@ -4358,6 +4369,7 @@ class Route(CloudFormationModel):
         self.gateway = gateway
         self.instance = instance
         self.nat_gateway = nat_gateway
+        self.egress_only_igw = egress_only_igw
         self.transit_gateway = transit_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
@@ -4385,6 +4397,7 @@ class Route(CloudFormationModel):
         instance_id = properties.get("InstanceId")
         interface_id = properties.get("NetworkInterfaceId")
         nat_gateway_id = properties.get("NatGatewayId")
+        egress_only_igw_id = properties.get("EgressOnlyInternetGatewayId")
         transit_gateway_id = properties.get("TransitGatewayId")
         pcx_id = properties.get("VpcPeeringConnectionId")
 
@@ -4396,6 +4409,7 @@ class Route(CloudFormationModel):
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,
+            egress_only_igw_id=egress_only_igw_id,
             transit_gateway_id=transit_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
@@ -4626,6 +4640,7 @@ class RouteBackend(object):
         gateway_id=None,
         instance_id=None,
         nat_gateway_id=None,
+        egress_only_igw_id=None,
         transit_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
@@ -4633,6 +4648,7 @@ class RouteBackend(object):
         gateway = None
         nat_gateway = None
         transit_gateway = None
+        egress_only_igw = None
 
         route_table = self.get_route_table(route_table_id)
 
@@ -4655,6 +4671,8 @@ class RouteBackend(object):
 
             if nat_gateway_id is not None:
                 nat_gateway = self.nat_gateways.get(nat_gateway_id)
+            if egress_only_igw_id is not None:
+                egress_only_igw = self.get_egress_only_igw(egress_only_igw_id)
             if transit_gateway_id is not None:
                 transit_gateway = self.transit_gateways.get(transit_gateway_id)
 
@@ -4666,6 +4684,7 @@ class RouteBackend(object):
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
             nat_gateway=nat_gateway,
+            egress_only_igw=egress_only_igw,
             transit_gateway=transit_gateway,
             interface=None,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
@@ -4861,6 +4880,12 @@ class EgressOnlyInternetGatewayBackend(object):
             raise InvalidGatewayIDError(id)
         if egress_only_igw:
             self.egress_only_internet_gateway_backend.pop(id)
+
+    def get_egress_only_igw(self, id):
+        egress_only_igw = self.egress_only_internet_gateway_backend.get(id, None)
+        if not egress_only_igw:
+            raise InvalidGatewayIDError(id)
+        return egress_only_igw
 
 
 class VPCGatewayAttachment(CloudFormationModel):
