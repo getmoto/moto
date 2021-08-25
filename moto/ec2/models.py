@@ -2170,8 +2170,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def filter_egress__ip_permission__group_id(self, values):
         for value in values:
             for rule in self.egress_rules:
-                if glob_matches(value, rule.group_id):
-                    return True
+                for sg in rule.source_groups:
+                    if glob_matches(value, sg.group_id):
+                        return True
         return False
 
     def filter_egress__ip_permission__group_name(self, values):
