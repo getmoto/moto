@@ -1040,7 +1040,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
 
 
 @mock_ec2
-def test_filter_by_description():
+def test_filter_description():
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.0.0/16")
 
@@ -1063,7 +1063,7 @@ def test_filter_by_description():
 
 
 @mock_ec2
-def test_filter_by_egress_ip_permission_cidr():
+def test_filter_egress__ip_permission__cidr():
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
 
@@ -1106,7 +1106,7 @@ def test_filter_by_egress_ip_permission_cidr():
 
 
 @mock_ec2
-def test_filter_by_egress_ip_permission_from_port():
+def test_filter_egress__ip_permission__from_port():
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
 
@@ -1147,7 +1147,7 @@ def test_filter_by_egress_ip_permission_from_port():
     assert security_groups[0].group_id == sg1.group_id
 
 @mock_ec2
-def test_filter_by_egress_ip_permission_group_id():
+def test_filter_egress__ip_permission__group_id():
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
 
@@ -1194,6 +1194,62 @@ def test_filter_by_egress_ip_permission_group_id():
     )
 
     filter_to_match_group_1 = {"Name": "egress.ip-permission.group-id", "Values": [sg3.group_id]}
+    security_groups = ec2r.security_groups.filter(
+        Filters=[filter_to_match_group_1]
+    )
+
+    security_groups = list(security_groups)
+    assert len(security_groups) == 1
+    assert security_groups[0].group_id == sg1.group_id
+
+@mock_ec2
+def test_filter_egress__ip_permission__group_name():
+    ec2r = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
+
+    sg1 = vpc.create_security_group(
+        Description="A Described Description Descriptor", GroupName="test-1"
+    )
+    sg2 = vpc.create_security_group(
+        Description="Another Description That Awes The Human Mind", GroupName="test-2"
+    )
+    sg3 = vpc.create_security_group(
+        Description="Yet Another Descriptive Description", GroupName="test-3"
+    )
+    sg4 = vpc.create_security_group(
+        Description="Such Description Much Described", GroupName="test-4"
+    )
+
+    sg1.authorize_egress(
+            IpPermissions = [
+                {
+                    'FromPort' : 7357,
+                    'ToPort': 7359,
+                    'IpProtocol': 'tcp',
+                    'UserIdGroupPairs' : [
+                        {
+                            'GroupId' : sg3.group_id
+                        }
+                    ]
+                }
+            ]
+    )
+    sg2.authorize_egress(
+            IpPermissions = [
+                {
+                    'FromPort' : 8000,
+                    'ToPort': 8020,
+                    'IpProtocol': 'tcp',
+                    'UserIdGroupPairs' :  [
+                        {
+                            'GroupId' : sg4.group_id
+                        }
+                    ]
+                }
+            ]
+    )
+
+    filter_to_match_group_1 = {"Name": "egress.ip-permission.group-name", "Values": [sg3.group_name]}
     security_groups = ec2r.security_groups.filter(
         Filters=[filter_to_match_group_1]
     )

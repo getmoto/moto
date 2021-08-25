@@ -2048,7 +2048,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             "egress.ip-permission.cidr": self.filter_egress__ip_permission__cidr,
             "egress.ip-permission.from-port": self.filter_egress__ip_permission__from_port,
             "egress.ip-permission.group-id": self.filter_egress__ip_permission__group_id,
-            "egress.ip-permission.group-name ": self.filter_egress__ip_permission__group_name,
+            "egress.ip-permission.group-name": self.filter_egress__ip_permission__group_name,
             "egress.ip-permission.ipv6-cidr": self.filter_egress__ip_permission__ipv6_cidr,
             "egress.ip-permission.prefix-list-id": self.filter_egress__ip_permission__prefix_list_id,
             "egress.ip-permission.protocol": self.filter_egress__ip_permission__protocol,
