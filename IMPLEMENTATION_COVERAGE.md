@@ -1027,7 +1027,7 @@
 
 ## batch
 <details>
-<summary>78% implemented</summary>
+<summary>84% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
@@ -3797,7 +3797,7 @@
 - [ ] modify_vpc_endpoint_connection_notification
 - [ ] modify_vpc_endpoint_service_configuration
 - [ ] modify_vpc_endpoint_service_permissions
-- [ ] modify_vpc_peering_connection_options
+- [X] modify_vpc_peering_connection_options
 - [X] modify_vpc_tenancy
 - [ ] modify_vpn_connection
 - [ ] modify_vpn_connection_options
@@ -4904,7 +4904,7 @@
 
 ## glue
 <details>
-<summary>4% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -4923,7 +4923,7 @@
 - [ ] check_schema_version_validity
 - [ ] create_classifier
 - [ ] create_connection
-- [ ] create_crawler
+- [X] create_crawler
 - [X] create_database
 - [ ] create_dev_endpoint
 - [ ] create_job
@@ -4942,7 +4942,7 @@
 - [ ] delete_column_statistics_for_partition
 - [ ] delete_column_statistics_for_table
 - [ ] delete_connection
-- [ ] delete_crawler
+- [X] delete_crawler
 - [ ] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
@@ -4966,9 +4966,9 @@
 - [ ] get_column_statistics_for_table
 - [ ] get_connection
 - [ ] get_connections
-- [ ] get_crawler
+- [X] get_crawler
 - [ ] get_crawler_metrics
-- [ ] get_crawlers
+- [X] get_crawlers
 - [ ] get_data_catalog_encryption_settings
 - [X] get_database
 - [X] get_databases
@@ -10589,7 +10589,7 @@
 
 ## ssm
 <details>
-<summary>16% implemented</summary>
+<summary>17% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
@@ -10626,7 +10626,7 @@
 - [ ] describe_automation_step_executions
 - [ ] describe_available_patches
 - [X] describe_document
-- [ ] describe_document_permission
+- [X] describe_document_permission
 - [ ] describe_effective_instance_associations
 - [ ] describe_effective_patches_for_patch_baseline
 - [ ] describe_instance_associations_status
@@ -10692,7 +10692,7 @@
 - [ ] list_resource_compliance_summaries
 - [ ] list_resource_data_sync
 - [X] list_tags_for_resource
-- [ ] modify_document_permission
+- [X] modify_document_permission
 - [ ] put_compliance_items
 - [ ] put_inventory
 - [X] put_parameter
