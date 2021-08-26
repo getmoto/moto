@@ -1,4 +1,4 @@
-"""For incoming Firehose API requests, invokes method and returns response."""
+"""Handles Firehose API requests, invokes method and returns response."""
 import json
 
 from moto.core.responses import BaseResponse
@@ -11,47 +11,30 @@ class FirehoseResponse(BaseResponse):
 
     @property
     def firehose_backend(self):
-        """Return backend for this region."""
+        """Return backend instance specific to this region."""
         return firehose_backends[self.region]
 
     def create_delivery_stream(self):
-        delivery_stream_name = self._get_param("DeliveryStreamName")
-        delivery_stream_type = self._get_param("DeliveryStreamType")
-        kinesis_stream_source_configuration = self._get_param(
-            "KinesisStreamSourceConfiguration"
-        )
-        delivery_stream_encryption_configuration_input = self._get_param(
-            "DeliveryStreamEncryptionConfigurationInput"
-        )
-        s3_destination_configuration = self._get_param("S3DestinationConfiguration")
-        extended_s3_destination_configuration = self._get_param(
-            "ExtendedS3DestinationConfiguration"
-        )
-        redshift_destination_configuration = self._get_param(
-            "RedshiftDestinationConfiguration"
-        )
-        elasticsearch_destination_configuration = self._get_param(
-            "ElasticsearchDestinationConfiguration"
-        )
-        splunk_destination_configuration = self._get_param(
-            "SplunkDestinationConfiguration"
-        )
-        http_endpoint_destination_configuration = self._get_param(
-            "HttpEndpointDestinationConfiguration"
-        )
-        tags = self._get_list_prefix("Tags.member")
+        """Prepare argumenst and respond to CreateDeliveryStream request."""
         delivery_stream_arn = self.firehose_backend.create_delivery_stream(
-            delivery_stream_name=delivery_stream_name,
-            delivery_stream_type=delivery_stream_type,
-            kinesis_stream_source_configuration=kinesis_stream_source_configuration,
-            delivery_stream_encryption_configuration_input=delivery_stream_encryption_configuration_input,
-            s3_destination_configuration=s3_destination_configuration,
-            extended_s3_destination_configuration=extended_s3_destination_configuration,
-            redshift_destination_configuration=redshift_destination_configuration,
-            elasticsearch_destination_configuration=elasticsearch_destination_configuration,
-            splunk_destination_configuration=splunk_destination_configuration,
-            http_endpoint_destination_configuration=http_endpoint_destination_configuration,
-            tags=tags,
+            self._get_param("DeliveryStreamName"),
+            self._get_param("DeliveryStreamType"),
+            self._get_param("KinesisStreamSourceConfiguration"),
+            self._get_param("DeliveryStreamEncryptionConfigurationInput"),
+            self._get_param("S3DestinationConfiguration"),
+            self._get_param("ExtendedS3DestinationConfiguration"),
+            self._get_param("RedshiftDestinationConfiguration"),
+            self._get_param("ElasticsearchDestinationConfiguration"),
+            self._get_param("SplunkDestinationConfiguration"),
+            self._get_param("HttpEndpointDestinationConfiguration"),
+            self._get_list_prefix("Tags.member"),
         )
-        # TODO: adjust response
         return json.dumps(dict(deliveryStreamArn=delivery_stream_arn))
+
+    def delete_delivery_stream(self):
+        """Prepare argumenst and respond to DeleteDeliveryStream request."""
+        self.firehose_backend.delete_delivery_stream(
+            delivery_stream_name = self._get_param("DeliveryStreamName"),
+            allow_force_delete = self._get_param("AllowForceDelete"),
+        )
+        return json.dumps(dict())

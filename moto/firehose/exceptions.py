@@ -1,14 +1,37 @@
-"""Exceptions raised by the AWS Firehose service."""
+"""Exceptions raised by the Firehose service."""
 from moto.core.exceptions import JsonRESTError
 
 
-class NameTooLongException(JsonRESTError):
+class InvalidArgumentException(JsonRESTError):
     code = 400
 
-    def __init__(self, name, location, max_limit=256):
-        message = (
-            f"1 validation error detected: Value '{name}' at '{location}' "
-            f"failed to satisfy constraint: Member must have length less "
-            f"than or equal to {max_limit}"
-        )
-        super().__init__("ValidationException", message)
+    def __init__(self, message):
+        super().__init__("InvalidArgumentException", message)
+
+
+class LimitExceededException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("LimitExceededException", message)
+
+
+class ResourceInUseException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ResourceInUseException", message)
+
+
+class ResourceNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("InvalidKMSResourceException", message)
+
+
+class InvalidKMSResourceException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("InvalidKMSResourceException", message)

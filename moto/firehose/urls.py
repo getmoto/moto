@@ -1,4 +1,4 @@
-"""Firehose base url and path."""
+"""Firehose base URL and path."""
 from .responses import FirehoseResponse
 
 

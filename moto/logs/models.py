@@ -762,22 +762,42 @@ class LogsBackend(BaseBackend):
     def put_subscription_filter(
         self, log_group_name, filter_name, filter_pattern, destination_arn, role_arn
     ):
-        # TODO: support other destinations like Kinesis stream
-        from moto.awslambda import lambda_backends  # due to circular dependency
-
         log_group = self.groups.get(log_group_name)
 
         if not log_group:
             raise ResourceNotFoundException()
 
-        lambda_func = lambda_backends[self.region_name].get_function(destination_arn)
-
-        # no specific permission check implemented
-        if not lambda_func:
-            raise InvalidParameterException(
-                "Could not execute the lambda function. "
-                "Make sure you have given CloudWatch Logs permission to execute your function."
+        # TODO: support destinations for Kinesis stream
+        service = destination_arn.split(":")[2]
+        if service == "lambda":
+            from moto.awslambda import (  # pylint: disable=import-outside-toplevel
+                lambda_backends,
             )
+
+            lambda_func = lambda_backends[self.region_name].get_function(
+                destination_arn
+            )
+            # no specific permission check implemented
+            if not lambda_func:
+                raise InvalidParameterException(
+                    "Could not execute the lambda function. Make sure you "
+                    "have given CloudWatch Logs permission to execute your "
+                    "function."
+                )
+        elif service == "firehose":
+            from moto.firehose import (  # pylint: disable=import-outside-toplevel
+                firehose_backends,
+            )
+
+            firehose = firehose_backends[self.region_name].lookup_name_from_arn(
+                destination_arn
+            )
+            if not firehose:
+                raise InvalidParameterException(
+                    "Could not deliver test message to specified Firehose "
+                    "stream. Check if the given Firehose stream is in ACTIVE "
+                    "state."
+                )
 
         log_group.put_subscription_filter(
             filter_name, filter_pattern, destination_arn, role_arn
