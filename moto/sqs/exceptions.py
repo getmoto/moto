@@ -26,12 +26,13 @@ class MessageAttributesInvalid(RESTError):
 
 
 class QueueDoesNotExist(RESTError):
-    code = 404
+    code = 400
 
     def __init__(self):
-        super(QueueDoesNotExist, self).__init__(
-            "QueueDoesNotExist",
+        super().__init__(
+            "AWS.SimpleQueueService.NonExistentQueue",
             "The specified queue does not exist for this wsdl version.",
+            template="wrapped_single_error",
         )
 
 
