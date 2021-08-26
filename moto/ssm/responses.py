@@ -127,6 +127,35 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         return json.dumps({"DocumentIdentifiers": documents, "NextToken": token})
 
+    def describe_document_permission(self):
+        name = self._get_param("Name")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        permission_type = self._get_param("PermissionType")
+
+        result = self.ssm_backend.describe_document_permission(
+            name=name,
+            max_results=max_results,
+            next_token=next_token,
+            permission_type=permission_type,
+        )
+        return json.dumps(result)
+
+    def modify_document_permission(self):
+        account_ids_to_add = self._get_param("AccountIdsToAdd")
+        account_ids_to_remove = self._get_param("AccountIdsToRemove")
+        name = self._get_param("Name")
+        permission_type = self._get_param("PermissionType")
+        shared_document_version = self._get_param("SharedDocumentVersion")
+
+        self.ssm_backend.modify_document_permission(
+            name=name,
+            account_ids_to_add=account_ids_to_add,
+            account_ids_to_remove=account_ids_to_remove,
+            shared_document_version=shared_document_version,
+            permission_type=permission_type,
+        )
+
     def _get_param(self, param, default=None):
         return self.request_params.get(param, default)
 

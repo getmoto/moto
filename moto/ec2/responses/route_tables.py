@@ -21,6 +21,7 @@ class RouteTables(BaseResponse):
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
         nat_gateway_id = self._get_param("NatGatewayId")
+        egress_only_igw_id = self._get_param("EgressOnlyInternetGatewayId")
         transit_gateway_id = self._get_param("TransitGatewayId")
         interface_id = self._get_param("NetworkInterfaceId")
         pcx_id = self._get_param("VpcPeeringConnectionId")
@@ -32,6 +33,7 @@ class RouteTables(BaseResponse):
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,
+            egress_only_igw_id=egress_only_igw_id,
             transit_gateway_id=transit_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
@@ -198,6 +200,10 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 {% endif %}
                 {% if route.nat_gateway %}
                   <natGatewayId>{{ route.nat_gateway.id }}</natGatewayId>
+                  <state>active</state>
+                {% endif %}
+                {% if route.egress_only_igw %}
+                  <egressOnlyInternetGatewayId>{{ route.egress_only_igw.id }}</egressOnlyInternetGatewayId>
                   <state>active</state>
                 {% endif %}
                 {% if route.transit_gateway %}

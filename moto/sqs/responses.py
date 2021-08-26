@@ -202,6 +202,10 @@ class SQSResponse(BaseResponse):
 
         attribute_names = self._get_multi_param("AttributeName")
 
+        # if connecting to AWS via boto, then 'AttributeName' is just a normal parameter
+        if not attribute_names:
+            attribute_names = self.querystring.get("AttributeName")
+
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
@@ -226,15 +230,11 @@ class SQSResponse(BaseResponse):
     def delete_queue(self):
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.delete_queue(queue_name)
-        if not queue:
-            return (
-                "A queue with name {0} does not exist".format(queue_name),
-                dict(status=404),
-            )
+
+        self.sqs_backend.delete_queue(queue_name)
 
         template = self.response_template(DELETE_QUEUE_RESPONSE)
-        return template.render(queue=queue)
+        return template.render()
 
     def send_message(self):
         message = self._get_param("MessageBody")

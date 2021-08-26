@@ -95,34 +95,9 @@ def test_submit_job():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
-    resp = batch_client.create_compute_environment(
-        computeEnvironmentName=compute_name,
-        type="UNMANAGED",
-        state="ENABLED",
-        serviceRole=iam_arn,
-    )
-    arn = resp["computeEnvironmentArn"]
-
-    resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
-        state="ENABLED",
-        priority=123,
-        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
-    )
-    queue_arn = resp["jobQueueArn"]
-
-    resp = batch_client.register_job_definition(
-        jobDefinitionName="sayhellotomylittlefriend",
-        type="container",
-        containerProperties={
-            "image": "busybox:latest",
-            "vcpus": 1,
-            "memory": 128,
-            "command": ["echo", "hello"],
-        },
-    )
-    job_def_arn = resp["jobDefinitionArn"]
+    job_def_name = "sayhellotomylittlefriend"
+    commands = ["echo", "hello"]
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
@@ -132,7 +107,7 @@ def test_submit_job():
     _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
     resp = logs_client.describe_log_streams(
-        logGroupName="/aws/batch/job", logStreamNamePrefix="sayhellotomylittlefriend"
+        logGroupName="/aws/batch/job", logStreamNamePrefix=job_def_name
     )
     resp["logStreams"].should.have.length_of(1)
     ls_name = resp["logStreams"][0]["logStreamName"]
@@ -153,34 +128,9 @@ def test_list_jobs():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
-    resp = batch_client.create_compute_environment(
-        computeEnvironmentName=compute_name,
-        type="UNMANAGED",
-        state="ENABLED",
-        serviceRole=iam_arn,
-    )
-    arn = resp["computeEnvironmentArn"]
-
-    resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
-        state="ENABLED",
-        priority=123,
-        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
-    )
-    queue_arn = resp["jobQueueArn"]
-
-    resp = batch_client.register_job_definition(
-        jobDefinitionName="sleep5",
-        type="container",
-        containerProperties={
-            "image": "busybox:latest",
-            "vcpus": 1,
-            "memory": 128,
-            "command": ["sleep", "5"],
-        },
-    )
-    job_def_arn = resp["jobDefinitionArn"]
+    job_def_name = "sleep5"
+    commands = ["sleep", "5"]
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
@@ -213,34 +163,9 @@ def test_terminate_job():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
-    resp = batch_client.create_compute_environment(
-        computeEnvironmentName=compute_name,
-        type="UNMANAGED",
-        state="ENABLED",
-        serviceRole=iam_arn,
-    )
-    arn = resp["computeEnvironmentArn"]
-
-    resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
-        state="ENABLED",
-        priority=123,
-        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
-    )
-    queue_arn = resp["jobQueueArn"]
-
-    resp = batch_client.register_job_definition(
-        jobDefinitionName="echo-sleep-echo",
-        type="container",
-        containerProperties={
-            "image": "busybox:latest",
-            "vcpus": 1,
-            "memory": 128,
-            "command": ["sh", "-c", "echo start && sleep 30 && echo stop"],
-        },
-    )
-    job_def_arn = resp["jobDefinitionArn"]
+    job_def_name = "echo-sleep-echo"
+    commands = ["sh", "-c", "echo start && sleep 30 && echo stop"]
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
@@ -259,7 +184,7 @@ def test_terminate_job():
     resp["jobs"][0]["statusReason"].should.equal("test_terminate")
 
     resp = logs_client.describe_log_streams(
-        logGroupName="/aws/batch/job", logStreamNamePrefix="echo-sleep-echo"
+        logGroupName="/aws/batch/job", logStreamNamePrefix=job_def_name
     )
     resp["logStreams"].should.have.length_of(1)
     ls_name = resp["logStreams"][0]["logStreamName"]
@@ -271,6 +196,74 @@ def test_terminate_job():
     # the job before 'stop' was written to the logs.
     resp["events"].should.have.length_of(1)
     resp["events"][0]["message"].should.equal("start")
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_cancel_pending_job():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    # We need to be able to cancel a job that has not been started yet
+    # Locally, our jobs start so fast that we can't cancel them in time
+    # So delay our job, by letting it depend on a slow-running job
+    commands = ["sleep", "1"]
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, "deptest")
+
+    resp = batch_client.submit_job(
+        jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    delayed_job = resp["jobId"]
+
+    depends_on = [{"jobId": delayed_job, "type": "SEQUENTIAL"}]
+    resp = batch_client.submit_job(
+        jobName="test_job_name",
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn,
+        dependsOn=depends_on,
+    )
+    job_id = resp["jobId"]
+
+    batch_client.cancel_job(jobId=job_id, reason="test_cancel")
+    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=10)
+
+    resp = batch_client.describe_jobs(jobs=[job_id])
+    resp["jobs"][0]["jobName"].should.equal("test_job_name")
+    resp["jobs"][0]["statusReason"].should.equal("test_cancel")
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_cancel_running_job():
+    """
+    Test verifies that the moment the job has started, we can't cancel anymore
+    """
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    job_def_name = "echo-o-o"
+    commands = ["echo", "start"]
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
+
+    resp = batch_client.submit_job(
+        jobName="test_job_name", jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    job_id = resp["jobId"]
+    _wait_for_job_status(batch_client, job_id, "STARTING")
+
+    batch_client.cancel_job(jobId=job_id, reason="test_cancel")
+    # We cancelled too late, the job was already running. Now we just wait for it to succeed
+    _wait_for_job_status(batch_client, job_id, "SUCCEEDED", seconds_to_wait=5)
+
+    resp = batch_client.describe_jobs(jobs=[job_id])
+    resp["jobs"][0]["jobName"].should.equal("test_job_name")
+    resp["jobs"][0].shouldnt.have.key("statusReason")
 
 
 def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
@@ -298,34 +291,9 @@ def test_failed_job():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
-    resp = batch_client.create_compute_environment(
-        computeEnvironmentName=compute_name,
-        type="UNMANAGED",
-        state="ENABLED",
-        serviceRole=iam_arn,
-    )
-    arn = resp["computeEnvironmentArn"]
-
-    resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
-        state="ENABLED",
-        priority=123,
-        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
-    )
-    queue_arn = resp["jobQueueArn"]
-
-    resp = batch_client.register_job_definition(
-        jobDefinitionName="sayhellotomylittlefriend",
-        type="container",
-        containerProperties={
-            "image": "busybox:latest",
-            "vcpus": 1,
-            "memory": 128,
-            "command": ["exit", "1"],
-        },
-    )
-    job_def_arn = resp["jobDefinitionArn"]
+    job_def_name = "exit-1"
+    commands = ["exit", "1"]
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
@@ -355,34 +323,12 @@ def test_dependencies():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
-    resp = batch_client.create_compute_environment(
-        computeEnvironmentName=compute_name,
-        type="UNMANAGED",
-        state="ENABLED",
-        serviceRole=iam_arn,
+    job_def_arn, queue_arn = prepare_job(
+        batch_client,
+        commands=["echo", "hello"],
+        iam_arn=iam_arn,
+        job_def_name="dependencytest",
     )
-    arn = resp["computeEnvironmentArn"]
-
-    resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
-        state="ENABLED",
-        priority=123,
-        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
-    )
-    queue_arn = resp["jobQueueArn"]
-
-    resp = batch_client.register_job_definition(
-        jobDefinitionName="sayhellotomylittlefriend",
-        type="container",
-        containerProperties={
-            "image": "busybox:latest",
-            "vcpus": 1,
-            "memory": 128,
-            "command": ["echo", "hello"],
-        },
-    )
-    job_def_arn = resp["jobDefinitionArn"]
 
     resp = batch_client.submit_job(
         jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
@@ -651,3 +597,34 @@ def test_container_overrides():
     sure.expect(env_var).to.contain({"name": "TEST2", "value": "from job"})
 
     sure.expect(env_var).to.contain({"name": "AWS_BATCH_JOB_ID", "value": job_id})
+
+
+def prepare_job(batch_client, commands, iam_arn, job_def_name):
+    compute_name = "test_compute_env"
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName="test_job_queue",
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_def_name,
+        type="container",
+        containerProperties={
+            "image": "busybox:latest",
+            "vcpus": 1,
+            "memory": 128,
+            "command": commands,
+        },
+    )
+    job_def_arn = resp["jobDefinitionArn"]
+    return job_def_arn, queue_arn

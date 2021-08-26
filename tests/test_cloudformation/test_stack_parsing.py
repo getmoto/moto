@@ -56,6 +56,8 @@ output_dict = {
     }
 }
 
+null_output = {"Outputs": None}
+
 bad_output = {
     "Outputs": {"Output1": {"Value": {"Fn::GetAtt": ["Queue", "InvalidAttribute"]}}}
 }
@@ -146,6 +148,7 @@ import_value_template = {
 }
 
 outputs_template = dict(list(dummy_template.items()) + list(output_dict.items()))
+null_outputs_template = dict(list(dummy_template.items()) + list(null_output.items()))
 bad_outputs_template = dict(list(dummy_template.items()) + list(bad_output.items()))
 get_attribute_outputs_template = dict(
     list(dummy_template.items()) + list(get_attribute_output.items())
@@ -162,6 +165,7 @@ ssm_parameter_template = dict(
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
 output_type_template_json = json.dumps(outputs_template)
+null_output_template_json = json.dumps(null_outputs_template)
 bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(get_attribute_outputs_template)
 get_availability_zones_template_json = json.dumps(get_availability_zones_template)
@@ -314,6 +318,14 @@ def test_parse_stack_with_bad_get_attribute_outputs():
     FakeStack.when.called_with(
         "test_id", "test_stack", bad_output_template_json, {}, "us-west-1"
     ).should.throw(ValidationError)
+
+
+def test_parse_stack_with_null_outputs_section():
+    FakeStack.when.called_with(
+        "test_id", "test_stack", null_output_template_json, {}, "us-west-1"
+    ).should.throw(
+        ValidationError, "[/Outputs] 'null' values are not allowed in templates"
+    )
 
 
 def test_parse_stack_with_parameters():

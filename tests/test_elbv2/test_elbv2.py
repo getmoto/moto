@@ -1166,6 +1166,9 @@ def test_handle_listener_rules():
     first_rule = obtained_rules["Rules"][0]
     second_rule = obtained_rules["Rules"][1]
     third_rule = obtained_rules["Rules"][2]
+    default_rule = obtained_rules["Rules"][3]
+    first_rule["IsDefault"].should.equal(False)
+    default_rule["IsDefault"].should.equal(True)
     obtained_rules = conn.describe_rules(RuleArns=[first_rule["RuleArn"]])
     obtained_rules["Rules"].should.equal([first_rule])
 
@@ -1562,7 +1565,7 @@ def test_set_security_groups():
 
 @mock_elbv2
 @mock_ec2
-def test_set_subnets():
+def test_set_subnets_errors():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 

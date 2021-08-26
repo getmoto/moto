@@ -182,20 +182,28 @@ class Route53(BaseResponse):
         method = request.method
 
         if method == "POST":
-            properties = xmltodict.parse(self.body)["CreateHealthCheckRequest"][
-                "HealthCheckConfig"
-            ]
+            json_body = xmltodict.parse(self.body)["CreateHealthCheckRequest"]
+            caller_reference = json_body["CallerReference"]
+            config = json_body["HealthCheckConfig"]
             health_check_args = {
-                "ip_address": properties.get("IPAddress"),
-                "port": properties.get("Port"),
-                "type": properties["Type"],
-                "resource_path": properties.get("ResourcePath"),
-                "fqdn": properties.get("FullyQualifiedDomainName"),
-                "search_string": properties.get("SearchString"),
-                "request_interval": properties.get("RequestInterval"),
-                "failure_threshold": properties.get("FailureThreshold"),
+                "ip_address": config.get("IPAddress"),
+                "port": config.get("Port"),
+                "type": config["Type"],
+                "resource_path": config.get("ResourcePath"),
+                "fqdn": config.get("FullyQualifiedDomainName"),
+                "search_string": config.get("SearchString"),
+                "request_interval": config.get("RequestInterval"),
+                "failure_threshold": config.get("FailureThreshold"),
+                "health_threshold": config.get("HealthThreshold"),
+                "measure_latency": config.get("MeasureLatency"),
+                "inverted": config.get("Inverted"),
+                "disabled": config.get("Disabled"),
+                "enable_sni": config.get("EnableSNI"),
+                "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
             }
-            health_check = route53_backend.create_health_check(health_check_args)
+            health_check = route53_backend.create_health_check(
+                caller_reference, health_check_args
+            )
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check)
         elif method == "DELETE":

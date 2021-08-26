@@ -1,16 +1,14 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
 class NameTooLongException(JsonRESTError):
     code = 400
 
-    def __init__(self, name, location):
+    def __init__(self, name, location, max_limit=256):
         message = (
-            "1 validation error detected: Value '{name}' at '{location}' failed to satisfy"
-            " constraint: Member must have length less than or equal to 256".format(
-                name=name, location=location
-            )
+            f"1 validation error detected: Value '{name}' at '{location}' "
+            f"failed to satisfy constraint: Member must have length less "
+            f"than or equal to {max_limit}"
         )
         super().__init__("ValidationException", message)
 
@@ -234,11 +232,13 @@ class TagKeyTooBig(JsonRESTError):
 class TagValueTooBig(JsonRESTError):
     code = 400
 
-    def __init__(self, tag):
+    def __init__(self, tag, param="tags.X.member.value"):
         super().__init__(
             "ValidationException",
-            "1 validation error detected: Value '{}' at 'tags.X.member.value' failed to satisfy "
-            "constraint: Member must have length less than or equal to 256".format(tag),
+            "1 validation error detected: Value '{}' at '{}' failed to satisfy "
+            "constraint: Member must have length less than or equal to 256".format(
+                tag, param
+            ),
         )
 
 
@@ -340,9 +340,6 @@ class TooManyResourceKeys(JsonRESTError):
                 bad_list=bad_list
             )
         )
-        # For PY2:
-        message = str(message)
-
         super().__init__("ValidationException", message)
 
 
@@ -366,3 +363,46 @@ class NoSuchOrganizationConformancePackException(JsonRESTError):
 
     def __init__(self, message):
         super().__init__("NoSuchOrganizationConformancePackException", message)
+
+
+class MaxNumberOfConfigRulesExceededException(JsonRESTError):
+    code = 400
+
+    def __init__(self, name, max_limit):
+        message = (
+            f"Failed to put config rule '{name}' because the maximum number "
+            f"of config rules: {max_limit} is reached."
+        )
+        super().__init__("MaxNumberOfConfigRulesExceededException", message)
+
+
+class ResourceInUseException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ResourceInUseException", message)
+
+
+class InsufficientPermissionsException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("InsufficientPermissionsException", message)
+
+
+class NoSuchConfigRuleException(JsonRESTError):
+    code = 400
+
+    def __init__(self, rule_name):
+        message = (
+            f"The ConfigRule '{rule_name}' provided in the request is "
+            f"invalid. Please check the configRule name"
+        )
+        super().__init__("NoSuchConfigRuleException", message)
+
+
+class MissingRequiredConfigRuleParameterException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ParamValidationError", message)

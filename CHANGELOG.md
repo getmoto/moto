@@ -4,6 +4,42 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.4
+-----
+    New Methods:
+        * ConfigService:
+            * delete_config_rule()
+            * describe_config_rule()
+            * put_config_rule()
+        * EC2:
+            * create_egress_only_internet_gateway()
+            * delete_egress_only_internet_gateway()
+            * describe_egress_only_internet_gateways()
+        * Fargate:
+            * create_fargate_profile()
+            * delete_fargate_profile()
+            * describe_fargate_profile()
+            * list_fargate_profiles()
+        * IOT:
+            * deprecate_thing_type()
+        * S3:
+            * get_object_lock_configuration()
+            * put_object_legal_hold()
+            * put_object_lock_configuration()
+            * put_object_retention()
+
+    Miscellaneous:
+        * CloudFormation:describe_stack_resource() now throws an exception of the LogicalResourceId does not exist
+        * CloudFormation: AWS::Events::Rule now supports the EventPattern-property
+        * CloudFormation: Improved Parameter handling
+        * EC2:describe_instances() now handles wildcards correctly when filtering by tags
+        * EC2:terminate_instances() now throws an exception when trying to terminate a protected instance
+        * ELBv2:describe_rules() now returns the correct value for the IsDefault-attribute
+        * IOT:create_thing() now throws an exception if the thing type is deprecated
+        * IOT:update_thing() now throws an exception if the thing type is deprecated
+        * S3:create_bucket() now supports the ObjectLockEnabledForBucket-parameter
+        * S3:putObject() is fixed for the Java SDK, which failed with a eTag-validation
+
 2.2.3
 -----
     New Methods:

@@ -9,6 +9,7 @@ import string
 
 import struct
 from copy import deepcopy
+from typing import Dict
 from xml.sax.saxutils import escape
 
 from boto3 import Session
@@ -221,7 +222,12 @@ class Queue(CloudFormationModel):
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
     ]
-    FIFO_ATTRIBUTES = ["FifoQueue", "ContentBasedDeduplication"]
+    FIFO_ATTRIBUTES = [
+        "ContentBasedDeduplication",
+        "DeduplicationScope",
+        "FifoQueue",
+        "FifoThroughputLimit",
+    ]
     KMS_ATTRIBUTES = ["KmsDataKeyReusePeriodSeconds", "KmsMasterKeyId"]
     ALLOWED_PERMISSIONS = (
         "*",
@@ -256,8 +262,10 @@ class Queue(CloudFormationModel):
         # default settings for a non fifo queue
         defaults = {
             "ContentBasedDeduplication": "false",
+            "DeduplicationScope": "queue",
             "DelaySeconds": 0,
             "FifoQueue": "false",
+            "FifoThroughputLimit": "perQueue",
             "KmsDataKeyReusePeriodSeconds": 300,  # five minutes
             "KmsMasterKeyId": None,
             "MaximumMessageSize": MAXIMUM_MESSAGE_LENGTH,
@@ -567,7 +575,7 @@ def _filter_message_attributes(message, input_message_attributes):
 class SQSBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
-        self.queues = {}
+        self.queues: Dict[str, Queue] = {}
         super(SQSBackend, self).__init__()
 
     def reset(self):
@@ -628,15 +636,12 @@ class SQSBackend(BaseBackend):
         return queue
 
     def delete_queue(self, queue_name):
-        if queue_name in self.queues:
-            return self.queues.pop(queue_name)
-        return False
+        self.get_queue(queue_name)
+
+        del self.queues[queue_name]
 
     def get_queue_attributes(self, queue_name, attribute_names):
         queue = self.get_queue(queue_name)
-
-        if not len(attribute_names):
-            attribute_names.append("All")
 
         valid_names = (
             ["All"]
@@ -1034,7 +1039,9 @@ class SQSBackend(BaseBackend):
         return self.get_queue(queue_name)
 
     def is_message_valid_based_on_retention_period(self, queue_name, message):
-        message_attributes = self.get_queue_attributes(queue_name, [])
+        message_attributes = self.get_queue_attributes(
+            queue_name, ["MessageRetentionPeriod"]
+        )
         retain_until = (
             message_attributes.get("MessageRetentionPeriod")
             + message.sent_timestamp / 1000

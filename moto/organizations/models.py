@@ -589,7 +589,7 @@ class OrganizationsBackend(BaseBackend):
         ).match(kwargs["TargetId"]):
             ou = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
             if ou is not None:
-                if ou not in ou.attached_policies:
+                if policy not in ou.attached_policies:
                     ou.attached_policies.append(policy)
                     policy.attachments.append(ou)
             else:
@@ -602,7 +602,7 @@ class OrganizationsBackend(BaseBackend):
                 (a for a in self.accounts if a.id == kwargs["TargetId"]), None
             )
             if account is not None:
-                if account not in account.attached_policies:
+                if policy not in account.attached_policies:
                     account.attached_policies.append(policy)
                     policy.attachments.append(account)
             else:
@@ -866,7 +866,7 @@ class OrganizationsBackend(BaseBackend):
         if re.match(root_id_regex, target_id) or re.match(ou_id_regex, target_id):
             ou = next((ou for ou in self.ou if ou.id == target_id), None)
             if ou is not None:
-                if ou in ou.attached_policies:
+                if policy in ou.attached_policies:
                     ou.attached_policies.remove(policy)
                     policy.attachments.remove(ou)
             else:
@@ -879,7 +879,7 @@ class OrganizationsBackend(BaseBackend):
                 (account for account in self.accounts if account.id == target_id), None,
             )
             if account is not None:
-                if account in account.attached_policies:
+                if policy in account.attached_policies:
                     account.attached_policies.remove(policy)
                     policy.attachments.remove(account)
             else:
