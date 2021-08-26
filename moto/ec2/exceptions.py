@@ -2,6 +2,21 @@ from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
+# DescribeRouteTable has a custom root-tag - <Response> vs <ErrorResponse>
+# TF complains if the roottag is incorrect
+CUSTOM_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Errors>
+    <Error>
+      <Code>{{error_type}}</Code>
+      <Message>{{message}}</Message>
+    </Error>
+  </Errors>
+  <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
+</Response>
+"""
+
+
 class EC2ClientError(RESTError):
     code = 400
     # EC2 uses <RequestID> as tag name in the XML response
@@ -60,8 +75,14 @@ class InvalidKeyPairFormatError(EC2ClientError):
 
 class InvalidVPCIdError(EC2ClientError):
     def __init__(self, vpc_id):
+        kwargs = {}
+        kwargs.setdefault("template", "custom_response")
+        self.templates["custom_response"] = CUSTOM_ERROR_RESPONSE
+
         super(InvalidVPCIdError, self).__init__(
-            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id)
+            "InvalidVpcID.NotFound",
+            "VpcID {0} does not exist.".format(vpc_id),
+            **kwargs
         )
 
 
@@ -176,9 +197,14 @@ class InvalidPermissionDuplicateError(EC2ClientError):
 
 class InvalidRouteTableIdError(EC2ClientError):
     def __init__(self, route_table_id):
+        kwargs = {}
+        kwargs.setdefault("template", "custom_response")
+        self.templates["custom_response"] = CUSTOM_ERROR_RESPONSE
+
         super(InvalidRouteTableIdError, self).__init__(
             "InvalidRouteTableID.NotFound",
             "The routeTable ID '{0}' does not exist".format(route_table_id),
+            **kwargs
         )
 
 
