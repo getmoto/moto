@@ -123,7 +123,7 @@ def test_create_fifo_queue():
     )["QueueUrl"]
 
     # then
-    queue_url.should.equal(f"https://queue.amazonaws.com/{ACCOUNT_ID}/{queue_name}")
+    queue_url.should.contain(queue_name)
 
     attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
@@ -164,7 +164,7 @@ def test_create_fifo_queue_with_high_throughput():
     )["QueueUrl"]
 
     # then
-    queue_url.should.equal(f"https://queue.amazonaws.com/{ACCOUNT_ID}/{queue_name}")
+    queue_url.should.contain(queue_name)
 
     attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
