@@ -55,6 +55,7 @@ class Parameter(BaseModel):
         keyid,
         last_modified_date,
         version,
+        data_type,
         tags=None,
     ):
         self.name = name
@@ -64,6 +65,7 @@ class Parameter(BaseModel):
         self.keyid = keyid
         self.last_modified_date = last_modified_date
         self.version = version
+        self.data_type = data_type
         self.tags = tags or []
         self.labels = []
 
@@ -93,6 +95,7 @@ class Parameter(BaseModel):
             "Value": self.decrypt(self.value) if decrypt else self.value,
             "Version": self.version,
             "LastModifiedDate": round(self.last_modified_date, 3),
+            "DataType": self.data_type,
         }
 
         if region:
@@ -616,6 +619,14 @@ def _document_filter_match(filters, ssm_doc):
             return False
 
     return True
+
+
+def _valid_parameter_data_type(data_type):
+    """
+    Parameter DataType field allows only `text` and `aws:ec2:image` values
+
+    """
+    return data_type in ("text", "aws:ec2:image")
 
 
 class SimpleSystemManagerBackend(BaseBackend):
@@ -1480,7 +1491,16 @@ class SimpleSystemManagerBackend(BaseBackend):
             )
 
     def put_parameter(
-        self, name, description, value, type, allowed_pattern, keyid, overwrite, tags,
+        self,
+        name,
+        description,
+        value,
+        type,
+        allowed_pattern,
+        keyid,
+        overwrite,
+        tags,
+        data_type,
     ):
         if not value:
             raise ValidationException(
@@ -1504,6 +1524,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "formed as a mix of letters, numbers and the following 3 symbols .-_"
                 )
             raise ValidationException(invalid_prefix_error)
+
+        if not _valid_parameter_data_type(data_type):
+            # The check of the existence of an AMI ID in the account for a parameter of DataType `aws:ec2:image`
+            # is not supported. The parameter will be created.
+            # https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-ec2-aliases.html
+            raise ValidationException(
+                f"The following data type is not supported: {data_type} (Data type names are all lowercase.)"
+            )
+
         previous_parameter_versions = self._parameters[name]
         if len(previous_parameter_versions) == 0:
             previous_parameter = None
@@ -1522,15 +1551,16 @@ class SimpleSystemManagerBackend(BaseBackend):
         last_modified_date = time.time()
         self._parameters[name].append(
             Parameter(
-                name,
-                value,
-                type,
-                description,
-                allowed_pattern,
-                keyid,
-                last_modified_date,
-                version,
-                tags or [],
+                name=name,
+                value=value,
+                type=type,
+                description=description,
+                allowed_pattern=allowed_pattern,
+                keyid=keyid,
+                last_modified_date=last_modified_date,
+                version=version,
+                tags=tags or [],
+                data_type=data_type,
             )
         )
 
