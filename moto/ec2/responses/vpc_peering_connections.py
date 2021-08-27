@@ -29,7 +29,8 @@ class VPCPeeringConnections(BaseResponse):
         return template.render(vpc_pcx=vpc_pcx)
 
     def describe_vpc_peering_connections(self):
-        vpc_pcxs = self.ec2_backend.get_all_vpc_peering_connections()
+        ids = self._get_multi_param("VpcPeeringConnectionId")
+        vpc_pcxs = self.ec2_backend.get_all_vpc_peering_connections(vpc_peering_ids=ids)
         template = self.response_template(DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE)
         return template.render(vpc_pcxs=vpc_pcxs)
 

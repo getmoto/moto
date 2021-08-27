@@ -228,6 +228,36 @@ def test_vpc_peering_connections_cross_region_fail():
 
 
 @mock_ec2
+def test_describe_vpc_peering_connections_only_returns_requested_id():
+    # create vpc in us-west-1 and ap-northeast-1
+    ec2_usw1 = boto3.resource("ec2", region_name="us-west-1")
+    vpc_usw1 = ec2_usw1.create_vpc(CidrBlock="10.90.0.0/16")
+    ec2_apn1 = boto3.resource("ec2", region_name="ap-northeast-1")
+    vpc_apn1 = ec2_apn1.create_vpc(CidrBlock="10.20.0.0/16")
+    # create peering
+    vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
+        VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1"
+    )
+    vpc_pcx_usw2 = ec2_usw1.create_vpc_peering_connection(
+        VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1"
+    )
+    # describe peering
+    ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
+    all_pcx = ec2_usw1.describe_vpc_peering_connections()["VpcPeeringConnections"]
+    all_pcx.should.have.length_of(2)
+
+    both_pcx = ec2_usw1.describe_vpc_peering_connections(
+        VpcPeeringConnectionIds=[vpc_pcx_usw1.id, vpc_pcx_usw2.id]
+    )["VpcPeeringConnections"]
+    both_pcx.should.have.length_of(2)
+
+    one_pcx = ec2_usw1.describe_vpc_peering_connections(
+        VpcPeeringConnectionIds=[vpc_pcx_usw1.id]
+    )["VpcPeeringConnections"]
+    one_pcx.should.have.length_of(1)
+
+
+@mock_ec2
 def test_vpc_peering_connections_cross_region_accept():
     # create vpc in us-west-1 and ap-northeast-1
     ec2_usw1 = boto3.resource("ec2", region_name="us-west-1")

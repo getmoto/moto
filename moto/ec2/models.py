@@ -3563,7 +3563,9 @@ class VPCPeeringConnectionBackend(object):
                     vpc_pcx_cx.vpc_pcxs[vpc_pcx_id] = vpc_pcx
         return vpc_pcx
 
-    def get_all_vpc_peering_connections(self):
+    def get_all_vpc_peering_connections(self, vpc_peering_ids=None):
+        if vpc_peering_ids:
+            return [pcx for pcx in self.vpc_pcxs.values() if pcx.id in vpc_peering_ids]
         return self.vpc_pcxs.values()
 
     def get_vpc_peering_connection(self, vpc_pcx_id):
