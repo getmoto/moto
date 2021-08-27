@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 
 import copy
 import json
+import unittest
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import boto3
@@ -12,7 +12,8 @@ from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2, mock_ec2_deprecated
+from moto import mock_ec2, mock_ec2_deprecated, settings
+from moto.ec2 import ec2_backend
 
 
 @mock_ec2_deprecated
@@ -377,6 +378,8 @@ def test_authorize_other_group_egress_and_revoke():
             {"GroupId": sg02.id, "GroupName": "sg02", "UserId": sg02.owner_id}
         ],
         "IpRanges": [],
+        "Ipv6Ranges": [],
+        "PrefixListIds": [],
     }
 
     sg01.authorize_egress(IpPermissions=[ip_permission])
@@ -575,7 +578,7 @@ def test_sec_group_rule_limit():
     # fill the rules up the limit
     # remember that by default, when created a sec group contains 1 egress rule
     # so our other_sg rule + 98 CIDR IP rules + 1 by default == 100 the limit
-    for i in range(98):
+    for i in range(1, 99):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
@@ -646,7 +649,7 @@ def test_sec_group_rule_limit_vpc():
     # fill the rules up the limit
     # remember that by default, when created a sec group contains 1 egress rule
     # so our other_sg rule + 48 CIDR IP rules + 1 by default == 50 the limit
-    for i in range(48):
+    for i in range(1, 49):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
@@ -678,6 +681,7 @@ def test_add_same_rule_twice_throws_error():
         GroupName="sg1", Description="Test security group sg1", VpcId=vpc.id
     )
 
+    # Ingress
     ip_permissions = [
         {
             "IpProtocol": "tcp",
@@ -690,6 +694,28 @@ def test_add_same_rule_twice_throws_error():
 
     with pytest.raises(ClientError) as ex:
         sg.authorize_ingress(IpPermissions=ip_permissions)
+    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.Duplicate")
+    ex.value.response["Error"]["Message"].should.match(
+        r"^.* specified rule.*already exists$"
+    )
+
+    # Egress
+    ip_permissions = [
+        {
+            "IpProtocol": "-1",
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": [],
+        }
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        sg.authorize_egress(IpPermissions=ip_permissions)
+    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.Duplicate")
+    ex.value.response["Error"]["Message"].should.match(
+        r"^.* specified rule.*already exists$"
+    )
 
 
 @mock_ec2
@@ -784,6 +810,30 @@ def test_security_group_wildcard_tag_filter_boto3():
 
 
 @mock_ec2
+def test_security_group_filter_ip_permission():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    conn = boto3.client("ec2", region_name="us-east-1")
+    sg = ec2.create_security_group(
+        GroupName="test-sg", Description="Test SG", VpcId=vpc.id
+    )
+
+    ip_permissions = [
+        {"IpProtocol": "tcp", "FromPort": 27017, "ToPort": 27017, "IpRanges": [],},
+    ]
+
+    sg.authorize_ingress(IpPermissions=ip_permissions)
+
+    describe = conn.describe_security_groups(
+        Filters=[{"Name": "ip-permission.from-port", "Values": ["27017"]}]
+    )["SecurityGroups"]
+    describe.should.have.length_of(1)
+
+    describe[0]["GroupName"].should.equal("test-sg")
+
+
+@mock_ec2
 def test_authorize_and_revoke_in_bulk():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -810,6 +860,8 @@ def test_authorize_and_revoke_in_bulk():
                 {"GroupId": sg02.id, "GroupName": "sg02", "UserId": sg02.owner_id}
             ],
             "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -817,6 +869,8 @@ def test_authorize_and_revoke_in_bulk():
             "ToPort": 27018,
             "UserIdGroupPairs": [{"GroupId": sg02.id, "UserId": sg02.owner_id}],
             "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -824,6 +878,8 @@ def test_authorize_and_revoke_in_bulk():
             "ToPort": 27017,
             "UserIdGroupPairs": [{"GroupName": "sg03", "UserId": sg03.owner_id}],
             "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -833,6 +889,8 @@ def test_authorize_and_revoke_in_bulk():
             "IpRanges": [
                 {"CidrIp": "10.10.10.0/24", "Description": "Some Description"}
             ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -840,6 +898,8 @@ def test_authorize_and_revoke_in_bulk():
             "ToPort": 27016,
             "UserIdGroupPairs": [{"GroupId": sg04.id, "UserId": sg04.owner_id}],
             "IpRanges": [{"CidrIp": "10.10.10.0/24"}],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
     ]
     expected_ip_permissions = copy.deepcopy(ip_permissions)
@@ -931,6 +991,8 @@ def test_revoke_security_group_egress():
                 "IpProtocol": "-1",
                 "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "UserIdGroupPairs": [],
+                "Ipv6Ranges": [],
+                "PrefixListIds": [],
             }
         ]
     )
@@ -941,9 +1003,77 @@ def test_revoke_security_group_egress():
                 "IpProtocol": "-1",
                 "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "UserIdGroupPairs": [],
+                "Ipv6Ranges": [],
+                "PrefixListIds": [],
             }
         ]
     )
 
     sg.reload()
     sg.ip_permissions_egress.should.have.length_of(0)
+
+
+@mock_ec2
+def test_non_existent_security_group_raises_error_on_authorize():
+    client = boto3.client("ec2", "us-east-1")
+    non_existent_sg = "sg-123abc"
+    expected_error = "The security group '{}' does not exist".format(non_existent_sg)
+    authorize_funcs = [
+        client.authorize_security_group_egress,
+        client.authorize_security_group_ingress,
+    ]
+    for authorize_func in authorize_funcs:
+        with pytest.raises(ClientError) as ex:
+            authorize_func(GroupId=non_existent_sg, IpPermissions=[{}])
+        ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
+        ex.value.response["Error"]["Message"].should.equal(expected_error)
+
+
+@mock_ec2
+def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api():
+    if settings.TEST_SERVER_MODE:
+        raise unittest.SkipTest("Can't test backend directly in server mode.")
+    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
+    group_name = "test-backend-authorize"
+    sg = ec2_resource.create_security_group(
+        GroupName=group_name, Description="test", VpcId=vpc.id
+    )
+    # Add an ingress/egress rule using the EC2 backend directly.
+    rule_ingress = {
+        "group_name_or_id": sg.id,
+        "from_port": 0,
+        "ip_protocol": "udp",
+        "ip_ranges": [],
+        "to_port": 65535,
+        "source_group_ids": [sg.id],
+    }
+    ec2_backend.authorize_security_group_ingress(**rule_ingress)
+    rule_egress = {
+        "group_name_or_id": sg.id,
+        "from_port": 8443,
+        "ip_protocol": "tcp",
+        "ip_ranges": [],
+        "to_port": 8443,
+        "source_group_ids": [sg.id],
+    }
+    ec2_backend.authorize_security_group_egress(**rule_egress)
+    # Both rules (plus the default egress) should now be present.
+    sg = ec2_client.describe_security_groups(
+        Filters=[{"Name": "group-name", "Values": [group_name]}]
+    ).get("SecurityGroups")[0]
+    assert len(sg["IpPermissions"]) == 1
+    assert len(sg["IpPermissionsEgress"]) == 2
+    # Revoking via the API should work for all rules (even those we added directly).
+    ec2_client.revoke_security_group_egress(
+        GroupId=sg["GroupId"], IpPermissions=sg["IpPermissionsEgress"]
+    )
+    ec2_client.revoke_security_group_ingress(
+        GroupId=sg["GroupId"], IpPermissions=sg["IpPermissions"]
+    )
+    sg = ec2_client.describe_security_groups(
+        Filters=[{"Name": "group-name", "Values": [group_name]}]
+    ).get("SecurityGroups")[0]
+    assert len(sg["IpPermissions"]) == 0
+    assert len(sg["IpPermissionsEgress"]) == 0

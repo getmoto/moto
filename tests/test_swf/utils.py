@@ -31,7 +31,7 @@ for key, value in ACTIVITY_TASK_TIMEOUTS.items():
 
 # A test Domain
 def get_basic_domain():
-    return Domain("test-domain", "90")
+    return Domain("test-domain", "90", "us-east-1")
 
 
 # A test WorkflowType

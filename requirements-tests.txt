@@ -2,3 +2,4 @@ pytest
 pytest-cov
 sure==1.4.11
 freezegun
+pylint

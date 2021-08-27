@@ -8,7 +8,7 @@ from collections import defaultdict
 from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -25,10 +25,37 @@ from .exceptions import (
     InvalidDBInstanceStateError,
     SnapshotQuotaExceededError,
     DBSnapshotAlreadyExistsError,
+    InvalidParameterValue,
+    InvalidParameterCombination,
 )
+from .utils import FilterDef, apply_filter, merge_filters, validate_filters
 
 
 class Database(CloudFormationModel):
+
+    SUPPORTED_FILTERS = {
+        "db-cluster-id": FilterDef(None, "DB Cluster Identifiers"),
+        "db-instance-id": FilterDef(
+            ["db_instance_arn", "db_instance_identifier"], "DB Instance Identifiers"
+        ),
+        "dbi-resource-id": FilterDef(["dbi_resource_id"], "Dbi Resource Ids"),
+        "domain": FilterDef(None, ""),
+        "engine": FilterDef(["engine"], "Engine Names"),
+    }
+
+    default_engine_versions = {
+        "MySQL": "5.6.21",
+        "mysql": "5.6.21",
+        "oracle-se1": "11.2.0.4.v3",
+        "oracle-se": "11.2.0.4.v3",
+        "oracle-ee": "11.2.0.4.v3",
+        "sqlserver-ee": "11.00.2100.60.v1",
+        "sqlserver-se": "11.00.2100.60.v1",
+        "sqlserver-ex": "11.00.2100.60.v1",
+        "sqlserver-web": "11.00.2100.60.v1",
+        "postgres": "9.3.3",
+    }
+
     def __init__(self, **kwargs):
         self.status = "available"
         self.is_replica = False
@@ -36,18 +63,6 @@ class Database(CloudFormationModel):
         self.region = kwargs.get("region")
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version", None)
-        self.default_engine_versions = {
-            "MySQL": "5.6.21",
-            "mysql": "5.6.21",
-            "oracle-se1": "11.2.0.4.v3",
-            "oracle-se": "11.2.0.4.v3",
-            "oracle-ee": "11.2.0.4.v3",
-            "sqlserver-ee": "11.00.2100.60.v1",
-            "sqlserver-se": "11.00.2100.60.v1",
-            "sqlserver-ex": "11.00.2100.60.v1",
-            "sqlserver-web": "11.00.2100.60.v1",
-            "postgres": "9.3.3",
-        }
         if not self.engine_version and self.engine in self.default_engine_versions:
             self.engine_version = self.default_engine_versions[self.engine]
         self.iops = kwargs.get("iops")
@@ -106,6 +121,7 @@ class Database(CloudFormationModel):
         self.db_parameter_group_name = kwargs.get("db_parameter_group_name")
         if (
             self.db_parameter_group_name
+            and not self.is_default_parameter_group(self.db_parameter_group_name)
             and self.db_parameter_group_name
             not in rds2_backends[self.region].db_parameter_groups
         ):
@@ -137,8 +153,8 @@ class Database(CloudFormationModel):
 
     @property
     def db_instance_arn(self):
-        return "arn:aws:rds:{0}:1234567890:db:{1}".format(
-            self.region, self.db_instance_identifier
+        return "arn:aws:rds:{0}:{1}:db:{2}".format(
+            self.region, ACCOUNT_ID, self.db_instance_identifier
         )
 
     @property
@@ -146,7 +162,9 @@ class Database(CloudFormationModel):
         return self.db_instance_identifier
 
     def db_parameter_groups(self):
-        if not self.db_parameter_group_name:
+        if not self.db_parameter_group_name or self.is_default_parameter_group(
+            self.db_parameter_group_name
+        ):
             (
                 db_family,
                 db_parameter_group_name,
@@ -168,11 +186,14 @@ class Database(CloudFormationModel):
                 ]
             ]
 
+    def is_default_parameter_group(self, param_group_name):
+        return param_group_name.startswith("default.%s" % self.engine.lower())
+
     def default_db_parameter_group_details(self):
         if not self.engine_version:
             return (None, None)
 
-        minor_engine_version = ".".join(self.engine_version.rsplit(".")[:-1])
+        minor_engine_version = ".".join(str(self.engine_version).rsplit(".")[:-1])
         db_family = "{0}{1}".format(self.engine.lower(), minor_engine_version)
 
         return db_family, "default.{0}".format(db_family)
@@ -517,6 +538,18 @@ class Database(CloudFormationModel):
 
 
 class Snapshot(BaseModel):
+
+    SUPPORTED_FILTERS = {
+        "db-instance-id": FilterDef(
+            ["database.db_instance_arn", "database.db_instance_identifier"],
+            "DB Instance Identifiers",
+        ),
+        "db-snapshot-id": FilterDef(["snapshot_id"], "DB Snapshot Identifiers"),
+        "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
+        "snapshot-type": FilterDef(None, "Snapshot Types"),
+        "engine": FilterDef(["database.engine"], "Engine Names"),
+    }
+
     def __init__(self, database, snapshot_id, tags):
         self.database = database
         self.snapshot_id = snapshot_id
@@ -525,8 +558,8 @@ class Snapshot(BaseModel):
 
     @property
     def snapshot_arn(self):
-        return "arn:aws:rds:{0}:1234567890:snapshot:{1}".format(
-            self.database.region, self.snapshot_id
+        return "arn:aws:rds:{0}:{1}:snapshot:{2}".format(
+            self.database.region, ACCOUNT_ID, self.snapshot_id
         )
 
     def to_xml(self):
@@ -534,6 +567,7 @@ class Snapshot(BaseModel):
             """<DBSnapshot>
               <DBSnapshotIdentifier>{{ snapshot.snapshot_id }}</DBSnapshotIdentifier>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
+              <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
               <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
               <Engine>{{ database.engine }}</Engine>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
@@ -587,7 +621,7 @@ class SecurityGroup(CloudFormationModel):
         self.ip_ranges = []
         self.ec2_security_groups = []
         self.tags = tags
-        self.owner_id = "1234567890"
+        self.owner_id = ACCOUNT_ID
         self.vpc_id = None
 
     def to_xml(self):
@@ -839,7 +873,7 @@ class RDS2Backend(BaseBackend):
 
     def delete_snapshot(self, db_snapshot_identifier):
         if db_snapshot_identifier not in self.snapshots:
-            raise DBSnapshotNotFoundError()
+            raise DBSnapshotNotFoundError(db_snapshot_identifier)
 
         return self.snapshots.pop(db_snapshot_identifier)
 
@@ -858,28 +892,35 @@ class RDS2Backend(BaseBackend):
         primary.add_replica(replica)
         return replica
 
-    def describe_databases(self, db_instance_identifier=None):
+    def describe_databases(self, db_instance_identifier=None, filters=None):
+        databases = self.databases
         if db_instance_identifier:
-            if db_instance_identifier in self.databases:
-                return [self.databases[db_instance_identifier]]
-            else:
-                raise DBInstanceNotFoundError(db_instance_identifier)
-        return self.databases.values()
+            filters = merge_filters(
+                filters, {"db-instance-id": [db_instance_identifier]}
+            )
+        if filters:
+            databases = self._filter_resources(databases, filters, Database)
+        if db_instance_identifier and not databases:
+            raise DBInstanceNotFoundError(db_instance_identifier)
+        return list(databases.values())
 
-    def describe_snapshots(self, db_instance_identifier, db_snapshot_identifier):
+    def describe_snapshots(
+        self, db_instance_identifier, db_snapshot_identifier, filters=None
+    ):
+        snapshots = self.snapshots
         if db_instance_identifier:
-            db_instance_snapshots = []
-            for snapshot in self.snapshots.values():
-                if snapshot.database.db_instance_identifier == db_instance_identifier:
-                    db_instance_snapshots.append(snapshot)
-            return db_instance_snapshots
-
+            filters = merge_filters(
+                filters, {"db-instance-id": [db_instance_identifier]}
+            )
         if db_snapshot_identifier:
-            if db_snapshot_identifier in self.snapshots:
-                return [self.snapshots[db_snapshot_identifier]]
-            raise DBSnapshotNotFoundError()
-
-        return self.snapshots.values()
+            filters = merge_filters(
+                filters, {"db-snapshot-id": [db_snapshot_identifier]}
+            )
+        if filters:
+            snapshots = self._filter_resources(snapshots, filters, Snapshot)
+        if db_snapshot_identifier and not snapshots and not db_instance_identifier:
+            raise DBSnapshotNotFoundError(db_snapshot_identifier)
+        return list(snapshots.values())
 
     def modify_database(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
@@ -987,6 +1028,16 @@ class RDS2Backend(BaseBackend):
             else:
                 raise DBSubnetGroupNotFoundError(subnet_group_name)
         return self.subnet_groups.values()
+
+    def modify_db_subnet_group(self, subnet_name, description, subnets):
+        subnet_group = self.subnet_groups.pop(subnet_name)
+        if not subnet_group:
+            raise DBSubnetGroupNotFoundError(subnet_name)
+        subnet_group.subnet_name = subnet_name
+        subnet_group.subnets = subnets
+        if description is not None:
+            subnet_group.description = description
+        return subnet_group
 
     def delete_subnet_group(self, subnet_name):
         if subnet_name in self.subnet_groups:
@@ -1321,6 +1372,18 @@ class RDS2Backend(BaseBackend):
             raise RDSClientError(
                 "InvalidParameterValue", "Invalid resource name: {0}".format(arn)
             )
+
+    @staticmethod
+    def _filter_resources(resources, filters, resource_class):
+        try:
+            filter_defs = resource_class.SUPPORTED_FILTERS
+            validate_filters(filters, filter_defs)
+            return apply_filter(resources, filters, filter_defs)
+        except KeyError as e:
+            # https://stackoverflow.com/questions/24998968/why-does-strkeyerror-add-extra-quotes
+            raise InvalidParameterValue(e.args[0])
+        except ValueError as e:
+            raise InvalidParameterCombination(str(e))
 
 
 class OptionGroup(object):

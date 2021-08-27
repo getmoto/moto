@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 from botocore.exceptions import ClientError
 
 import pytest
@@ -9,7 +8,6 @@ from unittest import SkipTest
 import base64
 import ipaddress
 
-import six
 import boto
 import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
@@ -22,10 +20,7 @@ from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 
 
-if six.PY2:
-    decode_method = base64.decodestring
-else:
-    decode_method = base64.decodebytes
+decode_method = base64.decodebytes
 
 ################ Test Readme ###############
 def add_servers(ami_id, count):
@@ -339,6 +334,35 @@ def test_create_with_tags():
     len(instances["Instances"][0]["Tags"]).should.equal(3)
 
 
+@mock_ec2
+def test_create_with_volume_tags():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    volume_tags = [
+        {"Key": "MY_TAG1", "Value": "MY_VALUE1"},
+        {"Key": "MY_TAG2", "Value": "MY_VALUE2"},
+    ]
+    instances = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=2,
+        MaxCount=2,
+        InstanceType="t2.micro",
+        TagSpecifications=[{"ResourceType": "volume", "Tags": volume_tags}],
+    ).get("Instances")
+    instance_ids = [i["InstanceId"] for i in instances]
+    instances = (
+        ec2.describe_instances(InstanceIds=instance_ids)
+        .get("Reservations")[0]
+        .get("Instances")
+    )
+    for instance in instances:
+        instance_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+        volumes = ec2.describe_volumes(VolumeIds=[instance_volume["VolumeId"]]).get(
+            "Volumes"
+        )
+        for volume in volumes:
+            sorted(volume["Tags"], key=lambda i: i["Key"]).should.equal(volume_tags)
+
+
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_state():
     conn = boto.connect_ec2()
@@ -605,6 +629,29 @@ def test_get_instances_filtering_by_instance_group_id():
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
     )["Reservations"]
     reservations[0]["Instances"].should.have.length_of(1)
+
+
+@mock_ec2
+def test_get_instances_filtering_by_subnet_id():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    vpc_cidr = ipaddress.ip_network("192.168.42.0/24")
+    subnet_cidr = ipaddress.ip_network("192.168.42.0/25")
+
+    resp = client.create_vpc(CidrBlock=str(vpc_cidr),)
+    vpc_id = resp["Vpc"]["VpcId"]
+
+    resp = client.create_subnet(CidrBlock=str(subnet_cidr), VpcId=vpc_id)
+    subnet_id = resp["Subnet"]["SubnetId"]
+
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id,
+    )
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "subnet-id", "Values": [subnet_id]}]
+    )["Reservations"]
+    reservations.should.have.length_of(1)
 
 
 @mock_ec2_deprecated
@@ -999,7 +1046,7 @@ def test_run_instance_with_subnet_boto3():
         instance = resp["Instances"][0]
         instance["SubnetId"].should.equal(subnet_id)
 
-        priv_ipv4 = ipaddress.ip_address(six.text_type(instance["PrivateIpAddress"]))
+        priv_ipv4 = ipaddress.ip_address(str(instance["PrivateIpAddress"]))
         subnet_cidr.should.contain(priv_ipv4)
 
 
@@ -1677,3 +1724,64 @@ def test_warn_on_invalid_ami():
         match=r"Could not find AMI with image-id:invalid-ami.+",
     ):
         ec2.create_instances(ImageId="invalid-ami", MinCount=1, MaxCount=1)
+
+
+@mock_ec2
+def test_filter_wildcard_in_specified_tag_only():
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+
+    tags_name = [{"Key": "Name", "Value": "alice in wonderland"}]
+    ec2_client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MaxCount=1,
+        MinCount=1,
+        TagSpecifications=[{"ResourceType": "instance", "Tags": tags_name}],
+    )
+
+    tags_owner = [{"Key": "Owner", "Value": "alice in wonderland"}]
+    ec2_client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MaxCount=1,
+        MinCount=1,
+        TagSpecifications=[{"ResourceType": "instance", "Tags": tags_owner}],
+    )
+
+    # should only match the Name tag
+    response = ec2_client.describe_instances(
+        Filters=[{"Name": "tag:Name", "Values": ["*alice*"]}]
+    )
+    instances = [i for r in response["Reservations"] for i in r["Instances"]]
+    instances.should.have.length_of(1)
+    instances[0]["Tags"][0].should.have.key("Key").should.equal("Name")
+
+
+@mock_ec2
+def test_instance_termination_protection():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiTermination={"Value": True}
+    )
+    client.stop_instances(InstanceIds=[instance_id], Force=True)
+
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=[instance_id])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("OperationNotPermitted")
+    ex.value.response["Error"]["Message"].should.match(
+        r"The instance '{}' may not be terminated.*$".format(instance_id)
+    )
+
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiTermination={"Value": False}
+    )
+    client.terminate_instances(InstanceIds=[instance_id])
+
+    resp = client.describe_instances(InstanceIds=[instance_id])
+    instances = resp["Reservations"][0]["Instances"]
+    instances.should.have.length_of(1)
+    instance = instances[0]
+    instance["State"]["Name"].should.equal("terminated")

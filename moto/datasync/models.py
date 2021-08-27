@@ -1,6 +1,6 @@
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 
 from .exceptions import InvalidRequestException

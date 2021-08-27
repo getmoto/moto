@@ -62,6 +62,31 @@ def create_redshift_delivery_stream(client, stream_name):
     )
 
 
+def create_elasticsearch_delivery_stream(client, stream_name):
+    return client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        DeliveryStreamType="DirectPut",
+        ElasticsearchDestinationConfiguration={
+            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
+            "DomainARN": "arn:aws:es:::domain/kinesis-test",
+            "IndexName": "myIndex",
+            "TypeName": "UNCOMPRESSED",
+            "IndexRotationPeriod": "NoRotation",
+            "BufferingHints": {"IntervalInSeconds": 123, "SizeInMBs": 123},
+            "RetryOptions": {"DurationInSeconds": 123},
+            "S3Configuration": {
+                "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
+                    ACCOUNT_ID
+                ),
+                "BucketARN": "arn:aws:s3:::kinesis-test",
+                "Prefix": "myFolder/",
+                "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
+                "CompressionFormat": "UNCOMPRESSED",
+            },
+        },
+    )
+
+
 @mock_kinesis
 def test_create_redshift_delivery_stream():
     client = boto3.client("firehose", region_name="us-east-1")
@@ -162,6 +187,59 @@ def test_create_s3_delivery_stream():
                                 ),
                                 "TableName": "outputTable",
                             },
+                        },
+                    },
+                }
+            ],
+            "HasMoreDestinations": False,
+        }
+    )
+
+
+@mock_kinesis
+def test_create_elasticsearch_delivery_stream():
+    client = boto3.client("firehose", region_name="us-east-1")
+
+    response = create_elasticsearch_delivery_stream(client, "stream1")
+    stream_arn = response["DeliveryStreamARN"]
+
+    response = client.describe_delivery_stream(DeliveryStreamName="stream1")
+    stream_description = response["DeliveryStreamDescription"]
+
+    # Sure and Freezegun don't play nicely together
+    _ = stream_description.pop("CreateTimestamp")
+    _ = stream_description.pop("LastUpdateTimestamp")
+
+    stream_description.should.equal(
+        {
+            "DeliveryStreamName": "stream1",
+            "DeliveryStreamARN": stream_arn,
+            "DeliveryStreamStatus": "ACTIVE",
+            "VersionId": "string",
+            "Destinations": [
+                {
+                    "DestinationId": "string",
+                    "ElasticsearchDestinationDescription": {
+                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
+                            ACCOUNT_ID
+                        ),
+                        "DomainARN": "arn:aws:es:::domain/kinesis-test",
+                        "IndexName": "myIndex",
+                        "TypeName": "UNCOMPRESSED",
+                        "IndexRotationPeriod": "NoRotation",
+                        "BufferingHints": {"IntervalInSeconds": 123, "SizeInMBs": 123},
+                        "RetryOptions": {"DurationInSeconds": 123},
+                        "S3DestinationDescription": {
+                            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(
+                                ACCOUNT_ID
+                            ),
+                            "BucketARN": "arn:aws:s3:::kinesis-test",
+                            "Prefix": "myFolder/",
+                            "BufferingHints": {
+                                "SizeInMBs": 123,
+                                "IntervalInSeconds": 124,
+                            },
+                            "CompressionFormat": "UNCOMPRESSED",
                         },
                     },
                 }

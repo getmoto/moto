@@ -7,7 +7,6 @@ from boto.exception import BotoServerError
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_rds_deprecated, mock_rds
-from tests.helpers import disable_on_py3
 
 
 @mock_rds_deprecated
@@ -143,19 +142,6 @@ def test_delete_non_existent_security_group():
     conn.delete_dbsecurity_group.when.called_with("not-a-db").should.throw(
         BotoServerError
     )
-
-
-@disable_on_py3()
-@mock_rds_deprecated
-def test_security_group_authorize():
-    conn = boto.rds.connect_to_region("us-west-2")
-    security_group = conn.create_dbsecurity_group("db_sg", "DB Security Group")
-    list(security_group.ip_ranges).should.equal([])
-
-    security_group.authorize(cidr_ip="10.3.2.45/32")
-    security_group = conn.get_all_dbsecurity_groups()[0]
-    list(security_group.ip_ranges).should.have.length_of(1)
-    security_group.ip_ranges[0].cidr_ip.should.equal("10.3.2.45/32")
 
 
 @mock_rds_deprecated

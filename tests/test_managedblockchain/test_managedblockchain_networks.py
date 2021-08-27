@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 
 import boto3
+import pytest
 import sure  # noqa
 
+from botocore.exceptions import ClientError
 from moto import mock_managedblockchain
 from . import helpers
 
@@ -68,31 +70,39 @@ def test_create_network_withopts():
 def test_create_network_noframework():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.create_network.when.called_with(
-        Name="testnetwork1",
-        Description="Test Network 1",
-        Framework="HYPERLEDGER_VINYL",
-        FrameworkVersion="1.2",
-        FrameworkConfiguration=helpers.default_frameworkconfiguration,
-        VotingPolicy=helpers.default_votingpolicy,
-        MemberConfiguration=helpers.default_memberconfiguration,
-    ).should.throw(Exception, "Invalid request body")
+    with pytest.raises(ClientError) as ex:
+        conn.create_network(
+            Name="testnetwork1",
+            Description="Test Network 1",
+            Framework="HYPERLEDGER_VINYL",
+            FrameworkVersion="1.2",
+            FrameworkConfiguration=helpers.default_frameworkconfiguration,
+            VotingPolicy=helpers.default_votingpolicy,
+            MemberConfiguration=helpers.default_memberconfiguration,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.contain("Invalid request body")
 
 
 @mock_managedblockchain
 def test_create_network_badframeworkver():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.create_network.when.called_with(
-        Name="testnetwork1",
-        Description="Test Network 1",
-        Framework="HYPERLEDGER_FABRIC",
-        FrameworkVersion="1.X",
-        FrameworkConfiguration=helpers.default_frameworkconfiguration,
-        VotingPolicy=helpers.default_votingpolicy,
-        MemberConfiguration=helpers.default_memberconfiguration,
-    ).should.throw(
-        Exception, "Invalid version 1.X requested for framework HYPERLEDGER_FABRIC"
+    with pytest.raises(ClientError) as ex:
+        conn.create_network(
+            Name="testnetwork1",
+            Description="Test Network 1",
+            Framework="HYPERLEDGER_FABRIC",
+            FrameworkVersion="1.X",
+            FrameworkConfiguration=helpers.default_frameworkconfiguration,
+            VotingPolicy=helpers.default_votingpolicy,
+            MemberConfiguration=helpers.default_memberconfiguration,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.contain(
+        "Invalid version 1.X requested for framework HYPERLEDGER_FABRIC"
     )
 
 
@@ -102,21 +112,27 @@ def test_create_network_badedition():
 
     frameworkconfiguration = {"Fabric": {"Edition": "SUPER"}}
 
-    response = conn.create_network.when.called_with(
-        Name="testnetwork1",
-        Description="Test Network 1",
-        Framework="HYPERLEDGER_FABRIC",
-        FrameworkVersion="1.2",
-        FrameworkConfiguration=frameworkconfiguration,
-        VotingPolicy=helpers.default_votingpolicy,
-        MemberConfiguration=helpers.default_memberconfiguration,
-    ).should.throw(Exception, "Invalid request body")
+    with pytest.raises(ClientError) as ex:
+        conn.create_network(
+            Name="testnetwork1",
+            Description="Test Network 1",
+            Framework="HYPERLEDGER_FABRIC",
+            FrameworkVersion="1.2",
+            FrameworkConfiguration=frameworkconfiguration,
+            VotingPolicy=helpers.default_votingpolicy,
+            MemberConfiguration=helpers.default_memberconfiguration,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.contain("Invalid request body")
 
 
 @mock_managedblockchain
 def test_get_network_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.get_network.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_network(NetworkId="n-ABCDEFGHIJKLMNOP0123456789")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")

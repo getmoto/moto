@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 import random
 import string
 import re
+from copy import copy
+
 import requests
 import time
 
@@ -14,7 +16,7 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 import responses
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id
 from moto.core.utils import path_url
 from .exceptions import (
@@ -27,11 +29,11 @@ from .exceptions import (
     InvalidIntegrationArn,
     InvalidHttpEndpoint,
     InvalidResourcePathException,
-    InvalidRequestInput,
     AuthorizerNotFoundException,
     StageNotFoundException,
     RoleNotSpecified,
     NoIntegrationDefined,
+    NoIntegrationResponseDefined,
     NoMethodDefined,
     ApiKeyAlreadyExists,
     DomainNameNotFound,
@@ -40,19 +42,42 @@ from .exceptions import (
     InvalidModelName,
     RestAPINotFound,
     ModelNotFound,
+    ApiKeyValueMinLength,
 )
 from ..core.models import responses_mock
+from moto.apigateway.exceptions import MethodNotFoundException
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
 
-class Deployment(BaseModel, dict):
+class Deployment(CloudFormationModel, dict):
     def __init__(self, deployment_id, name, description=""):
         super(Deployment, self).__init__()
         self["id"] = deployment_id
         self["stageName"] = name
         self["description"] = description
         self["createdDate"] = int(time.time())
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Deployment"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Deployment"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        rest_api_id = properties["RestApiId"]
+        name = properties["StageName"]
+        desc = properties.get("Description", "")
+        backend = apigateway_backends[region_name]
+        return backend.create_deployment(
+            function_id=rest_api_id, name=name, description=desc
+        )
 
 
 class IntegrationResponse(BaseModel, dict):
@@ -64,7 +89,12 @@ class IntegrationResponse(BaseModel, dict):
         content_handling=None,
     ):
         if response_templates is None:
-            response_templates = {"application/json": None}
+            # response_templates = {"application/json": None}  # Note: removed for compatibility with TF
+            response_templates = {}
+        for key in response_templates.keys():
+            response_templates[key] = (
+                response_templates[key] or None
+            )  # required for compatibility with TF
         self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
         if selection_pattern:
@@ -74,13 +104,26 @@ class IntegrationResponse(BaseModel, dict):
 
 
 class Integration(BaseModel, dict):
-    def __init__(self, integration_type, uri, http_method, request_templates=None):
+    def __init__(
+        self,
+        integration_type,
+        uri,
+        http_method,
+        request_templates=None,
+        tls_config=None,
+        cache_namespace=None,
+    ):
         super(Integration, self).__init__()
         self["type"] = integration_type
         self["uri"] = uri
         self["httpMethod"] = http_method
         self["requestTemplates"] = request_templates
-        self["integrationResponses"] = {"200": IntegrationResponse(200)}
+        # self["integrationResponses"] = {"200": IntegrationResponse(200)}  # commented out (tf-compat)
+        self[
+            "integrationResponses"
+        ] = None  # prevent json serialization from including them if none provided
+        self["tlsConfig"] = tls_config
+        self["cacheNamespace"] = cache_namespace
 
     def create_integration_response(
         self, status_code, selection_pattern, response_templates, content_handling
@@ -90,52 +133,104 @@ class Integration(BaseModel, dict):
         integration_response = IntegrationResponse(
             status_code, selection_pattern, response_templates, content_handling
         )
+        if self.get("integrationResponses") is None:
+            self["integrationResponses"] = {}
         self["integrationResponses"][status_code] = integration_response
         return integration_response
 
     def get_integration_response(self, status_code):
-        return self["integrationResponses"][status_code]
+        result = self.get("integrationResponses", {}).get(status_code)
+        if not result:
+            raise NoIntegrationResponseDefined(status_code)
+        return result
 
     def delete_integration_response(self, status_code):
-        return self["integrationResponses"].pop(status_code)
+        return self.get("integrationResponses", {}).pop(status_code, None)
 
 
 class MethodResponse(BaseModel, dict):
-    def __init__(self, status_code):
+    def __init__(self, status_code, response_models=None, response_parameters=None):
         super(MethodResponse, self).__init__()
         self["statusCode"] = status_code
+        self["responseModels"] = response_models
+        self["responseParameters"] = response_parameters
 
 
-class Method(BaseModel, dict):
+class Method(CloudFormationModel, dict):
     def __init__(self, method_type, authorization_type, **kwargs):
         super(Method, self).__init__()
         self.update(
             dict(
                 httpMethod=method_type,
                 authorizationType=authorization_type,
-                authorizerId=None,
+                authorizerId=kwargs.get("authorizer_id"),
+                authorizationScopes=kwargs.get("authorization_scopes"),
                 apiKeyRequired=kwargs.get("api_key_required") or False,
                 requestParameters=None,
-                requestModels=None,
+                requestModels=kwargs.get("request_models"),
                 methodIntegration=None,
+                operationName=kwargs.get("operation_name"),
+                requestValidatorId=kwargs.get("request_validator_id"),
             )
         )
         self.method_responses = {}
 
-    def create_response(self, response_code):
-        method_response = MethodResponse(response_code)
+    @staticmethod
+    def cloudformation_name_type():
+        return "Method"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Method"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        rest_api_id = properties["RestApiId"]
+        resource_id = properties["ResourceId"]
+        method_type = properties["HttpMethod"]
+        auth_type = properties["AuthorizationType"]
+        key_req = properties["ApiKeyRequired"]
+        backend = apigateway_backends[region_name]
+        m = backend.create_method(
+            function_id=rest_api_id,
+            resource_id=resource_id,
+            method_type=method_type,
+            authorization_type=auth_type,
+            api_key_required=key_req,
+        )
+        int_method = properties["Integration"]["IntegrationHttpMethod"]
+        int_type = properties["Integration"]["Type"]
+        int_uri = properties["Integration"]["Uri"]
+        backend.create_integration(
+            function_id=rest_api_id,
+            resource_id=resource_id,
+            method_type=method_type,
+            integration_type=int_type,
+            uri=int_uri,
+            integration_method=int_method,
+        )
+        return m
+
+    def create_response(self, response_code, response_models, response_parameters):
+        method_response = MethodResponse(
+            response_code, response_models, response_parameters
+        )
         self.method_responses[response_code] = method_response
         return method_response
 
     def get_response(self, response_code):
-        return self.method_responses[response_code]
+        return self.method_responses.get(response_code)
 
     def delete_response(self, response_code):
-        return self.method_responses.pop(response_code)
+        return self.method_responses.pop(response_code, None)
 
 
-class Resource(BaseModel):
+class Resource(CloudFormationModel):
     def __init__(self, id, region_name, api_id, path_part, parent_id):
+        super(Resource, self).__init__()
         self.id = id
         self.region_name = region_name
         self.api_id = api_id
@@ -154,6 +249,39 @@ class Resource(BaseModel):
             response["parentId"] = self.parent_id
             response["pathPart"] = self.path_part
         return response
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Resource"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::Resource"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        api_id = properties["RestApiId"]
+        parent = properties["ParentId"]
+        path = properties["PathPart"]
+
+        backend = apigateway_backends[region_name]
+        if parent == api_id:
+            # A Root path (/) is automatically created. Any new paths should use this as their parent
+            resources = backend.list_resources(function_id=api_id)
+            root_id = [resource for resource in resources if resource.path_part == "/"][
+                0
+            ].id
+            parent = root_id
+        return backend.create_resource(
+            function_id=api_id, parent_resource_id=parent, path_part=path
+        )
 
     def get_path(self):
         return self.get_parent_path() + self.path_part
@@ -183,29 +311,62 @@ class Resource(BaseModel):
             )
         return response.status_code, response.text
 
-    def add_method(self, method_type, authorization_type, api_key_required):
+    def add_method(
+        self,
+        method_type,
+        authorization_type,
+        api_key_required,
+        request_models=None,
+        operation_name=None,
+        authorizer_id=None,
+        authorization_scopes=None,
+        request_validator_id=None,
+    ):
+        if authorization_scopes and not isinstance(authorization_scopes, list):
+            authorization_scopes = [authorization_scopes]
         method = Method(
             method_type=method_type,
             authorization_type=authorization_type,
             api_key_required=api_key_required,
+            request_models=request_models,
+            operation_name=operation_name,
+            authorizer_id=authorizer_id,
+            authorization_scopes=authorization_scopes,
+            request_validator_id=request_validator_id,
         )
         self.resource_methods[method_type] = method
         return method
 
     def get_method(self, method_type):
-        return self.resource_methods[method_type]
+        method = self.resource_methods.get(method_type)
+        if not method:
+            raise MethodNotFoundException()
+        return method
 
     def add_integration(
-        self, method_type, integration_type, uri, request_templates=None
+        self,
+        method_type,
+        integration_type,
+        uri,
+        request_templates=None,
+        integration_method=None,
+        tls_config=None,
+        cache_namespace=None,
     ):
+        integration_method = integration_method or method_type
         integration = Integration(
-            integration_type, uri, method_type, request_templates=request_templates
+            integration_type,
+            uri,
+            integration_method,
+            request_templates=request_templates,
+            tls_config=tls_config,
+            cache_namespace=cache_namespace,
         )
         self.resource_methods[method_type]["methodIntegration"] = integration
         return integration
 
     def get_integration(self, method_type):
-        return self.resource_methods[method_type]["methodIntegration"]
+        return self.resource_methods.get(method_type, {}).get("methodIntegration", {})
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop("methodIntegration")
@@ -268,6 +429,8 @@ class Stage(BaseModel, dict):
         description="",
         cacheClusterEnabled=False,
         cacheClusterSize=None,
+        tags=None,
+        tracing_enabled=None,
     ):
         super(Stage, self).__init__()
         if variables is None:
@@ -280,9 +443,12 @@ class Stage(BaseModel, dict):
         self["cacheClusterEnabled"] = cacheClusterEnabled
         if self["cacheClusterEnabled"]:
             self["cacheClusterSize"] = str(0.5)
-
         if cacheClusterSize is not None:
             self["cacheClusterSize"] = str(cacheClusterSize)
+        if tags is not None:
+            self["tags"] = tags
+        if tracing_enabled is not None:
+            self["tracingEnabled"] = tracing_enabled
 
     def apply_operations(self, patch_operations):
         for op in patch_operations:
@@ -449,6 +615,7 @@ class UsagePlan(BaseModel, dict):
         apiStages=None,
         throttle=None,
         quota=None,
+        productCode=None,
         tags=None,
     ):
         super(UsagePlan, self).__init__()
@@ -458,7 +625,28 @@ class UsagePlan(BaseModel, dict):
         self["apiStages"] = apiStages if apiStages else []
         self["throttle"] = throttle
         self["quota"] = quota
+        self["productCode"] = productCode
         self["tags"] = tags
+
+    def apply_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if op["op"] == "replace":
+                if "/name" in path:
+                    self["name"] = value
+                if "/productCode" in path:
+                    self["productCode"] = value
+                if "/description" in path:
+                    self["description"] = value
+                if "/quota/limit" in path:
+                    self["quota"]["limit"] = value
+                if "/quota/period" in path:
+                    self["quota"]["period"] = value
+                if "/throttle/rateLimit" in path:
+                    self["throttle"]["rateLimit"] = value
+                if "/throttle/burstLimit" in path:
+                    self["throttle"]["burstLimit"] = value
 
 
 class UsagePlanKey(BaseModel, dict):
@@ -470,12 +658,15 @@ class UsagePlanKey(BaseModel, dict):
         self["value"] = value
 
 
-class RestAPI(BaseModel):
+class RestAPI(CloudFormationModel):
     def __init__(self, id, region_name, name, description, **kwargs):
+        super(RestAPI, self).__init__()
         self.id = id
         self.region_name = region_name
         self.name = name
         self.description = description
+        self.version = kwargs.get("version") or "V1"
+        self.binaryMediaTypes = kwargs.get("binaryMediaTypes") or []
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
         self.policy = kwargs.get("policy") or None
@@ -483,7 +674,10 @@ class RestAPI(BaseModel):
             "types": ["EDGE"]
         }
         self.tags = kwargs.get("tags") or {}
-
+        self.disableExecuteApiEndpoint = (
+            kwargs.get("disableExecuteApiEndpoint") or False
+        )
+        self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments = {}
         self.authorizers = {}
         self.stages = {}
@@ -499,12 +693,67 @@ class RestAPI(BaseModel):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "createdDate": int(time.time()),
+            "version": self.version,
+            "binaryMediaTypes": self.binaryMediaTypes,
+            "createdDate": self.create_date,
             "apiKeySource": self.api_key_source,
             "endpointConfiguration": self.endpoint_configuration,
             "tags": self.tags,
             "policy": self.policy,
+            "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
+            "minimumCompressionSize": self.minimum_compression_size,
         }
+
+    def apply_patch_operations(self, patch_operations):
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            if op["op"] == "replace":
+                if "/name" in path:
+                    self.name = value
+                if "/description" in path:
+                    self.description = value
+                if "/apiKeySource" in path:
+                    self.api_key_source = value
+                if "/binaryMediaTypes" in path:
+                    self.binaryMediaTypes = value
+                if "/disableExecuteApiEndpoint" in path:
+                    self.disableExecuteApiEndpoint = bool(value)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "RootResourceId":
+            for res_id, res_obj in self.resources.items():
+                if res_obj.path_part == "/" and not res_obj.parent_id:
+                    return res_id
+            raise Exception("Unable to find root resource for API %s" % self)
+        raise UnformattedGetAttTemplateException()
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "RestApi"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::ApiGateway::RestApi"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        name = properties["Name"]
+        desc = properties.get("Description", "")
+        config = properties.get("EndpointConfiguration", None)
+        backend = apigateway_backends[region_name]
+        return backend.create_rest_api(
+            name=name, description=desc, endpoint_configuration=config
+        )
 
     def add_child(self, path, parent_id=None):
         child_id = create_id()
@@ -613,6 +862,8 @@ class RestAPI(BaseModel):
         description="",
         cacheClusterEnabled=None,
         cacheClusterSize=None,
+        tags=None,
+        tracing_enabled=None,
     ):
         if variables is None:
             variables = {}
@@ -623,6 +874,8 @@ class RestAPI(BaseModel):
             description=description,
             cacheClusterSize=cacheClusterSize,
             cacheClusterEnabled=cacheClusterEnabled,
+            tags=tags,
+            tracing_enabled=tracing_enabled,
         )
         self.stages[name] = stage
         self.update_integration_mocks(name)
@@ -661,8 +914,11 @@ class DomainName(BaseModel, dict):
     def __init__(self, domain_name, **kwargs):
         super(DomainName, self).__init__()
         self["domainName"] = domain_name
-        self["regionalDomainName"] = domain_name
-        self["distributionDomainName"] = domain_name
+        self["regionalDomainName"] = "d-%s.execute-api.%s.amazonaws.com" % (
+            create_id(),
+            kwargs.get("region_name") or "us-east-1",
+        )
+        self["distributionDomainName"] = "d%s.cloudfront.net" % create_id()
         self["domainNameStatus"] = "AVAILABLE"
         self["domainNameStatusMessage"] = "Domain Name Available"
         self["regionalHostedZoneId"] = "Z2FDTNDATAQYW2"
@@ -733,6 +989,7 @@ class APIGatewayBackend(BaseBackend):
         endpoint_configuration=None,
         tags=None,
         policy=None,
+        minimum_compression_size=None,
     ):
         api_id = create_id()
         rest_api = RestAPI(
@@ -744,6 +1001,7 @@ class APIGatewayBackend(BaseBackend):
             endpoint_configuration=endpoint_configuration,
             tags=tags,
             policy=policy,
+            minimum_compression_size=minimum_compression_size,
         )
         self.apis[api_id] = rest_api
         return rest_api
@@ -753,6 +1011,13 @@ class APIGatewayBackend(BaseBackend):
         if rest_api is None:
             raise RestAPINotFound()
         return rest_api
+
+    def update_rest_api(self, function_id, patch_operations):
+        rest_api = self.apis.get(function_id)
+        if rest_api is None:
+            raise RestAPINotFound()
+        self.apis[function_id].apply_patch_operations(patch_operations)
+        return self.apis[function_id]
 
     def list_apis(self):
         return self.apis.values()
@@ -793,12 +1058,29 @@ class APIGatewayBackend(BaseBackend):
         method_type,
         authorization_type,
         api_key_required=None,
+        request_models=None,
+        operation_name=None,
+        authorizer_id=None,
+        authorization_scopes=None,
+        request_validator_id=None,
     ):
         resource = self.get_resource(function_id, resource_id)
         method = resource.add_method(
-            method_type, authorization_type, api_key_required=api_key_required
+            method_type,
+            authorization_type,
+            api_key_required=api_key_required,
+            request_models=request_models,
+            operation_name=operation_name,
+            authorizer_id=authorizer_id,
+            authorization_scopes=authorization_scopes,
+            request_validator_id=request_validator_id,
         )
         return method
+
+    def update_method(self, function_id, resource_id, method_type, patch_operations):
+        resource = self.get_resource(function_id, resource_id)
+        method = resource.get_method(method_type)
+        return method.apply_operations(patch_operations)
 
     def get_authorizer(self, restapi_id, authorizer_id):
         api = self.get_rest_api(restapi_id)
@@ -845,8 +1127,7 @@ class APIGatewayBackend(BaseBackend):
         stage = api.stages.get(stage_name)
         if stage is None:
             raise StageNotFoundException()
-        else:
-            return stage
+        return stage
 
     def get_stages(self, function_id):
         api = self.get_rest_api(function_id)
@@ -861,6 +1142,8 @@ class APIGatewayBackend(BaseBackend):
         description="",
         cacheClusterEnabled=None,
         cacheClusterSize=None,
+        tags=None,
+        tracing_enabled=None,
     ):
         if variables is None:
             variables = {}
@@ -872,6 +1155,8 @@ class APIGatewayBackend(BaseBackend):
             description=description,
             cacheClusterEnabled=cacheClusterEnabled,
             cacheClusterSize=cacheClusterSize,
+            tags=tags,
+            tracing_enabled=tracing_enabled,
         )
         return api.stages.get(stage_name)
 
@@ -884,7 +1169,9 @@ class APIGatewayBackend(BaseBackend):
 
     def delete_stage(self, function_id, stage_name):
         api = self.get_rest_api(function_id)
-        del api.stages[stage_name]
+        deleted = api.stages.pop(stage_name, None)
+        if not deleted:
+            raise StageNotFoundException()
 
     def get_method_response(self, function_id, resource_id, method_type, response_code):
         method = self.get_method(function_id, resource_id, method_type)
@@ -892,10 +1179,26 @@ class APIGatewayBackend(BaseBackend):
         return method_response
 
     def create_method_response(
-        self, function_id, resource_id, method_type, response_code
+        self,
+        function_id,
+        resource_id,
+        method_type,
+        response_code,
+        response_models,
+        response_parameters,
     ):
         method = self.get_method(function_id, resource_id, method_type)
-        method_response = method.create_response(response_code)
+        method_response = method.create_response(
+            response_code, response_models, response_parameters
+        )
+        return method_response
+
+    def update_method_response(
+        self, function_id, resource_id, method_type, response_code, patch_operations
+    ):
+        method = self.get_method(function_id, resource_id, method_type)
+        method_response = method.get_response(response_code)
+        method_response.apply_operations(patch_operations)
         return method_response
 
     def delete_method_response(
@@ -915,6 +1218,8 @@ class APIGatewayBackend(BaseBackend):
         integration_method=None,
         credentials=None,
         request_templates=None,
+        tls_config=None,
+        cache_namespace=None,
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -947,7 +1252,13 @@ class APIGatewayBackend(BaseBackend):
         ):
             raise InvalidIntegrationArn()
         integration = resource.add_integration(
-            method_type, integration_type, uri, request_templates=request_templates
+            method_type,
+            integration_type,
+            uri,
+            integration_method=integration_method,
+            request_templates=request_templates,
+            tls_config=tls_config,
+            cache_namespace=cache_namespace,
         )
         return integration
 
@@ -969,8 +1280,6 @@ class APIGatewayBackend(BaseBackend):
         response_templates,
         content_handling,
     ):
-        if response_templates is None:
-            raise InvalidRequestInput()
         integration = self.get_integration(function_id, resource_id, method_type)
         integration_response = integration.create_integration_response(
             status_code, selection_pattern, response_templates, content_handling
@@ -1000,7 +1309,8 @@ class APIGatewayBackend(BaseBackend):
         methods = [
             list(res.resource_methods.values())
             for res in self.list_resources(function_id)
-        ][0]
+        ]
+        methods = [m for sublist in methods for m in sublist]
         if not any(methods):
             raise NoMethodDefined()
         method_integrations = [
@@ -1024,26 +1334,47 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         return api.delete_deployment(deployment_id)
 
-    def create_apikey(self, payload):
-        if payload.get("value") is not None:
-            for api_key in self.get_apikeys():
+    def create_api_key(self, payload):
+        if payload.get("value"):
+            if len(payload.get("value", [])) < 20:
+                raise ApiKeyValueMinLength()
+            for api_key in self.get_api_keys(include_values=True):
                 if api_key.get("value") == payload["value"]:
                     raise ApiKeyAlreadyExists()
         key = ApiKey(**payload)
         self.keys[key["id"]] = key
         return key
 
-    def get_apikeys(self):
-        return list(self.keys.values())
+    def get_api_keys(self, include_values=False):
+        api_keys = list(self.keys.values())
 
-    def get_apikey(self, api_key_id):
-        return self.keys[api_key_id]
+        if not include_values:
+            keys = []
+            for api_key in list(self.keys.values()):
+                new_key = copy(api_key)
+                del new_key["value"]
+                keys.append(new_key)
+            api_keys = keys
 
-    def update_apikey(self, api_key_id, patch_operations):
+        return api_keys
+
+    def get_api_key(self, api_key_id, include_value=False):
+        api_key = self.keys.get(api_key_id)
+        if not api_key:
+            raise ApiKeyNotFoundException()
+
+        if not include_value:
+            new_key = copy(api_key)
+            del new_key["value"]
+            api_key = new_key
+
+        return api_key
+
+    def update_api_key(self, api_key_id, patch_operations):
         key = self.keys[api_key_id]
         return key.update_operations(patch_operations)
 
-    def delete_apikey(self, api_key_id):
+    def delete_api_key(self, api_key_id):
         self.keys.pop(api_key_id)
         return {}
 
@@ -1065,7 +1396,12 @@ class APIGatewayBackend(BaseBackend):
     def get_usage_plan(self, usage_plan_id):
         if usage_plan_id not in self.usage_plans:
             raise UsagePlanNotFoundException()
+        return self.usage_plans[usage_plan_id]
 
+    def update_usage_plan(self, usage_plan_id, patch_operations):
+        if usage_plan_id not in self.usage_plans:
+            raise UsagePlanNotFoundException()
+        self.usage_plans[usage_plan_id].apply_patch_operations(patch_operations)
         return self.usage_plans[usage_plan_id]
 
     def delete_usage_plan(self, usage_plan_id):
@@ -1118,7 +1454,7 @@ class APIGatewayBackend(BaseBackend):
     def _uri_validator(self, uri):
         try:
             result = urlparse(uri)
-            return all([result.scheme, result.netloc, result.path])
+            return all([result.scheme, result.netloc, result.path or "/"])
         except Exception:
             return False
 
@@ -1154,6 +1490,7 @@ class APIGatewayBackend(BaseBackend):
             tags=tags,
             security_policy=security_policy,
             generate_cli_skeleton=generate_cli_skeleton,
+            region_name=self.region_name,
         )
 
         self.domain_names[domain_name] = new_domain_name
@@ -1165,9 +1502,21 @@ class APIGatewayBackend(BaseBackend):
     def get_domain_name(self, domain_name):
         domain_info = self.domain_names.get(domain_name)
         if domain_info is None:
-            raise DomainNameNotFound
+            raise DomainNameNotFound()
         else:
             return self.domain_names[domain_name]
+
+    def delete_domain_name(self, domain_name):
+        domain_info = self.domain_names.pop(domain_name, None)
+        if domain_info is None:
+            raise DomainNameNotFound()
+
+    def update_domain_name(self, domain_name, patch_operations):
+        domain_info = self.domain_names.get(domain_name)
+        if not domain_info:
+            raise DomainNameNotFound()
+        domain_info.apply_patch_operations(patch_operations)
+        return domain_info
 
     def create_model(
         self,

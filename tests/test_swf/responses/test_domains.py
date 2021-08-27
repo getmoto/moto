@@ -6,6 +6,7 @@ import sure  # noqa
 
 from moto import mock_swf_deprecated
 from moto import mock_swf
+from moto.core import ACCOUNT_ID
 
 
 # RegisterDomain endpoint
@@ -20,6 +21,9 @@ def test_register_domain():
     domain["name"].should.equal("test-domain")
     domain["status"].should.equal("REGISTERED")
     domain["description"].should.equal("A test domain")
+    domain["arn"].should.equal(
+        "arn:aws:swf:us-east-1:{0}:/domain/test-domain".format(ACCOUNT_ID)
+    )
 
 
 @mock_swf_deprecated

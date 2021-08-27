@@ -44,6 +44,7 @@ mock_datapipeline_deprecated = lazy_load(
     ".datapipeline", "mock_datapipeline_deprecated"
 )
 mock_datasync = lazy_load(".datasync", "mock_datasync")
+mock_dms = lazy_load(".dms", "mock_dms")
 mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb")
 mock_dynamodb_deprecated = lazy_load(".dynamodb", "mock_dynamodb_deprecated")
 mock_dynamodb2 = lazy_load(".dynamodb2", "mock_dynamodb2")
@@ -120,12 +121,20 @@ mock_kinesisvideoarchivedmedia = lazy_load(
     ".kinesisvideoarchivedmedia", "mock_kinesisvideoarchivedmedia"
 )
 mock_medialive = lazy_load(".medialive", "mock_medialive")
+mock_support = lazy_load(".support", "mock_support")
+mock_mediaconnect = lazy_load(".mediaconnect", "mock_mediaconnect")
+mock_mediapackage = lazy_load(".mediapackage", "mock_mediapackage")
+mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
+mock_eks = lazy_load(".eks", "mock_eks")
+mock_mediastoredata = lazy_load(".mediastoredata", "mock_mediastoredata")
+mock_efs = lazy_load(".efs", "mock_efs")
+mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "1.3.17.dev"
+__version__ = "2.2.6.dev"
 
 
 try:

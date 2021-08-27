@@ -11,9 +11,17 @@ class ElasticNetworkInterfaces(BaseResponse):
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
         description = self._get_param("Description")
+        tags = self._parse_tag_specification("TagSpecification").get(
+            "network-interface"
+        )
         if self.is_not_dryrun("CreateNetworkInterface"):
             eni = self.ec2_backend.create_network_interface(
-                subnet, private_ip_address, private_ip_addresses, groups, description
+                subnet,
+                private_ip_address,
+                private_ip_addresses,
+                groups,
+                description,
+                tags,
             )
             template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
             return template.render(eni=eni)
@@ -56,11 +64,10 @@ class ElasticNetworkInterfaces(BaseResponse):
             return template.render()
 
     def modify_network_interface_attribute(self):
-        # Currently supports modifying one and only one security group
         eni_id = self._get_param("NetworkInterfaceId")
-        group_id = self._get_param("SecurityGroupId.1")
+        group_ids = self._get_multi_param("SecurityGroupId")
         if self.is_not_dryrun("ModifyNetworkInterface"):
-            self.ec2_backend.modify_network_interface_attribute(eni_id, group_id)
+            self.ec2_backend.modify_network_interface_attribute(eni_id, group_ids)
             return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
 
     def reset_network_interface_attribute(self):

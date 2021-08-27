@@ -1,12 +1,10 @@
 from __future__ import unicode_literals
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import boto
 import boto3
 from boto.exception import EC2ResponseError
-import six
 
 import sure  # noqa
 
@@ -31,7 +29,7 @@ def test_eip_allocate_classic():
 
     standard = conn.allocate_address()
     standard.should.be.a(boto.ec2.address.Address)
-    standard.public_ip.should.be.a(six.text_type)
+    standard.public_ip.should.be.a(str)
     standard.instance_id.should.be.none
     standard.domain.should.be.equal("standard")
 
@@ -207,7 +205,7 @@ def test_eip_boto3_vpc_association():
     address.association_id.should.be.none
     address.instance_id.should.be.empty
     address.network_interface_id.should.be.empty
-    association_id = client.associate_address(
+    client.associate_address(
         InstanceId=instance.id, AllocationId=allocation_id, AllowReassociation=False
     )
     instance.load()
@@ -289,7 +287,6 @@ def test_eip_reassociate():
     ).should_not.throw(EC2ResponseError)
 
     eip.release()
-    eip = None
 
     instance1.terminate()
     instance2.terminate()
@@ -328,7 +325,7 @@ def test_eip_reassociate_nic():
 
 @mock_ec2_deprecated
 def test_eip_associate_invalid_args():
-    """Associate EIP, invalid args """
+    """Associate EIP, invalid args"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
     reservation = conn.run_instances(EXAMPLE_AMI_ID)

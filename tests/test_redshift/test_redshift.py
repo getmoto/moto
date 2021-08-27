@@ -41,6 +41,7 @@ def test_create_cluster_boto3():
         datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
     )
     response["Cluster"]["EnhancedVpcRouting"].should.equal(False)
+    response["Cluster"]["KmsKeyId"].should.equal("")
 
 
 @mock_redshift
@@ -62,6 +63,31 @@ def test_create_cluster_with_enhanced_vpc_routing_enabled():
         datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
     )
     response["Cluster"]["EnhancedVpcRouting"].should.equal(True)
+
+
+@mock_redshift
+def test_create_and_describe_cluster_with_kms_key_id():
+    kms_key_id = (
+        "arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000"
+    )
+    client = boto3.client("redshift", region_name="us-east-1")
+    response = client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+        KmsKeyId=kms_key_id,
+    )
+    response["Cluster"]["KmsKeyId"].should.equal(kms_key_id)
+
+    response = client.describe_clusters()
+    clusters = response.get("Clusters", [])
+    len(clusters).should.equal(1)
+
+    cluster = clusters[0]
+    cluster["KmsKeyId"].should.equal(kms_key_id)
 
 
 @mock_redshift
@@ -588,6 +614,58 @@ def test_create_cluster_subnet_group():
     my_subnet["Description"].should.equal("This is my subnet group")
     subnet_ids = [subnet["SubnetIdentifier"] for subnet in my_subnet["Subnets"]]
     set(subnet_ids).should.equal(set([subnet1.id, subnet2.id]))
+
+
+@mock_redshift
+def test_authorize_security_group_ingress():
+    iam_roles_arn = ["arn:aws:iam:::role/my-iam-role"]
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        NodeType="single-node",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        IamRoles=iam_roles_arn,
+    )
+
+    client.create_cluster_security_group(
+        ClusterSecurityGroupName="security_group",
+        Description="security_group_description",
+    )
+
+    response = client.authorize_cluster_security_group_ingress(
+        ClusterSecurityGroupName="security_group", CIDRIP="192.168.10.0/28"
+    )
+
+    assert (
+        response.get("ClusterSecurityGroup").get("ClusterSecurityGroupName")
+        == "security_group"
+    )
+    assert (
+        response.get("ClusterSecurityGroup").get("Description")
+        == "security_group_description"
+    )
+    assert (
+        response.get("ClusterSecurityGroup").get("IPRanges")[0].get("Status")
+        == "authorized"
+    )
+    assert (
+        response.get("ClusterSecurityGroup").get("IPRanges")[0].get("CIDRIP")
+        == "192.168.10.0/28"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.authorize_cluster_security_group_ingress(
+            ClusterSecurityGroupName="invalid_security_group", CIDRIP="192.168.10.0/28"
+        )
+    assert ex.value.response["Error"]["Code"] == "ClusterSecurityGroupNotFoundFault"
+
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The cluster security group name does not refer to an existing cluster security group."
+    )
 
 
 @mock_redshift_deprecated
@@ -1491,17 +1569,7 @@ def test_resize_cluster():
 
 
 @mock_redshift
-def test_get_cluster_credentials_non_existent_cluster():
-    client = boto3.client("redshift", region_name="us-east-1")
-
-    with pytest.raises(ClientError) as ex:
-        client.get_cluster_credentials(ClusterIdentifier="non-existent")
-    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
-    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
-
-
-@mock_redshift
-def test_get_cluster_credentials_non_existent_cluster():
+def test_get_cluster_credentials_non_existent_cluster_and_user():
     client = boto3.client("redshift", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:

@@ -26,12 +26,13 @@ class MessageAttributesInvalid(RESTError):
 
 
 class QueueDoesNotExist(RESTError):
-    code = 404
+    code = 400
 
     def __init__(self):
-        super(QueueDoesNotExist, self).__init__(
-            "QueueDoesNotExist",
+        super().__init__(
+            "AWS.SimpleQueueService.NonExistentQueue",
             "The specified queue does not exist for this wsdl version.",
+            template="wrapped_single_error",
         )
 
 
@@ -123,9 +124,10 @@ class InvalidParameterValue(RESTError):
 class MissingParameter(RESTError):
     code = 400
 
-    def __init__(self):
+    def __init__(self, parameter):
         super(MissingParameter, self).__init__(
-            "MissingParameter", "The request must contain the parameter Actions."
+            "MissingParameter",
+            "The request must contain the parameter {}.".format(parameter),
         )
 
 

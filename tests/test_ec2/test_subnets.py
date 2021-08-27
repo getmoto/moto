@@ -6,7 +6,6 @@ import boto
 import boto3
 import boto.vpc
 
-# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 import sure  # noqa
 from boto.exception import EC2ResponseError
@@ -176,6 +175,7 @@ def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
 
     # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
     subnet.reload()
+    subnets = client.describe_subnets()
 
     # For non default subnet, attribute value should be 'False'
     subnet.assign_ipv6_address_on_creation.shouldnt.be.ok

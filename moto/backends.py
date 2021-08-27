@@ -21,6 +21,7 @@ BACKENDS = {
     "config": ("config", "config_backends"),
     "datapipeline": ("datapipeline", "datapipeline_backends"),
     "datasync": ("datasync", "datasync_backends"),
+    "dms": ("dms", "dms_backends"),
     "dynamodb": ("dynamodb", "dynamodb_backends"),
     "dynamodb2": ("dynamodb2", "dynamodb_backends2"),
     "dynamodbstreams": ("dynamodbstreams", "dynamodbstreams_backends"),
@@ -77,6 +78,14 @@ BACKENDS = {
         "kinesisvideoarchivedmedia_backends",
     ),
     "forecast": ("forecast", "forecast_backends"),
+    "support": ("support", "support_backends"),
+    "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
+    "mediapackage": ("mediapackage", "mediapackage_backends"),
+    "mediastore": ("mediastore", "mediastore_backends"),
+    "mediastore-data": ("mediastoredata", "mediastoredata_backends"),
+    "eks": ("eks", "eks_backends"),
+    "efs": ("efs", "efs_backends"),
+    "wafv2": ("wafv2", "wafv2_backends"),
 }
 
 

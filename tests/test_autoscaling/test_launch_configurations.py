@@ -3,7 +3,9 @@ import boto
 import boto3
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
+from botocore.exceptions import ClientError
 
+import pytest
 import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
@@ -239,3 +241,31 @@ def test_launch_configuration_delete():
 
     conn.delete_launch_configuration("tester")
     conn.get_all_launch_configurations().should.have.length_of(0)
+
+
+@pytest.mark.parametrize(
+    "request_params",
+    [
+        pytest.param(
+            {"LaunchConfigurationName": "test"},
+            id="No InstanceId, ImageId, or InstanceType parameters",
+        ),
+        pytest.param(
+            {"LaunchConfigurationName": "test", "ImageId": "ami-test"},
+            id="ImageId without InstanceType parameter",
+        ),
+        pytest.param(
+            {"LaunchConfigurationName": "test", "InstanceType": "t2.medium"},
+            id="InstanceType without ImageId parameter",
+        ),
+    ],
+)
+@mock_autoscaling
+def test_invalid_launch_configuration_request_raises_error(request_params):
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.create_launch_configuration(**request_params)
+    ex.value.response["Error"]["Code"].should.equal("ValidationError")
+    ex.value.response["Error"]["Message"].should.match(
+        r"^Valid requests must contain.*"
+    )

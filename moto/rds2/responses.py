@@ -5,6 +5,7 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 from .exceptions import DBParameterGroupNotFoundError
+from .utils import filters_from_querystring
 
 
 class RDS2Response(BaseResponse):
@@ -122,7 +123,10 @@ class RDS2Response(BaseResponse):
 
     def describe_db_instances(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
-        all_instances = list(self.backend.describe_databases(db_instance_identifier))
+        filters = filters_from_querystring(self.querystring)
+        all_instances = list(
+            self.backend.describe_databases(db_instance_identifier, filters=filters)
+        )
         marker = self._get_param("Marker")
         all_ids = [instance.db_instance_identifier for instance in all_instances]
         if marker:
@@ -178,8 +182,9 @@ class RDS2Response(BaseResponse):
     def describe_db_snapshots(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
+        filters = filters_from_querystring(self.querystring)
         snapshots = self.backend.describe_snapshots(
-            db_instance_identifier, db_snapshot_identifier
+            db_instance_identifier, db_snapshot_identifier, filters
         )
         template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)
         return template.render(snapshots=snapshots)
@@ -275,6 +280,19 @@ class RDS2Response(BaseResponse):
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
+
+    def modify_db_subnet_group(self):
+        subnet_name = self._get_param("DBSubnetGroupName")
+        description = self._get_param("DBSubnetGroupDescription")
+        subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
+        subnets = [
+            ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids
+        ]
+        subnet_group = self.backend.modify_db_subnet_group(
+            subnet_name, description, subnets
+        )
+        template = self.response_template(MODIFY_SUBNET_GROUPS_TEMPLATE)
+        return template.render(subnet_group=subnet_group)
 
     def delete_db_subnet_group(self):
         subnet_name = self._get_param("DBSubnetGroupName")
@@ -582,6 +600,15 @@ DESCRIBE_SUBNET_GROUPS_TEMPLATE = """<DescribeDBSubnetGroupsResponse xmlns="http
     <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
   </ResponseMetadata>
 </DescribeDBSubnetGroupsResponse>"""
+
+MODIFY_SUBNET_GROUPS_TEMPLATE = """<ModifyDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <ModifyDBSubnetGroupResult>
+    {{ subnet_group.to_xml() }}
+  </ModifyDBSubnetGroupResult>
+  <ResponseMetadata>
+    <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
+  </ResponseMetadata>
+</ModifyDBSubnetGroupResponse>"""
 
 DELETE_SUBNET_GROUP_TEMPLATE = """<DeleteDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <ResponseMetadata>

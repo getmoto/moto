@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import itertools
 from collections import defaultdict
 
 import string
@@ -19,16 +20,23 @@ def create_route53_zone_id():
 
 
 class HealthCheck(CloudFormationModel):
-    def __init__(self, health_check_id, health_check_args):
+    def __init__(self, health_check_id, caller_reference, health_check_args):
         self.id = health_check_id
         self.ip_address = health_check_args.get("ip_address")
-        self.port = health_check_args.get("port", 80)
+        self.port = health_check_args.get("port") or 80
         self.type_ = health_check_args.get("type")
         self.resource_path = health_check_args.get("resource_path")
         self.fqdn = health_check_args.get("fqdn")
         self.search_string = health_check_args.get("search_string")
-        self.request_interval = health_check_args.get("request_interval", 30)
-        self.failure_threshold = health_check_args.get("failure_threshold", 3)
+        self.request_interval = health_check_args.get("request_interval") or 30
+        self.failure_threshold = health_check_args.get("failure_threshold") or 3
+        self.health_threshold = health_check_args.get("health_threshold")
+        self.measure_latency = health_check_args.get("measure_latency") or False
+        self.inverted = health_check_args.get("inverted") or False
+        self.disabled = health_check_args.get("disabled") or False
+        self.enable_sni = health_check_args.get("enable_sni") or False
+        self.children = health_check_args.get("children") or None
+        self.caller_reference = caller_reference
 
     @property
     def physical_resource_id(self):
@@ -58,24 +66,48 @@ class HealthCheck(CloudFormationModel):
             "request_interval": properties.get("RequestInterval"),
             "failure_threshold": properties.get("FailureThreshold"),
         }
-        health_check = route53_backend.create_health_check(health_check_args)
+        health_check = route53_backend.create_health_check(
+            caller_reference=resource_name, health_check_args=health_check_args
+        )
         return health_check
 
     def to_xml(self):
         template = Template(
             """<HealthCheck>
             <Id>{{ health_check.id }}</Id>
-            <CallerReference>example.com 192.0.2.17</CallerReference>
+            <CallerReference>{{ health_check.caller_reference }}</CallerReference>
             <HealthCheckConfig>
-                <IPAddress>{{ health_check.ip_address }}</IPAddress>
-                <Port>{{ health_check.port }}</Port>
+                {% if health_check.type_ != "CALCULATED" %}
+                    <IPAddress>{{ health_check.ip_address }}</IPAddress>
+                    <Port>{{ health_check.port }}</Port>
+                {% endif %}
                 <Type>{{ health_check.type_ }}</Type>
-                <ResourcePath>{{ health_check.resource_path }}</ResourcePath>
-                <FullyQualifiedDomainName>{{ health_check.fqdn }}</FullyQualifiedDomainName>
-                <RequestInterval>{{ health_check.request_interval }}</RequestInterval>
-                <FailureThreshold>{{ health_check.failure_threshold }}</FailureThreshold>
+                {% if health_check.resource_path %}
+                    <ResourcePath>{{ health_check.resource_path }}</ResourcePath>
+                {% endif %}
+                {% if health_check.fqdn %}
+                    <FullyQualifiedDomainName>{{ health_check.fqdn }}</FullyQualifiedDomainName>
+                {% endif %}
+                {% if health_check.type_ != "CALCULATED" %}
+                    <RequestInterval>{{ health_check.request_interval }}</RequestInterval>
+                    <FailureThreshold>{{ health_check.failure_threshold }}</FailureThreshold>
+                    <MeasureLatency>{{ health_check.measure_latency }}</MeasureLatency>
+                {% endif %}
+                {% if health_check.type_ == "CALCULATED" %}
+                    <HealthThreshold>{{ health_check.health_threshold }}</HealthThreshold>
+                {% endif %}
+                <Inverted>{{ health_check.inverted }}</Inverted>
+                <Disabled>{{ health_check.disabled }}</Disabled>
+                <EnableSNI>{{ health_check.enable_sni }}</EnableSNI>
                 {% if health_check.search_string %}
                     <SearchString>{{ health_check.search_string }}</SearchString>
+                {% endif %}
+                {% if health_check.children %}
+                    <ChildHealthChecks>
+                    {% for child in health_check.children %}
+                        <member>{{ child }}</member>
+                    {% endfor %}
+                    </ChildHealthChecks>
                 {% endif %}
             </HealthCheckConfig>
             <HealthCheckVersion>1</HealthCheckVersion>
@@ -207,7 +239,7 @@ class RecordSet(CloudFormationModel):
         return template.render(record_set=self)
 
     def delete(self, *args, **kwargs):
-        """ Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored """
+        """Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored"""
         hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
         if not hosted_zone:
             hosted_zone = route53_backend.get_hosted_zone(self.hosted_zone_id)
@@ -264,20 +296,21 @@ class FakeZone(CloudFormationModel):
         ]
 
     def get_record_sets(self, start_type, start_name):
-        record_sets = list(self.rrsets)  # Copy the list
+        def predicate(rrset):
+            rrset_name_reversed = reverse_domain_name(rrset.name)
+            start_name_reversed = reverse_domain_name(start_name)
+            return rrset_name_reversed < start_name_reversed or (
+                rrset_name_reversed == start_name_reversed and rrset.type_ < start_type
+            )
+
+        record_sets = sorted(
+            self.rrsets,
+            key=lambda rrset: (reverse_domain_name(rrset.name), rrset.type_),
+        )
+
         if start_name:
-            record_sets = [
-                record_set
-                for record_set in record_sets
-                if reverse_domain_name(record_set.name)
-                >= reverse_domain_name(start_name)
-            ]
-        if start_type:
-            record_sets = [
-                record_set
-                for record_set in record_sets
-                if record_set.type_ >= start_type
-            ]
+            start_type = start_type or ""
+            record_sets = itertools.dropwhile(predicate, record_sets)
 
         return record_sets
 
@@ -388,9 +421,9 @@ class Route53Backend(BaseBackend):
     def delete_hosted_zone(self, id_):
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
-    def create_health_check(self, health_check_args):
+    def create_health_check(self, caller_reference, health_check_args):
         health_check_id = str(uuid.uuid4())
-        health_check = HealthCheck(health_check_id, health_check_args)
+        health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
         self.health_checks[health_check_id] = health_check
         return health_check
 

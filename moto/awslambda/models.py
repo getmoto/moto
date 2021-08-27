@@ -51,7 +51,7 @@ from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +131,9 @@ class _DockerDataVolumeContext:
                 volumes = {self.name: {"bind": "/tmp/data", "mode": "rw"}}
             else:
                 volumes = {self.name: "/tmp/data"}
+            self._lambda_func.docker_client.images.pull(
+                ":".join(parse_image_ref("alpine"))
+            )
             container = self._lambda_func.docker_client.containers.run(
                 "alpine", "sleep 100", volumes=volumes, detach=True
             )
@@ -183,6 +186,29 @@ def _validate_s3_bucket_and_key(data):
                 "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.",
             )
     return key
+
+
+class Permission(CloudFormationModel):
+    def __init__(self, region):
+        self.region = region
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Permission"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::Lambda::Permission"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        backend = lambda_backends[region_name]
+        fn = backend.get_function(properties["FunctionName"])
+        fn.policy.add_statement(raw=json.dumps(properties))
+        return Permission(region=region_name)
 
 
 class LayerVersion(CloudFormationModel):
@@ -316,7 +342,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.layers = self._get_layers_data(spec.get("Layers", []))
 
         self.logs_group_name = "/aws/lambda/{}".format(self.function_name)
-        self.logs_backend.ensure_log_group(self.logs_group_name, [])
 
         # this isn't finished yet. it needs to find out the VpcId value
         self._vpc_config = spec.get(
@@ -341,6 +366,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+            else:
+                self.code_bytes = ""
+                self.code_size = 0
+                self.code_sha_256 = ""
 
         self.function_arn = make_function_arn(
             self.region, ACCOUNT_ID, self.function_name
@@ -510,6 +539,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return s
 
     def _invoke_lambda(self, code, event=None, context=None):
+        # Create the LogGroup if necessary, to write the result to
+        self.logs_backend.ensure_log_group(self.logs_group_name, [])
         # TODO: context not yet implemented
         if event is None:
             event = dict()
@@ -546,8 +577,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
+                    image_ref = "lambci/lambda:{}".format(self.run_time)
+                    self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(
-                        "lambci/lambda:{}".format(self.run_time),
+                        image_ref,
                         [self.handler, json.dumps(event)],
                         remove=False,
                         mem_limit="{}m".format(self.memory_size),
