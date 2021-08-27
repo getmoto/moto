@@ -1,5 +1,4 @@
-import six
-from moto.compat import collections_abc
+import collections.abc as collections_abc
 from moto.core.utils import get_random_hex
 
 
@@ -14,9 +13,7 @@ def remove_capitalization_of_dict_keys(obj):
             normalized_key = key[:1].lower() + key[1:]
             result[normalized_key] = remove_capitalization_of_dict_keys(value)
         return result
-    elif isinstance(obj, collections_abc.Iterable) and not isinstance(
-        obj, six.string_types
-    ):
+    elif isinstance(obj, collections_abc.Iterable) and not isinstance(obj, str):
         result = obj.__class__()
         for item in obj:
             result += (remove_capitalization_of_dict_keys(item),)

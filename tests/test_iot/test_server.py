@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 import pytest
 import sure  # noqa

@@ -82,7 +82,10 @@ BACKENDS = {
     "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
     "mediapackage": ("mediapackage", "mediapackage_backends"),
     "mediastore": ("mediastore", "mediastore_backends"),
+    "mediastore-data": ("mediastoredata", "mediastoredata_backends"),
     "eks": ("eks", "eks_backends"),
+    "efs": ("efs", "efs_backends"),
+    "wafv2": ("wafv2", "wafv2_backends"),
 }
 
 

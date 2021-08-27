@@ -33,7 +33,7 @@ valid_service() {
   # Verify whether this is a valid service
   # We'll ignore metadata folders, and folders that test generic Moto behaviour
   # We'll also ignore CloudFormation, as it will always depend on other services
-  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation"
+  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation utilities"
   if echo $ignore_moto_folders | grep -q "$1"; then
     return 1
   else
@@ -46,12 +46,15 @@ test_service() {
   path_to_test_file=$2
   venv_path="test_venv_${service}"
   overwrite "Running tests for ${service}.."
-  virtualenv ${venv_path} -p `which python3` > /dev/null
+  python -m venv ${venv_path} > /dev/null
   source ${venv_path}/bin/activate > /dev/null
   # Can't just install requirements-file, as it points to all dependencies
   pip install -r requirements-tests.txt > /dev/null
   pip install .[$service] > /dev/null 2>&1
   pip install boto > /dev/null 2>&1
+  if [[ $service != "xray" ]]; then
+    pip uninstall setuptools pkg_resources -y > /dev/null 2>&1
+  fi
   # Restart venv - ensure these deps are loaded
   deactivate
   source ${venv_path}/bin/activate > /dev/null

@@ -8,7 +8,6 @@ from boto.emr.bootstrap_action import BootstrapAction
 from boto.emr.instance_group import InstanceGroup
 from boto.emr.step import StreamingStep
 
-import six
 import sure  # noqa
 
 from moto import mock_emr_deprecated
@@ -86,7 +85,7 @@ def test_describe_cluster():
 
     cluster.id.should.equal(cluster_id)
     cluster.loguri.should.equal(args["log_uri"])
-    cluster.masterpublicdnsname.should.be.a(six.string_types)
+    cluster.masterpublicdnsname.should.be.a(str)
     cluster.name.should.equal(args["name"])
     int(cluster.normalizedinstancehours).should.equal(0)
     # cluster.release_label
@@ -96,11 +95,11 @@ def test_describe_cluster():
     cluster.servicerole.should.equal(args["service_role"])
 
     cluster.status.state.should.equal("TERMINATED")
-    cluster.status.statechangereason.message.should.be.a(six.string_types)
-    cluster.status.statechangereason.code.should.be.a(six.string_types)
-    cluster.status.timeline.creationdatetime.should.be.a(six.string_types)
-    # cluster.status.timeline.enddatetime.should.be.a(six.string_types)
-    # cluster.status.timeline.readydatetime.should.be.a(six.string_types)
+    cluster.status.statechangereason.message.should.be.a(str)
+    cluster.status.statechangereason.code.should.be.a(str)
+    cluster.status.timeline.creationdatetime.should.be.a(str)
+    # cluster.status.timeline.enddatetime.should.be.a(str)
+    # cluster.status.timeline.readydatetime.should.be.a(str)
 
     dict((item.key, item.value) for item in cluster.tags).should.equal(input_tags)
 
@@ -195,10 +194,10 @@ def test_describe_jobflow():
     jf = conn.describe_jobflow(cluster_id)
     jf.amiversion.should.equal(args["ami_version"])
     jf.bootstrapactions.should.equal(None)
-    jf.creationdatetime.should.be.a(six.string_types)
+    jf.creationdatetime.should.be.a(str)
     jf.should.have.property("laststatechangereason")
-    jf.readydatetime.should.be.a(six.string_types)
-    jf.startdatetime.should.be.a(six.string_types)
+    jf.readydatetime.should.be.a(str)
+    jf.startdatetime.should.be.a(str)
     jf.state.should.equal("WAITING")
 
     jf.ec2keyname.should.equal(args["ec2_keyname"])
@@ -207,24 +206,24 @@ def test_describe_jobflow():
     int(jf.instancecount).should.equal(2)
 
     for ig in jf.instancegroups:
-        ig.creationdatetime.should.be.a(six.string_types)
-        # ig.enddatetime.should.be.a(six.string_types)
-        ig.should.have.property("instancegroupid").being.a(six.string_types)
+        ig.creationdatetime.should.be.a(str)
+        # ig.enddatetime.should.be.a(str)
+        ig.should.have.property("instancegroupid").being.a(str)
         int(ig.instancerequestcount).should.equal(1)
         ig.instancerole.should.be.within(["MASTER", "CORE"])
         int(ig.instancerunningcount).should.equal(1)
         ig.instancetype.should.equal("c1.medium")
-        ig.laststatechangereason.should.be.a(six.string_types)
+        ig.laststatechangereason.should.be.a(str)
         ig.market.should.equal("ON_DEMAND")
-        ig.name.should.be.a(six.string_types)
-        ig.readydatetime.should.be.a(six.string_types)
-        ig.startdatetime.should.be.a(six.string_types)
+        ig.name.should.be.a(str)
+        ig.readydatetime.should.be.a(str)
+        ig.startdatetime.should.be.a(str)
         ig.state.should.equal("RUNNING")
 
     jf.keepjobflowalivewhennosteps.should.equal("true")
-    jf.masterinstanceid.should.be.a(six.string_types)
+    jf.masterinstanceid.should.be.a(str)
     jf.masterinstancetype.should.equal(args["master_instance_type"])
-    jf.masterpublicdnsname.should.be.a(six.string_types)
+    jf.masterpublicdnsname.should.be.a(str)
     int(jf.normalizedinstancehours).should.equal(0)
     jf.availabilityzone.should.equal(args["availability_zone"])
     jf.slaveinstancetype.should.equal(args["slave_instance_type"])
@@ -288,12 +287,12 @@ def test_list_clusters():
             x.name.should.equal(y["name"])
             x.normalizedinstancehours.should.equal(y["normalizedinstancehours"])
             x.status.state.should.equal(y["state"])
-            x.status.timeline.creationdatetime.should.be.a(six.string_types)
+            x.status.timeline.creationdatetime.should.be.a(str)
             if y["state"] == "TERMINATED":
-                x.status.timeline.enddatetime.should.be.a(six.string_types)
+                x.status.timeline.enddatetime.should.be.a(str)
             else:
                 x.status.timeline.shouldnt.have.property("enddatetime")
-            x.status.timeline.readydatetime.should.be.a(six.string_types)
+            x.status.timeline.readydatetime.should.be.a(str)
         if not hasattr(resp, "marker"):
             break
         args = {"marker": resp.marker}
@@ -489,18 +488,18 @@ def test_instance_groups():
         y = input_groups[x.name]
         if hasattr(y, "bidprice"):
             x.bidprice.should.equal(y.bidprice)
-        x.creationdatetime.should.be.a(six.string_types)
-        # x.enddatetime.should.be.a(six.string_types)
+        x.creationdatetime.should.be.a(str)
+        # x.enddatetime.should.be.a(str)
         x.should.have.property("instancegroupid")
         int(x.instancerequestcount).should.equal(y.num_instances)
         x.instancerole.should.equal(y.role)
         int(x.instancerunningcount).should.equal(y.num_instances)
         x.instancetype.should.equal(y.type)
-        x.laststatechangereason.should.be.a(six.string_types)
+        x.laststatechangereason.should.be.a(str)
         x.market.should.equal(y.market)
-        x.name.should.be.a(six.string_types)
-        x.readydatetime.should.be.a(six.string_types)
-        x.startdatetime.should.be.a(six.string_types)
+        x.name.should.be.a(str)
+        x.readydatetime.should.be.a(str)
+        x.startdatetime.should.be.a(str)
         x.state.should.equal("RUNNING")
 
     for x in conn.list_instance_groups(job_id).instancegroups:
@@ -519,11 +518,11 @@ def test_instance_groups():
         int(x.runninginstancecount).should.equal(y.num_instances)
         # ShrinkPolicy
         x.status.state.should.equal("RUNNING")
-        x.status.statechangereason.code.should.be.a(six.string_types)
-        x.status.statechangereason.message.should.be.a(six.string_types)
-        x.status.timeline.creationdatetime.should.be.a(six.string_types)
-        # x.status.timeline.enddatetime.should.be.a(six.string_types)
-        x.status.timeline.readydatetime.should.be.a(six.string_types)
+        x.status.statechangereason.code.should.be.a(str)
+        x.status.statechangereason.message.should.be.a(str)
+        x.status.timeline.creationdatetime.should.be.a(str)
+        # x.status.timeline.enddatetime.should.be.a(str)
+        x.status.timeline.readydatetime.should.be.a(str)
 
     igs = dict((g.name, g) for g in jf.instancegroups)
 
@@ -571,14 +570,14 @@ def test_steps():
     for step in jf.steps:
         step.actiononfailure.should.equal("TERMINATE_JOB_FLOW")
         list(arg.value for arg in step.args).should.have.length_of(8)
-        step.creationdatetime.should.be.a(six.string_types)
-        # step.enddatetime.should.be.a(six.string_types)
+        step.creationdatetime.should.be.a(str)
+        # step.enddatetime.should.be.a(str)
         step.jar.should.equal("/home/hadoop/contrib/streaming/hadoop-streaming.jar")
-        step.laststatechangereason.should.be.a(six.string_types)
+        step.laststatechangereason.should.be.a(str)
         step.mainclass.should.equal("")
-        step.name.should.be.a(six.string_types)
-        # step.readydatetime.should.be.a(six.string_types)
-        # step.startdatetime.should.be.a(six.string_types)
+        step.name.should.be.a(str)
+        # step.readydatetime.should.be.a(str)
+        # step.startdatetime.should.be.a(str)
         step.state.should.be.within(["STARTING", "PENDING"])
 
     expected = dict((s.name, s) for s in input_steps)
@@ -602,13 +601,13 @@ def test_steps():
         x.config.jar.should.equal("/home/hadoop/contrib/streaming/hadoop-streaming.jar")
         x.config.mainclass.should.equal("")
         # properties
-        x.should.have.property("id").should.be.a(six.string_types)
+        x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
         x.status.state.should.be.within(["STARTING", "PENDING"])
         # x.status.statechangereason
-        x.status.timeline.creationdatetime.should.be.a(six.string_types)
-        # x.status.timeline.enddatetime.should.be.a(six.string_types)
-        # x.status.timeline.startdatetime.should.be.a(six.string_types)
+        x.status.timeline.creationdatetime.should.be.a(str)
+        # x.status.timeline.enddatetime.should.be.a(str)
+        # x.status.timeline.startdatetime.should.be.a(str)
 
         x = conn.describe_step(cluster_id, x.id)
         list(arg.value for arg in x.config.args).should.equal(
@@ -626,13 +625,13 @@ def test_steps():
         x.config.jar.should.equal("/home/hadoop/contrib/streaming/hadoop-streaming.jar")
         x.config.mainclass.should.equal("")
         # properties
-        x.should.have.property("id").should.be.a(six.string_types)
+        x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
         x.status.state.should.be.within(["STARTING", "PENDING"])
         # x.status.statechangereason
-        x.status.timeline.creationdatetime.should.be.a(six.string_types)
-        # x.status.timeline.enddatetime.should.be.a(six.string_types)
-        # x.status.timeline.startdatetime.should.be.a(six.string_types)
+        x.status.timeline.creationdatetime.should.be.a(str)
+        # x.status.timeline.enddatetime.should.be.a(str)
+        # x.status.timeline.startdatetime.should.be.a(str)
 
     @requires_boto_gte("2.39")
     def test_list_steps_with_states():

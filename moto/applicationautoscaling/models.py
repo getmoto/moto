@@ -155,7 +155,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             service_namespace, resource_id, scalable_dimension, policy_name
         )
         if policy_key in self.policies:
-            old_policy = self.policies[policy_name]
+            old_policy = self.policies[policy_key]
             policy = FakeApplicationAutoscalingPolicy(
                 region_name=self.region,
                 policy_name=policy_name,
@@ -320,7 +320,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.step_scaling_policy_configuration = None
         self.target_tracking_scaling_policy_configuration = None
 
-        if "policy_type" == "StepScaling":
+        if policy_type == "StepScaling":
             self.step_scaling_policy_configuration = policy_body
             self.target_tracking_scaling_policy_configuration = None
         elif policy_type == "TargetTrackingScaling":

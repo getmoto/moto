@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import sure  # noqa
 import re
 import pytest
+import json
 import boto3
 from botocore.client import ClientError
 
@@ -905,3 +906,247 @@ def test_batch_delete_partition_with_bad_partitions():
     ["2018-11-01"].should.be.within(error_partitions)
     ["2018-11-02"].should.be.within(error_partitions)
     ["2018-11-03"].should.be.within(error_partitions)
+
+
+@mock_glue
+@freeze_time(FROZEN_CREATE_TIME)
+def test_create_crawler_scheduled():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    role = "arn:aws:iam::123456789012:role/Glue/Role"
+    database_name = "my_database_name"
+    description = "my crawler description"
+    targets = {
+        "S3Targets": [{"Path": "s3://my-source-bucket/"}],
+        "JdbcTargets": [],
+        "MongoDBTargets": [],
+        "DynamoDBTargets": [],
+        "CatalogTargets": [],
+    }
+    schedule = "cron(15 12 * * ? *)"
+    classifiers = []
+    table_prefix = "my_table_prefix_"
+    schema_change_policy = {
+        "UpdateBehavior": "LOG",
+        "DeleteBehavior": "LOG",
+    }
+    recrawl_policy = {"RecrawlBehavior": "CRAWL_NEW_FOLDERS_ONLY"}
+    lineage_configuration = {"CrawlerLineageSettings": "DISABLE"}
+    configuration = json.dumps(
+        {
+            "Version": 1.0,
+            "CrawlerOutput": {
+                "Partitions": {"AddOrUpdateBehavior": "InheritFromTable"},
+            },
+            "Grouping": {"TableGroupingPolicy": "CombineCompatibleSchemas"},
+        }
+    )
+    crawler_security_configuration = "my_security_configuration"
+    tags = {"tag_key": "tag_value"}
+    helpers.create_crawler(
+        client,
+        name,
+        role,
+        targets,
+        database_name=database_name,
+        description=description,
+        schedule=schedule,
+        classifiers=classifiers,
+        table_prefix=table_prefix,
+        schema_change_policy=schema_change_policy,
+        recrawl_policy=recrawl_policy,
+        lineage_configuration=lineage_configuration,
+        configuration=configuration,
+        crawler_security_configuration=crawler_security_configuration,
+        tags=tags,
+    )
+
+    response = client.get_crawler(Name=name)
+    crawler = response["Crawler"]
+
+    crawler.get("Name").should.equal(name)
+    crawler.get("Role").should.equal(role)
+    crawler.get("DatabaseName").should.equal(database_name)
+    crawler.get("Description").should.equal(description)
+    crawler.get("Targets").should.equal(targets)
+    crawler.get("Schedule").should.equal(
+        {"ScheduleExpression": schedule, "State": "SCHEDULED"}
+    )
+    crawler.get("Classifiers").should.equal(classifiers)
+    crawler.get("TablePrefix").should.equal(table_prefix)
+    crawler.get("SchemaChangePolicy").should.equal(schema_change_policy)
+    crawler.get("RecrawlPolicy").should.equal(recrawl_policy)
+    crawler.get("LineageConfiguration").should.equal(lineage_configuration)
+    crawler.get("Configuration").should.equal(configuration)
+    crawler.get("CrawlerSecurityConfiguration").should.equal(
+        crawler_security_configuration
+    )
+
+    crawler.get("State").should.equal("READY")
+    crawler.get("CrawlElapsedTime").should.equal(0)
+    crawler.get("Version").should.equal(1)
+    if not settings.TEST_SERVER_MODE:
+        crawler.get("CreationTime").should.equal(FROZEN_CREATE_TIME)
+        crawler.get("LastUpdated").should.equal(FROZEN_CREATE_TIME)
+
+    crawler.should.not_have.key("LastCrawl")
+
+
+@mock_glue
+@freeze_time(FROZEN_CREATE_TIME)
+def test_create_crawler_unscheduled():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    role = "arn:aws:iam::123456789012:role/Glue/Role"
+    database_name = "my_database_name"
+    description = "my crawler description"
+    targets = {
+        "S3Targets": [{"Path": "s3://my-source-bucket/"}],
+        "JdbcTargets": [],
+        "MongoDBTargets": [],
+        "DynamoDBTargets": [],
+        "CatalogTargets": [],
+    }
+    classifiers = []
+    table_prefix = "my_table_prefix_"
+    schema_change_policy = {
+        "UpdateBehavior": "LOG",
+        "DeleteBehavior": "LOG",
+    }
+    recrawl_policy = {"RecrawlBehavior": "CRAWL_NEW_FOLDERS_ONLY"}
+    lineage_configuration = {"CrawlerLineageSettings": "DISABLE"}
+    configuration = json.dumps(
+        {
+            "Version": 1.0,
+            "CrawlerOutput": {
+                "Partitions": {"AddOrUpdateBehavior": "InheritFromTable"},
+            },
+            "Grouping": {"TableGroupingPolicy": "CombineCompatibleSchemas"},
+        }
+    )
+    crawler_security_configuration = "my_security_configuration"
+    tags = {"tag_key": "tag_value"}
+    helpers.create_crawler(
+        client,
+        name,
+        role,
+        targets,
+        database_name=database_name,
+        description=description,
+        classifiers=classifiers,
+        table_prefix=table_prefix,
+        schema_change_policy=schema_change_policy,
+        recrawl_policy=recrawl_policy,
+        lineage_configuration=lineage_configuration,
+        configuration=configuration,
+        crawler_security_configuration=crawler_security_configuration,
+        tags=tags,
+    )
+
+    response = client.get_crawler(Name=name)
+    crawler = response["Crawler"]
+
+    crawler.get("Name").should.equal(name)
+    crawler.get("Role").should.equal(role)
+    crawler.get("DatabaseName").should.equal(database_name)
+    crawler.get("Description").should.equal(description)
+    crawler.get("Targets").should.equal(targets)
+    crawler.should.not_have.key("Schedule")
+    crawler.get("Classifiers").should.equal(classifiers)
+    crawler.get("TablePrefix").should.equal(table_prefix)
+    crawler.get("SchemaChangePolicy").should.equal(schema_change_policy)
+    crawler.get("RecrawlPolicy").should.equal(recrawl_policy)
+    crawler.get("LineageConfiguration").should.equal(lineage_configuration)
+    crawler.get("Configuration").should.equal(configuration)
+    crawler.get("CrawlerSecurityConfiguration").should.equal(
+        crawler_security_configuration
+    )
+
+    crawler.get("State").should.equal("READY")
+    crawler.get("CrawlElapsedTime").should.equal(0)
+    crawler.get("Version").should.equal(1)
+    if not settings.TEST_SERVER_MODE:
+        crawler.get("CreationTime").should.equal(FROZEN_CREATE_TIME)
+        crawler.get("LastUpdated").should.equal(FROZEN_CREATE_TIME)
+
+    crawler.should.not_have.key("LastCrawl")
+
+
+@mock_glue
+def test_create_crawler_already_exists():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    with pytest.raises(ClientError) as exc:
+        helpers.create_crawler(client, name)
+
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
+
+
+@mock_glue
+def test_get_crawler_not_exits():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+
+    with pytest.raises(ClientError) as exc:
+        client.get_crawler(Name=name)
+
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Crawler my_crawler_name not found"
+    )
+
+
+@mock_glue
+def test_get_crawlers_empty():
+    client = boto3.client("glue", region_name="us-east-1")
+    response = client.get_crawlers()
+    response["Crawlers"].should.have.length_of(0)
+
+
+@mock_glue
+def test_get_crawlers_several_items():
+    client = boto3.client("glue", region_name="us-east-1")
+    name_1, name_2 = "my_crawler_name_1", "my_crawler_name_2"
+
+    helpers.create_crawler(client, name_1)
+    helpers.create_crawler(client, name_2)
+
+    crawlers = sorted(client.get_crawlers()["Crawlers"], key=lambda x: x["Name"])
+    crawlers.should.have.length_of(2)
+    crawlers[0].get("Name").should.equal(name_1)
+    crawlers[1].get("Name").should.equal(name_2)
+
+
+@mock_glue
+def test_delete_crawler():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    result = client.delete_crawler(Name=name)
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    # confirm crawler is deleted
+    with pytest.raises(ClientError) as exc:
+        client.get_crawler(Name=name)
+
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Crawler my_crawler_name not found"
+    )
+
+
+@mock_glue
+def test_delete_crawler_not_exists():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_crawler(Name=name)
+
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Crawler my_crawler_name not found"
+    )

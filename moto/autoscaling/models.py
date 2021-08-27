@@ -8,7 +8,7 @@ from moto.packages.boto.ec2.blockdevicemapping import (
 )
 from moto.ec2.exceptions import InvalidInstanceIdError
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
@@ -992,6 +992,14 @@ class AutoScalingBackend(BaseBackend):
 
             group.tags = new_tags
 
+    def delete_tags(self, tags):
+        for tag_to_delete in tags:
+            group_name = tag_to_delete["resource_id"]
+            key_to_delete = tag_to_delete["key"]
+            group = self.autoscaling_groups[group_name]
+            old_tags = group.tags
+            group.tags = [x for x in old_tags if x["key"] != key_to_delete]
+
     def attach_load_balancers(self, group_name, load_balancer_names):
         group = self.autoscaling_groups[group_name]
         group.load_balancers.extend(
@@ -1032,8 +1040,31 @@ class AutoScalingBackend(BaseBackend):
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
 
     def suspend_processes(self, group_name, scaling_processes):
+        all_proc_names = [
+            "Launch",
+            "Terminate",
+            "AddToLoadBalancer",
+            "AlarmNotification",
+            "AZRebalance",
+            "HealthCheck",
+            "InstanceRefresh",
+            "ReplaceUnhealthy",
+            "ScheduledActions",
+        ]
         group = self.autoscaling_groups[group_name]
-        group.suspended_processes = scaling_processes or []
+        set_to_add = set(scaling_processes or all_proc_names)
+        group.suspended_processes = list(
+            set(group.suspended_processes).union(set_to_add)
+        )
+
+    def resume_processes(self, group_name, scaling_processes):
+        group = self.autoscaling_groups[group_name]
+        if scaling_processes:
+            group.suspended_processes = list(
+                set(group.suspended_processes).difference(set(scaling_processes))
+            )
+        else:
+            group.suspended_processes = []
 
     def set_instance_protection(
         self, group_name, instance_ids, protected_from_scale_in

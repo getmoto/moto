@@ -28,6 +28,11 @@ class PartitionAlreadyExistsException(AlreadyExistsException):
         super(PartitionAlreadyExistsException, self).__init__("Partition")
 
 
+class CrawlerAlreadyExistsException(AlreadyExistsException):
+    def __init__(self):
+        super(CrawlerAlreadyExistsException, self).__init__("Crawler")
+
+
 class EntityNotFoundException(GlueClientError):
     def __init__(self, msg):
         super(GlueClientError, self).__init__("EntityNotFoundException", msg)
@@ -46,6 +51,13 @@ class TableNotFoundException(EntityNotFoundException):
 class PartitionNotFoundException(EntityNotFoundException):
     def __init__(self):
         super(PartitionNotFoundException, self).__init__("Cannot find partition.")
+
+
+class CrawlerNotFoundException(EntityNotFoundException):
+    def __init__(self, crawler):
+        super(CrawlerNotFoundException, self).__init__(
+            "Crawler %s not found." % crawler
+        )
 
 
 class VersionNotFoundException(EntityNotFoundException):

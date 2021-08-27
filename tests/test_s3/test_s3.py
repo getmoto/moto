@@ -5,9 +5,9 @@ import datetime
 import sys
 import os
 from boto3 import Session
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.request import urlopen
+from urllib.error import HTTPError
+from urllib.parse import urlparse, parse_qs
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
@@ -25,7 +25,6 @@ from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
-import six
 import requests
 
 from moto.s3 import models
@@ -39,10 +38,10 @@ from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import py2_strip_unicode_keys
-from moto.settings import get_s3_default_key_buffer_size
+from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
 if settings.TEST_SERVER_MODE:
-    REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
+    REDUCED_PART_SIZE = S3_UPLOAD_PART_MIN_SIZE
     EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
 else:
     REDUCED_PART_SIZE = 256
@@ -53,15 +52,15 @@ def reduced_min_part_size(f):
     """speed up tests by temporarily making the multipart minimum part size
     small
     """
-    orig_size = s3model.UPLOAD_PART_MIN_SIZE
+    orig_size = S3_UPLOAD_PART_MIN_SIZE
 
     @wraps(f)
     def wrapped(*args, **kwargs):
         try:
-            s3model.UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
+            s3model.S3_UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
             return f(*args, **kwargs)
         finally:
-            s3model.UPLOAD_PART_MIN_SIZE = orig_size
+            s3model.S3_UPLOAD_PART_MIN_SIZE = orig_size
 
     return wrapped
 
@@ -689,8 +688,7 @@ def test_delete_keys_invalid():
     # non-existing key case
     result = bucket.delete_keys(["abc", "file3"])
 
-    result.deleted.should.have.length_of(1)
-    result.errors.should.have.length_of(1)
+    result.deleted.should.have.length_of(2)
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal("file1")
@@ -1128,6 +1126,45 @@ def test_multipart_upload_from_file_to_presigned_url():
 
 
 @mock_s3
+def test_put_chunked_with_v4_signature_in_body():
+    bucket_name = "mybucket"
+    file_name = "file"
+    content = "CONTENT"
+    content_bytes = bytes(content, encoding="utf8")
+    # 'CONTENT' as received in moto, when PutObject is called in java AWS SDK v2
+    chunked_body = b"7;chunk-signature=bd479c607ec05dd9d570893f74eed76a4b333dfa37ad6446f631ec47dc52e756\r\nCONTENT\r\n0;chunk-signature=d192ec4075ddfc18d2ef4da4f55a87dc762ba4417b3bd41e70c282f8bec2ece0\r\n\r\n"
+
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket=bucket_name)
+
+    model = MyModel(file_name, content)
+    model.save()
+
+    boto_etag = s3.get_object(Bucket=bucket_name, Key=file_name)["ETag"]
+
+    params = {"Bucket": bucket_name, "Key": file_name}
+    # We'll use manipulated presigned PUT, to mimick PUT from SDK
+    presigned_url = boto3.client("s3").generate_presigned_url(
+        "put_object", params, ExpiresIn=900
+    )
+    requests.put(
+        presigned_url,
+        data=chunked_body,
+        headers={
+            "Content-Type": "application/octet-stream",
+            "x-amz-content-sha256": "STREAMING-AWS4-HMAC-SHA256-PAYLOAD",
+            "x-amz-decoded-content-length": str(len(content_bytes)),
+        },
+    )
+    resp = s3.get_object(Bucket=bucket_name, Key=file_name)
+    body = resp["Body"].read()
+    assert body == content_bytes
+
+    etag = resp["ETag"]
+    assert etag == boto_etag
+
+
+@mock_s3
 def test_default_key_buffer_size():
     # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
     original_default_key_buffer_size = os.environ.get(
@@ -1143,6 +1180,11 @@ def test_default_key_buffer_size():
     assert get_s3_default_key_buffer_size() == 1
     fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
     assert fk._value_buffer._rolled == True
+
+    # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the buffer size should be less than
+    # S3_UPLOAD_PART_MIN_SIZE to prevent in memory caching of multi part uploads
+    del os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"]
+    assert get_s3_default_key_buffer_size() < S3_UPLOAD_PART_MIN_SIZE
 
     # restore original environment variable content
     if original_default_key_buffer_size:
@@ -2633,6 +2675,7 @@ def test_boto3_multipart_etag():
             Body=part2,
         )["ETag"]
     )
+
     s3.complete_multipart_upload(
         Bucket="mybucket",
         Key="the-key",
@@ -3819,7 +3862,7 @@ def test_boto3_list_object_versions():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
     response = s3.list_object_versions(Bucket=bucket_name)
@@ -3842,7 +3885,7 @@ def test_boto3_list_object_versions_with_versioning_disabled():
     bucket_name = "mybucket"
     key = "key-with-versions"
     s3.create_bucket(Bucket=bucket_name)
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
     response = s3.list_object_versions(Bucket=bucket_name)
@@ -3865,12 +3908,12 @@ def test_boto3_list_object_versions_with_versioning_enabled_late():
     bucket_name = "mybucket"
     key = "key-with-versions"
     s3.create_bucket(Bucket=bucket_name)
-    items = (six.b("v1"), six.b("v2"))
-    s3.put_object(Bucket=bucket_name, Key=key, Body=six.b("v1"))
+    items = (b"v1", b"v2")
+    s3.put_object(Bucket=bucket_name, Key=key, Body=b"v1")
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    s3.put_object(Bucket=bucket_name, Key=key, Body=six.b("v2"))
+    s3.put_object(Bucket=bucket_name, Key=key, Body=b"v2")
     response = s3.list_object_versions(Bucket=bucket_name)
 
     # Two object versions should be returned
@@ -3897,7 +3940,7 @@ def test_boto3_bad_prefix_list_object_versions():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
     response = s3.list_object_versions(Bucket=bucket_name, Prefix=bad_prefix)
@@ -3915,7 +3958,7 @@ def test_boto3_delete_markers():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
 
@@ -3958,7 +4001,7 @@ def test_boto3_multiple_delete_markers():
     s3.put_bucket_versioning(
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
-    items = (six.b("v1"), six.b("v2"))
+    items = (b"v1", b"v2")
     for body in items:
         s3.put_object(Bucket=bucket_name, Key=key, Body=body)
 
@@ -4216,6 +4259,22 @@ def test_delete_objects_with_url_encoded_key(key):
 
 
 @mock_s3
+def test_delete_objects_unknown_key():
+    bucket_name = "test-moto-issue-1581"
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket_name)
+    client.put_object(Bucket=bucket_name, Key="file1", Body="body")
+
+    s = client.delete_objects(
+        Bucket=bucket_name, Delete={"Objects": [{"Key": "file1"}, {"Key": "file2"}]}
+    )
+    s["Deleted"].should.have.length_of(2)
+    s["Deleted"].should.contain({"Key": "file1"})
+    s["Deleted"].should.contain({"Key": "file2"})
+    client.delete_bucket(Bucket=bucket_name)
+
+
+@mock_s3
 @mock_config
 def test_public_access_block():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -4321,10 +4380,6 @@ def test_s3_public_access_block_to_config_dict():
         "BlockPublicPolicy": "True",
         "RestrictPublicBuckets": "False",
     }
-
-    # Python 2 unicode issues:
-    if sys.version_info[0] < 3:
-        public_access_block = py2_strip_unicode_keys(public_access_block)
 
     # Add a public access block:
     s3_config_query.backends["global"].put_bucket_public_access_block(
@@ -4486,7 +4541,7 @@ def test_s3_lifecycle_config_dict():
             "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1},
         },
     ]
-    s3_config_query.backends["global"].set_bucket_lifecycle("bucket1", lifecycle)
+    s3_config_query.backends["global"].put_bucket_lifecycle("bucket1", lifecycle)
 
     # Get the rules for this:
     lifecycles = [
@@ -4701,7 +4756,7 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(id=OWNER)], "FULL_CONTROL"),
         ]
     )
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
 
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
     assert acls == {
@@ -4727,7 +4782,7 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(id=OWNER)], "WRITE_ACP"),
         ]
     )
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
     assert acls == {
         "grantSet": None,
@@ -4774,7 +4829,7 @@ def test_s3_config_dict():
         ]
     )
 
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
     s3_config_query.backends["global"].put_bucket_logging(
         "bucket1", {"TargetBucket": "logbucket", "TargetPrefix": ""}
     )
@@ -4792,12 +4847,9 @@ def test_s3_config_dict():
         }
     )
 
-    # The policy is a byte array -- need to encode in Python 3 -- for Python 2 just pass the raw string in:
-    if sys.version_info[0] > 2:
-        pass_policy = bytes(policy, "utf-8")
-    else:
-        pass_policy = policy
-    s3_config_query.backends["global"].set_bucket_policy("bucket1", pass_policy)
+    # The policy is a byte array -- need to encode in Python 3
+    pass_policy = bytes(policy, "utf-8")
+    s3_config_query.backends["global"].put_bucket_policy("bucket1", pass_policy)
 
     # Get the us-west-2 bucket and verify that it works properly:
     bucket1_result = s3_config_query.get_config_resource("bucket1")
@@ -4953,7 +5005,9 @@ def test_encryption():
 
     resp = conn.get_bucket_encryption(Bucket="mybucket")
     assert "ServerSideEncryptionConfiguration" in resp
-    assert resp["ServerSideEncryptionConfiguration"] == sse_config
+    return_config = sse_config.copy()
+    return_config["Rules"][0]["BucketKeyEnabled"] = False
+    assert resp["ServerSideEncryptionConfiguration"].should.equal(return_config)
 
     conn.delete_bucket_encryption(Bucket="mybucket")
     with pytest.raises(ClientError) as exc:
@@ -5044,7 +5098,7 @@ def test_presigned_put_url_with_custom_headers():
 def test_request_partial_content_should_contain_content_length():
     bucket = "bucket"
     object_key = "key"
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
     s3.Object(bucket, object_key).put(Body="some text")
 
@@ -5057,7 +5111,7 @@ def test_request_partial_content_should_contain_content_length():
 def test_request_partial_content_should_contain_actual_content_length():
     bucket = "bucket"
     object_key = "key"
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
     s3.Object(bucket, object_key).put(Body="some text")
 
@@ -5109,7 +5163,7 @@ def test_request_partial_content_without_specifying_range_should_return_full_obj
 @mock_s3
 def test_object_headers():
     bucket = "my-bucket"
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket)
 
     res = s3.put_object(
@@ -5130,3 +5184,21 @@ def test_object_headers():
     res.should.have.key("ServerSideEncryption")
     res.should.have.key("SSEKMSKeyId")
     res.should.have.key("BucketKeyEnabled")
+
+
+@mock_s3
+def test_get_object_versions_with_prefix():
+    bucket_name = "testbucket-3113"
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket=bucket_name)
+    bucket_versioning = s3_resource.BucketVersioning(bucket_name)
+    bucket_versioning.enable()
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"alttest", Key="altfile.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+
+    versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix="file")
+    versions["Versions"].should.have.length_of(3)
+    versions["Prefix"].should.equal("file")

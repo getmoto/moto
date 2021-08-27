@@ -1,0 +1,22 @@
+name: DependencyTest
+
+on: workflow_dispatch
+
+jobs:
+  runtest:
+    name: Run Dependency Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.8 ]
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Run test
+      run: |
+        scripts/dependency_test.sh

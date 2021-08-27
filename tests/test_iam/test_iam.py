@@ -18,7 +18,7 @@ import pytest
 from datetime import datetime
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
-from six.moves.urllib import parse
+from urllib import parse
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -2265,20 +2265,6 @@ def test_update_role():
     conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/",
     )
-    response = conn.update_role_description(RoleName="my-role", Description="test")
-    assert response["Role"]["RoleName"] == "my-role"
-
-
-@mock_iam()
-def test_update_role():
-    conn = boto3.client("iam", region_name="us-east-1")
-
-    with pytest.raises(ClientError):
-        conn.delete_role(RoleName="my-role")
-
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/",
-    )
     response = conn.update_role(RoleName="my-role", Description="test")
     assert len(response.keys()) == 1
 
@@ -2776,15 +2762,6 @@ def test_delete_account_password_policy():
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
         "The Password Policy with domain name {} cannot be found.".format(ACCOUNT_ID),
-    )
-
-
-@mock_iam
-def test_delete_account_password_policy_errors():
-    client = boto3.client("iam", region_name="us-east-1")
-
-    client.delete_account_password_policy.when.called_with().should.throw(
-        ClientError, "The account policy with name PasswordPolicy cannot be found.",
     )
 
 

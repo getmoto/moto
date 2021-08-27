@@ -6,11 +6,14 @@ from enum import Enum
 
 from boto3 import Session
 
+from moto.core import ACCOUNT_ID
 from moto.eks import REGION as DEFAULT_REGION
 
 DEFAULT_ENCODING = "utf-8"
 DEFAULT_HTTP_HEADERS = {"Content-type": "application/json"}
+DEFAULT_NAMESPACE = "namespace_1"
 FROZEN_TIME = "2013-11-27T01:42:00Z"
+MAX_FARGATE_LABELS = 5
 PARTITIONS = Session().get_available_partitions()
 REGION = Session().region_name or DEFAULT_REGION
 SERVICE = "eks"
@@ -47,7 +50,10 @@ LOGGING_KEY = "logging"
 LOGGING_VALUE = {"clusterLogging": [{"types": ["api"], "enabled": True}]}
 
 NODEROLE_ARN_KEY = "nodeRole"
-NODEROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
+NODEROLE_ARN_VALUE = "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/role_name"
+
+POD_EXECUTION_ROLE_ARN_KEY = "podExecutionRoleArn"
+POD_EXECUTION_ROLE_ARN_VALUE = "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/role_name"
 
 REMOTE_ACCESS_KEY = "remoteAccess"
 REMOTE_ACCESS_VALUE = {"ec2SshKey": "eksKeypair"}
@@ -60,10 +66,13 @@ RESOURCES_VPC_CONFIG_VALUE = {
 }
 
 ROLE_ARN_KEY = "roleArn"
-ROLE_ARN_VALUE = "arn:aws:iam::123456789012:role/role_name"
+ROLE_ARN_VALUE = "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/role_name"
 
 SCALING_CONFIG_KEY = "scalingConfig"
 SCALING_CONFIG_VALUE = {"minSize": 2, "maxSize": 3, "desiredSize": 2}
+
+SELECTORS_KEY = "selectors"
+SELECTORS_VALUE = [{"namespace": "profile-namespace"}]
 
 STATUS_KEY = "status"
 STATUS_VALUE = "ACTIVE"
@@ -90,10 +99,12 @@ LABELS = (LABELS_KEY, LABELS_VALUE)
 LAUNCH_TEMPLATE = (LAUNCH_TEMPLATE_KEY, LAUNCH_TEMPLATE_VALUE)
 LOGGING = (LOGGING_KEY, LOGGING_VALUE)
 NODEROLE_ARN = (NODEROLE_ARN_KEY, NODEROLE_ARN_VALUE)
+POD_EXECUTION_ROLE_ARN = (POD_EXECUTION_ROLE_ARN_KEY, POD_EXECUTION_ROLE_ARN_VALUE)
 REMOTE_ACCESS = (REMOTE_ACCESS_KEY, REMOTE_ACCESS_VALUE)
 RESOURCES_VPC_CONFIG = (RESOURCES_VPC_CONFIG_KEY, RESOURCES_VPC_CONFIG_VALUE)
 ROLE_ARN = (ROLE_ARN_KEY, ROLE_ARN_VALUE)
 SCALING_CONFIG = (SCALING_CONFIG_KEY, SCALING_CONFIG_VALUE)
+SELECTORS = (SELECTORS_KEY, SELECTORS_VALUE)
 STATUS = (STATUS_KEY, STATUS_VALUE)
 SUBNETS = (SUBNETS_KEY, SUBNETS_VALUE)
 TAGS = (TAGS_KEY, TAGS_VALUE)
@@ -103,6 +114,8 @@ VERSION = (VERSION_KEY, VERSION_VALUE)
 class ResponseAttributes:
     CLUSTER = "cluster"
     CLUSTERS = "clusters"
+    FARGATE_PROFILE_NAMES = "fargateProfileNames"
+    FARGATE_PROFILE = "fargateProfile"
     MESSAGE = "message"
     NEXT_TOKEN = "nextToken"
     NODEGROUP = "nodegroup"
@@ -125,6 +138,11 @@ class ClusterInputs:
         TAGS,
         VERSION,
     ]
+
+
+class FargateProfileInputs:
+    REQUIRED = [POD_EXECUTION_ROLE_ARN, SELECTORS]
+    OPTIONAL = [SUBNETS, TAGS]
 
 
 class NodegroupInputs:
@@ -160,8 +178,13 @@ class ClusterAttributes:
     OIDC = "oidc"
 
 
-class FargateAttributes:
-    PROFILE_NAME = "fargateProfileName"
+class FargateProfileAttributes:
+    ARN = "fargateProfileArn"
+    CREATED_AT = "createdAt"
+    FARGATE_PROFILE_NAME = "fargateProfileName"
+    LABELS = "labels"
+    NAMESPACE = "namespace"
+    SELECTORS = "selectors"
 
 
 class NodegroupAttributes:
@@ -187,6 +210,7 @@ class PageCount:
     LARGE = 10
 
 
+FARGATE_PROFILE_UUID_PATTERN = "(?P<fargate_uuid>[-0-9a-z]{8}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{12})"
 NODEGROUP_UUID_PATTERN = "(?P<nodegroup_uuid>[-0-9a-z]{8}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{4}-[-0-9a-z]{12})"
 
 
@@ -199,6 +223,17 @@ class RegExTemplates:
         + "(?P<account_id>[0-9]{12}):"
         + "cluster/"
         + "(?P<cluster_name>.+)"
+    )
+    FARGATE_PROFILE_ARN = re.compile(
+        "arn:"
+        + "(?P<partition>.+):"
+        + "eks:"
+        + "(?P<region>[-0-9a-zA-Z]+):"
+        + "(?P<account_id>[0-9]{12}):"
+        + "fargateprofile/"
+        + "(?P<cluster_name>.+)/"
+        + "(?P<fargate_name>.+)/"
+        + FARGATE_PROFILE_UUID_PATTERN
     )
     ISO8601_FORMAT = re.compile(
         r"^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?(Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])?$"
