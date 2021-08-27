@@ -2,9 +2,10 @@ from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
-# DescribeRouteTable has a custom root-tag - <Response> vs <ErrorResponse>
-# TF complains if the roottag is incorrect
-CUSTOM_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+# EC2 has a custom root-tag - <Response> vs <ErrorResponse>
+# `terraform destroy` will complain if the roottag is incorrect
+# See https://docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html#api-error-response
+EC2_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Errors>
     <Error>
@@ -21,6 +22,13 @@ class EC2ClientError(RESTError):
     code = 400
     # EC2 uses <RequestID> as tag name in the XML response
     request_id_tag_name = "RequestID"
+
+    def __init__(self, *args, **kwargs):
+
+        kwargs.setdefault("template", "custom_response")
+        self.templates["custom_response"] = EC2_ERROR_RESPONSE
+
+        super(EC2ClientError, self).__init__(*args, **kwargs)
 
 
 class DependencyViolationError(EC2ClientError):
@@ -75,14 +83,9 @@ class InvalidKeyPairFormatError(EC2ClientError):
 
 class InvalidVPCIdError(EC2ClientError):
     def __init__(self, vpc_id):
-        kwargs = {}
-        kwargs.setdefault("template", "custom_response")
-        self.templates["custom_response"] = CUSTOM_ERROR_RESPONSE
 
         super(InvalidVPCIdError, self).__init__(
-            "InvalidVpcID.NotFound",
-            "VpcID {0} does not exist.".format(vpc_id),
-            **kwargs
+            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id),
         )
 
 
@@ -197,14 +200,10 @@ class InvalidPermissionDuplicateError(EC2ClientError):
 
 class InvalidRouteTableIdError(EC2ClientError):
     def __init__(self, route_table_id):
-        kwargs = {}
-        kwargs.setdefault("template", "custom_response")
-        self.templates["custom_response"] = CUSTOM_ERROR_RESPONSE
 
         super(InvalidRouteTableIdError, self).__init__(
             "InvalidRouteTableID.NotFound",
             "The routeTable ID '{0}' does not exist".format(route_table_id),
-            **kwargs
         )
 
 
