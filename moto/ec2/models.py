@@ -1147,6 +1147,17 @@ class InstanceBackend(object):
             reservations = filter_reservations(reservations, filters)
         return reservations
 
+    def describe_instances(self, filters=None):
+        return self.all_reservations(filters)
+
+    def describe_instance_status(self, instance_ids, include_all_instances, filters):
+        if instance_ids:
+            return self.get_multi_instances_by_id(instance_ids, filters)
+        elif include_all_instances:
+            return self.all_instances(filters)
+        else:
+            return self.all_running_instances(filters)
+
     def all_reservations(self, filters=None):
         reservations = [
             copy.copy(reservation) for reservation in self.reservations.values()
@@ -3265,7 +3276,7 @@ class VPCBackend(object):
                 match_vpc = vpcs.get_vpc(vpc_id)
         return match_vpc
 
-    def get_all_vpcs(self, vpc_ids=None, filters=None):
+    def describe_vpcs(self, vpc_ids=None, filters=None):
         matches = self.vpcs.values()
         if vpc_ids:
             matches = [vpc for vpc in matches if vpc.id in vpc_ids]
@@ -3278,7 +3289,7 @@ class VPCBackend(object):
 
     def delete_vpc(self, vpc_id):
         # Delete route table if only main route table remains.
-        route_tables = self.get_all_route_tables(filters={"vpc-id": vpc_id})
+        route_tables = self.describe_route_tables(filters={"vpc-id": vpc_id})
         if len(route_tables) > 1:
             raise DependencyViolationError(
                 "The vpc {0} has dependencies and cannot be deleted.".format(vpc_id)
@@ -3429,7 +3440,7 @@ class VPCBackend(object):
                 vpc_endpoint.state = "deleted"
         return True
 
-    def get_vpc_end_point(self, vpc_end_point_ids, filters=None):
+    def describe_vpc_endpoints(self, vpc_end_point_ids, filters=None):
         vpc_end_points = self.vpc_end_points.values()
 
         if vpc_end_point_ids:
@@ -3563,7 +3574,7 @@ class VPCPeeringConnectionBackend(object):
                     vpc_pcx_cx.vpc_pcxs[vpc_pcx_id] = vpc_pcx
         return vpc_pcx
 
-    def get_all_vpc_peering_connections(self, vpc_peering_ids=None):
+    def describe_vpc_peering_connections(self, vpc_peering_ids=None):
         if vpc_peering_ids:
             return [pcx for pcx in self.vpc_pcxs.values() if pcx.id in vpc_peering_ids]
         return self.vpc_pcxs.values()
@@ -4355,7 +4366,7 @@ class RouteTableBackend(object):
             raise InvalidRouteTableIdError(route_table_id)
         return route_table
 
-    def get_all_route_tables(self, route_table_ids=None, filters=None):
+    def describe_route_tables(self, route_table_ids=None, filters=None):
         route_tables = self.route_tables.values()
 
         if route_table_ids:
@@ -4387,7 +4398,7 @@ class RouteTableBackend(object):
 
     def associate_route_table(self, route_table_id, gateway_id=None, subnet_id=None):
         # Idempotent if association already exists.
-        route_tables_by_subnet = self.get_all_route_tables(
+        route_tables_by_subnet = self.describe_route_tables(
             filters={"association.subnet-id": [subnet_id]}
         )
         if route_tables_by_subnet:
@@ -4422,7 +4433,7 @@ class RouteTableBackend(object):
             return association_id
 
         # Find route table which currently has the association, error if none.
-        route_tables_by_association_id = self.get_all_route_tables(
+        route_tables_by_association_id = self.describe_route_tables(
             filters={"association.route-table-association-id": [association_id]}
         )
         if not route_tables_by_association_id:
@@ -6246,7 +6257,7 @@ class VpnGatewayBackend(object):
         self.vpn_gateways[vpn_gateway_id] = vpn_gateway
         return vpn_gateway
 
-    def get_all_vpn_gateways(self, filters=None):
+    def describe_vpn_gateways(self, filters=None):
         vpn_gateways = self.vpn_gateways.values()
         return generic_filter(filters, vpn_gateways)
 
@@ -6438,7 +6449,7 @@ class TransitGatewayBackend(object):
         self.transit_gateways[transit_gateway.id] = transit_gateway
         return transit_gateway
 
-    def get_all_transit_gateways(self, filters):
+    def describe_transit_gateways(self, filters):
         transit_gateways = list(self.transit_gateways.values())
 
         attr_pairs = (
@@ -7209,7 +7220,7 @@ class NatGatewayBackend(object):
         self.nat_gateways = {}
         super(NatGatewayBackend, self).__init__()
 
-    def get_all_nat_gateways(self, filters):
+    def describe_nat_gateways(self, filters):
         nat_gateways = self.nat_gateways.values()
 
         if filters is not None:
@@ -7342,7 +7353,7 @@ class LaunchTemplateBackend(object):
     def get_launch_template_by_name(self, name):
         return self.get_launch_template(self.launch_template_name_to_ids[name])
 
-    def get_launch_templates(
+    def describe_launch_templates(
         self, template_names=None, template_ids=None, filters=None
     ):
         if template_names and not template_ids:

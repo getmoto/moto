@@ -975,19 +975,26 @@
 - [ ] create_backup_plan
 - [ ] create_backup_selection
 - [ ] create_backup_vault
+- [ ] create_framework
+- [ ] create_report_plan
 - [ ] delete_backup_plan
 - [ ] delete_backup_selection
 - [ ] delete_backup_vault
 - [ ] delete_backup_vault_access_policy
 - [ ] delete_backup_vault_notifications
+- [ ] delete_framework
 - [ ] delete_recovery_point
+- [ ] delete_report_plan
 - [ ] describe_backup_job
 - [ ] describe_backup_vault
 - [ ] describe_copy_job
+- [ ] describe_framework
 - [ ] describe_global_settings
 - [ ] describe_protected_resource
 - [ ] describe_recovery_point
 - [ ] describe_region_settings
+- [ ] describe_report_job
+- [ ] describe_report_plan
 - [ ] describe_restore_job
 - [ ] disassociate_recovery_point
 - [ ] export_backup_plan_template
@@ -1006,23 +1013,29 @@
 - [ ] list_backup_selections
 - [ ] list_backup_vaults
 - [ ] list_copy_jobs
+- [ ] list_frameworks
 - [ ] list_protected_resources
 - [ ] list_recovery_points_by_backup_vault
 - [ ] list_recovery_points_by_resource
+- [ ] list_report_jobs
+- [ ] list_report_plans
 - [ ] list_restore_jobs
 - [ ] list_tags
 - [ ] put_backup_vault_access_policy
 - [ ] put_backup_vault_notifications
 - [ ] start_backup_job
 - [ ] start_copy_job
+- [ ] start_report_job
 - [ ] start_restore_job
 - [ ] stop_backup_job
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_backup_plan
+- [ ] update_framework
 - [ ] update_global_settings
 - [ ] update_recovery_point_lifecycle
 - [ ] update_region_settings
+- [ ] update_report_plan
 </details>
 
 ## batch
@@ -2438,6 +2451,7 @@
 - [ ] get_ec2_instance_recommendations
 - [ ] get_ec2_recommendation_projected_metrics
 - [ ] get_enrollment_status
+- [ ] get_enrollment_statuses_for_organization
 - [ ] get_lambda_function_recommendations
 - [ ] get_recommendation_summaries
 - [ ] update_enrollment_status
@@ -3393,7 +3407,7 @@
 
 ## ec2
 <details>
-<summary>32% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -3609,15 +3623,15 @@
 - [X] describe_instance_credit_specifications
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
-- [ ] describe_instance_status
+- [X] describe_instance_status
 - [X] describe_instance_type_offerings
 - [X] describe_instance_types
-- [ ] describe_instances
+- [X] describe_instances
 - [X] describe_internet_gateways
 - [ ] describe_ipv6_pools
 - [X] describe_key_pairs
 - [ ] describe_launch_template_versions
-- [ ] describe_launch_templates
+- [X] describe_launch_templates
 - [ ] describe_local_gateway_route_table_virtual_interface_group_associations
 - [ ] describe_local_gateway_route_table_vpc_associations
 - [ ] describe_local_gateway_route_tables
@@ -3626,7 +3640,7 @@
 - [ ] describe_local_gateways
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
-- [ ] describe_nat_gateways
+- [X] describe_nat_gateways
 - [X] describe_network_acls
 - [ ] describe_network_insights_analyses
 - [ ] describe_network_insights_paths
@@ -3643,7 +3657,7 @@
 - [ ] describe_reserved_instances_listings
 - [ ] describe_reserved_instances_modifications
 - [ ] describe_reserved_instances_offerings
-- [ ] describe_route_tables
+- [X] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
 - [ ] describe_security_group_references
@@ -3671,7 +3685,7 @@
 - [X] describe_transit_gateway_peering_attachments
 - [ ] describe_transit_gateway_route_tables
 - [X] describe_transit_gateway_vpc_attachments
-- [ ] describe_transit_gateways
+- [X] describe_transit_gateways
 - [ ] describe_trunk_interface_associations
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
@@ -3685,11 +3699,11 @@
 - [ ] describe_vpc_endpoint_service_configurations
 - [ ] describe_vpc_endpoint_service_permissions
 - [ ] describe_vpc_endpoint_services
-- [ ] describe_vpc_endpoints
-- [ ] describe_vpc_peering_connections
-- [ ] describe_vpcs
+- [X] describe_vpc_endpoints
+- [X] describe_vpc_peering_connections
+- [X] describe_vpcs
 - [X] describe_vpn_connections
-- [ ] describe_vpn_gateways
+- [X] describe_vpn_gateways
 - [ ] detach_classic_link_vpc
 - [X] detach_internet_gateway
 - [X] detach_network_interface
@@ -4904,13 +4918,14 @@
 
 ## glue
 <details>
-<summary>7% implemented</summary>
+<summary>6% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
 - [ ] batch_delete_partition
 - [ ] batch_delete_table
 - [ ] batch_delete_table_version
+- [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_jobs
@@ -4921,6 +4936,7 @@
 - [ ] batch_update_partition
 - [ ] cancel_ml_task_run
 - [ ] check_schema_version_validity
+- [ ] create_blueprint
 - [ ] create_classifier
 - [ ] create_connection
 - [X] create_crawler
@@ -4938,6 +4954,7 @@
 - [ ] create_trigger
 - [ ] create_user_defined_function
 - [ ] create_workflow
+- [ ] delete_blueprint
 - [ ] delete_classifier
 - [ ] delete_column_statistics_for_partition
 - [ ] delete_column_statistics_for_table
@@ -4959,6 +4976,9 @@
 - [ ] delete_trigger
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
+- [ ] get_blueprint
+- [ ] get_blueprint_run
+- [ ] get_blueprint_runs
 - [ ] get_catalog_import_status
 - [ ] get_classifier
 - [ ] get_classifiers
@@ -5012,6 +5032,7 @@
 - [ ] get_workflow_run_properties
 - [ ] get_workflow_runs
 - [ ] import_catalog_to_glue
+- [ ] list_blueprints
 - [ ] list_crawlers
 - [ ] list_dev_endpoints
 - [ ] list_jobs
@@ -5031,6 +5052,7 @@
 - [ ] reset_job_bookmark
 - [ ] resume_workflow_run
 - [ ] search_tables
+- [ ] start_blueprint_run
 - [ ] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_export_labels_task_run
@@ -5046,6 +5068,7 @@
 - [ ] stop_workflow_run
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_blueprint
 - [ ] update_classifier
 - [ ] update_column_statistics_for_partition
 - [ ] update_column_statistics_for_table
@@ -5862,11 +5885,13 @@
 
 ## iot-data
 <details>
-<summary>80% implemented</summary>
+<summary>57% implemented</summary>
 
 - [X] delete_thing_shadow
+- [ ] get_retained_message
 - [X] get_thing_shadow
 - [ ] list_named_shadows_for_thing
+- [ ] list_retained_messages
 - [X] publish
 - [X] update_thing_shadow
 </details>
@@ -11117,7 +11142,7 @@
 
 ## transcribe
 <details>
-<summary>22% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] create_call_analytics_category
 - [ ] create_language_model
@@ -11145,12 +11170,15 @@
 - [ ] list_language_models
 - [X] list_medical_transcription_jobs
 - [X] list_medical_vocabularies
+- [ ] list_tags_for_resource
 - [ ] list_transcription_jobs
 - [ ] list_vocabularies
 - [ ] list_vocabulary_filters
 - [ ] start_call_analytics_job
 - [X] start_medical_transcription_job
 - [ ] start_transcription_job
+- [ ] tag_resource
+- [ ] untag_resource
 - [ ] update_call_analytics_category
 - [ ] update_medical_vocabulary
 - [ ] update_vocabulary

@@ -261,7 +261,7 @@ class LaunchTemplates(BaseResponse):
             tree = ElementTree.Element("DescribeLaunchTemplatesResponse")
             templates_node = ElementTree.SubElement(tree, "launchTemplates")
 
-            templates = self.ec2_backend.get_launch_templates(
+            templates = self.ec2_backend.describe_launch_templates(
                 template_names=template_names,
                 template_ids=template_ids,
                 filters=filters,

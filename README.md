@@ -92,7 +92,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | Config                    | @mock_config          | basic + core endpoints done     |                             |
 | Data Pipeline             | @mock_datapipeline    | basic endpoints done            |                             |
 | DynamoDB                  | @mock_dynamodb        | core endpoints done             | API 20111205. Deprecated.   |
-| DynamoDB2                 | @mock_dynamodb2       | all endpoints + partial indexes | API 20120810 (Latest)       |
+| DynamoDB2                 | @mock_dynamodb2       | core endpoints done             | API 20120810 (Latest)       |
 | EC2                       | @mock_ec2             | core endpoints done             |                             |
 |     - AMI                 |                       | core endpoints done             |                             |
 |     - EBS                 |                       | core endpoints done             |                             |
