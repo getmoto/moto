@@ -117,6 +117,99 @@ def test_vpc_peering_connections_cross_region():
     vpc_pcx_apn1.id.should.equal(vpc_pcx_usw1.id)
     vpc_pcx_apn1.requester_vpc.id.should.equal(vpc_usw1.id)
     vpc_pcx_apn1.accepter_vpc.id.should.equal(vpc_apn1.id)
+    # Quick check to verify the options have a default value
+    accepter_options = vpc_pcx_apn1.accepter_vpc_info["PeeringOptions"]
+    accepter_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
+    accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
+    accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+    requester_options = vpc_pcx_apn1.requester_vpc_info["PeeringOptions"]
+    requester_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
+    requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
+    requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+
+
+@mock_ec2
+def test_modify_vpc_peering_connections_accepter_only():
+    # create vpc in us-west-1 and ap-northeast-1
+    ec2_usw1 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+    vpc_usw1 = ec2_usw1.create_vpc(CidrBlock="10.90.0.0/16")
+    ec2_apn1 = boto3.resource("ec2", region_name="ap-northeast-1")
+    vpc_apn1 = ec2_apn1.create_vpc(CidrBlock="10.20.0.0/16")
+    # create peering
+    vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
+        VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1"
+    )
+    #
+    client.modify_vpc_peering_connection_options(
+        VpcPeeringConnectionId=vpc_pcx_usw1.id,
+        AccepterPeeringConnectionOptions={"AllowDnsResolutionFromRemoteVpc": True,},
+    )
+    # Accepter options are different
+    vpc_pcx_usw1.reload()
+    accepter_options = vpc_pcx_usw1.accepter_vpc_info["PeeringOptions"]
+    accepter_options["AllowDnsResolutionFromRemoteVpc"].should.equal(True)
+    accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
+    accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+    # Requester options are untouched
+    requester_options = vpc_pcx_usw1.requester_vpc_info["PeeringOptions"]
+    requester_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
+    requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
+    requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+
+
+@mock_ec2
+def test_modify_vpc_peering_connections_requester_only():
+    # create vpc in us-west-1 and ap-northeast-1
+    ec2_usw1 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+    vpc_usw1 = ec2_usw1.create_vpc(CidrBlock="10.90.0.0/16")
+    ec2_apn1 = boto3.resource("ec2", region_name="ap-northeast-1")
+    vpc_apn1 = ec2_apn1.create_vpc(CidrBlock="10.20.0.0/16")
+    # create peering
+    vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
+        VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1"
+    )
+    #
+    client.modify_vpc_peering_connection_options(
+        VpcPeeringConnectionId=vpc_pcx_usw1.id,
+        RequesterPeeringConnectionOptions={
+            "AllowEgressFromLocalVpcToRemoteClassicLink": True,
+        },
+    )
+    # Requester options are different
+    vpc_pcx_usw1.reload()
+    requester_options = vpc_pcx_usw1.requester_vpc_info["PeeringOptions"]
+    requester_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
+    requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
+    requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(True)
+    # Accepter options are untouched
+    accepter_options = vpc_pcx_usw1.accepter_vpc_info["PeeringOptions"]
+    accepter_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
+    accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
+    accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+
+
+@mock_ec2
+def test_modify_vpc_peering_connections_unknown_vpc():
+    # create vpc in us-west-1 and ap-northeast-1
+    ec2_usw1 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+    vpc_usw1 = ec2_usw1.create_vpc(CidrBlock="10.90.0.0/16")
+    ec2_apn1 = boto3.resource("ec2", region_name="ap-northeast-1")
+    vpc_apn1 = ec2_apn1.create_vpc(CidrBlock="10.20.0.0/16")
+    # create peering
+    vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
+        VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1"
+    )
+    #
+    with pytest.raises(ClientError) as ex:
+        client.modify_vpc_peering_connection_options(
+            VpcPeeringConnectionId="vpx-unknown", RequesterPeeringConnectionOptions={}
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidVpcPeeringConnectionId.NotFound")
+    err["Message"].should.equal("VpcPeeringConnectionID vpx-unknown does not exist.")
 
 
 @mock_ec2
