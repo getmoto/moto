@@ -2,11 +2,12 @@
 
 from __future__ import unicode_literals
 import io
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 import sure  # noqa
 
 from flask.testing import FlaskClient
 import moto.server as server
+from unittest.mock import patch
 
 """
 Test the different server responses
@@ -54,6 +55,15 @@ def test_s3_server_bucket_create():
     res = test_client.get("/bar", "http://foobaz.localhost:5000/")
     res.status_code.should.equal(200)
     res.data.should.equal(b"test value")
+
+
+def test_s3_server_ignore_subdomain_for_bucketnames():
+    with patch("moto.s3.responses.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
+        test_client = authenticated_client()
+
+        res = test_client.put("/mybucket", "http://foobaz.localhost:5000/")
+        res.status_code.should.equal(200)
+        res.data.should.contain(b"mybucket")
 
 
 def test_s3_server_bucket_versioning():

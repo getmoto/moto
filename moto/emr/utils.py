@@ -1,15 +1,18 @@
 from __future__ import unicode_literals
+import copy
+import datetime
 import random
 import re
 import string
-from moto.core.utils import camelcase_to_underscores
-
-import six
+from moto.core.utils import (
+    camelcase_to_underscores,
+    iso_8601_datetime_with_milliseconds,
+)
 
 
 def random_id(size=13):
     chars = list(range(10)) + list(string.ascii_uppercase)
-    return "".join(six.text_type(random.choice(chars)) for x in range(size))
+    return "".join(str(random.choice(chars)) for x in range(size))
 
 
 def random_cluster_id(size=13):
@@ -218,3 +221,238 @@ class ReleaseLabel(object):
         if not isinstance(other, self.__class__):
             return NotImplemented
         return tuple(self) >= tuple(other)
+
+
+class EmrManagedSecurityGroup(object):
+    class Kind:
+        MASTER = "Master"
+        SLAVE = "Slave"
+        SERVICE = "Service"
+
+    kind = None
+
+    group_name = ""
+    short_name = ""
+    desc_fmt = "{short_name} for Elastic MapReduce created on {created}"
+
+    @classmethod
+    def description(cls):
+        created = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        return cls.desc_fmt.format(short_name=cls.short_name, created=created)
+
+
+class EmrManagedMasterSecurityGroup(EmrManagedSecurityGroup):
+    kind = EmrManagedSecurityGroup.Kind.MASTER
+    group_name = "ElasticMapReduce-Master-Private"
+    short_name = "Master"
+
+
+class EmrManagedSlaveSecurityGroup(EmrManagedSecurityGroup):
+    kind = EmrManagedSecurityGroup.Kind.SLAVE
+    group_name = "ElasticMapReduce-Slave-Private"
+    short_name = "Slave"
+
+
+class EmrManagedServiceAccessSecurityGroup(EmrManagedSecurityGroup):
+    kind = EmrManagedSecurityGroup.Kind.SERVICE
+    group_name = "ElasticMapReduce-ServiceAccess"
+    short_name = "Service access"
+
+
+class EmrSecurityGroupManager(object):
+
+    MANAGED_RULES_EGRESS = [
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.MASTER,
+            "from_port": None,
+            "ip_protocol": "-1",
+            "ip_ranges": [{"CidrIp": "0.0.0.0/0"}],
+            "to_port": None,
+            "source_group_ids": [],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.SLAVE,
+            "from_port": None,
+            "ip_protocol": "-1",
+            "ip_ranges": [{"CidrIp": "0.0.0.0/0"}],
+            "to_port": None,
+            "source_group_ids": [],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.SERVICE,
+            "from_port": 8443,
+            "ip_protocol": "tcp",
+            "ip_ranges": [],
+            "to_port": 8443,
+            "source_group_ids": [
+                EmrManagedSecurityGroup.Kind.MASTER,
+                EmrManagedSecurityGroup.Kind.SLAVE,
+            ],
+        },
+    ]
+
+    MANAGED_RULES_INGRESS = [
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.MASTER,
+            "from_port": 0,
+            "ip_protocol": "tcp",
+            "ip_ranges": [],
+            "to_port": 65535,
+            "source_group_ids": [
+                EmrManagedSecurityGroup.Kind.MASTER,
+                EmrManagedSecurityGroup.Kind.SLAVE,
+            ],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.MASTER,
+            "from_port": 8443,
+            "ip_protocol": "tcp",
+            "ip_ranges": [],
+            "to_port": 8443,
+            "source_group_ids": [EmrManagedSecurityGroup.Kind.SERVICE],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.MASTER,
+            "from_port": 0,
+            "ip_protocol": "udp",
+            "ip_ranges": [],
+            "to_port": 65535,
+            "source_group_ids": [
+                EmrManagedSecurityGroup.Kind.MASTER,
+                EmrManagedSecurityGroup.Kind.SLAVE,
+            ],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.MASTER,
+            "from_port": -1,
+            "ip_protocol": "icmp",
+            "ip_ranges": [],
+            "to_port": -1,
+            "source_group_ids": [
+                EmrManagedSecurityGroup.Kind.MASTER,
+                EmrManagedSecurityGroup.Kind.SLAVE,
+            ],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.SLAVE,
+            "from_port": 0,
+            "ip_protocol": "tcp",
+            "ip_ranges": [],
+            "to_port": 65535,
+            "source_group_ids": [
+                EmrManagedSecurityGroup.Kind.SLAVE,
+                EmrManagedSecurityGroup.Kind.MASTER,
+            ],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.SLAVE,
+            "from_port": 8443,
+            "ip_protocol": "tcp",
+            "ip_ranges": [],
+            "to_port": 8443,
+            "source_group_ids": [EmrManagedSecurityGroup.Kind.SERVICE],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.SLAVE,
+            "from_port": 0,
+            "ip_protocol": "udp",
+            "ip_ranges": [],
+            "to_port": 65535,
+            "source_group_ids": [
+                EmrManagedSecurityGroup.Kind.MASTER,
+                EmrManagedSecurityGroup.Kind.SLAVE,
+            ],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.SLAVE,
+            "from_port": -1,
+            "ip_protocol": "icmp",
+            "ip_ranges": [],
+            "to_port": -1,
+            "source_group_ids": [
+                EmrManagedSecurityGroup.Kind.MASTER,
+                EmrManagedSecurityGroup.Kind.SLAVE,
+            ],
+        },
+        {
+            "group_name_or_id": EmrManagedSecurityGroup.Kind.SERVICE,
+            "from_port": 9443,
+            "ip_protocol": "tcp",
+            "ip_ranges": [],
+            "to_port": 9443,
+            "source_group_ids": [EmrManagedSecurityGroup.Kind.MASTER],
+        },
+    ]
+
+    def __init__(self, ec2_backend, vpc_id):
+        self.ec2 = ec2_backend
+        self.vpc_id = vpc_id
+
+    def manage_security_groups(
+        self, master_security_group, slave_security_group, service_access_security_group
+    ):
+        group_metadata = [
+            (
+                master_security_group,
+                EmrManagedSecurityGroup.Kind.MASTER,
+                EmrManagedMasterSecurityGroup,
+            ),
+            (
+                slave_security_group,
+                EmrManagedSecurityGroup.Kind.SLAVE,
+                EmrManagedSlaveSecurityGroup,
+            ),
+            (
+                service_access_security_group,
+                EmrManagedSecurityGroup.Kind.SERVICE,
+                EmrManagedServiceAccessSecurityGroup,
+            ),
+        ]
+        managed_groups = {}
+        for name, kind, defaults in group_metadata:
+            managed_groups[kind] = self._get_or_create_sg(name, defaults)
+        self._add_rules_to(managed_groups)
+        return (
+            managed_groups[EmrManagedSecurityGroup.Kind.MASTER],
+            managed_groups[EmrManagedSecurityGroup.Kind.SLAVE],
+            managed_groups[EmrManagedSecurityGroup.Kind.SERVICE],
+        )
+
+    def _get_or_create_sg(self, sg_id, defaults):
+        find_sg = self.ec2.get_security_group_by_name_or_id
+        create_sg = self.ec2.create_security_group
+        group_id_or_name = sg_id or defaults.group_name
+        group = find_sg(group_id_or_name, self.vpc_id)
+        if group is None:
+            if group_id_or_name != defaults.group_name:
+                raise ValueError(
+                    "The security group '{}' does not exist".format(group_id_or_name)
+                )
+            group = create_sg(defaults.group_name, defaults.description(), self.vpc_id)
+        return group
+
+    def _add_rules_to(self, managed_groups):
+        rules_metadata = [
+            (self.MANAGED_RULES_EGRESS, self.ec2.authorize_security_group_egress),
+            (self.MANAGED_RULES_INGRESS, self.ec2.authorize_security_group_ingress),
+        ]
+        for rules, add_rule in rules_metadata:
+            rendered_rules = self._render_rules(rules, managed_groups)
+            for rule in rendered_rules:
+                from moto.ec2.exceptions import InvalidPermissionDuplicateError
+
+                try:
+                    add_rule(vpc_id=self.vpc_id, **rule)
+                except InvalidPermissionDuplicateError:
+                    # If the rule already exists, we can just move on.
+                    pass
+
+    @staticmethod
+    def _render_rules(rules, managed_groups):
+        rendered_rules = copy.deepcopy(rules)
+        for rule in rendered_rules:
+            rule["group_name_or_id"] = managed_groups[rule["group_name_or_id"]].id
+            rule["source_group_ids"] = [
+                managed_groups[group].id for group in rule["source_group_ids"]
+            ]
+        return rendered_rules

@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import boto
 from unittest import SkipTest
-import six
 
 
 def version_tuple(v):
@@ -24,12 +23,5 @@ class requires_boto_gte(object):
         boto_version = version_tuple(boto.__version__)
         required = version_tuple(self.version)
         if boto_version >= required:
-            return test
-        return skip_test
-
-
-class disable_on_py3(object):
-    def __call__(self, test):
-        if not six.PY3:
             return test
         return skip_test

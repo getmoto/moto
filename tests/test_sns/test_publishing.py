@@ -46,7 +46,8 @@ def test_publish_to_sqs():
     ]
 
     queue = sqs_conn.get_queue("test-queue")
-    message = queue.read(1)
+    with freeze_time("2015-01-01 12:00:01"):
+        message = queue.read(1)
     expected = MESSAGE_FROM_SQS_TEMPLATE % (
         message_to_publish,
         published_message_id,
@@ -89,7 +90,8 @@ def test_publish_to_sqs_in_different_region():
     ]
 
     queue = sqs_conn.get_queue("test-queue")
-    message = queue.read(1)
+    with freeze_time("2015-01-01 12:00:01"):
+        message = queue.read(1)
     expected = MESSAGE_FROM_SQS_TEMPLATE % (
         message_to_publish,
         published_message_id,

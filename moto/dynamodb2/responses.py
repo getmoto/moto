@@ -5,13 +5,11 @@ import json
 import re
 
 import itertools
-import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
 from .exceptions import (
     InvalidIndexNameError,
-    ItemSizeTooLarge,
     MockValidationException,
     TransactionCanceledException,
 )
@@ -88,7 +86,7 @@ class DynamoHandler(BaseResponse):
         if endpoint:
             endpoint = camelcase_to_underscores(endpoint)
             response = getattr(self, endpoint)()
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, self.response_headers, response
 
             else:
@@ -296,9 +294,9 @@ class DynamoHandler(BaseResponse):
                 expression_attribute_values,
                 overwrite,
             )
-        except ItemSizeTooLarge:
+        except MockValidationException as mve:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(er, ItemSizeTooLarge.item_size_too_large_msg)
+            return self.error(er, mve.exception_msg)
         except KeyError as ke:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, ke.args[0])
@@ -349,6 +347,12 @@ class DynamoHandler(BaseResponse):
 
     def get_item(self):
         name = self.body["TableName"]
+        table = self.dynamodb_backend.get_table(name)
+        if table is None:
+            return self.error(
+                "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException",
+                "Requested resource not found",
+            )
         key = self.body["Key"]
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
@@ -477,8 +481,7 @@ class DynamoHandler(BaseResponse):
                 index = table.schema
 
             reverse_attribute_lookup = dict(
-                (v, k)
-                for k, v in six.iteritems(self.body.get("ExpressionAttributeNames", {}))
+                (v, k) for k, v in self.body.get("ExpressionAttributeNames", {}).items()
             )
 
             if " and " in key_condition_expression.lower():
@@ -504,7 +507,7 @@ class DynamoHandler(BaseResponse):
                 range_key_expression_components = range_key_expression.split()
                 range_comparison = range_key_expression_components[1]
 
-                if "AND" in range_key_expression:
+                if " and " in range_key_expression.lower():
                     range_comparison = "BETWEEN"
                     range_values = [
                         value_alias_map[range_key_expression_components[2]],
@@ -515,6 +518,18 @@ class DynamoHandler(BaseResponse):
                     range_values = [
                         value_alias_map[range_key_expression_components[-1]]
                     ]
+                elif "begins_with" in range_key_expression.lower():
+                    function_used = range_key_expression[
+                        range_key_expression.lower().index("begins_with") : len(
+                            "begins_with"
+                        )
+                    ]
+                    return self.error(
+                        "com.amazonaws.dynamodb.v20111205#ValidationException",
+                        "Invalid KeyConditionExpression: Invalid function name; function: {}".format(
+                            function_used
+                        ),
+                    )
                 else:
                     range_values = [value_alias_map[range_key_expression_components[2]]]
             else:
@@ -969,3 +984,60 @@ class DynamoHandler(BaseResponse):
         )
 
         return json.dumps({"ContinuousBackupsDescription": response})
+
+    def list_backups(self):
+        body = self.body
+        table_name = body.get("TableName")
+        backups = self.dynamodb_backend.list_backups(table_name)
+        response = {"BackupSummaries": [backup.summary for backup in backups]}
+        return dynamo_json_dump(response)
+
+    def create_backup(self):
+        body = self.body
+        table_name = body.get("TableName")
+        backup_name = body.get("BackupName")
+        try:
+            backup = self.dynamodb_backend.create_backup(table_name, backup_name)
+            response = {"BackupDetails": backup.details}
+            return dynamo_json_dump(response)
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#TableNotFoundException"
+            return self.error(er, "Table not found: %s" % table_name)
+
+    def delete_backup(self):
+        body = self.body
+        backup_arn = body.get("BackupArn")
+        try:
+            backup = self.dynamodb_backend.delete_backup(backup_arn)
+            response = {"BackupDescription": backup.description}
+            return dynamo_json_dump(response)
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
+            return self.error(er, "Backup not found: %s" % backup_arn)
+
+    def describe_backup(self):
+        body = self.body
+        backup_arn = body.get("BackupArn")
+        try:
+            backup = self.dynamodb_backend.describe_backup(backup_arn)
+            response = {"BackupDescription": backup.description}
+            return dynamo_json_dump(response)
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
+            return self.error(er, "Backup not found: %s" % backup_arn)
+
+    def restore_table_from_backup(self):
+        body = self.body
+        target_table_name = body.get("TargetTableName")
+        backup_arn = body.get("BackupArn")
+        try:
+            restored_table = self.dynamodb_backend.restore_table_from_backup(
+                target_table_name, backup_arn
+            )
+            return dynamo_json_dump(restored_table.describe())
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
+            return self.error(er, "Backup not found: %s" % backup_arn)
+        except ValueError:
+            er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
+            return self.error(er, "Table already exists: %s" % target_table_name)

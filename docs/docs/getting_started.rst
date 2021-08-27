@@ -9,6 +9,19 @@ Installing Moto
 
 You can use ``pip`` to install the latest released version of ``moto``::
 
+    pip install moto[ec2,s3,..]
+
+This will install Moto, and the dependencies required for that specific service.
+
+If you don't care about the number of dependencies, or if you want to mock many AWS services::
+
+    pip install moto[all]
+
+Not all services might be covered, in which case you might see a warning:
+`moto 1.3.16 does not provide the extra 'service'`.
+
+You can ignore the warning, or simply install moto as is::
+
     pip install moto
 
 If you want to install ``moto`` from source::

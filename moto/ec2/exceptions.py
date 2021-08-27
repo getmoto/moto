@@ -2,8 +2,33 @@ from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
+# EC2 has a custom root-tag - <Response> vs <ErrorResponse>
+# `terraform destroy` will complain if the roottag is incorrect
+# See https://docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html#api-error-response
+EC2_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Errors>
+    <Error>
+      <Code>{{error_type}}</Code>
+      <Message>{{message}}</Message>
+    </Error>
+  </Errors>
+  <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
+</Response>
+"""
+
+
 class EC2ClientError(RESTError):
     code = 400
+    # EC2 uses <RequestID> as tag name in the XML response
+    request_id_tag_name = "RequestID"
+
+    def __init__(self, *args, **kwargs):
+
+        kwargs.setdefault("template", "custom_response")
+        self.templates["custom_response"] = EC2_ERROR_RESPONSE
+
+        super(EC2ClientError, self).__init__(*args, **kwargs)
 
 
 class DependencyViolationError(EC2ClientError):
@@ -58,8 +83,9 @@ class InvalidKeyPairFormatError(EC2ClientError):
 
 class InvalidVPCIdError(EC2ClientError):
     def __init__(self, vpc_id):
+
         super(InvalidVPCIdError, self).__init__(
-            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id)
+            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id),
         )
 
 
@@ -67,7 +93,7 @@ class InvalidSubnetIdError(EC2ClientError):
     def __init__(self, subnet_id):
         super(InvalidSubnetIdError, self).__init__(
             "InvalidSubnetID.NotFound",
-            "The subnet ID '{0}' does not exist".format(subnet_id),
+            "The subnet ID '{}' does not exist".format(subnet_id),
         )
 
 
@@ -174,6 +200,7 @@ class InvalidPermissionDuplicateError(EC2ClientError):
 
 class InvalidRouteTableIdError(EC2ClientError):
     def __init__(self, route_table_id):
+
         super(InvalidRouteTableIdError, self).__init__(
             "InvalidRouteTableID.NotFound",
             "The routeTable ID '{0}' does not exist".format(route_table_id),
@@ -396,6 +423,14 @@ class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
         )
 
 
+class InvalidGatewayIDError(EC2ClientError):
+    def __init__(self, gateway_id):
+        super(InvalidGatewayIDError, self).__init__(
+            "InvalidGatewayID.NotFound",
+            "The eigw ID '{0}' does not exist".format(gateway_id),
+        )
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
     def __init__(self, internet_gateway_id):
         super(InvalidInternetGatewayIdError, self).__init__(
@@ -476,6 +511,14 @@ class CidrLimitExceeded(EC2ClientError):
             "This network '{0}' has met its maximum number of allowed CIDRs: {1}".format(
                 vpc_id, max_cidr_limit
             ),
+        )
+
+
+class UnsupportedTenancy(EC2ClientError):
+    def __init__(self, tenancy):
+        super(UnsupportedTenancy, self).__init__(
+            "UnsupportedTenancy",
+            "The tenancy value {0} is not supported.".format(tenancy),
         )
 
 
@@ -575,6 +618,15 @@ class OperationNotPermitted3(EC2ClientError):
         )
 
 
+class OperationNotPermitted4(EC2ClientError):
+    def __init__(self, instance_id):
+        super(OperationNotPermitted4, self).__init__(
+            "OperationNotPermitted",
+            "The instance '{0}' may not be terminated. Modify its 'disableApiTermination' "
+            "instance attribute and try again.".format(instance_id),
+        )
+
+
 class InvalidLaunchTemplateNameError(EC2ClientError):
     def __init__(self):
         super(InvalidLaunchTemplateNameError, self).__init__(
@@ -612,7 +664,7 @@ class InvalidAssociationIDIamProfileAssociationError(EC2ClientError):
 class InvalidVpcEndPointIdError(EC2ClientError):
     def __init__(self, vpc_end_point_id):
         super(InvalidVpcEndPointIdError, self).__init__(
-            "InvalidVpcEndPointId.NotFound",
+            "InvalidVpcEndpointId.NotFound",
             "The VpcEndPoint ID '{0}' does not exist".format(vpc_end_point_id),
         )
 

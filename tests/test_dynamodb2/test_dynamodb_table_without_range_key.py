@@ -760,18 +760,6 @@ def test_boto3_update_settype_item_with_conditions():
 
 
 @mock_dynamodb2
-def test_boto3_put_item_conditions_pass():
-    table = _create_user_table()
-    table.put_item(Item={"username": "johndoe", "foo": "bar"})
-    table.put_item(
-        Item={"username": "johndoe", "foo": "baz"},
-        Expected={"foo": {"ComparisonOperator": "EQ", "AttributeValueList": ["bar"]}},
-    )
-    returned_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(returned_item)["Item"]["foo"].should.equal("baz")
-
-
-@mock_dynamodb2
 def test_scan_pagination():
     table = _create_user_table()
 

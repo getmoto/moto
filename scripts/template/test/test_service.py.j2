@@ -1,11 +1,12 @@
-from __future__ import unicode_literals
-
+"""Unit tests for {{ escaped_service }}-supported APIs."""
 import boto3
+
 import sure  # noqa
 from moto import mock_{{ escaped_service }}
 
 
 @mock_{{ escaped_service }}
 def test_list():
+    """Test input/output of the list API."""
     # do test
     pass

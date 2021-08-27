@@ -151,10 +151,16 @@ def test_register_task_definition():
 
     # Registering with optional top-level params
     definition["requiresCompatibilities"] = ["FARGATE"]
+    definition["taskRoleArn"] = "my-custom-task-role-arn"
+    definition["executionRoleArn"] = "my-custom-execution-role-arn"
     response = client.register_task_definition(**definition)
     response["taskDefinition"]["requiresCompatibilities"].should.equal(["FARGATE"])
     response["taskDefinition"]["compatibilities"].should.equal(["EC2", "FARGATE"])
     response["taskDefinition"]["networkMode"].should.equal("awsvpc")
+    response["taskDefinition"]["taskRoleArn"].should.equal("my-custom-task-role-arn")
+    response["taskDefinition"]["executionRoleArn"].should.equal(
+        "my-custom-execution-role-arn"
+    )
 
     definition["requiresCompatibilities"] = ["EC2", "FARGATE"]
     response = client.register_task_definition(**definition)
@@ -312,7 +318,7 @@ def test_list_task_definitions_with_family_prefix():
 
 
 @mock_ecs
-def test_describe_task_definition():
+def test_describe_task_definitions():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.register_task_definition(
         family="test_ecs_task",
@@ -333,6 +339,8 @@ def test_describe_task_definition():
     )
     _ = client.register_task_definition(
         family="test_ecs_task",
+        taskRoleArn="my-task-role-arn",
+        executionRoleArn="my-execution-role-arn",
         containerDefinitions=[
             {
                 "name": "hello_world2",
@@ -372,6 +380,8 @@ def test_describe_task_definition():
     response["taskDefinition"]["taskDefinitionArn"].should.equal(
         "arn:aws:ecs:us-east-1:{}:task-definition/test_ecs_task:2".format(ACCOUNT_ID)
     )
+    response["taskDefinition"]["taskRoleArn"].should.equal("my-task-role-arn")
+    response["taskDefinition"]["executionRoleArn"].should.equal("my-execution-role-arn")
 
     response = client.describe_task_definition(
         taskDefinition="test_ecs_task:1", include=["TAGS"]
@@ -380,7 +390,7 @@ def test_describe_task_definition():
 
 
 @mock_ecs
-def test_deregister_task_definition():
+def test_deregister_task_definition_1():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.register_task_definition(
         family="test_ecs_task",
@@ -400,8 +410,9 @@ def test_deregister_task_definition():
     )
     response = client.deregister_task_definition(taskDefinition="test_ecs_task:1")
     type(response["taskDefinition"]).should.be(dict)
+    response["taskDefinition"]["status"].should.equal("INACTIVE")
     response["taskDefinition"]["taskDefinitionArn"].should.equal(
-        "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1"
+        "arn:aws:ecs:us-east-1:{}:task-definition/test_ecs_task:1".format(ACCOUNT_ID)
     )
     response["taskDefinition"]["containerDefinitions"][0]["name"].should.equal(
         "hello_world"
@@ -426,7 +437,7 @@ def test_deregister_task_definition():
 
 
 @mock_ecs
-def test_deregister_task_definition():
+def test_deregister_task_definition_2():
     client = boto3.client("ecs", region_name="us-east-1")
     client.deregister_task_definition.when.called_with(
         taskDefinition="fake_task"
@@ -1457,6 +1468,10 @@ def test_run_task():
         taskDefinition="test_ecs_task",
         count=2,
         startedBy="moto",
+        tags=[
+            {"key": "tagKey0", "value": "tagValue0"},
+            {"key": "tagKey1", "value": "tagValue1"},
+        ],
     )
     len(response["tasks"]).should.equal(2)
     response["tasks"][0]["taskArn"].should.contain(
@@ -1476,6 +1491,7 @@ def test_run_task():
     response["tasks"][0]["desiredStatus"].should.equal("RUNNING")
     response["tasks"][0]["startedBy"].should.equal("moto")
     response["tasks"][0]["stoppedReason"].should.equal("")
+    response["tasks"][0]["tags"][0].get("value").should.equal("tagValue0")
 
 
 @mock_ec2
@@ -1809,7 +1825,7 @@ def test_describe_tasks_exceptions():
 
 
 @mock_ecs
-def describe_task_definition():
+def test_describe_task_definition_by_family():
     client = boto3.client("ecs", region_name="us-east-1")
     container_definition = {
         "name": "hello_world",
@@ -1823,13 +1839,19 @@ def describe_task_definition():
     task_definition = client.register_task_definition(
         family="test_ecs_task", containerDefinitions=[container_definition]
     )
-    family = task_definition["family"]
-    task = client.describe_task_definition(taskDefinition=family)
-    task["containerDefinitions"][0].should.equal(container_definition)
+    family = task_definition["taskDefinition"]["family"]
+    task = client.describe_task_definition(taskDefinition=family)["taskDefinition"]
+    task["containerDefinitions"][0].should.equal(
+        dict(
+            container_definition,
+            **{"mountPoints": [], "portMappings": [], "volumesFrom": []}
+        )
+    )
     task["taskDefinitionArn"].should.equal(
-        "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task2:1"
+        "arn:aws:ecs:us-east-1:{}:task-definition/test_ecs_task:1".format(ACCOUNT_ID)
     )
     task["volumes"].should.equal([])
+    task["status"].should.equal("ACTIVE")
 
 
 @mock_ec2

@@ -1,8 +1,6 @@
-import six
-
 from moto.dynamodb2.comparisons import get_comparison_func
-from moto.dynamodb2.exceptions import InvalidUpdateExpression, IncorrectDataType
-from moto.dynamodb2.models.utilities import attribute_is_list, bytesize
+from moto.dynamodb2.exceptions import IncorrectDataType
+from moto.dynamodb2.models.utilities import bytesize
 
 
 class DDBType(object):
@@ -38,14 +36,7 @@ class DDBTypeConversion(object):
         Returns:
             str: The human readable form of the DDBType.
         """
-        try:
-            human_type_str = cls._human_type_mapping[abbreviated_type]
-        except KeyError:
-            raise ValueError(
-                "Invalid abbreviated_type {at}".format(at=abbreviated_type)
-            )
-
-        return human_type_str
+        return cls._human_type_mapping.get(abbreviated_type, abbreviated_type)
 
 
 class DynamoType(object):
@@ -64,70 +55,6 @@ class DynamoType(object):
             self.value = [DynamoType(val) for val in self.value]
         elif self.is_map():
             self.value = dict((k, DynamoType(v)) for k, v in self.value.items())
-
-    def get(self, key):
-        if not key:
-            return self
-        else:
-            key_head = key.split(".")[0]
-            key_tail = ".".join(key.split(".")[1:])
-            if key_head not in self.value:
-                self.value[key_head] = DynamoType({"NONE": None})
-            return self.value[key_head].get(key_tail)
-
-    def set(self, key, new_value, index=None):
-        if index:
-            index = int(index)
-            if type(self.value) is not list:
-                raise InvalidUpdateExpression
-            if index >= len(self.value):
-                self.value.append(new_value)
-            # {'L': [DynamoType, ..]} ==> DynamoType.set()
-            self.value[min(index, len(self.value) - 1)].set(key, new_value)
-        else:
-            attr = (key or "").split(".").pop(0)
-            attr, list_index = attribute_is_list(attr)
-            if not key:
-                # {'S': value} ==> {'S': new_value}
-                self.type = new_value.type
-                self.value = new_value.value
-            else:
-                if attr not in self.value:  # nonexistingattribute
-                    type_of_new_attr = DDBType.MAP if "." in key else new_value.type
-                    self.value[attr] = DynamoType({type_of_new_attr: {}})
-                # {'M': {'foo': DynamoType}} ==> DynamoType.set(new_value)
-                self.value[attr].set(
-                    ".".join(key.split(".")[1:]), new_value, list_index
-                )
-
-    def __contains__(self, item):
-        if self.type == DDBType.STRING:
-            return False
-        try:
-            self.__getitem__(item)
-            return True
-        except KeyError:
-            return False
-
-    def delete(self, key, index=None):
-        if index:
-            if not key:
-                if int(index) < len(self.value):
-                    del self.value[int(index)]
-            elif "." in key:
-                self.value[int(index)].delete(".".join(key.split(".")[1:]))
-            else:
-                self.value[int(index)].delete(key)
-        else:
-            attr = key.split(".")[0]
-            attr, list_index = attribute_is_list(attr)
-
-            if list_index:
-                self.value[attr].delete(".".join(key.split(".")[1:]), list_index)
-            elif "." in key:
-                self.value[attr].delete(".".join(key.split(".")[1:]))
-            else:
-                self.value.pop(key)
 
     def filter(self, projection_expressions):
         nested_projections = [
@@ -200,7 +127,7 @@ class DynamoType(object):
             raise TypeError("Sum only supported for Numbers.")
 
     def __getitem__(self, item):
-        if isinstance(item, six.string_types):
+        if isinstance(item, str):
             # If our DynamoType is a map it should be subscriptable with a key
             if self.type == DDBType.MAP:
                 return self.value[item]
@@ -222,7 +149,7 @@ class DynamoType(object):
                     self.value.append(value)
                 else:
                     self.value[key] = value
-        elif isinstance(key, six.string_types):
+        elif isinstance(key, str):
             if self.is_map():
                 self.value[key] = value
         else:
@@ -251,7 +178,7 @@ class DynamoType(object):
 
         Returns DynamoType or None.
         """
-        if isinstance(key, six.string_types) and self.is_map():
+        if isinstance(key, str) and self.is_map():
             if "." in key and key.split(".")[0] in self.value:
                 return self.value[key.split(".")[0]].child_attr(
                     ".".join(key.split(".")[1:])

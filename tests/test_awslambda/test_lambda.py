@@ -87,6 +87,29 @@ def lambda_handler(event, context):
     return _process_lambda(pfunc)
 
 
+def get_zip_with_multiple_files():
+    pfunc = """
+from utilities import util_function
+def lambda_handler(event, context):
+    x = util_function()
+    event["msg"] = event["msg"] + x
+    return event
+"""
+    ufunc = """
+def util_function():
+    return "stuff"
+"""
+    zip_output = io.BytesIO()
+    zip_file = zipfile.ZipFile(zip_output, "a", zipfile.ZIP_DEFLATED)
+    zip_file.writestr("lambda_function.py", pfunc)
+    zip_file.close()
+    zip_file = zipfile.ZipFile(zip_output, "a", zipfile.ZIP_DEFLATED)
+    zip_file.writestr("utilities.py", ufunc)
+    zip_file.close()
+    zip_output.seek(0)
+    return zip_output.read()
+
+
 @pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
 @mock_lambda
 def test_lambda_regions(region):
@@ -134,6 +157,9 @@ def test_invoke_requestresponse_function(invocation_type):
         assert False, success_result["Payload"].read().decode("utf-8")
 
     success_result["StatusCode"].should.equal(200)
+    success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
+        "application/json"
+    )
     logs = base64.b64decode(success_result["LogResult"]).decode("utf-8")
 
     logs.should.contain("START RequestId:")
@@ -149,6 +175,9 @@ def test_invoke_requestresponse_function(invocation_type):
     )
 
     success_result["StatusCode"].should.equal(200)
+    success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
+        "application/json"
+    )
     assert "LogResult" not in success_result
 
 
@@ -211,6 +240,31 @@ def test_invoke_event_function():
     )
     success_result["StatusCode"].should.equal(202)
     json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
+
+
+@pytest.mark.network
+@mock_lambda
+def test_invoke_function_with_multiple_files_in_zip():
+    conn = boto3.client("lambda", _lambda_region)
+    conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_zip_with_multiple_files()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    in_data = {"msg": "So long and thanks for: "}
+    success_result = conn.invoke(
+        FunctionName="testFunction", InvocationType="Event", Payload=json.dumps(in_data)
+    )
+    json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(
+        {"msg": "So long and thanks for: stuff"}
+    )
 
 
 @pytest.mark.network

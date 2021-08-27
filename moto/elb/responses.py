@@ -241,9 +241,9 @@ class ELBResponse(BaseResponse):
         load_balancer_port = int(self._get_param("LoadBalancerPort"))
 
         mb_listener = [
-            l
-            for l in load_balancer.listeners
-            if int(l.load_balancer_port) == load_balancer_port
+            listner
+            for listner in load_balancer.listeners
+            if int(listner.load_balancer_port) == load_balancer_port
         ]
         if mb_listener:
             policies = self._get_multi_param("PolicyNames.member")

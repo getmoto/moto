@@ -158,6 +158,7 @@ def test_get_metric_statistics():
         value=1.5,
         dimensions={"InstanceId": ["i-0123456,i-0123457"]},
         timestamp=metric_timestamp,
+        unit="Count",
     )
 
     metric_kwargs = dict(
@@ -167,6 +168,7 @@ def test_get_metric_statistics():
         end_time=datetime.now(),
         period=3600,
         statistics=["Minimum"],
+        unit="Count",
     )
 
     datapoints = conn.get_metric_statistics(**metric_kwargs)
@@ -174,6 +176,19 @@ def test_get_metric_statistics():
     datapoint = datapoints[0]
     datapoint.should.have.key("Minimum").which.should.equal(1.5)
     datapoint.should.have.key("Timestamp").which.should.equal(metric_timestamp)
+
+    metric_kwargs = dict(
+        namespace="tester",
+        metric_name="metric",
+        start_time=metric_timestamp,
+        end_time=datetime.now(),
+        period=3600,
+        statistics=["Minimum"],
+        unit="Percent",
+    )
+
+    datapoints = conn.get_metric_statistics(**metric_kwargs)
+    datapoints.should.have.length_of(0)
 
 
 # TODO: THIS IS CURRENTLY BROKEN!

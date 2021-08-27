@@ -10,7 +10,8 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_acm, settings
 from moto.core import ACCOUNT_ID
-from unittest import SkipTest
+
+from unittest import SkipTest, mock
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 _GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
@@ -528,6 +529,36 @@ def test_request_certificate_issued_status():
             resp = client.describe_certificate(CertificateArn=arn)
         resp["Certificate"]["CertificateArn"].should.equal(arn)
         resp["Certificate"]["Status"].should.equal("ISSUED")
+
+
+@mock.patch("moto.settings.ACM_VALIDATION_WAIT", 3)
+@mock_acm
+def test_request_certificate_issued_status_with_wait_in_envvar():
+    # After requesting a certificate, it should then auto-validate after 3 seconds
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    with freeze_time("2012-01-01 12:00:00"):
+        resp = client.request_certificate(DomainName="google.com",)
+    arn = resp["CertificateArn"]
+
+    with freeze_time("2012-01-01 12:00:00"):
+        resp = client.describe_certificate(CertificateArn=arn)
+    resp["Certificate"]["CertificateArn"].should.equal(arn)
+    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
+
+    # validation will be pending for 3 seconds.
+    with freeze_time("2012-01-01 12:00:02"):
+        resp = client.describe_certificate(CertificateArn=arn)
+    resp["Certificate"]["CertificateArn"].should.equal(arn)
+    resp["Certificate"]["Status"].should.equal("PENDING_VALIDATION")
+
+    with freeze_time("2012-01-01 12:00:04"):
+        resp = client.describe_certificate(CertificateArn=arn)
+    resp["Certificate"]["CertificateArn"].should.equal(arn)
+    resp["Certificate"]["Status"].should.equal("ISSUED")
 
 
 @mock_acm
