@@ -42,7 +42,7 @@ class VPCs(BaseResponse):
     def describe_vpcs(self):
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = (
             "2013-10-15"
             if "Boto/" in self.headers.get("user-agent", "")
@@ -69,7 +69,7 @@ class VPCs(BaseResponse):
     def describe_vpc_classic_link_dns_support(self):
         vpc_ids = self._get_multi_param("VpcIds")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(
             DESCRIBE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE
@@ -101,7 +101,7 @@ class VPCs(BaseResponse):
     def describe_vpc_classic_link(self):
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(DESCRIBE_VPC_CLASSIC_LINK_RESPONSE)
         return template.render(vpcs=vpcs, doc_date=doc_date)
@@ -212,7 +212,7 @@ class VPCs(BaseResponse):
     def describe_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
         filters = filters_from_querystring(self.querystring)
-        vpc_end_points = self.ec2_backend.get_vpc_end_point(
+        vpc_end_points = self.ec2_backend.describe_vpc_endpoints(
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
