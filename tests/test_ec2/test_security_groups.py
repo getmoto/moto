@@ -378,6 +378,8 @@ def test_authorize_other_group_egress_and_revoke():
             {"GroupId": sg02.id, "GroupName": "sg02", "UserId": sg02.owner_id}
         ],
         "IpRanges": [],
+        "Ipv6Ranges": [],
+        "PrefixListIds": [],
     }
 
     sg01.authorize_egress(IpPermissions=[ip_permission])
@@ -858,6 +860,8 @@ def test_authorize_and_revoke_in_bulk():
                 {"GroupId": sg02.id, "GroupName": "sg02", "UserId": sg02.owner_id}
             ],
             "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -865,6 +869,8 @@ def test_authorize_and_revoke_in_bulk():
             "ToPort": 27018,
             "UserIdGroupPairs": [{"GroupId": sg02.id, "UserId": sg02.owner_id}],
             "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -872,6 +878,8 @@ def test_authorize_and_revoke_in_bulk():
             "ToPort": 27017,
             "UserIdGroupPairs": [{"GroupName": "sg03", "UserId": sg03.owner_id}],
             "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -881,6 +889,8 @@ def test_authorize_and_revoke_in_bulk():
             "IpRanges": [
                 {"CidrIp": "10.10.10.0/24", "Description": "Some Description"}
             ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
         {
             "IpProtocol": "tcp",
@@ -888,6 +898,8 @@ def test_authorize_and_revoke_in_bulk():
             "ToPort": 27016,
             "UserIdGroupPairs": [{"GroupId": sg04.id, "UserId": sg04.owner_id}],
             "IpRanges": [{"CidrIp": "10.10.10.0/24"}],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
         },
     ]
     expected_ip_permissions = copy.deepcopy(ip_permissions)
@@ -979,6 +991,8 @@ def test_revoke_security_group_egress():
                 "IpProtocol": "-1",
                 "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "UserIdGroupPairs": [],
+                "Ipv6Ranges": [],
+                "PrefixListIds": [],
             }
         ]
     )
@@ -989,6 +1003,8 @@ def test_revoke_security_group_egress():
                 "IpProtocol": "-1",
                 "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "UserIdGroupPairs": [],
+                "Ipv6Ranges": [],
+                "PrefixListIds": [],
             }
         ]
     )

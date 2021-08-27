@@ -274,3 +274,38 @@ class GlueResponse(BaseResponse):
             out["Errors"] = errors_output
 
         return json.dumps(out)
+
+    def create_crawler(self):
+        self.glue_backend.create_crawler(
+            name=self.parameters.get("Name"),
+            role=self.parameters.get("Role"),
+            database_name=self.parameters.get("DatabaseName"),
+            description=self.parameters.get("Description"),
+            targets=self.parameters.get("Targets"),
+            schedule=self.parameters.get("Schedule"),
+            classifiers=self.parameters.get("Classifiers"),
+            table_prefix=self.parameters.get("TablePrefix"),
+            schema_change_policy=self.parameters.get("SchemaChangePolicy"),
+            recrawl_policy=self.parameters.get("RecrawlPolicy"),
+            lineage_configuration=self.parameters.get("LineageConfiguration"),
+            configuration=self.parameters.get("Configuration"),
+            crawler_security_configuration=self.parameters.get(
+                "CrawlerSecurityConfiguration"
+            ),
+            tags=self.parameters.get("Tags"),
+        )
+        return ""
+
+    def get_crawler(self):
+        name = self.parameters.get("Name")
+        crawler = self.glue_backend.get_crawler(name)
+        return json.dumps({"Crawler": crawler.as_dict()})
+
+    def get_crawlers(self):
+        crawlers = self.glue_backend.get_crawlers()
+        return json.dumps({"Crawlers": [crawler.as_dict() for crawler in crawlers]})
+
+    def delete_crawler(self):
+        name = self.parameters.get("Name")
+        self.glue_backend.delete_crawler(name)
+        return ""

@@ -7,6 +7,8 @@ from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from .exceptions import (
     JsonRESTError,
+    CrawlerAlreadyExistsException,
+    CrawlerNotFoundException,
     DatabaseAlreadyExistsException,
     DatabaseNotFoundException,
     TableAlreadyExistsException,
@@ -20,6 +22,7 @@ from .exceptions import (
 class GlueBackend(BaseBackend):
     def __init__(self):
         self.databases = OrderedDict()
+        self.crawlers = OrderedDict()
 
     def create_database(self, database_name, database_input):
         if database_name in self.databases:
@@ -66,6 +69,59 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise TableNotFoundException(table_name)
         return {}
+
+    def create_crawler(
+        self,
+        name,
+        role,
+        database_name,
+        description,
+        targets,
+        schedule,
+        classifiers,
+        table_prefix,
+        schema_change_policy,
+        recrawl_policy,
+        lineage_configuration,
+        configuration,
+        crawler_security_configuration,
+        tags,
+    ):
+        if name in self.crawlers:
+            raise CrawlerAlreadyExistsException()
+
+        crawler = FakeCrawler(
+            name=name,
+            role=role,
+            database_name=database_name,
+            description=description,
+            targets=targets,
+            schedule=schedule,
+            classifiers=classifiers,
+            table_prefix=table_prefix,
+            schema_change_policy=schema_change_policy,
+            recrawl_policy=recrawl_policy,
+            lineage_configuration=lineage_configuration,
+            configuration=configuration,
+            crawler_security_configuration=crawler_security_configuration,
+            tags=tags,
+        )
+        self.crawlers[name] = crawler
+
+    def get_crawler(self, name):
+        try:
+            return self.crawlers[name]
+        except KeyError:
+            raise CrawlerNotFoundException(name)
+
+    def get_crawlers(self):
+        return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
+
+    def delete_crawler(self, name):
+        try:
+            del self.crawlers[name]
+        except KeyError:
+            raise CrawlerNotFoundException(name)
 
 
 class FakeDatabase(BaseModel):
@@ -175,6 +231,102 @@ class FakePartition(BaseModel):
         }
         obj.update(self.partition_input)
         return obj
+
+
+class FakeCrawler(BaseModel):
+    def __init__(
+        self,
+        name,
+        role,
+        database_name,
+        description,
+        targets,
+        schedule,
+        classifiers,
+        table_prefix,
+        schema_change_policy,
+        recrawl_policy,
+        lineage_configuration,
+        configuration,
+        crawler_security_configuration,
+        tags,
+    ):
+        self.name = name
+        self.role = role
+        self.database_name = database_name
+        self.description = description
+        self.targets = targets
+        self.schedule = schedule
+        self.classifiers = classifiers
+        self.table_prefix = table_prefix
+        self.schema_change_policy = schema_change_policy
+        self.recrawl_policy = recrawl_policy
+        self.lineage_configuration = lineage_configuration
+        self.configuration = configuration
+        self.crawler_security_configuration = crawler_security_configuration
+        self.tags = tags
+        self.state = "READY"
+        self.creation_time = datetime.utcnow()
+        self.last_updated = self.creation_time
+        self.version = 1
+        self.crawl_elapsed_time = 0
+        self.last_crawl_info = None
+
+    def as_dict(self):
+        last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None
+        data = {
+            "Name": self.name,
+            "Role": self.role,
+            "Targets": self.targets,
+            "DatabaseName": self.database_name,
+            "Description": self.description,
+            "Classifiers": self.classifiers,
+            "RecrawlPolicy": self.recrawl_policy,
+            "SchemaChangePolicy": self.schema_change_policy,
+            "LineageConfiguration": self.lineage_configuration,
+            "State": self.state,
+            "TablePrefix": self.table_prefix,
+            "CrawlElapsedTime": self.crawl_elapsed_time,
+            "CreationTime": self.creation_time.isoformat(),
+            "LastUpdated": self.last_updated.isoformat(),
+            "LastCrawl": last_crawl,
+            "Version": self.version,
+            "Configuration": self.configuration,
+            "CrawlerSecurityConfiguration": self.crawler_security_configuration,
+        }
+
+        if self.schedule:
+            data["Schedule"] = {
+                "ScheduleExpression": self.schedule,
+                "State": "SCHEDULED",
+            }
+
+        if self.last_crawl_info:
+            data["LastCrawl"] = self.last_crawl_info.as_dict()
+
+        return data
+
+
+class LastCrawlInfo(BaseModel):
+    def __init__(
+        self, error_message, log_group, log_stream, message_prefix, start_time, status,
+    ):
+        self.error_message = error_message
+        self.log_group = log_group
+        self.log_stream = log_stream
+        self.message_prefix = message_prefix
+        self.start_time = start_time
+        self.status = status
+
+    def as_dict(self):
+        return {
+            "ErrorMessage": self.error_message,
+            "LogGroup": self.log_group,
+            "LogStream": self.log_stream,
+            "MessagePrefix": self.message_prefix,
+            "StartTime": self.start_time,
+            "Status": self.status,
+        }
 
 
 glue_backend = GlueBackend()

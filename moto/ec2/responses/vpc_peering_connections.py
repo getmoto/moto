@@ -45,7 +45,25 @@ class VPCPeeringConnections(BaseResponse):
         template = self.response_template(REJECT_VPC_PEERING_CONNECTION_RESPONSE)
         return template.render()
 
+    def modify_vpc_peering_connection_options(self):
+        vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
+        accepter_options = self._get_multi_param_dict(
+            "AccepterPeeringConnectionOptions"
+        )
+        requester_options = self._get_multi_param_dict(
+            "RequesterPeeringConnectionOptions"
+        )
+        self.ec2_backend.modify_vpc_peering_connection_options(
+            vpc_pcx_id, accepter_options, requester_options
+        )
+        template = self.response_template(MODIFY_VPC_PEERING_CONNECTION_RESPONSE)
+        return template.render(
+            accepter_options=accepter_options, requester_options=requester_options
+        )
 
+
+# we are assuming that the owner id for accepter and requester vpc are same
+# as we are checking for the vpc exsistance
 CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
     """
 <CreateVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
@@ -53,13 +71,15 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
  <vpcPeeringConnection>
   <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
-     <ownerId>777788889999</ownerId>
+     <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
      <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
      <peeringOptions>
-       <allowEgressFromLocalClassicLinkToRemoteVpc>false</allowEgressFromLocalClassicLinkToRemoteVpc>
-       <allowEgressFromLocalVpcToRemoteClassicLink>false</allowEgressFromLocalVpcToRemoteClassicLink>
-       <allowDnsResolutionFromRemoteVpc>false</allowDnsResolutionFromRemoteVpc>
+       <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+       <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+       <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
      </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
@@ -67,6 +87,11 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
     + ACCOUNT_ID
     + """</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
+      <peeringOptions>
+        <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+        <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+        <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+      </peeringOptions>
     </accepterVpcInfo>
     <status>
      <code>initiating-request</code>
@@ -95,10 +120,17 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
  <item>
   <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
-     <ownerId>777788889999</ownerId>
+     <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
      <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
      <region>{{ vpc_pcx.vpc.ec2_backend.region_name }}</region>
+     <peeringOptions>
+      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+     </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
      <ownerId>"""
@@ -106,12 +138,12 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
     + """</ownerId>
      <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
-     <peeringOptions>
-        <allowEgressFromLocalClassicLinkToRemoteVpc>false</allowEgressFromLocalClassicLinkToRemoteVpc>
-        <allowEgressFromLocalVpcToRemoteClassicLink>true</allowEgressFromLocalVpcToRemoteClassicLink>
-        <allowDnsResolutionFromRemoteVpc>false</allowDnsResolutionFromRemoteVpc>
-     </peeringOptions>
      <region>{{ vpc_pcx.peer_vpc.ec2_backend.region_name }}</region>
+     <peeringOptions>
+      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+     </peeringOptions>
     </accepterVpcInfo>
      <status>
       <code>{{ vpc_pcx._status.code }}</code>
@@ -146,7 +178,9 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
   <vpcPeeringConnection>
     <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
-      <ownerId>777788889999</ownerId>
+      <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
       <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
       <region>{{ vpc_pcx.vpc.ec2_backend.region_name }}</region>
@@ -158,9 +192,9 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
       <peeringOptions>
-        <allowEgressFromLocalClassicLinkToRemoteVpc>false</allowEgressFromLocalClassicLinkToRemoteVpc>
-        <allowEgressFromLocalVpcToRemoteClassicLink>false</allowEgressFromLocalVpcToRemoteClassicLink>
-        <allowDnsResolutionFromRemoteVpc>false</allowDnsResolutionFromRemoteVpc>
+        <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+        <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+        <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
       </peeringOptions>
       <region>{{ vpc_pcx.peer_vpc.ec2_backend.region_name }}</region>
     </accepterVpcInfo>
@@ -186,4 +220,24 @@ REJECT_VPC_PEERING_CONNECTION_RESPONSE = """
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <return>true</return>
 </RejectVpcPeeringConnectionResponse>
+"""
+
+MODIFY_VPC_PEERING_CONNECTION_RESPONSE = """
+<ModifyVpcPeeringConnectionOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>8d977c82-8aba-4cd1-81ca-example</requestId>
+  {% if requester_options %}
+  <requesterPeeringConnectionOptions>
+    <allowEgressFromLocalClassicLinkToRemoteVpc>{{ requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+    <allowEgressFromLocalVpcToRemoteClassicLink>{{ requester_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+    <allowDnsResolutionFromRemoteVpc>{{ requester_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+  </requesterPeeringConnectionOptions>
+  {% endif %}
+  {% if accepter_options %}
+  <accepterPeeringConnectionOptions>
+    <allowEgressFromLocalClassicLinkToRemoteVpc>{{ accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+    <allowEgressFromLocalVpcToRemoteClassicLink>{{ accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+    <allowDnsResolutionFromRemoteVpc>{{ accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+  </accepterPeeringConnectionOptions>
+  {% endif %}
+</ModifyVpcPeeringConnectionOptionsResponse>
 """
