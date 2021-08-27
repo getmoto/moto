@@ -28,7 +28,7 @@ class NatGateways(BaseResponse):
 
     def describe_nat_gateways(self):
         filters = filters_from_querystring(self.querystring)
-        nat_gateways = self.ec2_backend.get_all_nat_gateways(filters)
+        nat_gateways = self.ec2_backend.describe_nat_gateways(filters)
         template = self.response_template(DESCRIBE_NAT_GATEWAYS_RESPONSE)
         return template.render(nat_gateways=nat_gateways)
 

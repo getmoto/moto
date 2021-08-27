@@ -24,7 +24,7 @@ class InstanceResponse(BaseResponse):
                 instance_ids, filters=filter_dict
             )
         else:
-            reservations = self.ec2_backend.all_reservations(filters=filter_dict)
+            reservations = self.ec2_backend.describe_instances(filters=filter_dict)
 
         reservation_ids = [reservation.id for reservation in reservations]
         if token:
@@ -129,14 +129,9 @@ class InstanceResponse(BaseResponse):
             for f in filters
         ]
 
-        if instance_ids:
-            instances = self.ec2_backend.get_multi_instances_by_id(
-                instance_ids, filters
-            )
-        elif include_all_instances:
-            instances = self.ec2_backend.all_instances(filters)
-        else:
-            instances = self.ec2_backend.all_running_instances(filters)
+        instances = self.ec2_backend.describe_instance_status(
+            instance_ids, include_all_instances, filters
+        )
 
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)

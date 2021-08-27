@@ -136,7 +136,7 @@ mock_firehose = lazy_load(".firehose", "mock_firehose")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.5.dev"
+__version__ = "2.2.6.dev"
 
 
 try:

@@ -4,6 +4,41 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.5
+-----
+    General:
+        * Python 3.9 is now officially supported
+
+    New Methods:
+        * DynamoDB (API v20111205, now deprecated)
+            * UpdateItem
+        * EC2:
+            * modify_vpc_peering_connection_options()
+        * Glue:
+            * create_crawler()
+            * delete_crawler()
+            * get_crawler()
+            * get_crawlers()
+        * SSM:
+            * describe_document_permission()
+            * modify_document_permission()
+
+    Miscellaneous:
+        * CloudFormation:create_stack() now has validation for an empty Outputs-parameter
+        * EC2 now returns errors in the correct format, fixing various bugs with `terraform destroy`
+        * EC2:authorize_security_group_egress() now returns the securityGroupRuleSet-attribute
+        * EC2:authorize_security_group_ingress() now returns the securityGroupRuleSet-attribute
+        * EC2:create_route() now supports the EgressOnlyInternetGatewayId-parameter
+        * EC2:create_route_table() now adds an IPv6-route when enabled
+        * EC2:describe_security_groups() now returns the ipv6Ranges-attribute
+        * EC2:describe_vpc_peering_connection() now supports the VpcPeeringConnectionIds-parameter
+        * Organisations:detach_policy() now actually detaches a policy - before it was essentially a no-op
+        * Route53:create_health_check() now supports the CallerReference-parameter
+        * Route53:create_health_check() now support default values for integer-parameters such as Port/RequestInterval/FailureThreshold
+        * Route53:create_health_check() now supports several additional parameters such as MeasureLatency/Inverted/Disabled/EnableSNI/ChildHealthChecks
+        * SQS:create_queue() now supports the queue-attributes FifoThroughputLimit and DeduplicationScope
+
+
 2.2.4
 -----
     New Methods:

@@ -928,13 +928,13 @@ class SimpleSystemManagerBackend(BaseBackend):
         permission_type,
     ):
 
-        account_id_regex = re.compile(r"(all|[0-9]{12})")
+        account_id_regex = re.compile(r"^(all|[0-9]{12})$", re.IGNORECASE)
         version_regex = re.compile(r"^([$]LATEST|[$]DEFAULT|[$]ALL)$")
 
         account_ids_to_add = account_ids_to_add or []
         account_ids_to_remove = account_ids_to_remove or []
 
-        if not version_regex.match(shared_document_version):
+        if shared_document_version and not version_regex.match(shared_document_version):
             raise ValidationException(
                 f"Value '{shared_document_version}' at 'sharedDocumentVersion' failed to satisfy constraint: "
                 f"Member must satisfy regular expression pattern: ([$]LATEST|[$]DEFAULT|[$]ALL)."

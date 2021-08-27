@@ -70,7 +70,7 @@ class RouteTables(BaseResponse):
     def describe_route_tables(self):
         route_table_ids = self._get_multi_param("RouteTableId")
         filters = filters_from_querystring(self.querystring)
-        route_tables = self.ec2_backend.get_all_route_tables(route_table_ids, filters)
+        route_tables = self.ec2_backend.describe_route_tables(route_table_ids, filters)
         template = self.response_template(DESCRIBE_ROUTE_TABLES_RESPONSE)
         return template.render(route_tables=route_tables)
 
