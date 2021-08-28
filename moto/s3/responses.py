@@ -8,6 +8,7 @@ import sys
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import (
+    amzn_request_id,
     str_to_rfc_1123_datetime,
     py2_strip_unicode_keys,
     unix_time_millis,
@@ -259,6 +260,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # Using path-based buckets
             return self.bucket_response(request, full_url, headers)
 
+    @amzn_request_id
     def bucket_response(self, request, full_url, headers):
         self.method = request.method
         self.path = self._get_path(request)
@@ -1026,6 +1028,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             line = body_io.readline()
         return bytes(new_body)
 
+    @amzn_request_id
     def key_or_control_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
