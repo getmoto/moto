@@ -268,7 +268,7 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "-1",
             "ip_ranges": [{"CidrIp": "0.0.0.0/0"}],
             "to_port": None,
-            "source_group_ids": [],
+            "source_groups": [],
         },
         {
             "group_name_or_id": EmrManagedSecurityGroup.Kind.SLAVE,
@@ -276,7 +276,7 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "-1",
             "ip_ranges": [{"CidrIp": "0.0.0.0/0"}],
             "to_port": None,
-            "source_group_ids": [],
+            "source_groups": [],
         },
         {
             "group_name_or_id": EmrManagedSecurityGroup.Kind.SERVICE,
@@ -284,9 +284,9 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "tcp",
             "ip_ranges": [],
             "to_port": 8443,
-            "source_group_ids": [
-                EmrManagedSecurityGroup.Kind.MASTER,
-                EmrManagedSecurityGroup.Kind.SLAVE,
+            "source_groups": [
+                {"GroupId": EmrManagedSecurityGroup.Kind.MASTER},
+                {"GroupId": EmrManagedSecurityGroup.Kind.SLAVE},
             ],
         },
     ]
@@ -298,9 +298,9 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "tcp",
             "ip_ranges": [],
             "to_port": 65535,
-            "source_group_ids": [
-                EmrManagedSecurityGroup.Kind.MASTER,
-                EmrManagedSecurityGroup.Kind.SLAVE,
+            "source_groups": [
+                {"GroupId": EmrManagedSecurityGroup.Kind.MASTER},
+                {"GroupId": EmrManagedSecurityGroup.Kind.SLAVE},
             ],
         },
         {
@@ -309,7 +309,7 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "tcp",
             "ip_ranges": [],
             "to_port": 8443,
-            "source_group_ids": [EmrManagedSecurityGroup.Kind.SERVICE],
+            "source_groups": [{"GroupId": EmrManagedSecurityGroup.Kind.SERVICE}],
         },
         {
             "group_name_or_id": EmrManagedSecurityGroup.Kind.MASTER,
@@ -317,9 +317,9 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "udp",
             "ip_ranges": [],
             "to_port": 65535,
-            "source_group_ids": [
-                EmrManagedSecurityGroup.Kind.MASTER,
-                EmrManagedSecurityGroup.Kind.SLAVE,
+            "source_groups": [
+                {"GroupId": EmrManagedSecurityGroup.Kind.MASTER},
+                {"GroupId": EmrManagedSecurityGroup.Kind.SLAVE},
             ],
         },
         {
@@ -328,9 +328,9 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "icmp",
             "ip_ranges": [],
             "to_port": -1,
-            "source_group_ids": [
-                EmrManagedSecurityGroup.Kind.MASTER,
-                EmrManagedSecurityGroup.Kind.SLAVE,
+            "source_groups": [
+                {"GroupId": EmrManagedSecurityGroup.Kind.MASTER},
+                {"GroupId": EmrManagedSecurityGroup.Kind.SLAVE},
             ],
         },
         {
@@ -339,9 +339,9 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "tcp",
             "ip_ranges": [],
             "to_port": 65535,
-            "source_group_ids": [
-                EmrManagedSecurityGroup.Kind.SLAVE,
-                EmrManagedSecurityGroup.Kind.MASTER,
+            "source_groups": [
+                {"GroupId": EmrManagedSecurityGroup.Kind.MASTER},
+                {"GroupId": EmrManagedSecurityGroup.Kind.SLAVE},
             ],
         },
         {
@@ -350,7 +350,7 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "tcp",
             "ip_ranges": [],
             "to_port": 8443,
-            "source_group_ids": [EmrManagedSecurityGroup.Kind.SERVICE],
+            "source_groups": [{"GroupId": EmrManagedSecurityGroup.Kind.SERVICE}],
         },
         {
             "group_name_or_id": EmrManagedSecurityGroup.Kind.SLAVE,
@@ -358,9 +358,9 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "udp",
             "ip_ranges": [],
             "to_port": 65535,
-            "source_group_ids": [
-                EmrManagedSecurityGroup.Kind.MASTER,
-                EmrManagedSecurityGroup.Kind.SLAVE,
+            "source_groups": [
+                {"GroupId": EmrManagedSecurityGroup.Kind.MASTER},
+                {"GroupId": EmrManagedSecurityGroup.Kind.SLAVE},
             ],
         },
         {
@@ -369,9 +369,9 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "icmp",
             "ip_ranges": [],
             "to_port": -1,
-            "source_group_ids": [
-                EmrManagedSecurityGroup.Kind.MASTER,
-                EmrManagedSecurityGroup.Kind.SLAVE,
+            "source_groups": [
+                {"GroupId": EmrManagedSecurityGroup.Kind.MASTER},
+                {"GroupId": EmrManagedSecurityGroup.Kind.SLAVE},
             ],
         },
         {
@@ -380,7 +380,7 @@ class EmrSecurityGroupManager(object):
             "ip_protocol": "tcp",
             "ip_ranges": [],
             "to_port": 9443,
-            "source_group_ids": [EmrManagedSecurityGroup.Kind.MASTER],
+            "source_groups": [{"GroupId": EmrManagedSecurityGroup.Kind.MASTER}],
         },
     ]
 
@@ -452,7 +452,8 @@ class EmrSecurityGroupManager(object):
         rendered_rules = copy.deepcopy(rules)
         for rule in rendered_rules:
             rule["group_name_or_id"] = managed_groups[rule["group_name_or_id"]].id
-            rule["source_group_ids"] = [
-                managed_groups[group].id for group in rule["source_group_ids"]
+            rule["source_groups"] = [
+                {"GroupId": managed_groups[group.get("GroupId")].id}
+                for group in rule["source_groups"]
             ]
         return rendered_rules

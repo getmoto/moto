@@ -2128,6 +2128,12 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
         for ingress_rule in properties.get("SecurityGroupIngress", []):
             source_group_id = ingress_rule.get("SourceSecurityGroupId",)
+            source_group_name = ingress_rule.get("SourceSecurityGroupName",)
+            source_group = {}
+            if source_group_id:
+                source_group["GroupId"] = source_group_id
+            if source_group_name:
+                source_group["GroupName"] = source_group_name
 
             ec2_backend.authorize_security_group_ingress(
                 group_name_or_id=security_group.id,
@@ -2135,7 +2141,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
                 from_port=ingress_rule["FromPort"],
                 to_port=ingress_rule["ToPort"],
                 ip_ranges=ingress_rule.get("CidrIp"),
-                source_group_ids=[source_group_id] if source_group_id else [],
+                source_groups=[source_group] if source_group else [],
                 vpc_id=vpc_id,
             )
 
@@ -2340,7 +2346,7 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        _source_groups=[],
+        source_groups=[],
         prefix_list_ids=None,
         vpc_id=None,
     ):
@@ -2369,11 +2375,11 @@ class SecurityGroupBackend(object):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
-            group, group.get_number_of_ingress_rules(), ip_ranges, _source_groups,
+            group, group.get_number_of_ingress_rules(), ip_ranges, source_groups,
         )
 
-        source_groups = []
-        for item in _source_groups:
+        _source_groups = []
+        for item in source_groups:
             if "OwnerId" not in item:
                 item["OwnerId"] = ACCOUNT_ID
             # for VPCs
@@ -2381,17 +2387,23 @@ class SecurityGroupBackend(object):
                 if not self.get_security_group_from_id(item.get("GroupId")):
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
             if "GroupName" in item:
-                group = self.get_security_group_from_name(item.get("GroupName"), vpc_id)
-                if not group:
+                source_group = self.get_security_group_from_name(
+                    item.get("GroupName"), vpc_id
+                )
+                if not source_group:
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
                 else:
-                    item["GroupId"] = group.id
+                    item["GroupId"] = source_group.id
+            if "GroupName" not in item:
+                source_group = self.get_security_group_from_id(item.get("GroupId"))
+                if source_group:
+                    item["GroupName"] = source_group.name
             if vpc_id:
                 item["VpcId"] = vpc_id
-            source_groups.append(item)
+            _source_groups.append(item)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
+            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
         group.add_ingress_rule(security_rule)
         return security_rule, group
@@ -2403,32 +2415,38 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        _source_groups=[],
+        source_groups=[],
         prefix_list_ids=None,
         vpc_id=None,
     ):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
-        source_groups = []
-        for item in _source_groups:
+        _source_groups = []
+        for item in source_groups:
             if "OwnerId" not in item:
                 item["OwnerId"] = ACCOUNT_ID
-            # for VPCs`
+            # for VPCs
             if "GroupId" in item:
                 if not self.get_security_group_from_id(item.get("GroupId")):
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
             if "GroupName" in item:
-                group = self.get_security_group_from_name(item.get("GroupName"), vpc_id)
-                if not group:
+                source_group = self.get_security_group_from_name(
+                    item.get("GroupName"), vpc_id
+                )
+                if not source_group:
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
                 else:
-                    item["GroupId"] = group.id
+                    item["GroupId"] = source_group.id
+            if "GroupName" not in item:
+                source_group = self.get_security_group_from_id(item.get("GroupId"))
+                if source_group:
+                    item["GroupName"] = source_group.name
             if vpc_id:
                 item["VpcId"] = vpc_id
-            source_groups.append(item)
+            _source_groups.append(item)
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
+            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
         if security_rule in group.ingress_rules:
             group.ingress_rules.remove(security_rule)
@@ -2443,7 +2461,7 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        _source_groups=[],
+        source_groups=[],
         prefix_list_ids=None,
         vpc_id=None,
     ):
@@ -2475,12 +2493,12 @@ class SecurityGroupBackend(object):
             group,
             group.get_number_of_egress_rules(),
             ip_ranges,
-            _source_groups,
+            source_groups,
             egress=True,
         )
 
-        source_groups = []
-        for item in _source_groups:
+        _source_groups = []
+        for item in source_groups:
             if "OwnerId" not in item:
                 item["OwnerId"] = ACCOUNT_ID
             # for VPCs
@@ -2488,17 +2506,23 @@ class SecurityGroupBackend(object):
                 if not self.get_security_group_from_id(item.get("GroupId")):
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
             if "GroupName" in item:
-                group = self.get_security_group_from_name(item.get("GroupName"), vpc_id)
-                if not group:
+                source_group = self.get_security_group_from_name(
+                    item.get("GroupName"), vpc_id
+                )
+                if not source_group:
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
                 else:
-                    item["GroupId"] = group.id
+                    item["GroupId"] = source_group.id
+            if "GroupName" not in item:
+                source_group = self.get_security_group_from_id(item.get("GroupId"))
+                if source_group:
+                    item["GroupName"] = source_group.name
             if vpc_id:
                 item["VpcId"] = vpc_id
-            source_groups.append(item)
+            _source_groups.append(item)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
+            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
         group.add_egress_rule(security_rule)
         return security_rule, group
@@ -2510,15 +2534,15 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        _source_groups=[],
+        source_groups=[],
         prefix_list_ids=None,
         vpc_id=None,
     ):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
-        source_groups = []
-        for item in _source_groups:
+        _source_groups = []
+        for item in source_groups:
             if "OwnerId" not in item:
                 item["OwnerId"] = ACCOUNT_ID
             # for VPCs
@@ -2526,14 +2550,20 @@ class SecurityGroupBackend(object):
                 if not self.get_security_group_from_id(item.get("GroupId")):
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
             if "GroupName" in item:
-                group = self.get_security_group_from_name(item.get("GroupName"), vpc_id)
-                if not group:
+                source_group = self.get_security_group_from_name(
+                    item.get("GroupName"), vpc_id
+                )
+                if not source_group:
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
                 else:
-                    item["GroupId"] = group.id
+                    item["GroupId"] = source_group.id
+            if "GroupName" not in item:
+                source_group = self.get_security_group_from_id(item.get("GroupId"))
+                if source_group:
+                    item["GroupName"] = source_group.name
             if vpc_id:
                 item["VpcId"] = vpc_id
-            source_groups.append(item)
+            _source_groups.append(item)
 
         # I don't believe this is required after changing the default egress rule
         # to be {'CidrIp': '0.0.0.0/0'} instead of just '0.0.0.0/0'
@@ -2550,7 +2580,7 @@ class SecurityGroupBackend(object):
                         ip_ranges.remove(item)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids
+            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)
@@ -2618,14 +2648,11 @@ class SecurityGroupIngress(CloudFormationModel):
         )
         assert ip_protocol
 
+        source_group = {}
         if source_security_group_id:
-            source_security_group_ids = [source_security_group_id]
-        else:
-            source_security_group_ids = None
+            source_group["GroupId"] = source_security_group_id
         if source_security_group_name:
-            source_security_group_names = [source_security_group_name]
-        else:
-            source_security_group_names = None
+            source_group["GroupName"] = source_security_group_name
         if cidr_ip:
             ip_ranges = [{"CidrIp": cidr_ip, "Description": cidr_desc}]
         else:
@@ -2646,8 +2673,7 @@ class SecurityGroupIngress(CloudFormationModel):
             from_port=from_port,
             to_port=to_port,
             ip_ranges=ip_ranges,
-            source_group_ids=source_security_group_ids,
-            source_group_names=source_security_group_names,
+            source_groups=[source_group] if source_group else [],
         )
 
         return cls(security_group, properties)

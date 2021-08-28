@@ -266,7 +266,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                                  {% if source_group.OwnerId and source_group.OwnerId != "" %}
                                  <userId>{{ source_group.OwnerId }}</userId>
                                  {% endif %}
-                                 {% if source_group.GroupId and source_group.GroupId != "" and not source_group.GroupName %}
+                                 {% if source_group.GroupId and source_group.GroupId != "" %}
                                  <groupId>{{ source_group.GroupId }}</groupId>
                                  {% endif %}
                                  {% if source_group.GroupName and source_group.GroupName != "" %}
@@ -331,7 +331,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                                  {% if source_group.OwnerId and source_group.OwnerId != "" %}
                                  <userId>{{ source_group.OwnerId }}</userId>
                                  {% endif %}
-                                 {% if source_group.GroupId and source_group.GroupId != "" and not source_group.GroupName %}
+                                 {% if source_group.GroupId and source_group.GroupId != "" %}
                                  <groupId>{{ source_group.GroupId }}</groupId>
                                  {% endif %}
                                  {% if source_group.GroupName and source_group.GroupName != "" %}

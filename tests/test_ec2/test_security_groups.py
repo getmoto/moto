@@ -1047,7 +1047,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
         "ip_protocol": "udp",
         "ip_ranges": [],
         "to_port": 65535,
-        "source_group_ids": [sg.id],
+        "source_groups": [{"GroupId": sg.id}],
     }
     ec2_backend.authorize_security_group_ingress(**rule_ingress)
     rule_egress = {
@@ -1056,7 +1056,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
         "ip_protocol": "tcp",
         "ip_ranges": [],
         "to_port": 8443,
-        "source_group_ids": [sg.id],
+        "source_groups": [{"GroupId": sg.id}],
     }
     ec2_backend.authorize_security_group_egress(**rule_egress)
     # Both rules (plus the default egress) should now be present.
