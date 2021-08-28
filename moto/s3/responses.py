@@ -1187,10 +1187,17 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # Flask server
             body = request.data
-            # when the data is being passed as a file
-            if request.files and not body:
-                for _, value in request.files.items():
-                    body = value.stream.read()
+            if not body:
+                # when the data is being passed as a file
+                if request.files:
+                    for _, value in request.files.items():
+                        body = value.stream.read()
+                elif hasattr(request, "form"):
+                    # Body comes through as part of the form, if no content-type is set on the PUT-request
+                    # form = ImmutableMultiDict([('some data 123 321', '')])
+                    form = request.form
+                    for k, _ in form.items():
+                        body = k
 
         if body is None:
             body = b""

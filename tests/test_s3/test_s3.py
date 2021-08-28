@@ -5186,6 +5186,22 @@ def test_object_headers():
     res.should.have.key("BucketKeyEnabled")
 
 
+if settings.TEST_SERVER_MODE:
+
+    @mock_s3
+    def test_upload_data_without_content_type():
+        bucket = "mybucket"
+        s3 = boto3.client("s3")
+        s3.create_bucket(Bucket=bucket)
+        data_input = b"some data 123 321"
+        req = requests.put("http://localhost:5000/mybucket/test.txt", data=data_input)
+        req.status_code.should.equal(200)
+
+        res = s3.get_object(Bucket=bucket, Key="test.txt")
+        data = res["Body"].read()
+        assert data == data_input
+
+
 @mock_s3
 def test_get_object_versions_with_prefix():
     bucket_name = "testbucket-3113"
