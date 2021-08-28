@@ -6039,7 +6039,7 @@ def test_error_when_providing_expression_and_nonexpression_params():
     )
 
 
-@mock_dynamodb2      
+@mock_dynamodb2
 def test_attribute_item_delete():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="eu-west-1")
