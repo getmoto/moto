@@ -8,6 +8,58 @@ from botocore.exceptions import ClientError
 from moto import mock_iam, mock_cloudformation, mock_s3, mock_sts
 from moto.core import ACCOUNT_ID
 
+
+TEMPLATE_MINIMAL_ROLE = """
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  RootRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+"""
+
+
+TEMPLATE_ROLE_INSTANCE_PROFILE = """
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  RootRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: {0}
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+  RootInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref RootRole
+"""
+
 # AWS::IAM::User Tests
 @mock_iam
 @mock_cloudformation
@@ -1384,3 +1436,62 @@ Resources:
 
     access_keys = iam_client.list_access_keys(UserName=other_user_name)
     access_key_id.should_not.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_role():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = TEMPLATE_MINIMAL_ROLE.strip()
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
+    role["LogicalResourceId"].should.equal("RootRole")
+    role_name = role["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    iam_client.list_roles()["Roles"].should.have.length_of(1)
+
+    cf_client.delete_stack(StackName=stack_name)
+
+    iam_client.list_roles()["Roles"].should.have.length_of(0)
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_role_and_instance_profile():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+    role_name = "MyUser"
+
+    template = TEMPLATE_ROLE_INSTANCE_PROFILE.strip().format(role_name)
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
+    role["LogicalResourceId"].should.equal("RootRole")
+    role["PhysicalResourceId"].should.equal(role_name)
+    profile = [
+        res for res in resources if res["ResourceType"] == "AWS::IAM::InstanceProfile"
+    ][0]
+    profile["LogicalResourceId"].should.equal("RootInstanceProfile")
+    profile["PhysicalResourceId"].should.contain(
+        stack_name
+    )  # e.g. MyStack-RootInstanceProfile-73Y4H4ALFW3N
+    profile["PhysicalResourceId"].should.contain("RootInstanceProfile")
+
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    iam_client.list_roles()["Roles"].should.have.length_of(1)
+
+    cf_client.delete_stack(StackName=stack_name)
+
+    iam_client.list_roles()["Roles"].should.have.length_of(0)
