@@ -1718,6 +1718,8 @@ class S3Backend(BaseBackend):
         self, bucket_name, multipart_id, part_number_marker=0, max_parts=1000
     ):
         bucket = self.get_bucket(bucket_name)
+        if multipart_id not in bucket.multiparts:
+            raise NoSuchUpload(upload_id=multipart_id)
         return list(
             bucket.multiparts[multipart_id].list_parts(part_number_marker, max_parts)
         )
@@ -1741,12 +1743,6 @@ class S3Backend(BaseBackend):
         if value is not None:
             del bucket.multiparts[multipart_id]
         return multipart, value, etag
-
-    def list_multipart(self, bucket_name, multipart_id):
-        bucket = self.get_bucket(bucket_name)
-        if multipart_id not in bucket.multiparts:
-            raise NoSuchUpload(upload_id=multipart_id)
-        return list(bucket.multiparts[multipart_id].list_parts())
 
     def get_all_multiparts(self, bucket_name):
         bucket = self.get_bucket(bucket_name)

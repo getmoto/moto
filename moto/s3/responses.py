@@ -45,7 +45,7 @@ from .exceptions import (
     MissingBucket,
     MissingKey,
     MissingVersion,
-    InvalidArgumentError,
+    InvalidMaxPartArgument,
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
@@ -1238,12 +1238,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # 0 <= PartNumberMarker <= 2,147,483,647
             part_number_marker = int(query.get("part-number-marker", [0])[0])
             if not (0 <= part_number_marker <= 2147483647):
-                raise InvalidArgumentError("part-number-marker", 0, 2147483647)
+                raise InvalidMaxPartArgument("part-number-marker", 0, 2147483647)
 
             # 0 <= MaxParts <= 2,147,483,647 (default is 1,000)
             max_parts = int(query.get("max-parts", [1000])[0])
             if not (0 <= max_parts <= 2147483647):
-                raise InvalidArgumentError("max-parts", 0, 2147483647)
+                raise InvalidMaxPartArgument("max-parts", 0, 2147483647)
 
             parts = self.backend.list_multipart(
                 bucket_name,
