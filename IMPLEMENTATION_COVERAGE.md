@@ -4220,23 +4220,23 @@
 
 ## elastictranscoder
 <details>
-<summary>0% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] cancel_job
 - [ ] create_job
-- [ ] create_pipeline
+- [X] create_pipeline
 - [ ] create_preset
-- [ ] delete_pipeline
+- [X] delete_pipeline
 - [ ] delete_preset
 - [ ] list_jobs_by_pipeline
 - [ ] list_jobs_by_status
-- [ ] list_pipelines
+- [X] list_pipelines
 - [ ] list_presets
 - [ ] read_job
-- [ ] read_pipeline
+- [X] read_pipeline
 - [ ] read_preset
 - [ ] test_role
-- [ ] update_pipeline
+- [X] update_pipeline
 - [ ] update_pipeline_notifications
 - [ ] update_pipeline_status
 </details>
