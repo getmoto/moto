@@ -92,7 +92,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | Config                    | @mock_config          | basic + core endpoints done     |                             |
 | Data Pipeline             | @mock_datapipeline    | basic endpoints done            |                             |
 | DynamoDB                  | @mock_dynamodb        | core endpoints done             | API 20111205. Deprecated.   |
-| DynamoDB2                 | @mock_dynamodb2       | all endpoints + partial indexes | API 20120810 (Latest)       |
+| DynamoDB2                 | @mock_dynamodb2       | core endpoints done             | API 20120810 (Latest)       |
 | EC2                       | @mock_ec2             | core endpoints done             |                             |
 |     - AMI                 |                       | core endpoints done             |                             |
 |     - EBS                 |                       | core endpoints done             |                             |
@@ -302,7 +302,7 @@ have altered some of the mock behavior. In short, you need to ensure that you _a
    This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
    See the pesky imports section below on how to work around this.
 
-### Example on usage?
+### Example on pytest usage?
 If you are a user of [pytest](https://pytest.org/en/latest/), you can leverage [pytest fixtures](https://pytest.org/en/latest/fixture.html#fixture)
 to help set up your mocks and other AWS resources that you would need.
 
@@ -351,6 +351,57 @@ def test_create_bucket(s3):
     assert len(result['Buckets']) == 1
     assert result['Buckets'][0]['Name'] == 'somebucket'
 ```
+
+### Example on unittest usage?
+
+If you use [`unittest`](https://docs.python.org/3/library/unittest.html) to run tests, and you want to use `moto` inside `setUp` or `setUpClass`, you can do it with `.start()` and `.stop()` like:
+
+```python
+import unittest
+from moto import mock_s3
+import boto3
+
+def func_to_test(bucket_name, key, content):
+    s3 = boto3.resource('s3')
+    object = s3.Object(bucket_name, key)
+    object.put(Body=content)
+
+class MyTest(unittest.TestCase):
+    mock_s3 = mock_s3()
+    bucket_name = 'test-bucket'
+    def setUp(self):
+        self.mock_s3.start()
+
+        # you can use boto3.client('s3') if you prefer
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket(self.bucket_name)
+        bucket.create(
+            CreateBucketConfiguration={
+                'LocationConstraint': 'af-south-1'
+            })
+
+    def tearDown(self):
+        self.mock_s3.stop()
+
+    def test(self):
+        content = b"abc"
+        key = '/path/to/obj'
+
+        # run the file which uploads to S3
+        func_to_test(self.bucket_name, key, content)
+
+        # check the file was uploaded as expected
+        s3 = boto3.resource('s3')
+        object = s3.Object(self.bucket_name, key)
+        actual = object.get()['Body'].read()
+        self.assertEqual(actual, content)
+```
+
+If your test `unittest.TestCase` has only one test method,
+and you don't need to create AWS resources in `setUp`,
+you can use the context manager (`with mock_s3():`) within that function,
+or apply the decorator to that method, instead of `.start()` and `.stop()`.
+That is simpler, however you then cannot share resource setup code (e.g. S3 bucket creation) between tests.
 
 ### What about those pesky imports?
 Recall earlier, it was mentioned that mocks should be established __BEFORE__ the clients are set up. One way
@@ -439,7 +490,7 @@ require that you update your hosts file for your code to work properly:
 1. `s3-control`
 
 For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
-As a result, you need to add that entry to your host file for your tests to function properly. 
+As a result, you need to add that entry to your host file for your tests to function properly.
 
 ## Releases
 

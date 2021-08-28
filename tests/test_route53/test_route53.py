@@ -43,23 +43,27 @@ def test_hosted_zone():
 def test_rrset():
     conn = boto.connect_route53("the_key", "the_secret")
 
-    conn.get_all_rrsets.when.called_with("abcd", type="A").should.throw(
+    conn.get_all_rrsets.when.called_with("abcd").should.throw(
         boto.route53.exception.DNSServerError, "404 Not Found"
     )
 
     zone = conn.create_hosted_zone("testdns.aws.com")
     zoneid = zone["CreateHostedZoneResponse"]["HostedZone"]["Id"].split("/")[-1]
 
+    conn.get_all_rrsets.when.called_with(zoneid, type="A").should.throw(
+        boto.route53.exception.DNSServerError, "400 Bad Request"
+    )
+
     changes = ResourceRecordSets(conn, zoneid)
     change = changes.add_change("CREATE", "foo.bar.testdns.aws.com", "A")
     change.add_value("1.2.3.4")
     changes.commit()
 
-    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets = conn.get_all_rrsets(zoneid)
     rrsets.should.have.length_of(1)
     rrsets[0].resource_records[0].should.equal("1.2.3.4")
 
-    rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.bar.testdns.aws.com.", type="CNAME")
     rrsets.should.have.length_of(0)
 
     changes = ResourceRecordSets(conn, zoneid)
@@ -68,7 +72,7 @@ def test_rrset():
     change.add_value("5.6.7.8")
     changes.commit()
 
-    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets = conn.get_all_rrsets(zoneid)
     rrsets.should.have.length_of(1)
     rrsets[0].resource_records[0].should.equal("5.6.7.8")
 
@@ -84,7 +88,7 @@ def test_rrset():
     change.add_value("1.2.3.4")
     changes.commit()
 
-    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets = conn.get_all_rrsets(zoneid)
     rrsets.should.have.length_of(1)
     rrsets[0].resource_records[0].should.equal("1.2.3.4")
 
@@ -93,7 +97,7 @@ def test_rrset():
     change.add_value("5.6.7.8")
     changes.commit()
 
-    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets = conn.get_all_rrsets(zoneid)
     rrsets.should.have.length_of(1)
     rrsets[0].resource_records[0].should.equal("5.6.7.8")
 
@@ -113,24 +117,36 @@ def test_rrset():
     changes.commit()
 
     changes = ResourceRecordSets(conn, zoneid)
+    change = changes.add_change("CREATE", "bar.foo.testdns.aws.com", "TXT")
+    change.add_value("bar")
     change = changes.add_change("CREATE", "foo.bar.testdns.aws.com", "A")
     change.add_value("1.2.3.4")
     change = changes.add_change("CREATE", "bar.foo.testdns.aws.com", "A")
     change.add_value("5.6.7.8")
     changes.commit()
 
-    rrsets = conn.get_all_rrsets(zoneid, type="A")
-    rrsets.should.have.length_of(2)
-
-    rrsets = conn.get_all_rrsets(zoneid, name="bar.foo.testdns.aws.com", type="A")
-    rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal("5.6.7.8")
+    rrsets = conn.get_all_rrsets(zoneid)
+    rrsets.should.have.length_of(3)
+    rrsets[0].resource_records[0].should.equal("1.2.3.4")
+    rrsets[1].resource_records[0].should.equal("5.6.7.8")
+    rrsets[2].resource_records[0].should.equal("bar")
 
     rrsets = conn.get_all_rrsets(zoneid, name="foo.bar.testdns.aws.com", type="A")
-    rrsets.should.have.length_of(2)
+    rrsets.should.have.length_of(3)
     resource_records = [rr for rr_set in rrsets for rr in rr_set.resource_records]
     resource_records.should.contain("1.2.3.4")
     resource_records.should.contain("5.6.7.8")
+    resource_records.should.contain("bar")
+
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.testdns.aws.com", type="A")
+    rrsets.should.have.length_of(2)
+    rrsets[0].resource_records[0].should.equal("5.6.7.8")
+    rrsets[1].resource_records[0].should.equal("bar")
+
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.bar.testdns.aws.com", type="TXT")
+    rrsets.should.have.length_of(2)
+    rrsets[0].resource_records[0].should.equal("5.6.7.8")
+    rrsets[1].resource_records[0].should.equal("bar")
 
     rrsets = conn.get_all_rrsets(zoneid, name="foo.foo.testdns.aws.com", type="A")
     rrsets.should.have.length_of(0)
@@ -148,7 +164,7 @@ def test_rrset_with_multiple_values():
     change.add_value("5.6.7.8")
     changes.commit()
 
-    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets = conn.get_all_rrsets(zoneid)
     rrsets.should.have.length_of(1)
     set(rrsets[0].resource_records).should.equal(set(["1.2.3.4", "5.6.7.8"]))
 
@@ -176,16 +192,16 @@ def test_alias_rrset():
     )
     changes.commit()
 
-    rrsets = conn.get_all_rrsets(zoneid, type="A")
+    rrsets = conn.get_all_rrsets(zoneid, name="alias.testdns.aws.com")
     alias_targets = [rr_set.alias_dns_name for rr_set in rrsets]
     alias_targets.should.have.length_of(2)
     alias_targets.should.contain("foo.testdns.aws.com")
     alias_targets.should.contain("bar.testdns.aws.com")
-    rrsets[0].alias_dns_name.should.equal("foo.testdns.aws.com")
-    rrsets[0].resource_records.should.have.length_of(0)
-    rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
-    rrsets.should.have.length_of(1)
     rrsets[0].alias_dns_name.should.equal("bar.testdns.aws.com")
+    rrsets[0].resource_records.should.have.length_of(0)
+    rrsets = conn.get_all_rrsets(zoneid, name="foo.alias.testdns.aws.com", type="A")
+    rrsets.should.have.length_of(1)
+    rrsets[0].alias_dns_name.should.equal("foo.testdns.aws.com")
     rrsets[0].resource_records.should.have.length_of(0)
 
 
@@ -504,6 +520,54 @@ def test_list_hosted_zones_by_name():
     zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
     zones["HostedZones"][1]["Name"].should.equal("test.a.org.")
     zones["HostedZones"][2]["Name"].should.equal("test.a.org.")
+
+
+@mock_route53
+def test_list_hosted_zones_by_dns_name():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="test.b.com.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test org"),
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test org 2"),
+    )
+    conn.create_hosted_zone(
+        Name="my.test.net.",
+        CallerReference=str(hash("baz")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test net"),
+    )
+
+    # test lookup
+    zones = conn.list_hosted_zones_by_name(DNSName="test.b.com.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["DNSName"].should.equal("test.b.com.")
+    zones = conn.list_hosted_zones_by_name(DNSName="test.a.org.")
+    len(zones["HostedZones"]).should.equal(2)
+    zones["DNSName"].should.equal("test.a.org.")
+    zones["DNSName"].should.equal("test.a.org.")
+    zones = conn.list_hosted_zones_by_name(DNSName="my.test.net.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["DNSName"].should.equal("my.test.net.")
+    zones = conn.list_hosted_zones_by_name(DNSName="my.test.net")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["DNSName"].should.equal("my.test.net.")
+
+    # test sort order
+    zones = conn.list_hosted_zones_by_name()
+    len(zones["HostedZones"]).should.equal(4)
+    zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
+    zones["HostedZones"][1]["Name"].should.equal("my.test.net.")
+    zones["HostedZones"][2]["Name"].should.equal("test.a.org.")
+    zones["HostedZones"][3]["Name"].should.equal("test.a.org.")
 
 
 @mock_route53

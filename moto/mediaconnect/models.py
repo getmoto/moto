@@ -23,6 +23,10 @@ class Flow(BaseModel):
         self.description = None
         self.flow_arn = None
         self.egress_ip = None
+        if self.source and not self.sources:
+            self.sources = [
+                self.source,
+            ]
 
     def to_dict(self, include=None):
         data = {
@@ -92,6 +96,10 @@ class MediaConnectBackend(BaseBackend):
         sources,
         vpc_interfaces,
     ):
+        if isinstance(source, dict) and source.get("name"):
+            source["sourceArn"] = "arn:aws:mediaconnect:source:{}".format(
+                source["name"]
+            )
         flow = Flow(
             availability_zone=availability_zone,
             entitlements=entitlements,
@@ -176,6 +184,54 @@ class MediaConnectBackend(BaseBackend):
         else:
             raise NotFoundException(message="Resource not found.")
         return resource.tags
+
+    def add_flow_vpc_interfaces(self, flow_arn, vpc_interfaces):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.vpc_interfaces = vpc_interfaces
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, flow.vpc_interfaces
+
+    def add_flow_outputs(self, flow_arn, outputs):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.outputs = outputs
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, flow.outputs
+
+    def remove_flow_vpc_interface(self, flow_arn, vpc_interface_name):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.vpc_interfaces = [
+                vpc_interface
+                for vpc_interface in self._flows[flow_arn].vpc_interfaces
+                if vpc_interface["name"] != vpc_interface_name
+            ]
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, vpc_interface_name
+
+    def remove_flow_output(self, flow_arn, output_name):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.outputs = [
+                output
+                for output in self._flows[flow_arn].outputs
+                if output["name"] != output_name
+            ]
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, output_name
 
     # add methods from here
 

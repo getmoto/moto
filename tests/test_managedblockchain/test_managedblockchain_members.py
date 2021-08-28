@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 
 import boto3
+import pytest
 import sure  # noqa
 
+from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_managedblockchain
 from . import helpers
 
@@ -165,13 +167,17 @@ def test_create_another_member_withopts():
     response["Member"]["Description"].should.equal("Test Member 2")
 
     # Try to create member with already used invitation
-    response = conn.create_member.when.called_with(
-        InvitationId=invitation_id,
-        NetworkId=network_id,
-        MemberConfiguration=helpers.create_member_configuration(
-            "testmember2", "admin", "Admin12345", False, "Test Member 2 Duplicate"
-        ),
-    ).should.throw(Exception, "Invitation {0} not valid".format(invitation_id))
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            InvitationId=invitation_id,
+            NetworkId=network_id,
+            MemberConfiguration=helpers.create_member_configuration(
+                "testmember2", "admin", "Admin12345", False, "Test Member 2 Duplicate"
+            ),
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain("Invitation {0} not valid".format(invitation_id))
 
     # Delete member 2
     conn.delete_member(NetworkId=network_id, MemberId=member_id2)
@@ -182,9 +188,11 @@ def test_create_another_member_withopts():
     members.should.have.length_of(2)
 
     # But cannot get
-    response = conn.get_member.when.called_with(
-        NetworkId=network_id, MemberId=member_id2,
-    ).should.throw(Exception, "Member {0} not found".format(member_id2))
+    with pytest.raises(ClientError) as ex:
+        conn.get_member(NetworkId=network_id, MemberId=member_id2)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member {0} not found".format(member_id2))
 
     # Delete member 1
     conn.delete_member(NetworkId=network_id, MemberId=member_id)
@@ -362,13 +370,17 @@ def test_create_too_many_members():
     )[0]
 
     # Try to create one too many members
-    response = conn.create_member.when.called_with(
-        InvitationId=invitation_id,
-        NetworkId=network_id,
-        MemberConfiguration=helpers.create_member_configuration(
-            "testmember6", "admin", "Admin12345", False, "Test Member 6"
-        ),
-    ).should.throw(Exception, "is the maximum number of members allowed in a",)
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            InvitationId=invitation_id,
+            NetworkId=network_id,
+            MemberConfiguration=helpers.create_member_configuration(
+                "testmember6", "admin", "Admin12345", False, "Test Member 6"
+            ),
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceLimitExceededException")
+    err["Message"].should.contain("is the maximum number of members allowed in a")
 
 
 @mock_managedblockchain
@@ -409,17 +421,20 @@ def test_create_another_member_alreadyhave():
     invitation_id = response["Invitations"][0]["InvitationId"]
 
     # Should fail trying to create with same name
-    response = conn.create_member.when.called_with(
-        NetworkId=network_id,
-        InvitationId=invitation_id,
-        MemberConfiguration=helpers.create_member_configuration(
-            "testmember1", "admin", "Admin12345", False
-        ),
-    ).should.throw(
-        Exception,
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            NetworkId=network_id,
+            InvitationId=invitation_id,
+            MemberConfiguration=helpers.create_member_configuration(
+                "testmember1", "admin", "Admin12345", False
+            ),
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain(
         "Member name {0} already exists in network {1}".format(
             "testmember1", network_id
-        ),
+        )
     )
 
 
@@ -427,13 +442,17 @@ def test_create_another_member_alreadyhave():
 def test_create_another_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.create_member.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        InvitationId="id-ABCDEFGHIJKLMNOP0123456789",
-        MemberConfiguration=helpers.create_member_configuration(
-            "testmember2", "admin", "Admin12345", False
-        ),
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            InvitationId="id-ABCDEFGHIJKLMNOP0123456789",
+            MemberConfiguration=helpers.create_member_configuration(
+                "testmember2", "admin", "Admin12345", False
+            ),
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -451,13 +470,17 @@ def test_create_another_member_badinvitation():
     )
     network_id = response["NetworkId"]
 
-    response = conn.create_member.when.called_with(
-        NetworkId=network_id,
-        InvitationId="in-ABCDEFGHIJKLMNOP0123456789",
-        MemberConfiguration=helpers.create_member_configuration(
-            "testmember2", "admin", "Admin12345", False
-        ),
-    ).should.throw(Exception, "Invitation in-ABCDEFGHIJKLMNOP0123456789 not valid")
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            NetworkId=network_id,
+            InvitationId="in-ABCDEFGHIJKLMNOP0123456789",
+            MemberConfiguration=helpers.create_member_configuration(
+                "testmember2", "admin", "Admin12345", False
+            ),
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain("Invitation in-ABCDEFGHIJKLMNOP0123456789 not valid")
 
 
 @mock_managedblockchain
@@ -509,73 +532,97 @@ def test_create_another_member_adminpassword():
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
         "AdminPassword"
     ] = "badap"
-    response = conn.create_member.when.called_with(
-        NetworkId=network_id,
-        InvitationId=invitation_id,
-        MemberConfiguration=badadminpassmemberconf,
-    ).should.throw(
-        Exception,
-        "Invalid length for parameter MemberConfiguration.FrameworkConfiguration.Fabric.AdminPassword",
+    with pytest.raises(ParamValidationError) as ex:
+        conn.create_member(
+            NetworkId=network_id,
+            InvitationId=invitation_id,
+            MemberConfiguration=badadminpassmemberconf,
+        )
+    err = ex.value
+    str(err).should.contain(
+        "Invalid length for parameter MemberConfiguration.FrameworkConfiguration.Fabric.AdminPassword"
     )
 
     # No uppercase or numbers
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
         "AdminPassword"
     ] = "badadminpwd"
-    response = conn.create_member.when.called_with(
-        NetworkId=network_id,
-        InvitationId=invitation_id,
-        MemberConfiguration=badadminpassmemberconf,
-    ).should.throw(Exception, "Invalid request body")
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            NetworkId=network_id,
+            InvitationId=invitation_id,
+            MemberConfiguration=badadminpassmemberconf,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.contain("Invalid request body")
 
     # No lowercase or numbers
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
         "AdminPassword"
     ] = "BADADMINPWD"
-    response = conn.create_member.when.called_with(
-        NetworkId=network_id,
-        InvitationId=invitation_id,
-        MemberConfiguration=badadminpassmemberconf,
-    ).should.throw(Exception, "Invalid request body")
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            NetworkId=network_id,
+            InvitationId=invitation_id,
+            MemberConfiguration=badadminpassmemberconf,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.contain("Invalid request body")
 
     # No numbers
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
         "AdminPassword"
     ] = "badAdminpwd"
-    response = conn.create_member.when.called_with(
-        NetworkId=network_id,
-        InvitationId=invitation_id,
-        MemberConfiguration=badadminpassmemberconf,
-    ).should.throw(Exception, "Invalid request body")
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            NetworkId=network_id,
+            InvitationId=invitation_id,
+            MemberConfiguration=badadminpassmemberconf,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.contain("Invalid request body")
 
     # Invalid character
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
         "AdminPassword"
     ] = "badAdmin@pwd1"
-    response = conn.create_member.when.called_with(
-        NetworkId=network_id,
-        InvitationId=invitation_id,
-        MemberConfiguration=badadminpassmemberconf,
-    ).should.throw(Exception, "Invalid request body")
+    with pytest.raises(ClientError) as ex:
+        conn.create_member(
+            NetworkId=network_id,
+            InvitationId=invitation_id,
+            MemberConfiguration=badadminpassmemberconf,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.contain("Invalid request body")
 
 
 @mock_managedblockchain
 def test_list_members_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.list_members.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.list_members(NetworkId="n-ABCDEFGHIJKLMNOP0123456789")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
 def test_get_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.get_member.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_member(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -593,19 +640,25 @@ def test_get_member_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.get_member.when.called_with(
-        NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_member(NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
 def test_delete_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.delete_member.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.delete_member(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -623,22 +676,30 @@ def test_delete_member_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.delete_member.when.called_with(
-        NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.delete_member(
+            NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789"
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
 def test_update_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.update_member.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        LogPublishingConfiguration=helpers.default_memberconfiguration[
-            "LogPublishingConfiguration"
-        ],
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.update_member(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            LogPublishingConfiguration=helpers.default_memberconfiguration[
+                "LogPublishingConfiguration"
+            ],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -656,10 +717,14 @@ def test_update_member_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.update_member.when.called_with(
-        NetworkId=network_id,
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        LogPublishingConfiguration=helpers.default_memberconfiguration[
-            "LogPublishingConfiguration"
-        ],
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.update_member(
+            NetworkId=network_id,
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            LogPublishingConfiguration=helpers.default_memberconfiguration[
+                "LogPublishingConfiguration"
+            ],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")

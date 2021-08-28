@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import datetime
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 

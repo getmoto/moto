@@ -5,6 +5,7 @@ import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import AWSError
 from moto.ec2 import ec2_backends
+from moto import settings
 
 from .utils import make_arn_for_certificate
 
@@ -324,13 +325,15 @@ class CertBundle(BaseModel):
             )
 
     def check(self):
-        # Basically, if the certificate is pending, and then checked again after 1 min
-        # It will appear as if its been validated
+        # Basically, if the certificate is pending, and then checked again after a
+        # while, it will appear as if its been validated. The default wait time is 60
+        # seconds but you can set an environment to change it.
+        waited_seconds = (datetime.datetime.now() - self.created_at).total_seconds()
         if (
             self.type == "AMAZON_ISSUED"
             and self.status == "PENDING_VALIDATION"
-            and (datetime.datetime.now() - self.created_at).total_seconds() > 60
-        ):  # 1min
+            and waited_seconds > settings.ACM_VALIDATION_WAIT
+        ):
             self.status = "ISSUED"
 
     def describe(self):
@@ -445,11 +448,13 @@ class AWSCertificateManagerBackend(BaseBackend):
             else:
                 # Will reuse provided ARN
                 bundle = CertBundle(
-                    certificate, private_key, chain=chain, region=region, arn=arn
+                    certificate, private_key, chain=chain, region=self.region, arn=arn
                 )
         else:
             # Will generate a random ARN
-            bundle = CertBundle(certificate, private_key, chain=chain, region=region)
+            bundle = CertBundle(
+                certificate, private_key, chain=chain, region=self.region
+            )
 
         self._certificates[bundle.arn] = bundle
 

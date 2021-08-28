@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 from jinja2 import Template
-from six.moves.urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import BaseResponse
 from .models import route53_backend
 import xmltodict
+
+XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
 class Route53(BaseResponse):
@@ -53,10 +55,9 @@ class Route53(BaseResponse):
         dnsname = query_params.get("dnsname")
 
         if dnsname:
-            dnsname = dnsname[
-                0
-            ]  # parse_qs gives us a list, but this parameter doesn't repeat
-            # return all zones with that name (there can be more than one)
+            dnsname = dnsname[0]
+            if dnsname[-1] != ".":
+                dnsname += "."
             zones = [
                 zone
                 for zone in route53_backend.get_all_hosted_zones()
@@ -76,7 +77,7 @@ class Route53(BaseResponse):
             zones = sorted(zones, key=sort_key)
 
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
-        return 200, headers, template.render(zones=zones)
+        return 200, headers, template.render(zones=zones, dnsname=dnsname)
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -84,7 +85,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return 404, headers, "Zone %s not Found" % zoneid
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if request.method == "GET":
             template = Template(GET_HOSTED_ZONE_RESPONSE)
@@ -103,7 +104,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return 404, headers, "Zone %s Not Found" % zoneid
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if method == "POST":
             elements = xmltodict.parse(self.body)
@@ -167,6 +168,10 @@ class Route53(BaseResponse):
             template = Template(LIST_RRSET_RESPONSE)
             start_type = querystring.get("type", [None])[0]
             start_name = querystring.get("name", [None])[0]
+
+            if start_type and not start_name:
+                return 400, headers, "The input is not valid"
+
             record_sets = the_zone.get_record_sets(start_type, start_name)
             return 200, headers, template.render(record_sets=record_sets)
 
@@ -177,20 +182,28 @@ class Route53(BaseResponse):
         method = request.method
 
         if method == "POST":
-            properties = xmltodict.parse(self.body)["CreateHealthCheckRequest"][
-                "HealthCheckConfig"
-            ]
+            json_body = xmltodict.parse(self.body)["CreateHealthCheckRequest"]
+            caller_reference = json_body["CallerReference"]
+            config = json_body["HealthCheckConfig"]
             health_check_args = {
-                "ip_address": properties.get("IPAddress"),
-                "port": properties.get("Port"),
-                "type": properties["Type"],
-                "resource_path": properties.get("ResourcePath"),
-                "fqdn": properties.get("FullyQualifiedDomainName"),
-                "search_string": properties.get("SearchString"),
-                "request_interval": properties.get("RequestInterval"),
-                "failure_threshold": properties.get("FailureThreshold"),
+                "ip_address": config.get("IPAddress"),
+                "port": config.get("Port"),
+                "type": config["Type"],
+                "resource_path": config.get("ResourcePath"),
+                "fqdn": config.get("FullyQualifiedDomainName"),
+                "search_string": config.get("SearchString"),
+                "request_interval": config.get("RequestInterval"),
+                "failure_threshold": config.get("FailureThreshold"),
+                "health_threshold": config.get("HealthThreshold"),
+                "measure_latency": config.get("MeasureLatency"),
+                "inverted": config.get("Inverted"),
+                "disabled": config.get("Disabled"),
+                "enable_sni": config.get("EnableSNI"),
+                "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
             }
-            health_check = route53_backend.create_health_check(health_check_args)
+            health_check = route53_backend.create_health_check(
+                caller_reference, health_check_args
+            )
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check)
         elif method == "DELETE":
@@ -251,6 +264,20 @@ class Route53(BaseResponse):
             change_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id)
+
+
+def no_such_hosted_zone_error(zoneid, headers={}):
+    headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
+    headers["Content-Type"] = "text/xml"
+    message = "Zone %s Not Found" % zoneid
+    error_response = (
+        "<Error><Code>NoSuchHostedZone</Code><Message>%s</Message></Error>" % message
+    )
+    error_response = '<ErrorResponse xmlns="%s">%s</ErrorResponse>' % (
+        XMLNS,
+        error_response,
+    )
+    return 404, headers, error_response
 
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
@@ -354,6 +381,9 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
 </ListHostedZonesResponse>"""
 
 LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+  {% if dnsname %}
+  <DNSName>{{ dnsname }}</DNSName>
+  {% endif %}
   <HostedZones>
       {% for zone in zones %}
       <HostedZone>

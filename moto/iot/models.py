@@ -12,6 +12,7 @@ from datetime import datetime
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
+from moto.utilities.utils import random_string
 from .exceptions import (
     CertificateStateException,
     DeleteConflictException,
@@ -20,8 +21,8 @@ from .exceptions import (
     InvalidStateTransitionException,
     VersionConflictException,
     ResourceAlreadyExistsException,
+    VersionsLimitExceededException,
 )
-from moto.utilities.utils import random_string
 
 
 class FakeThing(BaseModel):
@@ -144,7 +145,8 @@ class FakeCertificate(BaseModel):
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
-
+        self.validity_not_before = time.time() - 86400
+        self.validity_not_after = time.time() + 86400
         self.ca_certificate_id = None
         self.ca_certificate_pem = ca_certificate_pem
         if ca_certificate_pem:
@@ -174,6 +176,10 @@ class FakeCertificate(BaseModel):
             "ownedBy": self.owner,
             "creationDate": self.creation_date,
             "lastModifiedDate": self.last_modified_date,
+            "validity": {
+                "notBefore": self.validity_not_before,
+                "notAfter": self.validity_not_after,
+            },
             "transferData": self.transfer_data,
         }
 
@@ -509,6 +515,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                # note - typo (depreated) exists also in the original exception.
+                raise InvalidRequestException(
+                    msg=f"Can not create new thing with depreated thing type:{thing_type_name}"
+                )
         if attribute_payload is None:
             attributes = {}
         elif "attributes" not in attribute_payload:
@@ -623,6 +635,15 @@ class IoTBackend(BaseBackend):
         thing_type = self.describe_thing_type(thing_type_name)
         del self.thing_types[thing_type.arn]
 
+    def deprecate_thing_type(self, thing_type_name, undo_deprecate):
+        thing_types = [
+            _ for _ in self.thing_types.values() if _.thing_type_name == thing_type_name
+        ]
+        if len(thing_types) == 0:
+            raise ResourceNotFoundException()
+        thing_types[0].metadata["deprecated"] = not undo_deprecate
+        return thing_types[0]
+
     def update_thing(
         self,
         thing_name,
@@ -647,6 +668,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                raise InvalidRequestException(
+                    msg=f"Can not update a thing to use deprecated thing type: {thing_type_name}"
+                )
+
             thing.thing_type = thing_type
 
         if remove_thing_type:
@@ -810,6 +837,8 @@ class IoTBackend(BaseBackend):
         policy = self.get_policy(policy_name)
         if not policy:
             raise ResourceNotFoundException()
+        if len(policy.versions) >= 5:
+            raise VersionsLimitExceededException(policy_name)
         version = FakePolicyVersion(
             policy_name, policy_document, set_as_default, self.region_name
         )
@@ -925,7 +954,7 @@ class IoTBackend(BaseBackend):
 
     def list_principal_things(self, principal_arn):
         thing_names = [
-            k[0] for k, v in self.principal_things.items() if k[0] == principal_arn
+            k[1] for k, v in self.principal_things.items() if k[0] == principal_arn
         ]
         return thing_names
 
@@ -1348,7 +1377,7 @@ class IoTBackend(BaseBackend):
             topic_pattern=topic,
             sql=sql,
             region_name=self.region_name,
-            **kwargs
+            **kwargs,
         )
 
     def replace_topic_rule(self, rule_name, **kwargs):

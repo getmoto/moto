@@ -16,7 +16,7 @@ SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
 
 @mock_ec2_deprecated
 def test_dhcp_options_associate():
-    """ associate dhcp option """
+    """associate dhcp option"""
     conn = boto.connect_vpc("the_key", "the_secret")
     dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
     vpc = conn.create_vpc("10.0.0.0/16")
@@ -27,7 +27,7 @@ def test_dhcp_options_associate():
 
 @mock_ec2_deprecated
 def test_dhcp_options_associate_invalid_dhcp_id():
-    """ associate dhcp option bad dhcp options id """
+    """associate dhcp option bad dhcp options id"""
     conn = boto.connect_vpc("the_key", "the_secret")
     vpc = conn.create_vpc("10.0.0.0/16")
 
@@ -40,7 +40,7 @@ def test_dhcp_options_associate_invalid_dhcp_id():
 
 @mock_ec2_deprecated
 def test_dhcp_options_associate_invalid_vpc_id():
-    """ associate dhcp option invalid vpc id """
+    """associate dhcp option invalid vpc id"""
     conn = boto.connect_vpc("the_key", "the_secret")
     dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
 

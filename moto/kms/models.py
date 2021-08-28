@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import json
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -20,7 +21,7 @@ class Key(CloudFormationModel):
     ):
         self.id = generate_key_id()
         self.creation_date = unix_time()
-        self.policy = policy
+        self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
         self.description = description
@@ -33,6 +34,23 @@ class Key(CloudFormationModel):
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+
+    def generate_default_policy(self):
+        return json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Id": "key-default-1",
+                "Statement": [
+                    {
+                        "Sid": "Enable IAM User Permissions",
+                        "Effect": "Allow",
+                        "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                        "Action": "kms:*",
+                        "Resource": "*",
+                    }
+                ],
+            }
+        )
 
     @property
     def physical_resource_id(self):

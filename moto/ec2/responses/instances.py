@@ -12,7 +12,6 @@ from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
-import six
 
 
 class InstanceResponse(BaseResponse):
@@ -25,7 +24,7 @@ class InstanceResponse(BaseResponse):
                 instance_ids, filters=filter_dict
             )
         else:
-            reservations = self.ec2_backend.all_reservations(filters=filter_dict)
+            reservations = self.ec2_backend.describe_instances(filters=filter_dict)
 
         reservation_ids = [reservation.id for reservation in reservations]
         if token:
@@ -130,14 +129,9 @@ class InstanceResponse(BaseResponse):
             for f in filters
         ]
 
-        if instance_ids:
-            instances = self.ec2_backend.get_multi_instances_by_id(
-                instance_ids, filters
-            )
-        elif include_all_instances:
-            instances = self.ec2_backend.all_instances(filters)
-        else:
-            instances = self.ec2_backend.all_running_instances(filters)
+        instances = self.ec2_backend.describe_instance_status(
+            instance_ids, include_all_instances, filters
+        )
 
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
@@ -301,6 +295,7 @@ class InstanceResponse(BaseResponse):
             device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
                 device_mapping.get("ebs._encrypted", False)
             )
+            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("ebs._kms_key_id")
             mappings.append(device_template)
 
         return mappings
@@ -321,7 +316,7 @@ class InstanceResponse(BaseResponse):
         if isinstance(bool_str, bool):
             return bool_str
 
-        if isinstance(bool_str, six.text_type):
+        if isinstance(bool_str, str):
             return str(bool_str).lower() == "true"
 
         return False

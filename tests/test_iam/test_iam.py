@@ -18,7 +18,7 @@ import pytest
 from datetime import datetime
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
-from six.moves.urllib import parse
+from urllib import parse
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -808,6 +808,7 @@ def test_list_users():
     user["UserName"].should.equal("my-user")
     user["Path"].should.equal("/")
     user["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    response["IsTruncated"].should.equal(False)
 
     conn.create_user(UserName="my-user-1", Path="myUser")
     response = conn.list_users(PathPrefix="my")
@@ -2264,20 +2265,6 @@ def test_update_role():
     conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/",
     )
-    response = conn.update_role_description(RoleName="my-role", Description="test")
-    assert response["Role"]["RoleName"] == "my-role"
-
-
-@mock_iam()
-def test_update_role():
-    conn = boto3.client("iam", region_name="us-east-1")
-
-    with pytest.raises(ClientError):
-        conn.delete_role(RoleName="my-role")
-
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/",
-    )
     response = conn.update_role(RoleName="my-role", Description="test")
     assert len(response.keys()) == 1
 
@@ -2775,15 +2762,6 @@ def test_delete_account_password_policy():
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
         "The Password Policy with domain name {} cannot be found.".format(ACCOUNT_ID),
-    )
-
-
-@mock_iam
-def test_delete_account_password_policy_errors():
-    client = boto3.client("iam", region_name="us-east-1")
-
-    client.delete_account_password_policy.when.called_with().should.throw(
-        ClientError, "The account policy with name PasswordPolicy cannot be found.",
     )
 
 
@@ -4053,6 +4031,17 @@ def test_list_roles_without_description():
 
 
 @mock_iam()
+def test_list_roles_includes_max_session_duration():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy",
+    )
+
+    # Ensure the MaxSessionDuration is included in the role listing
+    conn.list_roles().get("Roles")[0].should.have.key("MaxSessionDuration")
+
+
+@mock_iam()
 def test_create_user_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     user_name = "test-user"
@@ -4064,7 +4053,8 @@ def test_create_user_with_tags():
     assert resp["User"]["Tags"] == tags
     resp = conn.list_user_tags(UserName=user_name)
     assert resp["Tags"] == tags
-
+    resp = conn.get_user(UserName=user_name)
+    assert resp["User"]["Tags"] == tags
     resp = conn.create_user(UserName="test-create-user-no-tags")
     assert "Tags" not in resp["User"]
 

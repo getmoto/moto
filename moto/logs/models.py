@@ -1,29 +1,42 @@
+import uuid
+
 from boto3 import Session
 
-from moto.core import BaseBackend
+from moto import core as moto_core
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
-from .exceptions import (
+from moto.logs.exceptions import (
     ResourceNotFoundException,
     ResourceAlreadyExistsException,
     InvalidParameterException,
     LimitExceededException,
 )
 
+MAX_RESOURCE_POLICIES_PER_REGION = 10
 
-class LogEvent:
+
+class LogQuery(BaseModel):
+    def __init__(self, query_id, start_time, end_time, query):
+        self.query_id = query_id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.query = query
+
+
+class LogEvent(BaseModel):
     _event_id = 0
 
     def __init__(self, ingestion_time, log_event):
-        self.ingestionTime = ingestion_time
+        self.ingestion_time = ingestion_time
         self.timestamp = log_event["timestamp"]
         self.message = log_event["message"]
-        self.eventId = self.__class__._event_id
+        self.event_id = self.__class__._event_id
         self.__class__._event_id += 1
 
     def to_filter_dict(self):
         return {
-            "eventId": str(self.eventId),
-            "ingestionTime": self.ingestionTime,
+            "eventId": str(self.event_id),
+            "ingestionTime": self.ingestion_time,
             # "logStreamName":
             "message": self.message,
             "timestamp": self.timestamp,
@@ -31,30 +44,30 @@ class LogEvent:
 
     def to_response_dict(self):
         return {
-            "ingestionTime": self.ingestionTime,
+            "ingestionTime": self.ingestion_time,
             "message": self.message,
             "timestamp": self.timestamp,
         }
 
 
-class LogStream:
+class LogStream(BaseModel):
     _log_ids = 0
 
     def __init__(self, region, log_group, name):
         self.region = region
         self.arn = "arn:aws:logs:{region}:{id}:log-group:{log_group}:log-stream:{log_stream}".format(
             region=region,
-            id=self.__class__._log_ids,
+            id=moto_core.ACCOUNT_ID,
             log_group=log_group,
             log_stream=name,
         )
-        self.creationTime = int(unix_time_millis())
-        self.firstEventTimestamp = None
-        self.lastEventTimestamp = None
-        self.lastIngestionTime = None
-        self.logStreamName = name
-        self.storedBytes = 0
-        self.uploadSequenceToken = (
+        self.creation_time = int(unix_time_millis())
+        self.first_event_timestamp = None
+        self.last_event_timestamp = None
+        self.last_ingestion_time = None
+        self.log_stream_name = name
+        self.stored_bytes = 0
+        self.upload_sequence_token = (
             0  # I'm  guessing this is token needed for sequenceToken by put_events
         )
         self.events = []
@@ -65,10 +78,10 @@ class LogStream:
 
     def _update(self):
         # events can be empty when stream is described soon after creation
-        self.firstEventTimestamp = (
+        self.first_event_timestamp = (
             min([x.timestamp for x in self.events]) if self.events else None
         )
-        self.lastEventTimestamp = (
+        self.last_event_timestamp = (
             max([x.timestamp for x in self.events]) if self.events else None
         )
 
@@ -78,16 +91,16 @@ class LogStream:
 
         res = {
             "arn": self.arn,
-            "creationTime": self.creationTime,
-            "logStreamName": self.logStreamName,
-            "storedBytes": self.storedBytes,
+            "creationTime": self.creation_time,
+            "logStreamName": self.log_stream_name,
+            "storedBytes": self.stored_bytes,
         }
         if self.events:
             rest = {
-                "firstEventTimestamp": self.firstEventTimestamp,
-                "lastEventTimestamp": self.lastEventTimestamp,
-                "lastIngestionTime": self.lastIngestionTime,
-                "uploadSequenceToken": str(self.uploadSequenceToken),
+                "firstEventTimestamp": self.first_event_timestamp,
+                "lastEventTimestamp": self.last_event_timestamp,
+                "lastIngestionTime": self.last_ingestion_time,
+                "uploadSequenceToken": str(self.upload_sequence_token),
             }
             res.update(rest)
         return res
@@ -97,21 +110,23 @@ class LogStream:
     ):
         # TODO: ensure sequence_token
         # TODO: to be thread safe this would need a lock
-        self.lastIngestionTime = int(unix_time_millis())
+        self.last_ingestion_time = int(unix_time_millis())
         # TODO: make this match AWS if possible
-        self.storedBytes += sum([len(log_event["message"]) for log_event in log_events])
+        self.stored_bytes += sum(
+            [len(log_event["message"]) for log_event in log_events]
+        )
         events = [
-            LogEvent(self.lastIngestionTime, log_event) for log_event in log_events
+            LogEvent(self.last_ingestion_time, log_event) for log_event in log_events
         ]
         self.events += events
-        self.uploadSequenceToken += 1
+        self.upload_sequence_token += 1
 
         if self.destination_arn and self.destination_arn.split(":")[2] == "lambda":
             from moto.awslambda import lambda_backends  # due to circular dependency
 
             lambda_log_events = [
                 {
-                    "id": event.eventId,
+                    "id": event.event_id,
                     "timestamp": event.timestamp,
                     "message": event.message,
                 }
@@ -126,7 +141,7 @@ class LogStream:
                 lambda_log_events,
             )
 
-        return "{:056d}".format(self.uploadSequenceToken)
+        return "{:056d}".format(self.upload_sequence_token)
 
     def get_log_events(
         self,
@@ -233,25 +248,28 @@ class LogStream:
             filter(filter_func, self.events), key=lambda x: x.timestamp
         ):
             event_obj = event.to_filter_dict()
-            event_obj["logStreamName"] = self.logStreamName
+            event_obj["logStreamName"] = self.log_stream_name
             events.append(event_obj)
         return events
 
 
-class LogGroup:
+class LogGroup(BaseModel):
     def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
-        self.arn = "arn:aws:logs:{region}:1:log-group:{log_group}".format(
-            region=region, log_group=name
-        )
-        self.creationTime = int(unix_time_millis())
+        self.arn = f"arn:aws:logs:{region}:{moto_core.ACCOUNT_ID}:log-group:{name}"
+        self.creation_time = int(unix_time_millis())
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
         self.retention_in_days = kwargs.get(
             "RetentionInDays"
         )  # AWS defaults to Never Expire for log group retention
         self.subscription_filters = []
+
+        # The Amazon Resource Name (ARN) of the CMK to use when encrypting log data. It is optional.
+        # Docs:
+        # https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+        self.kms_key_id = kwargs.get("kmsKeyId")
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -274,7 +292,7 @@ class LogGroup:
         next_token,
         order_by,
     ):
-        # responses only logStreamName, creationTime, arn, storedBytes when no events are stored.
+        # responses only log_stream_name, creation_time, arn, stored_bytes when no events are stored.
 
         log_streams = [
             (name, stream.to_describe_dict())
@@ -289,14 +307,34 @@ class LogGroup:
                 else item[1].get("lastEventTimestamp", 0)
             )
 
-        if next_token is None:
-            next_token = 0
-
         log_streams = sorted(log_streams, key=sorter, reverse=descending)
-        new_token = next_token + limit
-        log_streams_page = [x[1] for x in log_streams[next_token:new_token]]
-        if new_token >= len(log_streams):
-            new_token = None
+        first_index = 0
+        if next_token:
+            try:
+                group, stream = next_token.split("@")
+                if group != log_group_name:
+                    raise ValueError()
+                first_index = (
+                    next(
+                        index
+                        for (index, e) in enumerate(log_streams)
+                        if e[1]["logStreamName"] == stream
+                    )
+                    + 1
+                )
+            except (ValueError, StopIteration):
+                first_index = 0
+                log_streams = []
+
+        last_index = first_index + limit
+        if last_index > len(log_streams):
+            last_index = len(log_streams)
+        log_streams_page = [x[1] for x in log_streams[first_index:last_index]]
+        new_token = None
+        if log_streams_page and last_index < len(log_streams):
+            new_token = "{}@{}".format(
+                log_group_name, log_streams_page[-1]["logStreamName"]
+            )
 
         return log_streams_page, new_token
 
@@ -304,7 +342,7 @@ class LogGroup:
         self, log_group_name, log_stream_name, log_events, sequence_token
     ):
         if log_stream_name not in self.streams:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("The specified log stream does not exist.")
         stream = self.streams[log_stream_name]
         return stream.put_log_events(
             log_group_name, log_stream_name, log_events, sequence_token
@@ -366,16 +404,38 @@ class LogGroup:
         if interleaved:
             events = sorted(events, key=lambda event: event["timestamp"])
 
-        if next_token is None:
-            next_token = 0
+        first_index = 0
+        if next_token:
+            try:
+                group, stream, event_id = next_token.split("@")
+                if group != log_group_name:
+                    raise ValueError()
+                first_index = (
+                    next(
+                        index
+                        for (index, e) in enumerate(events)
+                        if e["logStreamName"] == stream and e["eventId"] == event_id
+                    )
+                    + 1
+                )
+            except (ValueError, StopIteration):
+                first_index = 0
+                # AWS returns an empty list if it receives an invalid token.
+                events = []
 
-        events_page = events[next_token : next_token + limit]
-        next_token += limit
-        if next_token >= len(events):
-            next_token = None
+        last_index = first_index + limit
+        if last_index > len(events):
+            last_index = len(events)
+        events_page = events[first_index:last_index]
+        next_token = None
+        if events_page and last_index < len(events):
+            last_event = events_page[-1]
+            next_token = "{}@{}@{}".format(
+                log_group_name, last_event["logStreamName"], last_event["eventId"]
+            )
 
         searched_streams = [
-            {"logStreamName": stream.logStreamName, "searchedCompletely": True}
+            {"logStreamName": stream.log_stream_name, "searchedCompletely": True}
             for stream in streams
         ]
         return events_page, next_token, searched_streams
@@ -383,14 +443,16 @@ class LogGroup:
     def to_describe_dict(self):
         log_group = {
             "arn": self.arn,
-            "creationTime": self.creationTime,
+            "creationTime": self.creation_time,
             "logGroupName": self.name,
             "metricFilterCount": 0,
-            "storedBytes": sum(s.storedBytes for s in self.streams.values()),
+            "storedBytes": sum(s.stored_bytes for s in self.streams.values()),
         }
         # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
         if self.retention_in_days:
             log_group["retentionInDays"] = self.retention_in_days
+        if self.kms_key_id:
+            log_group["kmsKeyId"] = self.kms_key_id
         return log_group
 
     def set_retention_policy(self, retention_in_days):
@@ -424,7 +486,7 @@ class LogGroup:
             if self.subscription_filters[0]["filterName"] == filter_name:
                 creation_time = self.subscription_filters[0]["creationTime"]
             else:
-                raise LimitExceededException
+                raise LimitExceededException()
 
         for stream in self.streams.values():
             stream.destination_arn = destination_arn
@@ -458,6 +520,8 @@ class LogsBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.groups = dict()  # { logGroupName: LogGroup}
+        self.queries = dict()
+        self.resource_policies = dict()
 
     def reset(self):
         region_name = self.region_name
@@ -625,6 +689,50 @@ class LogsBackend(BaseBackend):
         log_group = self.groups[log_group_name]
         return log_group.set_retention_policy(None)
 
+    def describe_resource_policies(
+        self, next_token, limit
+    ):  # pylint: disable=unused-argument
+        """Return list of resource policies.
+
+        The next_token and limit arguments are ignored.  The maximum
+        number of resource policies per region is a small number (less
+        than 50), so pagination isn't needed.
+        """
+        limit = limit or MAX_RESOURCE_POLICIES_PER_REGION
+
+        policies = []
+        for policy_name, policy_info in self.resource_policies.items():
+            policies.append(
+                {
+                    "policyName": policy_name,
+                    "policyDocument": policy_info["policyDocument"],
+                    "lastUpdatedTime": policy_info["lastUpdatedTime"],
+                }
+            )
+        return policies
+
+    def put_resource_policy(self, policy_name, policy_doc):
+        """Create resource policy and return dict of policy name and doc."""
+        if len(self.resource_policies) == MAX_RESOURCE_POLICIES_PER_REGION:
+            raise LimitExceededException()
+
+        policy = {
+            "policyName": policy_name,
+            "policyDocument": policy_doc,
+            "lastUpdatedTime": int(unix_time_millis()),
+        }
+        self.resource_policies[policy_name] = policy
+        return {"resourcePolicy": policy}
+
+    def delete_resource_policy(self, policy_name):
+        """Remove resource policy with a policy name matching given name."""
+        if policy_name not in self.resource_policies:
+            raise ResourceNotFoundException(
+                msg=f"Policy with name [{policy_name}] does not exist"
+            )
+        del self.resource_policies[policy_name]
+        return ""
+
     def list_tags_log_group(self, log_group_name):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
@@ -683,11 +791,25 @@ class LogsBackend(BaseBackend):
 
         log_group.delete_subscription_filter(filter_name)
 
+    def start_query(self, log_group_names, start_time, end_time, query_string):
+
+        for log_group_name in log_group_names:
+            if log_group_name not in self.groups:
+                raise ResourceNotFoundException()
+
+        query_id = uuid.uuid1()
+        self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
+        return query_id
+
 
 logs_backends = {}
-for region in Session().get_available_regions("logs"):
-    logs_backends[region] = LogsBackend(region)
-for region in Session().get_available_regions("logs", partition_name="aws-us-gov"):
-    logs_backends[region] = LogsBackend(region)
-for region in Session().get_available_regions("logs", partition_name="aws-cn"):
-    logs_backends[region] = LogsBackend(region)
+for available_region in Session().get_available_regions("logs"):
+    logs_backends[available_region] = LogsBackend(available_region)
+for available_region in Session().get_available_regions(
+    "logs", partition_name="aws-us-gov"
+):
+    logs_backends[available_region] = LogsBackend(available_region)
+for available_region in Session().get_available_regions(
+    "logs", partition_name="aws-cn"
+):
+    logs_backends[available_region] = LogsBackend(available_region)

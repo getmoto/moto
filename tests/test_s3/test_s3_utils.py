@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import os
 import pytest
 from sure import expect
 from moto.s3.utils import (
@@ -9,6 +8,7 @@ from moto.s3.utils import (
     clean_key_name,
     undo_clean_key_name,
 )
+from unittest.mock import patch
 
 
 def test_base_url():
@@ -25,12 +25,11 @@ def test_localhost_without_bucket():
     expect(bucket_name_from_url("https://www.localhost:5000/def")).should.equal(None)
 
 
-def test_force_ignore_subdomain_for_bucketnames():
-    os.environ["S3_IGNORE_SUBDOMAIN_BUCKETNAME"] = "1"
-    expect(
-        bucket_name_from_url("https://subdomain.localhost:5000/abc/resource")
-    ).should.equal(None)
-    del os.environ["S3_IGNORE_SUBDOMAIN_BUCKETNAME"]
+def test_force_ignore_subdomain_for_bucketnames(monkeypatch):
+    with patch("moto.s3.utils.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
+        expect(
+            bucket_name_from_url("https://subdomain.localhost:5000/abc/resource")
+        ).should.equal(None)
 
 
 def test_versioned_key_store():
