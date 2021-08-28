@@ -6,7 +6,6 @@ from .models import firehose_backends
 
 
 class FirehoseResponse(BaseResponse):
-
     """Handler for Firehose requests and responses."""
 
     @property

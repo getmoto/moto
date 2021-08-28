@@ -14,7 +14,6 @@ from moto.firehose.exceptions import (
 
 
 class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods
-
     """Represents a delivery stream, its source and destination configs."""
 
     STATES = {"CREATING", "ACTIVE", "CREATING_FAILED"}
@@ -60,7 +59,6 @@ class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods
 
 
 class FirehoseBackend(BaseBackend):
-
     """Implementation of Firehose APIs."""
 
     def __init__(self, region_name=None):
@@ -160,15 +158,19 @@ class FirehoseBackend(BaseBackend):
         """Delete a delivery stream and its data"""
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
-            raise ResourceNotFoundException(delivery_stream_name)
+            raise ResourceNotFoundException(
+                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"not found."
+            )
 
-        # TODO - the error message below and AllowForceDelete
+        # TODO - AllowForceDelete
+        # TODO - publish event?
 
         # The following logic is not applicable for moto as far as I can tell.
         # if delivery_stream.state == "CREATING":
         #     raise ResourceInUseException(
-        #         f"The rule {rule_name} is currently being deleted.  Please "
-        #         f"retry after some time"
+        #         f"The hose {delivery_stream_name} is currently being deleted.
+        #         f"Please retry after some time"
         #     )
         delivery_stream.state = "DELETING"
         self.delivery_streams.pop(delivery_stream_name)

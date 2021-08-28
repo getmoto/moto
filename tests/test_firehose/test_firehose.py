@@ -147,7 +147,39 @@ def test_create_delivery_stream_successes():
 @mock_firehose
 def test_delete_delivery_stream():
     """Test successful and failed invocations of delete_delivery_stream()."""
-    assert True
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+    stream_name = f"test_delete_{get_random_hex(6)}"
+
+    # Create a couple of streams to test with.
+    for idx in range(5):
+        client.create_delivery_stream(
+            DeliveryStreamName=f"{stream_name}-{idx}",
+            S3DestinationConfiguration=s3_dest_config,
+        )
+
+    # Attempt to delete a non-existent stream.
+    with pytest.raises(ClientError) as exc:
+        client.delete_delivery_stream(DeliveryStreamName="foo")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"Firehose foo under account {ACCOUNT_ID} not found." in err["Message"]
+
+    # Delete one stream, verify the remaining exist.
+    client.delete_delivery_stream(DeliveryStreamName=f"{stream_name}-0")
+    hoses = client.list_delivery_streams()
+    assert len(hoses["DeliveryStreamNames"]) == 4
+    expected_list = [f"{stream_name}-{x}" for x in range(1, 5)]
+    assert hoses["DeliveryStreamNames"] == expected_list
+
+    # Delete all streams, verify there are no more streams.
+    for idx in range(1, 5):
+        client.delete_delivery_stream(DeliveryStreamName=f"{stream_name}-{idx}")
+    hoses = client.list_delivery_streams()
+    assert len(hoses["DeliveryStreamNames"]) == 0
+    assert hoses["DeliveryStreamNames"] == []
+
+    # TODO - test AllowForceDelete option, when implemented.
 
 
 @mock_firehose

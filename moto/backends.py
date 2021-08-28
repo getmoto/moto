@@ -87,7 +87,6 @@ BACKENDS = {
     "eks": ("eks", "eks_backends"),
     "efs": ("efs", "efs_backends"),
     "wafv2": ("wafv2", "wafv2_backends"),
-    "firehose": ("firehose", "firehose_backends"),
 }
 
 

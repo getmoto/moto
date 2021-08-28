@@ -3,6 +3,8 @@ from moto.core.exceptions import JsonRESTError
 
 
 class InvalidArgumentException(JsonRESTError):
+    """The specified input parameter has a value that is not valid."""
+
     code = 400
 
     def __init__(self, message):
@@ -10,6 +12,8 @@ class InvalidArgumentException(JsonRESTError):
 
 
 class LimitExceededException(JsonRESTError):
+    """You have already reached the limit for a requested resource."""
+
     code = 400
 
     def __init__(self, message):
@@ -17,6 +21,8 @@ class LimitExceededException(JsonRESTError):
 
 
 class ResourceInUseException(JsonRESTError):
+    """The resource is already in use and not available for this operation."""
+
     code = 400
 
     def __init__(self, message):
@@ -24,13 +30,17 @@ class ResourceInUseException(JsonRESTError):
 
 
 class ResourceNotFoundException(JsonRESTError):
+    """The specified resource could not be found."""
+
     code = 400
 
     def __init__(self, message):
-        super().__init__("InvalidKMSResourceException", message)
+        super().__init__("ResourceNotFoundException", message)
 
 
 class InvalidKMSResourceException(JsonRESTError):
+    """Failed to put records or to start or stop delivery steam encryption."""
+
     code = 400
 
     def __init__(self, message):
