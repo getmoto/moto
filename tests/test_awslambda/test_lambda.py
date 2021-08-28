@@ -79,7 +79,7 @@ def lambda_handler(event, context):
     return _process_lambda(pfunc)
 
 
-def get_test_zip_file4():
+def get_test_zip_file_error():
     pfunc = """
 def lambda_handler(event, context):
     raise Exception('I failed!')
@@ -123,6 +123,37 @@ def test_list_functions():
     conn = boto3.client("lambda", _lambda_region)
     result = conn.list_functions()
     result["Functions"].should.have.length_of(0)
+
+
+@pytest.mark.network
+@mock_lambda
+def test_invoke_function_that_throws_error():
+    conn = boto3.client("lambda", _lambda_region)
+    conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file_error()},
+    )
+
+    failure_response = conn.invoke(
+        FunctionName="testFunction", Payload=json.dumps({}), LogType="Tail"
+    )
+
+    failure_response.should.have.key("FunctionError").being.equal("Handled")
+
+    payload = failure_response["Payload"].read().decode("utf-8")
+    payload = json.loads(payload)
+    payload["errorType"].should.equal("Exception")
+    payload["errorMessage"].should.equal("I failed!")
+    payload.should.have.key("stackTrace")
+
+    logs = base64.b64decode(failure_response["LogResult"]).decode("utf-8")
+    logs.should.contain("START RequestId:")
+    logs.should.contain("I failed!: Exception")
+    logs.should.contain("Traceback (most recent call last):")
+    logs.should.contain("END RequestId:")
 
 
 @pytest.mark.network
@@ -1426,7 +1457,7 @@ def test_invoke_function_from_sqs_exception():
         Runtime="python2.7",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file4()},
+        Code={"ZipFile": get_test_zip_file_error()},
         Description="test lambda function",
         Timeout=3,
         MemorySize=128,
