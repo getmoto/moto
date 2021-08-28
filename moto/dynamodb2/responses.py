@@ -190,6 +190,10 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
             return self.error(er, "Requested resource not found")
 
+    def describe_endpoints(self):
+        response = {"Endpoints": self.dynamodb_backend.describe_endpoints()}
+        return dynamo_json_dump(response)
+
     def tag_resource(self):
         table_arn = self.body["ResourceArn"]
         tags = self.body["Tags"]
