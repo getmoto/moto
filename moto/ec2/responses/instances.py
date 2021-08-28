@@ -177,6 +177,7 @@ class InstanceResponse(BaseResponse):
 
     def modify_instance_attribute(self):
         handlers = [
+            self._attribute_value_handler,
             self._dot_value_instance_attribute_handler,
             self._block_device_mapping_handler,
             self._security_grp_instance_attribute_handler,
@@ -252,6 +253,21 @@ class InstanceResponse(BaseResponse):
         if self.is_not_dryrun("Modify" + attribute_key.split(".")[0]):
             value = self.querystring.get(attribute_key)[0]
             normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
+            instance_id = self._get_param("InstanceId")
+            self.ec2_backend.modify_instance_attribute(
+                instance_id, normalized_attribute, value
+            )
+            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+
+    def _attribute_value_handler(self):
+        attribute_key = self._get_param("Attribute")
+
+        if attribute_key is None:
+            return
+
+        if self.is_not_dryrun("ModifyInstanceAttribute"):
+            value = self._get_param("Value")
+            normalized_attribute = camelcase_to_underscores(attribute_key)
             instance_id = self._get_param("InstanceId")
             self.ec2_backend.modify_instance_attribute(
                 instance_id, normalized_attribute, value

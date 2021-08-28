@@ -1775,8 +1775,9 @@ def test_instance_termination_protection():
         r"The instance '{}' may not be terminated.*$".format(instance_id)
     )
 
+    # Use alternate request syntax for setting attribute.
     client.modify_instance_attribute(
-        InstanceId=instance_id, DisableApiTermination={"Value": False}
+        InstanceId=instance_id, Attribute="disableApiTermination", Value="false"
     )
     client.terminate_instances(InstanceIds=[instance_id])
 
