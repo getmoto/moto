@@ -286,8 +286,8 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Build Docker release
-          run: |
-            docker build -t motoserver/moto . --tag moto:latest
+        run: |
+          docker build -t motoserver/moto . --tag moto:latest
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
