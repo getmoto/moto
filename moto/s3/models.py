@@ -1714,7 +1714,7 @@ class S3Backend(BaseBackend):
             raise NoSuchUpload(upload_id=multipart_id)
         del bucket.multiparts[multipart_id]
 
-    def list_multipart(
+    def list_parts(
         self, bucket_name, multipart_id, part_number_marker=0, max_parts=1000
     ):
         bucket = self.get_bucket(bucket_name)
@@ -1774,7 +1774,7 @@ class S3Backend(BaseBackend):
             src_value = src_value[start_byte : end_byte + 1]
         return multipart.set_part(part_id, src_value)
 
-    def prefix_query(self, bucket, prefix, delimiter):
+    def list_objects(self, bucket, prefix, delimiter):
         key_results = set()
         folder_results = set()
         if prefix:
@@ -1806,6 +1806,20 @@ class S3Backend(BaseBackend):
         ]
 
         return key_results, folder_results
+
+    def list_objects_v2(self, bucket, prefix, delimiter):
+        result_keys, result_folders = self.list_objects(bucket, prefix, delimiter)
+        # sort the combination of folders and keys into lexicographical order
+        all_keys = result_keys + result_folders
+        all_keys.sort(key=self._get_name)
+        return all_keys
+
+    @staticmethod
+    def _get_name(key):
+        if isinstance(key, FakeKey):
+            return key.name
+        else:
+            return key
 
     def _set_delete_marker(self, bucket_name, key_name):
         bucket = self.get_bucket(bucket_name)

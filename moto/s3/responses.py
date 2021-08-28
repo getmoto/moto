@@ -522,7 +522,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         delimiter = querystring.get("delimiter", [None])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         marker = querystring.get("marker", [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(
+        result_keys, result_folders = self.backend.list_objects(
             bucket, prefix, delimiter
         )
 
@@ -572,17 +572,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(
-            bucket, prefix, delimiter
-        )
+        all_keys = self.backend.list_objects_v2(bucket, prefix, delimiter)
 
         fetch_owner = querystring.get("fetch-owner", [False])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         start_after = querystring.get("start-after", [None])[0]
-
-        # sort the combination of folders and keys into lexicographical order
-        all_keys = result_keys + result_folders
-        all_keys.sort(key=self._get_name)
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
@@ -608,13 +602,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             next_continuation_token=next_continuation_token,
             start_after=None if continuation_token else start_after,
         )
-
-    @staticmethod
-    def _get_name(key):
-        if isinstance(key, FakeKey):
-            return key.name
-        else:
-            return key
 
     @staticmethod
     def _split_truncated_keys(truncated_keys):
@@ -1255,7 +1242,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if not (0 <= max_parts <= 2147483647):
                 raise InvalidMaxPartArgument("max-parts", 0, 2147483647)
 
-            parts = self.backend.list_multipart(
+            parts = self.backend.list_parts(
                 bucket_name,
                 upload_id,
                 part_number_marker=part_number_marker,
