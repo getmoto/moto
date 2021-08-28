@@ -35,13 +35,13 @@ def test_create_delivery_stream_unimplemented():
     failure_name = f"test_failure_{get_random_hex(6)}"
 
     # Verify that unimplemented features are noted and reported.
-    with pytest.raises(NotImplementedError) as exc:
+    with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
             S3DestinationConfiguration=s3_dest_config,
             DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
         )
-    with pytest.raises(NotImplementedError) as exc:
+    with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
             S3DestinationConfiguration=s3_dest_config,
@@ -54,7 +54,7 @@ def test_create_delivery_stream_unimplemented():
                 "S3Configuration": {"RoleARN": "foo", "BucketARN": "foo"},
             },
         )
-    with pytest.raises(NotImplementedError) as exc:
+    with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
             S3DestinationConfiguration=s3_dest_config,
@@ -64,7 +64,7 @@ def test_create_delivery_stream_unimplemented():
                 "S3Configuration": {"RoleARN": "foo", "BucketARN": "foo"},
             },
         )
-    with pytest.raises(NotImplementedError) as exc:
+    with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
             S3DestinationConfiguration=s3_dest_config,
@@ -141,19 +141,94 @@ def test_create_delivery_stream_failures():
 @mock_firehose
 def test_create_delivery_stream_successes():
     """Test successful invocation of create_delivery_stream()."""
-    pass
+    assert True
 
 
 @mock_firehose
 def test_delete_delivery_stream():
-    pass
+    """Test successful and failed invocations of delete_delivery_stream()."""
+    assert True
 
 
 @mock_firehose
 def test_describe_delivery_stream():
-    pass
+    """Test successful, failed invocations of describe_delivery_stream()."""
+    assert True
 
 
 @mock_firehose
 def test_list_delivery_streams():
-    pass
+    """Test successful and failed invocations of list_delivery_streams()."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+    stream_name = f"test_list_{get_random_hex(6)}"
+
+    # Create a couple of streams of both types to test with.
+    for idx in range(5):
+        client.create_delivery_stream(
+            DeliveryStreamName=f"{stream_name}-{idx}",
+            DeliveryStreamType="DirectPut",
+            S3DestinationConfiguration=s3_dest_config,
+        )
+    for idx in range(5):
+        client.create_delivery_stream(
+            DeliveryStreamName=f"{stream_name}-{idx+5}",
+            DeliveryStreamType="KinesisStreamAsSource",
+            S3DestinationConfiguration=s3_dest_config,
+        )
+
+    # Verify limit works.
+    hoses = client.list_delivery_streams(Limit=1)
+    assert len(hoses["DeliveryStreamNames"]) == 1
+    assert hoses["DeliveryStreamNames"] == [f"{stream_name}-0"]
+    assert hoses["HasMoreDeliveryStreams"] is True
+
+    hoses = client.list_delivery_streams(Limit=10)
+    assert len(hoses["DeliveryStreamNames"]) == 10
+    assert hoses["HasMoreDeliveryStreams"] is False
+
+    # Verify delivery_stream_type works as a filter.
+    hoses = client.list_delivery_streams(DeliveryStreamType="DirectPut")
+    assert len(hoses["DeliveryStreamNames"]) == 5
+    expected_directput_list = [f"{stream_name}-{x}" for x in range(5)]
+    assert hoses["DeliveryStreamNames"] == expected_directput_list
+    assert hoses["HasMoreDeliveryStreams"] is False
+
+    hoses = client.list_delivery_streams(DeliveryStreamType="KinesisStreamAsSource")
+    assert len(hoses["DeliveryStreamNames"]) == 5
+    expected_kinesis_stream_list = [f"{stream_name}-{x+5}" for x in range(5)]
+    assert hoses["DeliveryStreamNames"] == expected_kinesis_stream_list
+    assert hoses["HasMoreDeliveryStreams"] is False
+
+    # Verify exclusive_start_delivery_stream_name returns truncated list.
+    hoses = client.list_delivery_streams(
+        ExclusiveStartDeliveryStreamName=f"{stream_name}-5"
+    )
+    assert len(hoses["DeliveryStreamNames"]) == 4
+    expected_stream_list = [f"{stream_name}-{x+5}" for x in range(1, 5)]
+    assert hoses["DeliveryStreamNames"] == expected_stream_list
+    assert hoses["HasMoreDeliveryStreams"] is False
+
+    hoses = client.list_delivery_streams(
+        ExclusiveStartDeliveryStreamName=f"{stream_name}-9"
+    )
+    assert len(hoses["DeliveryStreamNames"]) == 0
+    assert hoses["HasMoreDeliveryStreams"] is False
+
+    # boto3 ignores bad stream names for ExclusiveStartDeliveryStreamName.
+    hoses = client.list_delivery_streams(ExclusiveStartDeliveryStreamName="foo")
+    assert len(hoses["DeliveryStreamNames"]) == 10
+    assert (
+        hoses["DeliveryStreamNames"]
+        == expected_directput_list + expected_kinesis_stream_list
+    )
+    assert hoses["HasMoreDeliveryStreams"] is False
+
+    # Verify no parameters returns entire list.
+    client.list_delivery_streams()
+    assert len(hoses["DeliveryStreamNames"]) == 10
+    assert (
+        hoses["DeliveryStreamNames"]
+        == expected_directput_list + expected_kinesis_stream_list
+    )
+    assert hoses["HasMoreDeliveryStreams"] is False

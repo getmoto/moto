@@ -65,11 +65,12 @@ class FirehoseBackend(BaseBackend):
 
     def __init__(self, region_name=None):
         self.region_name = region_name
-        self.delivery_streams = dict()
+        self.delivery_streams = {}
 
     def lookup_name_from_arn(self, arn):
         """Given an ARN, return the associated delivery stream name."""
-        return self.delivery_streams.get(delivery_stream_arn.split("/")[-1])
+        # TODO - need to test
+        return self.delivery_streams.get(arn.split("/")[-1])
 
     def reset(self):
         """Re-initializes all attributes for this instance."""
@@ -90,7 +91,7 @@ class FirehoseBackend(BaseBackend):
         splunk_destination_configuration,
         http_endpoint_destination_configuration,
         tags,
-    ):  # pylint: disable=too-many-arguments
+    ):  # pylint: disable=too-many-arguments,too-many-locals
         """Create a Kinesis Data Firehose delivery stream."""
         # Rule out situations that are not yet implemented.
         if delivery_stream_encryption_configuration_input:
@@ -171,6 +172,43 @@ class FirehoseBackend(BaseBackend):
         #     )
         delivery_stream.state = "DELETING"
         self.delivery_streams.pop(delivery_stream_name)
+
+    def list_delivery_streams(
+        self, limit, delivery_stream_type, exclusive_start_delivery_stream_name
+    ):
+        """Return list of delivery streams in alphabetic order of names."""
+        result = {"DeliveryStreamNames": [], "HasMoreDeliveryStreams": False}
+        if not self.delivery_streams:
+            return result
+
+        # If delivery_stream_type is specified, filter out any stream that's
+        # not of that type.
+        stream_list = self.delivery_streams.keys()
+        if delivery_stream_type:
+            stream_list = [
+                x
+                for x in stream_list
+                if self.delivery_streams[x].delivery_stream_type == delivery_stream_type
+            ]
+
+        # The list is sorted alphabetically, not alphanumerically.
+        sorted_list = sorted(stream_list)
+
+        # Determine the limit or number of names to return in the list.
+        limit = limit or DeliveryStream.MAX_STREAMS_PER_REGION
+
+        # If a starting delivery stream name was given, find the index into
+        # the sorted list, then add one to get the name following it.  If the
+        # exclusive_start_delivery_stream_name doesn't exist, it's ignored.
+        start = 0
+        if exclusive_start_delivery_stream_name:
+            if self.delivery_streams.get(exclusive_start_delivery_stream_name):
+                start = sorted_list.index(exclusive_start_delivery_stream_name) + 1
+
+        result["DeliveryStreamNames"] = sorted_list[start : start + limit]
+        if len(sorted_list) > (start + limit):
+            result["HasMoreDeliveryStreams"] = True
+        return result
 
 
 firehose_backends = {}

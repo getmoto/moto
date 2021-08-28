@@ -15,7 +15,7 @@ class FirehoseResponse(BaseResponse):
         return firehose_backends[self.region]
 
     def create_delivery_stream(self):
-        """Prepare argumenst and respond to CreateDeliveryStream request."""
+        """Prepare arguments and respond to CreateDeliveryStream request."""
         delivery_stream_arn = self.firehose_backend.create_delivery_stream(
             self._get_param("DeliveryStreamName"),
             self._get_param("DeliveryStreamType"),
@@ -32,9 +32,27 @@ class FirehoseResponse(BaseResponse):
         return json.dumps(dict(deliveryStreamArn=delivery_stream_arn))
 
     def delete_delivery_stream(self):
-        """Prepare argumenst and respond to DeleteDeliveryStream request."""
+        """Prepare arguments and respond to DeleteDeliveryStream request."""
         self.firehose_backend.delete_delivery_stream(
-            delivery_stream_name = self._get_param("DeliveryStreamName"),
-            allow_force_delete = self._get_param("AllowForceDelete"),
+            self._get_param("DeliveryStreamName"),
+            self._get_param("AllowForceDelete"),
         )
-        return json.dumps(dict())
+        return json.dumps({})
+
+    def describe_delivery_stream(self):
+        """Prepare arguments and respond to DescribeDeliveryStream request."""
+        self.firehose_backend.delete_delivery_stream(
+            self._get_param("DeliveryStreamName"),
+            self._get_param("Limit"),
+            self._get_param("ExclusiveStartDestinationId"),
+        )
+        return json.dumps({})
+
+    def list_delivery_streams(self):
+        """Prepare arguments and respond to ListDeliveryStreams request."""
+        stream_list = self.firehose_backend.list_delivery_streams(
+            self._get_param("Limit"),
+            self._get_param("DeliveryStreamType"),
+            self._get_param("ExclusiveStartDeliveryStreamName"),
+        )
+        return json.dumps(stream_list)
