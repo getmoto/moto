@@ -642,6 +642,8 @@ class SQSBackend(BaseBackend):
 
     def get_queue_attributes(self, queue_name, attribute_names):
         queue = self.get_queue(queue_name)
+        if not attribute_names:
+            return {}
 
         valid_names = (
             ["All"]
