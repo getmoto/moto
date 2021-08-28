@@ -232,13 +232,11 @@ def test_get_parameters_by_path():
 @mock_ssm
 def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
-    data_type = "text"
     response = client.put_parameter(
         Name=name,
         Description="A test parameter",
         Value="value",
         Type="String",
-        DataType=data_type,
     )
 
     response["Version"].should.equal(1)
@@ -250,7 +248,7 @@ def test_put_parameter(name):
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
-    response["Parameters"][0]["DataType"].should.equal(data_type)
+    response["Parameters"][0]["DataType"].should.equal("text")
     response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameters"][0]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
@@ -276,7 +274,7 @@ def test_put_parameter(name):
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
-    response["Parameters"][0]["DataType"].should.equal(data_type)
+    response["Parameters"][0]["DataType"].should.equal("text")
     response["Parameters"][0]["LastModifiedDate"].should.equal(
         initial_modification_date
     )
@@ -303,7 +301,7 @@ def test_put_parameter(name):
     response["Parameters"][0]["Value"].should.equal("value 3")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(2)
-    response["Parameters"][0]["DataType"].should_not.equal(data_type)
+    response["Parameters"][0]["DataType"].should_not.equal("text")
     response["Parameters"][0]["DataType"].should.equal(new_data_type)
     response["Parameters"][0]["LastModifiedDate"].should_not.equal(
         initial_modification_date
@@ -434,7 +432,6 @@ def test_get_parameter():
         Description="A test parameter",
         Value="value",
         Type="String",
-        DataType="text",
     )
 
     response = client.get_parameter(Name="test", WithDecryption=False)
@@ -458,14 +455,12 @@ def test_get_parameter_with_version_and_labels():
         Description="A test parameter",
         Value="value",
         Type="String",
-        DataType="text",
     )
     client.put_parameter(
         Name="test-2",
         Description="A test parameter",
         Value="value",
         Type="String",
-        DataType="text",
     )
 
     client.label_parameter_version(
@@ -570,7 +565,6 @@ def test_describe_parameters():
         Description="A test parameter",
         Value="value",
         Type="String",
-        DataType="text",
         AllowedPattern=r".*",
     )
 
