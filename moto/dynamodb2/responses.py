@@ -755,8 +755,12 @@ class DynamoHandler(BaseResponse):
         return_values = self.body.get("ReturnValues", "NONE")
         update_expression = self.body.get("UpdateExpression", "").strip()
         attribute_updates = self.body.get("AttributeUpdates")
-        expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
-        expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
+        if update_expression and attribute_updates:
+            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
+            return self.error(
+                er,
+                "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}",
+            )
         # We need to copy the item in order to avoid it being modified by the update_item operation
         existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
         if existing_item:

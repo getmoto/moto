@@ -5835,6 +5835,34 @@ def test_get_item_for_non_existent_table_raises_error():
 
 
 @mock_dynamodb2
+def test_error_when_providing_expression_and_nonexpression_params():
+    client = boto3.client("dynamodb", "eu-central-1")
+    table_name = "testtable"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pkey", "KeyType": "HASH"},],
+        AttributeDefinitions=[{"AttributeName": "pkey", "AttributeType": "S"},],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_item(
+            TableName=table_name,
+            Key={"pkey": {"S": "testrecord"}},
+            AttributeUpdates={
+                "test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT"}
+            },
+            UpdateExpression="DELETE orders :order",
+            ExpressionAttributeValues={":order": {"SS": ["item"]}},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
+    )
+
+
+@mock_dynamodb2
 def test_attribute_item_delete():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="eu-west-1")
