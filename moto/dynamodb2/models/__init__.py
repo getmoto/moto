@@ -1407,6 +1407,22 @@ class DynamoDBBackend(BaseBackend):
 
         # Update does not fail on new items, so create one
         if item is None:
+            if update_expression:
+                # Validate AST before creating anything
+                item = Item(
+                    hash_value,
+                    table.hash_key_type,
+                    range_value,
+                    table.range_key_type,
+                    attrs={},
+                )
+                UpdateExpressionValidator(
+                    update_expression_ast,
+                    expression_attribute_names=expression_attribute_names,
+                    expression_attribute_values=expression_attribute_values,
+                    item=item,
+                    table=table,
+                ).validate()
             data = {table.hash_key_attr: {hash_value.type: hash_value.value}}
             if range_value:
                 data.update(
