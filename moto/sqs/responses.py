@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
+    InvalidAddress,
     InvalidAttributeName,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
@@ -51,11 +52,14 @@ class SQSResponse(BaseResponse):
 
     def _get_queue_name(self):
         try:
-            queue_name = self.querystring.get("QueueUrl")[0].split("/")[-1]
+            queue_url = self.querystring.get("QueueUrl")[0]
+            if queue_url.startswith("http://") or queue_url.startswith("https://"):
+                return queue_url.split("/")[-1]
+            else:
+                raise InvalidAddress(queue_url)
         except TypeError:
-            # Fallback to reading from the URL
-            queue_name = self.path.split("/")[-1]
-        return queue_name
+            # Fallback to reading from the URL for botocore
+            return self.path.split("/")[-1]
 
     def _get_validated_visibility_timeout(self, timeout=None):
         """
