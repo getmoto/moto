@@ -253,7 +253,7 @@ class PolicyVersion(object):
         return iso_8601_datetime_with_milliseconds(self.create_date)
 
 
-class ManagedPolicy(Policy):
+class ManagedPolicy(Policy, CloudFormationModel):
     """Managed policy."""
 
     is_attachable = True
@@ -311,6 +311,47 @@ class ManagedPolicy(Policy):
             },
             "supplementaryConfiguration": {},
         }
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None  # Resource never gets named after by template PolicyName!
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::IAM::ManagedPolicy"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_physical_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json.get("Properties", {})
+        policy_document = json.dumps(properties.get("PolicyDocument"))
+        name = properties.get("ManagedPolicyName", resource_physical_name)
+        description = properties.get("Description")
+        path = properties.get("Path")
+        group_names = properties.get("Groups", [])
+        user_names = properties.get("Users", [])
+        role_names = properties.get("Roles", [])
+
+        policy = iam_backend.create_policy(
+            description=description,
+            path=path,
+            policy_document=policy_document,
+            policy_name=name,
+        )
+        for group_name in group_names:
+            iam_backend.attach_group_policy(
+                group_name=group_name, policy_arn=policy.arn
+            )
+        for user_name in user_names:
+            iam_backend.attach_user_policy(user_name=user_name, policy_arn=policy.arn)
+        for role_name in role_names:
+            iam_backend.attach_role_policy(role_name=role_name, policy_arn=policy.arn)
+        return policy
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
 
 
 class AWSManagedPolicy(ManagedPolicy):

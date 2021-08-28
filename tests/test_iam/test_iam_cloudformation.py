@@ -6,6 +6,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_iam, mock_cloudformation, mock_s3, mock_sts
+from moto.core import ACCOUNT_ID
 
 # AWS::IAM::User Tests
 @mock_iam
@@ -279,6 +280,245 @@ Outputs:
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_description = iam_client.get_user(UserName=output_user_name)["User"]
     output_user_arn.should.equal(user_description["Arn"])
+
+
+# AWS::IAM::ManagedPolicy Tests
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_managed_policy():
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: '*'
+""".strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    policy_arn = provisioned_resource["PhysicalResourceId"]
+    policy_arn.should.match(
+        "arn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+    )
+    expected_name = policy_arn.split("/")[1]
+
+    response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
+    response.should.have.key("PolicyGroups").equal([])
+    response.should.have.key("PolicyUsers").equal([])
+    response.should.have.key("PolicyRoles").equal([])
+
+    policy = iam_client.get_policy(PolicyArn=policy_arn)["Policy"]
+    policy.should.have.key("Arn").equal(policy_arn)
+    policy.should.have.key("PolicyName").equal(expected_name)
+    policy.should.have.key("Description").equal("")
+    policy.should.have.key("Path").equal("/")
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_managed_policy_with_additional_properties():
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+    name = "FancyManagedPolicy"
+    desc = "Custom managed policy with name"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: {0}
+      Path: /
+      ManagedPolicyName: {1}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: '*'
+""".strip().format(
+        desc, name
+    )
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    policy_arn = provisioned_resource["PhysicalResourceId"]
+    policy_arn.should.equal("arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, name))
+
+    policy = iam_client.get_policy(PolicyArn=policy_arn)["Policy"]
+    policy.should.have.key("Arn").equal(policy_arn)
+    policy.should.have.key("Path").equal("/")
+    policy.should.have.key("Description").equal(desc)
+    policy.should.have.key("PolicyName").equal(name)
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_managed_policy_attached_to_a_group():
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    group_name = "MyGroup"
+    iam_client.create_group(GroupName=group_name)
+
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+    desc = "Custom managed policy"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: {0}
+      Path: /
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: '*'
+      Groups:
+        - {1}
+""".strip().format(
+        desc, group_name
+    )
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    policy_arn = provisioned_resource["PhysicalResourceId"]
+    policy_arn.should.match(
+        "rn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+    )
+
+    response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
+    response.should.have.key("PolicyGroups").equal([{"GroupName": group_name}])
+    response.should.have.key("PolicyUsers").equal([])
+    response.should.have.key("PolicyRoles").equal([])
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_managed_policy_attached_to_a_user():
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    user_name = "MyUser"
+    iam_client.create_user(UserName=user_name)
+
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+    desc = "Custom managed policy"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: {0}
+      Path: /
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: '*'
+      Users:
+        - {1}
+""".strip().format(
+        desc, user_name
+    )
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    policy_arn = provisioned_resource["PhysicalResourceId"]
+    policy_arn.should.match(
+        "rn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+    )
+
+    response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
+    response.should.have.key("PolicyGroups").equal([])
+    response.should.have.key("PolicyUsers").equal([{"UserName": user_name}])
+    response.should.have.key("PolicyRoles").equal([])
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_managed_policy_attached_to_a_role():
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    role_name = "MyRole"
+    iam_client.create_role(RoleName=role_name, AssumeRolePolicyDocument="some policy")
+
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+    desc = "Custom managed policy"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: {0}
+      Path: /
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: '*'
+      Roles:
+        - {1}
+""".strip().format(
+        desc, role_name
+    )
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    policy_arn = provisioned_resource["PhysicalResourceId"]
+    policy_arn.should.match(
+        "rn:aws:iam::{}:policy/MyStack-ThePolicy-[A-Z0-9]+".format(ACCOUNT_ID)
+    )
+
+    response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
+    response.should.have.key("PolicyGroups").equal([])
+    response.should.have.key("PolicyUsers").equal([])
+    response.should.have.key("PolicyRoles").equal([{"RoleName": role_name}])
 
 
 # AWS::IAM::Policy Tests

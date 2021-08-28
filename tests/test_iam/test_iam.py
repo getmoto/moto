@@ -2357,18 +2357,24 @@ def test_list_entities_for_policy():
         EntityFilter="Role",
     )
     assert response["PolicyRoles"] == [{"RoleName": "my-role"}]
+    response["PolicyGroups"].should.equal([])
+    response["PolicyUsers"].should.equal([])
 
     response = conn.list_entities_for_policy(
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="User",
     )
     assert response["PolicyUsers"] == [{"UserName": "testUser"}]
+    response["PolicyGroups"].should.equal([])
+    response["PolicyRoles"].should.equal([])
 
     response = conn.list_entities_for_policy(
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="Group",
     )
     assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
+    response["PolicyRoles"].should.equal([])
+    response["PolicyUsers"].should.equal([])
 
     response = conn.list_entities_for_policy(
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
@@ -2377,6 +2383,14 @@ def test_list_entities_for_policy():
     assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
     assert response["PolicyUsers"] == [{"UserName": "testUser"}]
     assert response["PolicyRoles"] == [{"RoleName": "my-role"}]
+
+    # Return everything when no entity is specified
+    response = conn.list_entities_for_policy(
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+    )
+    response["PolicyGroups"].should.equal([{"GroupName": "testGroup"}])
+    response["PolicyUsers"].should.equal([{"UserName": "testUser"}])
+    response["PolicyRoles"].should.equal([{"RoleName": "my-role"}])
 
 
 @mock_iam()
