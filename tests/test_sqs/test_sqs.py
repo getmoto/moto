@@ -1254,6 +1254,21 @@ def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected)
 
 
 @mock_sqs
+def test_get_queue_attributes_no_param():
+    """
+    AWS does not return the Attributes-key when omitting the AttributeNames-parameter
+    """
+    sqs = boto3.client("sqs", region_name="ap-northeast-3")
+    queue_url = sqs.create_queue(QueueName="test-queue")["QueueUrl"]
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url)
+    queue_attrs.shouldnt.have.key("Attributes")
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
+    queue_attrs.should.have.key("Attributes")
+
+
+@mock_sqs
 def test_max_number_of_messages_invalid_param():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
