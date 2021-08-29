@@ -122,6 +122,7 @@ ACTION_MAP = {
         },
     },
     "KEY": {
+        "HEAD": {"DEFAULT": "HeadObject",},
         "GET": {
             "uploadId": "ListMultipartUploadParts",
             "acl": "GetObjectAcl",
@@ -1517,6 +1518,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return 200, response_headers, ""
 
     def _key_response_head(self, bucket_name, query, key_name, headers):
+        self._set_action("KEY", "HEAD", query)
+        self._authenticate_and_authorize_s3_action()
+
         response_headers = {}
         version_id = query.get("versionId", [None])[0]
         part_number = query.get("partNumber", [None])[0]
