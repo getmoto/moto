@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import re
+from dataclasses import dataclass
 from typing import Dict
 
 from boto3 import Session
@@ -131,24 +132,34 @@ def generate_ssm_doc_param_list(parameters):
         return None
     param_list = []
     for param_name, param_info in parameters.items():
-        final_dict = {}
+        final_dict = {
+            "Name": param_name,
+        }
 
-        final_dict["Name"] = param_name
-        final_dict["Type"] = param_info["type"]
-        final_dict["Description"] = param_info["description"]
+        description = param_info.get("description")
+        if description:
+            final_dict["Description"] = description
 
-        if (
-            param_info["type"] == "StringList"
-            or param_info["type"] == "StringMap"
-            or param_info["type"] == "MapList"
-        ):
-            final_dict["DefaultValue"] = json.dumps(param_info["default"])
-        else:
-            final_dict["DefaultValue"] = str(param_info["default"])
+        param_type = param_info["type"]
+        final_dict["Type"] = param_type
+
+        default_value = param_info.get("default")
+        if default_value:
+            if param_type in {"StringList", "StringMap", "MapList"}:
+                final_dict["DefaultValue"] = json.dumps(default_value)
+            else:
+                final_dict["DefaultValue"] = str(default_value)
 
         param_list.append(final_dict)
 
     return param_list
+
+
+@dataclass(frozen=True)
+class AccountPermission:
+    account_id: str
+    version: str
+    created_at: datetime
 
 
 class Documents(BaseModel):
@@ -157,7 +168,7 @@ class Documents(BaseModel):
         self.versions = {version: ssm_document}
         self.default_version = version
         self.latest_version = version
-        self.permissions = {}  # {AccountID: version }
+        self.permissions = {}  # {AccountID: AccountPermission }
 
     def get_default_version(self):
         return self.versions.get(self.default_version)
@@ -233,7 +244,7 @@ class Documents(BaseModel):
             new_latest_version = ordered_versions[-1]
             self.latest_version = new_latest_version
 
-    def describe(self, document_version=None, version_name=None):
+    def describe(self, document_version=None, version_name=None, tags=None):
         document = self.find(document_version, version_name)
         base = {
             "Hash": document.hash,
@@ -262,26 +273,39 @@ class Documents(BaseModel):
         return base
 
     def modify_permissions(self, accounts_to_add, accounts_to_remove, version):
-        if "all" in accounts_to_add:
-            self.permissions.clear()
-        else:
-            self.permissions.pop("all", None)
+        version = version or "$DEFAULT"
+        if accounts_to_add:
+            if "all" in accounts_to_add:
+                self.permissions.clear()
+            else:
+                self.permissions.pop("all", None)
 
-        new_permissions = {account_id: version for account_id in accounts_to_add}
-        self.permissions.update(**new_permissions)
+            new_permissions = {
+                account_id: AccountPermission(
+                    account_id, version, datetime.datetime.now()
+                )
+                for account_id in accounts_to_add
+            }
+            self.permissions.update(**new_permissions)
 
-        if "all" in accounts_to_remove:
-            self.permissions.clear()
-        else:
-            for account_id in accounts_to_remove:
-                self.permissions.pop(account_id, None)
+        if accounts_to_remove:
+            if "all" in accounts_to_remove:
+                self.permissions.clear()
+            else:
+                for account_id in accounts_to_remove:
+                    self.permissions.pop(account_id, None)
 
     def describe_permissions(self):
+
+        permissions_ordered_by_date = sorted(
+            self.permissions.values(), key=lambda p: p.created_at
+        )
+
         return {
-            "AccountIds": list(self.permissions.keys()),
+            "AccountIds": [p.account_id for p in permissions_ordered_by_date],
             "AccountSharingInfoList": [
-                {"AccountId": account_id, "SharedDocumentVersion": document_version}
-                for account_id, document_version in self.permissions.items()
+                {"AccountId": p.account_id, "SharedDocumentVersion": p.version}
+                for p in permissions_ordered_by_date
             ],
         }
 
@@ -353,12 +377,8 @@ class Document(BaseModel):
                 content_json.get("parameters")
             )
 
-            if (
-                self.schema_version == "0.3"
-                or self.schema_version == "2.0"
-                or self.schema_version == "2.2"
-            ):
-                self.mainSteps = content_json["mainSteps"]
+            if self.schema_version in {"0.3", "2.0", "2.2"}:
+                self.mainSteps = content_json.get("mainSteps")
             elif self.schema_version == "1.2":
                 self.runtimeConfig = content_json.get("runtimeConfig")
 
@@ -879,10 +899,11 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         for doc_version, document in documents.versions.items():
             if document.content == new_ssm_document.content:
-                raise DuplicateDocumentContent(
-                    "The content of the association document matches another document. "
-                    "Change the content of the document and try again."
-                )
+                if not target_type or target_type == document.target_type:
+                    raise DuplicateDocumentContent(
+                        "The content of the association document matches another document. "
+                        "Change the content of the document and try again."
+                    )
 
         documents.add_new_version(new_ssm_document)
         return documents.describe(document_version=new_version)
@@ -965,14 +986,12 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "Member must satisfy regular expression pattern: (?i)all|[0-9]{12}]."
                 )
 
-        accounts_to_add = set(account_ids_to_add)
-        if "all" in accounts_to_add and len(accounts_to_add) > 1:
+        if "all" in account_ids_to_add and len(account_ids_to_add) > 1:
             raise DocumentPermissionLimit(
                 "Accounts can either be all or a group of AWS accounts"
             )
 
-        accounts_to_remove = set(account_ids_to_remove)
-        if "all" in accounts_to_remove and len(accounts_to_remove) > 1:
+        if "all" in account_ids_to_remove and len(account_ids_to_remove) > 1:
             raise DocumentPermissionLimit(
                 "Accounts can either be all or a group of AWS accounts"
             )
@@ -985,7 +1004,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         document = self._get_documents(name)
         document.modify_permissions(
-            accounts_to_add, accounts_to_remove, shared_document_version
+            account_ids_to_add, account_ids_to_remove, shared_document_version
         )
 
     def delete_parameter(self, name):
