@@ -591,42 +591,6 @@ def test_query_invalid_table():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
-def test_scan_returns_consumed_capacity():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-
-    conn.create_table(
-        TableName=name,
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-        },
-    )
-
-    response = conn.scan(TableName=name)
-
-    assert "ConsumedCapacity" in response
-    assert "CapacityUnits" in response["ConsumedCapacity"]
-    assert response["ConsumedCapacity"]["TableName"] == name
-
-
-@requires_boto_gte("2.9")
-@mock_dynamodb2
 def test_put_item_with_special_chars():
     name = "TestTable"
     conn = boto3.client(
@@ -708,37 +672,6 @@ def test_put_item_with_streams():
     stream_record = table.stream_shard.items[0].record
     stream_record["eventName"].should.be.equal("INSERT")
     stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
-
-
-@requires_boto_gte("2.9")
-@mock_dynamodb2
-def test_query_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    results = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))
-
-    assert "ConsumedCapacity" in results
-    assert "CapacityUnits" in results["ConsumedCapacity"]
-    assert results["ConsumedCapacity"]["CapacityUnits"] == 1
 
 
 @mock_dynamodb2
@@ -1433,96 +1366,6 @@ def test_nested_projection_expression_using_scan_with_attr_expression_names():
             }
         ]
     )
-
-
-@mock_dynamodb2
-def test_put_item_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    response = table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    assert "ConsumedCapacity" in response
-
-
-@mock_dynamodb2
-def test_update_item_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    response = table.update_item(
-        Key={"forum_name": "the-key", "subject": "123"},
-        UpdateExpression="set body=:tb",
-        ExpressionAttributeValues={":tb": "a new message"},
-    )
-
-    assert "ConsumedCapacity" in response
-    assert "CapacityUnits" in response["ConsumedCapacity"]
-    assert "TableName" in response["ConsumedCapacity"]
-
-
-@mock_dynamodb2
-def test_get_item_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    response = table.get_item(Key={"forum_name": "the-key", "subject": "123"})
-
-    assert "ConsumedCapacity" in response
-    assert "CapacityUnits" in response["ConsumedCapacity"]
-    assert "TableName" in response["ConsumedCapacity"]
 
 
 @mock_dynamodb2
