@@ -2082,9 +2082,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.name = name
         self.description = description
         self.ingress_rules = []
-        self.egress_rules = [
-            SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], []),
-        ]
+        self.egress_rules = []
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = ACCOUNT_ID
@@ -2093,6 +2091,10 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         # Append default IPv6 egress rule for VPCs with IPv6 support
         if vpc_id:
             vpc = self.ec2_backend.vpcs.get(vpc_id)
+            if vpc:
+                self.egress_rules.append(
+                    SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], [])
+                )
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 self.egress_rules.append(
                     SecurityRule("-1", None, None, [{"CidrIpv6": "::/0"}], [])
@@ -2378,34 +2380,26 @@ class SecurityGroupBackend(object):
             group, group.get_number_of_ingress_rules(), ip_ranges, source_groups,
         )
 
-        _source_groups = []
-        for item in source_groups:
-            if "OwnerId" not in item:
-                item["OwnerId"] = ACCOUNT_ID
-            # for VPCs
-            if "GroupId" in item:
-                if not self.get_security_group_from_id(item.get("GroupId")):
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
-            if "GroupName" in item:
-                source_group = self.get_security_group_from_name(
-                    item.get("GroupName"), vpc_id
-                )
-                if not source_group:
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
-                else:
-                    item["GroupId"] = source_group.id
-            if "GroupName" not in item:
-                source_group = self.get_security_group_from_id(item.get("GroupId"))
-                if source_group:
-                    item["GroupName"] = source_group.name
-            if vpc_id:
-                item["VpcId"] = vpc_id
-            _source_groups.append(item)
+        _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
-        group.add_ingress_rule(security_rule)
+
+        # If no rule found then add security_rule as a new rule
+        for rule in group.ingress_rules:
+            if (
+                security_rule.from_port == rule.from_port
+                and security_rule.to_port == rule.to_port
+                and security_rule.ip_protocol == rule.ip_protocol
+            ):
+                rule.ip_ranges.extend(ip_ranges)
+                rule.source_groups.extend(source_groups)
+                rule.prefix_list_ids.extend(prefix_list_ids)
+                security_rule = rule
+                break
+        else:
+            group.add_ingress_rule(security_rule)
         return security_rule, group
 
     def revoke_security_group_ingress(
@@ -2422,34 +2416,39 @@ class SecurityGroupBackend(object):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
-        _source_groups = []
-        for item in source_groups:
-            if "OwnerId" not in item:
-                item["OwnerId"] = ACCOUNT_ID
-            # for VPCs
-            if "GroupId" in item:
-                if not self.get_security_group_from_id(item.get("GroupId")):
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
-            if "GroupName" in item:
-                source_group = self.get_security_group_from_name(
-                    item.get("GroupName"), vpc_id
-                )
-                if not source_group:
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
-                else:
-                    item["GroupId"] = source_group.id
-            if "GroupName" not in item:
-                source_group = self.get_security_group_from_id(item.get("GroupId"))
-                if source_group:
-                    item["GroupName"] = source_group.name
-            if vpc_id:
-                item["VpcId"] = vpc_id
-            _source_groups.append(item)
+        _source_groups = self._add_source_group(source_groups, vpc_id)
+
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
+        # If no rule found then add security_rule as a new rule
+        for rule in group.ingress_rules:
+            if (
+                security_rule.from_port == rule.from_port
+                and security_rule.to_port == rule.to_port
+                and security_rule.ip_protocol == rule.ip_protocol
+            ):
+                rule.ip_ranges.extend(ip_ranges)
+                rule.source_groups.extend(source_groups)
+                rule.prefix_list_ids.extend(prefix_list_ids)
+                security_rule = rule
+                break
+
         if security_rule in group.ingress_rules:
-            group.ingress_rules.remove(security_rule)
+            rule = group.ingress_rules[group.ingress_rules.index(security_rule)]
+            rule.ip_ranges = [item for item in rule.ip_ranges if item not in ip_ranges]
+            rule.source_groups = [
+                item for item in rule.source_groups if item not in _source_groups
+            ]
+            rule.prefix_list_ids = [
+                item for item in rule.prefix_list_ids if item not in prefix_list_ids
+            ]
+            if (
+                not rule.prefix_list_ids
+                and not rule.source_groups
+                and not rule.ip_ranges
+            ):
+                group.ingress_rules.remove(security_rule)
             self.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
             return security_rule
         raise InvalidPermissionNotFoundError()
@@ -2497,34 +2496,27 @@ class SecurityGroupBackend(object):
             egress=True,
         )
 
-        _source_groups = []
-        for item in source_groups:
-            if "OwnerId" not in item:
-                item["OwnerId"] = ACCOUNT_ID
-            # for VPCs
-            if "GroupId" in item:
-                if not self.get_security_group_from_id(item.get("GroupId")):
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
-            if "GroupName" in item:
-                source_group = self.get_security_group_from_name(
-                    item.get("GroupName"), vpc_id
-                )
-                if not source_group:
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
-                else:
-                    item["GroupId"] = source_group.id
-            if "GroupName" not in item:
-                source_group = self.get_security_group_from_id(item.get("GroupId"))
-                if source_group:
-                    item["GroupName"] = source_group.name
-            if vpc_id:
-                item["VpcId"] = vpc_id
-            _source_groups.append(item)
+        _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
-        group.add_egress_rule(security_rule)
+
+        # If no rule found then add security_rule as a new rule
+        for rule in group.egress_rules:
+            if (
+                security_rule.from_port == rule.from_port
+                and security_rule.to_port == rule.to_port
+                and security_rule.ip_protocol == rule.ip_protocol
+            ):
+                rule.ip_ranges.extend(ip_ranges)
+                rule.source_groups.extend(source_groups)
+                rule.prefix_list_ids.extend(prefix_list_ids)
+                security_rule = rule
+                break
+        else:
+            group.add_egress_rule(security_rule)
+
         return security_rule, group
 
     def revoke_security_group_egress(
@@ -2541,29 +2533,7 @@ class SecurityGroupBackend(object):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
 
-        _source_groups = []
-        for item in source_groups:
-            if "OwnerId" not in item:
-                item["OwnerId"] = ACCOUNT_ID
-            # for VPCs
-            if "GroupId" in item:
-                if not self.get_security_group_from_id(item.get("GroupId")):
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
-            if "GroupName" in item:
-                source_group = self.get_security_group_from_name(
-                    item.get("GroupName"), vpc_id
-                )
-                if not source_group:
-                    raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
-                else:
-                    item["GroupId"] = source_group.id
-            if "GroupName" not in item:
-                source_group = self.get_security_group_from_id(item.get("GroupId"))
-                if source_group:
-                    item["GroupName"] = source_group.name
-            if vpc_id:
-                item["VpcId"] = vpc_id
-            _source_groups.append(item)
+        _source_groups = self._add_source_group(source_groups, vpc_id)
 
         # I don't believe this is required after changing the default egress rule
         # to be {'CidrIp': '0.0.0.0/0'} instead of just '0.0.0.0/0'
@@ -2582,11 +2552,61 @@ class SecurityGroupBackend(object):
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
+
+        # If no rule found then add security_rule as a new rule
+        for rule in group.egress_rules:
+            if (
+                security_rule.from_port == rule.from_port
+                and security_rule.to_port == rule.to_port
+                and security_rule.ip_protocol == rule.ip_protocol
+            ):
+                rule.ip_ranges.extend(ip_ranges)
+                rule.source_groups.extend(source_groups)
+                rule.prefix_list_ids.extend(prefix_list_ids)
+                security_rule = rule
+                break
+
         if security_rule in group.egress_rules:
-            group.egress_rules.remove(security_rule)
+            rule = group.egress_rules[group.egress_rules.index(security_rule)]
+            rule.ip_ranges = [item for item in rule.ip_ranges if item not in ip_ranges]
+            rule.source_groups = [
+                item for item in rule.source_groups if item not in _source_groups
+            ]
+            rule.prefix_list_ids = [
+                item for item in rule.prefix_list_ids if item not in prefix_list_ids
+            ]
+            if (
+                not rule.prefix_list_ids
+                and not rule.source_groups
+                and not rule.ip_ranges
+            ):
+                group.egress_rules.remove(security_rule)
             self.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
             return security_rule
         raise InvalidPermissionNotFoundError()
+
+    def _add_source_group(self, source_groups, vpc_id):
+        _source_groups = []
+        for item in source_groups:
+            if "OwnerId" not in item:
+                item["OwnerId"] = ACCOUNT_ID
+            # for VPCs
+            if "GroupId" in item:
+                if not self.get_security_group_from_id(item.get("GroupId")):
+                    raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
+            if "GroupName" in item:
+                source_group = self.get_security_group_from_name(
+                    item.get("GroupName"), vpc_id
+                )
+                if not source_group:
+                    raise InvalidSecurityGroupNotFoundError(item.get("GroupName"))
+                else:
+                    item["GroupId"] = source_group.id
+
+            if vpc_id:
+                item["VpcId"] = vpc_id
+            _source_groups.append(item)
+        return _source_groups
 
     def _verify_group_will_respect_rule_count_limit(
         self, group, current_rule_nb, ip_ranges, source_groups=None, egress=False,
