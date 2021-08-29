@@ -97,9 +97,7 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
         {% if eni.private_ip_address %}
           <privateIpAddress>{{ eni.private_ip_address }}</privateIpAddress>
         {% endif %}
-        {% if eni.instance %}
-          <sourceDestCheck>{{ eni.instance.source_dest_check }}</sourceDestCheck>
-        {% endif %}
+        <sourceDestCheck>{{ eni.source_dest_check }}</sourceDestCheck>
         <groupSet>
         {% for group in eni.group_set %}
             <item>
@@ -132,7 +130,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
            <subnetId>{{ eni.subnet.id }}</subnetId>
            <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
            <availabilityZone>us-west-2a</availabilityZone>
-           <description>{{ eni.description }}</description>
+           <description>{{ eni.description or "" }}</description>
            <ownerId>190610284047</ownerId>
            <requesterManaged>false</requesterManaged>
            {% if eni.attachment_id %}
@@ -145,9 +143,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
              <privateIpAddress>{{ eni.private_ip_address }}</privateIpAddress>
            {% endif %}
            <privateDnsName>ip-10-0-0-134.us-west-2.compute.internal</privateDnsName>
-           {% if eni.instance %}
-             <sourceDestCheck>{{ eni.instance.source_dest_check }}</sourceDestCheck>
-           {% endif %}
+           <sourceDestCheck>{{ eni.source_dest_check }}</sourceDestCheck>
            <groupSet>
            {% for group in eni.group_set %}
                <item>

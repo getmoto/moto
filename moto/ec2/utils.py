@@ -39,6 +39,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "spot-instance-request": "sir",
     "spot-fleet-request": "sfr",
     "subnet": "subnet",
+    "subnet-ipv6-cidr-block-association": "subnet-cidr-assoc",
     "reservation": "r",
     "volume": "vol",
     "vpc": "vpc",
@@ -105,6 +106,12 @@ def random_spot_fleet_request_id():
 
 def random_subnet_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["subnet"])
+
+
+def random_subnet_ipv6_cidr_block_association_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["subnet-ipv6-cidr-block-association"]
+    )
 
 
 def random_subnet_association_id():
