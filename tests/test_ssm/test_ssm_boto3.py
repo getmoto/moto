@@ -233,10 +233,7 @@ def test_get_parameters_by_path():
 def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
     response = client.put_parameter(
-        Name=name,
-        Description="A test parameter",
-        Value="value",
-        Type="String",
+        Name=name, Description="A test parameter", Value="value", Type="String",
     )
 
     response["Version"].should.equal(1)
@@ -428,10 +425,7 @@ def test_get_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test",
-        Description="A test parameter",
-        Value="value",
-        Type="String",
+        Name="test", Description="A test parameter", Value="value", Type="String",
     )
 
     response = client.get_parameter(Name="test", WithDecryption=False)
@@ -451,16 +445,10 @@ def test_get_parameter_with_version_and_labels():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test-1",
-        Description="A test parameter",
-        Value="value",
-        Type="String",
+        Name="test-1", Description="A test parameter", Value="value", Type="String",
     )
     client.put_parameter(
-        Name="test-2",
-        Description="A test parameter",
-        Value="value",
-        Type="String",
+        Name="test-2", Description="A test parameter", Value="value", Type="String",
     )
 
     client.label_parameter_version(
