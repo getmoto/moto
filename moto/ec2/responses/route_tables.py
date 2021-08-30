@@ -210,6 +210,10 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                   <transitGatewayId>{{ route.transit_gateway.id }}</transitGatewayId>
                   <state>active</state>
                 {% endif %}
+                {% if route.interface %}
+                  <networkInterfaceId>{{ route.interface.id }}</networkInterfaceId>
+                  <state>active</state>
+                {% endif %}
               </item>
             {% endfor %}
           </routeSet>
