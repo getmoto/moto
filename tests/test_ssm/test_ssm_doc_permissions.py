@@ -64,11 +64,11 @@ def test_modify_document_permission_add_account_id(ids):
     set(res["AccountIds"]).should.equal(set(ids))
     res.should.have.key("AccountSharingInfoList").length_of(len(ids))
 
-    account_sharing_list = res["AccountSharingInfoList"]
-    account_sharing_list.should.have.length_of(len(ids))
-    for account_sharing in account_sharing_list:
-        ids.should.have(account_sharing["AccountId"])
-        account_sharing["SharedDocumentVersion"].should.equal("$DEFAULT")
+    expected_account_sharing = [
+        {"AccountId": _id, "SharedDocumentVersion": "$DEFAULT"}
+        for _id in ids
+    ]
+    res.should.have.key("AccountSharingInfoList").equal(expected_account_sharing)
 
 
 @pytest.mark.parametrize(
