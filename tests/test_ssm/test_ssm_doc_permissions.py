@@ -101,7 +101,10 @@ def test_modify_document_permission_remove_account_id(initial, to_remove):
     expected_new_list = set([x for x in initial if x not in to_remove])
     set(res["AccountIds"]).should.equal(expected_new_list)
 
-    expected_account_sharing = [{"AccountId": _id, "SharedDocumentVersion": "$DEFAULT"} for _id in expected_new_list]
+    expected_account_sharing = [
+        {"AccountId": _id, "SharedDocumentVersion": "$DEFAULT"}
+        for _id in expected_new_list
+    ]
     res.should.have.key("AccountSharingInfoList").equal(expected_account_sharing)
 
 

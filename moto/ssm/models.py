@@ -409,6 +409,7 @@ class Document(BaseModel):
 
         return base
 
+
 class Command(BaseModel):
     def __init__(
         self,
@@ -730,11 +731,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         if docs_tags:
             document_tags = docs_tags.get(name, {})
             return [
-                {
-                    "Key": tag,
-                    "Value": value
-                }
-                for tag, value in document_tags.items()
+                {"Key": tag, "Value": value} for tag, value in document_tags.items()
             ]
         return []
 
