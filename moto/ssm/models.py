@@ -144,7 +144,7 @@ def generate_ssm_doc_param_list(parameters):
         final_dict["Type"] = param_type
 
         default_value = param_info.get("default")
-        if default_value:
+        if default_value is not None:
             if param_type in {"StringList", "StringMap", "MapList"}:
                 final_dict["DefaultValue"] = json.dumps(default_value)
             else:
@@ -267,8 +267,8 @@ class Documents(BaseModel):
             base["VersionName"] = document.version_name
         if document.target_type:
             base["TargetType"] = document.target_type
-        if document.tags:
-            base["Tags"] = document.tags
+        if tags:
+            base["Tags"] = tags
 
         return base
 
@@ -324,7 +324,6 @@ class Document(BaseModel):
         requires,
         attachments,
         target_type,
-        tags,
         document_version="1",
     ):
         self.name = name
@@ -335,7 +334,6 @@ class Document(BaseModel):
         self.requires = requires
         self.attachments = attachments
         self.target_type = target_type
-        self.tags = tags
 
         self.status = "Active"
         self.document_version = document_version
@@ -389,6 +387,27 @@ class Document(BaseModel):
     def hash(self):
         return hashlib.sha256(self.content.encode("utf-8")).hexdigest()
 
+    def list_describe(self, tags=None):
+        base = {
+            "Name": self.name,
+            "Owner": self.owner,
+            "DocumentVersion": self.document_version,
+            "DocumentType": self.document_type,
+            "SchemaVersion": self.schema_version,
+            "DocumentFormat": self.document_format,
+        }
+        if self.version_name:
+            base["VersionName"] = self.version_name
+        if self.platform_types:
+            base["PlatformTypes"] = self.platform_types
+        if self.target_type:
+            base["TargetType"] = self.target_type
+        if self.requires:
+            base["Requires"] = self.requires
+        if tags:
+            base["Tags"] = tags
+
+        return base
 
 class Command(BaseModel):
     def __init__(
@@ -700,34 +719,24 @@ class SimpleSystemManagerBackend(BaseBackend):
             raise ValidationException("Invalid document format " + str(document_format))
         return content
 
-    @staticmethod
-    def _generate_document_list_information(ssm_document):
-        base = {
-            "Name": ssm_document.name,
-            "Owner": ssm_document.owner,
-            "DocumentVersion": ssm_document.document_version,
-            "DocumentType": ssm_document.document_type,
-            "SchemaVersion": ssm_document.schema_version,
-            "DocumentFormat": ssm_document.document_format,
-        }
-        if ssm_document.version_name:
-            base["VersionName"] = ssm_document.version_name
-        if ssm_document.platform_types:
-            base["PlatformTypes"] = ssm_document.platform_types
-        if ssm_document.target_type:
-            base["TargetType"] = ssm_document.target_type
-        if ssm_document.tags:
-            base["Tags"] = ssm_document.tags
-        if ssm_document.requires:
-            base["Requires"] = ssm_document.requires
-
-        return base
-
     def _get_documents(self, name):
         documents = self._documents.get(name)
         if not documents:
             raise InvalidDocument("The specified document does not exist.")
         return documents
+
+    def _get_documents_tags(self, name):
+        docs_tags = self._resource_tags.get("Document")
+        if docs_tags:
+            document_tags = docs_tags.get(name, {})
+            return [
+                {
+                    "Key": tag,
+                    "Value": value
+                }
+                for tag, value in document_tags.items()
+            ]
+        return []
 
     def create_document(
         self,
@@ -750,7 +759,6 @@ class SimpleSystemManagerBackend(BaseBackend):
             requires=requires,
             attachments=attachments,
             target_type=target_type,
-            tags=tags,
         )
 
         _validate_document_info(
@@ -766,7 +774,11 @@ class SimpleSystemManagerBackend(BaseBackend):
         documents = Documents(ssm_document)
         self._documents[ssm_document.name] = documents
 
-        return documents.describe()
+        if tags:
+            document_tags = {t["Key"]: t["Value"] for t in tags}
+            self.add_tags_to_resource("Document", name, document_tags)
+
+        return documents.describe(tags=tags)
 
     def delete_document(self, name, document_version, version_name, force):
         documents = self._get_documents(name)
@@ -893,7 +905,6 @@ class SimpleSystemManagerBackend(BaseBackend):
             requires=old_ssm_document.requires,
             attachments=attachments,
             target_type=target_type,
-            tags=old_ssm_document.tags,
             document_version=new_version,
         )
 
@@ -906,11 +917,13 @@ class SimpleSystemManagerBackend(BaseBackend):
                     )
 
         documents.add_new_version(new_ssm_document)
-        return documents.describe(document_version=new_version)
+        tags = self._get_documents_tags(name)
+        return documents.describe(document_version=new_version, tags=tags)
 
     def describe_document(self, name, document_version, version_name):
         documents = self._get_documents(name)
-        return documents.describe(document_version, version_name)
+        tags = self._get_documents_tags(name)
+        return documents.describe(document_version, version_name, tags=tags)
 
     def list_documents(
         self, document_filter_list, filters, max_results=10, next_token="0"
@@ -938,7 +951,9 @@ class SimpleSystemManagerBackend(BaseBackend):
                 # If we have filters enabled, and we don't match them,
                 continue
             else:
-                results.append(self._generate_document_list_information(ssm_doc))
+                tags = self._get_documents_tags(ssm_doc.name)
+                doc_describe = ssm_doc.list_describe(tags=tags)
+                results.append(doc_describe)
 
         # If we've fallen out of the loop, theres no more documents. No next token.
         return results, ""
@@ -1585,7 +1600,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         if tags:
             tags = {t["Key"]: t["Value"] for t in tags}
-            self.add_tags_to_resource(name, "Parameter", tags)
+            self.add_tags_to_resource("Parameter", name, tags)
 
         return version
 
