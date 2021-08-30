@@ -964,7 +964,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _bucket_response_delete_keys(self, request, body, bucket_name):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
-        body_dict = xmltodict.parse(body)
+        body_dict = xmltodict.parse(body, strip_whitespace=False)
 
         objects = body_dict["Delete"].get("Object", [])
         if not isinstance(objects, list):

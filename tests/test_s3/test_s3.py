@@ -6587,3 +6587,22 @@ def test_create_bucket_duplicate():
         "Your previous request to create the named bucket succeeded and you already own it."
     )
     err["BucketName"].should.equal(bucket_name)
+
+
+@mock_s3
+def test_delete_objects_with_empty_keyname():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket-4077"
+    bucket = resource.create_bucket(Bucket=bucket_name)
+    key_name = " "
+    bucket.put_object(Key=key_name, Body=b"")
+    client.list_objects(Bucket=bucket_name).should.have.key("Contents").length_of(1)
+
+    bucket.delete_objects(Delete={"Objects": [{"Key": key_name}]})
+    client.list_objects(Bucket=bucket_name).shouldnt.have.key("Contents")
+
+    bucket.put_object(Key=key_name, Body=b"")
+
+    client.delete_object(Bucket=bucket_name, Key=key_name)
+    client.list_objects(Bucket=bucket_name).shouldnt.have.key("Contents")
