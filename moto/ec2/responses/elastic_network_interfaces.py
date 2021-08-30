@@ -66,8 +66,11 @@ class ElasticNetworkInterfaces(BaseResponse):
     def modify_network_interface_attribute(self):
         eni_id = self._get_param("NetworkInterfaceId")
         group_ids = self._get_multi_param("SecurityGroupId")
+        source_dest_check = self._get_param("SourceDestCheck")
         if self.is_not_dryrun("ModifyNetworkInterface"):
-            self.ec2_backend.modify_network_interface_attribute(eni_id, group_ids)
+            self.ec2_backend.modify_network_interface_attribute(
+                eni_id, group_ids, source_dest_check
+            )
             return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
 
     def reset_network_interface_attribute(self):
