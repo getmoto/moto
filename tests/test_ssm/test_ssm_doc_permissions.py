@@ -65,8 +65,7 @@ def test_modify_document_permission_add_account_id(ids):
     res.should.have.key("AccountSharingInfoList").length_of(len(ids))
 
     expected_account_sharing = [
-        {"AccountId": _id, "SharedDocumentVersion": "$DEFAULT"}
-        for _id in ids
+        {"AccountId": _id, "SharedDocumentVersion": "$DEFAULT"} for _id in ids
     ]
     res.should.have.key("AccountSharingInfoList").equal(expected_account_sharing)
 
