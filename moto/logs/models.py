@@ -153,6 +153,9 @@ class LogStream(BaseModel):
         next_token,
         start_from_head,
     ):
+        if limit is None:
+            limit = 10000
+
         def filter_func(event):
             if start_time and event.timestamp < start_time:
                 return False
@@ -382,6 +385,8 @@ class LogGroup(BaseModel):
         filter_pattern,
         interleaved,
     ):
+        if not limit:
+            limit = 10000
         streams = [
             stream
             for name, stream in self.streams.items()
@@ -531,6 +536,12 @@ class LogsBackend(BaseBackend):
     def create_log_group(self, log_group_name, tags, **kwargs):
         if log_group_name in self.groups:
             raise ResourceAlreadyExistsException()
+        if len(log_group_name) > 512:
+            raise InvalidParameterException(
+                constraint="Member must have length less than or equal to 512",
+                parameter="logGroupName",
+                value=log_group_name,
+            )
         self.groups[log_group_name] = LogGroup(
             self.region_name, log_group_name, tags, **kwargs
         )
@@ -547,6 +558,12 @@ class LogsBackend(BaseBackend):
         del self.groups[log_group_name]
 
     def describe_log_groups(self, limit, log_group_name_prefix, next_token):
+        if limit > 50:
+            raise InvalidParameterException(
+                constraint="Member must have value less than or equal to 50",
+                parameter="limit",
+                value=limit,
+            )
         if log_group_name_prefix is None:
             log_group_name_prefix = ""
 
@@ -608,6 +625,22 @@ class LogsBackend(BaseBackend):
     ):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
+        if limit > 50:
+            raise InvalidParameterException(
+                constraint="Member must have value less than or equal to 50",
+                parameter="limit",
+                value=limit,
+            )
+        if order_by not in ["LogStreamName", "LastEventTime"]:
+            raise InvalidParameterException(
+                constraint="Member must satisfy enum value set: [LogStreamName, LastEventTime]",
+                parameter="orderBy",
+                value=order_by,
+            )
+        if order_by == "LastEventTime" and log_stream_name_prefix:
+            raise InvalidParameterException(
+                msg="Cannot order by LastEventTime with a logStreamNamePrefix."
+            )
         log_group = self.groups[log_group_name]
         return log_group.describe_log_streams(
             descending,
@@ -641,6 +674,12 @@ class LogsBackend(BaseBackend):
     ):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
+        if limit and limit > 1000:
+            raise InvalidParameterException(
+                constraint="Member must have value less than or equal to 10000",
+                parameter="limit",
+                value=limit,
+            )
         log_group = self.groups[log_group_name]
         return log_group.get_log_events(
             log_group_name,
@@ -665,6 +704,12 @@ class LogsBackend(BaseBackend):
     ):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
+        if limit and limit > 1000:
+            raise InvalidParameterException(
+                constraint="Member must have value less than or equal to 10000",
+                parameter="limit",
+                value=limit,
+            )
         log_group = self.groups[log_group_name]
         return log_group.filter_log_events(
             log_group_name,

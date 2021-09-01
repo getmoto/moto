@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import sure  # noqa
 from unittest import SkipTest
 
 import boto3
@@ -805,4 +806,144 @@ def test_start_query():
     exc_value.response["Error"]["Code"].should.contain("ResourceNotFoundException")
     exc_value.response["Error"]["Message"].should.equal(
         "The specified log group does not exist"
+    )
+
+
+@pytest.mark.parametrize("nr_of_events", [10001, 1000000])
+@mock_logs
+def test_get_too_many_log_events(nr_of_events):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    log_stream_name = "stream"
+    client.create_log_group(logGroupName=log_group_name)
+    client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.get_log_events(
+            logGroupName=log_group_name,
+            logStreamName=log_stream_name,
+            limit=nr_of_events,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_events)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 10000")
+
+
+@pytest.mark.parametrize("nr_of_events", [10001, 1000000])
+@mock_logs
+def test_filter_too_many_log_events(nr_of_events):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    log_stream_name = "stream"
+    client.create_log_group(logGroupName=log_group_name)
+    client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.filter_log_events(
+            logGroupName=log_group_name,
+            logStreamNames=[log_stream_name],
+            limit=nr_of_events,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_events)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 10000")
+
+
+@pytest.mark.parametrize("nr_of_groups", [51, 100])
+@mock_logs
+def test_describe_too_many_log_groups(nr_of_groups):
+    client = boto3.client("logs", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_groups(limit=nr_of_groups)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_groups)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 50")
+
+
+@pytest.mark.parametrize("nr_of_streams", [51, 100])
+@mock_logs
+def test_describe_too_many_log_streams(nr_of_streams):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    client.create_log_group(logGroupName=log_group_name)
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_streams(logGroupName=log_group_name, limit=nr_of_streams)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_streams)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 50")
+
+
+@pytest.mark.parametrize("length", [513, 1000])
+@mock_logs
+def test_create_log_group_invalid_name_length(length):
+    log_group_name = "a" * length
+    client = boto3.client("logs", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.create_log_group(logGroupName=log_group_name)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'logGroupName' failed to satisfy constraint".format(
+            log_group_name
+        )
+    )
+    err["Message"].should.contain("Member must have length less than or equal to 512")
+
+
+@pytest.mark.parametrize("invalid_orderby", ["", "sth", "LogStreamname"])
+@mock_logs
+def test_describe_log_streams_invalid_order_by(invalid_orderby):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    client.create_log_group(logGroupName=log_group_name)
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_streams(
+            logGroupName=log_group_name, orderBy=invalid_orderby
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'orderBy' failed to satisfy constraint".format(invalid_orderby)
+    )
+    err["Message"].should.contain(
+        "Member must satisfy enum value set: [LogStreamName, LastEventTime]"
+    )
+
+
+@mock_logs
+def test_describe_log_streams_no_prefix():
+    """
+    From the docs: If orderBy is LastEventTime , you cannot specify [logStreamNamePrefix]
+    """
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    client.create_log_group(logGroupName=log_group_name)
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_streams(
+            logGroupName=log_group_name,
+            orderBy="LastEventTime",
+            logStreamNamePrefix="sth",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "Cannot order by LastEventTime with a logStreamNamePrefix."
     )

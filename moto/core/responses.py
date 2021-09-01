@@ -723,7 +723,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     elif key.endswith(value_end):
                         v = value[0]
 
-            if not (k and v):
+            if not (k and v is not None):
                 break
 
             results[k] = v

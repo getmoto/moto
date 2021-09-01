@@ -948,6 +948,7 @@ def test_iam_roles():
         "roles"
     ]
     role_name_to_id = {}
+    role_names = []
     for role_result in role_results:
         role = iam_conn.get_role(role_result.role_name)
         # Role name is not specified, so randomly generated - can't check exact name
@@ -958,6 +959,7 @@ def test_iam_roles():
             role_name_to_id["no-path"] = role.role_id
             role.role_name.should.equal("my-role-no-path-name")
             role.path.should.equal("/")
+        role_names.append(role.role_name)
 
     instance_profile_responses = iam_conn.list_instance_profiles()[
         "list_instance_profiles_response"
@@ -997,9 +999,7 @@ def test_iam_roles():
     role_resources = [
         resource for resource in resources if resource.resource_type == "AWS::IAM::Role"
     ]
-    {r.physical_resource_id for r in role_resources}.should.equal(
-        set(role_name_to_id.values())
-    )
+    {r.physical_resource_id for r in role_resources}.should.equal(set(role_names))
 
 
 @mock_ec2_deprecated()

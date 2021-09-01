@@ -5,6 +5,7 @@ import json
 import re
 
 import itertools
+from functools import wraps
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
@@ -17,6 +18,55 @@ from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 
 
 TRANSACTION_MAX_ITEMS = 25
+
+
+def include_consumed_capacity(val=1.0):
+    def _inner(f):
+        @wraps(f)
+        def _wrapper(*args, **kwargs):
+            (handler,) = args
+            expected_capacity = handler.body.get("ReturnConsumedCapacity", "NONE")
+            if expected_capacity not in ["NONE", "TOTAL", "INDEXES"]:
+                type_ = "ValidationException"
+                message = "1 validation error detected: Value '{}' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]".format(
+                    expected_capacity
+                )
+                return (
+                    400,
+                    handler.response_headers,
+                    dynamo_json_dump({"__type": type_, "message": message}),
+                )
+            table_name = handler.body.get("TableName", "")
+            index_name = handler.body.get("IndexName", None)
+
+            response = f(*args, **kwargs)
+
+            if isinstance(response, str):
+                body = json.loads(response)
+
+                if expected_capacity == "TOTAL":
+                    body["ConsumedCapacity"] = {
+                        "TableName": table_name,
+                        "CapacityUnits": val,
+                    }
+                elif expected_capacity == "INDEXES":
+                    body["ConsumedCapacity"] = {
+                        "TableName": table_name,
+                        "CapacityUnits": val,
+                        "Table": {"CapacityUnits": val},
+                    }
+                    if index_name:
+                        body["ConsumedCapacity"]["LocalSecondaryIndexes"] = {
+                            index_name: {"CapacityUnits": val}
+                        }
+
+                return dynamo_json_dump(body)
+
+            return response
+
+        return _wrapper
+
+    return _inner
 
 
 def put_has_empty_keys(field_updates, table):
@@ -190,6 +240,10 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
             return self.error(er, "Requested resource not found")
 
+    def describe_endpoints(self):
+        response = {"Endpoints": self.dynamodb_backend.describe_endpoints()}
+        return dynamo_json_dump(response)
+
     def tag_resource(self):
         table_arn = self.body["ResourceArn"]
         tags = self.body["Tags"]
@@ -250,6 +304,7 @@ class DynamoHandler(BaseResponse):
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
             return self.error(er, "Requested resource not found")
 
+    @include_consumed_capacity()
     def put_item(self):
         name = self.body["TableName"]
         item = self.body["Item"]
@@ -306,7 +361,6 @@ class DynamoHandler(BaseResponse):
 
         if result:
             item_dict = result.to_json()
-            item_dict["ConsumedCapacity"] = {"TableName": name, "CapacityUnits": 1}
             if return_values == "ALL_OLD":
                 item_dict["Attributes"] = existing_attributes
             else:
@@ -345,6 +399,7 @@ class DynamoHandler(BaseResponse):
 
         return dynamo_json_dump(response)
 
+    @include_consumed_capacity(0.5)
     def get_item(self):
         name = self.body["TableName"]
         table = self.dynamodb_backend.get_table(name)
@@ -368,11 +423,10 @@ class DynamoHandler(BaseResponse):
             return self.error(er, "Validation Exception")
         if item:
             item_dict = item.describe_attrs(attributes=None)
-            item_dict["ConsumedCapacity"] = {"TableName": name, "CapacityUnits": 0.5}
             return dynamo_json_dump(item_dict)
         else:
             # Item not found
-            return 200, self.response_headers, "{}"
+            return dynamo_json_dump({})
 
     def batch_get_item(self):
         table_batches = self.body["RequestItems"]
@@ -437,6 +491,7 @@ class DynamoHandler(BaseResponse):
                 unique_keys.append(k)
         return False
 
+    @include_consumed_capacity()
     def query(self):
         name = self.body["TableName"]
         key_condition_expression = self.body.get("KeyConditionExpression")
@@ -614,7 +669,6 @@ class DynamoHandler(BaseResponse):
 
         result = {
             "Count": len(items),
-            "ConsumedCapacity": {"TableName": name, "CapacityUnits": 1},
             "ScannedCount": scanned_count,
         }
 
@@ -645,6 +699,7 @@ class DynamoHandler(BaseResponse):
 
         return projection_expression
 
+    @include_consumed_capacity()
     def scan(self):
         name = self.body["TableName"]
 
@@ -696,7 +751,6 @@ class DynamoHandler(BaseResponse):
         result = {
             "Count": len(items),
             "Items": [item.attrs for item in items],
-            "ConsumedCapacity": {"TableName": name, "CapacityUnits": 1},
             "ScannedCount": scanned_count,
         }
         if last_evaluated_key is not None:
@@ -751,8 +805,12 @@ class DynamoHandler(BaseResponse):
         return_values = self.body.get("ReturnValues", "NONE")
         update_expression = self.body.get("UpdateExpression", "").strip()
         attribute_updates = self.body.get("AttributeUpdates")
-        expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
-        expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
+        if update_expression and attribute_updates:
+            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
+            return self.error(
+                er,
+                "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}",
+            )
         # We need to copy the item in order to avoid it being modified by the update_item operation
         existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
         if existing_item:

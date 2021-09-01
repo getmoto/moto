@@ -3329,7 +3329,7 @@
 
 ## dynamodb
 <details>
-<summary>54% implemented</summary>
+<summary>56% implemented</summary>
 
 - [ ] batch_execute_statement
 - [X] batch_get_item
@@ -3343,7 +3343,7 @@
 - [X] describe_backup
 - [X] describe_continuous_backups
 - [ ] describe_contributor_insights
-- [ ] describe_endpoints
+- [X] describe_endpoints
 - [ ] describe_export
 - [ ] describe_global_table
 - [ ] describe_global_table_settings
@@ -4220,23 +4220,23 @@
 
 ## elastictranscoder
 <details>
-<summary>0% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] cancel_job
 - [ ] create_job
-- [ ] create_pipeline
+- [X] create_pipeline
 - [ ] create_preset
-- [ ] delete_pipeline
+- [X] delete_pipeline
 - [ ] delete_preset
 - [ ] list_jobs_by_pipeline
 - [ ] list_jobs_by_status
-- [ ] list_pipelines
+- [X] list_pipelines
 - [ ] list_presets
 - [ ] read_job
-- [ ] read_pipeline
+- [X] read_pipeline
 - [ ] read_preset
 - [ ] test_role
-- [ ] update_pipeline
+- [X] update_pipeline
 - [ ] update_pipeline_notifications
 - [ ] update_pipeline_status
 </details>
@@ -4318,7 +4318,7 @@
 
 ## emr
 <details>
-<summary>42% implemented</summary>
+<summary>40% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -4338,6 +4338,7 @@
 - [ ] describe_security_configuration
 - [X] describe_step
 - [ ] describe_studio
+- [ ] get_auto_termination_policy
 - [ ] get_block_public_access_configuration
 - [ ] get_managed_scaling_policy
 - [ ] get_studio_session_mapping
@@ -4356,9 +4357,11 @@
 - [ ] modify_instance_fleet
 - [X] modify_instance_groups
 - [X] put_auto_scaling_policy
+- [ ] put_auto_termination_policy
 - [ ] put_block_public_access_configuration
 - [ ] put_managed_scaling_policy
 - [X] remove_auto_scaling_policy
+- [ ] remove_auto_termination_policy
 - [ ] remove_managed_scaling_policy
 - [X] remove_tags
 - [X] run_job_flow
@@ -9423,7 +9426,7 @@
 
 ## s3
 <details>
-<summary>52% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -9486,9 +9489,9 @@
 - [X] list_buckets
 - [ ] list_multipart_uploads
 - [X] list_object_versions
-- [ ] list_objects
-- [ ] list_objects_v2
-- [ ] list_parts
+- [X] list_objects
+- [X] list_objects_v2
+- [X] list_parts
 - [X] put_bucket_accelerate_configuration
 - [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration

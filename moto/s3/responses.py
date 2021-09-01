@@ -8,6 +8,7 @@ import sys
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import (
+    amzn_request_id,
     str_to_rfc_1123_datetime,
     py2_strip_unicode_keys,
     unix_time_millis,
@@ -45,6 +46,7 @@ from .exceptions import (
     MissingBucket,
     MissingKey,
     MissingVersion,
+    InvalidMaxPartArgument,
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
@@ -120,6 +122,7 @@ ACTION_MAP = {
         },
     },
     "KEY": {
+        "HEAD": {"DEFAULT": "HeadObject",},
         "GET": {
             "uploadId": "ListMultipartUploadParts",
             "acl": "GetObjectAcl",
@@ -258,6 +261,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # Using path-based buckets
             return self.bucket_response(request, full_url, headers)
 
+    @amzn_request_id
     def bucket_response(self, request, full_url, headers):
         self.method = request.method
         self.path = self._get_path(request)
@@ -519,7 +523,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         delimiter = querystring.get("delimiter", [None])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         marker = querystring.get("marker", [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(
+        result_keys, result_folders = self.backend.list_objects(
             bucket, prefix, delimiter
         )
 
@@ -569,17 +573,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(
-            bucket, prefix, delimiter
-        )
+        all_keys = self.backend.list_objects_v2(bucket, prefix, delimiter)
 
         fetch_owner = querystring.get("fetch-owner", [False])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         start_after = querystring.get("start-after", [None])[0]
-
-        # sort the combination of folders and keys into lexicographical order
-        all_keys = result_keys + result_folders
-        all_keys.sort(key=self._get_name)
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
@@ -605,13 +603,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             next_continuation_token=next_continuation_token,
             start_after=None if continuation_token else start_after,
         )
-
-    @staticmethod
-    def _get_name(key):
-        if isinstance(key, FakeKey):
-            return key.name
-        else:
-            return key
 
     @staticmethod
     def _split_truncated_keys(truncated_keys):
@@ -1025,6 +1016,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             line = body_io.readline()
         return bytes(new_body)
 
+    @amzn_request_id
     def key_or_control_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
@@ -1187,10 +1179,17 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # Flask server
             body = request.data
-            # when the data is being passed as a file
-            if request.files and not body:
-                for _, value in request.files.items():
-                    body = value.stream.read()
+            if not body:
+                # when the data is being passed as a file
+                if request.files:
+                    for _, value in request.files.items():
+                        body = value.stream.read()
+                elif hasattr(request, "form"):
+                    # Body comes through as part of the form, if no content-type is set on the PUT-request
+                    # form = ImmutableMultiDict([('some data 123 321', '')])
+                    form = request.form
+                    for k, _ in form.items():
+                        body = k
 
         if body is None:
             body = b""
@@ -1233,7 +1232,28 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         response_headers = {}
         if query.get("uploadId"):
             upload_id = query["uploadId"][0]
-            parts = self.backend.list_multipart(bucket_name, upload_id)
+
+            # 0 <= PartNumberMarker <= 2,147,483,647
+            part_number_marker = int(query.get("part-number-marker", [0])[0])
+            if not (0 <= part_number_marker <= 2147483647):
+                raise InvalidMaxPartArgument("part-number-marker", 0, 2147483647)
+
+            # 0 <= MaxParts <= 2,147,483,647 (default is 1,000)
+            max_parts = int(query.get("max-parts", [1000])[0])
+            if not (0 <= max_parts <= 2147483647):
+                raise InvalidMaxPartArgument("max-parts", 0, 2147483647)
+
+            parts = self.backend.list_parts(
+                bucket_name,
+                upload_id,
+                part_number_marker=part_number_marker,
+                max_parts=max_parts,
+            )
+            next_part_number_marker = parts[-1].name + 1 if parts else 0
+            is_truncated = parts and self.backend.is_truncated(
+                bucket_name, upload_id, next_part_number_marker
+            )
+
             template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
             return (
                 200,
@@ -1242,8 +1262,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name=bucket_name,
                     key_name=key_name,
                     upload_id=upload_id,
-                    count=len(parts),
+                    is_truncated=str(is_truncated).lower(),
+                    max_parts=max_parts,
+                    next_part_number_marker=next_part_number_marker,
                     parts=parts,
+                    part_number_marker=part_number_marker,
                 ),
             )
         version_id = query.get("versionId", [None])[0]
@@ -1495,6 +1518,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return 200, response_headers, ""
 
     def _key_response_head(self, bucket_name, query, key_name, headers):
+        self._set_action("KEY", "HEAD", query)
+        self._authenticate_and_authorize_s3_action()
+
         response_headers = {}
         version_id = query.get("versionId", [None])[0]
         part_number = query.get("partNumber", [None])[0]
@@ -2351,10 +2377,10 @@ S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
     <DisplayName>webfile</DisplayName>
   </Owner>
-  <PartNumberMarker>1</PartNumberMarker>
-  <NextPartNumberMarker>{{ count }}</NextPartNumberMarker>
-  <MaxParts>{{ count }}</MaxParts>
-  <IsTruncated>false</IsTruncated>
+  <PartNumberMarker>{{ part_number_marker }}</PartNumberMarker>
+  <NextPartNumberMarker>{{ next_part_number_marker }}</NextPartNumberMarker>
+  <MaxParts>{{ max_parts }}</MaxParts>
+  <IsTruncated>{{ is_truncated }}</IsTruncated>
   {% for part in parts %}
   <Part>
     <PartNumber>{{ part.name }}</PartNumber>

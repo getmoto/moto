@@ -369,9 +369,11 @@ class FakeMultipart(BaseModel):
             insort(self.partlist, part_id)
         return key
 
-    def list_parts(self):
+    def list_parts(self, part_number_marker, max_parts):
         for part_id in self.partlist:
-            yield self.parts[part_id]
+            part = self.parts[part_id]
+            if part_number_marker <= part.name < part_number_marker + max_parts:
+                yield part
 
 
 class FakeGrantee(BaseModel):
@@ -1712,6 +1714,20 @@ class S3Backend(BaseBackend):
             raise NoSuchUpload(upload_id=multipart_id)
         del bucket.multiparts[multipart_id]
 
+    def list_parts(
+        self, bucket_name, multipart_id, part_number_marker=0, max_parts=1000
+    ):
+        bucket = self.get_bucket(bucket_name)
+        if multipart_id not in bucket.multiparts:
+            raise NoSuchUpload(upload_id=multipart_id)
+        return list(
+            bucket.multiparts[multipart_id].list_parts(part_number_marker, max_parts)
+        )
+
+    def is_truncated(self, bucket_name, multipart_id, next_part_number_marker):
+        bucket = self.get_bucket(bucket_name)
+        return len(bucket.multiparts[multipart_id].parts) >= next_part_number_marker
+
     def create_multipart_upload(self, bucket_name, key_name, metadata, storage_type):
         multipart = FakeMultipart(key_name, metadata)
         multipart.storage = storage_type
@@ -1727,12 +1743,6 @@ class S3Backend(BaseBackend):
         if value is not None:
             del bucket.multiparts[multipart_id]
         return multipart, value, etag
-
-    def list_multipart(self, bucket_name, multipart_id):
-        bucket = self.get_bucket(bucket_name)
-        if multipart_id not in bucket.multiparts:
-            raise NoSuchUpload(upload_id=multipart_id)
-        return list(bucket.multiparts[multipart_id].list_parts())
 
     def get_all_multiparts(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
@@ -1764,7 +1774,7 @@ class S3Backend(BaseBackend):
             src_value = src_value[start_byte : end_byte + 1]
         return multipart.set_part(part_id, src_value)
 
-    def prefix_query(self, bucket, prefix, delimiter):
+    def list_objects(self, bucket, prefix, delimiter):
         key_results = set()
         folder_results = set()
         if prefix:
@@ -1796,6 +1806,20 @@ class S3Backend(BaseBackend):
         ]
 
         return key_results, folder_results
+
+    def list_objects_v2(self, bucket, prefix, delimiter):
+        result_keys, result_folders = self.list_objects(bucket, prefix, delimiter)
+        # sort the combination of folders and keys into lexicographical order
+        all_keys = result_keys + result_folders
+        all_keys.sort(key=self._get_name)
+        return all_keys
+
+    @staticmethod
+    def _get_name(key):
+        if isinstance(key, FakeKey):
+            return key.name
+        else:
+            return key
 
     def _set_delete_marker(self, bucket_name, key_name):
         bucket = self.get_bucket(bucket_name)

@@ -4,10 +4,55 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.6
+-----
+    General:
+        * `pip install` will no longer log a warning when installing a service that does not have any dependencies
+          Example: `pip install moto[acm]`
+
+    New Services:
+        ElasticTranscoder:
+            * create_pipeline
+            * delete_pipeline
+            * list_pipelines
+            * read_pipeline
+            * update_pipeline
+
+    New Methods:
+        * DynamoDB:
+            * describe_endpoints()
+
+    Miscellaneous:
+        * AWSLambda now sends logs to CloudWatch when Docker encounters an error, to make debugging easier
+        * AWSLambda: For all methods, the FunctionName-parameter can be either the Lambda name or the Lambda ARN
+        * AWSLambda:list_functions() now returns only the latest version by default
+        * AWSLambda:invoke() now returns the correct Payload for invocations that resulted in an error
+        * CloudFormation now supports the creation of type AWS::IAM::ManagedPolicy
+        * CloudFormation now supports the deletion of type AWS::IAM::InstanceProfile
+        * CloudFormation now supports the deletion of type AWS::IAM::Role
+        * CloudWatch:create_log_group() now has proper validation for the length of the logGroupName-parameter
+        * CloudWatch:describe_log_groups() now has proper validation for the limit-parameter
+        * CloudWatch:describe_log_streams() now has proper validation for the limit-parameter
+        * CloudWatch:get_log_events() now has proper validation for the limit-parameter
+        * CloudWatch:filter_log_events() now has proper validation for the limit-parameter
+        * DynamoDB:update_item(): fixed a bug where an item was created, despite throwing an error
+        * DynamoDB:update_item() now throws an error when both UpdateExpression and AttributeUpdates are supplied
+        * EC2:modify_instance_attribute() now supports Attribute="disableApiTermination"
+        * S3 now supports direct uploads using the requests-library without having to specify the 'Content-Type' header
+        * S3 now supports creating S3 buckets that start with a service name, i.e. `iot-bucket`
+        * S3 now returns the RequestID in every response
+        * S3:list_parts() now supports the MaxPart-parameter
+        * SQS:get_queue_attributes() now behaves correctly when the AttributeNames-parameter is not provided
+        * SQS:receive_message() no longer accepts queue-names for the QueueUrl-parameter, as per AWS' spec
+        * SQS: The sqs.Queue-class no longer accepts queue-names, only queue-URLs, as per AWS' spec
+
 2.2.5
 -----
     General:
         * Python 3.9 is now officially supported
+
+    Known bugs:
+        * SQS:get_queue_attributes() throws an error when the AttributeNames-parameter is not provided
 
     New Methods:
         * DynamoDB (API v20111205, now deprecated)

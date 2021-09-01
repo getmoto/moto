@@ -253,7 +253,7 @@ class PolicyVersion(object):
         return iso_8601_datetime_with_milliseconds(self.create_date)
 
 
-class ManagedPolicy(Policy):
+class ManagedPolicy(Policy, CloudFormationModel):
     """Managed policy."""
 
     is_attachable = True
@@ -311,6 +311,47 @@ class ManagedPolicy(Policy):
             },
             "supplementaryConfiguration": {},
         }
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None  # Resource never gets named after by template PolicyName!
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::IAM::ManagedPolicy"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_physical_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json.get("Properties", {})
+        policy_document = json.dumps(properties.get("PolicyDocument"))
+        name = properties.get("ManagedPolicyName", resource_physical_name)
+        description = properties.get("Description")
+        path = properties.get("Path")
+        group_names = properties.get("Groups", [])
+        user_names = properties.get("Users", [])
+        role_names = properties.get("Roles", [])
+
+        policy = iam_backend.create_policy(
+            description=description,
+            path=path,
+            policy_document=policy_document,
+            policy_name=name,
+        )
+        for group_name in group_names:
+            iam_backend.attach_group_policy(
+                group_name=group_name, policy_arn=policy.arn
+            )
+        for user_name in user_names:
+            iam_backend.attach_user_policy(user_name=user_name, policy_arn=policy.arn)
+        for role_name in role_names:
+            iam_backend.attach_role_policy(role_name=role_name, policy_arn=policy.arn)
+        return policy
+
+    @property
+    def physical_resource_id(self):
+        return self.arn
 
 
 class AWSManagedPolicy(ManagedPolicy):
@@ -557,6 +598,19 @@ class Role(CloudFormationModel):
 
         return role
 
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        for profile_name, profile in iam_backend.instance_profiles.items():
+            profile.delete_role(role_name=resource_name)
+
+        for _, role in iam_backend.roles.items():
+            if role.name == resource_name:
+                for arn, policy in role.policies.items():
+                    role.delete_policy(arn)
+        iam_backend.delete_role(resource_name)
+
     @property
     def arn(self):
         return "arn:aws:iam::{0}:role{1}{2}".format(ACCOUNT_ID, self.path, self.name)
@@ -637,7 +691,7 @@ class Role(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return self.id
+        return self.name
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -684,12 +738,21 @@ class InstanceProfile(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
 
-        role_ids = properties["Roles"]
+        role_names = properties["Roles"]
         return iam_backend.create_instance_profile(
             name=resource_physical_name,
             path=properties.get("Path", "/"),
-            role_ids=role_ids,
+            role_names=role_names,
         )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        iam_backend.delete_instance_profile(resource_name)
+
+    def delete_role(self, role_name):
+        self.roles = [role for role in self.roles if role.name != role_name]
 
     @property
     def arn(self):
@@ -1837,7 +1900,7 @@ class IAMBackend(BaseBackend):
                 return
         raise IAMNotFoundException("Policy not found")
 
-    def create_instance_profile(self, name, path, role_ids, tags=None):
+    def create_instance_profile(self, name, path, role_names, tags=None):
         if self.instance_profiles.get(name):
             raise IAMConflictException(
                 code="EntityAlreadyExists",
@@ -1846,7 +1909,7 @@ class IAMBackend(BaseBackend):
 
         instance_profile_id = random_resource_id()
 
-        roles = [iam_backend.get_role_by_id(role_id) for role_id in role_ids]
+        roles = [iam_backend.get_role(role_name) for role_name in role_names]
         instance_profile = InstanceProfile(instance_profile_id, name, path, roles, tags)
         self.instance_profiles[name] = instance_profile
         return instance_profile

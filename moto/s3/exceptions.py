@@ -237,6 +237,16 @@ class CrossLocationLoggingProhibitted(S3ClientError):
         )
 
 
+class InvalidMaxPartArgument(S3ClientError):
+    code = 400
+
+    def __init__(self, arg, min_val, max_val):
+        error = "Argument {} must be an integer between {} and {}".format(
+            arg, min_val, max_val
+        )
+        super(InvalidMaxPartArgument, self).__init__("InvalidArgument", error)
+
+
 class InvalidNotificationARN(S3ClientError):
     code = 400
 

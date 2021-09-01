@@ -27,7 +27,6 @@ class LogsResponse(BaseResponse):
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
         kms_key_id = self._get_param("kmsKeyId")
-        assert 1 <= len(log_group_name) <= 512  # TODO: assert pattern
 
         self.logs_backend.create_log_group(log_group_name, tags, kmsKeyId=kms_key_id)
         return ""
@@ -41,7 +40,6 @@ class LogsResponse(BaseResponse):
         log_group_name_prefix = self._get_param("logGroupNamePrefix")
         next_token = self._get_param("nextToken")
         limit = self._get_param("limit", 50)
-        assert limit <= 50
         groups, next_token = self.logs_backend.describe_log_groups(
             limit, log_group_name_prefix, next_token
         )
@@ -67,13 +65,8 @@ class LogsResponse(BaseResponse):
         log_stream_name_prefix = self._get_param("logStreamNamePrefix", "")
         descending = self._get_param("descending", False)
         limit = self._get_param("limit", 50)
-        assert limit <= 50
         next_token = self._get_param("nextToken")
         order_by = self._get_param("orderBy", "LogStreamName")
-        assert order_by in {"LogStreamName", "LastEventTime"}
-
-        if order_by == "LastEventTime":
-            assert not log_stream_name_prefix
 
         streams, next_token = self.logs_backend.describe_log_streams(
             descending,
@@ -101,8 +94,7 @@ class LogsResponse(BaseResponse):
         log_stream_name = self._get_param("logStreamName")
         start_time = self._get_param("startTime")
         end_time = self._get_param("endTime")
-        limit = self._get_param("limit", 10000)
-        assert limit <= 10000
+        limit = self._get_param("limit")
         next_token = self._get_param("nextToken")
         start_from_head = self._get_param("startFromHead", False)
 
@@ -135,8 +127,7 @@ class LogsResponse(BaseResponse):
         filter_pattern = self._get_param("filterPattern")
         interleaved = self._get_param("interleaved", False)
         end_time = self._get_param("endTime")
-        limit = self._get_param("limit", 10000)
-        assert limit <= 10000
+        limit = self._get_param("limit")
         next_token = self._get_param("nextToken")
 
         events, next_token, searched_streams = self.logs_backend.filter_log_events(
