@@ -760,13 +760,13 @@ DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="ht
     <LifecycleHooks>
       {% for lifecycle_hook in lifecycle_hooks %}
         <member>
-          <AutoScalingGroupName>{{ lifecycle_hook.as_name }}</AutoScalingGroupName> 
-          <RoleARN>arn:aws:iam::1234567890:role/my-auto-scaling-role</RoleARN> 
-          <LifecycleTransition>{{ lifecycle_hook.transition }}</LifecycleTransition> 
-          <GlobalTimeout>172800</GlobalTimeout> 
-          <LifecycleHookName>{{ lifecycle_hook.name }}</LifecycleHookName> 
-          <HeartbeatTimeout>{{ lifecycle_hook.timeout }}</HeartbeatTimeout> 
-          <DefaultResult>{{ lifecycle_hook.result }}</DefaultResult> 
+          <AutoScalingGroupName>{{ lifecycle_hook.as_name }}</AutoScalingGroupName>
+          <RoleARN>arn:aws:iam::1234567890:role/my-auto-scaling-role</RoleARN>
+          <LifecycleTransition>{{ lifecycle_hook.transition }}</LifecycleTransition>
+          <GlobalTimeout>172800</GlobalTimeout>
+          <LifecycleHookName>{{ lifecycle_hook.name }}</LifecycleHookName>
+          <HeartbeatTimeout>{{ lifecycle_hook.timeout }}</HeartbeatTimeout>
+          <DefaultResult>{{ lifecycle_hook.result }}</DefaultResult>
           <NotificationTargetARN>arn:aws:sqs:us-east-1:123456789012:my-queue</NotificationTargetARN>
         </member>
       {% endfor %}

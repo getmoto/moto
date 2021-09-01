@@ -932,7 +932,8 @@ class AutoScalingBackend(BaseBackend):
         return lifecycle_hook
 
     def describe_lifecycle_hooks(
-        self, autoscaling_group_name=None, lifecycle_hook_names=None):
+        self, autoscaling_group_name=None, lifecycle_hook_names=None
+    ):
         return [
             lifecycle_hook
             for lifecycle_hook in self.lifecycle_hooks.values()
