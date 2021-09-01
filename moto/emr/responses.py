@@ -6,7 +6,7 @@ from functools import wraps
 
 import pytz
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
@@ -505,7 +505,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @generate_boto3_response("SetTerminationProtection")
     def set_termination_protection(self):
-        termination_protection = self._get_param("TerminationProtected")
+        termination_protection = self._get_bool_param("TerminationProtected")
         job_ids = self._get_multi_param("JobFlowIds.member")
         self.backend.set_termination_protection(job_ids, termination_protection)
         template = self.response_template(SET_TERMINATION_PROTECTION_TEMPLATE)

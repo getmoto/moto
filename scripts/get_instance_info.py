@@ -26,9 +26,7 @@ def main():
             instances.extend(offerings["InstanceTypes"])
             next_token = offerings.get("NextToken", "")
             while next_token:
-                offerings = ec2.describe_instance_types(
-                    NextToken=next_token
-                )
+                offerings = ec2.describe_instance_types(NextToken=next_token)
                 instances.extend(offerings["InstanceTypes"])
                 next_token = offerings.get("NextToken", None)
         except Exception:
@@ -39,7 +37,7 @@ def main():
     print("Parsing data")
     result = {}
     for instance in instances:
-        result[instance.get('InstanceType')] = instance
+        result[instance.get("InstanceType")] = instance
 
     root_dir = (
         subprocess.check_output(["git", "rev-parse", "--show-toplevel"])

@@ -10,24 +10,17 @@ import hashlib
 import boto
 import boto3
 import botocore.exceptions
-import six
-import sys
 import sure  # noqa
 from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_sqs, mock_sqs_deprecated, mock_lambda, mock_logs, settings
-from unittest import SkipTest
+from moto import mock_sqs, mock_sqs_deprecated, settings
 
-if sys.version_info[0] < 3:
-    import mock
-    from unittest import SkipTest
-else:
-    from unittest import SkipTest, mock
+from unittest import SkipTest, mock
+
 import pytest
 from tests.helpers import requires_boto_gte
-from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
 from moto.core import ACCOUNT_ID
 from moto.sqs.models import (
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
@@ -74,7 +67,9 @@ def test_create_queue_with_same_attributes():
     sqs = boto3.client("sqs", region_name="us-east-1")
 
     dlq_url = sqs.create_queue(QueueName="test-queue-dlq")["QueueUrl"]
-    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url)["Attributes"]["QueueArn"]
+    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url, AttributeNames=["All"])[
+        "Attributes"
+    ]["QueueArn"]
 
     attributes = {
         "DelaySeconds": "900",
@@ -118,15 +113,66 @@ def test_create_queue_with_different_attributes_fail():
 
 @mock_sqs
 def test_create_fifo_queue():
-    sqs = boto3.client("sqs", region_name="us-east-1")
-    resp = sqs.create_queue(
-        QueueName="test-queue.fifo", Attributes={"FifoQueue": "true"}
-    )
-    queue_url = resp["QueueUrl"]
+    # given
+    region_name = "us-east-1"
+    sqs = boto3.client("sqs", region_name=region_name)
+    queue_name = "test-queue.fifo"
 
-    response = sqs.get_queue_attributes(QueueUrl=queue_url)
-    response["Attributes"].should.contain("FifoQueue")
-    response["Attributes"]["FifoQueue"].should.equal("true")
+    # when
+    queue_url = sqs.create_queue(
+        QueueName=queue_name, Attributes={"FifoQueue": "true"}
+    )["QueueUrl"]
+
+    # then
+    queue_url.should.contain(queue_name)
+
+    attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    attributes["ApproximateNumberOfMessages"].should.equal("0")
+    attributes["ApproximateNumberOfMessagesNotVisible"].should.equal("0")
+    attributes["ApproximateNumberOfMessagesDelayed"].should.equal("0")
+    attributes["CreatedTimestamp"].should.be.a(str)
+    attributes["ContentBasedDeduplication"].should.equal("false")
+    attributes["DeduplicationScope"].should.equal("queue")
+    attributes["DelaySeconds"].should.equal("0")
+    attributes["LastModifiedTimestamp"].should.be.a(str)
+    attributes["FifoQueue"].should.equal("true")
+    attributes["FifoThroughputLimit"].should.equal("perQueue")
+    attributes["MaximumMessageSize"].should.equal("262144")
+    attributes["MessageRetentionPeriod"].should.equal("345600")
+    attributes["QueueArn"].should.equal(
+        f"arn:aws:sqs:{region_name}:{ACCOUNT_ID}:{queue_name}"
+    )
+    attributes["ReceiveMessageWaitTimeSeconds"].should.equal("0")
+    attributes["VisibilityTimeout"].should.equal("30")
+
+
+@mock_sqs
+def test_create_fifo_queue_with_high_throughput():
+    # given
+    sqs = boto3.client("sqs", region_name="us-east-1")
+    queue_name = "test-queue.fifo"
+
+    # when
+    queue_url = sqs.create_queue(
+        QueueName=queue_name,
+        Attributes={
+            "FifoQueue": "true",
+            "DeduplicationScope": "messageGroup",
+            "FifoThroughputLimit": "perMessageGroupId",
+        },
+    )["QueueUrl"]
+
+    # then
+    queue_url.should.contain(queue_name)
+
+    attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    attributes["DeduplicationScope"].should.equal("messageGroup")
+    attributes["FifoQueue"].should.equal("true")
+    attributes["FifoThroughputLimit"].should.equal("perMessageGroupId")
 
 
 @mock_sqs
@@ -168,12 +214,13 @@ def test_create_queue_kms():
 def test_create_queue_with_tags():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
-        QueueName="test-queue-with-tags", tags={"tag_key_1": "tag_value_1"}
+        QueueName="test-queue-with-tags",
+        tags={"tag_key_1": "tag_value_1", "tag_key_2": ""},
     )
     queue_url = response["QueueUrl"]
 
     client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
-        {"tag_key_1": "tag_value_1"}
+        {"tag_key_1": "tag_value_1", "tag_key_2": "",}
     )
 
 
@@ -207,6 +254,31 @@ def test_create_queue_with_policy():
 
 
 @mock_sqs
+def test_set_queue_attribute_empty_policy_removes_attr():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName="test-queue",
+        Attributes={
+            "Policy": json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Id": "test",
+                    "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
+                }
+            )
+        },
+    )
+    queue_url = response["QueueUrl"]
+
+    empty_policy = {"Policy": ""}
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=empty_policy)
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    response.shouldnt.have.key("Policy")
+
+
+@mock_sqs
 def test_get_queue_url():
     client = boto3.client("sqs", region_name="us-east-1")
     client.create_queue(QueueName="test-queue")
@@ -217,32 +289,38 @@ def test_get_queue_url():
 
 
 @mock_sqs
-def test_get_queue_url_errors():
+def test_get_queue_url_error_not_exists():
+    # given
     client = boto3.client("sqs", region_name="us-east-1")
 
-    client.get_queue_url.when.called_with(QueueName="non-existing-queue").should.throw(
-        ClientError,
-        "The specified queue non-existing-queue does not exist for this wsdl version.",
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_queue_url(QueueName="not-exists")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetQueueUrl")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "AWS.SimpleQueueService.NonExistentQueue"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "The specified queue does not exist for this wsdl version."
     )
 
 
 @mock_sqs
 def test_get_nonexistent_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    with pytest.raises(ClientError) as err:
-        sqs.get_queue_by_name(QueueName="non-existing-queue")
-    ex = err.value
-    ex.operation_name.should.equal("GetQueueUrl")
-    ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified queue non-existing-queue does not exist for this wsdl version."
-    )
 
     with pytest.raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
     ex = err.value
     ex.operation_name.should.equal("GetQueueAttributes")
     ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified queue does not exist for this wsdl version."
+    )
 
 
 @mock_sqs
@@ -551,16 +629,35 @@ def test_get_queue_with_prefix():
 def test_delete_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "3"})
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(
+        QueueName="test-queue", Attributes={"VisibilityTimeout": "3"}
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     conn.list_queues()["QueueUrls"].should.have.length_of(1)
 
     queue.delete()
     conn.list_queues().get("QueueUrls").should.equal(None)
 
-    with pytest.raises(botocore.exceptions.ClientError):
-        queue.delete()
+
+@mock_sqs
+def test_delete_queue_error_not_exists():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as e:
+        client.delete_queue(
+            QueueUrl=f"https://queue.amazonaws.com/{ACCOUNT_ID}/not-exists"
+        )
+
+    ex = e.value
+    ex.operation_name.should.equal("DeleteQueue")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "AWS.SimpleQueueService.NonExistentQueue"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "The specified queue does not exist for this wsdl version."
+    )
 
 
 @mock_sqs
@@ -568,9 +665,9 @@ def test_get_queue_attributes():
     client = boto3.client("sqs", region_name="us-east-1")
 
     dlq_resp = client.create_queue(QueueName="test-dlr-queue")
-    dlq_arn1 = client.get_queue_attributes(QueueUrl=dlq_resp["QueueUrl"])["Attributes"][
-        "QueueArn"
-    ]
+    dlq_arn1 = client.get_queue_attributes(
+        QueueUrl=dlq_resp["QueueUrl"], AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
 
     response = client.create_queue(
         QueueName="test-queue",
@@ -582,14 +679,14 @@ def test_get_queue_attributes():
     )
     queue_url = response["QueueUrl"]
 
-    response = client.get_queue_attributes(QueueUrl=queue_url)
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
 
     response["Attributes"]["ApproximateNumberOfMessages"].should.equal("0")
     response["Attributes"]["ApproximateNumberOfMessagesDelayed"].should.equal("0")
     response["Attributes"]["ApproximateNumberOfMessagesNotVisible"].should.equal("0")
-    response["Attributes"]["CreatedTimestamp"].should.be.a(six.string_types)
+    response["Attributes"]["CreatedTimestamp"].should.be.a(str)
     response["Attributes"]["DelaySeconds"].should.equal("0")
-    response["Attributes"]["LastModifiedTimestamp"].should.be.a(six.string_types)
+    response["Attributes"]["LastModifiedTimestamp"].should.be.a(str)
     response["Attributes"]["MaximumMessageSize"].should.equal("262144")
     response["Attributes"]["MessageRetentionPeriod"].should.equal("345600")
     response["Attributes"]["QueueArn"].should.equal(
@@ -636,12 +733,6 @@ def test_get_queue_attributes_errors():
     queue_url = response["QueueUrl"]
 
     client.get_queue_attributes.when.called_with(
-        QueueUrl=queue_url + "-non-existing"
-    ).should.throw(
-        ClientError, "The specified queue does not exist for this wsdl version."
-    )
-
-    client.get_queue_attributes.when.called_with(
         QueueUrl=queue_url,
         AttributeNames=["QueueArn", "not-existing", "VisibilityTimeout"],
     ).should.throw(ClientError, "Unknown Attribute not-existing.")
@@ -656,16 +747,41 @@ def test_get_queue_attributes_errors():
 
 
 @mock_sqs
+def test_get_queue_attributes_error_not_exists():
+    # given
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_queue_attributes(
+            QueueUrl=f"https://queue.amazonaws.com/{ACCOUNT_ID}/not-exists"
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetQueueAttributes")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "AWS.SimpleQueueService.NonExistentQueue"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "The specified queue does not exist for this wsdl version."
+    )
+
+
+@mock_sqs
 def test_set_queue_attribute():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue", Attributes={"VisibilityTimeout": "3"})
+    q_resp = conn.create_queue(
+        QueueName="test-queue", Attributes={"VisibilityTimeout": "3"}
+    )
 
-    queue = sqs.Queue("test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
     queue.attributes["VisibilityTimeout"].should.equal("3")
 
     queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
-    queue = sqs.Queue("test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
     queue.attributes["VisibilityTimeout"].should.equal("45")
 
 
@@ -673,8 +789,8 @@ def test_set_queue_attribute():
 def test_send_receive_message_without_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -703,8 +819,8 @@ def test_send_receive_message_without_attributes():
 def test_send_receive_message_with_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -745,8 +861,8 @@ def test_send_receive_message_with_attributes():
 def test_send_receive_message_with_attributes_with_labels():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -809,8 +925,8 @@ def test_change_message_visibility_than_permitted():
     conn = boto3.client("sqs", region_name="us-east-1")
 
     with freeze_time("2015-01-01 12:00:00"):
-        conn.create_queue(QueueName="test-queue-visibility")
-        queue = sqs.Queue("test-queue-visibility")
+        q_resp = conn.create_queue(QueueName="test-queue-visibility")
+        queue = sqs.Queue(q_resp["QueueUrl"])
         queue.send_message(MessageBody="derp")
         messages = conn.receive_message(QueueUrl=queue.url)
         messages.get("Messages").should.have.length_of(1)
@@ -839,8 +955,8 @@ def test_change_message_visibility_than_permitted():
 def test_send_receive_message_timestamps():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     response = queue.send_message(MessageBody="derp")
     assert response["ResponseMetadata"]["RequestId"]
@@ -937,8 +1053,8 @@ def test_send_receive_message_timestamps():
 def test_send_receive_message_with_attribute_name(attribute_name, expected):
     sqs = boto3.resource("sqs", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
-    client.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = client.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
     body_two = "this is another test message"
@@ -1136,6 +1252,21 @@ def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected)
     expected["SenderId"](message["Attributes"].get("SenderId"))
     expected["SentTimestamp"](message["Attributes"].get("SentTimestamp"))
     expected["SequenceNumber"](message["Attributes"].get("SequenceNumber"))
+
+
+@mock_sqs
+def test_get_queue_attributes_no_param():
+    """
+    AWS does not return the Attributes-key when omitting the AttributeNames-parameter
+    """
+    sqs = boto3.client("sqs", region_name="ap-northeast-3")
+    queue_url = sqs.create_queue(QueueName="test-queue")["QueueUrl"]
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url)
+    queue_attrs.shouldnt.have.key("Attributes")
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
+    queue_attrs.should.have.key("Attributes")
 
 
 @mock_sqs
@@ -1715,11 +1846,39 @@ def test_send_message_batch():
 
 
 @mock_sqs
+def test_delete_message_batch_with_duplicates():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName="test-queue")
+    queue_url = response["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="coucou")
+
+    messages = client.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=0, VisibilityTimeout=0
+    )["Messages"]
+    assert messages, "at least one msg"
+    entries = [
+        {"Id": msg["MessageId"], "ReceiptHandle": msg["ReceiptHandle"]}
+        for msg in [messages[0], messages[0]]
+    ]
+
+    with pytest.raises(ClientError) as e:
+        client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+    ex = e.value
+    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+
+    # no messages are deleted
+    messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
+        "Messages", []
+    )
+    assert messages, "message still in the queue"
+
+
+@mock_sqs
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
 
@@ -2243,13 +2402,17 @@ def test_create_fifo_queue_with_dlq():
         QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
     )
     queue_url1 = resp["QueueUrl"]
-    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)["Attributes"]["QueueArn"]
+    queue_arn1 = sqs.get_queue_attributes(
+        QueueUrl=queue_url1, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
 
     resp = sqs.create_queue(
         QueueName="test-dlr-queue", Attributes={"FifoQueue": "false"}
     )
     queue_url2 = resp["QueueUrl"]
-    queue_arn2 = sqs.get_queue_attributes(QueueUrl=queue_url2)["Attributes"]["QueueArn"]
+    queue_arn2 = sqs.get_queue_attributes(
+        QueueUrl=queue_url2, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
 
     sqs.create_queue(
         QueueName="test-queue.fifo",
@@ -2286,9 +2449,9 @@ def test_queue_with_dlq():
             QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
         )
         queue_url1 = resp["QueueUrl"]
-        queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)["Attributes"][
-            "QueueArn"
-        ]
+        queue_arn1 = sqs.get_queue_attributes(
+            QueueUrl=queue_url1, AttributeNames=["QueueArn"]
+        )["Attributes"]["QueueArn"]
 
         resp = sqs.create_queue(
             QueueName="test-queue.fifo",
@@ -2344,7 +2507,9 @@ def test_redrive_policy_available():
 
     resp = sqs.create_queue(QueueName="test-deadletter")
     queue_url1 = resp["QueueUrl"]
-    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)["Attributes"]["QueueArn"]
+    queue_arn1 = sqs.get_queue_attributes(
+        QueueUrl=queue_url1, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
     redrive_policy = {"deadLetterTargetArn": queue_arn1, "maxReceiveCount": 1}
 
     resp = sqs.create_queue(
@@ -2352,7 +2517,9 @@ def test_redrive_policy_available():
     )
 
     queue_url2 = resp["QueueUrl"]
-    attributes = sqs.get_queue_attributes(QueueUrl=queue_url2)["Attributes"]
+    attributes = sqs.get_queue_attributes(
+        QueueUrl=queue_url2, AttributeNames=["RedrivePolicy"]
+    )["Attributes"]
     assert "RedrivePolicy" in attributes
     assert json.loads(attributes["RedrivePolicy"]) == redrive_policy
 
@@ -2555,7 +2722,7 @@ def test_list_queues_limits_to_1000_queues():
 
 
 @mock_sqs
-def test_send_messages_to_fifo_without_message_group_id():
+def test_send_message_to_fifo_without_message_group_id():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(
         QueueName="blah.fifo",
@@ -2571,62 +2738,23 @@ def test_send_messages_to_fifo_without_message_group_id():
     )
 
 
-@mock_logs
-@mock_lambda
 @mock_sqs
-def test_invoke_function_from_sqs_exception():
-    logs_conn = boto3.client("logs", region_name="us-east-1")
-    sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(QueueName="test-sqs-queue1")
-
-    conn = boto3.client("lambda", region_name="us-east-1")
-    func = conn.create_function(
-        FunctionName="testFunction",
-        Runtime="python2.7",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1()},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
+def test_send_messages_to_fifo_without_message_group_id():
+    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    queue = sqs.create_queue(
+        QueueName="blah.fifo",
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
 
-    response = conn.create_event_source_mapping(
-        EventSourceArn=queue.attributes["QueueArn"], FunctionName=func["FunctionArn"]
-    )
-
-    assert response["EventSourceArn"] == queue.attributes["QueueArn"]
-    assert response["State"] == "Enabled"
-
-    entries = [
-        {
-            "Id": "1",
-            "MessageBody": json.dumps({"uuid": str(uuid.uuid4()), "test": "test"}),
-        }
-    ]
-
-    queue.send_messages(Entries=entries)
-
-    start = time.time()
-    while (time.time() - start) < 30:
-        result = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
-        log_streams = result.get("logStreams")
-        if not log_streams:
-            time.sleep(1)
-            continue
-        assert len(log_streams) >= 1
-
-        result = logs_conn.get_log_events(
-            logGroupName="/aws/lambda/testFunction",
-            logStreamName=log_streams[0]["logStreamName"],
+    with pytest.raises(Exception) as e:
+        queue.send_messages(
+            Entries=[{"Id": "id_1", "MessageBody": "body_1",},]
         )
-        for event in result.get("events"):
-            if "custom log event" in event["message"]:
-                return
-        time.sleep(1)
-
-    assert False, "Test Failed"
+    ex = e.value
+    ex.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter MessageGroupId."
+    )
 
 
 @mock_sqs
@@ -2806,11 +2934,39 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
 
 @mock_sqs
-def test_message_attributes_in_receive_message():
+def test_receive_message_should_not_accept_invalid_urls():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    conn.create_queue(QueueName="test-queue")
-    queue = sqs.Queue("test-queue")
+    name = "test-queue"
+    q_response = conn.create_queue(QueueName=name)
+    working_url = q_response[
+        "QueueUrl"
+    ]  # https://queue.amazonaws.com/486285699788/test-queue
+
+    queue = sqs.Queue(name)
+    with pytest.raises(ClientError) as e:
+        queue.send_message(MessageBody="this is a test message")
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidAddress")
+    err["Message"].should.equal(
+        "The address test-queue is not valid for this endpoint."
+    )
+
+    with pytest.raises(ClientError) as e:
+        conn.receive_message(QueueUrl=name)
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidAddress")
+    err["Message"].should.equal(
+        "The address test-queue is not valid for this endpoint."
+    )
+
+
+@mock_sqs
+def test_message_attributes_contains_trace_header():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    q_resp = conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue(q_resp["QueueUrl"])
     body_one = "this is a test message"
 
     queue.send_message(

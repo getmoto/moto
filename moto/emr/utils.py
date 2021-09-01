@@ -9,12 +9,10 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
 )
 
-import six
-
 
 def random_id(size=13):
     chars = list(range(10)) + list(string.ascii_uppercase)
-    return "".join(six.text_type(random.choice(chars)) for x in range(size))
+    return "".join(str(random.choice(chars)) for x in range(size))
 
 
 def random_cluster_id(size=13):

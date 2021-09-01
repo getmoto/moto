@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.elb.responses import ELBResponse

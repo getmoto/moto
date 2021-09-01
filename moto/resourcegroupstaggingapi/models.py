@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import uuid
-import six
 from boto3 import Session
 
 from moto.core import ACCOUNT_ID
@@ -575,7 +574,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         try:
             while True:
                 # Generator format: [{'ResourceARN': str, 'Tags': [{'Key': str, 'Value': str]}, ...]
-                next_item = six.next(generator)
+                next_item = next(generator)
                 resource_tags = len(next_item["Tags"])
 
                 if current_resources >= resources_per_page:
@@ -625,7 +624,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         try:
             while True:
                 # Generator format: ['tag', 'tag', 'tag', ...]
-                next_item = six.next(generator)
+                next_item = next(generator)
 
                 if current_tags + 1 >= 128:
                     break
@@ -671,7 +670,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         try:
             while True:
                 # Generator format: ['value', 'value', 'value', ...]
-                next_item = six.next(generator)
+                next_item = next(generator)
 
                 if current_tags + 1 >= 128:
                     break

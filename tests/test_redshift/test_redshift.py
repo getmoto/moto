@@ -1569,17 +1569,7 @@ def test_resize_cluster():
 
 
 @mock_redshift
-def test_get_cluster_credentials_non_existent_cluster():
-    client = boto3.client("redshift", region_name="us-east-1")
-
-    with pytest.raises(ClientError) as ex:
-        client.get_cluster_credentials(ClusterIdentifier="non-existent")
-    ex.value.response["Error"]["Code"].should.equal("ClusterNotFound")
-    ex.value.response["Error"]["Message"].should.match(r"Cluster .+ not found.")
-
-
-@mock_redshift
-def test_get_cluster_credentials_non_existent_cluster():
+def test_get_cluster_credentials_non_existent_cluster_and_user():
     client = boto3.client("redshift", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:

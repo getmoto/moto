@@ -28,6 +28,11 @@ class OrganizationsResponse(BaseResponse):
     def describe_organization(self):
         return json.dumps(self.organizations_backend.describe_organization())
 
+    def delete_organization(self):
+        return json.dumps(
+            self.organizations_backend.delete_organization(**self.request_params)
+        )
+
     def list_roots(self):
         return json.dumps(self.organizations_backend.list_roots())
 

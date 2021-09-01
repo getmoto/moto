@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import filters_from_querystring
+from moto.ec2.utils import add_tag_specification, filters_from_querystring
 
 
 class VPCs(BaseResponse):
@@ -17,16 +17,16 @@ class VPCs(BaseResponse):
         cidr_block = self._get_param("CidrBlock")
         tags = self._get_multi_param("TagSpecification")
         instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
-        amazon_provided_ipv6_cidr_blocks = self._get_param(
+        amazon_provided_ipv6_cidr_block = self._get_param(
             "AmazonProvidedIpv6CidrBlock"
-        )
+        ) in ["true", "True"]
         if tags:
             tags = tags[0].get("Tag")
 
         vpc = self.ec2_backend.create_vpc(
             cidr_block,
             instance_tenancy,
-            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_blocks,
+            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
             tags=tags,
         )
         doc_date = self._get_doc_date()
@@ -42,7 +42,7 @@ class VPCs(BaseResponse):
     def describe_vpcs(self):
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = (
             "2013-10-15"
             if "Boto/" in self.headers.get("user-agent", "")
@@ -50,6 +50,13 @@ class VPCs(BaseResponse):
         )
         template = self.response_template(DESCRIBE_VPCS_RESPONSE)
         return template.render(vpcs=vpcs, doc_date=doc_date)
+
+    def modify_vpc_tenancy(self):
+        vpc_id = self._get_param("VpcId")
+        tenancy = self._get_param("InstanceTenancy")
+        value = self.ec2_backend.modify_vpc_tenancy(vpc_id, tenancy)
+        template = self.response_template(MODIFY_VPC_TENANCY_RESPONSE)
+        return template.render(value=value)
 
     def describe_vpc_attribute(self):
         vpc_id = self._get_param("VpcId")
@@ -62,7 +69,7 @@ class VPCs(BaseResponse):
     def describe_vpc_classic_link_dns_support(self):
         vpc_ids = self._get_multi_param("VpcIds")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(
             DESCRIBE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE
@@ -94,7 +101,7 @@ class VPCs(BaseResponse):
     def describe_vpc_classic_link(self):
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(DESCRIBE_VPC_CLASSIC_LINK_RESPONSE)
         return template.render(vpcs=vpcs, doc_date=doc_date)
@@ -177,10 +184,11 @@ class VPCs(BaseResponse):
         type = self._get_param("VpcEndpointType")
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
-        tag_specifications = self._get_param("TagSpecifications")
-        private_dns_enabled = self._get_bool_param("PrivateDNSEnabled", if_none=True)
-        security_group = self._get_param("SecurityGroup")
+        tags = self._get_multi_param("TagSpecification")
+        private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
+        security_group_ids = self._get_multi_param("SecurityGroupId")
 
+        tags = add_tag_specification(tags)
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
@@ -189,11 +197,10 @@ class VPCs(BaseResponse):
             route_table_ids=route_table_ids,
             subnet_ids=subnet_ids,
             client_token=client_token,
-            security_group=security_group,
-            tag_specifications=tag_specifications,
+            security_group_ids=security_group_ids,
+            tags=tags,
             private_dns_enabled=private_dns_enabled,
         )
-
         template = self.response_template(CREATE_VPC_END_POINT)
         return template.render(vpc_end_point=vpc_end_point)
 
@@ -205,11 +212,102 @@ class VPCs(BaseResponse):
     def describe_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
         filters = filters_from_querystring(self.querystring)
-        vpc_end_points = self.ec2_backend.get_vpc_end_point(
+        vpc_end_points = self.ec2_backend.describe_vpc_endpoints(
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
         return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
+
+    def delete_vpc_endpoints(self):
+        vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
+        response = self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids,)
+        template = self.response_template(DELETE_VPC_ENDPOINT_RESPONSE)
+        return template.render(response=response)
+
+    def create_managed_prefix_list(self):
+        address_family = self._get_param("AddressFamily")
+        max_entries = self._get_param("MaxEntries")
+        prefix_list_name = self._get_param("PrefixListName")
+        entry = self._get_multi_param("Entry")
+
+        tags = self._get_multi_param("TagSpecification")
+        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
+        tags = (tags or {}).get("Tag", [])
+        tags = {t["Key"]: t["Value"] for t in tags}
+
+        managed_prefix_list = self.ec2_backend.create_managed_prefix_list(
+            address_family=address_family,
+            entry=entry,
+            max_entries=max_entries,
+            prefix_list_name=prefix_list_name,
+            tags=tags,
+        )
+        template = self.response_template(CREATE_MANAGED_PREFIX_LIST)
+        return template.render(managed_prefix_list=managed_prefix_list)
+
+    def describe_managed_prefix_lists(self):
+        prefix_list_ids = self._get_multi_param("PrefixListId")
+        filters = filters_from_querystring(self.querystring)
+        managed_prefix_lists = self.ec2_backend.describe_managed_prefix_lists(
+            prefix_list_ids=prefix_list_ids, filters=filters
+        )
+        template = self.response_template(DESCRIBE_MANAGED_PREFIX_LIST)
+        return template.render(managed_prefix_lists=managed_prefix_lists)
+
+    def get_managed_prefix_list_entries(self):
+        prefix_list_id = self._get_param("PrefixListId")
+        target_version = self._get_param("TargetVersion")
+        managed_prefix_list = self.ec2_backend.get_managed_prefix_list_entries(
+            prefix_list_id=prefix_list_id,
+        )
+        entries = []
+        if managed_prefix_list:
+            entries = (
+                list(managed_prefix_list.entries.values())[-1]
+                if managed_prefix_list.entries.values()
+                else []
+            )
+            if target_version:
+                target_version = int(target_version)
+                entries = managed_prefix_list.entries.get(target_version)
+        template = self.response_template(GET_MANAGED_PREFIX_LIST_ENTRIES)
+        return template.render(entries=entries)
+
+    def delete_managed_prefix_list(self):
+        prefix_list_id = self._get_param("PrefixListId")
+        managed_prefix_list = self.ec2_backend.delete_managed_prefix_list(
+            prefix_list_id
+        )
+        template = self.response_template(DELETE_MANAGED_PREFIX_LIST)
+        return template.render(managed_prefix_list=managed_prefix_list)
+
+    def describe_prefix_lists(self):
+        prefix_list_ids = self._get_multi_param("PrefixListId")
+        filters = filters_from_querystring(self.querystring)
+        managed_pls = self.ec2_backend.describe_managed_prefix_lists(
+            prefix_list_ids=prefix_list_ids, filters=filters
+        )
+        template = self.response_template(DESCRIBE_PREFIX_LIST)
+        return template.render(managed_pls=managed_pls)
+
+    def modify_managed_prefix_list(self):
+        add_entry = self._get_multi_param("AddEntry")
+        prefix_list_id = self._get_param("PrefixListId")
+        current_version = self._get_param("CurrentVersion")
+        prefix_list_name = self._get_param("PrefixListName")
+        remove_entry = self._get_multi_param("RemoveEntry")
+
+        current_version = int(current_version) if current_version else None
+
+        managed_prefix_list = self.ec2_backend.modify_managed_prefix_list(
+            add_entry=add_entry,
+            prefix_list_id=prefix_list_id,
+            current_version=current_version,
+            prefix_list_name=prefix_list_name,
+            remove_entry=remove_entry,
+        )
+        template = self.response_template(MODIFY_PREFIX_LIST)
+        return template.render(managed_prefix_list=managed_prefix_list)
 
 
 CREATE_VPC_RESPONSE = """
@@ -245,6 +343,7 @@ CREATE_VPC_RESPONSE = """
         {% endif %}
       <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-1a2b3c4d2{% endif %}</dhcpOptionsId>
       <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
+      <ownerId> {{ vpc.owner_id }}</ownerId>
       <tagSet>
         {% for tag in vpc.get_tags() %}
           <item>
@@ -344,6 +443,7 @@ DESCRIBE_VPCS_RESPONSE = """
         <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-7a8b9c2d{% endif %}</dhcpOptionsId>
         <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
         <isDefault>{{ vpc.is_default }}</isDefault>
+        <ownerId> {{ vpc.owner_id }}</ownerId>
         <tagSet>
           {% for tag in vpc.get_tags() %}
             <item>
@@ -364,6 +464,13 @@ DELETE_VPC_RESPONSE = """
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>true</return>
 </DeleteVpcResponse>
+"""
+
+MODIFY_VPC_TENANCY_RESPONSE = """
+<ModifyVpcTenancyResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+   <return>true</return>
+</ModifyVpcTenancyResponse>
 """
 
 DESCRIBE_VPC_ATTRIBUTE_RESPONSE = """
@@ -436,7 +543,7 @@ IPV6_DISASSOCIATE_VPC_CIDR_BLOCK_RESPONSE = """
 CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <vpcEndpoint>
         <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
-        <state> available </state>
+        <state>{{ vpc_end_point.state }}</state>
         <vpcEndpointPolicySupported> false </vpcEndpointPolicySupported>
         <serviceName>{{ vpc_end_point.service_name }}</serviceName>
         <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
@@ -467,6 +574,14 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
             {% endfor %}
         {% endif %}
         </dnsEntrySet>
+        <tagSet>
+        {% for tag in vpc_end_point.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
         <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
     </vpcEndpoint>
 </CreateVpcEndpointResponse>"""
@@ -479,8 +594,8 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
         {% endfor %}
     </serviceNameSet>
     <serviceDetailSet>
+        {% for service in vpc_end_points.servicesDetails %}
         <item>
-            {% for service in vpc_end_points.servicesDetails %}
                 <owner>amazon</owner>
                 <serviceType>
                     <item>
@@ -498,8 +613,8 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                 </availabilityZoneSet>
                 <serviceName>{{ service.service_name }}</serviceName>
                 <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
-            {% endfor %}
         </item>
+        {% endfor %}
     </serviceDetailSet>
 </DescribeVpcEndpointServicesResponse>"""
 
@@ -511,7 +626,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                 {% if vpc_end_point.policy_document %}
                     <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
                 {% endif %}
-                <state>available</state>
+                <state>{{ vpc_end_point.state }}</state>
                 <privateDnsEnabled>{{ 'true' if vpc_end_point.private_dns_enabled else 'false' }}</privateDnsEnabled>
                 <serviceName>{{ vpc_end_point.service_name }}</serviceName>
                 <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
@@ -545,26 +660,169 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </dnsEntries>
                 {% endif %}
-                {% if vpc_end_point.groups %}
-                    <groups>
-                        {% for group in vpc_end_point.groups %}
-                            <item>{{ group }}</item>
+                {% if vpc_end_point.security_group_ids %}
+                    <groupSet>
+                        {% for group_id in vpc_end_point.security_group_ids %}
+                            <item>
+                                <groupId>{{ group_id }}</groupId>
+                                <groupName>TODO</groupName>
+                            </item>
                         {% endfor %}
-                    </groups>
+                    </groupSet>
                 {% endif %}
-                {% if vpc_end_point.tag_specifications %}
-                    <tagSet>
-                        {% for tag in vpc_end_point.tag_specifications %}
-                          <item>
-                            <key>{{ tag.key }}</key>
-                            <value>{{ tag.value }}</value>
-                          </item>
-                        {% endfor %}
-                    </tagSet>
-                {% endif %}
+                <tagSet>
+                {% for tag in vpc_end_point.get_tags() %}
+                    <item>
+                        <key>{{ tag.key }}</key>
+                        <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+                </tagSet>
                 <ownerId>{{ account_id }}</ownerId>
                 <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
             </item>
         {% endfor %}
     </vpcEndpointSet>
 </DescribeVpcEndpointsResponse>"""
+
+
+DELETE_VPC_ENDPOINT_RESPONSE = """<DeleteVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
+    <unsuccessful>{{ 'Error' if not response else '' }}</unsuccessful>
+</DeleteVpcEndpointsResponse>"""
+
+
+CREATE_MANAGED_PREFIX_LIST = """<CreateManagedPrefixListResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <prefixList>
+        <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+        <maxEntries>{{ managed_prefix_list.max_entries }}</maxEntries>
+        <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+        <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+        <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+        <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+        <state>{{ managed_prefix_list.state }}</state>
+        <tagSet>
+        {% for tag in managed_prefix_list.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
+        <version>{{ managed_prefix_list.version }}</version>
+    </prefixList>
+</CreateManagedPrefixListResponse>"""
+
+
+DESCRIBE_MANAGED_PREFIX_LIST = """<DescribeManagedPrefixListsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+        <requestId>934214d3-4501-4797-b896-13e8fc7ec256</requestId>
+        <prefixListSet>
+        {% for managed_prefix_list in managed_prefix_lists %}
+            <item>
+                <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+                {% if managed_prefix_list.max_entries %}
+                <maxEntries>{{ managed_prefix_list.max_entries }}</maxEntries>
+                {% endif %}
+                <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+                <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+                <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+                <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+                <state>{{ managed_prefix_list.state }}</state>
+                <tagSet>
+                {% for tag in managed_prefix_list.get_tags() %}
+                    <item>
+                        <key>{{ tag.key }}</key>
+                        <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+                </tagSet>
+                {% if managed_prefix_list.version %}
+                <version>{{ managed_prefix_list.version }}</version>
+                {% endif %}
+            </item>
+        {% endfor %}
+    </prefixListSet>
+</DescribeManagedPrefixListsResponse>
+"""
+
+
+GET_MANAGED_PREFIX_LIST_ENTRIES = """<GetManagedPrefixListEntriesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>39a3c79f-846f-4382-a592-example</requestId>
+    <entrySet>
+    {% for entry in entries %}
+        <item>
+            <cidr>{{ entry.Cidr or ''}}</cidr>
+            <description>{{ entry.Description or ''}}</description>
+        </item>
+    {% endfor %}
+    </entrySet>
+</GetManagedPrefixListEntriesResponse>
+"""
+
+
+DELETE_MANAGED_PREFIX_LIST = """<DeleteManagedPrefixListResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>39a3c79f-846f-4382-a592-example</requestId>
+    <prefixList>
+        <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+        <maxEntries>{{ managed_prefix_list.max_entries or '' }}</maxEntries>
+        <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+        <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+        <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+        <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+        <state>{{ managed_prefix_list.state }}</state>
+        <tagSet>
+        {% for tag in managed_prefix_list.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
+        <version>{{ managed_prefix_list.version or ''}}</version>
+    </prefixList>
+</DeleteManagedPrefixListResponse>
+"""
+
+
+DESCRIBE_PREFIX_LIST = """<DescribePrefixListsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>8a2ec0e2-6918-4270-ae45-58e61971e97d</requestId>
+    <prefixListSet>
+    {% for pl in managed_pls %}
+    {% if pl.prefix_list_name.startswith("com.amazonaws.") %}
+        <item>
+            <cidrSet>
+                {% for entry in pl.entries.1 %}
+                <item>{{ entry.Cidr }}</item>
+                {% endfor %}
+            </cidrSet>
+            <prefixListId>{{ pl.id }}</prefixListId>
+            <prefixListName>{{ pl.prefix_list_name }}</prefixListName>
+        </item>
+    {% endif %}
+    {% endfor %}
+    </prefixListSet>
+</DescribePrefixListsResponse>
+"""
+
+MODIFY_PREFIX_LIST = """<ModifyManagedPrefixListResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>602f3752-c348-4b14-81e2-example</requestId>
+    <prefixList>
+        <addressFamily>{{ managed_prefix_list.address_family }}</addressFamily>
+        <maxEntries>{{ managed_prefix_list.max_entries or '' }}</maxEntries>
+        <ownerId>{{ managed_prefix_list.owner_id }}</ownerId>
+        <prefixListArn>{{ managed_prefix_list.prefix_list_arn }}</prefixListArn>
+        <prefixListId>{{ managed_prefix_list.id }}</prefixListId>
+        <prefixListName>{{ managed_prefix_list.prefix_list_name }}</prefixListName>
+        <state>{{ managed_prefix_list.state }}</state>
+        <tagSet>
+        {% for tag in managed_prefix_list.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
+        <version>{{ managed_prefix_list.version or ''}}</version>
+    </prefixList>
+</ModifyManagedPrefixListResponse>
+"""

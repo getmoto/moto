@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import datetime
 import time
 import re
-import six
 import itertools
 
 from operator import attrgetter
@@ -11,7 +10,7 @@ from hashlib import md5
 
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
@@ -145,7 +144,9 @@ class Stream(CloudFormationModel):
         self.status = "ACTIVE"
         self.shard_count = None
         self.update_shard_count(shard_count)
-        self.retention_period_hours = retention_period_hours
+        self.retention_period_hours = (
+            retention_period_hours if retention_period_hours else 24
+        )
 
     def update_shard_count(self, shard_count):
         # ToDo: This was extracted from init.  It's only accurate for new streams.
@@ -178,13 +179,13 @@ class Stream(CloudFormationModel):
             raise ShardNotFoundError(shard_id)
 
     def get_shard_for_key(self, partition_key, explicit_hash_key):
-        if not isinstance(partition_key, six.string_types):
+        if not isinstance(partition_key, str):
             raise InvalidArgumentError("partition_key")
         if len(partition_key) > 256:
             raise InvalidArgumentError("partition_key")
 
         if explicit_hash_key:
-            if not isinstance(explicit_hash_key, six.string_types):
+            if not isinstance(explicit_hash_key, str):
                 raise InvalidArgumentError("explicit_hash_key")
 
             key = int(explicit_hash_key)
@@ -225,7 +226,7 @@ class Stream(CloudFormationModel):
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
-                "StreamCreationTimestamp": six.text_type(self.creation_datetime),
+                "StreamCreationTimestamp": str(self.creation_datetime),
                 "OpenShardCount": self.shard_count,
             }
         }
@@ -349,6 +350,8 @@ class DeliveryStream(BaseModel):
             "redshift_s3_buffering_hints"
         )
 
+        self.elasticsearch_config = stream_kwargs.get("elasticsearch_config")
+
         self.records = []
         self.status = "ACTIVE"
         self.created_at = datetime.datetime.utcnow()
@@ -370,6 +373,31 @@ class DeliveryStream(BaseModel):
                 {
                     "DestinationId": "string",
                     "ExtendedS3DestinationDescription": self.extended_s3_config,
+                }
+            ]
+        elif self.elasticsearch_config:
+            return [
+                {
+                    "DestinationId": "string",
+                    "ElasticsearchDestinationDescription": {
+                        "RoleARN": self.elasticsearch_config.get("RoleARN"),
+                        "DomainARN": self.elasticsearch_config.get("DomainARN"),
+                        "ClusterEndpoint": self.elasticsearch_config.get(
+                            "ClusterEndpoint"
+                        ),
+                        "IndexName": self.elasticsearch_config.get("IndexName"),
+                        "TypeName": self.elasticsearch_config.get("TypeName"),
+                        "IndexRotationPeriod": self.elasticsearch_config.get(
+                            "IndexRotationPeriod"
+                        ),
+                        "BufferingHints": self.elasticsearch_config.get(
+                            "BufferingHints"
+                        ),
+                        "RetryOptions": self.elasticsearch_config.get("RetryOptions"),
+                        "S3DestinationDescription": self.elasticsearch_config.get(
+                            "S3Configuration"
+                        ),
+                    },
                 }
             ]
         else:
@@ -573,6 +601,26 @@ class KinesisBackend(BaseBackend):
             shard1.put_record(
                 record.partition_key, record.data, record.explicit_hash_key
             )
+
+    def increase_stream_retention_period(self, stream_name, retention_period_hours):
+        stream = self.describe_stream(stream_name)
+        if (
+            retention_period_hours <= stream.retention_period_hours
+            or retention_period_hours < 24
+            or retention_period_hours > 8760
+        ):
+            raise InvalidArgumentError(retention_period_hours)
+        stream.retention_period_hours = retention_period_hours
+
+    def decrease_stream_retention_period(self, stream_name, retention_period_hours):
+        stream = self.describe_stream(stream_name)
+        if (
+            retention_period_hours >= stream.retention_period_hours
+            or retention_period_hours < 24
+            or retention_period_hours > 8760
+        ):
+            raise InvalidArgumentError(retention_period_hours)
+        stream.retention_period_hours = retention_period_hours
 
     """ Firehose """
 

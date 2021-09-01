@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 import boto
 import boto3
+import pytest
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from botocore.exceptions import ClientError
 
 
 @mock_ec2_deprecated
@@ -35,8 +37,51 @@ def test_describe_vpn_gateway():
 
 
 @mock_ec2
+def test_attach_unknown_vpn_gateway():
+    """describe_vpn_gateways attachment.vpc-id filter"""
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    with pytest.raises(ClientError) as ex:
+        ec2.attach_vpn_gateway(VpcId=vpc["VpcId"], VpnGatewayId="?")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
+    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+
+
+@mock_ec2
+def test_delete_unknown_vpn_gateway():
+    """describe_vpn_gateways attachment.vpc-id filter"""
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.delete_vpn_gateway(VpnGatewayId="?")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
+    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+
+
+@mock_ec2
+def test_detach_unknown_vpn_gateway():
+    """describe_vpn_gateways attachment.vpc-id filter"""
+
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    with pytest.raises(ClientError) as ex:
+        ec2.detach_vpn_gateway(VpcId=vpc["VpcId"], VpnGatewayId="?")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The virtual private gateway ID '?' does not exist")
+    err["Code"].should.equal("InvalidVpnGatewayID.NotFound")
+
+
+@mock_ec2
 def test_describe_vpn_connections_attachment_vpc_id_filter():
-    """ describe_vpn_gateways attachment.vpc-id filter """
+    """describe_vpn_gateways attachment.vpc-id filter"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -60,7 +105,7 @@ def test_describe_vpn_connections_attachment_vpc_id_filter():
 
 @mock_ec2
 def test_describe_vpn_connections_state_filter_attached():
-    """ describe_vpn_gateways attachment.state filter - match attached """
+    """describe_vpn_gateways attachment.state filter - match attached"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -84,7 +129,7 @@ def test_describe_vpn_connections_state_filter_attached():
 
 @mock_ec2
 def test_describe_vpn_connections_state_filter_deatched():
-    """ describe_vpn_gateways attachment.state filter - don't match detatched """
+    """describe_vpn_gateways attachment.state filter - don't match detatched"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -104,7 +149,7 @@ def test_describe_vpn_connections_state_filter_deatched():
 
 @mock_ec2
 def test_describe_vpn_connections_id_filter_match():
-    """ describe_vpn_gateways vpn-gateway-id filter - match correct id """
+    """describe_vpn_gateways vpn-gateway-id filter - match correct id"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -121,7 +166,7 @@ def test_describe_vpn_connections_id_filter_match():
 
 @mock_ec2
 def test_describe_vpn_connections_id_filter_miss():
-    """ describe_vpn_gateways vpn-gateway-id filter - don't match """
+    """describe_vpn_gateways vpn-gateway-id filter - don't match"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -136,7 +181,7 @@ def test_describe_vpn_connections_id_filter_miss():
 
 @mock_ec2
 def test_describe_vpn_connections_type_filter_match():
-    """ describe_vpn_gateways type filter - match """
+    """describe_vpn_gateways type filter - match"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -153,7 +198,7 @@ def test_describe_vpn_connections_type_filter_match():
 
 @mock_ec2
 def test_describe_vpn_connections_type_filter_miss():
-    """ describe_vpn_gateways type filter - don't match """
+    """describe_vpn_gateways type filter - don't match"""
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
 

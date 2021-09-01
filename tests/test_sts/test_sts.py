@@ -9,7 +9,6 @@ from freezegun import freeze_time
 import pytest
 import sure  # noqa
 
-
 from moto import mock_sts, mock_sts_deprecated, mock_iam, settings
 from moto.core import ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
@@ -467,17 +466,17 @@ def test_assume_role_with_saml_should_retrieve_attribute_value_from_text_when_xm
     <saml:AttributeStatement>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/RoleSessionName">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                              xsi:type="xs:string">{fed_name}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                              xsi:type="xs:string">arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                              xsi:type="xs:string">900</saml:AttributeValue>
       </saml:Attribute>
     </saml:AttributeStatement>

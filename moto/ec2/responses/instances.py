@@ -12,7 +12,6 @@ from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
-import six
 
 
 class InstanceResponse(BaseResponse):
@@ -25,7 +24,7 @@ class InstanceResponse(BaseResponse):
                 instance_ids, filters=filter_dict
             )
         else:
-            reservations = self.ec2_backend.all_reservations(filters=filter_dict)
+            reservations = self.ec2_backend.describe_instances(filters=filter_dict)
 
         reservation_ids = [reservation.id for reservation in reservations]
         if token:
@@ -130,14 +129,9 @@ class InstanceResponse(BaseResponse):
             for f in filters
         ]
 
-        if instance_ids:
-            instances = self.ec2_backend.get_multi_instances_by_id(
-                instance_ids, filters
-            )
-        elif include_all_instances:
-            instances = self.ec2_backend.all_instances(filters)
-        else:
-            instances = self.ec2_backend.all_running_instances(filters)
+        instances = self.ec2_backend.describe_instance_status(
+            instance_ids, include_all_instances, filters
+        )
 
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
@@ -183,6 +177,7 @@ class InstanceResponse(BaseResponse):
 
     def modify_instance_attribute(self):
         handlers = [
+            self._attribute_value_handler,
             self._dot_value_instance_attribute_handler,
             self._block_device_mapping_handler,
             self._security_grp_instance_attribute_handler,
@@ -264,6 +259,21 @@ class InstanceResponse(BaseResponse):
             )
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
+    def _attribute_value_handler(self):
+        attribute_key = self._get_param("Attribute")
+
+        if attribute_key is None:
+            return
+
+        if self.is_not_dryrun("ModifyInstanceAttribute"):
+            value = self._get_param("Value")
+            normalized_attribute = camelcase_to_underscores(attribute_key)
+            instance_id = self._get_param("InstanceId")
+            self.ec2_backend.modify_instance_attribute(
+                instance_id, normalized_attribute, value
+            )
+            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+
     def _security_grp_instance_attribute_handler(self):
         new_security_grp_list = []
         for key, value in self.querystring.items():
@@ -322,7 +332,7 @@ class InstanceResponse(BaseResponse):
         if isinstance(bool_str, bool):
             return bool_str
 
-        if isinstance(bool_str, six.text_type):
+        if isinstance(bool_str, str):
             return str(bool_str).lower() == "true"
 
         return False

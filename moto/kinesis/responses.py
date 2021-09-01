@@ -149,6 +149,22 @@ class KinesisResponse(BaseResponse):
         )
         return ""
 
+    def increase_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.increase_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
+
+    def decrease_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.decrease_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
+
     """ Firehose """
 
     def create_delivery_stream(self):
@@ -156,6 +172,9 @@ class KinesisResponse(BaseResponse):
         redshift_config = self.parameters.get("RedshiftDestinationConfiguration")
         s3_config = self.parameters.get("S3DestinationConfiguration")
         extended_s3_config = self.parameters.get("ExtendedS3DestinationConfiguration")
+        elasticsearch_config = self.parameters.get(
+            "ElasticsearchDestinationConfiguration"
+        )
 
         if redshift_config:
             redshift_s3_config = redshift_config["S3Configuration"]
@@ -177,6 +196,10 @@ class KinesisResponse(BaseResponse):
             stream_kwargs = {"s3_config": s3_config}
         elif extended_s3_config:
             stream_kwargs = {"extended_s3_config": extended_s3_config}
+        elif elasticsearch_config:
+            stream_kwargs = {"elasticsearch_config": elasticsearch_config}
+        else:
+            stream_kwargs = {}
 
         stream = self.kinesis_backend.create_delivery_stream(
             stream_name, **stream_kwargs
