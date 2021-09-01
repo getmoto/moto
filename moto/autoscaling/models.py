@@ -44,12 +44,7 @@ class InstanceState(object):
 
 class FakeLifeCycleHook(BaseModel):
     def __init__(
-        self,
-        name,
-        as_name,
-        transition,
-        timeout,
-        result,
+        self, name, as_name, transition, timeout, result,
     ):
         self.name = name
         self.as_name = as_name
@@ -918,13 +913,7 @@ class AutoScalingBackend(BaseBackend):
         self.set_desired_capacity(group_name, desired_capacity)
 
     def create_lifecycle_hook(self, name, as_name, transition, timeout, result):
-        lifecycle_hook = FakeLifeCycleHook(
-            name,
-            as_name,
-            transition,
-            timeout,
-            result,
-        )
+        lifecycle_hook = FakeLifeCycleHook(name, as_name, transition, timeout, result,)
 
         self.lifecycle_hooks[name] = lifecycle_hook
         return lifecycle_hook
@@ -1000,14 +989,10 @@ class AutoScalingBackend(BaseBackend):
         for elb in elbs:
             elb_instace_ids = set(elb.instance_ids)
             self.elb_backend.register_instances(
-                elb.name,
-                group_instance_ids - elb_instace_ids,
-                from_autoscaling=True,
+                elb.name, group_instance_ids - elb_instace_ids, from_autoscaling=True,
             )
             self.elb_backend.deregister_instances(
-                elb.name,
-                elb_instace_ids - group_instance_ids,
-                from_autoscaling=True,
+                elb.name, elb_instace_ids - group_instance_ids, from_autoscaling=True,
             )
 
     def update_attached_target_groups(self, group_name):
