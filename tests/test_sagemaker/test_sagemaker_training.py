@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from moto.sagemaker.models import AWSValidationException
-from moto.core.exceptions import AWSError
+from moto.core.exceptions import JsonRESTError
+
 from re import M
 from moto.core import responses
 from os import O_DSYNC, scandir
-
+import pytest
 import boto3
+from botocore.exceptions import ClientError
 import datetime
 from botocore.configloader import raw_config_parse
 import sure  # noqa
@@ -277,22 +278,23 @@ def test_list_training_jobs_none():
 
 
 @mock_sagemaker
-def test_list_training_jobs_should_raise_errors():
+def test_list_training_jobs_should_validate_input():
     client = boto3.client("sagemaker", region_name="us-east-1")
-    try:
-        client.list_training_jobs(NextToken="1")
-    except AWSValidationException as err:
-        assert str(err).should.equal('Invalid pagination token because "{0}".')
-
-    try:
-        junk_status_equals = "blah"
+    junk_status_equals = "blah"
+    with pytest.raises(ClientError) as ex:
         client.list_training_jobs(StatusEquals=junk_status_equals)
-    except AWSValidationException as err:
-        expected_error = "Value '%s' at 'statusEquals' failed to satisfy constraint: Member must satisfy enum value set  %s".format(
-            junk_status_equals,
-            ["Completed", "Stopped", "InProgress", "Stopping", "Failed",],
-        )
-        assert str(err).should.equal(expected_error)
+    expected_error = f"1 validation errors detected: Value '{junk_status_equals}' at 'statusEquals' failed to satisfy constraint: Member must satisfy enum value set: ['Completed', 'Stopped', 'InProgress', 'Stopping', 'Failed']"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == expected_error
+
+    junk_next_token = "asdf"
+    with pytest.raises(ClientError) as ex:
+        client.list_training_jobs(NextToken=junk_next_token)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == 'Invalid pagination token because "{0}".'
+    )
 
 
 @mock_sagemaker

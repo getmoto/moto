@@ -4,13 +4,9 @@ import os
 from boto3 import Session
 from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
-from moto.core.exceptions import AWSError, RESTError
+from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
-from .exceptions import MissingModel, ValidationError
-
-
-class AWSValidationException(AWSError):
-    TYPE = "ValidationException"
+from .exceptions import MissingModel, ValidationError, AWSValidationException
 
 
 class BaseObject(BaseModel):
@@ -1256,14 +1252,9 @@ class SageMakerModelBackend(BaseBackend):
         last_modified_time_before,
         name_contains,
         status_equals,
-        sort_by=None,
-        sort_order=None,
+        sort_by,
+        sort_order,
     ):
-        if sort_by is None:
-            sort_by = "CreationTime"
-        if sort_order is None:
-            sort_order = "Ascending"
-
         if next_token:
             try:
                 starting_index = int(next_token)
@@ -1314,19 +1305,6 @@ class SageMakerModelBackend(BaseBackend):
                 training_jobs_fetched,
             )
         if status_equals is not None:
-            allowed_status_equals = [
-                "Completed",
-                "Stopped",
-                "InProgress",
-                "Stopping",
-                "Failed",
-            ]
-            if status_equals not in allowed_status_equals:
-                raise AWSValidationException(
-                    "Value '%s' at 'statusEquals' failed to satisfy constraint: Member must satisfy enum value set  %s".format(
-                        status_equals, allowed_status_equals
-                    )
-                )
             training_jobs_fetched = filter(
                 lambda x: x.training_job_status == status_equals, training_jobs_fetched
             )
