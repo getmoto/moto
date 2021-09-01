@@ -2872,4 +2872,4 @@ def test_attach_instances():
     for instance in response["AutoScalingInstances"]:
         instance["LaunchConfigurationName"].should.equal("test_launch_configuration")
         instance["AutoScalingGroupName"].should.equal("test_asg")
-        instance["InstanceType"].should.equal("t3.micro")
+        instance["InstanceType"].should.equal("c4.2xlarge")
