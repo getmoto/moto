@@ -563,8 +563,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             job_env = self.container_overrides.get(p, default)
             jd_env = self.job_definition.container_properties.get(p, default)
 
-            job_env_dict = {_env["name"]: _env["value"] for _env in job_env}
-            jd_env_dict = {_env["name"]: _env["value"] for _env in jd_env}
+            job_env_dict = {_env["name"]: _env.get("value") for _env in job_env}
+            jd_env_dict = {_env["name"]: _env.get("value") for _env in jd_env}
 
             for key in jd_env_dict.keys():
                 if key not in job_env_dict.keys():
