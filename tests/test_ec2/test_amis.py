@@ -951,3 +951,26 @@ def test_ami_filter_by_empty_tag():
         {"Name": "tag:RELEASE", "Values": [""]},
     ]
     assert len(client.describe_images(Filters=images_filter)["Images"]) == 3
+
+
+@mock_ec2
+def test_ami_filter_by_ownerid():
+    ec2_connection = boto3.client("ec2", region_name="us-east-1")
+
+    images = ec2_connection.describe_images(
+        Filters=[
+            {"Name": "name", "Values": ["amzn-ami-*",]},
+            {"Name": "owner-alias", "Values": ["amazon",]},
+        ]
+    )["Images"]
+    assert len(images) > 0, "We should have at least 1 image created by amazon"
+
+
+@mock_ec2
+def test_ami_filter_by_unknown_ownerid():
+    ec2_connection = boto3.client("ec2", region_name="us-east-1")
+
+    images = ec2_connection.describe_images(
+        Filters=[{"Name": "owner-alias", "Values": ["unknown",]},]
+    )["Images"]
+    images.should.have.length_of(0)
