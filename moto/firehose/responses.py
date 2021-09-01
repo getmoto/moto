@@ -26,7 +26,7 @@ class FirehoseResponse(BaseResponse):
             self._get_param("ElasticsearchDestinationConfiguration"),
             self._get_param("SplunkDestinationConfiguration"),
             self._get_param("HttpEndpointDestinationConfiguration"),
-            self._get_list_prefix("Tags.member"),
+            self._get_param("Tags"),
         )
         return json.dumps(dict(deliveryStreamArn=delivery_stream_arn))
 
@@ -55,3 +55,28 @@ class FirehoseResponse(BaseResponse):
             self._get_param("ExclusiveStartDeliveryStreamName"),
         )
         return json.dumps(stream_list)
+
+    def list_tags_for_delivery_stream(self):
+        """Prepare arguments and respond to ListTagsForDeliveryStream()."""
+        result = self.firehose_backend.list_tags_for_delivery_stream(
+            self._get_param("DeliveryStreamName"),
+            self._get_param("ExclusiveStartTagKey"),
+            self._get_param("Limit"),
+        )
+        return json.dumps(result)
+
+    def tag_delivery_stream(self):
+        """Prepare arguments and respond to TagDeliveryStream request."""
+        self.firehose_backend.tag_delivery_stream(
+            self._get_param("DeliveryStreamName"),
+            self._get_param("Tags"),
+        )
+        return json.dumps({})
+
+    def untag_delivery_stream(self):
+        """Prepare arguments and respond to UntagDeliveryStream()."""
+        self.firehose_backend.untag_delivery_stream(
+            self._get_param("DeliveryStreamName"),
+            self._get_param("TagKeys"),
+        )
+        return json.dumps({})

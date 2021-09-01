@@ -4533,14 +4533,14 @@
 - [ ] get_paginator
 - [ ] get_waiter
 - [X] list_delivery_streams
-- [ ] list_tags_for_delivery_stream
-- [ ] put_record
-- [ ] put_record_batch
+- [X] list_tags_for_delivery_stream
+- [X] put_record
+- [X] put_record_batch
 - [ ] start_delivery_stream_encryption
 - [ ] stop_delivery_stream_encryption
-- [ ] tag_delivery_stream
-- [ ] untag_delivery_stream
-- [ ] update_destination
+- [X] tag_delivery_stream
+- [X] untag_delivery_stream
+- [X] update_destination
 </details>
 
 ## fis

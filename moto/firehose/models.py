@@ -6,11 +6,16 @@ from moto.core import ACCOUNT_ID
 
 from moto.firehose.exceptions import (
     InvalidArgumentException,
+    InvalidKMSResourceException,
     LimitExceededException,
     ResourceInUseException,
     ResourceNotFoundException,
-    InvalidKMSResourceException,
+    ValidationException,
 )
+
+from moto.utilities.tagging_service import TaggingService
+
+MAX_TAGS_PER_DELIVERY_STREAM = 50
 
 
 class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods
@@ -37,7 +42,6 @@ class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods
         kinesis_stream_source_configuration,
         destination_type,
         destination_config,
-        tags,
     ):  # pylint: disable=too-many-arguments
         # kinesis_stream_source_configuration,
         # s3_destination_configuration,
@@ -55,7 +59,7 @@ class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods
         self.destination_type = destination_type
         self.destination_config = destination_config
         self.state = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
+        self.arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
 
 
 class FirehoseBackend(BaseBackend):
@@ -64,6 +68,7 @@ class FirehoseBackend(BaseBackend):
     def __init__(self, region_name=None):
         self.region_name = region_name
         self.delivery_streams = {}
+        self.tagger = TaggingService()
 
     def lookup_name_from_arn(self, arn):
         """Given an ARN, return the associated delivery stream name."""
@@ -143,16 +148,22 @@ class FirehoseBackend(BaseBackend):
         destination_config = dest_config[0]
         destination_type = dest_config[1]
 
-        self.delivery_streams[delivery_stream_name] = DeliveryStream(
+        errmsg = self.tagger.validate_tags(tags or [])
+        if errmsg:
+            raise ValidationException(errmsg)
+
+        delivery_stream = DeliveryStream(
             self.region_name,
             delivery_stream_name,
             delivery_stream_type,
             kinesis_stream_source_configuration,
             destination_type,
             destination_config,
-            tags,
         )
-        return self.delivery_streams[delivery_stream_name].delivery_stream_arn
+        self.tagger.tag_resource(delivery_stream.arn, tags or [])
+
+        self.delivery_streams[delivery_stream_name] = delivery_stream
+        return self.delivery_streams[delivery_stream_name].arn
 
     def delete_delivery_stream(self, delivery_stream_name, allow_force_delete=False):
         """Delete a delivery stream and its data"""
@@ -162,6 +173,8 @@ class FirehoseBackend(BaseBackend):
                 f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
                 f"not found."
             )
+
+        self.tagger.delete_all_tags_for_resource(delivery_stream.arn)
 
         # TODO - AllowForceDelete
         # TODO - publish event?
@@ -199,7 +212,7 @@ class FirehoseBackend(BaseBackend):
         # Determine the limit or number of names to return in the list.
         limit = limit or DeliveryStream.MAX_STREAMS_PER_REGION
 
-        # If a starting delivery stream name was given, find the index into
+        # If a starting delivery stream name is given, find the index into
         # the sorted list, then add one to get the name following it.  If the
         # exclusive_start_delivery_stream_name doesn't exist, it's ignored.
         start = 0
@@ -211,6 +224,71 @@ class FirehoseBackend(BaseBackend):
         if len(sorted_list) > (start + limit):
             result["HasMoreDeliveryStreams"] = True
         return result
+
+    def list_tags_for_delivery_stream(
+        self,
+        delivery_stream_name,
+        exclusive_start_tag_key,
+        limit,
+    ):
+        """Return list of tags."""
+        result = {"Tags": [], "HasMoreTags": False}
+        delivery_stream = self.delivery_streams.get(delivery_stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"not found."
+            )
+
+        tags = self.tagger.list_tags_for_resource(delivery_stream.arn)["Tags"]
+        keys = self.tagger.extract_tag_names(tags)
+
+        # If a starting tag is given and can be found, find the index into
+        # tags, then add one to get the tag following it.
+        start = 0
+        if exclusive_start_tag_key:
+            if exclusive_start_tag_key in keys:
+                start = keys.index(exclusive_start_tag_key) + 1
+
+        limit = limit or MAX_TAGS_PER_DELIVERY_STREAM
+        result["Tags"] = tags[start : start + limit]
+        if len(tags) > (start + limit):
+            result["HasMoreTags"] = True
+        return result
+
+    def tag_delivery_stream(self, delivery_stream_name, tags):
+        """Add/update tags for specified delivery stream."""
+        delivery_stream = self.delivery_streams.get(delivery_stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"not found."
+            )
+
+        if len(tags) >= MAX_TAGS_PER_DELIVERY_STREAM:
+            raise ValidationException(
+                f"1 validation error detected: Value '{tags}' at 'tags' "
+                f"failed to satisify contstraint: Member must have length "
+                f"less than or equal to {MAX_TAGS_PER_DELIVERY_STREAM}"
+            )
+
+        errmsg = self.tagger.validate_tags(tags)
+        if errmsg:
+            raise ValidationException(errmsg)
+
+        self.tagger.tag_resource(delivery_stream.arn, tags)
+
+    def untag_delivery_stream(self, delivery_stream_name, tag_keys):
+        """Removes tags from specified delivery stream."""
+        delivery_stream = self.delivery_streams.get(delivery_stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"not found."
+            )
+
+        # If a tag key doesn't exist for the stream, boto3 ignores it.
+        self.tagger.untag_resource_using_names(delivery_stream.arn, tag_keys)
 
 
 firehose_backends = {}

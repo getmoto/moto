@@ -11,6 +11,15 @@ class InvalidArgumentException(JsonRESTError):
         super().__init__("InvalidArgumentException", message)
 
 
+class InvalidKMSResourceException(JsonRESTError):
+    """Failed to put records or to start or stop delivery steam encryption."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("InvalidKMSResourceException", message)
+
+
 class LimitExceededException(JsonRESTError):
     """You have already reached the limit for a requested resource."""
 
@@ -38,10 +47,10 @@ class ResourceNotFoundException(JsonRESTError):
         super().__init__("ResourceNotFoundException", message)
 
 
-class InvalidKMSResourceException(JsonRESTError):
-    """Failed to put records or to start or stop delivery steam encryption."""
+class ValidationException(JsonRESTError):
+    """The tag key or tag value is not valid."""
 
     code = 400
 
     def __init__(self, message):
-        super().__init__("InvalidKMSResourceException", message)
+        super().__init__("ValidationException", message)
