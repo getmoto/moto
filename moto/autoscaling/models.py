@@ -62,7 +62,7 @@ class FakeLifeCycleHook(BaseModel):
         if result:
             self.result = result
         else:
-            self.result = 'ABANDON'
+            self.result = "ABANDON"
 
 
 class FakeScalingPolicy(BaseModel):
@@ -917,9 +917,7 @@ class AutoScalingBackend(BaseBackend):
             desired_capacity = int(desired_capacity)
         self.set_desired_capacity(group_name, desired_capacity)
 
-    def create_lifecycle_hook(
-        self, name, as_name, transition, timeout, result
-    ):
+    def create_lifecycle_hook(self, name, as_name, transition, timeout, result):
         lifecycle_hook = FakeLifeCycleHook(
             name,
             as_name,
@@ -937,8 +935,13 @@ class AutoScalingBackend(BaseBackend):
         return [
             lifecycle_hook
             for lifecycle_hook in self.lifecycle_hooks.values()
-            if (not autoscaling_group_name or lifecycle_hook.as_name == autoscaling_group_name)
-            and (not lifecycle_hook_names or lifecycle_hook.name in lifecycle_hook_names)
+            if (
+                not autoscaling_group_name
+                or lifecycle_hook.as_name == autoscaling_group_name
+            )
+            and (
+                not lifecycle_hook_names or lifecycle_hook.name in lifecycle_hook_names
+            )
         ]
 
     def delete_lifecycle_hook(self, group_name):
@@ -997,10 +1000,14 @@ class AutoScalingBackend(BaseBackend):
         for elb in elbs:
             elb_instace_ids = set(elb.instance_ids)
             self.elb_backend.register_instances(
-                elb.name, group_instance_ids - elb_instace_ids, from_autoscaling=True,
+                elb.name,
+                group_instance_ids - elb_instace_ids,
+                from_autoscaling=True,
             )
             self.elb_backend.deregister_instances(
-                elb.name, elb_instace_ids - group_instance_ids, from_autoscaling=True,
+                elb.name,
+                elb_instace_ids - group_instance_ids,
+                from_autoscaling=True,
             )
 
     def update_attached_target_groups(self, group_name):
