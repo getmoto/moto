@@ -274,3 +274,29 @@ class SageMakerResponse(BaseResponse):
             )
         )
         return 200, {}, json.dumps("{}")
+
+    @amzn_request_id
+    def list_training_jobs(self):
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        name_contains = self._get_param("NameContains")
+        status_equals = self._get_param("StatusEquals")
+        sort_by = self._get_param("SortBy", "CreationTime")
+        sort_order = self._get_param("SortOrder", "Ascending")
+        response = self.sagemaker_backend.list_training_jobs(
+            next_token=next_token,
+            max_results=max_results,
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            last_modified_time_after=last_modified_time_after,
+            last_modified_time_before=last_modified_time_before,
+            name_contains=name_contains,
+            status_equals=status_equals,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        return 200, {}, json.dumps(response)
