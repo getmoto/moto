@@ -1,7 +1,9 @@
-from moto.core.responses import BaseResponse
-from .models import logs_backends
 import json
 
+from .exceptions import InvalidParameterException
+
+from moto.core.responses import BaseResponse
+from .models import logs_backends
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
@@ -24,9 +26,9 @@ class LogsResponse(BaseResponse):
     def create_log_group(self):
         log_group_name = self._get_param("logGroupName")
         tags = self._get_param("tags")
-        assert 1 <= len(log_group_name) <= 512  # TODO: assert pattern
+        kms_key_id = self._get_param("kmsKeyId")
 
-        self.logs_backend.create_log_group(log_group_name, tags)
+        self.logs_backend.create_log_group(log_group_name, tags, kmsKeyId=kms_key_id)
         return ""
 
     def delete_log_group(self):
@@ -38,7 +40,6 @@ class LogsResponse(BaseResponse):
         log_group_name_prefix = self._get_param("logGroupNamePrefix")
         next_token = self._get_param("nextToken")
         limit = self._get_param("limit", 50)
-        assert limit <= 50
         groups, next_token = self.logs_backend.describe_log_groups(
             limit, log_group_name_prefix, next_token
         )
@@ -64,13 +65,8 @@ class LogsResponse(BaseResponse):
         log_stream_name_prefix = self._get_param("logStreamNamePrefix", "")
         descending = self._get_param("descending", False)
         limit = self._get_param("limit", 50)
-        assert limit <= 50
         next_token = self._get_param("nextToken")
         order_by = self._get_param("orderBy", "LogStreamName")
-        assert order_by in {"LogStreamName", "LastEventTime"}
-
-        if order_by == "LastEventTime":
-            assert not log_stream_name_prefix
 
         streams, next_token = self.logs_backend.describe_log_streams(
             descending,
@@ -98,8 +94,7 @@ class LogsResponse(BaseResponse):
         log_stream_name = self._get_param("logStreamName")
         start_time = self._get_param("startTime")
         end_time = self._get_param("endTime")
-        limit = self._get_param("limit", 10000)
-        assert limit <= 10000
+        limit = self._get_param("limit")
         next_token = self._get_param("nextToken")
         start_from_head = self._get_param("startFromHead", False)
 
@@ -132,8 +127,7 @@ class LogsResponse(BaseResponse):
         filter_pattern = self._get_param("filterPattern")
         interleaved = self._get_param("interleaved", False)
         end_time = self._get_param("endTime")
-        limit = self._get_param("limit", 10000)
-        assert limit <= 10000
+        limit = self._get_param("limit")
         next_token = self._get_param("nextToken")
 
         events, next_token, searched_streams = self.logs_backend.filter_log_events(
@@ -163,6 +157,23 @@ class LogsResponse(BaseResponse):
     def delete_retention_policy(self):
         log_group_name = self._get_param("logGroupName")
         self.logs_backend.delete_retention_policy(log_group_name)
+        return ""
+
+    def describe_resource_policies(self):
+        next_token = self._get_param("nextToken")
+        limit = self._get_param("limit")
+        policies = self.logs_backend.describe_resource_policies(next_token, limit)
+        return json.dumps({"resourcePolicies": policies})
+
+    def put_resource_policy(self):
+        policy_name = self._get_param("policyName")
+        policy_doc = self._get_param("policyDocument")
+        result = self.logs_backend.put_resource_policy(policy_name, policy_doc)
+        return json.dumps(result)
+
+    def delete_resource_policy(self):
+        policy_name = self._get_param("policyName")
+        self.logs_backend.delete_resource_policy(policy_name)
         return ""
 
     def list_tags_log_group(self):
@@ -211,3 +222,22 @@ class LogsResponse(BaseResponse):
         self.logs_backend.delete_subscription_filter(log_group_name, filter_name)
 
         return ""
+
+    def start_query(self):
+        log_group_name = self._get_param("logGroupName")
+        log_group_names = self._get_param("logGroupNames")
+        start_time = self._get_param("startTime")
+        end_time = self._get_param("endTime")
+        query_string = self._get_param("queryString")
+
+        if log_group_name and log_group_names:
+            raise InvalidParameterException()
+
+        if log_group_name:
+            log_group_names = [log_group_name]
+
+        query_id = self.logs_backend.start_query(
+            log_group_names, start_time, end_time, query_string
+        )
+
+        return json.dumps({"queryId": "{0}".format(query_id)})

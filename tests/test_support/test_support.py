@@ -9,7 +9,7 @@ from moto import mock_support
 @mock_support
 def test_describe_trusted_advisor_checks_returns_amount_of_checks():
     """
-    test that the 104 checks that are listed under trusted advisor currently 
+    test that the 104 checks that are listed under trusted advisor currently
     are returned
     """
     client = boto3.client("support", "us-east-1")
@@ -49,7 +49,7 @@ def test_describe_trusted_advisor_checks_returns_an_expected_check_name():
 @mock_support
 def test_refresh_trusted_advisor_check_returns_expected_check():
     """
-    A refresh of a trusted advisor check returns the check id 
+    A refresh of a trusted advisor check returns the check id
     in the response
     """
     client = boto3.client("support", "us-east-1")
@@ -627,7 +627,7 @@ def test_support_created_case_can_be_described_and_contains_communications_when_
 @mock_support
 def test_support_created_case_can_be_described_and_does_not_contain_communications_when_false():
     """
-    On creating a support request it does not include 
+    On creating a support request it does not include
     comms when  includeCommunications=False
     """
 
@@ -665,7 +665,7 @@ def test_support_created_case_can_be_described_and_does_not_contain_communicatio
 @mock_support
 def test_support_created_case_can_be_described_and_contains_resolved_cases_when_true():
     """
-    On creating a support request it does contain resolved cases when 
+    On creating a support request it does contain resolved cases when
     includeResolvedCases=true
     """
 
@@ -705,7 +705,7 @@ def test_support_created_case_can_be_described_and_contains_resolved_cases_when_
 @mock_support
 def test_support_created_case_can_be_described_and_does_not_contain_resolved_cases_when_false():
     """
-    On creating a support request it does not contain resolved cases when 
+    On creating a support request it does not contain resolved cases when
     includeResolvedCases=false
     """
 

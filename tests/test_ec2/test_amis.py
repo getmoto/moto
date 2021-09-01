@@ -290,7 +290,7 @@ def test_ami_filters():
 
     amis_by_architecture = conn.get_all_images(filters={"architecture": "x86_64"})
     set([ami.id for ami in amis_by_architecture]).should.contain(imageB.id)
-    len(amis_by_architecture).should.equal(35)
+    len(amis_by_architecture).should.equal(39)
 
     amis_by_kernel = conn.get_all_images(filters={"kernel-id": "k-abcd1234"})
     set([ami.id for ami in amis_by_kernel]).should.equal(set([imageB.id]))
@@ -303,7 +303,7 @@ def test_ami_filters():
 
     amis_by_platform = conn.get_all_images(filters={"platform": "windows"})
     set([ami.id for ami in amis_by_platform]).should.contain(imageA.id)
-    len(amis_by_platform).should.equal(24)
+    len(amis_by_platform).should.equal(25)
 
     amis_by_id = conn.get_all_images(filters={"image-id": imageA.id})
     set([ami.id for ami in amis_by_id]).should.equal(set([imageA.id]))
@@ -312,14 +312,14 @@ def test_ami_filters():
     ami_ids_by_state = [ami.id for ami in amis_by_state]
     ami_ids_by_state.should.contain(imageA.id)
     ami_ids_by_state.should.contain(imageB.id)
-    len(amis_by_state).should.equal(36)
+    len(amis_by_state).should.equal(40)
 
     amis_by_name = conn.get_all_images(filters={"name": imageA.name})
     set([ami.id for ami in amis_by_name]).should.equal(set([imageA.id]))
 
     amis_by_public = conn.get_all_images(filters={"is-public": "true"})
     set([ami.id for ami in amis_by_public]).should.contain(imageB.id)
-    len(amis_by_public).should.equal(35)
+    len(amis_by_public).should.equal(39)
 
     amis_by_nonpublic = conn.get_all_images(filters={"is-public": "false"})
     set([ami.id for ami in amis_by_nonpublic]).should.contain(imageA.id)
@@ -784,16 +784,6 @@ def test_ami_registration():
 
 
 @mock_ec2
-def test_ami_registration():
-    ec2 = boto3.client("ec2", region_name="us-east-1")
-    image_id = ec2.register_image(Name="test-register-image").get("ImageId", "")
-    images = ec2.describe_images(ImageIds=[image_id]).get("Images", [])
-    assert images[0]["Name"] == "test-register-image", "No image was registered."
-    assert images[0]["RootDeviceName"] == "/dev/sda1", "Wrong root device name."
-    assert images[0]["State"] == "available", "State should be available."
-
-
-@mock_ec2
 def test_ami_filter_wildcard():
     ec2_resource = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -961,3 +951,26 @@ def test_ami_filter_by_empty_tag():
         {"Name": "tag:RELEASE", "Values": [""]},
     ]
     assert len(client.describe_images(Filters=images_filter)["Images"]) == 3
+
+
+@mock_ec2
+def test_ami_filter_by_ownerid():
+    ec2_connection = boto3.client("ec2", region_name="us-east-1")
+
+    images = ec2_connection.describe_images(
+        Filters=[
+            {"Name": "name", "Values": ["amzn-ami-*",]},
+            {"Name": "owner-alias", "Values": ["amazon",]},
+        ]
+    )["Images"]
+    assert len(images) > 0, "We should have at least 1 image created by amazon"
+
+
+@mock_ec2
+def test_ami_filter_by_unknown_ownerid():
+    ec2_connection = boto3.client("ec2", region_name="us-east-1")
+
+    images = ec2_connection.describe_images(
+        Filters=[{"Name": "owner-alias", "Values": ["unknown",]},]
+    )["Images"]
+    images.should.have.length_of(0)

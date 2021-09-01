@@ -3,8 +3,7 @@ SHELL := /bin/bash
 ifeq ($(TEST_SERVER_MODE), true)
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
-
-	TEST_EXCLUDE :=  -k 'not test_kinesisvideoarchivedmedia'
+	TEST_EXCLUDE := -k 'not test_kinesisvideoarchivedmedia'
 else
 	TEST_EXCLUDE :=
 endif
@@ -16,6 +15,7 @@ init:
 lint:
 	flake8 moto
 	black --check moto/ tests/
+	pylint -j 0 tests
 
 format:
 	black moto/ tests/

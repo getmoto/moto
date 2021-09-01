@@ -1,6 +1,7 @@
 import base64
 import boto3
 import json
+import sure  # noqa
 import time
 import zlib
 
@@ -178,7 +179,7 @@ def test_put_subscription_filter_with_lambda():
 
 @mock_lambda
 @mock_logs
-def test_delete_subscription_filter_errors():
+def test_delete_subscription_filter():
     # given
     region_name = "us-east-1"
     client_lambda = boto3.client("lambda", region_name)

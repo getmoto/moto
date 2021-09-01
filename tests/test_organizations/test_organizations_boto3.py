@@ -2,9 +2,18 @@ from __future__ import unicode_literals
 
 from datetime import datetime
 
+from moto.organizations.exceptions import InvalidInputException, TargetNotFoundException
+from moto.organizations.models import (
+    FakeAccount,
+    FakeOrganization,
+    FakeOrganizationalUnit,
+    FakePolicy,
+    FakeRoot,
+    OrganizationsBackend,
+)
+
 import boto3
 import json
-import six
 import sure  # noqa
 from botocore.exceptions import ClientError
 import pytest
@@ -547,15 +556,30 @@ def test_detach_policy():
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
-    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
-    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
-    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=ou_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=root_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=account_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    # Attach/List/Detach policy
+    for name, target in [("OU", ou_id), ("Root", root_id), ("Account", account_id)]:
+        #
+        with sure.ensure("We should start with 0 policies"):
+            get_nonaws_policies(target, client).should.have.length_of(0)
+        #
+        client.attach_policy(PolicyId=policy_id, TargetId=target)
+        with sure.ensure("Expecting 1 policy after creation of target={0}", name):
+            get_nonaws_policies(target, client).should.have.length_of(1)
+        #
+        response = client.detach_policy(PolicyId=policy_id, TargetId=target)
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        with sure.ensure("Expecting 0 policies after deletion of target={0}", name):
+            get_nonaws_policies(target, client).should.have.length_of(0)
+
+
+def get_nonaws_policies(account_id, client):
+    return [
+        p
+        for p in client.list_policies_for_target(
+            TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
+        )["Policies"]
+        if not p["AwsManaged"]
+    ]
 
 
 @mock_organizations
@@ -937,9 +961,9 @@ def test_list_targets_for_policy():
     response = client.list_targets_for_policy(PolicyId=policy_id)
     for target in response["Targets"]:
         target.should.be.a(dict)
-        target.should.have.key("Name").should.be.a(six.string_types)
-        target.should.have.key("Arn").should.be.a(six.string_types)
-        target.should.have.key("TargetId").should.be.a(six.string_types)
+        target.should.have.key("Name").should.be.a(str)
+        target.should.have.key("Arn").should.be.a(str)
+        target.should.have.key("TargetId").should.be.a(str)
         target.should.have.key("Type").should.be.within(
             ["ROOT", "ORGANIZATIONAL_UNIT", "ACCOUNT"]
         )
@@ -966,25 +990,83 @@ def test_list_targets_for_policy_exception():
 
 
 @mock_organizations
-def test_tag_resource():
+def test_tag_resource_account():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
-    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+    resource_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
 
-    client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
 
-    response = client.list_tags_for_resource(ResourceId=account_id)
+    response = client.list_tags_for_resource(ResourceId=resource_id)
     response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
 
     # adding a tag with an existing key, will update the value
     client.tag_resource(
-        ResourceId=account_id, Tags=[{"Key": "key", "Value": "new-value"}]
+        ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}]
     )
 
-    response = client.list_tags_for_resource(ResourceId=account_id)
+    response = client.list_tags_for_resource(ResourceId=resource_id)
     response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+    client.untag_resource(ResourceId=resource_id, TagKeys=["key"])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([])
+
+
+@mock_organizations
+def test_tag_resource_organization_organization_root():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    resource_id = client.list_roots()["Roots"][0]["Id"]
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # adding a tag with an existing key, will update the value
+    client.tag_resource(
+        ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}]
+    )
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+    client.untag_resource(ResourceId=resource_id, TagKeys=["key"])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([])
+
+
+@mock_organizations
+def test_tag_resource_organization_organizational_unit():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    resource_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+
+    client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # adding a tag with an existing key, will update the value
+    client.tag_resource(
+        ResourceId=resource_id, Tags=[{"Key": "key", "Value": "new-value"}]
+    )
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+    client.untag_resource(ResourceId=resource_id, TagKeys=["key"])
+
+    response = client.list_tags_for_resource(ResourceId=resource_id)
+    response["Tags"].should.equal([])
 
 
 @mock_organizations
@@ -994,13 +1076,116 @@ def test_tag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.tag_resource(
-            ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"},],
+            ResourceId="0A000000X000", Tags=[{"Key": "key", "Value": "value"},],
         )
     ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
+        "You provided a value that does not match the required pattern."
+    )
+    with pytest.raises(ClientError) as e:
+        client.tag_resource(
+            ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"}]
+        )
+    ex = e.value
+    ex.operation_name.should.equal("TagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a target that doesn't exist."
+    )
+
+
+def test__get_resource_for_tagging_existing_root():
+    org = FakeOrganization("ALL")
+    root = FakeRoot(org)
+
+    org_backend = OrganizationsBackend()
+    org_backend.ou.append(root)
+    response = org_backend._get_resource_for_tagging(root.id)
+    response.id.should.equal(root.id)
+
+
+def test__get_resource_for_tagging_existing_non_root():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("r-abcd")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_for_tagging_existing_ou():
+    org = FakeOrganization("ALL")
+    ou = FakeOrganizationalUnit(org)
+    org_backend = OrganizationsBackend()
+
+    org_backend.ou.append(ou)
+    response = org_backend._get_resource_for_tagging(ou.id)
+    response.id.should.equal(ou.id)
+
+
+def test__get_resource_for_tagging_non_existing_ou():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("ou-9oyc-lv2q36ln")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_for_tagging_existing_account():
+    org = FakeOrganization("ALL")
+    org_backend = OrganizationsBackend()
+    account = FakeAccount(org, AccountName="test", Email="test@test.test")
+
+    org_backend.accounts.append(account)
+    response = org_backend._get_resource_for_tagging(account.id)
+    response.id.should.equal(account.id)
+
+
+def test__get_resource_for_tagging_non_existing_account():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("100326223992")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_for_tagging_existing_policy():
+    org = FakeOrganization("ALL")
+    org_backend = OrganizationsBackend()
+    policy = FakePolicy(org, Type="SERVICE_CONTROL_POLICY")
+
+    org_backend.policies.append(policy)
+    response = org_backend._get_resource_for_tagging(policy.id)
+    response.id.should.equal(policy.id)
+
+
+def test__get_resource_for_tagging_non_existing_policy():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(TargetNotFoundException) as e:
+        org_backend._get_resource_for_tagging("p-y1vas4da")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("TargetNotFoundException")
+    ex.message.should.equal("You specified a target that doesn't exist.")
+
+
+def test__get_resource_to_tag_incorrect_resource():
+    org_backend = OrganizationsBackend()
+    with pytest.raises(InvalidInputException) as e:
+        org_backend._get_resource_for_tagging("10032622399200")
+    ex = e.value
+    ex.code.should.equal(400)
+    ex.description.should.contain("InvalidInputException")
+    ex.message.should.equal(
         "You provided a value that does not match the required pattern."
     )
 
@@ -1025,13 +1210,22 @@ def test_list_tags_for_resource_errors():
     client.create_organization(FeatureSet="ALL")
 
     with pytest.raises(ClientError) as e:
-        client.list_tags_for_resource(ResourceId="000000000000")
+        client.list_tags_for_resource(ResourceId="000x00000A00")
     ex = e.value
     ex.operation_name.should.equal("ListTagsForResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
+    )
+    with pytest.raises(ClientError) as e:
+        client.list_tags_for_resource(ResourceId="000000000000")
+    ex = e.value
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a target that doesn't exist."
     )
 
 
@@ -1062,13 +1256,22 @@ def test_untag_resource_errors():
     client.create_organization(FeatureSet="ALL")
 
     with pytest.raises(ClientError) as e:
-        client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
+        client.untag_resource(ResourceId="0X00000000A0", TagKeys=["key"])
     ex = e.value
     ex.operation_name.should.equal("UntagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
+    )
+    with pytest.raises(ClientError) as e:
+        client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
+    ex = e.value
+    ex.operation_name.should.equal("UntagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a target that doesn't exist."
     )
 
 
@@ -1125,7 +1328,7 @@ def test_enable_aws_service_access():
     service = response["EnabledServicePrincipals"][0]
     service["ServicePrincipal"].should.equal("config.amazonaws.com")
     date_enabled = service["DateEnabled"]
-    date_enabled["DateEnabled"].should.be.a(datetime)
+    date_enabled.should.be.a(datetime)
 
     # enabling the same service again should not result in any error or change
     # when
@@ -1140,7 +1343,7 @@ def test_enable_aws_service_access():
 
 
 @mock_organizations
-def test_enable_aws_service_access():
+def test_enable_aws_service_access_error():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
@@ -1156,7 +1359,7 @@ def test_enable_aws_service_access():
 
 
 @mock_organizations
-def test_enable_aws_service_access():
+def test_enable_multiple_aws_service_access():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")

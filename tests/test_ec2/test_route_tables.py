@@ -588,6 +588,7 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
         route
         for route in route_table.routes
         if route.destination_cidr_block != vpc.cidr_block
+        or route.destination_ipv6_cidr_block != vpc.cidr_block
     ]
     new_routes.should.have.length_of(1)
     new_routes[0].route_table_id.shouldnt.be.equal(None)
@@ -733,6 +734,50 @@ def test_create_route_tables_with_tags():
     )
 
     route_table.tags.should.have.length_of(1)
+
+
+@mock_ec2
+def test_create_route_with_egress_only_igw():
+    ec2 = boto3.resource("ec2", region_name="eu-central-1")
+    ec2_client = boto3.client("ec2", region_name="eu-central-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    eigw = ec2_client.create_egress_only_internet_gateway(VpcId=vpc.id)
+    eigw_id = eigw["EgressOnlyInternetGateway"]["EgressOnlyInternetGatewayId"]
+
+    route_table = ec2.create_route_table(VpcId=vpc.id)
+
+    ec2_client.create_route(
+        RouteTableId=route_table.id, EgressOnlyInternetGatewayId=eigw_id
+    )
+
+    route_table.reload()
+    eigw_route = [r for r in route_table.routes if r.destination_cidr_block == "None"][
+        0
+    ]
+    eigw_route.egress_only_internet_gateway_id.should.equal(eigw_id)
+    eigw_route.state.should.equal("active")
+
+
+@mock_ec2
+def test_create_route_with_unknown_egress_only_igw():
+    ec2 = boto3.resource("ec2", region_name="eu-central-1")
+    ec2_client = boto3.client("ec2", region_name="eu-central-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    route_table = ec2.create_route_table(VpcId=vpc.id)
+
+    with pytest.raises(ClientError) as ex:
+        ec2_client.create_route(
+            RouteTableId=route_table.id, EgressOnlyInternetGatewayId="eoigw"
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidGatewayID.NotFound")
+    err["Message"].should.equal("The eigw ID 'eoigw' does not exist")
 
 
 @mock_ec2

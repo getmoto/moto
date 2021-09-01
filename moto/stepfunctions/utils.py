@@ -1,7 +1,7 @@
 from functools import wraps
 
 from botocore.paginate import TokenDecoder, TokenEncoder
-from six.moves import reduce
+from functools import reduce
 
 from .exceptions import InvalidToken
 

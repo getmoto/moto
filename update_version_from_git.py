@@ -54,7 +54,7 @@ def migrate_version(target_file, new_version):
     regex = r"['\"](.*)['\"]"
     migrate_source_attribute(
         "__version__",
-        "\"{new_version}\"".format(new_version=new_version),
+        '"{new_version}"'.format(new_version=new_version),
         target_file,
         regex,
     )
@@ -66,18 +66,11 @@ def is_master_branch():
     return tag_branch in [b"master\n"]
 
 
-def git_tag_name():
-    cmd = "git describe --tags"
-    tag_branch = subprocess.check_output(cmd, shell=True)
-    tag_branch = tag_branch.decode().strip()
-    return tag_branch
-
-
 def get_git_version_info():
     cmd = "git describe --tags"
     ver_str = subprocess.check_output(cmd, shell=True)
     ver, commits_since, githash = ver_str.decode().strip().split("-")
-    return ver, commits_since, githash
+    return Version(ver), int(commits_since), githash
 
 
 def prerelease_version():
@@ -88,15 +81,11 @@ def prerelease_version():
     ver, commits_since, githash = get_git_version_info()
     initpy_ver = get_version()
 
-    assert len(initpy_ver.split(".")) in [
-        3,
-        4,
-    ], "moto/__init__.py version should be like 0.0.2.dev"
     assert (
         initpy_ver > ver
     ), "the moto/__init__.py version should be newer than the last tagged release."
-    return "{initpy_ver}{commits_since}".format(
-        initpy_ver=initpy_ver, commits_since=commits_since
+    return "{}.{}.{}.dev{}".format(
+        initpy_ver.major, initpy_ver.minor, initpy_ver.micro, commits_since
     )
 
 
@@ -114,9 +103,14 @@ def get_version():
     version_match = re.search(
         r'^__version__ = [\'"]([^\'"]*)[\'"]', version_file, re.MULTILINE
     )
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+    if not version_match:
+        raise RuntimeError("Unable to find version string.")
+    initpy_ver = version_match.group(1)
+    assert len(initpy_ver.split(".")) in [
+        3,
+        4,
+    ], "moto/__init__.py version should be like 0.0.2.dev"
+    return Version(initpy_ver)
 
 
 def increase_patch_version(old_version):
@@ -124,8 +118,9 @@ def increase_patch_version(old_version):
     :param old_version: 2.0.1
     :return: 2.0.2.dev
     """
-    v = Version(old_version)
-    return "{}.{}.{}.dev".format(v.major, v.minor, v.micro + 1)
+    return "{}.{}.{}.dev".format(
+        old_version.major, old_version.minor, old_version.micro + 1
+    )
 
 
 def release_version_correct():
@@ -149,10 +144,6 @@ def release_version_correct():
         migrate_version(initpy, new_version)
     else:
         assert False, "No non-master deployments yet"
-        # check that we are a tag with the same version as in __init__.py
-        assert (
-            get_version() == git_tag_name()
-        ), "git tag/branch name not the same as moto/__init__.py __verion__"
 
 
 if __name__ == "__main__":
@@ -167,5 +158,7 @@ if __name__ == "__main__":
         initpy = os.path.abspath("moto/__init__.py")
         migrate_version(initpy, new_version)
     else:
-        print("Invalid usage. Supply 0 or 1 arguments. "
-              "Argument can be either a version '1.2.3' or 'patch' if you want to increase the patch-version (1.2.3 -> 1.2.4.dev)")
+        print(
+            "Invalid usage. Supply 0 or 1 arguments. "
+            "Argument can be either a version '1.2.3' or 'patch' if you want to increase the patch-version (1.2.3 -> 1.2.4.dev)"
+        )

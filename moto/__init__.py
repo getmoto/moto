@@ -58,6 +58,7 @@ mock_ecr = lazy_load(".ecr", "mock_ecr")
 mock_ecr_deprecated = lazy_load(".ecr", "mock_ecr_deprecated")
 mock_ecs = lazy_load(".ecs", "mock_ecs")
 mock_ecs_deprecated = lazy_load(".ecs", "mock_ecs_deprecated")
+mock_elastictranscoder = lazy_load(".elastictranscoder", "mock_elastictranscoder")
 mock_elb = lazy_load(".elb", "mock_elb")
 mock_elb_deprecated = lazy_load(".elb", "mock_elb_deprecated")
 mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
@@ -125,12 +126,16 @@ mock_support = lazy_load(".support", "mock_support")
 mock_mediaconnect = lazy_load(".mediaconnect", "mock_mediaconnect")
 mock_mediapackage = lazy_load(".mediapackage", "mock_mediapackage")
 mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
+mock_eks = lazy_load(".eks", "mock_eks")
+mock_mediastoredata = lazy_load(".mediastoredata", "mock_mediastoredata")
+mock_efs = lazy_load(".efs", "mock_efs")
+mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.0.9.dev"
+__version__ = "2.2.7.dev"
 
 
 try:
