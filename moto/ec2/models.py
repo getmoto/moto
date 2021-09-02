@@ -2019,13 +2019,13 @@ class SecurityRule(object):
         to_port,
         ip_ranges,
         source_groups,
-        prefix_list_ids=None,
+        prefix_list_ids=[],
     ):
         self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol)
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
-        self.prefix_list_ids = prefix_list_ids or []
+        self.prefix_list_ids = prefix_list_ids
         self.from_port = self.to_port = None
 
         if self.ip_protocol != "-1":
@@ -2058,11 +2058,18 @@ class SecurityRule(object):
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
             return False
-        if self.ip_ranges != other.ip_ranges:
+        ip_ranges = [item for item in self.ip_ranges if item not in other.ip_ranges]
+        if ip_ranges:
             return False
-        if self.source_groups != other.source_groups:
+        source_groups = [
+            item for item in self.source_groups if item not in other.source_groups
+        ]
+        if source_groups:
             return False
-        if self.prefix_list_ids != other.prefix_list_ids:
+        prefix_list_ids = [
+            item for item in self.prefix_list_ids if item not in other.prefix_list_ids
+        ]
+        if prefix_list_ids:
             return False
         if self.ip_protocol != "-1":
             if self.from_port != other.from_port:
@@ -2330,9 +2337,15 @@ class SecurityGroupBackend(object):
                 return group
 
     def get_security_group_from_name(self, name, vpc_id=None):
-        for group_id, group in self.groups[vpc_id].items():
-            if group.name == name:
-                return group
+        if vpc_id:
+            for group_id, group in self.groups[vpc_id].items():
+                if group.name == name:
+                    return group
+        else:
+            for vpc_id in self.groups:
+                for group_id, group in self.groups[vpc_id].items():
+                    if group.name == name:
+                        return group
 
     def get_security_group_by_name_or_id(self, group_name_or_id, vpc_id):
         # try searching by id, fallbacks to name search
@@ -2349,7 +2362,7 @@ class SecurityGroupBackend(object):
         to_port,
         ip_ranges,
         source_groups=[],
-        prefix_list_ids=None,
+        prefix_list_ids=[],
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -2386,6 +2399,9 @@ class SecurityGroupBackend(object):
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
 
+        if security_rule in group.ingress_rules:
+            raise InvalidPermissionDuplicateError()
+        # To match drift property of the security rules.
         # If no rule found then add security_rule as a new rule
         for rule in group.ingress_rules:
             if (
@@ -2393,9 +2409,27 @@ class SecurityGroupBackend(object):
                 and security_rule.to_port == rule.to_port
                 and security_rule.ip_protocol == rule.ip_protocol
             ):
-                rule.ip_ranges.extend(ip_ranges)
-                rule.source_groups.extend(source_groups)
-                rule.prefix_list_ids.extend(prefix_list_ids)
+                rule.ip_ranges.extend(
+                    [
+                        item
+                        for item in security_rule.ip_ranges
+                        if item not in rule.ip_ranges
+                    ]
+                )
+                rule.source_groups.extend(
+                    [
+                        item
+                        for item in security_rule.source_groups
+                        if item not in rule.source_groups
+                    ]
+                )
+                rule.prefix_list_ids.extend(
+                    [
+                        item
+                        for item in security_rule.prefix_list_ids
+                        if item not in rule.prefix_list_ids
+                    ]
+                )
                 security_rule = rule
                 break
         else:
@@ -2410,7 +2444,7 @@ class SecurityGroupBackend(object):
         to_port,
         ip_ranges,
         source_groups=[],
-        prefix_list_ids=None,
+        prefix_list_ids=[],
         vpc_id=None,
     ):
 
@@ -2421,34 +2455,42 @@ class SecurityGroupBackend(object):
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
-        # If no rule found then add security_rule as a new rule
+
+        # To match drift property of the security rules.
         for rule in group.ingress_rules:
             if (
                 security_rule.from_port == rule.from_port
                 and security_rule.to_port == rule.to_port
                 and security_rule.ip_protocol == rule.ip_protocol
             ):
-                rule.ip_ranges.extend(ip_ranges)
-                rule.source_groups.extend(source_groups)
-                rule.prefix_list_ids.extend(prefix_list_ids)
-                security_rule = rule
+                security_rule = copy.deepcopy(rule)
+                security_rule.ip_ranges.extend(
+                    [item for item in ip_ranges if item not in rule.ip_ranges]
+                )
+                security_rule.source_groups.extend(
+                    [item for item in _source_groups if item not in rule.source_groups]
+                )
+                security_rule.prefix_list_ids.extend(
+                    [
+                        item
+                        for item in prefix_list_ids
+                        if item not in rule.prefix_list_ids
+                    ]
+                )
                 break
 
         if security_rule in group.ingress_rules:
             rule = group.ingress_rules[group.ingress_rules.index(security_rule)]
-            rule.ip_ranges = [item for item in rule.ip_ranges if item not in ip_ranges]
-            rule.source_groups = [
-                item for item in rule.source_groups if item not in _source_groups
-            ]
-            rule.prefix_list_ids = [
-                item for item in rule.prefix_list_ids if item not in prefix_list_ids
-            ]
+            self._remove_items_from_rule(
+                ip_ranges, _source_groups, prefix_list_ids, rule
+            )
+
             if (
                 not rule.prefix_list_ids
                 and not rule.source_groups
                 and not rule.ip_ranges
             ):
-                group.ingress_rules.remove(security_rule)
+                group.ingress_rules.remove(rule)
             self.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
             return security_rule
         raise InvalidPermissionNotFoundError()
@@ -2461,7 +2503,7 @@ class SecurityGroupBackend(object):
         to_port,
         ip_ranges,
         source_groups=[],
-        prefix_list_ids=None,
+        prefix_list_ids=[],
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -2502,6 +2544,9 @@ class SecurityGroupBackend(object):
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
 
+        if security_rule in group.egress_rules:
+            raise InvalidPermissionDuplicateError()
+        # To match drift property of the security rules.
         # If no rule found then add security_rule as a new rule
         for rule in group.egress_rules:
             if (
@@ -2509,9 +2554,27 @@ class SecurityGroupBackend(object):
                 and security_rule.to_port == rule.to_port
                 and security_rule.ip_protocol == rule.ip_protocol
             ):
-                rule.ip_ranges.extend(ip_ranges)
-                rule.source_groups.extend(source_groups)
-                rule.prefix_list_ids.extend(prefix_list_ids)
+                rule.ip_ranges.extend(
+                    [
+                        item
+                        for item in security_rule.ip_ranges
+                        if item not in rule.ip_ranges
+                    ]
+                )
+                rule.source_groups.extend(
+                    [
+                        item
+                        for item in security_rule.source_groups
+                        if item not in rule.source_groups
+                    ]
+                )
+                rule.prefix_list_ids.extend(
+                    [
+                        item
+                        for item in security_rule.prefix_list_ids
+                        if item not in rule.prefix_list_ids
+                    ]
+                )
                 security_rule = rule
                 break
         else:
@@ -2527,7 +2590,7 @@ class SecurityGroupBackend(object):
         to_port,
         ip_ranges,
         source_groups=[],
-        prefix_list_ids=None,
+        prefix_list_ids=[],
         vpc_id=None,
     ):
 
@@ -2553,6 +2616,7 @@ class SecurityGroupBackend(object):
             ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
         )
 
+        # To match drift property of the security rules.
         # If no rule found then add security_rule as a new rule
         for rule in group.egress_rules:
             if (
@@ -2560,30 +2624,56 @@ class SecurityGroupBackend(object):
                 and security_rule.to_port == rule.to_port
                 and security_rule.ip_protocol == rule.ip_protocol
             ):
-                rule.ip_ranges.extend(ip_ranges)
-                rule.source_groups.extend(source_groups)
-                rule.prefix_list_ids.extend(prefix_list_ids)
-                security_rule = rule
+                security_rule = copy.deepcopy(rule)
+                security_rule.ip_ranges.extend(
+                    [item for item in ip_ranges if item not in rule.ip_ranges]
+                )
+                security_rule.source_groups.extend(
+                    [item for item in _source_groups if item not in rule.source_groups]
+                )
+                security_rule.prefix_list_ids.extend(
+                    [
+                        item
+                        for item in prefix_list_ids
+                        if item not in rule.prefix_list_ids
+                    ]
+                )
                 break
 
         if security_rule in group.egress_rules:
             rule = group.egress_rules[group.egress_rules.index(security_rule)]
-            rule.ip_ranges = [item for item in rule.ip_ranges if item not in ip_ranges]
-            rule.source_groups = [
-                item for item in rule.source_groups if item not in _source_groups
-            ]
-            rule.prefix_list_ids = [
-                item for item in rule.prefix_list_ids if item not in prefix_list_ids
-            ]
+            self._remove_items_from_rule(
+                ip_ranges, _source_groups, prefix_list_ids, rule
+            )
             if (
                 not rule.prefix_list_ids
                 and not rule.source_groups
                 and not rule.ip_ranges
             ):
-                group.egress_rules.remove(security_rule)
+                group.egress_rules.remove(rule)
             self.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
             return security_rule
         raise InvalidPermissionNotFoundError()
+
+    def _remove_items_from_rule(self, ip_ranges, _source_groups, prefix_list_ids, rule):
+        for item in ip_ranges:
+            if item not in rule.ip_ranges:
+                raise InvalidPermissionNotFoundError()
+            else:
+                rule.ip_ranges.remove(item)
+
+        for item in _source_groups:
+            if item not in rule.source_groups:
+                raise InvalidPermissionNotFoundError()
+            else:
+                rule.source_groups.remove(item)
+
+        for item in prefix_list_ids:
+            if item not in rule.prefix_list_ids:
+                raise InvalidPermissionNotFoundError()
+            else:
+                rule.prefix_list_ids.remove(item)
+        pass
 
     def _add_source_group(self, source_groups, vpc_id):
         _source_groups = []

@@ -48,7 +48,7 @@ def parse_sg_attributes_from_dict(sg_attributes):
         source_group = {}
         if "GroupId" in group_dict:
             source_group["GroupId"] = group_dict["GroupId"][0]
-        elif "GroupName" in group_dict:
+        if "GroupName" in group_dict:
             source_group["GroupName"] = group_dict["GroupName"][0]
         if "Description" in group_dict:
             source_group["Description"] = group_dict["Description"][0]
@@ -306,11 +306,11 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                             {% for prefix_list in rule.prefix_list_ids %}
                             <item>
                                 <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
-                                <description>
-                                {{ prefix_list.Description if prefix_list.Description or prefix_list.Description != '' else none }}
-                                </description>
+                                {% if prefix_list.Description %}
+                                <description>{{ prefix_list.Description }}</description>
+                                {% endif %}
                             </item>
-                        {% endfor %}
+                            {% endfor %}
                        </prefixListIds>
                     </item>
                 {% endfor %}
@@ -368,14 +368,14 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                         {% endfor %}
                         </ipv6Ranges>
                         <prefixListIds>
-                            {% if rule.prefix_list_ids %}
                             {% for prefix_list in rule.prefix_list_ids %}
                             <item>
                                 <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
+                                {% if prefix_list.Description %}
                                 <description>{{ prefix_list.Description }}</description>
+                                {% endif %}
                             </item>
                             {% endfor %}
-                            {% endif %}
                         </prefixListIds>
                     </item>
                {% endfor %}
