@@ -1,11 +1,16 @@
 from __future__ import unicode_literals
 
 import json
+from moto.sagemaker.exceptions import AWSValidationException
 
 from moto.core.exceptions import AWSError
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from .models import sagemaker_backends
+
+
+def format_enum_error(value, attribute, allowed):
+    return f"Value '{value}' at '{attribute}' failed to satisfy constraint: Member must satisfy enum value set: {allowed}"
 
 
 class SageMakerResponse(BaseResponse):
@@ -274,3 +279,65 @@ class SageMakerResponse(BaseResponse):
             )
         )
         return 200, {}, json.dumps("{}")
+
+    @amzn_request_id
+    def list_training_jobs(self):
+        max_results_range = range(1, 101)
+        allowed_sort_by = ["Name", "CreationTime", "Status"]
+        allowed_sort_order = ["Ascending", "Descending"]
+        allowed_status_equals = [
+            "Completed",
+            "Stopped",
+            "InProgress",
+            "Stopping",
+            "Failed",
+        ]
+
+        try:
+            max_results = self._get_int_param("MaxResults")
+            sort_by = self._get_param("SortBy", "CreationTime")
+            sort_order = self._get_param("SortOrder", "Ascending")
+            status_equals = self._get_param("StatusEquals")
+            next_token = self._get_param("NextToken")
+            errors = []
+            if max_results and max_results not in max_results_range:
+                errors.append(
+                    "Value '%s' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to %s".format(
+                        max_results, max_results_range[-1]
+                    )
+                )
+
+            if sort_by not in allowed_sort_by:
+                errors.append(format_enum_error(sort_by, "sortBy", allowed_sort_by))
+            if sort_order not in allowed_sort_order:
+                errors.append(
+                    format_enum_error(sort_order, "sortOrder", allowed_sort_order)
+                )
+
+            if status_equals and status_equals not in allowed_status_equals:
+                errors.append(
+                    format_enum_error(
+                        status_equals, "statusEquals", allowed_status_equals
+                    )
+                )
+
+            if errors != []:
+                raise AWSValidationException(
+                    f"{len(errors)} validation errors detected: {';'.join(errors)}"
+                )
+
+            response = self.sagemaker_backend.list_training_jobs(
+                next_token=next_token,
+                max_results=max_results,
+                creation_time_after=self._get_param("CreationTimeAfter"),
+                creation_time_before=self._get_param("CreationTimeBefore"),
+                last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
+                last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
+                name_contains=self._get_param("NameContains"),
+                status_equals=status_equals,
+                sort_by=sort_by,
+                sort_order=sort_order,
+            )
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
