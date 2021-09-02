@@ -30,6 +30,7 @@ BACKENDS = {
     "ecr": ("ecr", "ecr_backends"),
     "ecs": ("ecs", "ecs_backends"),
     "elasticbeanstalk": ("elasticbeanstalk", "eb_backends"),
+    "elastictranscoder": ("elastictranscoder", "elastictranscoder_backends"),
     "elb": ("elb", "elb_backends"),
     "elbv2": ("elbv2", "elbv2_backends"),
     "emr": ("emr", "emr_backends"),
@@ -82,6 +83,10 @@ BACKENDS = {
     "mediaconnect": ("mediaconnect", "mediaconnect_backends"),
     "mediapackage": ("mediapackage", "mediapackage_backends"),
     "mediastore": ("mediastore", "mediastore_backends"),
+    "mediastore-data": ("mediastoredata", "mediastoredata_backends"),
+    "eks": ("eks", "eks_backends"),
+    "efs": ("efs", "efs_backends"),
+    "wafv2": ("wafv2", "wafv2_backends"),
 }
 
 

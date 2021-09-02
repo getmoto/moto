@@ -307,6 +307,7 @@ class Service(BaseObject, CloudFormationModel):
         tags=None,
         deployment_controller=None,
         launch_type=None,
+        service_registries=None,
     ):
         self.cluster_arn = cluster.arn
         self.arn = "arn:aws:ecs:{0}:{1}:service/{2}".format(
@@ -324,6 +325,7 @@ class Service(BaseObject, CloudFormationModel):
         self.deployment_controller = deployment_controller or {"type": "ECS"}
         self.events = []
         self.launch_type = launch_type
+        self.service_registries = service_registries or []
         if self.deployment_controller["type"] == "ECS":
             self.deployments = [
                 {
@@ -1076,6 +1078,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         tags=None,
         deployment_controller=None,
         launch_type=None,
+        service_registries=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -1101,6 +1104,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             tags,
             deployment_controller,
             launch_type,
+            service_registries=service_registries,
         )
         cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
         self.services[cluster_service_pair] = service
@@ -1646,7 +1650,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_set_obj
 
     def update_service_primary_task_set(self, cluster, service, primary_task_set):
-        """ Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets """
+        """Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets"""
         cluster_name = cluster.split("/")[-1]
         service_name = service.split("/")[-1]
         task_set_obj = self.describe_task_sets(
