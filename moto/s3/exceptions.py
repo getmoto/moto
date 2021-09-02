@@ -63,6 +63,8 @@ class BucketAlreadyExists(BucketError):
     code = 409
 
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault("template", "bucket_error")
+        self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super(BucketAlreadyExists, self).__init__(
             "BucketAlreadyExists",
             (
