@@ -257,3 +257,59 @@ def test_request_spot_instances_setting_instance_id():
         request = conn.get_all_spot_instance_requests()[0]
         assert request.state == "active"
         assert request.instance_id == "i-12345678"
+
+
+@mock_ec2
+def test_request_spot_instances_instance_lifecycle():
+    client = boto3.client("ec2", region_name="us-east-1")
+    request = client.request_spot_instances(SpotPrice="0.5")
+
+    response = client.describe_instances()
+
+    instance = response["Reservations"][0]["Instances"][0]
+    instance["InstanceLifecycle"].should.equal("spot")
+
+
+@mock_ec2
+def test_launch_spot_instance_instance_lifecycle():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "KeyName": "foobar",
+        "ImageId": "ami-pytest",
+        "MinCount": 1,
+        "MaxCount": 1,
+        "InstanceType": "c4.2xlarge",
+        "TagSpecifications": [
+            {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "val"}]},
+        ],
+        "InstanceMarketOptions": {"MarketType": "spot"},
+    }
+
+    client.run_instances(**kwargs)["Instances"][0]
+
+    response = client.describe_instances()
+    instance = response["Reservations"][0]["Instances"][0]
+    instance["InstanceLifecycle"].should.equal("spot")
+
+
+@mock_ec2
+def test_launch_instance_instance_lifecycle():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "KeyName": "foobar",
+        "ImageId": "ami-pytest",
+        "MinCount": 1,
+        "MaxCount": 1,
+        "InstanceType": "c4.2xlarge",
+        "TagSpecifications": [
+            {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "val"}]},
+        ],
+    }
+
+    client.run_instances(**kwargs)["Instances"][0]
+
+    response = client.describe_instances()
+    instance = response["Reservations"][0]["Instances"][0]
+    instance["InstanceLifecycle"].should.equal("")

@@ -526,6 +526,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         super(Instance, self).__init__()
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
+        self.lifecycle = kwargs.get("lifecycle", "")
         self.image_id = image_id
         self._state = InstanceState("running", 16)
         self._reason = ""
@@ -1001,6 +1002,8 @@ class InstanceBackend(object):
                     )
             else:
                 new_instance.setup_defaults()
+            if kwargs.get("instance_market_options"):
+                new_instance.lifecycle = "spot"
             # Tag all created volumes.
             for _, device in new_instance.get_block_device_mapping:
                 volumes = self.describe_volumes(volume_ids=[device.volume_id])
@@ -5172,6 +5175,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             security_group_ids=self.launch_specification.groups,
             spot_fleet_id=self.spot_fleet_id,
             tags=self.tags,
+            lifecycle="spot",
         )
         instance = reservation.instances[0]
         return instance
