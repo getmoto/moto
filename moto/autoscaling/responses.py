@@ -260,15 +260,16 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_lifecycle_hooks(self):
         lifecycle_hooks = self.autoscaling_backend.describe_lifecycle_hooks(
-            autoscaling_group_name=self._get_param("AutoScalingGroupName"),
+            as_name=self._get_param("AutoScalingGroupName"),
             lifecycle_hook_names=self._get_multi_param("LifecycleHookNames.member"),
         )
         template = self.response_template(DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE)
         return template.render(lifecycle_hooks=lifecycle_hooks)
 
     def delete_lifecycle_hook(self):
+        as_name = self._get_param("AutoScalingGroupName")
         name = self._get_param("LifecycleHookName")
-        self.autoscaling_backend.delete_lifecycle_hook(name)
+        self.autoscaling_backend.delete_lifecycle_hook(as_name, name)
         template = self.response_template(DELETE_LIFECYCLE_HOOK_TEMPLATE)
         return template.render()
 
