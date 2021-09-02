@@ -267,8 +267,9 @@ class AutoScalingResponse(BaseResponse):
         return template.render(lifecycle_hooks=lifecycle_hooks)
 
     def delete_lifecycle_hook(self):
-        group_name = self._get_param("LifecycleHookName")
-        self.autoscaling_backend.delete_lifecycle_hook(group_name)
+        name = self._get_param("LifecycleHookName")
+        autoscaling_group_name = (self._get_param("AutoScalingGroupName"),)
+        self.autoscaling_backend.delete_lifecycle_hook(name)
         template = self.response_template(DELETE_LIFECYCLE_HOOK_TEMPLATE)
         return template.render()
 
@@ -778,6 +779,8 @@ DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="ht
 </DescribeLifecycleHooksResponse>"""
 
 DELETE_LIFECYCLE_HOOK_TEMPLATE = """<DeleteLifecycleHookResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <DeleteLifecycleHookResult>
+  </DeleteLifecycleHookResult>
   <ResponseMetadata>
     <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
   </ResponseMetadata>

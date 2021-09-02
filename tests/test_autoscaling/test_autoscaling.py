@@ -2832,3 +2832,50 @@ def test_delete_tags_by_key():
     tags = group["Tags"]
     tags.should.contain(tag_to_keep)
     tags.should_not.contain(tag_to_delete)
+
+
+@mock_autoscaling
+def test_autoscaling_lifecyclehook():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    fake_lc = client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId="ami-pytest",
+        InstanceType="t3.micro",
+        KeyName="foobar",
+    )
+    fake_asg = client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=0,
+        MaxSize=1,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+    # create
+    fake_lfh = client.put_lifecycle_hook(
+        LifecycleHookName="test-lifecyclehook",
+        AutoScalingGroupName="test_asg",
+        LifecycleTransition="autoscaling:EC2_INSTANCE_TERMINATING",
+    )
+
+    # describe
+    response = client.describe_lifecycle_hooks(
+        AutoScalingGroupName="test_asg", LifecycleHookNames=["test-lifecyclehook"]
+    )
+
+    len(response["LifecycleHooks"]).should.equal(1)
+    for hook in response["LifecycleHooks"]:
+        hook["LifecycleHookName"].should.equal("test-lifecyclehook")
+        hook["AutoScalingGroupName"].should.equal("test_asg")
+        hook["LifecycleTransition"].should.equal("autoscaling:EC2_INSTANCE_TERMINATING")
+
+    # delete
+    client.delete_lifecycle_hook(
+        LifecycleHookName="test-lifecyclehook", AutoScalingGroupName="test_asg",
+    )
+
+    response = client.describe_lifecycle_hooks(
+        AutoScalingGroupName="test_asg", LifecycleHookNames=["test-lifecyclehook"]
+    )
+
+    len(response["LifecycleHooks"]).should.equal(0)
