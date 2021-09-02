@@ -3,7 +3,7 @@ import pytest
 import sure  # noqa
 
 import boto3
-from moto import mock_sqs, settings
+from moto import mock_s3, mock_sts, mock_sqs, settings
 
 
 @mock_sqs
@@ -23,3 +23,30 @@ if not settings.TEST_SERVER_MODE:
         res = requests.get("https://fakeservice.amazonaws.com/foo/bar")
         assert res.content == b"The method is not implemented"
         assert res.status_code == 400
+
+
+@mock_sts
+@mock_s3
+def test_decorator_ordering():
+    """
+    https://github.com/spulec/moto/issues/3790#issuecomment-803979809
+    """
+    bucket_name = "banana-slugs"
+    key = "trash-file"
+    region = "us-east-1"
+    client = boto3.client("s3", region_name=region)
+    s3 = boto3.resource("s3", region_name=region)
+    bucket = s3.Bucket(bucket_name)
+    bucket.create()
+    bucket.put_object(Body=b"ABCD", Key=key)
+    presigned_url = client.generate_presigned_url(
+        ClientMethod=client.get_object.__name__,
+        Params={
+            "Bucket": bucket_name,
+            "Key": key,
+            "ResponseContentDisposition": "attachment;filename=bar",
+        },
+    )
+
+    resp = requests.get(presigned_url)
+    resp.status_code.should.equal(200)

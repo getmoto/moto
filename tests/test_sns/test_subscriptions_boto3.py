@@ -539,3 +539,21 @@ def test_confirm_subscription():
         Token="2336412f37fb687f5d51e6e241d59b68c4e583a5cee0be6f95bbf97ab8d2441cf47b99e848408adaadf4c197e65f03473d53c4ba398f6abbf38ce2e8ebf7b4ceceb2cd817959bcde1357e58a2861b05288c535822eb88cac3db04f592285249971efc6484194fc4a4586147f16916692",
         AuthenticateOnUnsubscribe="true",
     )
+
+
+@mock_sns
+def test_get_subscription_attributes_error_not_exists():
+    # given
+    client = boto3.client("sns", region_name="us-east-1")
+    sub_arn = f"arn:aws:sqs:us-east-1:{DEFAULT_ACCOUNT_ID}:test-queue:66d97e76-31e5-444f-8fa7-b60b680d0d39"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_subscription_attributes(SubscriptionArn=sub_arn)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetSubscriptionAttributes")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NotFound")
+    ex.response["Error"]["Message"].should.equal("Subscription does not exist")

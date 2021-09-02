@@ -62,6 +62,22 @@ class DocumentAlreadyExists(JsonRESTError):
         super(DocumentAlreadyExists, self).__init__("DocumentAlreadyExists", message)
 
 
+class DocumentPermissionLimit(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(DocumentPermissionLimit, self).__init__(
+            "DocumentPermissionLimit", message
+        )
+
+
+class InvalidPermissionType(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidPermissionType, self).__init__("InvalidPermissionType", message)
+
+
 class InvalidDocument(JsonRESTError):
     code = 400
 

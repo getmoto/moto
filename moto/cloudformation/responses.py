@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import json
 import yaml
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
@@ -125,6 +125,7 @@ class CloudFormationResponse(BaseResponse):
         change_set_name = self._get_param("ChangeSetName")
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
+        description = self._get_param("Description")
         role_arn = self._get_param("RoleARN")
         update_or_create = self._get_param("ChangeSetType", "CREATE")
         parameters_list = self._get_list_prefix("Parameters.member")
@@ -144,6 +145,7 @@ class CloudFormationResponse(BaseResponse):
             change_set_name=change_set_name,
             template=stack_body,
             parameters=parameters,
+            description=description,
             region_name=self.region,
             notification_arns=stack_notification_arns,
             tags=tags,
@@ -228,10 +230,17 @@ class CloudFormationResponse(BaseResponse):
         stack = self.cloudformation_backend.get_stack(stack_name)
         logical_resource_id = self._get_param("LogicalResourceId")
 
+        resource = None
         for stack_resource in stack.stack_resources:
             if stack_resource.logical_resource_id == logical_resource_id:
                 resource = stack_resource
                 break
+
+        if not resource:
+            message = "Resource {0} does not exist for stack {1}".format(
+                logical_resource_id, stack_name
+            )
+            raise ValidationError(stack_name, message)
 
         template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
@@ -638,7 +647,7 @@ DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
     <StackName>{{ change_set.stack_name }}</StackName>
     <Description>{{ change_set.description }}</Description>
     <Parameters>
-      {% for param_name, param_value in change_set.stack_parameters.items() %}
+      {% for param_name, param_value in change_set.parameters.items() %}
        <member>
           <ParameterKey>{{ param_name }}</ParameterKey>
           <ParameterValue>{{ param_value }}</ParameterValue>

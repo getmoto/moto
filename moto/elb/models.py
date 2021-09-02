@@ -12,7 +12,7 @@ from moto.packages.boto.ec2.elb.attributes import (
     CrossZoneLoadBalancingAttribute,
 )
 from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -265,7 +265,7 @@ class FakeLoadBalancer(CloudFormationModel):
             del self.tags[key]
 
     def delete(self, region):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         elb_backends[region].delete_load_balancer(self.name)
 
 

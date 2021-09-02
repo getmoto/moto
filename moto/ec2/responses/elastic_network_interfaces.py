@@ -11,9 +11,17 @@ class ElasticNetworkInterfaces(BaseResponse):
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
         description = self._get_param("Description")
+        tags = self._parse_tag_specification("TagSpecification").get(
+            "network-interface"
+        )
         if self.is_not_dryrun("CreateNetworkInterface"):
             eni = self.ec2_backend.create_network_interface(
-                subnet, private_ip_address, private_ip_addresses, groups, description
+                subnet,
+                private_ip_address,
+                private_ip_addresses,
+                groups,
+                description,
+                tags,
             )
             template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
             return template.render(eni=eni)
@@ -58,8 +66,11 @@ class ElasticNetworkInterfaces(BaseResponse):
     def modify_network_interface_attribute(self):
         eni_id = self._get_param("NetworkInterfaceId")
         group_ids = self._get_multi_param("SecurityGroupId")
+        source_dest_check = self._get_param("SourceDestCheck")
         if self.is_not_dryrun("ModifyNetworkInterface"):
-            self.ec2_backend.modify_network_interface_attribute(eni_id, group_ids)
+            self.ec2_backend.modify_network_interface_attribute(
+                eni_id, group_ids, source_dest_check
+            )
             return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
 
     def reset_network_interface_attribute(self):
@@ -89,9 +100,7 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
         {% if eni.private_ip_address %}
           <privateIpAddress>{{ eni.private_ip_address }}</privateIpAddress>
         {% endif %}
-        {% if eni.instance %}
-          <sourceDestCheck>{{ eni.instance.source_dest_check }}</sourceDestCheck>
-        {% endif %}
+        <sourceDestCheck>{{ eni.source_dest_check }}</sourceDestCheck>
         <groupSet>
         {% for group in eni.group_set %}
             <item>
@@ -124,7 +133,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
            <subnetId>{{ eni.subnet.id }}</subnetId>
            <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
            <availabilityZone>us-west-2a</availabilityZone>
-           <description>{{ eni.description }}</description>
+           <description>{{ eni.description or "" }}</description>
            <ownerId>190610284047</ownerId>
            <requesterManaged>false</requesterManaged>
            {% if eni.attachment_id %}
@@ -137,9 +146,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
              <privateIpAddress>{{ eni.private_ip_address }}</privateIpAddress>
            {% endif %}
            <privateDnsName>ip-10-0-0-134.us-west-2.compute.internal</privateDnsName>
-           {% if eni.instance %}
-             <sourceDestCheck>{{ eni.instance.source_dest_check }}</sourceDestCheck>
-           {% endif %}
+           <sourceDestCheck>{{ eni.source_dest_check }}</sourceDestCheck>
            <groupSet>
            {% for group in eni.group_set %}
                <item>

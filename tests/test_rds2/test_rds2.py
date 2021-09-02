@@ -31,7 +31,7 @@ def test_create_database():
     db_instance["MasterUsername"].should.equal("root")
     db_instance["DBSecurityGroups"][0]["DBSecurityGroupName"].should.equal("my_sg")
     db_instance["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
     db_instance["DBInstanceStatus"].should.equal("available")
     db_instance["DBName"].should.equal("staging-postgres")
@@ -312,7 +312,7 @@ def test_get_databases():
     list(instances["DBInstances"]).should.have.length_of(1)
     instances["DBInstances"][0]["DBInstanceIdentifier"].should.equal("db-master-1")
     instances["DBInstances"][0]["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
 
 
@@ -1241,6 +1241,36 @@ def test_create_database_subnet_group():
     subnets = result["DBSubnetGroup"]["Subnets"]
     subnet_group_ids = [subnets[0]["SubnetIdentifier"], subnets[1]["SubnetIdentifier"]]
     list(subnet_group_ids).should.equal(subnet_ids)
+
+
+@mock_ec2
+@mock_rds2
+def test_modify_database_subnet_group():
+    vpc_conn = boto3.client("ec2", "us-west-2")
+    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet1 = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
+        "Subnet"
+    ]
+    subnet2 = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.2.0/24")[
+        "Subnet"
+    ]
+
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_subnet_group(
+        DBSubnetGroupName="db_subnet",
+        DBSubnetGroupDescription="my db subnet",
+        SubnetIds=[subnet1["SubnetId"]],
+    )
+
+    conn.modify_db_subnet_group(
+        DBSubnetGroupName="db_subnet",
+        DBSubnetGroupDescription="my updated desc",
+        SubnetIds=[subnet1["SubnetId"], subnet2["SubnetId"]],
+    )
+
+    groups = conn.describe_db_subnet_groups()["DBSubnetGroups"]
+    # FIXME: Group is deleted atm
+    # TODO: we should check whether all attrs are persisted
 
 
 @mock_ec2

@@ -106,3 +106,43 @@ def get_partition(client, database_name, table_name, values):
     return client.get_partition(
         DatabaseName=database_name, TableName=table_name, PartitionValues=values
     )
+
+
+def create_crawler(
+    client, crawler_name, crawler_role=None, crawler_targets=None, **kwargs
+):
+    optional_param_map = {
+        "database_name": "DatabaseName",
+        "description": "Description",
+        "schedule": "Schedule",
+        "classifiers": "Classifiers",
+        "table_prefix": "TablePrefix",
+        "schema_change_policy": "SchemaChangePolicy",
+        "recrawl_policy": "RecrawlPolicy",
+        "lineage_configuration": "LineageConfiguration",
+        "configuration": "Configuration",
+        "crawler_security_configuration": "CrawlerSecurityConfiguration",
+        "tags": "Tags",
+    }
+
+    params = {
+        boto3_key: kwargs.get(key)
+        for key, boto3_key in optional_param_map.items()
+        if kwargs.get(key) is not None
+    }
+
+    if crawler_role is None:
+        crawler_role = "arn:aws:iam::123456789012:role/Glue/Role"
+
+    if crawler_targets is None:
+        crawler_targets = {
+            "S3Targets": [],
+            "JdbcTargets": [],
+            "MongoDBTargets": [],
+            "DynamoDBTargets": [],
+            "CatalogTargets": [],
+        }
+
+    return client.create_crawler(
+        Name=crawler_name, Role=crawler_role, Targets=crawler_targets, **params,
+    )

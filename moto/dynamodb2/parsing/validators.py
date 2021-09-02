@@ -332,7 +332,11 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):
         assert len(node.children) == 2
         key = node.children[0].children[0].children[0]
         val_node = node.children[1].children[0]
-        if val_node.type in ["S", "B"] and key in self.key_attributes:
+        if (
+            not val_node.value
+            and val_node.type in ["S", "B"]
+            and key in self.key_attributes
+        ):
             raise EmptyKeyAttributeException
         return node
 

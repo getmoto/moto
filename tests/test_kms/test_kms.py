@@ -5,7 +5,6 @@ import re
 
 import boto.kms
 import boto3
-import six
 import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -23,7 +22,7 @@ PLAINTEXT_VECTORS = [
 
 
 def _get_encoded_value(plaintext):
-    if isinstance(plaintext, six.binary_type):
+    if isinstance(plaintext, bytes):
         return plaintext
 
     return plaintext.encode("utf-8")
@@ -310,19 +309,6 @@ def test_put_key_policy_via_alias_should_not_update():
 
     policy = conn.get_key_policy(key["KeyMetadata"]["KeyId"], "default")
     policy["Policy"].should.equal("my policy")
-
-
-@mock_kms_deprecated
-def test_put_key_policy():
-    conn = boto.kms.connect_to_region("us-west-2")
-
-    key = conn.create_key(
-        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
-    )
-    conn.put_key_policy(key["KeyMetadata"]["Arn"], "default", "new policy")
-
-    policy = conn.get_key_policy(key["KeyMetadata"]["KeyId"], "default")
-    policy["Policy"].should.equal("new policy")
 
 
 @mock_kms_deprecated
@@ -682,10 +668,7 @@ def test__assert_default_policy():
     )
 
 
-if six.PY2:
-    sort = sorted
-else:
-    sort = lambda l: sorted(l, key=lambda d: d.keys())
+sort = lambda l: sorted(l, key=lambda d: d.keys())
 
 
 @mock_kms

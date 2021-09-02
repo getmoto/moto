@@ -27,7 +27,7 @@ def test_elastic_network_interfaces():
         "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    eni = conn.create_network_interface(subnet.id)
+    conn.create_network_interface(subnet.id)
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(1)
@@ -413,8 +413,14 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
     )
 
+    sg = ec2_client.create_security_group(Description="test", GroupName="test_sg")
+    sg_id = sg["GroupId"]
+
     eni1 = ec2.create_network_interface(
-        SubnetId=subnet.id, PrivateIpAddress="10.0.10.5", Description="test interface"
+        SubnetId=subnet.id,
+        PrivateIpAddress="10.0.10.5",
+        Description="test interface",
+        Groups=[sg_id],
     )
 
     # The status of the new interface should be 'available'
@@ -431,6 +437,13 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
         eni1.private_ip_address
     )
     response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+
+    # Filter by network-interface-id
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "group-id", "Values": [sg_id]}]
+    )
+    response["NetworkInterfaces"].should.have.length_of(1)
+    response["NetworkInterfaces"][0]["NetworkInterfaceId"].should.equal(eni1.id)
 
     response = ec2_client.describe_network_interfaces(
         Filters=[{"Name": "network-interface-id", "Values": ["bad-id"]}]
@@ -499,3 +512,90 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
         eni1.private_ip_address
     )
     response["NetworkInterfaces"][0]["Description"].should.equal(eni1.description)
+
+
+@mock_ec2
+def test_elastic_network_interfaces_filter_by_tag():
+    ec2 = boto3.resource("ec2", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    eni_dev = ec2.create_network_interface(
+        SubnetId=subnet.id,
+        PrivateIpAddress="10.0.10.5",
+        Description="dev interface",
+        TagSpecifications=[
+            {
+                "ResourceType": "network-interface",
+                "Tags": [{"Key": "environment", "Value": "dev"}],
+            },
+        ],
+    )
+
+    eni_prod = ec2.create_network_interface(
+        SubnetId=subnet.id,
+        PrivateIpAddress="10.0.10.6",
+        Description="prod interface",
+        TagSpecifications=[
+            {
+                "ResourceType": "network-interface",
+                "Tags": [{"Key": "environment", "Value": "prod"}],
+            },
+        ],
+    )
+
+    for eni in [eni_dev, eni_prod]:
+        waiter = ec2_client.get_waiter("network_interface_available")
+        waiter.wait(NetworkInterfaceIds=[eni.id])
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["staging"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(0)
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["dev"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(1)
+    resp["NetworkInterfaces"][0]["Description"].should.equal("dev interface")
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["prod"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(1)
+    resp["NetworkInterfaces"][0]["Description"].should.equal("prod interface")
+
+    resp = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "tag:environment", "Values": ["dev", "prod"]}]
+    )
+    resp["NetworkInterfaces"].should.have.length_of(2)
+
+
+@mock_ec2
+def test_elastic_network_interfaces_auto_create_securitygroup():
+    ec2 = boto3.resource("ec2", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    eni1 = ec2.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress="10.0.10.5", Groups=["testgroup"]
+    )
+
+    # The status of the new interface should be 'available'
+    waiter = ec2_client.get_waiter("network_interface_available")
+    waiter.wait(NetworkInterfaceIds=[eni1.id])
+
+    sgs = ec2_client.describe_security_groups()["SecurityGroups"]
+    found_sg = [sg for sg in sgs if sg["GroupId"] == "testgroup"]
+    found_sg.should.have.length_of(1)
+
+    found_sg[0]["GroupName"].should.equal("testgroup")
+    found_sg[0]["Description"].should.equal("testgroup")

@@ -44,7 +44,7 @@ class ResourceGroupsResponse(BaseResponse):
         )
 
     def delete_group(self):
-        group_name = self._get_param("GroupName")
+        group_name = self._get_param("GroupName") or self._get_param("Group")
         group = self.resourcegroups_backend.delete_group(group_name=group_name)
         return json.dumps(
             {

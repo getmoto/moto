@@ -6,7 +6,7 @@ class SNSNotFoundError(RESTError):
     code = 404
 
     def __init__(self, message, **kwargs):
-        super(SNSNotFoundError, self).__init__("NotFound", message, **kwargs)
+        super().__init__("NotFound", message, **kwargs)
 
 
 class ResourceNotFoundError(RESTError):
