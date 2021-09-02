@@ -2832,3 +2832,44 @@ def test_delete_tags_by_key():
     tags = group["Tags"]
     tags.should.contain(tag_to_keep)
     tags.should_not.contain(tag_to_delete)
+
+
+@mock_ec2
+@mock_autoscaling
+def test_attach_instances():
+    asg_client = boto3.client("autoscaling", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "KeyName": "foobar",
+        "ImageId": "ami-pytest",
+        "MinCount": 1,
+        "MaxCount": 1,
+        "InstanceType": "c4.2xlarge",
+        "TagSpecifications": [
+            {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "val"}]},
+        ],
+    }
+    fake_instance = ec2_client.run_instances(**kwargs)["Instances"][0]
+    fake_lc = asg_client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId="ami-pytest",
+        InstanceType="t3.micro",
+        KeyName="foobar",
+    )
+    fake_asg = asg_client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=0,
+        MaxSize=1,
+        AvailabilityZones=[fake_instance["Placement"]["AvailabilityZone"]],
+    )
+    asg_client.attach_instances(
+        InstanceIds=[fake_instance["InstanceId"],], AutoScalingGroupName="test_asg"
+    )
+    response = asg_client.describe_auto_scaling_instances()
+    len(response["AutoScalingInstances"]).should.equal(1)
+    for instance in response["AutoScalingInstances"]:
+        instance["LaunchConfigurationName"].should.equal("test_launch_configuration")
+        instance["AutoScalingGroupName"].should.equal("test_asg")
+        instance["InstanceType"].should.equal("c4.2xlarge")
