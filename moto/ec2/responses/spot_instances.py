@@ -38,7 +38,8 @@ class SpotInstances(BaseResponse):
         instance_types_filters = self._get_multi_param("InstanceType")
         filter_dict = filters_from_querystring(self.querystring)
         prices = self.ec2_backend.describe_spot_price_history(
-            instance_types_filters, filter_dict)
+            instance_types_filters, filter_dict
+        )
         template = self.response_template(DESCRIBE_SPOT_PRICE_HISTORY_TEMPLATE)
         return template.render(prices=prices)
 

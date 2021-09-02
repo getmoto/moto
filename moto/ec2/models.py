@@ -5560,7 +5560,7 @@ class SpotFleetBackend(object):
 
 class SpotPrice(object):
     def describe_spot_price_history(self, instance_types=[], filters=None):
-        matches = INSTANCE_TYPE_OFFERINGS['availability-zone']
+        matches = INSTANCE_TYPE_OFFERINGS["availability-zone"]
         matches = matches[self.region_name]
 
         def matches_filters(offering, filters):
