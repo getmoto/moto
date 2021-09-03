@@ -1,12 +1,14 @@
 """FirehoseBackend class with methods for supported APIs."""
+import time
+
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID
 
 from moto.firehose.exceptions import (
+    ConcurrentModificationException,
     InvalidArgumentException,
-    InvalidKMSResourceException,
     LimitExceededException,
     ResourceInUseException,
     ResourceNotFoundException,
@@ -17,20 +19,60 @@ from moto.utilities.tagging_service import TaggingService
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
 
+DESTINATION_TYPES_TO_NAMES = {
+    # Implemented
+    "s3": "S3",
+    "extended_s3": "ExtendedS3",
+    "http_endpoint": "HttpEndpoint",
+    # Unimplemented
+    "elasticsearch": "Elasticsearch",
+    "redshift": "Redshift",
+    "splunk": "Splunk",
+}
 
-class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods
+
+def destination_config_in_args(api_args):
+    """Return (config_arg, config_name) tuple for destination config.
+
+    The alternative is to use a bunch of 'if' statements to check each
+    destination configuration type to see if it's null and then to act
+    accordingly.
+
+    It's useful to have names for the types of destination when comparing
+    current and replacement destinations.
+    """
+    destination_names = DESTINATION_TYPES_TO_NAMES.keys()
+    configs = []
+    for arg_name, arg_value in api_args.items():
+        if "_destination" not in arg_name:
+            continue
+
+        name = arg_name.split("_destination")[0]
+        if name in destination_names and arg_value:
+            configs.append((DESTINATION_TYPES_TO_NAMES[name], arg_value))
+
+    # Only a single destination configuration is allowed.
+    if len(configs) > 1:
+        raise InvalidArgumentException(
+            "Exactly one destination configuration is supported for a Firehose"
+        )
+    return configs[0]
+
+
+def report_unimplemented_destination(destination_name):
+    """Raise exception for unimplemented destinations."""
+    if destination_name in ["Redshift", "Elasticsearch", "Splunk"]:
+        raise NotImplementedError(
+            "A {name} destination delivery stream is not yet implemented"
+        )
+
+
+class DeliveryStream(
+    BaseModel
+):  # pylint: disable=too-few-public-methods,too-many-instance-attributes
     """Represents a delivery stream, its source and destination configs."""
 
     STATES = {"CREATING", "ACTIVE", "CREATING_FAILED"}
-    # TODO - still need?
-    DESTINATION_TYPES = {
-        "S3",
-        "Extended_S3",
-        "ElasticSearch",
-        "Redshift",
-        "Splunk",
-        "Http",
-    }
 
     MAX_STREAMS_PER_REGION = 50
 
@@ -40,26 +82,28 @@ class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods
         delivery_stream_name,
         delivery_stream_type,
         kinesis_stream_source_configuration,
-        destination_type,
+        destination_name,
         destination_config,
     ):  # pylint: disable=too-many-arguments
-        # kinesis_stream_source_configuration,
-        # s3_destination_configuration,
-        # extended_s3_destination_configuration,
-        # http_endpoint_destination_configuration,
-
-        # DeliveryStreams: Check validity of bucket_arn.
         self.state = "CREATING"
         self.delivery_stream_name = delivery_stream_name
         self.delivery_stream_type = (
             delivery_stream_type if delivery_stream_type else "DirectPut"
         )
 
-        # Short string representing type, e.g., "Extended_S3", "Http".
-        self.destination_type = destination_type
-        self.destination_config = destination_config
+        self.source_config = kinesis_stream_source_configuration
+        self.destinations = [
+            {
+                "destination_id": "destinationId-000000000001",
+                destination_name: destination_config,
+            }
+        ]
+
         self.state = "ACTIVE"
         self.arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
+
+        self.creation_timestamp = time.time()
+        self.version_id = "1"  # Used to track updates of destination configs
 
 
 class FirehoseBackend(BaseBackend):
@@ -94,26 +138,9 @@ class FirehoseBackend(BaseBackend):
         splunk_destination_configuration,
         http_endpoint_destination_configuration,
         tags,
-    ):  # pylint: disable=too-many-arguments,too-many-locals
+    ):  # pylint: disable=too-many-arguments,too-many-locals,unused-argument
         """Create a Kinesis Data Firehose delivery stream."""
-        # Rule out situations that are not yet implemented.
-        if delivery_stream_encryption_configuration_input:
-            raise NotImplementedError(
-                "A delivery stream with server-side encryption enabled is not "
-                "yet implemented"
-            )
-        if redshift_destination_configuration:
-            raise NotImplementedError(
-                "A RedShift destination delivery stream is not yet implemented"
-            )
-        if elasticsearch_destination_configuration:
-            raise NotImplementedError(
-                "An ElasticSearch destination delivery stream is not yet implemented"
-            )
-        if splunk_destination_configuration:
-            raise NotImplementedError(
-                "A Splunk destination delivery stream is not yet implemented"
-            )
+        (destination_name, destination_config) = destination_config_in_args(locals())
 
         if delivery_stream_name in self.delivery_streams:
             raise ResourceInUseException(
@@ -128,36 +155,29 @@ class FirehoseBackend(BaseBackend):
                 f"names: {list(self.delivery_streams.keys())}"
             )
 
-        # At the moment only some of these configurations are supported, but
-        # this test for only a single destination configuration will work
-        # without change when the other configurations are implemented.
-        configs = [
-            (s3_destination_configuration, "S3"),
-            (extended_s3_destination_configuration, "Extended_S3"),
-            (redshift_destination_configuration, "ElasticSearch"),
-            (elasticsearch_destination_configuration, "Redshift"),
-            (splunk_destination_configuration, "Splunk"),
-            (http_endpoint_destination_configuration, "Http"),
-        ]
-        non_null_configs = [bool(x[0]) for x in configs]
-        if non_null_configs.count(True) != 1:
-            raise InvalidArgumentException(
-                "Exactly one destination configuration is supported for a Firehose"
+        # Rule out situations that are not yet implemented.
+        if delivery_stream_encryption_configuration_input:
+            raise NotImplementedError(
+                "A delivery stream with server-side encryption enabled is not "
+                "yet implemented"
             )
-        dest_config = configs[non_null_configs.index(True)]
-        destination_config = dest_config[0]
-        destination_type = dest_config[1]
 
+        report_unimplemented_destination(destination_name)
+
+        # Validate the tags before proceeding.
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
 
+        # Create a DeliveryStream instance that will be stored and indexed
+        # by delivery stream name.  This instance will update the state and
+        # create the ARN.
         delivery_stream = DeliveryStream(
             self.region_name,
             delivery_stream_name,
             delivery_stream_type,
             kinesis_stream_source_configuration,
-            destination_type,
+            destination_name,
             destination_config,
         )
         self.tagger.tag_resource(delivery_stream.arn, tags or [])
@@ -165,8 +185,14 @@ class FirehoseBackend(BaseBackend):
         self.delivery_streams[delivery_stream_name] = delivery_stream
         return self.delivery_streams[delivery_stream_name].arn
 
-    def delete_delivery_stream(self, delivery_stream_name, allow_force_delete=False):
-        """Delete a delivery stream and its data"""
+    def delete_delivery_stream(
+        self, delivery_stream_name, allow_force_delete=False
+    ):  # pylint: disable=unused-argument
+        """Delete a delivery stream and its data.
+
+        AllowForceDelete option is ignored as we only superficially
+        apply state.
+        """
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
             raise ResourceNotFoundException(
@@ -175,9 +201,6 @@ class FirehoseBackend(BaseBackend):
             )
 
         self.tagger.delete_all_tags_for_resource(delivery_stream.arn)
-
-        # TODO - AllowForceDelete
-        # TODO - publish event?
 
         # The following logic is not applicable for moto as far as I can tell.
         # if delivery_stream.state == "CREATING":
@@ -289,6 +312,77 @@ class FirehoseBackend(BaseBackend):
 
         # If a tag key doesn't exist for the stream, boto3 ignores it.
         self.tagger.untag_resource_using_names(delivery_stream.arn, tag_keys)
+
+    def update_destination(
+        self,
+        delivery_stream_name,
+        current_delivery_stream_version_id,
+        destination_id,
+        s3_destination_update,
+        extended_s3_destination_update,
+        s3_backup_mode,
+        redshift_destination_update,
+        elasticsearch_destination_update,
+        splunk_destination_update,
+        http_endpoint_destination_update,
+    ):  # pylint: disable=unused-argument,too-many-arguments
+        """Updates specified destination of specified delivery stream."""
+        (destination_name, destination_config) = destination_config_in_args(locals())
+
+        delivery_stream = self.delivery_streams.get(delivery_stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {delivery_stream_name} under accountId "
+                f"{ACCOUNT_ID} not found."
+            )
+
+        report_unimplemented_destination(destination_name)
+
+        if delivery_stream.version_id != current_delivery_stream_version_id:
+            raise ConcurrentModificationException(
+                f"Cannot update firehose: {delivery_stream_name} since the "
+                f"current version id: {delivery_stream.version_id} and "
+                f"specified version id: {current_delivery_stream_version_id} "
+                f"do not match"
+            )
+
+        destination = {}
+        for destination in delivery_stream.destinations:
+            if destination["destination_id"] == destination_id:
+                break
+        else:
+            raise InvalidArgumentException("Destination Id {destination_id} not found")
+
+        # Switching between Amazon ES and other services is not supported.
+        # For an Amazon ES destination, you can only update to another Amazon
+        # ES destination.  Same with HTTP.  Didn't test Splunk.
+        if (
+            destination_name == "Elasticsearch" and "Elasticsearch" not in destination
+        ) or (destination_name == "HttpEndpoint" and "HttpEndpoint" not in destination):
+            raise InvalidArgumentException(
+                f"Changing the destination type to or from {destination_name} "
+                f"is not supported at this time."
+            )
+
+        # If this is a different type of destination configuration,
+        # the existing configuration is reset first.
+        if destination_name in destination:
+            # TODO - verify this is properly updated.
+            destination[destination_name].update(destination_config)
+        else:
+            # This is a new destination; replace the old list.
+            delivery_stream.destinations = [
+                {"destination_id": destination_id, destination_name: destination_config}
+            ]
+
+        # Increment version number and update the timestamp.
+        delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
+        delivery_stream.last_update_timestamp = time.time()
+
+        # TODO Process the "S3BackupMode" parameter.  Per the documentation:
+        # "You can update a delivery stream to enable Amazon S3 backup if it
+        # is disabled.  If backup is enabled, you can't update the delivery
+        # stream to disable it."
 
 
 firehose_backends = {}

@@ -2,6 +2,15 @@
 from moto.core.exceptions import JsonRESTError
 
 
+class ConcurrentModificationException(JsonRESTError):
+    """Existing config has a version ID that does not match given ID."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ConcurrentModificationException", message)
+
+
 class InvalidArgumentException(JsonRESTError):
     """The specified input parameter has a value that is not valid."""
 
@@ -9,15 +18,6 @@ class InvalidArgumentException(JsonRESTError):
 
     def __init__(self, message):
         super().__init__("InvalidArgumentException", message)
-
-
-class InvalidKMSResourceException(JsonRESTError):
-    """Failed to put records or to start or stop delivery steam encryption."""
-
-    code = 400
-
-    def __init__(self, message):
-        super().__init__("InvalidKMSResourceException", message)
 
 
 class LimitExceededException(JsonRESTError):

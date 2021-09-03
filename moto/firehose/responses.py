@@ -80,3 +80,19 @@ class FirehoseResponse(BaseResponse):
             self._get_param("TagKeys"),
         )
         return json.dumps({})
+
+    def update_destination(self):
+        """Prepare arguments and respond to UpdateDestination()."""
+        self.firehose_backend.update_destination(
+            self._get_param("DeliveryStreamName"),
+            self._get_param("CurrentDeliveryStreamVersionId"),
+            self._get_param("DestinationId"),
+            self._get_param("S3DestinationUpdate"),
+            self._get_param("ExtendedS3DestinationUpdate"),
+            self._get_param("S3BackupMode"),
+            self._get_param("RedshiftDestinationUpdate"),
+            self._get_param("ElasticsearchDestinationUpdate"),
+            self._get_param("SplunkDestinationUpdate"),
+            self._get_param("HttpEndpointDestinationUpdate"),
+        )
+        return json.dumps({})

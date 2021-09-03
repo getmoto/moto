@@ -51,7 +51,6 @@ def test_create_delivery_stream_unimplemented():
     with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
-            S3DestinationConfiguration=s3_dest_config,
             RedshiftDestinationConfiguration={
                 "RoleARN": "foo",
                 "ClusterJDBCURL": "foo",
@@ -64,7 +63,6 @@ def test_create_delivery_stream_unimplemented():
     with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
-            S3DestinationConfiguration=s3_dest_config,
             ElasticsearchDestinationConfiguration={
                 "RoleARN": "foo",
                 "IndexName": "foo",
@@ -74,7 +72,6 @@ def test_create_delivery_stream_unimplemented():
     with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
-            S3DestinationConfiguration=s3_dest_config,
             SplunkDestinationConfiguration={
                 "HECEndpoint": "foo",
                 "HECEndpointType": "foo",
@@ -110,7 +107,7 @@ def test_create_delivery_stream_failures():
     for idx in range(DeliveryStream.MAX_STREAMS_PER_REGION):
         client.delete_delivery_stream(DeliveryStreamName=f"{failure_name}_{idx}")
 
-    # Create a hose with the same name as an existing hose.
+    # Create a stream with the same name as an existing stream.
     client.create_delivery_stream(
         DeliveryStreamName=f"{failure_name}",
         ExtendedS3DestinationConfiguration=s3_dest_config,
@@ -185,8 +182,6 @@ def test_delete_delivery_stream():
     hoses = client.list_delivery_streams()
     assert len(hoses["DeliveryStreamNames"]) == 0
     assert hoses["DeliveryStreamNames"] == []
-
-    # TODO - test AllowForceDelete option, when implemented.
 
 
 @mock_firehose
@@ -442,5 +437,64 @@ def test_untag_delivery_stream():
 @mock_firehose
 def test_update_destination():
     """Test successful, failed invocations of update_destination()."""
-    # TODO
-    assert True
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+
+    # Can't update a non-existent stream.
+    with pytest.raises(ClientError) as exc:
+        client.update_destination(
+            DeliveryStreamName="foo",
+            CurrentDeliveryStreamVersionId="1",
+            DestinationId="destinationId-000000000001",
+            ExtendedS3DestinationUpdate=s3_dest_config,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"Firehose foo under accountId {ACCOUNT_ID} not found" in err["Message"]
+
+    # Create a delivery stream for testing purposes.
+    stream_name = f"test_update_{get_random_hex(6)}"
+    client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        DeliveryStreamType="DirectPut",
+        S3DestinationConfiguration=s3_dest_config,
+    )
+
+    # Only one destination configuration is allowed.
+    with pytest.raises(ClientError) as exc:
+        client.update_destination(
+            DeliveryStreamName=stream_name,
+            CurrentDeliveryStreamVersionId="1",
+            DestinationId="destinationId-000000000001",
+            S3DestinationUpdate={
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/different_role",
+                "BucketARN": "arn:aws:s3:::testbucket",
+            },
+            ExtendedS3DestinationUpdate=s3_dest_config,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        "Exactly one destination configuration is supported for a Firehose"
+        in err["Message"]
+    )
+
+    # Can't update to/from http or ES.
+    with pytest.raises(ClientError) as exc:
+        client.update_destination(
+            DeliveryStreamName=stream_name,
+            CurrentDeliveryStreamVersionId="1",
+            DestinationId="destinationId-000000000001",
+            HttpEndpointDestinationUpdate={
+                "EndpointConfiguration": {"Url": "https://google.com"},
+                "RetryOptions": {"DurationInSeconds": 100},
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        "Changing the destination type to or from HttpEndpoint is not "
+        "supported at this time"
+    ) in err["Message"]
+
+    # TODO positive cases
