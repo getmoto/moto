@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import os
 from boto3 import Session
 from datetime import datetime

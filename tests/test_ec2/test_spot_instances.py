@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import pytest
 import datetime
 
@@ -7,7 +6,7 @@ import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 import pytz
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2.models import ec2_backends
@@ -262,7 +261,7 @@ def test_request_spot_instances_setting_instance_id():
 @mock_ec2
 def test_request_spot_instances_instance_lifecycle():
     client = boto3.client("ec2", region_name="us-east-1")
-    request = client.request_spot_instances(SpotPrice="0.5")
+    client.request_spot_instances(SpotPrice="0.5")
 
     response = client.describe_instances()
 

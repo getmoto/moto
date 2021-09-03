@@ -1,8 +1,7 @@
-from __future__ import unicode_literals
 import boto
 import json
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated

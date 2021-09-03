@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.exceptions import RESTError
 
 ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}

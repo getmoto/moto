@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_kinesisvideoarchivedmedia
 from moto import mock_kinesisvideo
 from datetime import datetime, timedelta

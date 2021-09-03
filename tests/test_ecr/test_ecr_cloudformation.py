@@ -4,7 +4,7 @@ from string import Template
 import boto3
 import json
 from moto import mock_cloudformation, mock_ecr
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.core import ACCOUNT_ID
 

@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import boto3
 
 from moto import mock_iot
@@ -890,7 +888,7 @@ def test_principal_policy_deprecated():
 def test_principal_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_name = "my-thing"
-    thing = client.create_thing(thingName=thing_name)
+    client.create_thing(thingName=thing_name)
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert["certificateArn"]
 
@@ -923,7 +921,7 @@ def test_principal_thing():
 def test_delete_principal_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_name = "my-thing"
-    thing = client.create_thing(thingName=thing_name)
+    client.create_thing(thingName=thing_name)
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert["certificateArn"]
     cert_id = cert["certificateId"]
@@ -959,7 +957,7 @@ class TestListThingGroup:
     def test_should_list_all_groups(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups()
         resp.should.have.key("thingGroups")
@@ -969,7 +967,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(recursive=False)
         resp.should.have.key("thingGroups")
@@ -979,7 +977,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a)
         resp.should.have.key("thingGroups")
@@ -998,7 +996,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a, recursive=False)
         resp.should.have.key("thingGroups")
@@ -1011,7 +1009,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
         resp.should.have.key("thingGroups")
@@ -1027,7 +1025,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-1", recursive=False
@@ -1044,7 +1042,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-2", parentGroup=self.group_name_1a
@@ -1072,7 +1070,7 @@ def test_delete_thing_group():
     tree_dict = {
         group_name_1a: {group_name_2a: {},},
     }
-    group_catalog = generate_thing_group_tree(client, tree_dict)
+    generate_thing_group_tree(client, tree_dict)
 
     # delete group with child
     try:

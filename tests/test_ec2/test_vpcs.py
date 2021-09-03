@@ -1,14 +1,11 @@
-from __future__ import unicode_literals
-
 import pytest
-from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
 
 import boto3
 import boto
 from boto.exception import EC2ResponseError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated
 
@@ -507,7 +504,7 @@ def test_disassociate_vpc_ipv4_cidr_block():
 @mock_ec2
 def test_cidr_block_association_filters():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
-    vpc1 = ec2.create_vpc(CidrBlock="10.90.0.0/16")
+    ec2.create_vpc(CidrBlock="10.90.0.0/16")
     vpc2 = ec2.create_vpc(CidrBlock="10.91.0.0/16")
     ec2.meta.client.associate_vpc_cidr_block(VpcId=vpc2.id, CidrBlock="10.10.0.0/19")
     vpc3 = ec2.create_vpc(CidrBlock="10.92.0.0/24")
@@ -621,7 +618,7 @@ def test_vpc_disassociate_ipv6_cidr_block():
 @mock_ec2
 def test_ipv6_cidr_block_association_filters():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
-    vpc1 = ec2.create_vpc(CidrBlock="10.90.0.0/16")
+    ec2.create_vpc(CidrBlock="10.90.0.0/16")
 
     vpc2 = ec2.create_vpc(CidrBlock="10.91.0.0/16", AmazonProvidedIpv6CidrBlock=True)
     vpc2_assoc_ipv6_assoc_id = vpc2.ipv6_cidr_block_association_set[0]["AssociationId"]
@@ -635,7 +632,7 @@ def test_ipv6_cidr_block_association_filters():
     )
     vpc3_ipv6_cidr_block = response["Ipv6CidrBlockAssociation"]["Ipv6CidrBlock"]
 
-    vpc4 = ec2.create_vpc(CidrBlock="10.95.0.0/16")  # Here for its looks
+    ec2.create_vpc(CidrBlock="10.95.0.0/16")  # Here for its looks
 
     # Test filters for an ipv6 cidr-block in all VPCs cidr-block-associations
     filtered_vpcs = list(
@@ -682,7 +679,7 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
 
     vpc_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
-        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+        ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateVpc "
         "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
@@ -697,7 +694,7 @@ def test_create_vpc_with_invalid_cidr_range():
 
     vpc_cidr_block = "10.1.0.0/29"
     with pytest.raises(ClientError) as ex:
-        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+        ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
         "operation: The CIDR '{}' is invalid.".format(vpc_cidr_block)
@@ -959,7 +956,7 @@ def test_delete_vpc_end_points():
         RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
         VpcEndpointType="gateway",
     )["VpcEndpoint"]
-    vpc_end_point2 = ec2.create_vpc_endpoint(
+    ec2.create_vpc_endpoint(
         VpcId=vpc["Vpc"]["VpcId"],
         ServiceName="com.amazonaws.us-east-2.s3",
         RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],

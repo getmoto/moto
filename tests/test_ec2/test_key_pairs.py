@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 import pytest
 
 import boto
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from boto.exception import EC2ResponseError
 from moto import mock_ec2_deprecated

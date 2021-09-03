@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 import uuid
 import botocore.client
@@ -9,7 +7,7 @@ import io
 import json
 import time
 import zipfile
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from freezegun import freeze_time
 from moto import (
@@ -1078,7 +1076,7 @@ def test_invoke_async_function(key):
 def test_get_function_created_with_zipfile():
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
-    result = conn.create_function(
+    conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
         Role=get_role_name(),
@@ -1854,7 +1852,7 @@ def test_update_function_s3():
     zip_content_two = get_test_zip_file2()
     s3_conn.put_object(Bucket="test-bucket", Key="test2.zip", Body=zip_content_two)
 
-    fxn_updated = conn.update_function_code(
+    conn.update_function_code(
         FunctionName="testFunctionS3",
         S3Bucket="test-bucket",
         S3Key="test2.zip",

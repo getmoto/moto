@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_kms
 from tests import EXAMPLE_AMI_ID

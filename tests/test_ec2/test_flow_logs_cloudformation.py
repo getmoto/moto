@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 import boto3
 
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import (
     mock_cloudformation,
@@ -47,9 +45,7 @@ def test_flow_logs_by_cloudformation():
         },
     }
     flow_log_template_json = json.dumps(flow_log_template)
-    stack_id = cf_client.create_stack(
-        StackName="test_stack", TemplateBody=flow_log_template_json
-    )["StackId"]
+    cf_client.create_stack(StackName="test_stack", TemplateBody=flow_log_template_json)
 
     flow_logs = client.describe_flow_logs()["FlowLogs"]
     flow_logs.should.have.length_of(1)

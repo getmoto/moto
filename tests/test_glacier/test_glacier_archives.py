@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 from tempfile import NamedTemporaryFile
 import boto.glacier
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_glacier_deprecated
 

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .account_attributes import AccountAttributes
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse

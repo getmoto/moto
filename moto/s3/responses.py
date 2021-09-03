@@ -1,16 +1,12 @@
-from __future__ import unicode_literals
-
 import io
 import os
 import re
-import sys
 
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import (
     amzn_request_id,
     str_to_rfc_1123_datetime,
-    py2_strip_unicode_keys,
     unix_time_millis,
 )
 from urllib.parse import (
@@ -659,14 +655,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _parse_pab_config(self, body):
         parsed_xml = xmltodict.parse(body)
         parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
-
-        # If Python 2, fix the unicode strings:
-        if sys.version_info[0] < 3:
-            parsed_xml = {
-                "PublicAccessBlockConfiguration": py2_strip_unicode_keys(
-                    dict(parsed_xml["PublicAccessBlockConfiguration"])
-                )
-            }
 
         return parsed_xml
 

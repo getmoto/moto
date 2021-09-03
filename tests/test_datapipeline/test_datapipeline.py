@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto.datapipeline
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_datapipeline_deprecated
 from moto.datapipeline.utils import remove_capitalization_of_dict_keys

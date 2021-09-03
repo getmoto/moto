@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from urllib.parse import parse_qs
 from botocore.awsrequest import AWSPreparedRequest
 

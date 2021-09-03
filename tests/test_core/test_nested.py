@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import unittest
 
 from boto.sqs.connection import SQSConnection

@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import os
 import boto3
 import botocore
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elbv2, mock_ec2, mock_acm
 from moto.elbv2 import elbv2_backends
@@ -390,7 +388,7 @@ def test_create_target_group_and_listeners():
     )
     response.get("Listeners").should.have.length_of(2)
 
-    listener_response = conn.create_rule(
+    conn.create_rule(
         ListenerArn=http_listener_arn,
         Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,
@@ -1200,7 +1198,7 @@ def test_handle_listener_rules():
     new_host = "new.example.com"
     new_path_pattern = "new_path"
     new_pathpatternconfig_pattern = "new_path2"
-    modified_rule = conn.modify_rule(
+    conn.modify_rule(
         RuleArn=first_rule["RuleArn"],
         Conditions=[
             {"Field": "host-header", "Values": [new_host]},
@@ -1237,7 +1235,7 @@ def test_handle_listener_rules():
     new_host_2 = "new.examplewebsite.com"
     new_path_pattern_2 = "new_path_2"
     new_pathpatternconfig_pattern_2 = "new_path_2"
-    modified_rule = conn.modify_rule(
+    conn.modify_rule(
         RuleArn=third_rule["RuleArn"],
         Conditions=[
             {"Field": "host-header", "Values": [new_host_2]},
@@ -1762,7 +1760,6 @@ def test_modify_listener_http_to_https():
         DomainName="google.com",
         SubjectAlternativeNames=["google.com", "www.google.com", "mail.google.com"],
     )
-    google_arn = response["CertificateArn"]
     response = acm.request_certificate(
         DomainName="yahoo.com",
         SubjectAlternativeNames=["yahoo.com", "www.yahoo.com", "mail.yahoo.com"],
@@ -1878,7 +1875,7 @@ def test_redirect_action_listener_rule():
     listener.get("DefaultActions").should.equal(expected_default_actions)
     listener_arn = listener.get("ListenerArn")
 
-    listener_response = conn.create_rule(
+    conn.create_rule(
         ListenerArn=listener_arn,
         Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,
@@ -1947,7 +1944,7 @@ def test_cognito_action_listener_rule():
     listener.get("DefaultActions")[0].should.equal(action)
     listener_arn = listener.get("ListenerArn")
 
-    listener_response = conn.create_rule(
+    conn.create_rule(
         ListenerArn=listener_arn,
         Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,
@@ -2008,7 +2005,7 @@ def test_fixed_response_action_listener_rule():
     listener.get("DefaultActions")[0].should.equal(action)
     listener_arn = listener.get("ListenerArn")
 
-    listener_response = conn.create_rule(
+    conn.create_rule(
         ListenerArn=listener_arn,
         Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
         Priority=3,

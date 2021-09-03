@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
 import boto
 import boto.dynamodb
-import sure  # noqa
-import requests
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 
-from moto import mock_dynamodb, mock_dynamodb_deprecated
+from moto import mock_dynamodb_deprecated
 from moto.dynamodb import dynamodb_backend
 
 from boto.exception import DynamoDBResponseError

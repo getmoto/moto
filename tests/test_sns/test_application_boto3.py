@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 import boto3
 from botocore.exceptions import ClientError
 from moto import mock_sns
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto.core import ACCOUNT_ID
 import pytest
 
@@ -145,14 +143,14 @@ def test_create_duplicate_platform_endpoint():
     )
     application_arn = platform_application["PlatformApplicationArn"]
 
-    endpoint = conn.create_platform_endpoint(
+    conn.create_platform_endpoint(
         PlatformApplicationArn=application_arn,
         Token="some_unique_id",
         CustomUserData="some user data",
         Attributes={"Enabled": "false"},
     )
 
-    endpoint = conn.create_platform_endpoint.when.called_with(
+    conn.create_platform_endpoint.when.called_with(
         PlatformApplicationArn=application_arn,
         Token="some_unique_id",
         CustomUserData="some user data",

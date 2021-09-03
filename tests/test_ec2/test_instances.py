@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from botocore.exceptions import ClientError
 
 import pytest
@@ -13,7 +11,7 @@ import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
 from boto.exception import EC2ResponseError
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2_deprecated, mock_ec2, settings
 from tests import EXAMPLE_AMI_ID
@@ -25,7 +23,7 @@ decode_method = base64.decodebytes
 ################ Test Readme ###############
 def add_servers(ami_id, count):
     conn = boto.connect_ec2()
-    for index in range(count):
+    for _ in range(count):
         conn.run_instances(ami_id)
 
 
@@ -295,7 +293,7 @@ def test_get_instances_by_id():
 def test_get_paginated_instances():
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
-    for i in range(100):
+    for _ in range(100):
         conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     resp = client.describe_instances(MaxResults=50)
     reservations = resp["Reservations"]
@@ -403,7 +401,7 @@ def test_get_instances_filtering_by_state():
 def test_get_instances_filtering_by_instance_id():
     conn = boto.connect_ec2()
     reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
+    instance1, instance2, _ = reservation.instances
 
     reservations = conn.get_all_reservations(filters={"instance-id": instance1.id})
     # get_all_reservations should return just instance1
@@ -540,8 +538,7 @@ def test_get_instances_filtering_by_vpc_id():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_architecture():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=1)
-    instance = reservation.instances
+    conn.run_instances(EXAMPLE_AMI_ID, min_count=1)
 
     reservations = conn.get_all_reservations(filters={"architecture": "x86_64"})
     # get_all_reservations should return the instance

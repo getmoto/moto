@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import GlacierResponse
 
 url_bases = ["https?://glacier.(.+).amazonaws.com"]

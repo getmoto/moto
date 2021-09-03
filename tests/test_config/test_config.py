@@ -12,7 +12,7 @@ from moto import mock_s3
 from moto.config import mock_config
 from moto.core import ACCOUNT_ID
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_config
@@ -1973,11 +1973,11 @@ def test_describe_organization_conformance_packs_errors():
 def test_describe_organization_conformance_pack_statuses():
     # given
     client = boto3.client("config", region_name="us-east-1")
-    arn = client.put_organization_conformance_pack(
+    client.put_organization_conformance_pack(
         DeliveryS3Bucket="awsconfigconforms-test-bucket",
         OrganizationConformancePackName="test-pack",
         TemplateS3Uri="s3://test-bucket/test-pack.yaml",
-    )["OrganizationConformancePackArn"]
+    )
 
     # when
     response = client.describe_organization_conformance_pack_statuses(
@@ -2121,14 +2121,14 @@ def test_get_organization_conformance_pack_detailed_status_errors():
 def test_delete_organization_conformance_pack():
     # given
     client = boto3.client("config", region_name="us-east-1")
-    arn = client.put_organization_conformance_pack(
+    client.put_organization_conformance_pack(
         DeliveryS3Bucket="awsconfigconforms-test-bucket",
         OrganizationConformancePackName="test-pack",
         TemplateS3Uri="s3://test-bucket/test-pack.yaml",
-    )["OrganizationConformancePackArn"]
+    )
 
     # when
-    response = client.delete_organization_conformance_pack(
+    client.delete_organization_conformance_pack(
         OrganizationConformancePackName="test-pack"
     )
 

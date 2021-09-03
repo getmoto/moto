@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from base64 import b64encode
 import json
 
@@ -7,7 +6,7 @@ import boto3
 from botocore.client import ClientError
 from freezegun import freeze_time
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sts, mock_sts_deprecated, mock_iam, settings
 from moto.core import ACCOUNT_ID

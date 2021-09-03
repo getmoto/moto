@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 import boto
-import json
 import re
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sns_deprecated, mock_sqs_deprecated
 from moto.core import ACCOUNT_ID

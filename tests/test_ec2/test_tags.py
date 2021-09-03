@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import pytest
 
 import itertools
@@ -8,10 +7,9 @@ import boto3
 from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
 from boto.ec2.instance import Reservation
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2_deprecated, mock_ec2
-import pytest
 from tests import EXAMPLE_AMI_ID
 
 

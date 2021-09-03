@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError, JsonRESTError, AWSError
 
 ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}

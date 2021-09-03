@@ -8,7 +8,7 @@ import boto.cloudformation
 import boto.vpc
 import boto3
 import json
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 
 @mock_ec2_deprecated

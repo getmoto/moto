@@ -1,8 +1,7 @@
-from __future__ import unicode_literals
 import boto
 import boto.ec2
 import boto3
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated
 

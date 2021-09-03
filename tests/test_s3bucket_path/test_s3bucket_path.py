@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
@@ -10,7 +9,7 @@ from boto.s3.connection import OrdinaryCallingFormat
 from freezegun import freeze_time
 import requests
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_s3, mock_s3_deprecated
 

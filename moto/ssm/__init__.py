@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .models import ssm_backends
 from ..core.models import base_decorator
 

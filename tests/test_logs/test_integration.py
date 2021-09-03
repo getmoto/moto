@@ -1,7 +1,7 @@
 import base64
 import boto3
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import time
 import zlib
 
@@ -48,14 +48,14 @@ def test_put_subscription_filter_update():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    creation_time = filter["creationTime"]
+    sub_filter = response["subscriptionFilters"][0]
+    creation_time = sub_filter["creationTime"]
     creation_time.should.be.a(int)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = ""
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = ""
 
     # when
     # to update an existing subscription filter the 'filerName' must be identical
@@ -69,13 +69,13 @@ def test_put_subscription_filter_update():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    filter["creationTime"].should.equal(creation_time)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = "[]"
+    sub_filter = response["subscriptionFilters"][0]
+    sub_filter["creationTime"].should.equal(creation_time)
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = "[]"
 
     # when
     # only one subscription filter can be associated with a log group
@@ -132,13 +132,13 @@ def test_put_subscription_filter_with_lambda():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    filter["creationTime"].should.be.a(int)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = ""
+    sub_filter = response["subscriptionFilters"][0]
+    sub_filter["creationTime"].should.be.a(int)
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = ""
 
     # when
     client_logs.put_log_events(

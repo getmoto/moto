@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import os
 import uuid
 
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_acm, settings

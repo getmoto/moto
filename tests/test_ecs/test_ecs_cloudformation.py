@@ -3,7 +3,7 @@ import json
 from copy import deepcopy
 from moto import mock_cloudformation, mock_ecs
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_ecs

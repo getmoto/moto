@@ -1,17 +1,14 @@
-from __future__ import unicode_literals
-
 import os
 import json
 
 import boto
-import boto3
 import boto.dynamodb2
 import boto.iam
 import boto.s3
 import boto.s3.key
 import boto.cloudformation
 from boto.exception import BotoServerError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import pytest
 from moto.core import ACCOUNT_ID

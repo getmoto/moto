@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.packages.boto.ec2.elb.attributes import (
     ConnectionSettingAttribute,
     ConnectionDrainingAttribute,

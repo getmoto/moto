@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 from moto.core import ACCOUNT_ID

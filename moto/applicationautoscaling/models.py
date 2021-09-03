@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from moto.ecs import ecs_backends
 from .exceptions import AWSValidationException

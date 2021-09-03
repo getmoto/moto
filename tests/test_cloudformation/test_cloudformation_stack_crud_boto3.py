@@ -1,13 +1,11 @@
-from __future__ import unicode_literals
-
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
 import pytz
 
 import boto3
-from botocore.exceptions import ClientError, ValidationError
-import sure  # noqa
+from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 
 import pytest
 

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import boto
 import boto.ec2
 import boto3
@@ -7,7 +5,7 @@ from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
 import pytest
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 from moto import mock_ec2_deprecated, mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores

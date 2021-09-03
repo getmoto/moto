@@ -1,10 +1,6 @@
-from __future__ import unicode_literals
-
-import datetime
-
 from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_kinesis
 from moto.core import ACCOUNT_ID

@@ -2,7 +2,7 @@ import boto
 from boto.swf.exceptions import SWFResponseError
 from datetime import datetime, timedelta
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_swf_deprecated
 from moto.core.utils import unix_time

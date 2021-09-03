@@ -2,7 +2,7 @@ import boto
 from boto.swf.exceptions import SWFResponseError
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_swf_deprecated
 from moto import mock_swf

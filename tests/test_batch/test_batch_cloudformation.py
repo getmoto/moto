@@ -1,19 +1,12 @@
-from __future__ import unicode_literals
-
-import time
-import datetime
 import boto3
-from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import (
     mock_batch,
     mock_iam,
     mock_ec2,
     mock_ecs,
-    mock_logs,
     mock_cloudformation,
 )
-import functools
 import json
 
 DEFAULT_REGION = "eu-central-1"
@@ -64,8 +57,8 @@ def _setup(ec2_client, iam_client):
 @mock_iam
 @mock_batch
 def test_create_env_cf():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, _ = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     create_environment_template = {
         "Resources": {
@@ -115,8 +108,8 @@ def test_create_env_cf():
 @mock_iam
 @mock_batch
 def test_create_job_queue_cf():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, _ = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     create_environment_template = {
         "Resources": {
@@ -181,8 +174,8 @@ def test_create_job_queue_cf():
 @mock_iam
 @mock_batch
 def test_create_job_def_cf():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, _ = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     create_environment_template = {
         "Resources": {

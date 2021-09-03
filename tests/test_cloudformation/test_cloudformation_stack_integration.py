@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import io
 import zipfile
@@ -20,7 +19,7 @@ import boto.sns
 import boto.sqs
 import boto.vpc
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from string import Template
 
 from moto import (

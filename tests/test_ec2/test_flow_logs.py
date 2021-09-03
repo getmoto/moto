@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 import pytest
 
 import boto3
 
 from botocore.exceptions import ClientError
 from botocore.parsers import ResponseParserError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import (
     settings,
@@ -257,7 +255,6 @@ def test_delete_flow_logs_non_existing():
 
 @mock_ec2
 def test_create_flow_logs_unsuccessful():
-    s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
     vpc1 = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -572,7 +569,6 @@ def test_describe_flow_logs_filtering():
 @mock_s3
 @mock_ec2
 def test_flow_logs_by_ids():
-    s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
     vpc1 = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]

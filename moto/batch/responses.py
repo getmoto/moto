@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import batch_backends
 from urllib.parse import urlsplit

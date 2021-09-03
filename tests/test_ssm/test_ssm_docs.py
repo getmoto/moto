@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import datetime
 from datetime import timezone
 import json

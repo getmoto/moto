@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 from datetime import datetime
 
 import boto
 import boto3
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 import pytest
 from boto.exception import BotoServerError

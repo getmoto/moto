@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import json
 from datetime import datetime
 from dateutil.tz import tzutc
@@ -9,7 +7,7 @@ import os
 
 import boto3
 import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
 import pytest
 

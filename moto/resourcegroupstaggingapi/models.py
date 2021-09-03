@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import uuid
 from boto3 import Session
 

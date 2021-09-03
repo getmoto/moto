@@ -1,6 +1,6 @@
 from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_swf_deprecated
 from moto.swf import swf_backend

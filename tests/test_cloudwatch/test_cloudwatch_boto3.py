@@ -8,7 +8,7 @@ from freezegun import freeze_time
 import pytest
 from uuid import uuid4
 import pytz
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudwatch
 from moto.cloudwatch.utils import make_arn_for_alarm
@@ -517,7 +517,7 @@ def test_custom_timestamp():
         ],
     )
 
-    stats = cw.get_metric_statistics(
+    cw.get_metric_statistics(
         Namespace="tester",
         MetricName="metric",
         StartTime=utc_now - timedelta(seconds=60),
@@ -525,6 +525,7 @@ def test_custom_timestamp():
         Period=60,
         Statistics=["SampleCount", "Sum"],
     )
+    # TODO: What are we actually testing here?
 
 
 @mock_cloudwatch
@@ -679,7 +680,6 @@ def test_get_metric_data_partially_within_timeframe():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     namespace1 = "my_namespace/"
     # put metric data
-    values = [0, 2, 4, 3.5, 7, 100]
     cloudwatch.put_metric_data(
         Namespace=namespace1,
         MetricData=[
