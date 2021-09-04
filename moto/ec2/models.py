@@ -2019,13 +2019,13 @@ class SecurityRule(object):
         to_port,
         ip_ranges,
         source_groups,
-        prefix_list_ids=[],
+        prefix_list_ids=None,
     ):
         self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol)
         self.ip_ranges = ip_ranges or []
-        self.source_groups = source_groups
-        self.prefix_list_ids = prefix_list_ids
+        self.source_groups = source_groups or []
+        self.prefix_list_ids = prefix_list_ids or []
         self.from_port = self.to_port = None
 
         if self.ip_protocol != "-1":
@@ -2058,17 +2058,26 @@ class SecurityRule(object):
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
             return False
-        ip_ranges = [item for item in self.ip_ranges if item not in other.ip_ranges]
+        ip_ranges = list(
+            [item for item in self.ip_ranges if item not in other.ip_ranges]
+            + [item for item in other.ip_ranges if item not in self.ip_ranges]
+        )
         if ip_ranges:
             return False
-        source_groups = [
-            item for item in self.source_groups if item not in other.source_groups
-        ]
+        source_groups = list(
+            [item for item in self.source_groups if item not in other.source_groups]
+            + [item for item in other.source_groups if item not in self.source_groups]
+        )
         if source_groups:
             return False
-        prefix_list_ids = [
-            item for item in self.prefix_list_ids if item not in other.prefix_list_ids
-        ]
+        prefix_list_ids = list(
+            [item for item in self.prefix_list_ids if item not in other.prefix_list_ids]
+            + [
+                item
+                for item in other.prefix_list_ids
+                if item not in self.prefix_list_ids
+            ]
+        )
         if prefix_list_ids:
             return False
         if self.ip_protocol != "-1":
@@ -2361,8 +2370,8 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        source_groups=[],
-        prefix_list_ids=[],
+        source_groups=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -2443,8 +2452,8 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        source_groups=[],
-        prefix_list_ids=[],
+        source_groups=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
 
@@ -2502,8 +2511,8 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        source_groups=[],
-        prefix_list_ids=[],
+        source_groups=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -2589,8 +2598,8 @@ class SecurityGroupBackend(object):
         from_port,
         to_port,
         ip_ranges,
-        source_groups=[],
-        prefix_list_ids=[],
+        source_groups=None,
+        prefix_list_ids=None,
         vpc_id=None,
     ):
 
