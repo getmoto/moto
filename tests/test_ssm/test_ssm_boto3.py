@@ -232,9 +232,8 @@ def test_get_parameters_by_path():
 @mock_ssm
 def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
-
     response = client.put_parameter(
-        Name=name, Description="A test parameter", Value="value", Type="String"
+        Name=name, Description="A test parameter", Value="value", Type="String",
     )
 
     response["Version"].should.equal(1)
@@ -246,6 +245,7 @@ def test_put_parameter(name):
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["DataType"].should.equal("text")
     response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameters"][0]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
@@ -271,15 +271,21 @@ def test_put_parameter(name):
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["DataType"].should.equal("text")
     response["Parameters"][0]["LastModifiedDate"].should.equal(
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
-
+    new_data_type = "aws:ec2:image"
     response = client.put_parameter(
-        Name=name, Description="desc 3", Value="value 3", Type="String", Overwrite=True,
+        Name=name,
+        Description="desc 3",
+        Value="value 3",
+        Type="String",
+        Overwrite=True,
+        DataType=new_data_type,
     )
 
     response["Version"].should.equal(2)
@@ -292,6 +298,8 @@ def test_put_parameter(name):
     response["Parameters"][0]["Value"].should.equal("value 3")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(2)
+    response["Parameters"][0]["DataType"].should_not.equal("text")
+    response["Parameters"][0]["DataType"].should.equal(new_data_type)
     response["Parameters"][0]["LastModifiedDate"].should_not.equal(
         initial_modification_date
     )
@@ -395,11 +403,29 @@ def test_put_parameter_china():
 
 
 @mock_ssm
+@pytest.mark.parametrize("bad_data_type", ["not_text", "not_ec2", "something weird"])
+def test_put_parameter_invalid_data_type(bad_data_type):
+    client = boto3.client("ssm", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        client.put_parameter(
+            Name="test_name", Value="some_value", Type="String", DataType=bad_data_type
+        )
+    ex = e.value
+    ex.operation_name.should.equal("PutParameter")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The following data type is not supported: {bad_data_type}"
+        " (Data type names are all lowercase.)"
+    )
+
+
+@mock_ssm
 def test_get_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test", Description="A test parameter", Value="value", Type="String"
+        Name="test", Description="A test parameter", Value="value", Type="String",
     )
 
     response = client.get_parameter(Name="test", WithDecryption=False)
@@ -407,6 +433,7 @@ def test_get_parameter():
     response["Parameter"]["Name"].should.equal("test")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:{}:parameter/test".format(ACCOUNT_ID)
@@ -418,10 +445,10 @@ def test_get_parameter_with_version_and_labels():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test-1", Description="A test parameter", Value="value", Type="String"
+        Name="test-1", Description="A test parameter", Value="value", Type="String",
     )
     client.put_parameter(
-        Name="test-2", Description="A test parameter", Value="value", Type="String"
+        Name="test-2", Description="A test parameter", Value="value", Type="String",
     )
 
     client.label_parameter_version(
@@ -433,6 +460,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["Name"].should.equal("test-1")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:{}:parameter/test-1".format(ACCOUNT_ID)
@@ -442,6 +470,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["Name"].should.equal("test-2")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
@@ -451,6 +480,7 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["Name"].should.equal("test-2")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
@@ -532,6 +562,7 @@ def test_describe_parameters():
     parameters.should.have.length_of(1)
     parameters[0]["Name"].should.equal("test")
     parameters[0]["Type"].should.equal("String")
+    parameters[0]["DataType"].should.equal("text")
     parameters[0]["AllowedPattern"].should.equal(r".*")
 
 

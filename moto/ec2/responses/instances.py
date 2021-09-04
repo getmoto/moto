@@ -62,6 +62,10 @@ class InstanceResponse(BaseResponse):
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
             "tags": self._parse_tag_specification("TagSpecification"),
             "ebs_optimized": self._get_param("EbsOptimized") or False,
+            "instance_market_options": self._get_param(
+                "InstanceMarketOptions.MarketType"
+            )
+            or {},
             "instance_initiated_shutdown_behavior": self._get_param(
                 "InstanceInitiatedShutdownBehavior"
             ),
@@ -382,6 +386,7 @@ EC2_RUN_INSTANCES = (
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
+          <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
           <placement>
             <availabilityZone>{{ instance.placement}}</availabilityZone>
             <groupName/>
@@ -533,6 +538,7 @@ EC2_DESCRIBE_INSTANCES = (
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>{{ instance.launch_time }}</launchTime>
+                    <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
                     <placement>
                       <availabilityZone>{{ instance.placement }}</availabilityZone>
                       <groupName/>

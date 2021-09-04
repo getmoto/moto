@@ -296,6 +296,7 @@ jobs:
         bin/create-report-cli
         cd ..
     - name: Archive TF logs
+      if: always()
       uses: actions/upload-artifact@v2
       with:
         name: buildfolder-${{ matrix.part }}

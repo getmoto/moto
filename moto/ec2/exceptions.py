@@ -677,3 +677,21 @@ class InvalidTaggableResourceType(EC2ClientError):
                 resource_type
             ),
         )
+
+
+class GenericInvalidParameterValueError(EC2ClientError):
+    def __init__(self, attribute, value):
+        super(GenericInvalidParameterValueError, self).__init__(
+            "InvalidParameterValue",
+            "invalid value for parameter {0}: {1}".format(attribute, value),
+        )
+
+
+class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
+    def __init__(self, association_id):
+        super(InvalidSubnetCidrBlockAssociationID, self).__init__(
+            "InvalidSubnetCidrBlockAssociationID.NotFound",
+            "The subnet CIDR block with association ID '{0}' does not exist".format(
+                association_id
+            ),
+        )

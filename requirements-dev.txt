@@ -9,4 +9,4 @@ click
 inflection==0.3.1
 lxml
 packaging
-
+prompt_toolkit

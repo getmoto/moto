@@ -122,6 +122,7 @@ ACTION_MAP = {
         },
     },
     "KEY": {
+        "HEAD": {"DEFAULT": "HeadObject",},
         "GET": {
             "uploadId": "ListMultipartUploadParts",
             "acl": "GetObjectAcl",
@@ -522,7 +523,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         delimiter = querystring.get("delimiter", [None])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         marker = querystring.get("marker", [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(
+        result_keys, result_folders = self.backend.list_objects(
             bucket, prefix, delimiter
         )
 
@@ -572,17 +573,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
-        result_keys, result_folders = self.backend.prefix_query(
-            bucket, prefix, delimiter
-        )
+        all_keys = self.backend.list_objects_v2(bucket, prefix, delimiter)
 
         fetch_owner = querystring.get("fetch-owner", [False])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         start_after = querystring.get("start-after", [None])[0]
-
-        # sort the combination of folders and keys into lexicographical order
-        all_keys = result_keys + result_folders
-        all_keys.sort(key=self._get_name)
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
@@ -608,13 +603,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             next_continuation_token=next_continuation_token,
             start_after=None if continuation_token else start_after,
         )
-
-    @staticmethod
-    def _get_name(key):
-        if isinstance(key, FakeKey):
-            return key.name
-        else:
-            return key
 
     @staticmethod
     def _split_truncated_keys(truncated_keys):
@@ -823,11 +811,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, region_name)
             except BucketAlreadyExists:
-                if region_name == DEFAULT_REGION_NAME:
-                    # us-east-1 has different behavior
-                    new_bucket = self.backend.get_bucket(bucket_name)
+                new_bucket = self.backend.get_bucket(bucket_name)
+                if (
+                    new_bucket.region_name == DEFAULT_REGION_NAME
+                    and region_name == DEFAULT_REGION_NAME
+                ):
+                    # us-east-1 has different behavior - creating a bucket there is an idempotent operation
+                    pass
                 else:
-                    raise
+                    template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
+                    return 409, {}, template.render(bucket_name=bucket_name)
 
             if "x-amz-acl" in request.headers:
                 # TODO: Support the XML-based ACL format
@@ -1255,7 +1248,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if not (0 <= max_parts <= 2147483647):
                 raise InvalidMaxPartArgument("max-parts", 0, 2147483647)
 
-            parts = self.backend.list_multipart(
+            parts = self.backend.list_parts(
                 bucket_name,
                 upload_id,
                 part_number_marker=part_number_marker,
@@ -1530,6 +1523,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return 200, response_headers, ""
 
     def _key_response_head(self, bucket_name, query, key_name, headers):
+        self._set_action("KEY", "HEAD", query)
+        self._authenticate_and_authorize_s3_action()
+
         response_headers = {}
         version_id = query.get("versionId", [None])[0]
         part_number = query.get("partNumber", [None])[0]
@@ -2670,4 +2666,14 @@ S3_BUCKET_LOCK_CONFIGURATION = """
         </DefaultRetention>
     #</Rule>
 </ObjectLockConfiguration>
+"""
+
+S3_DUPLICATE_BUCKET_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>BucketAlreadyOwnedByYou</Code>
+  <Message>Your previous request to create the named bucket succeeded and you already own it.</Message>
+  <BucketName>{{ bucket_name }}</BucketName>
+  <RequestId>44425877V1D0A2F9</RequestId>
+  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
+</Error>
 """

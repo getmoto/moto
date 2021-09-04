@@ -277,9 +277,18 @@ class SimpleSystemManagerResponse(BaseResponse):
         keyid = self._get_param("KeyId")
         overwrite = self._get_param("Overwrite", False)
         tags = self._get_param("Tags", [])
+        data_type = self._get_param("DataType", "text")
 
         result = self.ssm_backend.put_parameter(
-            name, description, value, type_, allowed_pattern, keyid, overwrite, tags
+            name,
+            description,
+            value,
+            type_,
+            allowed_pattern,
+            keyid,
+            overwrite,
+            tags,
+            data_type,
         )
 
         if result is None:

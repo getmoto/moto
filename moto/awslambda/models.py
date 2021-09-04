@@ -964,7 +964,7 @@ class LambdaStorage(object):
         fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
-    def publish_function(self, name_or_arn):
+    def publish_function(self, name_or_arn, description=""):
         function = self.get_function_by_name_or_arn(name_or_arn)
         name = function.function_name
         if name not in self._functions:
@@ -975,6 +975,8 @@ class LambdaStorage(object):
         new_version = len(self._functions[name]["versions"]) + 1
         fn = copy.copy(self._functions[name]["latest"])
         fn.set_version(new_version)
+        if description:
+            fn.description = description
 
         self._functions[name]["versions"].append(fn)
         self._arns[fn.function_arn] = fn
@@ -1028,10 +1030,23 @@ class LambdaStorage(object):
         result = []
 
         for function_group in self._functions.values():
-            if function_group["latest"] is not None:
-                result.append(function_group["latest"])
+            latest = copy.deepcopy(function_group["latest"])
+            latest.function_arn = "{}:$LATEST".format(latest.function_arn)
+            result.append(latest)
 
             result.extend(function_group["versions"])
+
+        return result
+
+    def latest(self):
+        """
+        Return the list of functions with version @LATEST
+        :return:
+        """
+        result = []
+        for function_group in self._functions.values():
+            if function_group["latest"] is not None:
+                result.append(function_group["latest"])
 
         return result
 
@@ -1091,6 +1106,9 @@ class LambdaBackend(BaseBackend):
 
         if spec.get("Publish"):
             ver = self.publish_function(function_name)
+            fn = copy.deepcopy(
+                fn
+            )  # We don't want to change the actual version - just the return value
             fn.version = ver.version
         return fn
 
@@ -1162,8 +1180,8 @@ class LambdaBackend(BaseBackend):
     def layers_versions_by_arn(self, layer_version_arn):
         return self._layers.get_layer_version_by_arn(layer_version_arn)
 
-    def publish_function(self, function_name):
-        return self._lambdas.publish_function(function_name)
+    def publish_function(self, function_name, description=""):
+        return self._lambdas.publish_function(function_name, description)
 
     def get_function(self, function_name_or_arn, qualifier=None):
         return self._lambdas.get_function_by_name_or_arn(
@@ -1210,8 +1228,10 @@ class LambdaBackend(BaseBackend):
     def delete_function(self, function_name, qualifier=None):
         return self._lambdas.del_function(function_name, qualifier)
 
-    def list_functions(self):
-        return self._lambdas.all()
+    def list_functions(self, func_version=None):
+        if func_version == "ALL":
+            return self._lambdas.all()
+        return self._lambdas.latest()
 
     def send_sqs_batch(self, function_arn, messages, queue_arn):
         success = True
