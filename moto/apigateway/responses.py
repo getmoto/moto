@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import json
 
+from moto.utilities.utils import merge_multiple_dicts
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
 from .exceptions import (
@@ -362,6 +363,24 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps({"item": stages})
 
         return 200, {}, json.dumps(stage_response)
+
+    def restapis_stages_tags(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[4]
+        stage_name = url_path_parts[6]
+        if self.method == "PUT":
+            tags = self._get_param("tags")
+            if tags:
+                stage = self.backend.get_stage(function_id, stage_name)
+                stage["tags"] = merge_multiple_dicts(stage.get("tags"), tags)
+            return 200, {}, json.dumps({"item": tags})
+        if self.method == "DELETE":
+            stage = self.backend.get_stage(function_id, stage_name)
+            for tag in stage.get("tags").copy():
+                if tag in self.querystring.get("tagKeys"):
+                    stage["tags"].pop(tag, None)
+            return 200, {}, json.dumps({"item": ""})
 
     def stages(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

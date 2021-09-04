@@ -12,6 +12,7 @@ url_paths = {
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers$": response.restapis_authorizers,
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers/(?P<authorizer_id>[^/]+)/?$": response.authorizers,
     "{0}/restapis/(?P<function_id>[^/]+)/stages$": response.restapis_stages,
+    "{0}/tags/arn:aws:apigateway:(?P<region_name>[^/]+)::/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/?$": response.restapis_stages_tags,
     "{0}/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/?$": response.stages,
     "{0}/restapis/(?P<function_id>[^/]+)/deployments$": response.deployments,
     "{0}/restapis/(?P<function_id>[^/]+)/deployments/(?P<deployment_id>[^/]+)/?$": response.individual_deployment,
