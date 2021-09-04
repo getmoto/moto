@@ -1166,6 +1166,9 @@ def test_handle_listener_rules():
     first_rule = obtained_rules["Rules"][0]
     second_rule = obtained_rules["Rules"][1]
     third_rule = obtained_rules["Rules"][2]
+    default_rule = obtained_rules["Rules"][3]
+    first_rule["IsDefault"].should.equal(False)
+    default_rule["IsDefault"].should.equal(True)
     obtained_rules = conn.describe_rules(RuleArns=[first_rule["RuleArn"]])
     obtained_rules["Rules"].should.equal([first_rule])
 
@@ -1562,7 +1565,7 @@ def test_set_security_groups():
 
 @mock_elbv2
 @mock_ec2
-def test_set_subnets():
+def test_set_subnets_errors():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -1597,19 +1600,23 @@ def test_set_subnets():
     len(resp["LoadBalancers"][0]["AvailabilityZones"]).should.equal(3)
 
     # Only 1 AZ
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.set_subnets(LoadBalancerArn=arn, Subnets=[subnet1.id])
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("More than 1 availability zone must be specified")
 
     # Multiple subnets in same AZ
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.set_subnets(
             LoadBalancerArn=arn, Subnets=[subnet1.id, subnet2.id, subnet2.id]
         )
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The specified subnet does not exist.")
 
 
 @mock_elbv2
 @mock_ec2
-def test_set_subnets():
+def test_modify_load_balancer_attributes_idle_timeout():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 

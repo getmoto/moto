@@ -11,12 +11,16 @@ from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
 
+try:
+    from importlib.metadata import version
+except ImportError:
+    from importlib_metadata import version
+
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
 from distutils.version import LooseVersion
 from http.client import responses as http_responses
-from importlib_metadata import version
 from urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
@@ -282,21 +286,46 @@ responses_mock.add_passthru("http")
 
 
 def _find_first_match_legacy(self, request):
+    matches = []
     for i, match in enumerate(self._matches):
         if match.matches(request):
-            return match
+            matches.append(match)
 
+    # Look for implemented callbacks first
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
+    if implemented_matches:
+        return implemented_matches[0]
+    elif matches:
+        # We had matches, but all were of type not_implemented_callback
+        return matches[0]
     return None
 
 
 def _find_first_match(self, request):
+    matches = []
     match_failed_reasons = []
     for i, match in enumerate(self._matches):
         match_result, reason = match.matches(request)
         if match_result:
-            return match, match_failed_reasons
+            matches.append(match)
         else:
             match_failed_reasons.append(reason)
+
+    # Look for implemented callbacks first
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
+    if implemented_matches:
+        return implemented_matches[0], []
+    elif matches:
+        # We had matches, but all were of type not_implemented_callback
+        return matches[0], match_failed_reasons
 
     return None, match_failed_reasons
 

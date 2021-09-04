@@ -965,7 +965,7 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
     <Rules>
       {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>

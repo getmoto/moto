@@ -4,6 +4,8 @@ from io import open
 import os
 import re
 from setuptools import setup, find_packages
+import sys
+import moto.__init__ as service_list
 
 # Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15
 here = os.path.abspath(os.path.dirname(__file__))
@@ -39,7 +41,7 @@ install_requires = [
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "more-itertools",
-    "importlib_metadata"
+    "importlib_metadata ; python_version < '3.8'"
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
@@ -69,10 +71,11 @@ all_extra_deps = [
 ]
 all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
-# TODO: do we want to add ALL services here?
-# i.e. even those without extra dependencies.
-# Would be good for future-compatibility, I guess.
-extras_per_service = {
+extras_per_service = {}
+for service_name in [service[5:] for service in dir(service_list) if service.startswith("mock_")]:
+    extras_per_service[service_name] = []
+extras_per_service.update(
+{
     "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
     "awslambda": [_dep_docker],
     "batch": [_dep_docker],
@@ -88,7 +91,7 @@ extras_per_service = {
     # XRay module uses pkg_resources, but doesn't have an explicit dependency listed
     # This should be fixed in the next version: https://github.com/aws/aws-xray-sdk-python/issues/305
     "xray": [_dep_aws_xray_sdk, _setuptools],
-}
+})
 # When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
 extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
@@ -129,6 +132,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],

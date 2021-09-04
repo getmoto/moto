@@ -157,7 +157,7 @@ class KmsBackend(BaseBackend):
     def __init__(self):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
-        self.tagger = TaggingService(keyName="TagKey", valueName="TagValue")
+        self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
 
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region

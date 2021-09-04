@@ -40,7 +40,7 @@ class TransitGateways(BaseResponse):
 
     def describe_transit_gateways(self):
         filters = filters_from_querystring(self.querystring)
-        transit_gateways = self.ec2_backend.get_all_transit_gateways(filters)
+        transit_gateways = self.ec2_backend.describe_transit_gateways(filters)
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_RESPONSE)
         return template.render(transit_gateways=transit_gateways)
 

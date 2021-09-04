@@ -4,6 +4,7 @@ import boto3
 import botocore.exceptions
 import sure  # noqa
 import datetime
+from datetime import timezone
 import json
 import yaml
 import hashlib
@@ -42,7 +43,7 @@ def _validate_document_description(
     doc_description["Name"].should.equal(doc_name)
     doc_description["Owner"].should.equal(ACCOUNT_ID)
 
-    difference = datetime.datetime.utcnow() - doc_description["CreatedDate"]
+    difference = datetime.datetime.now(tz=timezone.utc) - doc_description["CreatedDate"]
     if difference.min > datetime.timedelta(minutes=1):
         assert False
 
@@ -224,7 +225,7 @@ def test_create_document():
     doc_description["Name"].should.equal("EmptyParamDoc")
     doc_description["Owner"].should.equal(ACCOUNT_ID)
 
-    difference = datetime.datetime.utcnow() - doc_description["CreatedDate"]
+    difference = datetime.datetime.now(tz=timezone.utc) - doc_description["CreatedDate"]
     if difference.min > datetime.timedelta(minutes=1):
         assert False
 

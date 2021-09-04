@@ -4,6 +4,164 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.6
+-----
+    General:
+        * `pip install` will no longer log a warning when installing a service that does not have any dependencies
+          Example: `pip install moto[acm]`
+
+    New Services:
+        ElasticTranscoder:
+            * create_pipeline
+            * delete_pipeline
+            * list_pipelines
+            * read_pipeline
+            * update_pipeline
+
+    New Methods:
+        * DynamoDB:
+            * describe_endpoints()
+
+    Miscellaneous:
+        * AWSLambda now sends logs to CloudWatch when Docker encounters an error, to make debugging easier
+        * AWSLambda: For all methods, the FunctionName-parameter can be either the Lambda name or the Lambda ARN
+        * AWSLambda:list_functions() now returns only the latest version by default
+        * AWSLambda:invoke() now returns the correct Payload for invocations that resulted in an error
+        * CloudFormation now supports the creation of type AWS::IAM::ManagedPolicy
+        * CloudFormation now supports the deletion of type AWS::IAM::InstanceProfile
+        * CloudFormation now supports the deletion of type AWS::IAM::Role
+        * CloudWatch:create_log_group() now has proper validation for the length of the logGroupName-parameter
+        * CloudWatch:describe_log_groups() now has proper validation for the limit-parameter
+        * CloudWatch:describe_log_streams() now has proper validation for the limit-parameter
+        * CloudWatch:get_log_events() now has proper validation for the limit-parameter
+        * CloudWatch:filter_log_events() now has proper validation for the limit-parameter
+        * DynamoDB:update_item(): fixed a bug where an item was created, despite throwing an error
+        * DynamoDB:update_item() now throws an error when both UpdateExpression and AttributeUpdates are supplied
+        * EC2:modify_instance_attribute() now supports Attribute="disableApiTermination"
+        * S3 now supports direct uploads using the requests-library without having to specify the 'Content-Type' header
+        * S3 now supports creating S3 buckets that start with a service name, i.e. `iot-bucket`
+        * S3 now returns the RequestID in every response
+        * S3:list_parts() now supports the MaxPart-parameter
+        * SQS:get_queue_attributes() now behaves correctly when the AttributeNames-parameter is not provided
+        * SQS:receive_message() no longer accepts queue-names for the QueueUrl-parameter, as per AWS' spec
+        * SQS: The sqs.Queue-class no longer accepts queue-names, only queue-URLs, as per AWS' spec
+
+2.2.5
+-----
+    General:
+        * Python 3.9 is now officially supported
+
+    Known bugs:
+        * SQS:get_queue_attributes() throws an error when the AttributeNames-parameter is not provided
+
+    New Methods:
+        * DynamoDB (API v20111205, now deprecated)
+            * UpdateItem
+        * EC2:
+            * modify_vpc_peering_connection_options()
+        * Glue:
+            * create_crawler()
+            * delete_crawler()
+            * get_crawler()
+            * get_crawlers()
+        * SSM:
+            * describe_document_permission()
+            * modify_document_permission()
+
+    Miscellaneous:
+        * CloudFormation:create_stack() now has validation for an empty Outputs-parameter
+        * EC2 now returns errors in the correct format, fixing various bugs with `terraform destroy`
+        * EC2:authorize_security_group_egress() now returns the securityGroupRuleSet-attribute
+        * EC2:authorize_security_group_ingress() now returns the securityGroupRuleSet-attribute
+        * EC2:create_route() now supports the EgressOnlyInternetGatewayId-parameter
+        * EC2:create_route_table() now adds an IPv6-route when enabled
+        * EC2:describe_security_groups() now returns the ipv6Ranges-attribute
+        * EC2:describe_vpc_peering_connection() now supports the VpcPeeringConnectionIds-parameter
+        * Organisations:detach_policy() now actually detaches a policy - before it was essentially a no-op
+        * Route53:create_health_check() now supports the CallerReference-parameter
+        * Route53:create_health_check() now support default values for integer-parameters such as Port/RequestInterval/FailureThreshold
+        * Route53:create_health_check() now supports several additional parameters such as MeasureLatency/Inverted/Disabled/EnableSNI/ChildHealthChecks
+        * SQS:create_queue() now supports the queue-attributes FifoThroughputLimit and DeduplicationScope
+
+
+2.2.4
+-----
+    New Methods:
+        * ConfigService:
+            * delete_config_rule()
+            * describe_config_rule()
+            * put_config_rule()
+        * EC2:
+            * create_egress_only_internet_gateway()
+            * delete_egress_only_internet_gateway()
+            * describe_egress_only_internet_gateways()
+        * Fargate:
+            * create_fargate_profile()
+            * delete_fargate_profile()
+            * describe_fargate_profile()
+            * list_fargate_profiles()
+        * IOT:
+            * deprecate_thing_type()
+        * S3:
+            * get_object_lock_configuration()
+            * put_object_legal_hold()
+            * put_object_lock_configuration()
+            * put_object_retention()
+
+    Miscellaneous:
+        * CloudFormation:describe_stack_resource() now throws an exception of the LogicalResourceId does not exist
+        * CloudFormation: AWS::Events::Rule now supports the EventPattern-property
+        * CloudFormation: Improved Parameter handling
+        * EC2:describe_instances() now handles wildcards correctly when filtering by tags
+        * EC2:terminate_instances() now throws an exception when trying to terminate a protected instance
+        * ELBv2:describe_rules() now returns the correct value for the IsDefault-attribute
+        * IOT:create_thing() now throws an exception if the thing type is deprecated
+        * IOT:update_thing() now throws an exception if the thing type is deprecated
+        * S3:create_bucket() now supports the ObjectLockEnabledForBucket-parameter
+        * S3:putObject() is fixed for the Java SDK, which failed with a eTag-validation
+
+2.2.3
+-----
+    New Methods:
+        * EC2:
+            * create_managed_prefix_list()
+            * delete_managed_prefix_list()
+            * describe_managed_prefix_lists()
+            * describe_prefix_lists()
+            * get_managed_prefix_list_entries()
+            * delete_vpc_endpoints()
+            * disassociate_transit_gateway_route_table()
+            * modify_managed_prefix_list()
+        * ECR:
+            * delete_lifecycle_policy()
+            * delete_registry_policy()
+            * describe_image_scan_findings()
+            * describe_registry()
+            * get_lifecycle_policy()
+            * get_registry_policy()
+            * put_lifecycle_policy()
+            * put_registry_policy()
+            * put_replication_configuration()
+            * start_image_scan()
+        * CloudWatch:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * CloudWatch: put_metric_alarm() now supports the parameters ExtendedStatistic, TreatMissingData, EvaluateLowSampleCountPercentile, ThresholdMetricId, Tags 
+        * CognitoIdentity: create_identity_pool() now supports the IdentityPoolTags-parameter
+        * CognitoIDP: initiate_auth() now supports the 'USER_PASSWORD_AUTH'-flow
+        * EC2: allocate_address()  now supports the TagSpecifications-parameter
+        * EC2: create_route() now supports the TransitGatewayId-parameter
+        * EC2: delete_route() now supports the DestinationIpv6CidrBlock-parameter
+        * EC2: describe_nat_gateways() now returns the connectivityType-attribute
+        * ECR: delete_repository() now supports the force-parameter
+        * EventBridge: put_events() now supports ARN's for the EventBusName-parameter
+        * EventBridge: put_rule() now supports the Tags-parameter
+        * IOT: create_policy_version() now throws the VersionsLimitExceededException if appropriate
+
+
 2.2.2
 -----
     General:

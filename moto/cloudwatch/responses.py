@@ -70,6 +70,7 @@ class CloudWatchResponse(BaseResponse):
         period = self._get_param("Period")
         threshold = self._get_param("Threshold")
         statistic = self._get_param("Statistic")
+        extended_statistic = self._get_param("ExtendedStatistic")
         description = self._get_param("AlarmDescription")
         dimensions = self._get_list_prefix("Dimensions.member")
         alarm_actions = self._get_multi_param("AlarmActions.member")
@@ -79,28 +80,38 @@ class CloudWatchResponse(BaseResponse):
             "InsufficientDataActions.member"
         )
         unit = self._get_param("Unit")
+        treat_missing_data = self._get_param("TreatMissingData")
+        evaluate_low_sample_count_percentile = self._get_param(
+            "EvaluateLowSampleCountPercentile"
+        )
+        threshold_metric_id = self._get_param("ThresholdMetricId")
         # fetch AlarmRule to re-use this method for composite alarms as well
         rule = self._get_param("AlarmRule")
+        tags = self._get_multi_param("Tags.member")
         alarm = self.cloudwatch_backend.put_metric_alarm(
-            name,
-            namespace,
-            metric_name,
-            metric_data_queries,
-            comparison_operator,
-            evaluation_periods,
-            datapoints_to_alarm,
-            period,
-            threshold,
-            statistic,
-            description,
-            dimensions,
-            alarm_actions,
-            ok_actions,
-            insufficient_data_actions,
-            unit,
-            actions_enabled,
-            self.region,
+            name=name,
+            namespace=namespace,
+            metric_name=metric_name,
+            metric_data_queries=metric_data_queries,
+            comparison_operator=comparison_operator,
+            evaluation_periods=evaluation_periods,
+            datapoints_to_alarm=datapoints_to_alarm,
+            period=period,
+            threshold=threshold,
+            statistic=statistic,
+            extended_statistic=extended_statistic,
+            description=description,
+            dimensions=dimensions,
+            alarm_actions=alarm_actions,
+            ok_actions=ok_actions,
+            insufficient_data_actions=insufficient_data_actions,
+            unit=unit,
+            actions_enabled=actions_enabled,
+            treat_missing_data=treat_missing_data,
+            evaluate_low_sample_count_percentile=evaluate_low_sample_count_percentile,
+            threshold_metric_id=threshold_metric_id,
             rule=rule,
+            tags=tags,
         )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
@@ -301,6 +312,35 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(SET_ALARM_STATE_TEMPLATE)
         return template.render()
 
+    @amzn_request_id
+    def list_tags_for_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+
+        tags = self.cloudwatch_backend.list_tags_for_resource(resource_arn)
+
+        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
+        return template.render(tags=tags)
+
+    @amzn_request_id
+    def tag_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+        tags = self._get_multi_param("Tags.member")
+
+        self.cloudwatch_backend.tag_resource(resource_arn, tags)
+
+        template = self.response_template(TAG_RESOURCE_TEMPLATE)
+        return template.render()
+
+    @amzn_request_id
+    def untag_resource(self):
+        resource_arn = self._get_param("ResourceARN")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        self.cloudwatch_backend.untag_resource(resource_arn, tag_keys)
+
+        template = self.response_template(UNTAG_RESOURCE_TEMPLATE)
+        return template.render()
+
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
@@ -409,11 +449,23 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
                 {% if alarm.statistic is not none %}
                 <Statistic>{{ alarm.statistic }}</Statistic>
                 {% endif %}
+                {% if alarm.extended_statistic is not none %}
+                <ExtendedStatistic>{{ alarm.extended_statistic }}</ExtendedStatistic>
+                {% endif %}
                 {% if alarm.threshold is not none %}
                 <Threshold>{{ alarm.threshold }}</Threshold>
                 {% endif %}
                 {% if alarm.unit is not none %}
                 <Unit>{{ alarm.unit }}</Unit>
+                {% endif %}
+                {% if alarm.treat_missing_data is not none %}
+                <TreatMissingData>{{ alarm.treat_missing_data }}</TreatMissingData>
+                {% endif %}
+                {% if alarm.evaluate_low_sample_count_percentile is not none %}
+                <EvaluateLowSampleCountPercentile>{{ alarm.evaluate_low_sample_count_percentile }}</EvaluateLowSampleCountPercentile>
+                {% endif %}
+                {% if alarm.threshold_metric_id is not none %}
+                <ThresholdMetricId>{{ alarm.threshold_metric_id }}</ThresholdMetricId>
                 {% endif %}
                 {% if alarm.rule is not none %}
                 <AlarmRule>{{ alarm.rule }}</AlarmRule>
@@ -654,3 +706,34 @@ ERROR_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://monitoring.amazonaws.c
   </Error>
   <RequestId>{{ request_id }}</RequestId>
 </ErrorResponse>"""
+
+LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+  <ListTagsForResourceResult>
+    <Tags>
+      {% for key, value in tags.items() %}
+      <member>
+        <Key>{{ key }}</Key>
+        <Value>{{ value }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListTagsForResourceResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ListTagsForResourceResponse>
+"""
+
+TAG_RESOURCE_TEMPLATE = """<TagResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+  <TagResourceResult/>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</TagResourceResponse>"""
+
+UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+  <UntagResourceResult/>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</UntagResourceResponse>"""

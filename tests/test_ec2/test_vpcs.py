@@ -317,6 +317,31 @@ def test_vpc_dedicated_tenancy():
 
 
 @mock_ec2
+def test_vpc_modify_tenancy_unknown():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+
+    # Create the default VPC
+    ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    # Create the non default VPC
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", InstanceTenancy="dedicated")
+    vpc.instance_tenancy.should.equal("dedicated")
+
+    with pytest.raises(ClientError) as ex:
+        ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("The tenancy value unknown is not supported.")
+    err["Code"].should.equal("UnsupportedTenancy")
+
+    ec2_client.modify_vpc_tenancy(VpcId=vpc.id, InstanceTenancy="default")
+
+    vpc.reload()
+
+    vpc.instance_tenancy.should.equal("default")
+
+
+@mock_ec2
 def test_vpc_modify_enable_dns_support():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -920,3 +945,34 @@ def test_describe_vpc_end_points():
         )
     except ClientError as err:
         assert err.response["Error"]["Code"] == "InvalidVpcEndpointId.NotFound"
+
+
+@mock_ec2
+def test_delete_vpc_end_points():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    route_table = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
+    vpc_end_point1 = ec2.create_vpc_endpoint(
+        VpcId=vpc["Vpc"]["VpcId"],
+        ServiceName="com.amazonaws.us-east-1.s3",
+        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
+        VpcEndpointType="gateway",
+    )["VpcEndpoint"]
+    vpc_end_point2 = ec2.create_vpc_endpoint(
+        VpcId=vpc["Vpc"]["VpcId"],
+        ServiceName="com.amazonaws.us-east-2.s3",
+        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
+        VpcEndpointType="gateway",
+    )
+
+    vpc_endpoints = ec2.describe_vpc_endpoints()["VpcEndpoints"]
+    vpc_endpoints.should.have.length_of(2)
+
+    ec2.delete_vpc_endpoints(VpcEndpointIds=[vpc_end_point1["VpcEndpointId"]])
+
+    vpc_endpoints = ec2.describe_vpc_endpoints()["VpcEndpoints"]
+    vpc_endpoints.should.have.length_of(2)
+
+    states = set([vpce["State"] for vpce in vpc_endpoints])
+    states.should.equal({"available", "deleted"})

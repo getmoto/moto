@@ -16,6 +16,28 @@ class LifecyclePolicyNotFoundException(JsonRESTError):
         )
 
 
+class LimitExceededException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=("The scan quota per image has been exceeded. Wait and try again."),
+        )
+
+
+class RegistryPolicyNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, registry_id):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=(
+                f"Registry policy does not exist in the registry with id '{registry_id}'"
+            ),
+        )
+
+
 class RepositoryAlreadyExistsException(JsonRESTError):
     code = 400
 
@@ -85,6 +107,27 @@ class ImageNotFoundException(JsonRESTError):
 
 
 class InvalidParameterException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__(error_type=__class__.__name__, message=message)
+
+
+class ScanNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, image_id, repository_name, registry_id):
+        super().__init__(
+            error_type=__class__.__name__,
+            message=(
+                f"Image scan does not exist for the image with '{image_id}' "
+                f"in the repository with name '{repository_name}' "
+                f"in the registry with id '{registry_id}'"
+            ),
+        )
+
+
+class ValidationException(JsonRESTError):
     code = 400
 
     def __init__(self, message):

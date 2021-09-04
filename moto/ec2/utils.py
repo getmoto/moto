@@ -23,6 +23,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "image": "ami",
     "instance": "i",
     "internet-gateway": "igw",
+    "egress-only-internet-gateway": "eigw",
     "launch-template": "lt",
     "nat-gateway": "nat",
     "network-acl": "acl",
@@ -33,14 +34,17 @@ EC2_RESOURCE_TO_PREFIX = {
     "route-table": "rtb",
     "route-table-association": "rtbassoc",
     "security-group": "sg",
+    "security-group-rule": "sgr",
     "snapshot": "snap",
     "spot-instance-request": "sir",
     "spot-fleet-request": "sfr",
     "subnet": "subnet",
+    "subnet-ipv6-cidr-block-association": "subnet-cidr-assoc",
     "reservation": "r",
     "volume": "vol",
     "vpc": "vpc",
     "vpc-endpoint": "vpce",
+    "managed-prefix-list": "pl",
     "vpc-cidr-association-id": "vpc-cidr-assoc",
     "vpc-elastic-ip": "eipalloc",
     "vpc-elastic-ip-association": "eipassoc",
@@ -80,6 +84,10 @@ def random_security_group_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"])
 
 
+def random_security_group_rule_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
+
+
 def random_flow_log_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["flow-logs"])
 
@@ -98,6 +106,12 @@ def random_spot_fleet_request_id():
 
 def random_subnet_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["subnet"])
+
+
+def random_subnet_ipv6_cidr_block_association_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["subnet-ipv6-cidr-block-association"]
+    )
 
 
 def random_subnet_association_id():
@@ -150,6 +164,12 @@ def random_eip_association_id():
 
 def random_internet_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["internet-gateway"])
+
+
+def random_egress_only_internet_gateway_id():
+    return random_id(
+        prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"], size=17
+    )
 
 
 def random_route_table_id():
@@ -228,6 +248,10 @@ def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
     return "%s~%s" % (route_table_id, cidr_block)
+
+
+def random_managed_prefix_list_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8)
 
 
 def create_dns_entries(service_name, vpc_endpoint_id):
@@ -357,8 +381,10 @@ def get_obj_tag_names(obj):
     return tags
 
 
-def get_obj_tag_values(obj):
-    tags = set((tag["value"] for tag in obj.get_tags()))
+def get_obj_tag_values(obj, key=None):
+    tags = set(
+        (tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None)
+    )
     return tags
 
 
@@ -376,7 +402,8 @@ def tag_filter_matches(obj, filter_name, filter_values):
     elif filter_name == "tag-value":
         tag_values = get_obj_tag_values(obj)
     elif filter_name.startswith("tag:"):
-        tag_values = get_obj_tag_values(obj)
+        key = filter_name[4:]
+        tag_values = get_obj_tag_values(obj, key=key)
     else:
         tag_values = [get_obj_tag(obj, filter_name) or ""]
 
@@ -571,6 +598,12 @@ def is_valid_resource_id(resource_id):
 
 def is_valid_cidr(cird):
     cidr_pattern = r"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$"
+    cidr_pattern_re = re.compile(cidr_pattern)
+    return cidr_pattern_re.match(cird) is not None
+
+
+def is_valid_ipv6_cidr(cird):
+    cidr_pattern = r"^s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:)))(%.+)?s*(\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$"
     cidr_pattern_re = re.compile(cidr_pattern)
     return cidr_pattern_re.match(cird) is not None
 

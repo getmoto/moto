@@ -186,14 +186,12 @@ class ConfigResponse(BaseResponse):
         conformance_packs = self.config_backend.describe_organization_conformance_packs(
             self._get_param("OrganizationConformancePackNames")
         )
-
         return json.dumps(conformance_packs)
 
     def describe_organization_conformance_pack_statuses(self):
         statuses = self.config_backend.describe_organization_conformance_pack_statuses(
             self._get_param("OrganizationConformancePackNames")
         )
-
         return json.dumps(statuses)
 
     def get_organization_conformance_pack_detailed_status(self):
@@ -201,14 +199,12 @@ class ConfigResponse(BaseResponse):
         statuses = self.config_backend.get_organization_conformance_pack_detailed_status(
             self._get_param("OrganizationConformancePackName")
         )
-
         return json.dumps(statuses)
 
     def delete_organization_conformance_pack(self):
         self.config_backend.delete_organization_conformance_pack(
             self._get_param("OrganizationConformancePackName")
         )
-
         return ""
 
     def tag_resource(self):
@@ -221,4 +217,20 @@ class ConfigResponse(BaseResponse):
         self.config_backend.untag_resource(
             self._get_param("ResourceArn"), self._get_param("TagKeys"),
         )
+        return ""
+
+    def put_config_rule(self):
+        self.config_backend.put_config_rule(
+            self.region, self._get_param("ConfigRule"), self._get_param("Tags"),
+        )
+        return ""
+
+    def describe_config_rules(self):
+        rules = self.config_backend.describe_config_rules(
+            self._get_param("ConfigRuleNames"), self._get_param("NextToken"),
+        )
+        return json.dumps(rules)
+
+    def delete_config_rule(self):
+        self.config_backend.delete_config_rule(self._get_param("ConfigRuleName"))
         return ""

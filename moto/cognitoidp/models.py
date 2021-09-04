@@ -1005,6 +1005,39 @@ class CognitoIdpBackend(BaseBackend):
                     "SECRET_BLOCK": session,
                 },
             }
+        elif auth_flow == "USER_PASSWORD_AUTH":
+            username = auth_parameters.get("USERNAME")
+            password = auth_parameters.get("PASSWORD")
+
+            user = user_pool.users.get(username)
+
+            if not user:
+                raise UserNotFoundError(username)
+
+            if user.password != password:
+                raise NotAuthorizedError("Incorrect username or password.")
+
+            if user.status == UserStatus["UNCONFIRMED"]:
+                raise UserNotConfirmedException("User is not confirmed.")
+
+            session = str(uuid.uuid4())
+            self.sessions[session] = user_pool
+
+            access_token, expires_in = user_pool.create_access_token(
+                client_id, username
+            )
+            id_token, _ = user_pool.create_id_token(client_id, username)
+            refresh_token = user_pool.create_refresh_token(client_id, username)
+
+            return {
+                "AuthenticationResult": {
+                    "IdToken": id_token,
+                    "AccessToken": access_token,
+                    "ExpiresIn": expires_in,
+                    "RefreshToken": refresh_token,
+                    "TokenType": "Bearer",
+                }
+            }
         elif auth_flow == "REFRESH_TOKEN":
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             if not refresh_token:

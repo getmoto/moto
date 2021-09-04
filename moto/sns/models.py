@@ -365,7 +365,7 @@ class SNSBackend(BaseBackend):
     def __init__(self, region_name):
         super(SNSBackend, self).__init__()
         self.topics = OrderedDict()
-        self.subscriptions = OrderedDict()
+        self.subscriptions: OrderedDict[str, Subscription] = OrderedDict()
         self.applications = {}
         self.platform_endpoints = {}
         self.region_name = region_name
@@ -627,10 +627,12 @@ class SNSBackend(BaseBackend):
             raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
 
     def get_subscription_attributes(self, arn):
-        _subscription = [_ for _ in self.subscriptions.values() if _.arn == arn]
-        if not _subscription:
-            raise SNSNotFoundError("Subscription with arn {0} not found".format(arn))
-        subscription = _subscription[0]
+        subscription = self.subscriptions.get(arn)
+
+        if not subscription:
+            raise SNSNotFoundError(
+                "Subscription does not exist", template="wrapped_single_error"
+            )
 
         return subscription.attributes
 

@@ -16,7 +16,11 @@ from moto.events import mock_events
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
-    {"Name": "test2", "ScheduleExpression": "rate(1 minute)"},
+    {
+        "Name": "test2",
+        "ScheduleExpression": "rate(1 minute)",
+        "Tags": [{"Key": "tagk1", "Value": "tagv1"}],
+    },
     {"Name": "test3", "EventPattern": '{"source": ["test-source"]}'},
 ]
 
@@ -66,6 +70,7 @@ def generate_environment():
             Name=rule["Name"],
             ScheduleExpression=rule.get("ScheduleExpression", ""),
             EventPattern=rule.get("EventPattern", ""),
+            Tags=rule.get("Tags", []),
         )
 
         targets = []
@@ -203,11 +208,21 @@ def test_enable_disable_rule():
     assert rule["State"] == "ENABLED"
 
     # Test invalid name
-    try:
+    with pytest.raises(ClientError) as ex:
         client.enable_rule(Name="junk")
 
-    except ClientError as ce:
-        assert ce.response["Error"]["Code"] == "ResourceNotFoundException"
+    err = ex.value.response["Error"]
+    err["Code"] == "ResourceNotFoundException"
+
+
+@mock_events
+def test_disable_unknown_rule():
+    client = generate_environment()
+
+    with pytest.raises(ClientError) as ex:
+        client.disable_rule(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Rule unknown does not exist.")
 
 
 @mock_events
@@ -450,6 +465,30 @@ def test_permissions():
     resp_policy = json.loads(resp["Policy"])
     assert len(resp_policy["Statement"]) == 1
     assert resp_policy["Statement"][0]["Sid"] == "Account1"
+
+
+@mock_events
+def test_permission_policy():
+    client = boto3.client("events", "eu-central-1")
+
+    policy = {
+        "Statement": [
+            {
+                "Sid": "asdf",
+                "Action": "events:PutEvents",
+                "Principal": "111111111111",
+                "StatementId": "Account1",
+                "Effect": "n/a",
+                "Resource": "n/a",
+            }
+        ]
+    }
+    client.put_permission(Policy=json.dumps(policy))
+
+    resp = client.describe_event_bus()
+    resp_policy = json.loads(resp["Policy"])
+    resp_policy["Statement"].should.have.length_of(1)
+    resp_policy["Statement"][0]["Sid"].should.equal("asdf")
 
 
 @mock_events
@@ -840,9 +879,37 @@ def test_delete_event_bus_errors():
 
 
 @mock_events
+def test_create_rule_with_tags():
+    client = generate_environment()
+    rule_name = "test2"
+    rule_arn = client.describe_rule(Name=rule_name).get("Arn")
+
+    actual = client.list_tags_for_resource(ResourceARN=rule_arn)["Tags"]
+    actual.should.equal([{"Key": "tagk1", "Value": "tagv1"}])
+
+
+@mock_events
+def test_delete_rule_with_tags():
+    client = generate_environment()
+    rule_name = "test2"
+    rule_arn = client.describe_rule(Name=rule_name).get("Arn")
+    client.delete_rule(Name=rule_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceARN=rule_arn)
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Rule test2 does not exist on EventBus default.")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_rule(Name=rule_name)
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Rule test2 does not exist.")
+
+
+@mock_events
 def test_rule_tagging_happy():
     client = generate_environment()
-    rule_name = get_random_rule()["Name"]
+    rule_name = "test1"
     rule_arn = client.describe_rule(Name=rule_name).get("Arn")
 
     tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
@@ -1050,7 +1117,9 @@ def test_create_archive_error_invalid_event_pattern():
     ex.operation_name.should.equal("CreateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: Invalid JSON"
+    )
 
 
 @mock_events
@@ -1080,7 +1149,9 @@ def test_create_archive_error_invalid_event_pattern_not_an_array():
     ex.operation_name.should.equal("CreateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: 'key_6' must be an object or an array"
+    )
 
 
 @mock_events
@@ -1378,7 +1449,9 @@ def test_update_archive_error_invalid_event_pattern():
     ex.operation_name.should.equal("UpdateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: Invalid JSON"
+    )
 
 
 @mock_events
@@ -2190,6 +2263,40 @@ def test_create_and_describe_connection():
 
 
 @mock_events
+def test_create_and_update_connection():
+    client = boto3.client("events", "eu-central-1")
+
+    client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    client.update_connection(Name="test", Description="updated desc")
+
+    description = client.describe_connection(Name="test")
+
+    description["Name"].should.equal("test")
+    description["Description"].should.equal("updated desc")
+    description["AuthorizationType"].should.equal("API_KEY")
+    description["ConnectionState"].should.equal("AUTHORIZED")
+    description.should.have.key("CreationTime")
+
+
+@mock_events
+def test_update_unknown_connection():
+    client = boto3.client("events", "eu-north-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_connection(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Connection 'unknown' does not exist.")
+
+
+@mock_events
 def test_delete_connection():
     client = boto3.client("events", "eu-central-1")
 
@@ -2329,6 +2436,26 @@ def test_delete_api_destination():
     client.list_api_destinations()["ApiDestinations"].should.have.length_of(0)
 
 
+@mock_events
+def test_describe_unknown_api_destination():
+    client = boto3.client("events", "eu-central-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_api_destination(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("An api-destination 'unknown' does not exist.")
+
+
+@mock_events
+def test_delete_unknown_api_destination():
+    client = boto3.client("events", "eu-central-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_api_destination(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("An api-destination 'unknown' does not exist.")
+
+
 # Scenarios for describe_connection
 # Scenario 01: Success
 # Scenario 02: Failure - Connection not present
@@ -2399,7 +2526,6 @@ def test_delete_connection_success():
     response = client.delete_connection(Name=conn_name)
 
     # Then
-    expected_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:connection/{conn_name}/"
     assert response["ConnectionArn"] == created_connection["ConnectionArn"]
     assert response["ConnectionState"] == created_connection["ConnectionState"]
     assert response["CreationTime"] == created_connection["CreationTime"]

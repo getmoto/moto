@@ -21,6 +21,7 @@ from .exceptions import (
     InvalidStateTransitionException,
     VersionConflictException,
     ResourceAlreadyExistsException,
+    VersionsLimitExceededException,
 )
 
 
@@ -514,6 +515,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                # note - typo (depreated) exists also in the original exception.
+                raise InvalidRequestException(
+                    msg=f"Can not create new thing with depreated thing type:{thing_type_name}"
+                )
         if attribute_payload is None:
             attributes = {}
         elif "attributes" not in attribute_payload:
@@ -628,6 +635,15 @@ class IoTBackend(BaseBackend):
         thing_type = self.describe_thing_type(thing_type_name)
         del self.thing_types[thing_type.arn]
 
+    def deprecate_thing_type(self, thing_type_name, undo_deprecate):
+        thing_types = [
+            _ for _ in self.thing_types.values() if _.thing_type_name == thing_type_name
+        ]
+        if len(thing_types) == 0:
+            raise ResourceNotFoundException()
+        thing_types[0].metadata["deprecated"] = not undo_deprecate
+        return thing_types[0]
+
     def update_thing(
         self,
         thing_name,
@@ -652,6 +668,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                raise InvalidRequestException(
+                    msg=f"Can not update a thing to use deprecated thing type: {thing_type_name}"
+                )
+
             thing.thing_type = thing_type
 
         if remove_thing_type:
@@ -815,6 +837,8 @@ class IoTBackend(BaseBackend):
         policy = self.get_policy(policy_name)
         if not policy:
             raise ResourceNotFoundException()
+        if len(policy.versions) >= 5:
+            raise VersionsLimitExceededException(policy_name)
         version = FakePolicyVersion(
             policy_name, policy_document, set_as_default, self.region_name
         )
@@ -1353,7 +1377,7 @@ class IoTBackend(BaseBackend):
             topic_pattern=topic,
             sql=sql,
             region_name=self.region_name,
-            **kwargs
+            **kwargs,
         )
 
     def replace_topic_rule(self, rule_name, **kwargs):

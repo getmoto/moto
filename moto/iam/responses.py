@@ -125,7 +125,7 @@ class IamResponse(BaseResponse):
         entity_groups = []
         entity_users = []
 
-        if entity == "User":
+        if not entity or entity == "User":
             users = iam_backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
@@ -133,7 +133,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_users.append(user.name)
 
-        elif entity == "Role":
+        if not entity or entity == "Role":
             roles, _ = iam_backend.list_roles(path_prefix, marker, max_items)
             if roles:
                 for role in roles:
@@ -141,7 +141,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_roles.append(role.name)
 
-        elif entity == "Group":
+        if not entity or entity == "Group":
             groups = iam_backend.list_groups()
             if groups:
                 for group in groups:
@@ -149,7 +149,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_groups.append(group.name)
 
-        elif entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
+        if entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
             users = iam_backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
@@ -324,7 +324,7 @@ class IamResponse(BaseResponse):
         tags = self._get_multi_param("Tags.member")
 
         profile = iam_backend.create_instance_profile(
-            profile_name, path, role_ids=[], tags=tags
+            profile_name, path, role_names=[], tags=tags
         )
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)

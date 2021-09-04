@@ -1,14 +1,18 @@
-from __future__ import unicode_literals
+"""{{ service_class }}Backend class with methods for supported APIs."""
 from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 
 
 class {{ service_class }}Backend(BaseBackend):
+
+    """Implementation of {{ service_class }} APIs."""
+
     def __init__(self, region_name=None):
-        super({{ service_class }}Backend, self).__init__()
         self.region_name = region_name
 
     def reset(self):
+        """Re-initialize all attributes for this instance."""
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
@@ -17,9 +21,13 @@ class {{ service_class }}Backend(BaseBackend):
 
 
 {{ escaped_service }}_backends = {}
-for region in Session().get_available_regions("{{ service }}"):
-    {{ escaped_service }}_backends[region] = {{ service_class }}Backend()
-for region in Session().get_available_regions("{{ service }}", partition_name="aws-us-gov"):
-    {{ escaped_service }}_backends[region] = {{ service_class }}Backend()
-for region in Session().get_available_regions("{{ service }}", partition_name="aws-cn"):
-    {{ escaped_service }}_backends[region] = {{ service_class }}Backend()
+for available_region in Session().get_available_regions("{{ service }}"):
+    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend()
+for available_region in Session().get_available_regions(
+    "{{ service }}", partition_name="aws-us-gov"
+):
+    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend()
+for available_region in Session().get_available_regions(
+    "{{ service }}", partition_name="aws-cn"
+):
+    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend()

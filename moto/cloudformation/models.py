@@ -402,7 +402,7 @@ class FakeChangeSet(BaseModel):
 
     def diff(self):
         changes = []
-        resources_by_action = self.stack.resource_map.diff(
+        resources_by_action = self.stack.resource_map.build_change_set_actions(
             self.template_dict, self.parameters
         )
         for action, resources in resources_by_action.items():

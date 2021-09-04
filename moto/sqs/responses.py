@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
+    InvalidAddress,
     InvalidAttributeName,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
@@ -51,11 +52,14 @@ class SQSResponse(BaseResponse):
 
     def _get_queue_name(self):
         try:
-            queue_name = self.querystring.get("QueueUrl")[0].split("/")[-1]
+            queue_url = self.querystring.get("QueueUrl")[0]
+            if queue_url.startswith("http://") or queue_url.startswith("https://"):
+                return queue_url.split("/")[-1]
+            else:
+                raise InvalidAddress(queue_url)
         except TypeError:
-            # Fallback to reading from the URL
-            queue_name = self.path.split("/")[-1]
-        return queue_name
+            # Fallback to reading from the URL for botocore
+            return self.path.split("/")[-1]
 
     def _get_validated_visibility_timeout(self, timeout=None):
         """
@@ -91,14 +95,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        tags = {}
-        tags_param = self._get_multi_param("Tag")
-        # Returns [{'Key': 'Foo', 'Value': 'Bar'}]
-        if tags_param:
-            for tag in tags_param:
-                tags[tag["Key"]] = tag["Value"]
-
-        queue = self.sqs_backend.create_queue(queue_name, tags, **self.attribute)
+        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -202,6 +199,10 @@ class SQSResponse(BaseResponse):
 
         attribute_names = self._get_multi_param("AttributeName")
 
+        # if connecting to AWS via boto, then 'AttributeName' is just a normal parameter
+        if not attribute_names:
+            attribute_names = self.querystring.get("AttributeName")
+
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
@@ -226,15 +227,11 @@ class SQSResponse(BaseResponse):
     def delete_queue(self):
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.delete_queue(queue_name)
-        if not queue:
-            return (
-                "A queue with name {0} does not exist".format(queue_name),
-                dict(status=404),
-            )
+
+        self.sqs_backend.delete_queue(queue_name)
 
         template = self.response_template(DELETE_QUEUE_RESPONSE)
-        return template.render(queue=queue)
+        return template.render()
 
     def send_message(self):
         message = self._get_param("MessageBody")

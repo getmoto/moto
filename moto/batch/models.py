@@ -460,11 +460,12 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
-            self.job_state = "STARTING"
+
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             image_repository, image_tag = parse_image_ref(image)
             # avoid explicit pulling here, to allow using cached images
             # self.docker_client.images.pull(image_repository, image_tag)
+            self.job_state = "STARTING"
             container = self.docker_client.containers.run(
                 image,
                 cmd,
@@ -1356,6 +1357,12 @@ class BatchBackend(BaseBackend):
             jobs.append(job)
 
         return jobs
+
+    def cancel_job(self, job_id, reason):
+        job = self.get_job_by_id(job_id)
+        if job.job_state in ["SUBMITTED", "PENDING", "RUNNABLE"]:
+            job.terminate(reason)
+        # No-Op for jobs that have already started - user has to explicitly terminate those
 
     def terminate_job(self, job_id, reason):
         if job_id is None:

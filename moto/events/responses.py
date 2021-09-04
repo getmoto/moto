@@ -1,5 +1,4 @@
 import json
-import re
 
 from moto.core.responses import BaseResponse
 from moto.events import events_backends
@@ -15,20 +14,6 @@ class EventsHandler(BaseResponse):
         :rtype: moto.events.models.EventsBackend
         """
         return events_backends[self.region]
-
-    def _generate_rule_dict(self, rule):
-        return {
-            "Name": rule.name,
-            "Arn": rule.arn,
-            "EventPattern": str(rule.event_pattern),
-            "State": rule.state,
-            "Description": rule.description,
-            "ScheduleExpression": rule.schedule_exp,
-            "RoleArn": rule.role_arn,
-            "ManagedBy": rule.managed_by,
-            "EventBusName": rule.event_bus_name,
-            "CreatedBy": rule.created_by,
-        }
 
     @property
     def request_params(self):
@@ -61,6 +46,29 @@ class EventsHandler(BaseResponse):
         headers["status"] = status
         return json.dumps({"__type": type_, "message": message}), headers
 
+    def put_rule(self):
+        name = self._get_param("Name")
+        event_pattern = self._get_param("EventPattern")
+        scheduled_expression = self._get_param("ScheduleExpression")
+        state = self._get_param("State")
+        desc = self._get_param("Description")
+        role_arn = self._get_param("RoleArn")
+        event_bus_name = self._get_param("EventBusName")
+        tags = self._get_param("Tags")
+
+        rule = self.events_backend.put_rule(
+            name,
+            scheduled_expression=scheduled_expression,
+            event_pattern=event_pattern,
+            state=state,
+            description=desc,
+            role_arn=role_arn,
+            event_bus_name=event_bus_name,
+            tags=tags,
+        )
+        result = {"RuleArn": rule.arn}
+        return self._create_response(result)
+
     def delete_rule(self):
         name = self._get_param("Name")
 
@@ -78,13 +86,8 @@ class EventsHandler(BaseResponse):
 
         rule = self.events_backend.describe_rule(name)
 
-        if not rule:
-            return self.error(
-                "ResourceNotFoundException", "Rule " + name + " does not exist."
-            )
-
-        rule_dict = self._generate_rule_dict(rule)
-        return json.dumps(rule_dict), self.response_headers
+        result = rule.describe()
+        return self._create_response(result)
 
     def disable_rule(self):
         name = self._get_param("Name")
@@ -138,7 +141,7 @@ class EventsHandler(BaseResponse):
         rules_obj = {"Rules": []}
 
         for rule in rules["Rules"]:
-            rules_obj["Rules"].append(self._generate_rule_dict(rule))
+            rules_obj["Rules"].append(rule.describe())
 
         if rules.get("NextToken"):
             rules_obj["NextToken"] = rules["NextToken"]
@@ -176,48 +179,6 @@ class EventsHandler(BaseResponse):
         }
 
         return json.dumps(response)
-
-    def put_rule(self):
-        name = self._get_param("Name")
-        event_pattern = self._get_param("EventPattern")
-        sched_exp = self._get_param("ScheduleExpression")
-        state = self._get_param("State")
-        desc = self._get_param("Description")
-        role_arn = self._get_param("RoleArn")
-        event_bus_name = self._get_param("EventBusName", "default")
-
-        if event_pattern:
-            try:
-                json.loads(event_pattern)
-            except ValueError:
-                # Not quite as informative as the real error, but it'll work
-                # for now.
-                return self.error(
-                    "InvalidEventPatternException", "Event pattern is not valid."
-                )
-
-        if sched_exp:
-            if not (
-                re.match(r"^cron\(.*\)", sched_exp)
-                or re.match(
-                    r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)", sched_exp
-                )
-            ):
-                return self.error(
-                    "ValidationException", "Parameter ScheduleExpression is not valid."
-                )
-
-        rule = self.events_backend.put_rule(
-            name,
-            ScheduleExpression=sched_exp,
-            EventPattern=event_pattern,
-            State=state,
-            Description=desc,
-            RoleArn=role_arn,
-            EventBusName=event_bus_name,
-        )
-
-        return json.dumps({"RuleArn": rule.arn}), self.response_headers
 
     def put_targets(self):
         rule_name = self._get_param("Rule")
