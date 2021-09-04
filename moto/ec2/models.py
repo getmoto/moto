@@ -5562,6 +5562,30 @@ class SpotFleetBackend(object):
         return True
 
 
+class SpotPriceBackend(object):
+    def describe_spot_price_history(self, instance_types=None, filters=None):
+        matches = INSTANCE_TYPE_OFFERINGS["availability-zone"]
+        matches = matches[self.region_name]
+
+        def matches_filters(offering, filters):
+            def matches_filter(key, values):
+                if key == "availability-zone":
+                    return offering.get("Location") in values
+                elif key == "instance-type":
+                    return offering.get("InstanceType") in values
+                else:
+                    return False
+
+            return all([matches_filter(key, values) for key, values in filters.items()])
+
+        matches = [o for o in matches if matches_filters(o, filters)]
+
+        if instance_types:
+            matches = [t for t in matches if t.get("InstanceType") in instance_types]
+
+        return matches
+
+
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, ec2_backend, domain, address=None, tags=None):
         self.ec2_backend = ec2_backend
@@ -7568,6 +7592,7 @@ class EC2Backend(
     VPCGatewayAttachmentBackend,
     SpotFleetBackend,
     SpotRequestBackend,
+    SpotPriceBackend,
     ElasticAddressBackend,
     KeyPairBackend,
     DHCPOptionsSetBackend,
