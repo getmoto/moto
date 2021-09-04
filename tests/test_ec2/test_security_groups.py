@@ -242,8 +242,10 @@ def test_authorize_ip_range_and_revoke():
     security_group.rules.should.have.length_of(0)
 
     # Test for egress as well
+    vpc_conn = boto.connect_vpc()
+    vpc = vpc_conn.create_vpc("10.0.0.0/16")
     egress_security_group = conn.create_security_group(
-        "testegress", "testegress", vpc_id="vpc-3432589"
+        "testegress", "testegress", vpc_id=vpc.id
     )
 
     with pytest.raises(EC2ResponseError) as ex:
@@ -308,7 +310,11 @@ def test_authorize_ip_range_and_revoke():
         cidr_ip="123.123.123.123/32",
     )
 
-    egress_security_group = conn.get_all_security_groups()[0]
+    egress_security_group = [
+        group
+        for group in conn.get_all_security_groups()
+        if group.id == egress_security_group.id
+    ][0]
     # There is still the default outbound rule
     egress_security_group.rules_egress.should.have.length_of(1)
 
@@ -576,9 +582,7 @@ def test_sec_group_rule_limit():
         group_id=sg.id, ip_protocol="-1", src_group_id=other_sg.id
     )
     # fill the rules up the limit
-    # remember that by default, when created a sec group contains 1 egress rule
-    # so our other_sg rule + 98 CIDR IP rules + 1 by default == 100 the limit
-    for i in range(1, 99):
+    for i in range(1, 100):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
@@ -902,26 +906,80 @@ def test_authorize_and_revoke_in_bulk():
             "PrefixListIds": [],
         },
     ]
-    expected_ip_permissions = copy.deepcopy(ip_permissions)
-    expected_ip_permissions[1]["UserIdGroupPairs"][0]["GroupName"] = "sg02"
-    expected_ip_permissions[2]["UserIdGroupPairs"][0]["GroupId"] = sg03.id
-    expected_ip_permissions[3]["UserIdGroupPairs"][0]["GroupId"] = sg04.id
-    expected_ip_permissions[4]["UserIdGroupPairs"][0]["GroupName"] = "sg04"
 
-    sg01.authorize_ingress(IpPermissions=ip_permissions)
-    sg01.ip_permissions.should.have.length_of(5)
+    org_ip_permissions = copy.deepcopy(ip_permissions)
+
+    for rule in ip_permissions.copy():
+        for other_rule in ip_permissions.copy():
+            if (
+                rule is not other_rule
+                and rule.get("IpProtocol") == other_rule.get("IpProtocol")
+                and rule.get("FromPort") == other_rule.get("FromPort")
+                and rule.get("ToPort") == other_rule.get("ToPort")
+            ):
+                if rule in ip_permissions:
+                    ip_permissions.remove(rule)
+                if other_rule in ip_permissions:
+                    ip_permissions.remove(other_rule)
+
+                rule["UserIdGroupPairs"].extend(
+                    [
+                        item
+                        for item in other_rule["UserIdGroupPairs"]
+                        if item not in rule["UserIdGroupPairs"]
+                    ]
+                )
+                rule["IpRanges"].extend(
+                    [
+                        item
+                        for item in other_rule["IpRanges"]
+                        if item not in rule["IpRanges"]
+                    ]
+                )
+                rule["Ipv6Ranges"].extend(
+                    [
+                        item
+                        for item in other_rule["Ipv6Ranges"]
+                        if item not in rule["Ipv6Ranges"]
+                    ]
+                )
+                rule["PrefixListIds"].extend(
+                    [
+                        item
+                        for item in other_rule["PrefixListIds"]
+                        if item not in rule["PrefixListIds"]
+                    ]
+                )
+                if rule not in ip_permissions:
+                    ip_permissions.append(json.loads(json.dumps(rule, sort_keys=True)))
+
+    expected_ip_permissions = copy.deepcopy(ip_permissions)
+    expected_ip_permissions[1]["UserIdGroupPairs"][0]["GroupId"] = sg04.id
+    expected_ip_permissions[3]["UserIdGroupPairs"][0]["GroupId"] = sg03.id
+    expected_ip_permissions = json.dumps(expected_ip_permissions, sort_keys=True)
+
+    sg01.authorize_ingress(IpPermissions=org_ip_permissions)
+    # Due to drift property of the Security Group,
+    # rules with same Ip protocol, FromPort and ToPort will be merged together
+    sg01.ip_permissions.should.have.length_of(4)
+    sorted_sg01_ip_permissions = json.dumps(sg01.ip_permissions, sort_keys=True)
     for ip_permission in expected_ip_permissions:
-        sg01.ip_permissions.should.contain(ip_permission)
+        sorted_sg01_ip_permissions.should.contain(ip_permission)
 
     sg01.revoke_ingress(IpPermissions=ip_permissions)
     sg01.ip_permissions.should.be.empty
     for ip_permission in expected_ip_permissions:
         sg01.ip_permissions.shouldnt.contain(ip_permission)
 
-    sg01.authorize_egress(IpPermissions=ip_permissions)
-    sg01.ip_permissions_egress.should.have.length_of(6)
+    sg01.authorize_egress(IpPermissions=org_ip_permissions)
+    # Due to drift property of the Security Group,
+    # rules with same Ip protocol, FromPort and ToPort will be merged together
+    sg01.ip_permissions_egress.should.have.length_of(5)
+    sorted_sg01_ip_permissions_egress = json.dumps(
+        sg01.ip_permissions_egress, sort_keys=True
+    )
     for ip_permission in expected_ip_permissions:
-        sg01.ip_permissions_egress.should.contain(ip_permission)
+        sorted_sg01_ip_permissions_egress.should.contain(ip_permission)
 
     sg01.revoke_egress(IpPermissions=ip_permissions)
     sg01.ip_permissions_egress.should.have.length_of(1)
@@ -983,7 +1041,10 @@ def test_get_all_security_groups_filter_with_same_vpc_id():
 @mock_ec2
 def test_revoke_security_group_egress():
     ec2 = boto3.resource("ec2", "us-east-1")
-    sg = ec2.create_security_group(Description="Test SG", GroupName="test-sg")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = ec2.create_security_group(
+        Description="Test SG", GroupName="test-sg", VpcId=vpc.id
+    )
 
     sg.ip_permissions_egress.should.equal(
         [
@@ -1047,7 +1108,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
         "ip_protocol": "udp",
         "ip_ranges": [],
         "to_port": 65535,
-        "source_group_ids": [sg.id],
+        "source_groups": [{"GroupId": sg.id}],
     }
     ec2_backend.authorize_security_group_ingress(**rule_ingress)
     rule_egress = {
@@ -1056,7 +1117,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
         "ip_protocol": "tcp",
         "ip_ranges": [],
         "to_port": 8443,
-        "source_group_ids": [sg.id],
+        "source_groups": [{"GroupId": sg.id}],
     }
     ec2_backend.authorize_security_group_egress(**rule_egress)
     # Both rules (plus the default egress) should now be present.
