@@ -5562,8 +5562,8 @@ class SpotFleetBackend(object):
         return True
 
 
-class SpotPrice(object):
-    def describe_spot_price_history(self, instance_types=[], filters=None):
+class SpotPriceBackend(object):
+    def describe_spot_price_history(self, instance_types=None, filters=None):
         matches = INSTANCE_TYPE_OFFERINGS["availability-zone"]
         matches = matches[self.region_name]
 
@@ -7592,7 +7592,7 @@ class EC2Backend(
     VPCGatewayAttachmentBackend,
     SpotFleetBackend,
     SpotRequestBackend,
-    SpotPrice,
+    SpotPriceBackend,
     ElasticAddressBackend,
     KeyPairBackend,
     DHCPOptionsSetBackend,

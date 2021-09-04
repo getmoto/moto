@@ -318,6 +318,7 @@ def test_launch_instance_instance_lifecycle():
 @mock_ec2
 def test_spot_price_history():
     client = boto3.client("ec2", region_name="us-east-1")
+    # test filter
     response = client.describe_spot_price_history(
         Filters=[
             {"Name": "availability-zone", "Values": ["us-east-1a"]},
@@ -327,3 +328,9 @@ def test_spot_price_history():
     price = response["SpotPriceHistory"][0]
     price["InstanceType"].should.equal("t3a.micro")
     price["AvailabilityZone"].should.equal("us-east-1a")
+
+    # test instance types
+    i_types = ["t3a.micro", "t3.micro"]
+    response = client.describe_spot_price_history(InstanceTypes=i_types)
+    price = response["SpotPriceHistory"][0]
+    assert price["InstanceType"] in i_types
