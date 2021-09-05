@@ -67,6 +67,25 @@ def report_unimplemented_destination(destination_name):
         )
 
 
+def create_s3_destination_config(extended_s3_destination_config):
+    """Return dict with selected fields copied from ExtendedS3 config.
+
+    This has something to do with S3 being deprecated.
+    """
+    fields_not_needed = [
+        "S3BackupMode",
+        "S3Description",
+        "DataFormatconversionConfiguration",
+        "DynamicPartitionConfiguration",
+    ]
+    destination = {}
+    for field, value in extended_s3_destination_config.items():
+        if field in fields_not_needed:
+            continue
+        destination[field] = value
+    return destination
+
+
 class DeliveryStream(
     BaseModel
 ):  # pylint: disable=too-few-public-methods,too-many-instance-attributes
@@ -85,24 +104,29 @@ class DeliveryStream(
         destination_name,
         destination_config,
     ):  # pylint: disable=too-many-arguments
-        self.state = "CREATING"
+        self.delivery_stream_status = "CREATING"
         self.delivery_stream_name = delivery_stream_name
         self.delivery_stream_type = (
             delivery_stream_type if delivery_stream_type else "DirectPut"
         )
 
-        self.source_config = kinesis_stream_source_configuration
+        self.source = kinesis_stream_source_configuration
         self.destinations = [
             {
                 "destination_id": "destinationId-000000000001",
                 destination_name: destination_config,
             }
         ]
+        if destination_name == "ExtendedS3":
+            # Add a S3 destination as well, minus a few ExtendedS3 fields.
+            self.destinations[0]["S3"] = create_s3_destination_config(
+                destination_config
+            )
 
-        self.state = "ACTIVE"
-        self.arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
+        self.delivery_stream_status = "ACTIVE"
+        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
 
-        self.creation_timestamp = time.time()
+        self.create_timestamp = time.time()
         self.version_id = "1"  # Used to track updates of destination configs
 
 
@@ -127,6 +151,7 @@ class FirehoseBackend(BaseBackend):
 
     def create_delivery_stream(
         self,
+        region,
         delivery_stream_name,
         delivery_stream_type,
         kinesis_stream_source_configuration,
@@ -173,17 +198,17 @@ class FirehoseBackend(BaseBackend):
         # by delivery stream name.  This instance will update the state and
         # create the ARN.
         delivery_stream = DeliveryStream(
-            self.region_name,
+            region,
             delivery_stream_name,
             delivery_stream_type,
             kinesis_stream_source_configuration,
             destination_name,
             destination_config,
         )
-        self.tagger.tag_resource(delivery_stream.arn, tags or [])
+        self.tagger.tag_resource(delivery_stream.delivery_stream_arn, tags or [])
 
         self.delivery_streams[delivery_stream_name] = delivery_stream
-        return self.delivery_streams[delivery_stream_name].arn
+        return self.delivery_streams[delivery_stream_name].delivery_stream_arn
 
     def delete_delivery_stream(
         self, delivery_stream_name, allow_force_delete=False
@@ -200,16 +225,66 @@ class FirehoseBackend(BaseBackend):
                 f"not found."
             )
 
-        self.tagger.delete_all_tags_for_resource(delivery_stream.arn)
+        self.tagger.delete_all_tags_for_resource(delivery_stream.delivery_stream_arn)
 
         # The following logic is not applicable for moto as far as I can tell.
-        # if delivery_stream.state == "CREATING":
+        # if delivery_stream.delivery_stream_status == "CREATING":
         #     raise ResourceInUseException(
         #         f"The hose {delivery_stream_name} is currently being deleted.
         #         f"Please retry after some time"
         #     )
-        delivery_stream.state = "DELETING"
+        delivery_stream.delivery_stream_status = "DELETING"
         self.delivery_streams.pop(delivery_stream_name)
+
+    def describe_delivery_stream(
+        self, delivery_stream_name, limit, exclusive_start_destination_id,
+    ):  # pylint: disable=unused-argument
+        """Return description of specified delivery stream and its status.
+
+        Note:  the 'limit' and 'exclusive_start_destination_id' parameters
+        are not currently processed/implemented.
+        """
+        delivery_stream = self.delivery_streams.get(delivery_stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"not found."
+            )
+
+        result = {"DeliveryStreamDescription": {}, "HasMoreDestinations": False}
+        for attribute, attribute_value in vars(delivery_stream).items():
+            if not attribute_value:
+                continue
+
+            # Convert from attribute's snake case to camel case for outgoing
+            # JSON.
+            name = "".join([x.capitalize() for x in attribute.split("_")])
+
+            # Fooey ... always an exception to the rule:
+            if name == "DeliveryStreamArn":
+                name = "DeliveryStreamARN"
+
+            if name != "Destinations":
+                if name == "Source":
+                    result["DeliveryStreamDescription"][name] = {
+                        "KinesisStreamSourceDescription": attribute_value
+                    }
+                else:
+                    result["DeliveryStreamDescription"][name] = attribute_value
+                continue
+
+            result["DeliveryStreamDescription"]["Destinations"] = []
+            for destination in attribute_value:
+                description = {}
+                for key, value in destination.items():
+                    if key == "destination_id":
+                        description["DestinationId"] = value
+                    else:
+                        description[f"{key}DestinationDescription"] = value
+
+                result["DeliveryStreamDescription"]["Destinations"].append(description)
+
+        return result
 
     def list_delivery_streams(
         self, limit, delivery_stream_type, exclusive_start_delivery_stream_name
@@ -249,10 +324,7 @@ class FirehoseBackend(BaseBackend):
         return result
 
     def list_tags_for_delivery_stream(
-        self,
-        delivery_stream_name,
-        exclusive_start_tag_key,
-        limit,
+        self, delivery_stream_name, exclusive_start_tag_key, limit,
     ):
         """Return list of tags."""
         result = {"Tags": [], "HasMoreTags": False}
@@ -263,7 +335,9 @@ class FirehoseBackend(BaseBackend):
                 f"not found."
             )
 
-        tags = self.tagger.list_tags_for_resource(delivery_stream.arn)["Tags"]
+        tags = self.tagger.list_tags_for_resource(delivery_stream.delivery_stream_arn)[
+            "Tags"
+        ]
         keys = self.tagger.extract_tag_names(tags)
 
         # If a starting tag is given and can be found, find the index into
@@ -299,7 +373,7 @@ class FirehoseBackend(BaseBackend):
         if errmsg:
             raise ValidationException(errmsg)
 
-        self.tagger.tag_resource(delivery_stream.arn, tags)
+        self.tagger.tag_resource(delivery_stream.delivery_stream_arn, tags)
 
     def untag_delivery_stream(self, delivery_stream_name, tag_keys):
         """Removes tags from specified delivery stream."""
@@ -311,7 +385,9 @@ class FirehoseBackend(BaseBackend):
             )
 
         # If a tag key doesn't exist for the stream, boto3 ignores it.
-        self.tagger.untag_resource_using_names(delivery_stream.arn, tag_keys)
+        self.tagger.untag_resource_using_names(
+            delivery_stream.delivery_stream_arn, tag_keys
+        )
 
     def update_destination(
         self,
@@ -325,7 +401,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_update,
         splunk_destination_update,
         http_endpoint_destination_update,
-    ):  # pylint: disable=unused-argument,too-many-arguments
+    ):  # pylint: disable=unused-argument,too-many-arguments,too-many-locals
         """Updates specified destination of specified delivery stream."""
         (destination_name, destination_config) = destination_config_in_args(locals())
 
@@ -347,9 +423,11 @@ class FirehoseBackend(BaseBackend):
             )
 
         destination = {}
+        destination_idx = 0
         for destination in delivery_stream.destinations:
             if destination["destination_id"] == destination_id:
                 break
+            destination_idx += 1
         else:
             raise InvalidArgumentException("Destination Id {destination_id} not found")
 
@@ -367,22 +445,38 @@ class FirehoseBackend(BaseBackend):
         # If this is a different type of destination configuration,
         # the existing configuration is reset first.
         if destination_name in destination:
-            # TODO - verify this is properly updated.
-            destination[destination_name].update(destination_config)
+            delivery_stream.destinations[destination_idx][destination_name].update(
+                destination_config
+            )
         else:
-            # This is a new destination; replace the old list.
-            delivery_stream.destinations = [
-                {"destination_id": destination_id, destination_name: destination_config}
-            ]
+            delivery_stream.destinations[destination_idx] = {
+                "destination_id": destination_id,
+                destination_name: destination_config,
+            }
+
+        # Once S3 is updated to an ExtendedS3 destination, both remain in
+        # the destination.  That means when one is updated, the other needs
+        # to be updated as well.  The problem is that they don't have the
+        # same fields.
+        if destination_name == "ExtendedS3":
+            delivery_stream.destinations[destination_idx][
+                "S3"
+            ] = create_s3_destination_config(destination_config)
+        elif destination_name == "S3" and "ExtendedS3" in destination:
+            destination["ExtendedS3"] = {
+                k: v
+                for k, v in destination["S3"].items()
+                if k in destination["ExtendedS3"]
+            }
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
         delivery_stream.last_update_timestamp = time.time()
 
-        # TODO Process the "S3BackupMode" parameter.  Per the documentation:
-        # "You can update a delivery stream to enable Amazon S3 backup if it
-        # is disabled.  If backup is enabled, you can't update the delivery
-        # stream to disable it."
+        # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
+        # documentation:  "You can update a delivery stream to enable Amazon
+        # S3 backup if it is disabled.  If backup is enabled, you can't update
+        # the delivery stream to disable it."
 
 
 firehose_backends = {}

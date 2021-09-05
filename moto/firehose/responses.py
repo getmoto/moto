@@ -16,6 +16,7 @@ class FirehoseResponse(BaseResponse):
     def create_delivery_stream(self):
         """Prepare arguments and respond to CreateDeliveryStream request."""
         delivery_stream_arn = self.firehose_backend.create_delivery_stream(
+            self.region,
             self._get_param("DeliveryStreamName"),
             self._get_param("DeliveryStreamType"),
             self._get_param("KinesisStreamSourceConfiguration"),
@@ -33,19 +34,18 @@ class FirehoseResponse(BaseResponse):
     def delete_delivery_stream(self):
         """Prepare arguments and respond to DeleteDeliveryStream request."""
         self.firehose_backend.delete_delivery_stream(
-            self._get_param("DeliveryStreamName"),
-            self._get_param("AllowForceDelete"),
+            self._get_param("DeliveryStreamName"), self._get_param("AllowForceDelete"),
         )
         return json.dumps({})
 
     def describe_delivery_stream(self):
         """Prepare arguments and respond to DescribeDeliveryStream request."""
-        self.firehose_backend.delete_delivery_stream(
+        result = self.firehose_backend.describe_delivery_stream(
             self._get_param("DeliveryStreamName"),
             self._get_param("Limit"),
             self._get_param("ExclusiveStartDestinationId"),
         )
-        return json.dumps({})
+        return json.dumps(result)
 
     def list_delivery_streams(self):
         """Prepare arguments and respond to ListDeliveryStreams request."""
@@ -65,19 +65,31 @@ class FirehoseResponse(BaseResponse):
         )
         return json.dumps(result)
 
+    def put_record(self):
+        """Prepare arguments and response to PutRecord()."""
+        result = self.firehose_backend.put_record(
+            self._get_param("DeliveryStreamName"), self._get_param("Record")
+        )
+        return json.dumps(result)
+
+    def put_record_batch(self):
+        """Prepare arguments and response to PutRecordBatch()."""
+        result = self.firehose_backend.put_record_batch(
+            self._get_param("DeliveryStreamName"), self._get_param("Records")
+        )
+        return json.dumps(result)
+
     def tag_delivery_stream(self):
         """Prepare arguments and respond to TagDeliveryStream request."""
         self.firehose_backend.tag_delivery_stream(
-            self._get_param("DeliveryStreamName"),
-            self._get_param("Tags"),
+            self._get_param("DeliveryStreamName"), self._get_param("Tags"),
         )
         return json.dumps({})
 
     def untag_delivery_stream(self):
         """Prepare arguments and respond to UntagDeliveryStream()."""
         self.firehose_backend.untag_delivery_stream(
-            self._get_param("DeliveryStreamName"),
-            self._get_param("TagKeys"),
+            self._get_param("DeliveryStreamName"), self._get_param("TagKeys"),
         )
         return json.dumps({})
 

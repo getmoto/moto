@@ -187,8 +187,157 @@ def test_delete_delivery_stream():
 @mock_firehose
 def test_describe_delivery_stream():
     """Test successful, failed invocations of describe_delivery_stream()."""
-    # TODO
-    assert True
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+    stream_name = f"test_describe_{get_random_hex(6)}"
+    role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/testrole"
+
+    # Create delivery stream with S3 destination, kinesis type and source
+    # for testing purposes.
+    client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        DeliveryStreamType="KinesisStreamAsSource",
+        KinesisStreamSourceConfiguration={
+            "KinesisStreamARN": f"arn:aws:kinesis:{TEST_REGION}:{ACCOUNT_ID}:stream/test-datastream",
+            "RoleARN": role_arn,
+        },
+        S3DestinationConfiguration=s3_dest_config,
+    )
+
+    labels_with_kinesis_source = {
+        "DeliveryStreamName",
+        "DeliveryStreamARN",
+        "DeliveryStreamStatus",
+        "DeliveryStreamType",
+        "VersionId",
+        "CreateTimestamp",
+        "Source",
+        "Destinations",
+    }
+
+    # Verify the created fields are as expected.
+    results = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    description = results["DeliveryStreamDescription"]
+    assert set(description.keys()) == labels_with_kinesis_source
+    assert description["DeliveryStreamName"] == stream_name
+    assert (
+        description["DeliveryStreamARN"]
+        == f"arn:aws:firehose:{TEST_REGION}:{ACCOUNT_ID}:/delivery_stream/{stream_name}"
+    )
+    assert description["DeliveryStreamStatus"] == "ACTIVE"
+    assert description["DeliveryStreamType"] == "KinesisStreamAsSource"
+    assert description["VersionId"] == "1"
+    assert (
+        description["Source"]["KinesisStreamSourceDescription"]["RoleARN"] == role_arn
+    )
+    assert len(description["Destinations"]) == 1
+    assert set(description["Destinations"][0].keys()) == {
+        "S3DestinationDescription",
+        "DestinationId",
+    }
+
+    # Update destination with ExtendedS3.
+    client.update_destination(
+        DeliveryStreamName=stream_name,
+        CurrentDeliveryStreamVersionId="1",
+        DestinationId="destinationId-000000000001",
+        ExtendedS3DestinationUpdate=s3_dest_config,
+    )
+
+    # Verify the created fields are as expected.  There should be one
+    # destination with two destination types.  The last update timestamp
+    # should be present and the version number updated.
+    results = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    description = results["DeliveryStreamDescription"]
+    assert set(description.keys()) == labels_with_kinesis_source | {
+        "LastUpdateTimestamp"
+    }
+    assert description["DeliveryStreamName"] == stream_name
+    assert (
+        description["DeliveryStreamARN"]
+        == f"arn:aws:firehose:{TEST_REGION}:{ACCOUNT_ID}:/delivery_stream/{stream_name}"
+    )
+    assert description["DeliveryStreamStatus"] == "ACTIVE"
+    assert description["DeliveryStreamType"] == "KinesisStreamAsSource"
+    assert description["VersionId"] == "2"
+    assert (
+        description["Source"]["KinesisStreamSourceDescription"]["RoleARN"] == role_arn
+    )
+    assert len(description["Destinations"]) == 1
+    assert set(description["Destinations"][0].keys()) == {
+        "S3DestinationDescription",
+        "DestinationId",
+        "ExtendedS3DestinationDescription",
+    }
+
+    # Update ExtendedS3 destination with a few different values.
+    client.update_destination(
+        DeliveryStreamName=stream_name,
+        CurrentDeliveryStreamVersionId="2",
+        DestinationId="destinationId-000000000001",
+        ExtendedS3DestinationUpdate={
+            "RoleARN": role_arn,
+            "BucketARN": "arn:aws:s3:::testbucket",
+            # IntervalInSeconds increased from 300 to 700.
+            "BufferingHints": {"IntervalInSeconds": 700, "SizeInMBs": 5},
+        },
+    )
+    results = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    description = results["DeliveryStreamDescription"]
+    assert description["VersionId"] == "3"
+    assert len(description["Destinations"]) == 1
+    destination = description["Destinations"][0]
+    assert (
+        destination["ExtendedS3DestinationDescription"]["BufferingHints"][
+            "IntervalInSeconds"
+        ]
+        == 700
+    )
+
+    # Verify S3 was added when ExtendedS3 was added.
+    assert set(destination.keys()) == {
+        "S3DestinationDescription",
+        "DestinationId",
+        "ExtendedS3DestinationDescription",
+    }
+    assert set(destination["S3DestinationDescription"].keys()) == {
+        "RoleARN",
+        "BucketARN",
+        "BufferingHints",
+    }
+
+    # Update delivery stream from ExtendedS3 to S3.
+    client.update_destination(
+        DeliveryStreamName=stream_name,
+        CurrentDeliveryStreamVersionId="3",
+        DestinationId="destinationId-000000000001",
+        S3DestinationUpdate={
+            "RoleARN": role_arn,
+            "BucketARN": "arn:aws:s3:::testbucket",
+            # IntervalInSeconds decreased from 700 to 500.
+            "BufferingHints": {"IntervalInSeconds": 500, "SizeInMBs": 5},
+        },
+    )
+    results = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    description = results["DeliveryStreamDescription"]
+    assert description["VersionId"] == "4"
+    assert len(description["Destinations"]) == 1
+    assert set(description["Destinations"][0].keys()) == {
+        "S3DestinationDescription",
+        "ExtendedS3DestinationDescription",
+        "DestinationId",
+    }
+    destination = description["Destinations"][0]
+    assert (
+        destination["ExtendedS3DestinationDescription"]["BufferingHints"][
+            "IntervalInSeconds"
+        ]
+        == 500
+    )
+    assert (
+        destination["S3DestinationDescription"]["BufferingHints"]["IntervalInSeconds"]
+        == 500
+    )
 
 
 @mock_firehose
@@ -388,8 +537,7 @@ def test_tag_delivery_stream():
     # Bad tags.
     with pytest.raises(ClientError) as exc:
         client.tag_delivery_stream(
-            DeliveryStreamName=stream_name,
-            Tags=[{"Key": "foo!", "Value": "bar"}],
+            DeliveryStreamName=stream_name, Tags=[{"Key": "foo!", "Value": "bar"}],
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
@@ -466,10 +614,7 @@ def test_update_destination():
             DeliveryStreamName=stream_name,
             CurrentDeliveryStreamVersionId="1",
             DestinationId="destinationId-000000000001",
-            S3DestinationUpdate={
-                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/different_role",
-                "BucketARN": "arn:aws:s3:::testbucket",
-            },
+            S3DestinationUpdate=s3_dest_config,
             ExtendedS3DestinationUpdate=s3_dest_config,
         )
     err = exc.value.response["Error"]
@@ -496,5 +641,3 @@ def test_update_destination():
         "Changing the destination type to or from HttpEndpoint is not "
         "supported at this time"
     ) in err["Message"]
-
-    # TODO positive cases
