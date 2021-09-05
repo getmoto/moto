@@ -72,6 +72,96 @@ def test_volume_size_through_cloudformation():
     volumes["Volumes"][0]["Size"].should.equal(50)
 
 
+@mock_ec2
+@mock_cloudformation
+def test_attach_internet_gateway():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+
+    volume_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "DEVLAB1": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {"CidrBlock": "10.0.0.0/16"},
+            },
+            "internetgateway": {"Type": "AWS::EC2::InternetGateway"},
+            "DEVLAB1VPGAttaching": {
+                "Type": "AWS::EC2::VPCGatewayAttachment",
+                "Properties": {
+                    "VpcId": {"Ref": "DEVLAB1"},
+                    "InternetGatewayId": {"Ref": "internetgateway"},
+                },
+            },
+        },
+    }
+    template_json = json.dumps(volume_template)
+    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
+    stack_resources = cf.list_stack_resources(StackName="test_stack")[
+        "StackResourceSummaries"
+    ]
+
+    # Verify VPC is created
+    vpc = [r for r in stack_resources if r["ResourceType"] == "AWS::EC2::VPC"][0]
+    vpc["LogicalResourceId"].should.equal("DEVLAB1")
+    vpc_id = vpc["PhysicalResourceId"]
+
+    # Verify Internet Gateway is created
+    gateway_id = get_resource_id("AWS::EC2::InternetGateway", stack_resources)
+    gateway = ec2.describe_internet_gateways(InternetGatewayIds=[gateway_id])[
+        "InternetGateways"
+    ][0]
+    gateway["Attachments"].should.contain({"State": "available", "VpcId": vpc_id})
+    gateway["Tags"].should.contain(
+        {"Key": "aws:cloudformation:logical-id", "Value": "internetgateway"}
+    )
+
+
+@mock_ec2
+@mock_cloudformation
+def test_attach_vpn_gateway():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+
+    vpn_gateway_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "DEVLAB1": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {"CidrBlock": "10.0.0.0/16"},
+            },
+            "DEVLAB1DCGateway": {
+                "Type": "AWS::EC2::VPNGateway",
+                "Properties": {"Type": "ipsec.1",},
+            },
+            "DEVLAB1VPGAttaching": {
+                "Type": "AWS::EC2::VPCGatewayAttachment",
+                "Properties": {
+                    "VpcId": {"Ref": "DEVLAB1"},
+                    "VpnGatewayId": {"Ref": "DEVLAB1DCGateway"},
+                },
+                "DependsOn": ["DEVLAB1DCGateway"],
+            },
+        },
+    }
+    template_json = json.dumps(vpn_gateway_template)
+    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
+    stack_resources = cf.list_stack_resources(StackName="test_stack")[
+        "StackResourceSummaries"
+    ]
+
+    gateway_id = get_resource_id("AWS::EC2::VPNGateway", stack_resources)
+    vpc_id = get_resource_id("AWS::EC2::VPC", stack_resources)
+
+    gateway = ec2.describe_vpn_gateways(VpnGatewayIds=[gateway_id])["VpnGateways"][0]
+    gateway["VpcAttachments"].should.contain({"State": "attached", "VpcId": vpc_id})
+
+
+def get_resource_id(resource_type, stack_resources):
+    r = [r for r in stack_resources if r["ResourceType"] == resource_type][0]
+    return r["PhysicalResourceId"]
+
+
 @mock_ec2_deprecated
 @mock_cloudformation_deprecated
 def test_subnet_tags_through_cloudformation():
