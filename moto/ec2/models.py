@@ -963,7 +963,7 @@ class InstanceBackend(object):
         new_reservation.id = random_reservation_id()
 
         security_groups = [
-            self.get_security_group_from_name(name) for name in security_group_names
+            self.get_security_group_by_name_or_id(name) for name in security_group_names
         ]
         security_groups.extend(
             self.get_security_group_from_id(sg_id)
@@ -2198,7 +2198,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     @classmethod
     def _delete_security_group_given_vpc_id(cls, resource_name, vpc_id, region_name):
         ec2_backend = ec2_backends[region_name]
-        security_group = ec2_backend.get_security_group_from_name(resource_name, vpc_id)
+        security_group = ec2_backend.get_security_group_by_name_or_id(
+            resource_name, vpc_id
+        )
         if security_group:
             security_group.delete(region_name)
 
@@ -2293,12 +2295,13 @@ class SecurityGroupBackend(object):
     def create_security_group(
         self, name, description, vpc_id=None, tags=None, force=False
     ):
+
         if not description:
             raise MissingParameterError("GroupDescription")
 
         group_id = random_security_group_id()
         if not force:
-            existing_group = self.get_security_group_from_name(name, vpc_id)
+            existing_group = self.get_security_group_by_name_or_id(name, vpc_id)
             if existing_group:
                 raise InvalidSecurityGroupDuplicateError(name)
         group = SecurityGroup(
@@ -2342,7 +2345,7 @@ class SecurityGroupBackend(object):
         elif name:
             # Group Name.  Has to be in standard EC2, VPC needs to be
             # identified by group_id
-            group = self.get_security_group_from_name(name)
+            group = self.get_security_group_by_name_or_id(name)
             if group:
                 return self._delete_security_group(None, group.id)
             raise InvalidSecurityGroupNotFoundError(name)
@@ -2368,6 +2371,7 @@ class SecurityGroupBackend(object):
                         return group
 
     def get_security_group_by_name_or_id(self, group_name_or_id, vpc_id):
+
         # try searching by id, fallbacks to name search
         group = self.get_security_group_from_id(group_name_or_id)
         if group is None:
@@ -2675,6 +2679,128 @@ class SecurityGroupBackend(object):
             return security_rule
         raise InvalidPermissionNotFoundError()
 
+    def update_security_group_rule_descriptions_ingress(
+        self,
+        group_name_or_id,
+        ip_protocol,
+        from_port,
+        to_port,
+        ip_ranges,
+        source_groups=[],
+        prefix_list_ids=[],
+        vpc_id=None,
+    ):
+
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
+        if ip_ranges and not isinstance(ip_ranges, list):
+
+            if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
+                ip_ranges = [{"CidrIp": ip_ranges}]
+            else:
+                ip_ranges = [json.loads(ip_ranges)]
+        if ip_ranges:
+            for cidr in ip_ranges:
+                if (
+                    type(cidr) is dict
+                    and not any(
+                        [
+                            is_valid_cidr(cidr.get("CidrIp", "")),
+                            is_valid_ipv6_cidr(cidr.get("CidrIpv6", "")),
+                        ]
+                    )
+                ) or (
+                    type(cidr) is str
+                    and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
+                ):
+                    raise InvalidCIDRSubnetError(cidr=cidr)
+        _source_groups = self._add_source_group(source_groups, vpc_id)
+
+        security_rule = SecurityRule(
+            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+        )
+        for rule in group.ingress_rules:
+            if (
+                security_rule.from_port == rule.from_port
+                and security_rule.to_port == rule.to_port
+                and security_rule.ip_protocol == rule.ip_protocol
+            ):
+                self._sg_update_description(security_rule, rule)
+        return group
+
+    def update_security_group_rule_descriptions_egress(
+        self,
+        group_name_or_id,
+        ip_protocol,
+        from_port,
+        to_port,
+        ip_ranges,
+        source_groups=[],
+        prefix_list_ids=[],
+        vpc_id=None,
+    ):
+
+        group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
+        if ip_ranges and not isinstance(ip_ranges, list):
+
+            if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
+                ip_ranges = [{"CidrIp": ip_ranges}]
+            else:
+                ip_ranges = [json.loads(ip_ranges)]
+        if ip_ranges:
+            for cidr in ip_ranges:
+                if (
+                    type(cidr) is dict
+                    and not any(
+                        [
+                            is_valid_cidr(cidr.get("CidrIp", "")),
+                            is_valid_ipv6_cidr(cidr.get("CidrIpv6", "")),
+                        ]
+                    )
+                ) or (
+                    type(cidr) is str
+                    and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
+                ):
+                    raise InvalidCIDRSubnetError(cidr=cidr)
+        _source_groups = self._add_source_group(source_groups, vpc_id)
+
+        security_rule = SecurityRule(
+            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+        )
+        for rule in group.egress_rules:
+            if (
+                security_rule.from_port == rule.from_port
+                and security_rule.to_port == rule.to_port
+                and security_rule.ip_protocol == rule.ip_protocol
+            ):
+                self._sg_update_description(security_rule, rule)
+        return group
+
+    def _sg_update_description(self, security_rule, rule):
+        for item in security_rule.ip_ranges:
+            for cidr_item in rule.ip_ranges:
+                if cidr_item.get("CidrIp") == item.get("CidrIp"):
+                    cidr_item["Description"] = item.get("Description")
+                if cidr_item.get("CidrIp6") == item.get("CidrIp6"):
+                    cidr_item["Description"] = item.get("Description")
+
+            for item in security_rule.source_groups:
+                for source_group in rule.source_groups:
+                    if source_group.get("GroupId") == item.get(
+                        "GroupId"
+                    ) or source_group.get("GroupName") == item.get("GroupName"):
+                        source_group["Description"] = item.get("Description")
+
+            for item in security_rule.source_groups:
+                for source_group in rule.source_groups:
+                    if source_group.get("GroupId") == item.get(
+                        "GroupId"
+                    ) or source_group.get("GroupName") == item.get("GroupName"):
+                        source_group["Description"] = item.get("Description")
+
     def _remove_items_from_rule(self, ip_ranges, _source_groups, prefix_list_ids, rule):
         for item in ip_ranges:
             if item not in rule.ip_ranges:
@@ -2702,10 +2828,12 @@ class SecurityGroupBackend(object):
                 item["OwnerId"] = ACCOUNT_ID
             # for VPCs
             if "GroupId" in item:
-                if not self.get_security_group_from_id(item.get("GroupId")):
+                if not self.get_security_group_by_name_or_id(
+                    item.get("GroupId"), vpc_id
+                ):
                     raise InvalidSecurityGroupNotFoundError(item.get("GroupId"))
             if "GroupName" in item:
-                source_group = self.get_security_group_from_name(
+                source_group = self.get_security_group_by_name_or_id(
                     item.get("GroupName"), vpc_id
                 )
                 if not source_group:
@@ -3405,7 +3533,7 @@ class VPCBackend(object):
         # AWS creates a default Network ACL
         self.create_network_acl(vpc_id, default=True)
 
-        default = self.get_security_group_from_name("default", vpc_id=vpc_id)
+        default = self.get_security_group_by_name_or_id("default", vpc_id=vpc_id)
         if not default:
             self.create_security_group(
                 "default", "default VPC security group", vpc_id=vpc_id
@@ -3447,7 +3575,7 @@ class VPCBackend(object):
             self.delete_route_table(route_table.id)
 
         # Delete default security group if exists.
-        default = self.get_security_group_from_name("default", vpc_id=vpc_id)
+        default = self.get_security_group_by_name_or_id("default", vpc_id=vpc_id)
         if default:
             self.delete_security_group(group_id=default.id)
 
@@ -5281,12 +5409,12 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
 
         if security_groups:
             for group_name in security_groups:
-                group = self.ec2_backend.get_security_group_from_name(group_name)
+                group = self.ec2_backend.get_security_group_by_name_or_id(group_name)
                 if group:
                     ls.groups.append(group)
         else:
             # If not security groups, add the default
-            default_group = self.ec2_backend.get_security_group_from_name("default")
+            default_group = self.ec2_backend.get_security_group_by_name_or_id("default")
             ls.groups.append(default_group)
 
         self.instance = self.launch_instance()

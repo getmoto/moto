@@ -157,6 +157,10 @@ class SecurityGroups(BaseResponse):
         name = self._get_param("GroupName")
         description = self._get_param("GroupDescription")
         vpc_id = self._get_param("VpcId")
+        if not vpc_id:
+            vpc_id = [
+                vpc.id for vpc in self.ec2_backend.describe_vpcs() if vpc.is_default
+            ][0]
         tags = self._get_multi_param("TagSpecification")
         tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
         tags = (tags or {}).get("Tag", [])
@@ -217,6 +221,22 @@ class SecurityGroups(BaseResponse):
             for args in self._process_rules_from_querystring():
                 self.ec2_backend.revoke_security_group_ingress(*args)
             return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
+
+    def update_security_group_rule_descriptions_ingress(self):
+        for args in self._process_rules_from_querystring():
+            group = self.ec2_backend.update_security_group_rule_descriptions_ingress(
+                *args
+            )
+        self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+        return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS
+
+    def update_security_group_rule_descriptions_egress(self):
+        for args in self._process_rules_from_querystring():
+            group = self.ec2_backend.update_security_group_rule_descriptions_egress(
+                *args
+            )
+        self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+        return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_EGRESS
 
 
 CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -552,3 +572,13 @@ REVOKE_SECURITY_GROUP_EGRESS_RESPONSE = """<RevokeSecurityGroupEgressResponse xm
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </RevokeSecurityGroupEgressResponse>"""
+
+UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS = """<UpdateSecurityGroupRuleDescriptionsIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</UpdateSecurityGroupRuleDescriptionsIngressResponse>"""
+
+UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_EGRESS = """<UpdateSecurityGroupRuleDescriptionsEgressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</UpdateSecurityGroupRuleDescriptionsEgressResponse>"""
