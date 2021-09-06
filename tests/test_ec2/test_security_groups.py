@@ -48,7 +48,7 @@ def test_create_and_describe_security_group():
 
     all_groups = conn.get_all_security_groups()
     # The default group gets created automatically
-    all_groups.should.have.length_of(3)
+    all_groups.should.have.length_of(2)
     group_names = [group.name for group in all_groups]
     set(group_names).should.equal(set(["default", "test security group"]))
 
@@ -68,7 +68,7 @@ def test_create_security_group_without_description_raises_error():
 def test_default_security_group():
     conn = boto.ec2.connect_to_region("us-east-1")
     groups = conn.get_all_security_groups()
-    groups.should.have.length_of(2)
+    groups.should.have.length_of(1)
     groups[0].name.should.equal("default")
 
 
@@ -118,7 +118,7 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
 
     all_groups = conn.get_all_security_groups()
 
-    all_groups.should.have.length_of(4)
+    all_groups.should.have.length_of(3)
     group_names = [group.name for group in all_groups]
     # The default group is created automatically
     set(group_names).should.equal(set(["default", "test security group"]))
@@ -143,7 +143,7 @@ def test_deleting_security_groups():
     security_group1 = conn.create_security_group("test1", "test1")
     conn.create_security_group("test2", "test2")
 
-    conn.get_all_security_groups().should.have.length_of(4)
+    conn.get_all_security_groups().should.have.length_of(3)
 
     # Deleting a group that doesn't exist should throw an error
     with pytest.raises(EC2ResponseError) as cm:
@@ -162,11 +162,11 @@ def test_deleting_security_groups():
     )
 
     conn.delete_security_group("test2")
-    conn.get_all_security_groups().should.have.length_of(3)
+    conn.get_all_security_groups().should.have.length_of(2)
 
     # Delete by group id
     conn.delete_security_group(group_id=security_group1.id)
-    conn.get_all_security_groups().should.have.length_of(2)
+    conn.get_all_security_groups().should.have.length_of(1)
 
 
 @mock_ec2_deprecated
@@ -387,12 +387,14 @@ def test_authorize_other_group_egress_and_revoke():
         "Ipv6Ranges": [],
         "PrefixListIds": [],
     }
+    org_ip_permission = ip_permission.copy()
+    ip_permission["UserIdGroupPairs"][0].pop("GroupName")
 
-    sg01.authorize_egress(IpPermissions=[ip_permission])
+    sg01.authorize_egress(IpPermissions=[org_ip_permission])
     sg01.ip_permissions_egress.should.have.length_of(2)
     sg01.ip_permissions_egress.should.contain(ip_permission)
 
-    sg01.revoke_egress(IpPermissions=[ip_permission])
+    sg01.revoke_egress(IpPermissions=[org_ip_permission])
     sg01.ip_permissions_egress.should.have.length_of(1)
 
 
@@ -470,7 +472,7 @@ def test_get_all_security_groups():
     resp[0].id.should.equal(sg1.id)
 
     resp = conn.get_all_security_groups()
-    resp.should.have.length_of(4)
+    resp.should.have.length_of(3)
 
 
 @mock_ec2_deprecated
@@ -560,7 +562,7 @@ def test_sec_group_rule_limit():
     success = ec2_conn.authorize_security_group(
         group_id=sg.id,
         ip_protocol="-1",
-        cidr_ip=["{0}.0.0.0/0".format(i) for i in range(99)],
+        cidr_ip=["{0}.0.0.0/0".format(i) for i in range(1, 50)],
     )
     success.should.be.true
     # verify that we cannot authorize past the limit for a CIDR IP
@@ -581,8 +583,8 @@ def test_sec_group_rule_limit():
     ec2_conn.authorize_security_group_egress(
         group_id=sg.id, ip_protocol="-1", src_group_id=other_sg.id
     )
-    # fill the rules up the limit
-    for i in range(1, 100):
+    # fill the rules up the limit, 49 + 1 default rule
+    for i in range(1, 49):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
@@ -860,9 +862,7 @@ def test_authorize_and_revoke_in_bulk():
             "IpProtocol": "tcp",
             "FromPort": 27017,
             "ToPort": 27017,
-            "UserIdGroupPairs": [
-                {"GroupId": sg02.id, "GroupName": "sg02", "UserId": sg02.owner_id}
-            ],
+            "UserIdGroupPairs": [{"GroupId": sg02.id, "UserId": sg02.owner_id}],
             "IpRanges": [],
             "Ipv6Ranges": [],
             "PrefixListIds": [],
@@ -880,7 +880,7 @@ def test_authorize_and_revoke_in_bulk():
             "IpProtocol": "tcp",
             "FromPort": 27017,
             "ToPort": 27017,
-            "UserIdGroupPairs": [{"GroupName": "sg03", "UserId": sg03.owner_id}],
+            "UserIdGroupPairs": [{"GroupId": sg03.id, "UserId": sg03.owner_id}],
             "IpRanges": [],
             "Ipv6Ranges": [],
             "PrefixListIds": [],
@@ -889,7 +889,7 @@ def test_authorize_and_revoke_in_bulk():
             "IpProtocol": "tcp",
             "FromPort": 27015,
             "ToPort": 27015,
-            "UserIdGroupPairs": [{"GroupName": "sg04", "UserId": sg04.owner_id}],
+            "UserIdGroupPairs": [{"GroupId": sg04.id, "UserId": sg04.owner_id}],
             "IpRanges": [
                 {"CidrIp": "10.10.10.0/24", "Description": "Some Description"}
             ],

@@ -157,10 +157,6 @@ class SecurityGroups(BaseResponse):
         name = self._get_param("GroupName")
         description = self._get_param("GroupDescription")
         vpc_id = self._get_param("VpcId")
-        if not vpc_id:
-            vpc_id = [
-                vpc.id for vpc in self.ec2_backend.describe_vpcs() if vpc.is_default
-            ][0]
         tags = self._get_multi_param("TagSpecification")
         tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
         tags = (tags or {}).get("Tag", [])
