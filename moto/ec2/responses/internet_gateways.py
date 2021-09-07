@@ -64,11 +64,10 @@ CREATE_INTERNET_GATEWAY_RESPONSE = """<CreateInternetGatewayResponse xmlns="http
   <internetGateway>
     <internetGatewayId>{{ internet_gateway.id }}</internetGatewayId>
     <attachmentSet/>
+    <ownerId>{{ internet_gateway.owner_id }}</ownerId>
     <tagSet>
       {% for tag in internet_gateway.get_tags() %}
         <item>
-          <resourceId>{{ tag.resource_id }}</resourceId>
-          <resourceType>{{ tag.resource_type }}</resourceType>
           <key>{{ tag.key }}</key>
           <value>{{ tag.value }}</value>
         </item>
@@ -89,6 +88,7 @@ DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns
     {% for igw in internet_gateways %}
     <item>
       <internetGatewayId>{{ igw.id }}</internetGatewayId>
+      <ownerId>{{ igw.owner_id or none }}</ownerId>
       {% if igw.vpc  %}
         <attachmentSet>
           <item>
@@ -102,8 +102,6 @@ DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns
       <tagSet>
         {% for tag in igw.get_tags() %}
           <item>
-            <resourceId>{{ tag.resource_id }}</resourceId>
-            <resourceType>{{ tag.resource_type }}</resourceType>
             <key>{{ tag.key }}</key>
             <value>{{ tag.value }}</value>
           </item>

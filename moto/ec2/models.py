@@ -5050,6 +5050,10 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
         self.id = random_internet_gateway_id()
         self.vpc = None
 
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
     @staticmethod
     def cloudformation_name_type():
         return None
