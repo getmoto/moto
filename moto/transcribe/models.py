@@ -561,12 +561,12 @@ class TranscribeBackend(BaseBackend):
             )
 
     def list_transcription_jobs(
-        self, status, job_name_contains, next_token, max_results
+        self, state_equals, job_name_contains, next_token, max_results
     ):
         jobs = list(self.transcriptions.values())
 
-        if status:
-            jobs = [job for job in jobs if job.transcription_job_status == status]
+        if state_equals:
+            jobs = [job for job in jobs if job.transcription_job_status == state_equals]
 
         if job_name_contains:
             jobs = [
@@ -586,8 +586,8 @@ class TranscribeBackend(BaseBackend):
         }
         if end_offset < len(jobs):
             response["NextToken"] = str(end_offset)
-        if status:
-            response["Status"] = status
+        if state_equals:
+            response["Status"] = state_equals
         return response
 
     def list_medical_transcription_jobs(

@@ -59,13 +59,13 @@ class TranscribeResponse(BaseResponse):
 
     @amzn_request_id
     def list_transcription_jobs(self):
-        status = self._get_param("Status")
+        state_equals = self._get_param("Status")
         job_name_contains = self._get_param("JobNameContains")
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
 
         response = self.transcribe_backend.list_transcription_jobs(
-            status=status,
+            state_equals=state_equals,
             job_name_contains=job_name_contains,
             next_token=next_token,
             max_results=max_results,
