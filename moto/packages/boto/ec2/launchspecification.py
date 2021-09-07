@@ -39,6 +39,7 @@ class LaunchSpecification(EC2Object):
         self.ramdisk = None
         self.monitored = False
         self.subnet_id = None
+        self.lifecycle = None
         self._in_monitoring_element = False
         self.block_device_mapping = None
         self.instance_profile = None
