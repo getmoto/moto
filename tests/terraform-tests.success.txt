@@ -98,3 +98,4 @@ TestAccAWSSsmDocumentDataSource
 TestAccAwsEc2ManagedPrefixList
 TestAccAWSEgressOnlyInternetGateway
 TestAccAWSSecurityGroup_
+TestAccAWSInternetGateway
