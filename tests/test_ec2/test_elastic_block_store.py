@@ -32,7 +32,7 @@ def test_create_and_delete_volume():
     with pytest.raises(EC2ResponseError) as ex:
         volume.delete(dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -96,7 +96,7 @@ def test_create_encrypted_volume_dryrun():
     with pytest.raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -110,7 +110,7 @@ def test_create_encrypted_volume():
     with pytest.raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -260,7 +260,7 @@ def test_volume_attach_and_detach():
     with pytest.raises(EC2ResponseError) as ex:
         volume.attach(instance.id, "/dev/sdh", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -276,7 +276,7 @@ def test_volume_attach_and_detach():
     with pytest.raises(EC2ResponseError) as ex:
         volume.detach(dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -313,7 +313,7 @@ def test_create_snapshot():
     with pytest.raises(EC2ResponseError) as ex:
         snapshot = volume.create_snapshot("a dryrun snapshot", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -485,7 +485,7 @@ def test_snapshot_attribute():
     with pytest.raises(EC2ResponseError) as ex:
         conn.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -507,7 +507,7 @@ def test_snapshot_attribute():
     with pytest.raises(EC2ResponseError) as ex:
         conn.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{"dry_run": True}))
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -598,7 +598,7 @@ def test_modify_snapshot_attribute():
 
     cm.value.response["Error"]["Code"].should.equal("DryRunOperation")
     cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
 
     ec2_client.modify_snapshot_attribute(**ADD_GROUP_ARGS)
 
@@ -624,7 +624,7 @@ def test_modify_snapshot_attribute():
         )
     cm.value.response["Error"]["Code"].should.equal("DryRunOperation")
     cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
 
     ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
 
@@ -741,7 +741,7 @@ def test_create_volume_from_snapshot():
     with pytest.raises(EC2ResponseError) as ex:
         snapshot = volume.create_snapshot("a test snapshot", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -789,7 +789,7 @@ def test_modify_attribute_blockDeviceMapping():
             "blockDeviceMapping", {"/dev/sda1": True}, dry_run=True
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -810,7 +810,7 @@ def test_volume_tag_escaping():
     with pytest.raises(EC2ResponseError) as ex:
         snapshot.add_tags({"key": "</closed>"}, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )

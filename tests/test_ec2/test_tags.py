@@ -24,7 +24,7 @@ def test_add_tag():
     with pytest.raises(EC2ResponseError) as ex:
         instance.add_tag("a key", "some value", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -55,7 +55,7 @@ def test_remove_tag():
     with pytest.raises(EC2ResponseError) as ex:
         instance.remove_tag("a key", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -110,7 +110,7 @@ def test_create_tags():
     with pytest.raises(EC2ResponseError) as ex:
         conn.create_tags(instance.id, tag_dict, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
