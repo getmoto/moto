@@ -811,6 +811,175 @@ def test_create_vocabulary():
 
 
 @mock_transcribe
+def test_list_vocabularies():
+
+    region_name = "us-east-1"
+    client = boto3.client("transcribe", region_name=region_name)
+
+    def create_vocab(index, target_status):
+        vocabulary_name = "Vocab_{}".format(index)
+        args = {
+            "VocabularyName": vocabulary_name,
+            "LanguageCode": "en-US",
+            "Phrases": ["moto", "is", "awesome"],
+        }
+        resp = client.create_vocabulary(**args)
+        resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+        # Forward to "PENDING"
+        resp = client.get_vocabulary(VocabularyName=vocabulary_name)
+
+        # READY
+        if target_status == "READY":
+            resp = client.get_vocabulary(VocabularyName=vocabulary_name)
+
+    # Run 5 pending jobs
+    for i in range(5):
+        create_vocab(i, "PENDING")
+
+    # Run 10 job to IN_PROGRESS
+    for i in range(5, 15):
+        create_vocab(i, "READY")
+
+    # List all
+    response = client.list_vocabularies()
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(15)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # List PENDING
+    response = client.list_vocabularies(StateEquals="PENDING")
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(5)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # List READY
+    response = client.list_vocabularies(StateEquals="READY")
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(10)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # List VocabularyName contains "8"
+    response = client.list_vocabularies(NameContains="8")
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(1)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # Pagination by 3
+    response = client.list_vocabularies(MaxResults=3)
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(3)
+    response.should.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    response = client.list_vocabularies(NextToken=response["NextToken"], MaxResults=3)
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(3)
+    response.should.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    response = client.list_vocabularies(NextToken=response["NextToken"], MaxResults=30)
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(9)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    client.delete_vocabulary(VocabularyName="Vocab_5")
+    response = client.list_vocabularies()
+    len(response["Vocabularies"]).should.equal(14)
+
+
+@mock_transcribe
+def test_list_medical_vocabularies():
+
+    region_name = "us-east-1"
+    client = boto3.client("transcribe", region_name=region_name)
+
+    def create_vocab(index, target_status):
+        vocabulary_name = "Vocab_{}".format(index)
+        resp = client.create_medical_vocabulary(
+            VocabularyName=vocabulary_name,
+            LanguageCode="en-US",
+            VocabularyFileUri="https://s3.us-east-1.amazonaws.com/AWSDOC-EXAMPLE-BUCKET/vocab.txt",
+        )
+        resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+        # Forward to "PENDING"
+        resp = client.get_medical_vocabulary(VocabularyName=vocabulary_name)
+
+        # READY
+        if target_status == "READY":
+            resp = client.get_medical_vocabulary(VocabularyName=vocabulary_name)
+
+    # Run 5 pending jobs
+    for i in range(5):
+        create_vocab(i, "PENDING")
+
+    # Run 10 job to IN_PROGRESS
+    for i in range(5, 15):
+        create_vocab(i, "READY")
+
+    # List all
+    response = client.list_medical_vocabularies()
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(15)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # List PENDING
+    response = client.list_medical_vocabularies(StateEquals="PENDING")
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(5)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # List READY
+    response = client.list_medical_vocabularies(StateEquals="READY")
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(10)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # List VocabularyName contains "8"
+    response = client.list_medical_vocabularies(NameContains="8")
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(1)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    # Pagination by 3
+    response = client.list_medical_vocabularies(MaxResults=3)
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(3)
+    response.should.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    response = client.list_medical_vocabularies(
+        NextToken=response["NextToken"], MaxResults=3
+    )
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(3)
+    response.should.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    response = client.list_medical_vocabularies(
+        NextToken=response["NextToken"], MaxResults=30
+    )
+    response.should.contain("Vocabularies")
+    len(response["Vocabularies"]).should.equal(9)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("ResponseMetadata")
+
+    client.delete_medical_vocabulary(VocabularyName="Vocab_5")
+    response = client.list_medical_vocabularies()
+    len(response["Vocabularies"]).should.equal(14)
+
+
+@mock_transcribe
 def test_get_nonexistent_medical_vocabulary():
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
