@@ -22,7 +22,7 @@ def test_eip_allocate_classic():
     with pytest.raises(EC2ResponseError) as ex:
         standard = conn.allocate_address(dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -36,7 +36,7 @@ def test_eip_allocate_classic():
     with pytest.raises(EC2ResponseError) as ex:
         standard.release(dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -53,7 +53,7 @@ def test_eip_allocate_vpc():
     with pytest.raises(EC2ResponseError) as ex:
         vpc = conn.allocate_address(domain="vpc", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -111,7 +111,7 @@ def test_eip_associate_classic():
             instance_id=instance.id, public_ip=eip.public_ip, dry_run=True
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -124,7 +124,7 @@ def test_eip_associate_classic():
     with pytest.raises(EC2ResponseError) as ex:
         conn.disassociate_address(public_ip=eip.public_ip, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DisAssociateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -170,7 +170,7 @@ def test_eip_associate_vpc():
     with pytest.raises(EC2ResponseError) as ex:
         eip.release(dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
     )
