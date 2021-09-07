@@ -328,7 +328,7 @@ class ECRBackend(BaseBackend):
         self.registry_policy = None
         self.replication_config = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
-        self.tagger = TaggingService(tagName="tags")
+        self.tagger = TaggingService(tag_name="tags")
 
     def reset(self):
         region_name = self.region_name

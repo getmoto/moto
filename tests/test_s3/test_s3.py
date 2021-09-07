@@ -2107,19 +2107,6 @@ def test_boto3_bucket_create():
 
 
 @mock_s3
-def test_bucket_create_duplicate():
-    s3 = boto3.resource("s3", region_name="us-west-2")
-    s3.create_bucket(
-        Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "us-west-2"}
-    )
-    with pytest.raises(ClientError) as exc:
-        s3.create_bucket(
-            Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "us-west-2"}
-        )
-    exc.value.response["Error"]["Code"].should.equal("BucketAlreadyExists")
-
-
-@mock_s3
 def test_bucket_create_force_us_east_1():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
@@ -5353,3 +5340,74 @@ def test_get_object_versions_with_prefix():
     versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix="file")
     versions["Versions"].should.have.length_of(3)
     versions["Prefix"].should.equal("file")
+
+
+@mock_s3
+def test_create_bucket_duplicate():
+    bucket_name = "same-bucket-test-1371"
+    alternate_region = "eu-north-1"
+    # Create it in the default region
+    default_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    default_client.create_bucket(Bucket=bucket_name)
+
+    # Create it again in the same region - should just return that same bucket
+    default_client.create_bucket(Bucket=bucket_name)
+
+    # Create the bucket in a different region - should return an error
+    diff_client = boto3.client("s3", region_name=alternate_region)
+    with pytest.raises(ClientError) as ex:
+        diff_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": alternate_region},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BucketAlreadyOwnedByYou")
+    err["Message"].should.equal(
+        "Your previous request to create the named bucket succeeded and you already own it."
+    )
+    err["BucketName"].should.equal(bucket_name)
+
+    # Try this again - but creating the bucket in a non-default region in the first place
+    bucket_name = "same-bucket-nondefault-region-test-1371"
+    diff_client.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": alternate_region},
+    )
+
+    # Recreating the bucket in the same non-default region should fail
+    with pytest.raises(ClientError) as ex:
+        diff_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": alternate_region},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BucketAlreadyOwnedByYou")
+    err["Message"].should.equal(
+        "Your previous request to create the named bucket succeeded and you already own it."
+    )
+    err["BucketName"].should.equal(bucket_name)
+
+    # Recreating the bucket in the default region should fail
+    diff_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    with pytest.raises(ClientError) as ex:
+        diff_client.create_bucket(Bucket=bucket_name)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BucketAlreadyOwnedByYou")
+    err["Message"].should.equal(
+        "Your previous request to create the named bucket succeeded and you already own it."
+    )
+    err["BucketName"].should.equal(bucket_name)
+
+    # Recreating the bucket in a third region should fail
+    diff_client = boto3.client("s3", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        diff_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "ap-northeast-1"},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BucketAlreadyOwnedByYou")
+    err["Message"].should.equal(
+        "Your previous request to create the named bucket succeeded and you already own it."
+    )
+    err["BucketName"].should.equal(bucket_name)

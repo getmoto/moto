@@ -811,11 +811,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, region_name)
             except BucketAlreadyExists:
-                if region_name == DEFAULT_REGION_NAME:
-                    # us-east-1 has different behavior
-                    new_bucket = self.backend.get_bucket(bucket_name)
+                new_bucket = self.backend.get_bucket(bucket_name)
+                if (
+                    new_bucket.region_name == DEFAULT_REGION_NAME
+                    and region_name == DEFAULT_REGION_NAME
+                ):
+                    # us-east-1 has different behavior - creating a bucket there is an idempotent operation
+                    pass
                 else:
-                    raise
+                    template = self.response_template(S3_DUPLICATE_BUCKET_ERROR)
+                    return 409, {}, template.render(bucket_name=bucket_name)
 
             if "x-amz-acl" in request.headers:
                 # TODO: Support the XML-based ACL format
@@ -2661,4 +2666,14 @@ S3_BUCKET_LOCK_CONFIGURATION = """
         </DefaultRetention>
     #</Rule>
 </ObjectLockConfiguration>
+"""
+
+S3_DUPLICATE_BUCKET_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>BucketAlreadyOwnedByYou</Code>
+  <Message>Your previous request to create the named bucket succeeded and you already own it.</Message>
+  <BucketName>{{ bucket_name }}</BucketName>
+  <RequestId>44425877V1D0A2F9</RequestId>
+  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
+</Error>
 """

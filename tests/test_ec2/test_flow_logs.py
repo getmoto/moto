@@ -41,7 +41,7 @@ def test_create_flow_logs_s3():
             DryRun=True,
         )
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -93,7 +93,7 @@ def test_create_flow_logs_cloud_watch():
             DryRun=True,
         )
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
     )

@@ -4,4 +4,5 @@ TestAccAWSEc2TransitGatewayRouteTableAssociation
 TestAccAWSEc2TransitGatewayVpcAttachment
 TestAccAWSFms
 TestAccAWSIAMRolePolicy
+TestAccAWSSecurityGroup_forceRevokeRules_
 TestAccAWSSSMDocument_package
