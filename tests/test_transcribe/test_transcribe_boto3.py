@@ -17,9 +17,7 @@ def test_run_medical_transcription_job_minimal_params():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
         "OutputBucketName": "my-output-bucket",
         "Specialty": "PRIMARYCARE",
         "Type": "CONVERSATION",
@@ -100,9 +98,7 @@ def test_run_medical_transcription_job_all_params():
         "LanguageCode": "en-US",
         "MediaSampleRateHertz": 48000,
         "MediaFormat": "flac",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.dat",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
         "OutputBucketName": "my-output-bucket",
         "OutputEncryptionKMSKeyId": "arn:aws:kms:us-east-1:012345678901:key/37111b5e-8eff-4706-ae3a-d4f9d1d559fc",
         "Settings": {
@@ -184,7 +180,7 @@ def test_run_medical_transcription_job_all_params():
 
 
 @mock_transcribe
-def test_run_medical_transcription_job_all_params():
+def test_run_transcription_job_all_params():
 
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
@@ -203,9 +199,7 @@ def test_run_medical_transcription_job_all_params():
         "LanguageCode": "en-US",
         "MediaSampleRateHertz": 48000,
         "MediaFormat": "flac",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.dat",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
         "OutputBucketName": "my-output-bucket",
         "OutputEncryptionKMSKeyId": "arn:aws:kms:us-east-1:012345678901:key/37111b5e-8eff-4706-ae3a-d4f9d1d559fc",
         "Settings": {
@@ -216,6 +210,7 @@ def test_run_medical_transcription_job_all_params():
             "MaxAlternatives": 6,
             "VocabularyName": vocabulary_name,
         },
+        # Missing `ContentRedaction`, `JobExecutionSettings`, `VocabularyFilterName`, `LanguageModel`
     }
     resp = client.start_transcription_job(**args)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -224,9 +219,7 @@ def test_run_medical_transcription_job_all_params():
     resp = client.get_transcription_job(TranscriptionJobName=job_name)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     transcription_job = resp["TranscriptionJob"]
-    transcription_job["TranscriptionJobName"].should.equal(
-        args["TranscriptionJobName"]
-    )
+    transcription_job["TranscriptionJobName"].should.equal(args["TranscriptionJobName"])
     transcription_job["TranscriptionJobStatus"].should.equal("QUEUED")
     transcription_job["LanguageCode"].should.equal(args["LanguageCode"])
     transcription_job["Media"].should.equal(args["Media"])
@@ -272,9 +265,7 @@ def test_run_medical_transcription_job_all_params():
     transcription_job["Transcript"].should.equal(
         {
             "TranscriptFileUri": "https://s3.{}.amazonaws.com/{}/{}.json".format(
-                region_name,
-                args["OutputBucketName"],
-                args["TranscriptionJobName"],
+                region_name, args["OutputBucketName"], args["TranscriptionJobName"],
             )
         }
     )
@@ -290,9 +281,7 @@ def test_run_transcription_job_minimal_params():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
     }
     resp = client.start_transcription_job(**args)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -358,9 +347,7 @@ def test_run_transcription_job_s3output_params():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
         "OutputBucketName": "my-output-bucket",
         "OutputKey": "bucket-key",
     }
@@ -402,9 +389,7 @@ def test_run_transcription_job_s3output_params():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
         "OutputBucketName": "my-output-bucket",
     }
     client.start_transcription_job(**args)
@@ -421,7 +406,8 @@ def test_run_transcription_job_s3output_params():
     transcription_job.should.contain("Transcript")
     # Check aws hosted bucket
     transcription_job["Transcript"]["TranscriptFileUri"].should.equal(
-        "https://s3.us-east-1.amazonaws.com/my-output-bucket/MyJob2.json")
+        "https://s3.us-east-1.amazonaws.com/my-output-bucket/MyJob2.json"
+    )
 
 
 @mock_transcribe
@@ -433,9 +419,7 @@ def test_run_transcription_job_identify_language_params():
     job_name = "MyJob"
     args = {
         "TranscriptionJobName": job_name,
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
         "IdentifyLanguage": True,
         "LanguageOptions": ["en-US", "en-GB", "es-ES", "de-DE"],
     }
@@ -483,9 +467,7 @@ def test_run_medical_transcription_job_with_existing_job_name():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
         "OutputBucketName": "my-output-bucket",
         "Specialty": "PRIMARYCARE",
         "Type": "CONVERSATION",
@@ -508,9 +490,7 @@ def test_run_transcription_job_with_existing_job_name():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
     }
     resp = client.start_transcription_job(**args)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -530,9 +510,7 @@ def test_run_medical_transcription_job_nonexistent_vocabulary():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.dat",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
         "OutputBucketName": "my-output-bucket",
         "Settings": {"VocabularyName": "NonexistentVocabulary"},
         "Specialty": "PRIMARYCARE",
@@ -553,9 +531,7 @@ def test_run_transcription_job_nonexistent_vocabulary():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {
-            "MediaFileUri": "s3://my-bucket/my-media-file.dat",
-        },
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
         "OutputBucketName": "my-output-bucket",
         "Settings": {"VocabularyName": "NonexistentVocabulary"},
     }
@@ -575,9 +551,7 @@ def test_list_medical_transcription_jobs():
         args = {
             "MedicalTranscriptionJobName": job_name,
             "LanguageCode": "en-US",
-            "Media": {
-                "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-            },
+            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
             "OutputBucketName": "my-output-bucket",
             "Specialty": "PRIMARYCARE",
             "Type": "CONVERSATION",
@@ -668,11 +642,9 @@ def test_list_transcription_jobs():
         job_name = "Job_{}".format(index)
         args = {
             "TranscriptionJobName": job_name,
-            "Media": {
-                "MediaFileUri": "s3://my-bucket/my-media-file.wav",
-            },
+            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
             "OutputBucketName": "my-output-bucket",
-            "IdentifyLanguage": True
+            "IdentifyLanguage": True,
         }
         resp = client.start_transcription_job(**args)
         resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -811,9 +783,9 @@ def test_create_vocabulary():
 
     # Delete
     client.delete_vocabulary(VocabularyName=vocabulary_name)
-    client.get_vocabulary.when.called_with(
-        VocabularyName=vocabulary_name
-    ).should.throw(client.exceptions.BadRequestException)
+    client.get_vocabulary.when.called_with(VocabularyName=vocabulary_name).should.throw(
+        client.exceptions.BadRequestException
+    )
 
     # Create another vocabulary with Phrases
     client.create_vocabulary(

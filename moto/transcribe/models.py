@@ -73,7 +73,7 @@ class FakeTranscriptionJob(BaseObject):
         }
         self.identify_language = identify_language
         self.language_options = language_options
-        self.identified_language_score = None,
+        self.identified_language_score = (None,)
         self._output_bucket_name = output_bucket_name
         self.output_key = output_key
         self._output_encryption_kms_key_id = output_encryption_kms_key_id
@@ -172,14 +172,12 @@ class FakeTranscriptionJob(BaseObject):
             )
             if self._output_bucket_name:
                 transcript_file_uri = "https://s3.{0}.amazonaws.com/{1}/".format(
-                    self._region_name,
-                    self._output_bucket_name,
+                    self._region_name, self._output_bucket_name,
                 )
                 transcript_file_uri = (
                     transcript_file_uri
                     + "{0}/{1}.json".format(
-                        self.output_key,
-                        self.transcription_job_name,
+                        self.output_key, self.transcription_job_name,
                     )
                     if self.output_key is not None
                     else transcript_file_uri
@@ -199,12 +197,7 @@ class FakeTranscriptionJob(BaseObject):
 
 class FakeVocabulary(BaseObject):
     def __init__(
-        self,
-        region_name,
-        vocabulary_name,
-        language_code,
-        phrases,
-        vocabulary_file_uri,
+        self, region_name, vocabulary_name, language_code, phrases, vocabulary_file_uri,
     ):
         self._region_name = region_name
         self.vocabulary_name = vocabulary_name
@@ -215,10 +208,7 @@ class FakeVocabulary(BaseObject):
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-dictionary-model-{0}-prod/{1}/{2}/{3}/input.txt".format(  # noqa: E501
-            region_name,
-            ACCOUNT_ID,
-            vocabulary_name,
-            uuid,
+            region_name, ACCOUNT_ID, vocabulary_name, uuid,
         )
 
     def response_object(self, response_type):
@@ -389,11 +379,7 @@ class FakeMedicalTranscriptionJob(BaseObject):
 
 class FakeMedicalVocabulary(BaseObject):
     def __init__(
-        self,
-        region_name,
-        vocabulary_name,
-        language_code,
-        vocabulary_file_uri,
+        self, region_name, vocabulary_name, language_code, vocabulary_file_uri,
     ):
         self._region_name = region_name
         self.vocabulary_name = vocabulary_name
@@ -643,7 +629,10 @@ class TranscribeBackend(BaseBackend):
         phrases = kwargs.get("phrases")
         vocabulary_file_uri = kwargs.get("vocabulary_file_uri")
         if (
-            phrases is not None and vocabulary_file_uri is not None or phrases is None and vocabulary_file_uri is None
+            phrases is not None
+            and vocabulary_file_uri is not None
+            or phrases is None
+            and vocabulary_file_uri is None
         ):
             raise BadRequestException(
                 message="Either Phrases or VocabularyFileUri field should be provided.",
@@ -651,8 +640,8 @@ class TranscribeBackend(BaseBackend):
         if phrases is not None and len(phrases) < 1:
             raise BadRequestException(
                 message="1 validation error detected: Value '[]' at 'phrases' failed to "
-                        "satisfy constraint: Member must have length greater than or "
-                        "equal to 1",
+                "satisfy constraint: Member must have length greater than or "
+                "equal to 1",
             )
         if vocabulary_name in self.vocabularies:
             raise ConflictException(
