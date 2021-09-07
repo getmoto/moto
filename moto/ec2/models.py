@@ -2102,7 +2102,14 @@ class SecurityRule(object):
 
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def __init__(
-        self, ec2_backend, group_id, name, description, vpc_id=None, tags=None
+        self,
+        ec2_backend,
+        group_id,
+        name,
+        description,
+        vpc_id=None,
+        tags=None,
+        is_default=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = group_id
@@ -2114,6 +2121,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.vpc_id = vpc_id
         self.owner_id = ACCOUNT_ID
         self.add_tags(tags or {})
+        self.is_default = is_default or False
 
         # Append default IPv6 egress rule for VPCs with IPv6 support
         if vpc_id:
@@ -2290,7 +2298,7 @@ class SecurityGroupBackend(object):
         super(SecurityGroupBackend, self).__init__()
 
     def create_security_group(
-        self, name, description, vpc_id=None, tags=None, force=False
+        self, name, description, vpc_id=None, tags=None, force=False, is_default=None
     ):
         vpc_id = vpc_id or self.default_vpc.id
         if not description:
@@ -2302,7 +2310,13 @@ class SecurityGroupBackend(object):
             if existing_group:
                 raise InvalidSecurityGroupDuplicateError(name)
         group = SecurityGroup(
-            self, group_id, name, description, vpc_id=vpc_id, tags=tags
+            self,
+            group_id,
+            name,
+            description,
+            vpc_id=vpc_id,
+            tags=tags,
+            is_default=is_default,
         )
 
         self.groups[vpc_id][group_id] = group
@@ -3529,6 +3543,12 @@ class VPCBackend(object):
 
         # AWS creates a default Network ACL
         self.create_network_acl(vpc_id, default=True)
+
+        default = self.get_security_group_from_name("default", vpc_id=vpc_id)
+        if not default:
+            self.create_security_group(
+                "default", "default VPC security group", vpc_id=vpc_id, is_default=True
+            )
 
         return vpc
 
@@ -7885,9 +7905,6 @@ class EC2Backend(
             vpc = self.vpcs.values()[0]
 
         self.default_vpc = vpc
-
-        # Create the default security group
-        self.create_security_group("default", "default group", vpc.id)
 
         # Create default subnet for each availability zone
         ip, _ = vpc.cidr_block.split("/")
