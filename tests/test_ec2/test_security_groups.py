@@ -25,7 +25,7 @@ def test_create_and_describe_security_group():
             "test security group", "this is a test security group", dry_run=True
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -156,7 +156,7 @@ def test_deleting_security_groups():
     with pytest.raises(EC2ResponseError) as ex:
         conn.delete_security_group("test2", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -193,7 +193,7 @@ def test_authorize_ip_range_and_revoke():
             dry_run=True,
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the GrantSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -229,7 +229,7 @@ def test_authorize_ip_range_and_revoke():
             dry_run=True,
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -258,7 +258,7 @@ def test_authorize_ip_range_and_revoke():
             dry_run=True,
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the GrantSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -276,9 +276,6 @@ def test_authorize_ip_range_and_revoke():
     # the default outbound rule and the new one
     int(egress_security_group.rules_egress[1].to_port).should.equal(2222)
     actual_cidr = egress_security_group.rules_egress[1].grants[0].cidr_ip
-    # Deal with Python2 dict->unicode, instead of dict->string
-    if type(actual_cidr) == "unicode":
-        actual_cidr = json.loads(actual_cidr.replace("u'", "'").replace("'", '"'))
     actual_cidr.should.equal("123.123.123.123/32")
 
     # Wrong Cidr should throw error
@@ -297,7 +294,7 @@ def test_authorize_ip_range_and_revoke():
             dry_run=True,
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -496,7 +493,7 @@ def test_security_group_tagging():
     with pytest.raises(EC2ResponseError) as ex:
         sg.add_tag("Test", "Tag", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -785,7 +782,7 @@ def test_security_group_tagging_boto3():
             DryRun=True,
         )
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )

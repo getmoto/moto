@@ -32,7 +32,7 @@ def test_ami_create_and_delete():
             instance.id, "test-ami", "this is a test ami", dry_run=True
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateImage operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -79,7 +79,7 @@ def test_ami_create_and_delete():
     with pytest.raises(EC2ResponseError) as ex:
         success = conn.deregister_image(image_id, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeregisterImage operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -121,7 +121,7 @@ def test_ami_copy():
             dry_run=True,
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CopyImage operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -211,7 +211,7 @@ def test_ami_tagging():
     with pytest.raises(EC2ResponseError) as ex:
         image.add_tag("a key", "some value", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -402,7 +402,7 @@ def test_ami_attribute_group_permissions():
     with pytest.raises(EC2ResponseError) as ex:
         conn.modify_image_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyImageAttribute operation: Request would have succeeded, but DryRun flag is set"
     )

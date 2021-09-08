@@ -29,7 +29,7 @@ def test_igw_create():
     with pytest.raises(EC2ResponseError) as ex:
         igw = conn.create_internet_gateway(dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -52,7 +52,7 @@ def test_igw_attach():
     with pytest.raises(EC2ResponseError) as ex:
         conn.attach_internet_gateway(igw.id, vpc.id, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AttachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -103,7 +103,7 @@ def test_igw_detach():
     with pytest.raises(EC2ResponseError) as ex:
         conn.detach_internet_gateway(igw.id, vpc.id, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DetachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -170,7 +170,7 @@ def test_igw_delete():
     with pytest.raises(EC2ResponseError) as ex:
         conn.delete_internet_gateway(igw.id, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
