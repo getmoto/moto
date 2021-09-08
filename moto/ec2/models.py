@@ -4550,7 +4550,7 @@ class RouteTableBackend(object):
                 route_table_id,
                 destination_cidr_block=None,
                 local=True,
-                destination_ipv6_cidr_block=ipv6_cidr.get('cidr_block'),
+                destination_ipv6_cidr_block=ipv6_cidr.get("cidr_block"),
             )
 
         return route_table
@@ -5013,7 +5013,9 @@ class RouteBackend(object):
         vpc_peering_connection_id=None,
     ):
         route_table = self.get_route_table(route_table_id)
-        route_id = generate_route_id(route_table.id, destination_cidr_block, destination_ipv6_cidr_block)
+        route_id = generate_route_id(
+            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         route = route_table.routes[route_id]
 
         if interface_id:
@@ -5036,8 +5038,9 @@ class RouteBackend(object):
         if transit_gateway_id is not None:
             route.transit_gateway = self.transit_gateways.get(transit_gateway_id)
         if destination_prefix_list_id is not None:
-            route.prefix_list = self.managed_prefix_lists.get(destination_prefix_list_id)
-
+            route.prefix_list = self.managed_prefix_lists.get(
+                destination_prefix_list_id
+            )
 
         route.instance = self.get_instance(instance_id) if instance_id else None
         route.interface = None
