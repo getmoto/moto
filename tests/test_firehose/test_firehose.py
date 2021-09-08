@@ -109,27 +109,6 @@ def test_create_delivery_stream_failures():
 
 
 @mock_firehose
-def test_create_delivery_stream_extended_s3():
-    """Test successful invocation of an ExtendedS3 destination."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-    s3_dest_config = sample_s3_dest_config()
-    stream_name = "success"
-
-    # Verify an ExtendedS3 destination will automatically include an S3
-    # destination.
-    client.create_delivery_stream(
-        DeliveryStreamName=stream_name,
-        ExtendedS3DestinationConfiguration=s3_dest_config,
-    )
-    results = client.describe_delivery_stream(DeliveryStreamName=stream_name)
-    assert set(results["DeliveryStreamDescription"]["Destinations"][0].keys()) == {
-        "S3DestinationDescription",
-        "ExtendedS3DestinationDescription",
-        "DestinationId",
-    }
-
-
-@mock_firehose
 def test_delete_delivery_stream():
     """Test successful and failed invocations of delete_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -468,7 +447,7 @@ def test_list_tags_for_delivery_stream():
 def test_put_record():
     """Test successful, failed invocations of put_record()."""
     # TODO
-    client = boto3.client("firehose", region_name="us-east-1")
+    client = boto3.client("firehose", region_name=TEST_REGION)
 
 
 #    create_redshift_delivery_stream(client, "stream1")
@@ -479,7 +458,7 @@ def test_put_record():
 def test_put_record_batch():
     """Test successful, failed invocations of put_record_batch()."""
     # TODO
-    client = boto3.client("firehose", region_name="us-east-1")
+    client = boto3.client("firehose", region_name=TEST_REGION)
 
 
 #    create_redshift_delivery_stream(client, "stream1")

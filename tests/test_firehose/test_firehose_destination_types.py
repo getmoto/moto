@@ -9,7 +9,7 @@ from moto.core.utils import get_random_hex
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
-def create_s3_delivery_stream(client, stream_name):
+def create_extended_s3_delivery_stream(client, stream_name):
     """Return ARN of a delivery stream created with an S3 destination."""
     return client.create_delivery_stream(
         DeliveryStreamName=stream_name,
@@ -169,12 +169,12 @@ def test_create_redshift_delivery_stream():
 
 
 @mock_firehose
-def test_create_s3_delivery_stream():
+def test_create_extended_s3_delivery_stream():
     """Verify fields of a S3 delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
 
     stream_name = f"stream_{get_random_hex(6)}"
-    response = create_s3_delivery_stream(client, stream_name)
+    response = create_extended_s3_delivery_stream(client, stream_name)
     stream_arn = response["DeliveryStreamARN"]
 
     response = client.describe_delivery_stream(DeliveryStreamName=stream_name)
@@ -292,7 +292,7 @@ def test_create_elasticsearch_delivery_stream():
 
 
 @mock_firehose
-def test_create_non_extended_s3_stream():
+def test_create_s3_delivery_stream():
     """Verify fields of an S3 delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
 
