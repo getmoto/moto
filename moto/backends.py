@@ -35,7 +35,6 @@ BACKENDS = {
     "elbv2": ("elbv2", "elbv2_backends"),
     "emr": ("emr", "emr_backends"),
     "events": ("events", "events_backends"),
-    "firehose": ("firehose", "firehose_backends"),
     "glacier": ("glacier", "glacier_backends"),
     "glue": ("glue", "glue_backends"),
     "iam": ("iam", "iam_backends"),
