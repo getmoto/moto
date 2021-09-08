@@ -2860,7 +2860,7 @@ class SecurityGroupBackend(object):
     def _verify_group_will_respect_rule_count_limit(
         self, group, current_rule_nb, ip_ranges, source_groups=None, egress=False,
     ):
-        max_nb_rules = 50 if group.vpc_id else 100
+        max_nb_rules = 60 if group.vpc_id else 100
         future_group_nb_rules = current_rule_nb
         if ip_ranges:
             future_group_nb_rules += len(ip_ranges)

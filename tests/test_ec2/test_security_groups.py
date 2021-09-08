@@ -559,7 +559,7 @@ def test_sec_group_rule_limit():
     success = ec2_conn.authorize_security_group(
         group_id=sg.id,
         ip_protocol="-1",
-        cidr_ip=["{0}.0.0.0/0".format(i) for i in range(1, 50)],
+        cidr_ip=["{0}.0.0.0/0".format(i) for i in range(1, 60)],
     )
     success.should.be.true
     # verify that we cannot authorize past the limit for a CIDR IP
@@ -580,8 +580,8 @@ def test_sec_group_rule_limit():
     ec2_conn.authorize_security_group_egress(
         group_id=sg.id, ip_protocol="-1", src_group_id=other_sg.id
     )
-    # fill the rules up the limit, 49 + 1 default rule
-    for i in range(1, 49):
+    # fill the rules up the limit, 59 + 1 default rule
+    for i in range(1, 59):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
@@ -628,7 +628,7 @@ def test_sec_group_rule_limit_vpc():
     success = ec2_conn.authorize_security_group(
         group_id=sg.id,
         ip_protocol="-1",
-        cidr_ip=["{0}.0.0.0/0".format(i) for i in range(49)],
+        cidr_ip=["{0}.0.0.0/0".format(i) for i in range(59)],
     )
     # verify that we cannot authorize past the limit for a CIDR IP
     success.should.be.true
@@ -652,7 +652,7 @@ def test_sec_group_rule_limit_vpc():
     # fill the rules up the limit
     # remember that by default, when created a sec group contains 1 egress rule
     # so our other_sg rule + 48 CIDR IP rules + 1 by default == 50 the limit
-    for i in range(1, 49):
+    for i in range(1, 59):
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
