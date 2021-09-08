@@ -68,6 +68,11 @@ class DomainDispatcherApplication(object):
             if pattern.match("http://%s" % host):
                 return backend
 
+        print(
+            "Unable to find appropriate URL for {}."
+            "Remember to add the URL to urls.py, and run script/update_backend_index.py to index it."
+        )
+
     def infer_service_region_host(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
