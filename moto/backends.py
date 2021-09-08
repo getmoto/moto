@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import importlib
 import moto
+import sys
 
 
 decorators = [
@@ -15,8 +16,6 @@ BACKENDS["moto_api"] = ("core", "moto_api_backends")
 BACKENDS["instance_metadata"] = ("instance_metadata", "instance_metadata_backends")
 BACKENDS["s3bucket_path"] = ("s3", "s3_backends")
 
-imported_backends = set()
-
 
 def _import_backend(module_name, backends_name):
     module = importlib.import_module("moto." + module_name)
@@ -29,6 +28,13 @@ def backends():
 
 
 def loaded_backends():
+    loaded_modules = sys.modules.keys()
+    loaded_modules = [m for m in loaded_modules if m.startswith("moto.")]
+    imported_backends = [
+        name
+        for name, (module_name, _) in BACKENDS.items()
+        if f"moto.{module_name}" in loaded_modules
+    ]
     for name in imported_backends:
         module_name, backends_name = BACKENDS[name]
         yield name, _import_backend(module_name, backends_name)
@@ -36,7 +42,6 @@ def loaded_backends():
 
 def get_backend(name):
     module_name, backends_name = BACKENDS[name]
-    imported_backends.add(name)
     return _import_backend(module_name, backends_name)
 
 
