@@ -15,6 +15,8 @@ BACKENDS["moto_api"] = ("core", "moto_api_backends")
 BACKENDS["instance_metadata"] = ("instance_metadata", "instance_metadata_backends")
 BACKENDS["s3bucket_path"] = ("s3", "s3_backends")
 
+imported_backends = set()
+
 
 def _import_backend(module_name, backends_name):
     module = importlib.import_module("moto." + module_name)
@@ -26,13 +28,15 @@ def backends():
         yield _import_backend(module_name, backends_name)
 
 
-def named_backends():
-    for name, (module_name, backends_name) in BACKENDS.items():
+def loaded_backends():
+    for name in imported_backends:
+        module_name, backends_name = BACKENDS[name]
         yield name, _import_backend(module_name, backends_name)
 
 
 def get_backend(name):
     module_name, backends_name = BACKENDS[name]
+    imported_backends.add(name)
     return _import_backend(module_name, backends_name)
 
 
