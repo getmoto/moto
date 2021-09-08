@@ -29,7 +29,7 @@ class FirehoseResponse(BaseResponse):
             self._get_param("HttpEndpointDestinationConfiguration"),
             self._get_param("Tags"),
         )
-        return json.dumps(dict(deliveryStreamArn=delivery_stream_arn))
+        return json.dumps({"DeliveryStreamARN": delivery_stream_arn})
 
     def delete_delivery_stream(self):
         """Prepare arguments and respond to DeleteDeliveryStream request."""

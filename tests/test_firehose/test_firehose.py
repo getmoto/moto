@@ -1,27 +1,14 @@
-"""Unit tests specific to the Firehose Delivery Stream-related APIs.
-
- These APIs include:
-   create_delivery_stream
-   describe_delivery_stream
-   delete_delivery_stream
-   list_delivery_streams
-   list_tags_for_delivery_stream
-   put_record
-   put_record_batch
-   tag_delivery_stream
-   untag_delivery_stream
-   update_destination
-"""
+"""Unit tests specific to the Firehose Delivery Stream-related APIs."""
 import boto3
 from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_firehose
+from moto import settings
 from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from moto.firehose.models import DeliveryStream
 from moto.firehose.models import MAX_TAGS_PER_DELIVERY_STREAM
-from moto import settings
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -47,27 +34,6 @@ def test_create_delivery_stream_unimplemented():
             DeliveryStreamName=failure_name,
             S3DestinationConfiguration=s3_dest_config,
             DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
-        )
-    with pytest.raises(NotImplementedError):
-        client.create_delivery_stream(
-            DeliveryStreamName=failure_name,
-            RedshiftDestinationConfiguration={
-                "RoleARN": "foo",
-                "ClusterJDBCURL": "foo",
-                "CopyCommand": {"DataTableName": "foo"},
-                "Username": "foo",
-                "Password": "foobar",
-                "S3Configuration": {"RoleARN": "foo", "BucketARN": "foo"},
-            },
-        )
-    with pytest.raises(NotImplementedError):
-        client.create_delivery_stream(
-            DeliveryStreamName=failure_name,
-            ElasticsearchDestinationConfiguration={
-                "RoleARN": "foo",
-                "IndexName": "foo",
-                "S3Configuration": {"RoleARN": "foo", "BucketARN": "foo"},
-            },
         )
     with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
@@ -143,9 +109,24 @@ def test_create_delivery_stream_failures():
 
 
 @mock_firehose
-def test_create_delivery_stream_successes():
-    """Test successful invocation of create_delivery_stream()."""
-    assert True
+def test_create_delivery_stream_extended_s3():
+    """Test successful invocation of an ExtendedS3 destination."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+    stream_name = "success"
+
+    # Verify an ExtendedS3 destination will automatically include an S3
+    # destination.
+    client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        ExtendedS3DestinationConfiguration=s3_dest_config,
+    )
+    results = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    assert set(results["DeliveryStreamDescription"]["Destinations"][0].keys()) == {
+        "S3DestinationDescription",
+        "ExtendedS3DestinationDescription",
+        "DestinationId",
+    }
 
 
 @mock_firehose
@@ -213,6 +194,8 @@ def test_describe_delivery_stream():
         "CreateTimestamp",
         "Source",
         "Destinations",
+        "LastUpdateTimestamp",
+        "HasMoreDestinations",
     }
 
     # Verify the created fields are as expected.
@@ -485,14 +468,25 @@ def test_list_tags_for_delivery_stream():
 def test_put_record():
     """Test successful, failed invocations of put_record()."""
     # TODO
-    assert True
+    client = boto3.client("firehose", region_name="us-east-1")
+
+
+#    create_redshift_delivery_stream(client, "stream1")
+#    client.put_record(DeliveryStreamName="stream1", Record={"Data": "some data"})
 
 
 @mock_firehose
 def test_put_record_batch():
     """Test successful, failed invocations of put_record_batch()."""
     # TODO
-    assert True
+    client = boto3.client("firehose", region_name="us-east-1")
+
+
+#    create_redshift_delivery_stream(client, "stream1")
+#    client.put_record_batch(
+#        DeliveryStreamName="stream1",
+#        Records=[{"Data": "some data1"}, {"Data": "some data2"}],
+#    )
 
 
 @mock_firehose

@@ -20,33 +20,35 @@ from moto.utilities.tagging_service import TaggingService
 MAX_TAGS_PER_DELIVERY_STREAM = 50
 
 DESTINATION_TYPES_TO_NAMES = {
-    # Implemented
     "s3": "S3",
     "extended_s3": "ExtendedS3",
     "http_endpoint": "HttpEndpoint",
-    # Unimplemented
     "elasticsearch": "Elasticsearch",
     "redshift": "Redshift",
-    "splunk": "Splunk",
+    "splunk": "Splunk",  # Unimplemented
 }
 
 
-def destination_config_in_args(api_args):
+def find_destination_config_in_args(api_args):
     """Return (config_arg, config_name) tuple for destination config.
 
-    The alternative is to use a bunch of 'if' statements to check each
-    destination configuration type to see if it's null and then to act
-    accordingly.
+    Determines which destination config(s) have been specified.  The
+    alternative is to use a bunch of 'if' statements to check each
+    destination configuration.  If more than one destination config is
+    specified, than an exception is raised.
 
-    It's useful to have names for the types of destination when comparing
-    current and replacement destinations.
+    A logical name for the destination type is returned along with the
+    destination config as it's useful way to compare current and replacement
+    destinations.
     """
     destination_names = DESTINATION_TYPES_TO_NAMES.keys()
     configs = []
     for arg_name, arg_value in api_args.items():
+        # Ignore arguments that are not destination configs.
         if "_destination" not in arg_name:
             continue
 
+        # If the destination config value is non-null, save it.
         name = arg_name.split("_destination")[0]
         if name in destination_names and arg_value:
             configs.append((DESTINATION_TYPES_TO_NAMES[name], arg_value))
@@ -59,18 +61,12 @@ def destination_config_in_args(api_args):
     return configs[0]
 
 
-def report_unimplemented_destination(destination_name):
-    """Raise exception for unimplemented destinations."""
-    if destination_name in ["Redshift", "Elasticsearch", "Splunk"]:
-        raise NotImplementedError(
-            "A {name} destination delivery stream is not yet implemented"
-        )
-
-
 def create_s3_destination_config(extended_s3_destination_config):
     """Return dict with selected fields copied from ExtendedS3 config.
 
-    This has something to do with S3 being deprecated.
+    When an ExtendedS3 config is chosen, AWS tacks on a S3 config as
+    well.  When the same field names for S3 and ExtendedS3 exists,
+    the ExtendedS3 fields are copied to the added S3 destination.
     """
     fields_not_needed = [
         "S3BackupMode",
@@ -122,12 +118,22 @@ class DeliveryStream(
             self.destinations[0]["S3"] = create_s3_destination_config(
                 destination_config
             )
+        elif "S3Configuration" in destination_config:
+            # S3Configuration becomes S3DestinationDescription for the
+            # other destinations.
+            self.destinations[0][destination_name][
+                "S3DestinationDescription"
+            ] = destination_config["S3Configuration"]
+            del self.destinations[0][destination_name]["S3Configuration"]
 
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
 
         self.create_timestamp = time.time()
         self.version_id = "1"  # Used to track updates of destination configs
+
+        # I believe boto3 only adds this field after an update ...
+        self.last_update_timestamp = time.time()
 
 
 class FirehoseBackend(BaseBackend):
@@ -165,7 +171,9 @@ class FirehoseBackend(BaseBackend):
         tags,
     ):  # pylint: disable=too-many-arguments,too-many-locals,unused-argument
         """Create a Kinesis Data Firehose delivery stream."""
-        (destination_name, destination_config) = destination_config_in_args(locals())
+        (destination_name, destination_config) = find_destination_config_in_args(
+            locals()
+        )
 
         if delivery_stream_name in self.delivery_streams:
             raise ResourceInUseException(
@@ -187,7 +195,16 @@ class FirehoseBackend(BaseBackend):
                 "yet implemented"
             )
 
-        report_unimplemented_destination(destination_name)
+        if destination_name == "Splunk":
+            raise NotImplementedError(
+                "A Splunk destination delivery stream is not yet implemented"
+            )
+
+        # TODO
+        # botocore.errorfactory.InvalidArgumentException: An error occurred
+        # (InvalidArgumentException) when calling the CreateDeliveryStream
+        # operation: KinesisSourceStreamConfig is only applicable for
+        # KinesisStreamAsSource stream type.
 
         # Validate the tags before proceeding.
         errmsg = self.tagger.validate_tags(tags or [])
@@ -251,7 +268,7 @@ class FirehoseBackend(BaseBackend):
                 f"not found."
             )
 
-        result = {"DeliveryStreamDescription": {}, "HasMoreDestinations": False}
+        result = {"DeliveryStreamDescription": {"HasMoreDestinations": False}}
         for attribute, attribute_value in vars(delivery_stream).items():
             if not attribute_value:
                 continue
@@ -403,7 +420,9 @@ class FirehoseBackend(BaseBackend):
         http_endpoint_destination_update,
     ):  # pylint: disable=unused-argument,too-many-arguments,too-many-locals
         """Updates specified destination of specified delivery stream."""
-        (destination_name, destination_config) = destination_config_in_args(locals())
+        (destination_name, destination_config) = find_destination_config_in_args(
+            locals()
+        )
 
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
         if not delivery_stream:
@@ -412,7 +431,10 @@ class FirehoseBackend(BaseBackend):
                 f"{ACCOUNT_ID} not found."
             )
 
-        report_unimplemented_destination(destination_name)
+        if destination_name == "Splunk":
+            raise NotImplementedError(
+                "A Splunk destination delivery stream is not yet implemented"
+            )
 
         if delivery_stream.version_id != current_delivery_stream_version_id:
             raise ConcurrentModificationException(
