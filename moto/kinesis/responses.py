@@ -15,13 +15,6 @@ class KinesisResponse(BaseResponse):
     def kinesis_backend(self):
         return kinesis_backends[self.region]
 
-    @property
-    def is_firehose(self):
-        host = self.headers.get("host") or self.headers["Host"]
-        return host.startswith("firehose") or "firehose" in self.headers.get(
-            "Authorization", ""
-        )
-
     def create_stream(self):
         stream_name = self.parameters.get("StreamName")
         shard_count = self.parameters.get("ShardCount")
@@ -103,8 +96,6 @@ class KinesisResponse(BaseResponse):
         )
 
     def put_record(self):
-        if self.is_firehose:
-            return self.firehose_put_record()
         stream_name = self.parameters.get("StreamName")
         partition_key = self.parameters.get("PartitionKey")
         explicit_hash_key = self.parameters.get("ExplicitHashKey")
@@ -122,8 +113,6 @@ class KinesisResponse(BaseResponse):
         return json.dumps({"SequenceNumber": sequence_number, "ShardId": shard_id})
 
     def put_records(self):
-        if self.is_firehose:
-            return self.put_record_batch()
         stream_name = self.parameters.get("StreamName")
         records = self.parameters.get("Records")
 
@@ -164,85 +153,6 @@ class KinesisResponse(BaseResponse):
             stream_name, retention_period_hours
         )
         return ""
-
-    """ Firehose """
-
-    def create_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        redshift_config = self.parameters.get("RedshiftDestinationConfiguration")
-        s3_config = self.parameters.get("S3DestinationConfiguration")
-        extended_s3_config = self.parameters.get("ExtendedS3DestinationConfiguration")
-        elasticsearch_config = self.parameters.get(
-            "ElasticsearchDestinationConfiguration"
-        )
-
-        if redshift_config:
-            redshift_s3_config = redshift_config["S3Configuration"]
-            stream_kwargs = {
-                "redshift_username": redshift_config["Username"],
-                "redshift_password": redshift_config["Password"],
-                "redshift_jdbc_url": redshift_config["ClusterJDBCURL"],
-                "redshift_role_arn": redshift_config["RoleARN"],
-                "redshift_copy_command": redshift_config["CopyCommand"],
-                "redshift_s3_role_arn": redshift_s3_config["RoleARN"],
-                "redshift_s3_bucket_arn": redshift_s3_config["BucketARN"],
-                "redshift_s3_prefix": redshift_s3_config["Prefix"],
-                "redshift_s3_compression_format": redshift_s3_config.get(
-                    "CompressionFormat"
-                ),
-                "redshift_s3_buffering_hints": redshift_s3_config["BufferingHints"],
-            }
-        elif s3_config:
-            stream_kwargs = {"s3_config": s3_config}
-        elif extended_s3_config:
-            stream_kwargs = {"extended_s3_config": extended_s3_config}
-        elif elasticsearch_config:
-            stream_kwargs = {"elasticsearch_config": elasticsearch_config}
-        else:
-            stream_kwargs = {}
-
-        stream = self.kinesis_backend.create_delivery_stream(
-            stream_name, **stream_kwargs
-        )
-        return json.dumps({"DeliveryStreamARN": stream.arn})
-
-    def describe_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        stream = self.kinesis_backend.get_delivery_stream(stream_name)
-        return json.dumps(stream.to_dict())
-
-    def list_delivery_streams(self):
-        streams = self.kinesis_backend.list_delivery_streams()
-        return json.dumps(
-            {
-                "DeliveryStreamNames": [stream.name for stream in streams],
-                "HasMoreDeliveryStreams": False,
-            }
-        )
-
-    def delete_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        self.kinesis_backend.delete_delivery_stream(stream_name)
-        return json.dumps({})
-
-    def firehose_put_record(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        record_data = self.parameters["Record"]["Data"]
-
-        record = self.kinesis_backend.put_firehose_record(stream_name, record_data)
-        return json.dumps({"RecordId": record.record_id})
-
-    def put_record_batch(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        records = self.parameters["Records"]
-
-        request_responses = []
-        for record in records:
-            record_response = self.kinesis_backend.put_firehose_record(
-                stream_name, record["Data"]
-            )
-            request_responses.append({"RecordId": record_response.record_id})
-        return json.dumps({"FailedPutCount": 0, "RequestResponses": request_responses})
 
     def add_tags_to_stream(self):
         stream_name = self.parameters.get("StreamName")
