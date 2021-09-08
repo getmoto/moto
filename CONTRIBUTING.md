@@ -80,6 +80,9 @@ Select Operation: create_deployment
 You will still need to add the mock into "__init__.py"
 ```
 
+### URL Indexing
+In order to speed up the performance of MotoServer, all AWS URL's that need intercepting are indexed.  
+When adding/replacing any URLs in `{service}/urls.py`, please run `python scripts/update_backend_index.py` to update this index.
 
 ## Maintainers
 

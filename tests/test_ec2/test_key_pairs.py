@@ -68,7 +68,7 @@ def test_key_pairs_create():
     with pytest.raises(EC2ResponseError) as ex:
         conn.create_key_pair("foo", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -131,7 +131,7 @@ def test_key_pairs_delete_exist():
     with pytest.raises(EC2ResponseError) as ex:
         r = conn.delete_key_pair("foo", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -148,7 +148,7 @@ def test_key_pairs_import():
     with pytest.raises(EC2ResponseError) as ex:
         conn.import_key_pair("foo", RSA_PUBLIC_KEY_OPENSSH, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )

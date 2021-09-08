@@ -261,7 +261,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         for parameter in result[token:]:
             response["Parameters"].append(parameter.describe_response_object(False))
 
-            token = token + 1
+            token += 1
             if len(response["Parameters"]) == page_size:
                 response["NextToken"] = str(end)
                 break
@@ -346,20 +346,26 @@ class SimpleSystemManagerResponse(BaseResponse):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         tags = {t["Key"]: t["Value"] for t in self._get_param("Tags")}
-        self.ssm_backend.add_tags_to_resource(resource_id, resource_type, tags)
+        self.ssm_backend.add_tags_to_resource(
+            resource_type=resource_type, resource_id=resource_id, tags=tags
+        )
         return json.dumps({})
 
     def remove_tags_from_resource(self):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         keys = self._get_param("TagKeys")
-        self.ssm_backend.remove_tags_from_resource(resource_id, resource_type, keys)
+        self.ssm_backend.remove_tags_from_resource(
+            resource_type=resource_type, resource_id=resource_id, keys=keys
+        )
         return json.dumps({})
 
     def list_tags_for_resource(self):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
-        tags = self.ssm_backend.list_tags_for_resource(resource_id, resource_type)
+        tags = self.ssm_backend.list_tags_for_resource(
+            resource_type=resource_type, resource_id=resource_id
+        )
         tag_list = [{"Key": k, "Value": v} for (k, v) in tags.items()]
         response = {"TagList": tag_list}
         return json.dumps(response)

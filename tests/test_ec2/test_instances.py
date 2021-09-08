@@ -51,7 +51,7 @@ def test_instance_launch_and_terminate():
     with pytest.raises(EC2ResponseError) as ex:
         reservation = conn.run_instances(EXAMPLE_AMI_ID, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -86,7 +86,7 @@ def test_instance_launch_and_terminate():
     with pytest.raises(EC2ResponseError) as ex:
         conn.terminate_instances([instance.id], dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -787,7 +787,7 @@ def test_instance_start_and_stop():
     with pytest.raises(EC2ResponseError) as ex:
         stopped_instances = conn.stop_instances(instance_ids, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the StopInstance operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -800,7 +800,7 @@ def test_instance_start_and_stop():
     with pytest.raises(EC2ResponseError) as ex:
         started_instances = conn.start_instances([instances[0].id], dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the StartInstance operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -818,7 +818,7 @@ def test_instance_reboot():
     with pytest.raises(EC2ResponseError) as ex:
         instance.reboot(dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RebootInstance operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -836,7 +836,7 @@ def test_instance_attribute_instance_type():
     with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("instanceType", "m1.small", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceType operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -864,7 +864,7 @@ def test_modify_instance_attribute_security_groups():
     with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -887,7 +887,7 @@ def test_instance_attribute_user_data():
     with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("userData", "this is my user data", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyUserData operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -917,7 +917,7 @@ def test_instance_attribute_source_dest_check():
     with pytest.raises(EC2ResponseError) as ex:
         instance.modify_attribute("sourceDestCheck", False, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifySourceDestCheck operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -963,7 +963,7 @@ def test_run_instance_with_security_group_name():
     with pytest.raises(EC2ResponseError) as ex:
         group = conn.create_security_group("group1", "some description", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -1240,7 +1240,7 @@ def test_instance_with_nic_attach_detach():
     with pytest.raises(EC2ResponseError) as ex:
         conn.attach_network_interface(eni.id, instance.id, device_index=1, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -1267,7 +1267,7 @@ def test_instance_with_nic_attach_detach():
     with pytest.raises(EC2ResponseError) as ex:
         conn.detach_network_interface(instance_eni.attachment.id, dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -1583,7 +1583,7 @@ def test_get_instance_by_security_group():
             instance.id, "groupSet", [security_group.id], dry_run=True
         )
     ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(400)
+    ex.value.status.should.equal(412)
     ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
     )

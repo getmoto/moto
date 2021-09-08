@@ -83,7 +83,7 @@ class RESTError(HTTPException):
 
 
 class DryRunClientError(RESTError):
-    code = 400
+    code = 412
 
 
 class JsonRESTError(RESTError):
