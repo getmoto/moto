@@ -10,6 +10,9 @@ from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from moto.firehose.models import DeliveryStream
 from moto.firehose.models import MAX_TAGS_PER_DELIVERY_STREAM
+from tests.test_firehose.test_firehose_destination_types import (
+    create_redshift_delivery_stream,
+)
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -30,13 +33,12 @@ def test_create_delivery_stream_unimplemented():
     failure_name = f"test_failure_{get_random_hex(6)}"
 
     # Verify that unimplemented features are noted and reported.
-    # TODO -- why does this fail in a CI/CD environment?
-    # with pytest.raises(NotImplementedError):
-    #     client.create_delivery_stream(
-    #         DeliveryStreamName=failure_name,
-    #         S3DestinationConfiguration=s3_dest_config,
-    #         DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
-    #     )
+    with pytest.raises(NotImplementedError):
+        client.create_delivery_stream(
+            DeliveryStreamName=failure_name,
+            S3DestinationConfiguration=s3_dest_config,
+            DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
+        )
     with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=failure_name,
@@ -446,6 +448,48 @@ def test_list_tags_for_delivery_stream():
 
 
 @mock_firehose
+def test_put_record_redshift_destination():
+    """Test invocations of put_record() to a Redshift destination.
+
+    At the moment, for Redshift or Elasticsearch destinations, the data
+    is just thrown away
+    """
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    stream_name = f"test_put_record_{get_random_hex(6)}"
+    create_redshift_delivery_stream(client, stream_name)
+    result = client.put_record(
+        DeliveryStreamName=stream_name, Record={"Data": "some test data"}
+    )
+    assert set(result.keys()) == {"RecordId", "Encrypted", "ResponseMetadata"}
+
+
+@mock_firehose
+def test_put_record_batch_redshift_destination():
+    """Test invocations of put_record_batch() to a Redshift destination.
+
+    At the moment, for Redshift or Elasticsearch destinations, the data
+    is just thrown away
+    """
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    stream_name = f"test_put_record_{get_random_hex(6)}"
+    create_redshift_delivery_stream(client, stream_name)
+    records = [{"Data": "one"}, {"Data": "two"}, {"Data": "three"}]
+    result = client.put_record_batch(DeliveryStreamName=stream_name, Records=records)
+    assert set(result.keys()) == {
+        "FailedPutCount",
+        "Encrypted",
+        "RequestResponses",
+        "ResponseMetadata",
+    }
+    assert result["FailedPutCount"] == 0
+    assert result["Encrypted"] is False
+    for response in result["RequestResponses"]:
+        assert set(response.keys()) == {"RecordId"}
+
+
+@mock_firehose
 def test_put_record_http_destination():
     """Test invocations of put_record() to a Http destination."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -491,14 +535,6 @@ def test_put_record_batch_http_destination():
     assert result["Encrypted"] is False
     for response in result["RequestResponses"]:
         assert set(response.keys()) == {"RecordId"}
-
-
-# TODO
-#    create_redshift_delivery_stream(client, "stream1")
-#    client.put_record_batch(
-#        DeliveryStreamName="stream1",
-#        Records=[{"Data": "some data1"}, {"Data": "some data2"}],
-#    )
 
 
 @mock_firehose

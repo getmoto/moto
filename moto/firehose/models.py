@@ -5,7 +5,7 @@ TODO:
       validation of the url for an http endpoint (boto3 does this),
     - Better handling of the put_record_batch() API.  Not only is
       the existing logic bare bones, but for the ElasticSearch and
-      RedShift destinations, the data is just stored in memory.
+      RedShift destinations, the data is just ignored.
     - put_record_batch() handling of errors is minimal.
     - put_record(), put_record_batch() always set "Encrypted" to False.
 """
@@ -94,16 +94,6 @@ def create_s3_destination_config(extended_s3_destination_config):
             continue
         destination[field] = value
     return destination
-
-
-class FirehoseRecord(BaseModel):  # pylint: disable=too-few-public-methods
-    """Store records for unimplemented services.
-
-    Currently this includes Redshift and ElasticSearch.
-    """
-
-    def __init__(self, record_data):
-        self.record_data = record_data
 
 
 class DeliveryStream(
@@ -441,7 +431,11 @@ class FirehoseBackend(BaseBackend):
                     destination["HttpEndpoint"], records
                 )
             elif "Elasticsearch" in destination or "Redshift" in destination:
-                pass
+                # This isn't implmented as these services aren't implemented,
+                # so ignore the data, but return a "proper" response.
+                request_responses = [
+                    {"RecordId": str(uuid4())} for _ in range(len(records))
+                ]
 
         return {
             "FailedPutCount": 0,

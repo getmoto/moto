@@ -55,7 +55,6 @@ backend_url_patterns = [
     ("iot", re.compile("https?://iot\\.(.+)\\.amazonaws\\.com")),
     ("iot-data", re.compile("https?://data.iot.(.+).amazonaws.com")),
     ("kinesis", re.compile("https?://kinesis\\.(.+)\\.amazonaws\\.com")),
-    ("kinesis", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
     ("kinesisvideo", re.compile("https?://kinesisvideo.(.+).amazonaws.com")),
     (
         "kinesis-video-archived-media",
