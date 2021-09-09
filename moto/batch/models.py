@@ -1,13 +1,15 @@
 import re
 from itertools import cycle
 from time import sleep
-from typing import Any, Dict, List, Tuple, Optional, Set
+from typing import Any, Dict, List, Tuple, Optional, Set, cast
 import datetime
 import time
 import logging
 import threading
 import dateutil.parser
 from sys import platform
+
+from docker.models.containers import Container
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.iam.models import iam_backends, IAMBackend
@@ -761,10 +763,18 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     else:
                         ip = network_settings["IPAddress"]
                     env["AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS"] = ip
-                container = self.docker_client.containers.run(
-                    detach=True,
-                    log_config=log_config,
-                    extra_hosts=extra_hosts,
+
+                # Method is wrapped in a function to make it patchable in LocalStack
+                kwargs = kwargs.copy()
+                container = self.run_batch_container(
+                    kwargs.pop("command"),
+                    kwargs.pop("environment"),
+                    kwargs.pop("image"),
+                    log_config,
+                    kwargs.pop("mounts"),
+                    kwargs.pop("name"),
+                    kwargs.pop("privileged"),
+                    extra_hosts,
                     **kwargs,
                 )
                 container.reload()
@@ -867,6 +877,34 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 if container.status == "running":
                     container.kill()
                 container.remove()
+
+    def run_batch_container(
+        self,
+        cmd: str,
+        environment: Dict[str, str],
+        image: str,
+        log_config: Dict[str, Any],
+        mounts: List[Any],
+        name: str,
+        privileged: bool,
+        extra_hosts: Dict[str, Any],
+        **run_kwargs: str,
+    ) -> Container:
+        container = self.docker_client.containers.run(
+            image,
+            cmd,
+            detach=True,
+            name=name,
+            log_config=log_config,
+            environment=environment,
+            mounts=mounts,
+            privileged=privileged,
+            extra_hosts=extra_hosts,
+            **run_kwargs,
+        )
+        # `container` _is_ a `Container` but the docker client api is untyped,
+        # so mypy thinks it is an `Any`
+        return cast(Container, container)
 
     def _mark_stopped(self, success: bool = True) -> None:
         if self.job_stopped:
