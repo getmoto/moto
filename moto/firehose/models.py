@@ -1,11 +1,24 @@
-"""FirehoseBackend class with methods for supported APIs."""
-import time
+"""FirehoseBackend class with methods for supported APIs.
+
+TODO:
+    - Better validation of delivery destination parameters, e.g.,
+      validation of the url for an http endpoint (boto3 does this),
+    - Better handling of the put_record_batch() API.  Not only is
+      the existing logic bare bones, but for the ElasticSearch and
+      RedShift destinations, the data is just stored in memory.
+    - put_record_batch() handling of errors is minimal.
+    - put_record(), put_record_batch() always set "Encrypted" to False.
+"""
+from datetime import datetime
+from time import time
+from uuid import uuid4
+
+import requests
 
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID
-
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
     InvalidArgumentException,
@@ -14,6 +27,7 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
+
 
 from moto.utilities.tagging_service import TaggingService
 
@@ -82,6 +96,16 @@ def create_s3_destination_config(extended_s3_destination_config):
     return destination
 
 
+class FirehoseRecord(BaseModel):  # pylint: disable=too-few-public-methods
+    """Store records for unimplemented services.
+
+    Currently this includes Redshift and ElasticSearch.
+    """
+
+    def __init__(self, record_data):
+        self.record_data = record_data
+
+
 class DeliveryStream(
     BaseModel
 ):  # pylint: disable=too-few-public-methods,too-many-instance-attributes
@@ -129,11 +153,11 @@ class DeliveryStream(
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
 
-        self.create_timestamp = time.time()
+        self.create_timestamp = str(datetime.utcnow())
         self.version_id = "1"  # Used to track updates of destination configs
 
         # I believe boto3 only adds this field after an update ...
-        self.last_update_timestamp = time.time()
+        self.last_update_timestamp = str(datetime.utcnow())
 
 
 class FirehoseBackend(BaseBackend):
@@ -370,6 +394,61 @@ class FirehoseBackend(BaseBackend):
             result["HasMoreTags"] = True
         return result
 
+    def put_record(self, delivery_stream_name, record):
+        """Write a single data record into a Kinesis Data firehose stream."""
+        result = self.put_record_batch(delivery_stream_name, [record])
+        return {
+            "RecordId": result["RequestResponses"][0]["RecordId"],
+            "Encrypted": False,
+        }
+
+    @staticmethod
+    def put_http_records(http_destination, records):
+        """Put records to a HTTP destination."""
+        # Mostly copied from localstack
+        url = http_destination["EndpointConfiguration"]["Url"]
+        record_to_send = {
+            "requestId": str(uuid4()),
+            "timestamp": int(time()),
+            "records": [{"data": record["Data"]} for record in records],
+        }
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            requests.post(url, json=record_to_send, headers=headers)
+        except Exception as exc:
+            # This could be better ...
+            raise RuntimeError("Firehose PutRecord(Batch) failed") from exc
+        return [{"RecordId": str(uuid4())} for _ in range(len(records))]
+
+    def put_record_batch(self, delivery_stream_name, records):
+        """Write multiple data records into a Kinesis Data firehose stream."""
+        delivery_stream = self.delivery_streams.get(delivery_stream_name)
+        if not delivery_stream:
+            raise ResourceNotFoundException(
+                f"Firehose {delivery_stream_name} under account {ACCOUNT_ID} "
+                f"not found."
+            )
+
+        request_responses = []
+        for destination in delivery_stream.destinations:
+            if "S3Destination" in destination or "ExtendedS3" in destination:
+                # ExtendedS3 will be handled like S3,but in the future
+                # this will probably need to be revisited.
+                pass
+            elif "HttpEndpoint" in destination:
+                request_responses = self.put_http_records(
+                    destination["HttpEndpoint"], records
+                )
+            elif "Elasticsearch" in destination or "Redshift" in destination:
+                pass
+
+        return {
+            "FailedPutCount": 0,
+            "Encrypted": False,
+            "RequestResponses": request_responses,
+        }
+
     def tag_delivery_stream(self, delivery_stream_name, tags):
         """Add/update tags for specified delivery stream."""
         delivery_stream = self.delivery_streams.get(delivery_stream_name)
@@ -493,7 +572,7 @@ class FirehoseBackend(BaseBackend):
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
-        delivery_stream.last_update_timestamp = time.time()
+        delivery_stream.last_update_timestamp = str(datetime.utcnow())
 
         # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
         # documentation:  "You can update a delivery stream to enable Amazon
