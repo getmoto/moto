@@ -23,7 +23,7 @@ TestAccAWSDataSourceIAMPolicyDocument
 TestAccAWSDataSourceIAMRole
 TestAccAWSDataSourceIAMSessionContext
 TestAccAWSDataSourceIAMUser
-TestAccAWSDefaultSecurityGroup
+TestAccAWSDefaultSecurityGroup_
 TestAccAWSDefaultSubnet
 TestAccAWSDefaultTagsDataSource
 TestAccAWSDynamoDbTableItem
@@ -116,3 +116,4 @@ TestAccAwsEc2ManagedPrefixList
 TestAccAWSEgressOnlyInternetGateway
 TestAccAWSSecurityGroup_
 TestAccAWSInternetGateway
+TestAccAWSSecurityGroupRule_
