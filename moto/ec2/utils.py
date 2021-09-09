@@ -81,7 +81,7 @@ def random_reservation_id():
 
 
 def random_security_group_id():
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"])
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"], size=17)
 
 
 def random_security_group_rule_id():

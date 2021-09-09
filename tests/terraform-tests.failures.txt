@@ -6,3 +6,4 @@ TestAccAWSFms
 TestAccAWSIAMRolePolicy
 TestAccAWSSecurityGroup_forceRevokeRules_
 TestAccAWSSSMDocument_package
+TestAccAWSDefaultSecurityGroup_Classic_
