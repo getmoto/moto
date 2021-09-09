@@ -26,32 +26,6 @@ def sample_s3_dest_config():
 
 
 @mock_firehose
-def test_create_delivery_stream_unimplemented():
-    """Test use of umimplemented create_delivery_stream() features."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-    s3_dest_config = sample_s3_dest_config()
-    failure_name = f"test_failure_{get_random_hex(6)}"
-
-    # Verify that unimplemented features are noted and reported.
-    with pytest.raises(NotImplementedError):
-        client.create_delivery_stream(
-            DeliveryStreamName=failure_name,
-            S3DestinationConfiguration=s3_dest_config,
-            DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
-        )
-    with pytest.raises(NotImplementedError):
-        client.create_delivery_stream(
-            DeliveryStreamName=failure_name,
-            SplunkDestinationConfiguration={
-                "HECEndpoint": "foo",
-                "HECEndpointType": "foo",
-                "HECToken": "foo",
-                "S3Configuration": {"RoleARN": "foo", "BucketARN": "foo"},
-            },
-        )
-
-
-@mock_firehose
 def test_create_delivery_stream_failures():
     """Test errors invoking create_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
