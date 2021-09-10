@@ -12,6 +12,8 @@ from tests.test_firehose.test_firehose_destination_types import (
     create_redshift_delivery_stream,
 )
 
+S3_LOCATION_CONSTRAINT = "us-west-1"
+
 
 @mock_firehose
 def test_put_record_redshift_destination():
@@ -114,7 +116,7 @@ def test_put_record_batch_extended_s3_destination():
     s3_client = boto3.client("s3", region_name=TEST_REGION)
     s3_client.create_bucket(
         Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": TEST_REGION},
+        CreateBucketConfiguration={"LocationConstraint": S3_LOCATION_CONSTRAINT},
     )
 
     stream_name = f"test_put_record_{get_random_hex(6)}"
