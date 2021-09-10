@@ -145,7 +145,9 @@ def test_describe_metric_filters_validation():
     ]
 
     for test_case in test_cases:
-        conn.describe_metric_filter.when.called_with(test_case["input"]).should.throw(test_case["expected"])
+        conn.describe_metric_filter.when.called_with(test_case["input"]).should.throw(
+            test_case["expected"]
+        )
 
 
 @mock_logs
@@ -227,17 +229,26 @@ def put_metric_filter(conn, count=1):
     )
 
 
-def build_put_case(name, expected, filter_name="filterName", filter_pattern="filterPattern",
-                   log_group_name="logGroupName", metric_transformations=None):
+def build_put_case(
+    name,
+    expected,
+    filter_name="filterName",
+    filter_pattern="filterPattern",
+    log_group_name="logGroupName",
+    metric_transformations=None,
+):
     return {
         "name": name,
-        "input":
-            build_put_input(filter_name, filter_pattern, log_group_name, metric_transformations),
-        "expected": expected
+        "input": build_put_input(
+            filter_name, filter_pattern, log_group_name, metric_transformations
+        ),
+        "expected": expected,
     }
 
 
-def build_put_input(filter_name, filter_pattern, log_group_name, metric_transformations):
+def build_put_input(
+    filter_name, filter_pattern, log_group_name, metric_transformations
+):
     if metric_transformations is None:
         metric_transformations = [
             {
@@ -251,26 +262,35 @@ def build_put_input(filter_name, filter_pattern, log_group_name, metric_transfor
         "filterName": filter_name,
         "filterPattern": filter_pattern,
         "logGroupName": log_group_name,
-        "metricTransformations": metric_transformations
+        "metricTransformations": metric_transformations,
     }
 
 
-def build_describe_input(filter_name_prefix, log_group_name, metric_name, metric_namespace):
+def build_describe_input(
+    filter_name_prefix, log_group_name, metric_name, metric_namespace
+):
     return {
         "filterNamePrefix": filter_name_prefix,
         "logGroupName": log_group_name,
         "metricName": metric_name,
-        "metricNamespace": metric_namespace
+        "metricNamespace": metric_namespace,
     }
 
 
-def build_describe_case(name, expected, filter_name_prefix="filterNamePrefix", log_group_name="logGroupName",
-                        metric_name="metricName", metric_namespace="metricNamespace"):
+def build_describe_case(
+    name,
+    expected,
+    filter_name_prefix="filterNamePrefix",
+    log_group_name="logGroupName",
+    metric_name="metricName",
+    metric_namespace="metricNamespace",
+):
     return {
         "name": name,
-        "input":
-            build_describe_input(filter_name_prefix, log_group_name, metric_name, metric_namespace),
-        "expected": expected
+        "input": build_describe_input(
+            filter_name_prefix, log_group_name, metric_name, metric_namespace
+        ),
+        "expected": expected,
     }
 
 

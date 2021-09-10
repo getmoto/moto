@@ -800,7 +800,7 @@ class LogsBackend(BaseBackend):
         log_group.untag(tags)
 
     def put_metric_filter(
-            self, filter_name, filter_pattern, log_group_name, metric_transformations
+        self, filter_name, filter_pattern, log_group_name, metric_transformations
     ):
         self.filters.add_filter(
             filter_name, filter_pattern, log_group_name, metric_transformations
