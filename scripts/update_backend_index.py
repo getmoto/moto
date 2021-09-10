@@ -15,9 +15,13 @@ output_file = "moto/backend_index.py"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 output_path = os.path.join(script_dir, "..", output_file)
 
+IGNORE_BACKENDS = ["moto_api", "instance_metadata"]
+
 
 def iter_backend_url_patterns():
     for backend, (module_name, _) in backends.BACKENDS.items():
+        if backend in IGNORE_BACKENDS:
+            break
         # otherwise we need to import the module
         url_module_name = f"moto.{module_name}.urls"
         module = importlib.import_module(url_module_name)

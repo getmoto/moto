@@ -18,6 +18,7 @@ class RouteTables(BaseResponse):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        destination_prefix_list_id = self._get_param("DestinationPrefixListId")
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
         nat_gateway_id = self._get_param("NatGatewayId")
@@ -30,6 +31,7 @@ class RouteTables(BaseResponse):
             route_table_id,
             destination_cidr_block,
             destination_ipv6_cidr_block,
+            destination_prefix_list_id,
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,
@@ -83,14 +85,24 @@ class RouteTables(BaseResponse):
     def replace_route(self):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
+        destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        destination_prefix_list_id = self._get_param("DestinationPrefixListId")
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
         interface_id = self._get_param("NetworkInterfaceId")
         pcx_id = self._get_param("VpcPeeringConnectionId")
+        nat_gateway_id = self._get_param("NatGatewayId")
+        egress_only_igw_id = self._get_param("EgressOnlyInternetGatewayId")
+        transit_gateway_id = self._get_param("TransitGatewayId")
 
         self.ec2_backend.replace_route(
             route_table_id,
             destination_cidr_block,
+            destination_ipv6_cidr_block,
+            destination_prefix_list_id,
+            nat_gateway_id,
+            egress_only_igw_id,
+            transit_gateway_id,
             gateway_id=gateway_id,
             instance_id=instance_id,
             interface_id=interface_id,
@@ -176,11 +188,16 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 {% if route.destination_ipv6_cidr_block %}
                 <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
                 {% else %}
-                <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+                <destinationCidrBlock>{{ route.destination_cidr_block or "" }}</destinationCidrBlock>
                 {% endif %}
                 {% if route.local %}
                   <gatewayId>local</gatewayId>
                   <origin>CreateRouteTable</origin>
+                  <state>active</state>
+                {% endif %}
+                {% if route.prefix_list %}
+                  <destinationPrefixListId>{{ route.prefix_list.id }}</destinationPrefixListId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.gateway %}
