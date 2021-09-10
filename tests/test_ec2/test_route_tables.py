@@ -752,7 +752,7 @@ def test_create_route_with_egress_only_igw():
     )
 
     route_table.reload()
-    eigw_route = [r for r in route_table.routes if r.destination_cidr_block == "None"][
+    eigw_route = [r for r in route_table.routes if r.destination_cidr_block == ""][
         0
     ]
     eigw_route.egress_only_internet_gateway_id.should.equal(eigw_id)

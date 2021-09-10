@@ -188,7 +188,7 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 {% if route.destination_ipv6_cidr_block %}
                 <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
                 {% else %}
-                <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+                <destinationCidrBlock>{{ route.destination_cidr_block or "" }}</destinationCidrBlock>
                 {% endif %}
                 {% if route.local %}
                   <gatewayId>local</gatewayId>
