@@ -3641,7 +3641,9 @@ class VPCBackend(object):
             for route_table in self.route_tables.values():
                 if route_table.vpc_id == response.get("vpc_id"):
                     if "::/" in response.get("cidr_block"):
-                        self.delete_route(route_table.id, None, response.get("cidr_block"))
+                        self.delete_route(
+                            route_table.id, None, response.get("cidr_block")
+                        )
                     else:
                         self.delete_route(route_table.id, response.get("cidr_block"))
             if response:
@@ -3653,13 +3655,22 @@ class VPCBackend(object):
         self, vpc_id, cidr_block, amazon_provided_ipv6_cidr_block
     ):
         vpc = self.get_vpc(vpc_id)
-        association_set = vpc.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block)
+        association_set = vpc.associate_vpc_cidr_block(
+            cidr_block, amazon_provided_ipv6_cidr_block
+        )
         for route_table in self.route_tables.values():
             if route_table.vpc_id == vpc_id:
                 if amazon_provided_ipv6_cidr_block:
-                    self.create_route(route_table.id, None, destination_ipv6_cidr_block=association_set["cidr_block"], local=True)
+                    self.create_route(
+                        route_table.id,
+                        None,
+                        destination_ipv6_cidr_block=association_set["cidr_block"],
+                        local=True,
+                    )
                 else:
-                    self.create_route(route_table.id, association_set["cidr_block"], local=True)
+                    self.create_route(
+                        route_table.id, association_set["cidr_block"], local=True
+                    )
         return association_set
 
     def create_vpc_endpoint(
