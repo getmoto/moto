@@ -3638,6 +3638,14 @@ class VPCBackend(object):
     def disassociate_vpc_cidr_block(self, association_id):
         for vpc in self.vpcs.values():
             response = vpc.disassociate_vpc_cidr_block(association_id)
+            for route_table in self.route_tables.values():
+                if route_table.vpc_id == response.get("vpc_id"):
+                    if "::/" in response.get("cidr_block"):
+                        self.delete_route(
+                            route_table.id, None, response.get("cidr_block")
+                        )
+                    else:
+                        self.delete_route(route_table.id, response.get("cidr_block"))
             if response:
                 return response
         else:
@@ -3647,7 +3655,23 @@ class VPCBackend(object):
         self, vpc_id, cidr_block, amazon_provided_ipv6_cidr_block
     ):
         vpc = self.get_vpc(vpc_id)
-        return vpc.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block)
+        association_set = vpc.associate_vpc_cidr_block(
+            cidr_block, amazon_provided_ipv6_cidr_block
+        )
+        for route_table in self.route_tables.values():
+            if route_table.vpc_id == vpc_id:
+                if amazon_provided_ipv6_cidr_block:
+                    self.create_route(
+                        route_table.id,
+                        None,
+                        destination_ipv6_cidr_block=association_set["cidr_block"],
+                        local=True,
+                    )
+                else:
+                    self.create_route(
+                        route_table.id, association_set["cidr_block"], local=True
+                    )
+        return association_set
 
     def create_vpc_endpoint(
         self,
@@ -4679,10 +4703,12 @@ class RouteTableBackend(object):
             route_table.add_tag(tag.get("Key"), tag.get("Value"))
         self.route_tables[route_table_id] = route_table
 
-        # AWS creates a default local route.
-        self.create_route(route_table_id, vpc.cidr_block, local=True)
+        # creating default routes for ipv4 cirds
+        ipv4_cidrs = vpc.get_cidr_block_association_set(ipv6=False)
+        for ipv4_cidr in ipv4_cidrs:
+            self.create_route(route_table_id, ipv4_cidr.get("cidr_block"), local=True)
 
-        # if ipV6 support is enabled
+        # creating default routes for ipv6 cidrs
         ipv6_cidrs = vpc.get_cidr_block_association_set(ipv6=True)
         for ipv6_cidr in ipv6_cidrs:
             self.create_route(
@@ -4779,6 +4805,7 @@ class RouteTableBackend(object):
         return self.associate_route_table(route_table_id, subnet_id)
 
 
+# TODO: refractor to isloate class methods from backend logic
 class Route(CloudFormationModel):
     def __init__(
         self,
