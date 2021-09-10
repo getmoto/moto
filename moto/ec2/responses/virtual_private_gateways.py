@@ -53,15 +53,13 @@ CREATE_VPN_GATEWAY_RESPONSE = """
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpnGateway>
     <vpnGatewayId>{{ vpn_gateway.id }}</vpnGatewayId>
-    <state>available</state>
+    <state>{{ vpn_gateway.state }}</state>
     <type>{{ vpn_gateway.type }}</type>
     <availabilityZone>{{ vpn_gateway.availability_zone }}</availabilityZone>
     <attachments/>
     <tagSet>
       {% for tag in vpn_gateway.get_tags() %}
         <item>
-          <resourceId>{{ tag.resource_id }}</resourceId>
-          <resourceType>{{ tag.resource_type }}</resourceType>
           <key>{{ tag.key }}</key>
           <value>{{ tag.value }}</value>
         </item>
@@ -77,9 +75,9 @@ DESCRIBE_VPN_GATEWAYS_RESPONSE = """
     {% for vpn_gateway in vpn_gateways %}
       <item>
         <vpnGatewayId>{{ vpn_gateway.id }}</vpnGatewayId>
-        <state>available</state>
+        <state>{{ vpn_gateway.state }}</state>
         <type>{{ vpn_gateway.id }}</type>
-        <availabilityZone>us-east-1a</availabilityZone>
+        <availabilityZone>{{ vpn_gateway.availability_zone }}</availabilityZone>
         <attachments>
           {% for attachment in vpn_gateway.attachments.values() %}
             <item>
@@ -92,8 +90,6 @@ DESCRIBE_VPN_GATEWAYS_RESPONSE = """
         <tagSet>
           {% for tag in vpn_gateway.get_tags() %}
             <item>
-              <resourceId>{{ tag.resource_id }}</resourceId>
-              <resourceType>{{ tag.resource_type }}</resourceType>
               <key>{{ tag.key }}</key>
               <value>{{ tag.value }}</value>
             </item>

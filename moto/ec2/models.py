@@ -6508,7 +6508,8 @@ class VpnGatewayBackend(object):
     def detach_vpn_gateway(self, vpn_gateway_id, vpc_id):
         vpn_gateway = self.get_vpn_gateway(vpn_gateway_id)
         self.get_vpc(vpc_id)
-        detached = vpn_gateway.attachments.pop(vpc_id, None)
+        detached = vpn_gateway.attachments.get(vpc_id, None)
+        detached.state = "detached"
         if not detached:
             raise InvalidVPCIdError(vpc_id)
         return detached
