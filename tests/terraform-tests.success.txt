@@ -120,5 +120,4 @@ TestAccAWSInternetGateway
 TestAccAWSVpnGateway_basic
 TestAccAWSVpnGateway_delete
 TestAccAWSVpnGateway_tags
-TestAccAWSVpnGatewayAttachment
 TestAccAWSSecurityGroupRule_
