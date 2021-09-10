@@ -145,9 +145,9 @@ def test_describe_metric_filters_validation():
     ]
 
     for test_case in test_cases:
-        conn.describe_metric_filters.when.called_with(**test_case["input"]).should.throw(
-            test_case["expected"]
-        )
+        conn.describe_metric_filters.when.called_with(
+            **test_case["input"]
+        ).should.throw(test_case["expected"])
 
 
 @mock_logs
