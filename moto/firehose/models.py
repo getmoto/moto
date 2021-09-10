@@ -1,14 +1,18 @@
 """FirehoseBackend class with methods for supported APIs.
 
-TODO:
-    - Better validation of delivery destination parameters, e.g.,
-      validation of the url for an http endpoint (boto3 does this),
-    - Better handling of the put_record_batch() API.  Not only is
-      the existing logic bare bones, but for the ElasticSearch and
-      RedShift destinations, the data is just ignored.
-    - put_record_batch() handling of errors is minimal.
-    - put_record(), put_record_batch() always set "Encrypted" to False.
+TODO:  (not a complete list)
+  - The create_delivery_stream() argument
+    DeliveryStreamEncryptionConfigurationInput is not supported.
+  - Better validation of delivery destination parameters, e.g.,
+    validation of the url for an http endpoint (boto3 does this),
+  - Better handling of the put_record_batch() API.  Not only is
+    the existing logic bare bones, but for the ElasticSearch and
+    RedShift destinations, the data is just ignored.
+  - put_record_batch() handling of errors is minimal and no errors
+    are reported back to the user.  Instead an exception is raised.
+  - put_record(), put_record_batch() always set "Encrypted" to False.
 """
+from base64 import b64decode
 from datetime import datetime
 from time import time
 from uuid import uuid4
@@ -27,8 +31,7 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-
-
+from moto.s3 import s3_backend
 from moto.utilities.tagging_service import TaggingService
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
@@ -397,18 +400,50 @@ class FirehoseBackend(BaseBackend):
         """Put records to a HTTP destination."""
         # Mostly copied from localstack
         url = http_destination["EndpointConfiguration"]["Url"]
+        headers = {"Content-Type": "application/json"}
         record_to_send = {
             "requestId": str(uuid4()),
             "timestamp": int(time()),
             "records": [{"data": record["Data"]} for record in records],
         }
-        headers = {"Content-Type": "application/json"}
-
         try:
             requests.post(url, json=record_to_send, headers=headers)
         except Exception as exc:
             # This could be better ...
-            raise RuntimeError("Firehose PutRecord(Batch) failed") from exc
+            raise RuntimeError(
+                "Firehose PutRecord(Batch) to HTTP destination failed"
+            ) from exc
+        return [{"RecordId": str(uuid4())} for _ in range(len(records))]
+
+    @staticmethod
+    def _format_s3_object_path(delivery_stream_name, prefix):
+        """Create a key from ... """
+        # Taken from LocalStack's firehose logic, with minor changes.
+        # See https://aws.amazon.com/kinesis/data-firehose/faqs
+        # Path prefix pattern: myApp/YYYY/MM/DD/HH/
+        # Object name pattern: DeliveryStreamName-YYYY-MM-DD-HH-MM-SS-mmm
+        prefix = f"{prefix}{'' if prefix.endswith('/') else '/'}"
+        now = datetime.utcnow()
+        timestamp = now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        return (
+            f"{prefix}{now.strftime('%Y/%m/%d/%H')}/{delivery_stream_name}-{timestamp}"
+        )
+
+    def put_s3_records(self, delivery_stream_name, s3_destination, records):
+        """Put records to a ExtendedS3 or S3 destination."""
+        # Taken from LocalStack's firehose logic, with minor changes.
+        bucket_name = s3_destination["BucketARN"].split(":")[-1]
+        prefix = s3_destination.get("Prefix", "")
+        object_path = self._format_s3_object_path(delivery_stream_name, prefix)
+
+        batched_data = b"".join([b64decode(r["Data"]) for r in records])
+        try:
+            s3_backend.put_object(bucket_name, object_path, batched_data)
+        except Exception as exc:
+            # This could be better ...
+            raise RuntimeError(
+                "Firehose PutRecord(Batch to S3 destination failed"
+            ) from exc
         return [{"RecordId": str(uuid4())} for _ in range(len(records))]
 
     def put_record_batch(self, delivery_stream_name, records):
@@ -422,10 +457,18 @@ class FirehoseBackend(BaseBackend):
 
         request_responses = []
         for destination in delivery_stream.destinations:
-            if "S3Destination" in destination or "ExtendedS3" in destination:
+            if "ExtendedS3" in destination:
                 # ExtendedS3 will be handled like S3,but in the future
-                # this will probably need to be revisited.
-                pass
+                # this will probably need to be revisited.  This destination
+                # must be listed before S3 otherwise both destinations will
+                # be processed instead of just ExtendedS3.
+                request_responses = self.put_s3_records(
+                    delivery_stream_name, destination["ExtendedS3"], records
+                )
+            elif "S3" in destination:
+                request_responses = self.put_s3_records(
+                    delivery_stream_name, destination["S3"], records
+                )
             elif "HttpEndpoint" in destination:
                 request_responses = self.put_http_records(
                     destination["HttpEndpoint"], records

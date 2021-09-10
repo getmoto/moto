@@ -5,6 +5,7 @@ import pytest
 import sure  # noqa pylint: disable=unused-import
 
 from moto import mock_firehose
+from moto import mock_s3
 from moto import settings
 from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
@@ -509,6 +510,49 @@ def test_put_record_batch_http_destination():
     assert result["Encrypted"] is False
     for response in result["RequestResponses"]:
         assert set(response.keys()) == {"RecordId"}
+
+
+@mock_s3
+@mock_firehose
+def test_put_record_batch_extended_s3_destination():
+    """Test invocations of put_record_batch() to a S3 destination."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    # Create a S3 bucket.
+    bucket_name = "firehosetestbucket"
+    s3_client = boto3.client("s3", region_name=TEST_REGION)
+    s3_client.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": TEST_REGION},
+    )
+
+    stream_name = f"test_put_record_{get_random_hex(6)}"
+    client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        ExtendedS3DestinationConfiguration={
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose-test-role",
+            "BucketARN": f"arn:aws:s3::{bucket_name}",
+        },
+    )
+    records = [{"Data": "one"}, {"Data": "two"}, {"Data": "three"}]
+    result = client.put_record_batch(DeliveryStreamName=stream_name, Records=records)
+    assert set(result.keys()) == {
+        "FailedPutCount",
+        "Encrypted",
+        "RequestResponses",
+        "ResponseMetadata",
+    }
+    assert result["FailedPutCount"] == 0
+    assert result["Encrypted"] is False
+    for response in result["RequestResponses"]:
+        assert set(response.keys()) == {"RecordId"}
+
+    # Pull data from S3 bucket.
+    bucket_objects = s3_client.list_objects_v2(Bucket=bucket_name)
+    response = s3_client.get_object(
+        Bucket=bucket_name, Key=bucket_objects["Contents"][0]["Key"]
+    )
+    assert response["Body"].read() == b"onetwothree"
 
 
 @mock_firehose
