@@ -124,11 +124,19 @@ class InvalidNetworkAclIdError(EC2ClientError):
 
 
 class InvalidVpnGatewayIdError(EC2ClientError):
-    def __init__(self, network_acl_id):
+    def __init__(self, vpn_gw):
         super(InvalidVpnGatewayIdError, self).__init__(
             "InvalidVpnGatewayID.NotFound",
-            "The virtual private gateway ID '{0}' does not exist".format(
-                network_acl_id
+            "The virtual private gateway ID '{0}' does not exist".format(vpn_gw),
+        )
+
+
+class InvalidVpnGatewayAttachmentError(EC2ClientError):
+    def __init__(self, vpn_gw, vpc_id):
+        super(InvalidVpnGatewayAttachmentError, self).__init__(
+            "InvalidVpnGatewayAttachment.NotFound",
+            "The attachment with vpn gateway ID '{}' and vpc ID '{}' does not exist".format(
+                vpn_gw, vpc_id
             ),
         )
 

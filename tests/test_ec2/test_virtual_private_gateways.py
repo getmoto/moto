@@ -233,7 +233,8 @@ def test_delete_vpn_gateway():
 
     conn.delete_vpn_gateway(vpn_gateway.id)
     vgws = conn.get_all_vpn_gateways()
-    vgws.should.have.length_of(0)
+    vgws.should.have.length_of(1)
+    vgws[0].state.should.equal("deleted")
 
 
 @mock_ec2_deprecated

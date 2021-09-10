@@ -36,7 +36,8 @@ class VirtualPrivateGateways(BaseResponse):
 
     def describe_vpn_gateways(self):
         filters = filters_from_querystring(self.querystring)
-        vpn_gateways = self.ec2_backend.describe_vpn_gateways(filters)
+        vpn_gw_ids = self._get_multi_param("VpnGatewayId")
+        vpn_gateways = self.ec2_backend.describe_vpn_gateways(filters, vpn_gw_ids)
         template = self.response_template(DESCRIBE_VPN_GATEWAYS_RESPONSE)
         return template.render(vpn_gateways=vpn_gateways)
 
@@ -53,6 +54,9 @@ CREATE_VPN_GATEWAY_RESPONSE = """
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpnGateway>
     <vpnGatewayId>{{ vpn_gateway.id }}</vpnGatewayId>
+    {% if vpn_gateway.amazon_side_asn %}
+    <amazonSideAsn>{{ vpn_gateway.amazon_side_asn }}</amazonSideAsn>
+    {% endif %}
     <state>{{ vpn_gateway.state }}</state>
     <type>{{ vpn_gateway.type }}</type>
     <availabilityZone>{{ vpn_gateway.availability_zone }}</availabilityZone>
@@ -75,6 +79,9 @@ DESCRIBE_VPN_GATEWAYS_RESPONSE = """
     {% for vpn_gateway in vpn_gateways %}
       <item>
         <vpnGatewayId>{{ vpn_gateway.id }}</vpnGatewayId>
+        {% if vpn_gateway.amazon_side_asn %}
+        <amazonSideAsn>{{ vpn_gateway.amazon_side_asn }}</amazonSideAsn>
+        {% endif %}
         <state>{{ vpn_gateway.state }}</state>
         <type>{{ vpn_gateway.id }}</type>
         <availabilityZone>{{ vpn_gateway.availability_zone }}</availabilityZone>
