@@ -120,4 +120,7 @@ TestAccAwsEc2ManagedPrefixList
 TestAccAWSEgressOnlyInternetGateway
 TestAccAWSSecurityGroup_
 TestAccAWSInternetGateway
+TestAccAWSVpnGateway_basic
+TestAccAWSVpnGateway_delete
+TestAccAWSVpnGateway_tags
 TestAccAWSSecurityGroupRule_

@@ -271,4 +271,5 @@ def test_detach_vpn_gateway():
 
     gateway = conn.get_all_vpn_gateways()[0]
     attachments = gateway.attachments
-    attachments.should.have.length_of(0)
+    attachments.should.have.length_of(1)
+    attachments[0].state.should.equal("detached")
