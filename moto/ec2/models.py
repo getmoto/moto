@@ -4689,7 +4689,7 @@ class RouteTableBackend(object):
                 route_table_id,
                 destination_cidr_block=None,
                 local=True,
-                destination_ipv6_cidr_block=ipv6_cidr,
+                destination_ipv6_cidr_block=ipv6_cidr.get("cidr_block"),
             )
 
         return route_table
@@ -4785,6 +4785,7 @@ class Route(CloudFormationModel):
         route_table,
         destination_cidr_block,
         destination_ipv6_cidr_block,
+        prefix_list=None,
         local=False,
         gateway=None,
         instance=None,
@@ -4800,6 +4801,7 @@ class Route(CloudFormationModel):
         self.route_table = route_table
         self.destination_cidr_block = destination_cidr_block
         self.destination_ipv6_cidr_block = destination_ipv6_cidr_block
+        self.prefix_list = prefix_list
         self.local = local
         self.gateway = gateway
         self.instance = instance
@@ -5071,6 +5073,7 @@ class RouteBackend(object):
         route_table_id,
         destination_cidr_block,
         destination_ipv6_cidr_block=None,
+        destination_prefix_list_id=None,
         local=False,
         gateway_id=None,
         instance_id=None,
@@ -5085,6 +5088,7 @@ class RouteBackend(object):
         transit_gateway = None
         egress_only_igw = None
         interface = None
+        prefix_list = None
 
         route_table = self.get_route_table(route_table_id)
 
@@ -5111,11 +5115,14 @@ class RouteBackend(object):
                 egress_only_igw = self.get_egress_only_igw(egress_only_igw_id)
             if transit_gateway_id is not None:
                 transit_gateway = self.transit_gateways.get(transit_gateway_id)
+            if destination_prefix_list_id is not None:
+                prefix_list = self.managed_prefix_lists.get(destination_prefix_list_id)
 
         route = Route(
             route_table,
             destination_cidr_block,
             destination_ipv6_cidr_block,
+            prefix_list,
             local=local,
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
@@ -5134,24 +5141,45 @@ class RouteBackend(object):
         self,
         route_table_id,
         destination_cidr_block,
+        destination_ipv6_cidr_block=None,
+        destination_prefix_list_id=None,
+        nat_gateway_id=None,
+        egress_only_igw_id=None,
+        transit_gateway_id=None,
         gateway_id=None,
         instance_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
     ):
         route_table = self.get_route_table(route_table_id)
-        route_id = generate_route_id(route_table.id, destination_cidr_block)
+        route_id = generate_route_id(
+            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         route = route_table.routes[route_id]
 
         if interface_id:
             self.raise_not_implemented_error("ReplaceRoute to NetworkInterfaceId")
 
         route.gateway = None
+        route.nat_gateway = None
+        route.egress_only_igw = None
+        route.transit_gateway = None
         if gateway_id:
             if EC2_RESOURCE_TO_PREFIX["vpn-gateway"] in gateway_id:
                 route.gateway = self.get_vpn_gateway(gateway_id)
             elif EC2_RESOURCE_TO_PREFIX["internet-gateway"] in gateway_id:
                 route.gateway = self.get_internet_gateway(gateway_id)
+
+        if nat_gateway_id is not None:
+            route.nat_gateway = self.nat_gateways.get(nat_gateway_id)
+        if egress_only_igw_id is not None:
+            route.egress_only_igw = self.get_egress_only_igw(egress_only_igw_id)
+        if transit_gateway_id is not None:
+            route.transit_gateway = self.transit_gateways.get(transit_gateway_id)
+        if destination_prefix_list_id is not None:
+            route.prefix_list = self.managed_prefix_lists.get(
+                destination_prefix_list_id
+            )
 
         route.instance = self.get_instance(instance_id) if instance_id else None
         route.interface = None
