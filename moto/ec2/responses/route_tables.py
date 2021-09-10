@@ -187,8 +187,7 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
               <item>
                 {% if route.destination_ipv6_cidr_block %}
                 <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
-                {% endif %}
-                {% if route.destination_cidr_block %}
+                {% else %}
                 <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
                 {% endif %}
                 {% if route.local %}
