@@ -151,23 +151,6 @@ def test_describe_metric_filters_validation():
 
 
 @mock_logs
-def test_describe_metric_filters_validation():
-    conn = boto3.client("logs", "us-west-2")
-    # conn.enable_key_rotation.when.called_with("not-a-key").should.throw(
-    #     NotFoundException
-    # )
-    # assert response["ResponseMetadata"]["HTTPStatusCode"] != 200
-
-    response = conn.describe_metric_filters(
-        filterNamePrefix="filter",
-        metricName="metricName1",
-        metricNamespace="metricNamespace1",
-    )
-
-    # assert response["metricFilters"][0]["filterName"] == "filterName1"
-
-
-@mock_logs
 def test_describe_metric_filters_multiple_happy():
     conn = boto3.client("logs", "us-west-2")
 
