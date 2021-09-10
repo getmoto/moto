@@ -31,6 +31,7 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
+from moto.core.utils import get_random_hex
 from moto.s3 import s3_backend
 from moto.utilities.tagging_service import TaggingService
 
@@ -416,25 +417,29 @@ class FirehoseBackend(BaseBackend):
         return [{"RecordId": str(uuid4())} for _ in range(len(records))]
 
     @staticmethod
-    def _format_s3_object_path(delivery_stream_name, prefix):
-        """Create a key from ... """
+    def _format_s3_object_path(delivery_stream_name, version_id, prefix):
+        """Return a S3 object path in the expected format."""
         # Taken from LocalStack's firehose logic, with minor changes.
-        # See https://aws.amazon.com/kinesis/data-firehose/faqs
+        # See https://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html#s3-object-name
         # Path prefix pattern: myApp/YYYY/MM/DD/HH/
-        # Object name pattern: DeliveryStreamName-YYYY-MM-DD-HH-MM-SS-mmm
+        # Object name pattern:
+        # DeliveryStreamName-DeliveryStreamVersion-YYYY-MM-DD-HH-MM-SS-RandomString
         prefix = f"{prefix}{'' if prefix.endswith('/') else '/'}"
         now = datetime.utcnow()
-        timestamp = now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         return (
-            f"{prefix}{now.strftime('%Y/%m/%d/%H')}/{delivery_stream_name}-{timestamp}"
+            f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
+            f"{delivery_stream_name}-{version_id}-"
+            f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{get_random_hex()}"
         )
 
-    def put_s3_records(self, delivery_stream_name, s3_destination, records):
+    def put_s3_records(self, delivery_stream_name, version_id, s3_destination, records):
         """Put records to a ExtendedS3 or S3 destination."""
         # Taken from LocalStack's firehose logic, with minor changes.
         bucket_name = s3_destination["BucketARN"].split(":")[-1]
         prefix = s3_destination.get("Prefix", "")
-        object_path = self._format_s3_object_path(delivery_stream_name, prefix)
+        object_path = self._format_s3_object_path(
+            delivery_stream_name, version_id, prefix
+        )
 
         batched_data = b"".join([b64decode(r["Data"]) for r in records])
         try:
@@ -463,11 +468,17 @@ class FirehoseBackend(BaseBackend):
                 # must be listed before S3 otherwise both destinations will
                 # be processed instead of just ExtendedS3.
                 request_responses = self.put_s3_records(
-                    delivery_stream_name, destination["ExtendedS3"], records
+                    delivery_stream_name,
+                    delivery_stream.version_id,
+                    destination["ExtendedS3"],
+                    records,
                 )
             elif "S3" in destination:
                 request_responses = self.put_s3_records(
-                    delivery_stream_name, destination["S3"], records
+                    delivery_stream_name,
+                    delivery_stream.version_id,
+                    destination["S3"],
+                    records,
                 )
             elif "HttpEndpoint" in destination:
                 request_responses = self.put_http_records(
