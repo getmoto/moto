@@ -1,6 +1,6 @@
 """FirehoseBackend class with methods for supported APIs.
 
-TODO:  (not a complete list)
+Incomplete list of unfinished items:
   - The create_delivery_stream() argument
     DeliveryStreamEncryptionConfigurationInput is not supported.
   - Better validation of delivery destination parameters, e.g.,
@@ -218,11 +218,14 @@ class FirehoseBackend(BaseBackend):
                 "A Splunk destination delivery stream is not yet implemented"
             )
 
-        # TODO
-        # botocore.errorfactory.InvalidArgumentException: An error occurred
-        # (InvalidArgumentException) when calling the CreateDeliveryStream
-        # operation: KinesisSourceStreamConfig is only applicable for
-        # KinesisStreamAsSource stream type.
+        if (
+            kinesis_stream_source_configuration
+            and delivery_stream_type != "KinesisStreamAsSource"
+        ):
+            raise InvalidArgumentException(
+                "KinesisSourceStreamConfig is only applicable for "
+                "KinesisStreamAsSource stream type"
+            )
 
         # Validate the tags before proceeding.
         errmsg = self.tagger.validate_tags(tags or [])

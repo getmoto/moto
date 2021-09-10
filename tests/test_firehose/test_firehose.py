@@ -1,19 +1,13 @@
-"""Unit tests specific to the Firehose Delivery Stream-related APIs."""
+"""Unit tests specific to basic Firehose Delivery Stream-related APIs."""
 import boto3
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa pylint: disable=unused-import
 
 from moto import mock_firehose
-from moto import mock_s3
 from moto import settings
 from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from moto.firehose.models import DeliveryStream
-from moto.firehose.models import MAX_TAGS_PER_DELIVERY_STREAM
-from tests.test_firehose.test_firehose_destination_types import (
-    create_redshift_delivery_stream,
-)
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -84,6 +78,24 @@ def test_create_delivery_stream_failures():
     assert (
         "Exactly one destination configuration is supported for a Firehose"
         in err["Message"]
+    )
+
+    # Provide a Kinesis source configuration, but use DirectPut stream type.
+    with pytest.raises(ClientError) as exc:
+        client.create_delivery_stream(
+            DeliveryStreamName=f"{failure_name}_bad_source_type",
+            DeliveryStreamType="DirectPut",
+            KinesisStreamSourceConfiguration={
+                "KinesisStreamARN": "kinesis_test_ds",
+                "RoleARN": "foo",
+            },
+            ExtendedS3DestinationConfiguration=s3_dest_config,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        "KinesisSourceStreamConfig is only applicable for "
+        "KinesisStreamAsSource stream type" in err["Message"]
     )
 
 
@@ -357,289 +369,6 @@ def test_list_delivery_streams():
         == expected_directput_list + expected_kinesis_stream_list
     )
     assert hoses["HasMoreDeliveryStreams"] is False
-
-
-@mock_firehose
-def test_list_tags_for_delivery_stream():
-    """Test invocations of list_tags_for_delivery_stream()."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-    s3_dest_config = sample_s3_dest_config()
-    stream_name = f"test_list_tags_{get_random_hex(6)}"
-
-    number_of_tags = 50
-    tags = [{"Key": f"{x}_k", "Value": f"{x}_v"} for x in range(1, number_of_tags + 1)]
-
-    # Create a delivery stream to work with.
-    client.create_delivery_stream(
-        DeliveryStreamName=stream_name,
-        S3DestinationConfiguration=s3_dest_config,
-        Tags=tags,
-    )
-
-    # Verify limit works.
-    result = client.list_tags_for_delivery_stream(
-        DeliveryStreamName=stream_name, Limit=1
-    )
-    assert len(result["Tags"]) == 1
-    assert result["Tags"] == [{"Key": "1_k", "Value": "1_v"}]
-    assert result["HasMoreTags"] is True
-
-    result = client.list_tags_for_delivery_stream(
-        DeliveryStreamName=stream_name, Limit=number_of_tags
-    )
-    assert len(result["Tags"]) == number_of_tags
-    assert result["HasMoreTags"] is False
-
-    # Verify exclusive_start_tag_key returns truncated list.
-    result = client.list_tags_for_delivery_stream(
-        DeliveryStreamName=stream_name, ExclusiveStartTagKey="30_k"
-    )
-    assert len(result["Tags"]) == number_of_tags - 30
-    expected_tags = [
-        {"Key": f"{x}_k", "Value": f"{x}_v"} for x in range(31, number_of_tags + 1)
-    ]
-    assert result["Tags"] == expected_tags
-    assert result["HasMoreTags"] is False
-
-    result = client.list_tags_for_delivery_stream(
-        DeliveryStreamName=stream_name, ExclusiveStartTagKey=f"{number_of_tags}_k"
-    )
-    assert len(result["Tags"]) == 0
-    assert result["HasMoreTags"] is False
-
-    # boto3 ignores bad stream names for ExclusiveStartTagKey.
-    result = client.list_tags_for_delivery_stream(
-        DeliveryStreamName=stream_name, ExclusiveStartTagKey="foo"
-    )
-    assert len(result["Tags"]) == number_of_tags
-    assert result["Tags"] == tags
-    assert result["HasMoreTags"] is False
-
-    # Verify no parameters returns entire list.
-    client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name)
-    assert len(result["Tags"]) == number_of_tags
-    assert result["Tags"] == tags
-    assert result["HasMoreTags"] is False
-
-
-@mock_firehose
-def test_put_record_redshift_destination():
-    """Test invocations of put_record() to a Redshift destination.
-
-    At the moment, for Redshift or Elasticsearch destinations, the data
-    is just thrown away
-    """
-    client = boto3.client("firehose", region_name=TEST_REGION)
-
-    stream_name = f"test_put_record_{get_random_hex(6)}"
-    create_redshift_delivery_stream(client, stream_name)
-    result = client.put_record(
-        DeliveryStreamName=stream_name, Record={"Data": "some test data"}
-    )
-    assert set(result.keys()) == {"RecordId", "Encrypted", "ResponseMetadata"}
-
-
-@mock_firehose
-def test_put_record_batch_redshift_destination():
-    """Test invocations of put_record_batch() to a Redshift destination.
-
-    At the moment, for Redshift or Elasticsearch destinations, the data
-    is just thrown away
-    """
-    client = boto3.client("firehose", region_name=TEST_REGION)
-
-    stream_name = f"test_put_record_{get_random_hex(6)}"
-    create_redshift_delivery_stream(client, stream_name)
-    records = [{"Data": "one"}, {"Data": "two"}, {"Data": "three"}]
-    result = client.put_record_batch(DeliveryStreamName=stream_name, Records=records)
-    assert set(result.keys()) == {
-        "FailedPutCount",
-        "Encrypted",
-        "RequestResponses",
-        "ResponseMetadata",
-    }
-    assert result["FailedPutCount"] == 0
-    assert result["Encrypted"] is False
-    for response in result["RequestResponses"]:
-        assert set(response.keys()) == {"RecordId"}
-
-
-@mock_firehose
-def test_put_record_http_destination():
-    """Test invocations of put_record() to a Http destination."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-    s3_dest_config = sample_s3_dest_config()
-
-    stream_name = f"test_put_record_{get_random_hex(6)}"
-    client.create_delivery_stream(
-        DeliveryStreamName=stream_name,
-        HttpEndpointDestinationConfiguration={
-            "EndpointConfiguration": {"Url": "https://google.com"},
-            "S3Configuration": s3_dest_config,
-        },
-    )
-    result = client.put_record(
-        DeliveryStreamName=stream_name, Record={"Data": "some test data"}
-    )
-    assert set(result.keys()) == {"RecordId", "Encrypted", "ResponseMetadata"}
-
-
-@mock_firehose
-def test_put_record_batch_http_destination():
-    """Test invocations of put_record_batch() to a Http destination."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-    s3_dest_config = sample_s3_dest_config()
-
-    stream_name = f"test_put_record_{get_random_hex(6)}"
-    client.create_delivery_stream(
-        DeliveryStreamName=stream_name,
-        HttpEndpointDestinationConfiguration={
-            "EndpointConfiguration": {"Url": "https://google.com"},
-            "S3Configuration": s3_dest_config,
-        },
-    )
-    records = [{"Data": "one"}, {"Data": "two"}, {"Data": "three"}]
-    result = client.put_record_batch(DeliveryStreamName=stream_name, Records=records)
-    assert set(result.keys()) == {
-        "FailedPutCount",
-        "Encrypted",
-        "RequestResponses",
-        "ResponseMetadata",
-    }
-    assert result["FailedPutCount"] == 0
-    assert result["Encrypted"] is False
-    for response in result["RequestResponses"]:
-        assert set(response.keys()) == {"RecordId"}
-
-
-@mock_s3
-@mock_firehose
-def test_put_record_batch_extended_s3_destination():
-    """Test invocations of put_record_batch() to a S3 destination."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-
-    # Create a S3 bucket.
-    bucket_name = "firehosetestbucket"
-    s3_client = boto3.client("s3", region_name=TEST_REGION)
-    s3_client.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": TEST_REGION},
-    )
-
-    stream_name = f"test_put_record_{get_random_hex(6)}"
-    client.create_delivery_stream(
-        DeliveryStreamName=stream_name,
-        ExtendedS3DestinationConfiguration={
-            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose-test-role",
-            "BucketARN": f"arn:aws:s3::{bucket_name}",
-        },
-    )
-    records = [{"Data": "one"}, {"Data": "two"}, {"Data": "three"}]
-    result = client.put_record_batch(DeliveryStreamName=stream_name, Records=records)
-    assert set(result.keys()) == {
-        "FailedPutCount",
-        "Encrypted",
-        "RequestResponses",
-        "ResponseMetadata",
-    }
-    assert result["FailedPutCount"] == 0
-    assert result["Encrypted"] is False
-    for response in result["RequestResponses"]:
-        assert set(response.keys()) == {"RecordId"}
-
-    # Pull data from S3 bucket.
-    bucket_objects = s3_client.list_objects_v2(Bucket=bucket_name)
-    response = s3_client.get_object(
-        Bucket=bucket_name, Key=bucket_objects["Contents"][0]["Key"]
-    )
-    assert response["Body"].read() == b"onetwothree"
-
-
-@mock_firehose
-def test_tag_delivery_stream():
-    """Test successful, failed invocations of tag_delivery_stream()."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-
-    # Create a delivery stream for testing purposes.
-    s3_dest_config = sample_s3_dest_config()
-    stream_name = f"test_tags_{get_random_hex(6)}"
-    client.create_delivery_stream(
-        DeliveryStreamName=stream_name,
-        ExtendedS3DestinationConfiguration=s3_dest_config,
-    )
-
-    # Unknown stream name.
-    unknown_name = "foo"
-    with pytest.raises(ClientError) as exc:
-        client.tag_delivery_stream(
-            DeliveryStreamName=unknown_name, Tags=[{"Key": "foo", "Value": "bar"}]
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-    assert (
-        f"Firehose {unknown_name} under account {ACCOUNT_ID} not found"
-        in err["Message"]
-    )
-
-    # Too many tags.
-    with pytest.raises(ClientError) as exc:
-        client.tag_delivery_stream(
-            DeliveryStreamName=stream_name,
-            Tags=[{"Key": f"{x}", "Value": f"{x}"} for x in range(51)],
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert (
-        f"failed to satisify contstraint: Member must have length "
-        f"less than or equal to {MAX_TAGS_PER_DELIVERY_STREAM}"
-    ) in err["Message"]
-
-    # Bad tags.
-    with pytest.raises(ClientError) as exc:
-        client.tag_delivery_stream(
-            DeliveryStreamName=stream_name, Tags=[{"Key": "foo!", "Value": "bar"}],
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert (
-        "1 validation error detected: Value 'foo!' at 'tags.1.member.key' "
-        "failed to satisfy constraint: Member must satisfy regular "
-        "expression pattern"
-    ) in err["Message"]
-
-    # Successful addition of tags.
-    added_tags = [{"Key": f"{x}", "Value": f"{x}"} for x in range(10)]
-    client.tag_delivery_stream(DeliveryStreamName=stream_name, Tags=added_tags)
-    results = client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name)
-    assert len(results["Tags"]) == 10
-    assert results["Tags"] == added_tags
-
-
-@mock_firehose
-def test_untag_delivery_stream():
-    """Test successful, failed invocations of untag_delivery_stream()."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-
-    # Create a delivery stream for testing purposes.
-    s3_dest_config = sample_s3_dest_config()
-    stream_name = f"test_untag_{get_random_hex(6)}"
-    tag_list = [
-        {"Key": "one", "Value": "1"},
-        {"Key": "two", "Value": "2"},
-        {"Key": "three", "Value": "3"},
-    ]
-    client.create_delivery_stream(
-        DeliveryStreamName=stream_name,
-        ExtendedS3DestinationConfiguration=s3_dest_config,
-        Tags=tag_list,
-    )
-
-    # Untag all of the tags.  Verify there are no more tags.
-    tag_keys = [x["Key"] for x in tag_list]
-    client.untag_delivery_stream(DeliveryStreamName=stream_name, TagKeys=tag_keys)
-    results = client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name)
-    assert not results["Tags"]
-    assert not results["HasMoreTags"]
 
 
 @mock_firehose
