@@ -7068,7 +7068,7 @@
 
 ## logs
 <details>
-<summary>50% implemented</summary>
+<summary>57% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -7078,7 +7078,7 @@
 - [ ] delete_destination
 - [X] delete_log_group
 - [X] delete_log_stream
-- [ ] delete_metric_filter
+- [X] delete_metric_filter
 - [ ] delete_query_definition
 - [X] delete_resource_policy
 - [X] delete_retention_policy
@@ -7087,7 +7087,7 @@
 - [ ] describe_export_tasks
 - [X] describe_log_groups
 - [X] describe_log_streams
-- [ ] describe_metric_filters
+- [X] describe_metric_filters
 - [ ] describe_queries
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
@@ -7102,7 +7102,7 @@
 - [ ] put_destination
 - [ ] put_destination_policy
 - [X] put_log_events
-- [ ] put_metric_filter
+- [X] put_metric_filter
 - [ ] put_query_definition
 - [X] put_resource_policy
 - [X] put_retention_policy
