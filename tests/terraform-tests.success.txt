@@ -123,3 +123,5 @@ TestAccAWSInternetGateway
 TestAccAWSSecurityGroupRule_
 TestAccAWSVpnGateway
 TestAccAWSVpnGatewayAttachment
+TestAccAWSNatGateway_basic
+TestAccAWSNatGateway_tags
