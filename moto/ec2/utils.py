@@ -52,6 +52,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpn-connection": "vpn",
     "vpn-gateway": "vgw",
     "iam-instance-profile-association": "iip-assoc",
+    "carrier-gateway": "cagw",
 }
 
 
@@ -218,6 +219,10 @@ def random_launch_template_id():
 
 def random_iam_instance_profile_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"])
+
+
+def random_carrier_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"], size=17)
 
 
 def random_public_ip():
