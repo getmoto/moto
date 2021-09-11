@@ -522,6 +522,10 @@ def is_filter_matching(obj, filter, filter_value):
             return True
         return False
 
+    if isinstance(value, type({}.keys())):
+        if isinstance(filter_value, str) and filter_value in value:
+            return True
+
     try:
         value = set(value)
         return (value and value.issubset(filter_value)) or value.issuperset(

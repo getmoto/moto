@@ -95,6 +95,7 @@ from .exceptions import (
     InvalidVPCIdError,
     InvalidVPCRangeError,
     InvalidVpnGatewayIdError,
+    InvalidVpnGatewayAttachmentError,
     InvalidVpnConnectionIdError,
     InvalidSubnetCidrBlockAssociationID,
     MalformedAMIIdError,
@@ -3576,6 +3577,18 @@ class VPCBackend(object):
         return matches
 
     def delete_vpc(self, vpc_id):
+        # Do not delete if any VPN Gateway is attached
+        vpn_gateways = self.describe_vpn_gateways(filters={"attachment.vpc-id": vpc_id})
+        vpn_gateways = [
+            item
+            for item in vpn_gateways
+            if item.attachments.get(vpc_id).state == "attached"
+        ]
+        if vpn_gateways:
+            raise DependencyViolationError(
+                "The vpc {0} has dependencies and cannot be deleted.".format(vpc_id)
+            )
+
         # Delete route table if only main route table remains.
         route_tables = self.describe_route_tables(filters={"vpc-id": vpc_id})
         if len(route_tables) > 1:
@@ -6676,8 +6689,10 @@ class VpnGatewayBackend(object):
         self.vpn_gateways[vpn_gateway_id] = vpn_gateway
         return vpn_gateway
 
-    def describe_vpn_gateways(self, filters=None):
-        vpn_gateways = self.vpn_gateways.values()
+    def describe_vpn_gateways(self, filters=None, vpn_gw_ids=None):
+        vpn_gateways = list(self.vpn_gateways.values() or [])
+        if vpn_gw_ids:
+            vpn_gateways = [item for item in vpn_gateways if item.id in vpn_gw_ids]
         return generic_filter(filters, vpn_gateways)
 
     def get_vpn_gateway(self, vpn_gateway_id):
@@ -6690,21 +6705,25 @@ class VpnGatewayBackend(object):
         vpn_gateway = self.get_vpn_gateway(vpn_gateway_id)
         self.get_vpc(vpc_id)
         attachment = VpnGatewayAttachment(vpc_id, state="attached")
+        for key in vpn_gateway.attachments.copy():
+            if key.startswith("vpc-"):
+                vpn_gateway.attachments.pop(key)
         vpn_gateway.attachments[vpc_id] = attachment
         return attachment
 
     def delete_vpn_gateway(self, vpn_gateway_id):
-        deleted = self.vpn_gateways.pop(vpn_gateway_id, None)
+        deleted = self.vpn_gateways.get(vpn_gateway_id, None)
         if not deleted:
             raise InvalidVpnGatewayIdError(vpn_gateway_id)
+        deleted.state = "deleted"
         return deleted
 
     def detach_vpn_gateway(self, vpn_gateway_id, vpc_id):
         vpn_gateway = self.get_vpn_gateway(vpn_gateway_id)
-        self.get_vpc(vpc_id)
         detached = vpn_gateway.attachments.get(vpc_id, None)
         if not detached:
-            raise InvalidVPCIdError(vpc_id)
+
+            raise InvalidVpnGatewayAttachmentError(vpn_gateway.id, vpc_id)
         detached.state = "detached"
         return detached
 
