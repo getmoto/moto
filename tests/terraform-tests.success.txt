@@ -123,3 +123,4 @@ TestAccAWSInternetGateway
 TestAccAWSSecurityGroupRule_
 TestAccAWSVpnGateway
 TestAccAWSVpnGatewayAttachment
+TestAccAWSEc2CarrierGateway
