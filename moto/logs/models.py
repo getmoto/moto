@@ -806,8 +806,12 @@ class LogsBackend(BaseBackend):
             filter_name, filter_pattern, log_group_name, metric_transformations
         )
 
-    def describe_metric_filters(self, prefix=None, log_group_name=None):
-        filters = self.filters.get_matching_filters(prefix, log_group_name)
+    def describe_metric_filters(
+        self, prefix=None, log_group_name=None, metric_name=None, metric_namespace=None
+    ):
+        filters = self.filters.get_matching_filters(
+            prefix, log_group_name, metric_name, metric_namespace
+        )
         return filters
 
     def delete_metric_filter(self, filter_name=None, log_group_name=None):

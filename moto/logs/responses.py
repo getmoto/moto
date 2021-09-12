@@ -9,6 +9,26 @@ from .models import logs_backends
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
 
+def validate_param(
+    param_name, param_value, constraint, constraint_expression, pattern=None
+):
+    try:
+        assert constraint_expression(param_value)
+    except (AssertionError, TypeError):
+        raise InvalidParameterException(
+            constraint=constraint, parameter=param_name, value=param_value,
+        )
+    if pattern and param_value:
+        try:
+            assert re.match(pattern, param_value)
+        except (AssertionError, TypeError):
+            raise InvalidParameterException(
+                constraint=f"Must match pattern: {pattern}",
+                parameter=param_name,
+                value=param_value,
+            )
+
+
 class LogsResponse(BaseResponse):
     @property
     def logs_backend(self):
@@ -24,19 +44,34 @@ class LogsResponse(BaseResponse):
     def _get_param(self, param, if_none=None):
         return self.request_params.get(param, if_none)
 
+    def _get_validated_param(
+        self, param, constraint, constraint_expression, pattern=None
+    ):
+        param_value = self._get_param(param)
+        validate_param(param, param_value, constraint, constraint_expression, pattern)
+        return param_value
+
     def put_metric_filter(self):
-        filter_name = self._get_param("filterName")
-        filter_pattern = self._get_param("filterPattern")
-        log_group_name = self._get_param("logGroupName")
-        metric_transformations = self._get_param("metricTransformations")
-
-        assert 1 <= len(filter_name) <= 512
-        assert 0 <= len(filter_pattern) <= 1024
-        assert 1 <= len(log_group_name) <= 512
-        assert len(metric_transformations) == 1
-
-        assert re.match("[^:*]*", filter_name)
-        assert re.match("[.-_/#A-Za-z0-9]+", log_group_name)
+        filter_name = self._get_validated_param(
+            "filterName",
+            "Minimum length of 1. Maximum length of 512.",
+            lambda x: 1 <= len(x) <= 512,
+            pattern="[^:*]*",
+        )
+        filter_pattern = self._get_validated_param(
+            "filterPattern",
+            "Minimum length of 0. Maximum length of 1024.",
+            lambda x: 0 <= len(x) <= 1024,
+        )
+        log_group_name = self._get_validated_param(
+            "logGroupName",
+            "Minimum length of 1. Maximum length of 512.",
+            lambda x: 1 <= len(x) <= 512,
+            pattern="[.-_/#A-Za-z0-9]+",
+        )
+        metric_transformations = self._get_validated_param(
+            "metricTransformations", "Fixed number of 1 item.", lambda x: len(x) == 1
+        )
 
         self.logs_backend.put_metric_filter(
             filter_name, filter_pattern, log_group_name, metric_transformations
@@ -45,38 +80,67 @@ class LogsResponse(BaseResponse):
         return ""
 
     def describe_metric_filters(self):
-        filter_name_prefix = self._get_param("filterNamePrefix", None)
-        log_group_name = self._get_param("logGroupName", None)
-        metric_name = self._get_param("metricName", None)
-        metric_namespace = self._get_param("metricNamespace", None)
-        next_token = self._get_param("nextToken", None)
+        filter_name_prefix = self._get_validated_param(
+            "filterNamePrefix",
+            "Minimum length of 1. Maximum length of 512.",
+            lambda x: x is None or 1 <= len(x) <= 512,
+            pattern="[^:*]*",
+        )
+        log_group_name = self._get_validated_param(
+            "logGroupName",
+            "Minimum length of 1. Maximum length of 512",
+            lambda x: x is None or 1 <= len(x) <= 512,
+            pattern="[.-_/#A-Za-z0-9]+",
+        )
+        metric_name = self._get_validated_param(
+            "metricName",
+            "Maximum length of 255.",
+            lambda x: x is None or len(x) <= 255,
+            pattern="[^:*$]*",
+        )
+        metric_namespace = self._get_validated_param(
+            "metricNamespace",
+            "Maximum length of 255.",
+            lambda x: x is None or len(x) <= 255,
+            pattern="[^:*$]*",
+        )
+        next_token = self._get_validated_param(
+            "nextToken", "Minimum length of 1.", lambda x: x is None or 1 <= len(x)
+        )
 
-        assert filter_name_prefix is None or 1 <= len(filter_name_prefix) <= 512
-        assert log_group_name is None or 1 <= len(log_group_name) <= 512
-        assert metric_name is None or len(metric_name) <= 255
-        assert metric_namespace is None or len(metric_namespace) <= 255
-        assert next_token is None or 1 <= len(next_token)
-
-        assert filter_name_prefix is None or re.match("[^:*]*", filter_name_prefix)
-        assert log_group_name is None or re.match("[.-_/#A-Za-z0-9]+", log_group_name)
-        assert metric_name is None or re.match("[^:*$]*", metric_name)
-        assert metric_namespace is None or re.match("[^:*$]*", metric_namespace)
+        if metric_name and not metric_namespace:
+            raise InvalidParameterException(
+                constraint=f"If you include the metricName parameter in your request, "
+                f"you must also include the metricNamespace parameter.",
+                parameter="metricNamespace",
+                value=metric_namespace,
+            )
+        if metric_namespace and not metric_name:
+            raise InvalidParameterException(
+                constraint=f"If you include the metricNamespace parameter in your request, "
+                f"you must also include the metricName parameter.",
+                parameter="metricName",
+                value=metric_name,
+            )
 
         filters = self.logs_backend.describe_metric_filters(
-            filter_name_prefix, log_group_name
+            filter_name_prefix, log_group_name, metric_name, metric_namespace
         )
-        response = '{"metricFilters":' + json.dumps(filters) + ', "nextToken":""}'
-        return response
+        return json.dumps({"metricFilters": filters, "nextToken": next_token})
 
     def delete_metric_filter(self):
-        filter_name = self._get_param("filterName", None)
-        log_group_name = self._get_param("logGroupName", None)
-
-        assert filter_name is None or 1 <= len(filter_name) <= 512
-        assert log_group_name is None or 1 <= len(log_group_name) <= 512
-
-        assert filter_name is None or re.match("[^:*]*", filter_name)
-        assert log_group_name is None or re.match("[.-_/#A-Za-z0-9]+", log_group_name)
+        filter_name = self._get_validated_param(
+            "filterName",
+            "Minimum length of 1. Maximum length of 512.",
+            lambda x: 1 <= len(x) <= 512,
+            pattern="[^:*]*$",
+        )
+        log_group_name = self._get_validated_param(
+            "logGroupName",
+            "Minimum length of 1. Maximum length of 512.",
+            lambda x: 1 <= len(x) <= 512,
+            pattern="[.-_/#A-Za-z0-9]+$",
+        )
 
         self.logs_backend.delete_metric_filter(filter_name, log_group_name)
         return ""

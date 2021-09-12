@@ -38,31 +38,53 @@ def json_policy_doc():
 
 
 @mock_logs
-def test_describe_metric_filters_happy():
+def test_describe_metric_filters_happy_prefix():
     conn = boto3.client("logs", "us-west-2")
 
-    response = put_metric_filter(conn)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response1 = put_metric_filter(conn, count=1)
+    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response2 = put_metric_filter(conn, count=2)
+    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     response = conn.describe_metric_filters(filterNamePrefix="filter")
 
+    assert len(response["metricFilters"]) == 2
     assert response["metricFilters"][0]["filterName"] == "filterName1"
+    assert response["metricFilters"][1]["filterName"] == "filterName2"
+
+
+@mock_logs
+def test_describe_metric_filters_happy_log_group_name():
+    conn = boto3.client("logs", "us-west-2")
+
+    response1 = put_metric_filter(conn, count=1)
+    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response2 = put_metric_filter(conn, count=2)
+    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(logGroupName="logGroupName2")
+
+    assert len(response["metricFilters"]) == 1
+    assert response["metricFilters"][0]["logGroupName"] == "logGroupName2"
 
 
 @mock_logs
 def test_describe_metric_filters_happy_metric_name():
     conn = boto3.client("logs", "us-west-2")
 
-    response = put_metric_filter(conn)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response1 = put_metric_filter(conn, count=1)
+    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response2 = put_metric_filter(conn, count=2)
+    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     response = conn.describe_metric_filters(
-        filterNamePrefix="filter",
-        metricName="metricName1",
-        metricNamespace="metricNamespace1",
+        metricName="metricName1", metricNamespace="metricNamespace1",
     )
 
-    assert response["metricFilters"][0]["filterName"] == "filterName1"
+    assert len(response["metricFilters"]) == 1
+    metrics = response["metricFilters"][0]["metricTransformations"]
+    assert metrics[0]["metricName"] == "metricName1"
+    assert metrics[0]["metricNamespace"] == "metricNamespace1"
 
 
 @mock_logs
@@ -87,31 +109,22 @@ def test_put_metric_filters_validation():
     ]
 
     test_cases = [
+        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name,),
         build_put_case(
-            name="Invalid filter name",
-            expected=AssertionError,
-            filter_name=invalid_filter_name,
-        ),
-        build_put_case(
-            name="Invalid filter pattern",
-            expected=AssertionError,
-            filter_pattern=invalid_filter_pattern,
+            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern,
         ),
         build_put_case(
             name="Invalid filter metric transformations",
-            expected=AssertionError,
             metric_transformations=invalid_metric_transformations,
         ),
     ]
 
     for test_case in test_cases:
-        inputs = test_case["input"]
-        conn.put_metric_filter.when.called_with(
-            filterName=inputs["filterName"],
-            filterPattern=inputs["filterPattern"],
-            logGroupName=inputs["logGroupName"],
-            metricTransformations=inputs["metricTransformations"],
-        ).should.throw(test_case["expected"])
+        with pytest.raises(ClientError) as exc:
+            conn.put_metric_filter(**test_case["input"])
+        response = exc.value.response
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        response["Error"]["Code"].should.equal("InvalidParameterException")
 
 
 @mock_logs
@@ -123,31 +136,23 @@ def test_describe_metric_filters_validation():
 
     test_cases = [
         build_describe_case(
-            name="Invalid filter name prefix",
-            expected=AssertionError,
-            filter_name_prefix=length_over_512,
+            name="Invalid filter name prefix", filter_name_prefix=length_over_512,
         ),
         build_describe_case(
-            name="Invalid log group name",
-            expected=AssertionError,
-            log_group_name=length_over_512,
+            name="Invalid log group name", log_group_name=length_over_512,
         ),
+        build_describe_case(name="Invalid metric name", metric_name=length_over_255,),
         build_describe_case(
-            name="Invalid metric name",
-            expected=AssertionError,
-            metric_name=length_over_255,
-        ),
-        build_describe_case(
-            name="Invalid metric namespace",
-            expected=AssertionError,
-            metric_namespace=length_over_255,
+            name="Invalid metric namespace", metric_namespace=length_over_255,
         ),
     ]
 
     for test_case in test_cases:
-        conn.describe_metric_filters.when.called_with(
-            **test_case["input"]
-        ).should.throw(test_case["expected"])
+        with pytest.raises(ClientError) as exc:
+            conn.describe_metric_filters(**test_case["input"])
+        response = exc.value.response
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        response["Error"]["Code"].should.equal("InvalidParameterException")
 
 
 @mock_logs
@@ -195,6 +200,56 @@ def test_delete_metric_filter():
     assert response["metricFilters"][0]["filterName"] == "filterName2"
 
 
+@mock_logs
+@pytest.mark.parametrize(
+    "filter_name, failing_constraint",
+    [
+        (
+            "X" * 513,
+            "Minimum length of 1. Maximum length of 512.",
+        ),  # filterName too long
+        ("x:x", "Must match pattern"),  # invalid filterName pattern
+    ],
+)
+def test_delete_metric_filter_invalid_filter_name(filter_name, failing_constraint):
+    conn = boto3.client("logs", "us-west-2")
+    with pytest.raises(ClientError) as exc:
+        conn.delete_metric_filter(filterName=filter_name, logGroupName="valid")
+    response = exc.value.response
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    response["Error"]["Code"].should.equal("InvalidParameterException")
+    response["Error"]["Message"].should.contain(
+        f"Value '{filter_name}' at 'filterName' failed to satisfy constraint"
+    )
+    response["Error"]["Message"].should.contain(failing_constraint)
+
+
+@mock_logs
+@pytest.mark.parametrize(
+    "log_group_name, failing_constraint",
+    [
+        (
+            "X" * 513,
+            "Minimum length of 1. Maximum length of 512.",
+        ),  # logGroupName too long
+        ("x!x", "Must match pattern"),  # invalid logGroupName pattern
+    ],
+)
+def test_delete_metric_filter_invalid_log_group_name(
+    log_group_name, failing_constraint
+):
+    conn = boto3.client("logs", "us-west-2")
+    with pytest.raises(ClientError) as exc:
+        conn.delete_metric_filter(filterName="valid", logGroupName=log_group_name)
+    response = exc.value.response
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    response["Error"]["Code"].should.equal("InvalidParameterException")
+    response["Error"]["Message"].should.contain(
+        f"Value '{log_group_name}' at 'logGroupName' failed to satisfy constraint"
+    )
+    response["Error"]["Message"].should.contain(failing_constraint)
+
+
 def put_metric_filter(conn, count=1):
     count = str(count)
     return conn.put_metric_filter(
@@ -214,7 +269,6 @@ def put_metric_filter(conn, count=1):
 
 def build_put_case(
     name,
-    expected,
     filter_name="filterName",
     filter_pattern="filterPattern",
     log_group_name="logGroupName",
@@ -225,7 +279,6 @@ def build_put_case(
         "input": build_put_input(
             filter_name, filter_pattern, log_group_name, metric_transformations
         ),
-        "expected": expected,
     }
 
 
@@ -262,7 +315,6 @@ def build_describe_input(
 
 def build_describe_case(
     name,
-    expected,
     filter_name_prefix="filterNamePrefix",
     log_group_name="logGroupName",
     metric_name="metricName",
@@ -273,7 +325,6 @@ def build_describe_case(
         "input": build_describe_input(
             filter_name_prefix, log_group_name, metric_name, metric_namespace
         ),
-        "expected": expected,
     }
 
 

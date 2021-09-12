@@ -1,3 +1,15 @@
+def find_metric_transformation_by_name(metric_transformations, metric_name):
+    for metric in metric_transformations:
+        if metric["metricName"] == metric_name:
+            return metric
+
+
+def find_metric_transformation_by_namespace(metric_transformations, metric_namespace):
+    for metric in metric_transformations:
+        if metric["metricNamespace"] == metric_namespace:
+            return metric
+
+
 class MetricFilters:
     def __init__(self):
         self.metric_filters = []
@@ -17,13 +29,6 @@ class MetricFilters:
     def get_matching_filters(
         self, prefix=None, log_group_name=None, metric_name=None, metric_namespace=None
     ):
-        assert (
-            metric_name is None
-            and metric_namespace is None
-            or metric_name is not None
-            and metric_namespace is not None
-        )
-
         result = []
         for f in self.metric_filters:
             prefix_matches = prefix is None or f["filterName"].startswith(prefix)
@@ -32,11 +37,15 @@ class MetricFilters:
             )
             metric_name_matches = (
                 metric_name is None
-                or f["metricTransformations"]["metricName"] == metric_name
+                or find_metric_transformation_by_name(
+                    f["metricTransformations"], metric_name
+                )
             )
             namespace_matches = (
                 metric_namespace is None
-                or f["metricTransformations"]["metricNamespace"] == metric_namespace
+                or find_metric_transformation_by_namespace(
+                    f["metricTransformations"], metric_namespace
+                )
             )
 
             if (
