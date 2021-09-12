@@ -7,7 +7,7 @@ from moto import mock_firehose
 from moto import settings
 from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
-from moto.firehose.models import DeliveryStream
+from moto.firehose.models import DeliveryStream, firehose_backends
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -430,3 +430,19 @@ def test_update_destination():
         "Changing the destination type to or from HttpEndpoint is not "
         "supported at this time"
     ) in err["Message"]
+
+
+@mock_firehose
+def test_lookup_name_from_arn():
+    """Test delivery stream instance can be retrieved given ARN."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+    stream_name = "test_lookup"
+
+    arn = client.create_delivery_stream(
+        DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config,
+    )["DeliveryStreamARN"]
+
+    delivery_stream = firehose_backends[TEST_REGION].lookup_name_from_arn(arn)
+    assert delivery_stream.delivery_stream_arn == arn
+    assert delivery_stream.delivery_stream_name == stream_name

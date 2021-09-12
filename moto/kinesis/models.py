@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from collections import OrderedDict
 import datetime
 import re
 import itertools
@@ -9,7 +10,6 @@ from hashlib import md5
 
 from boto3 import Session
 
-from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
@@ -324,7 +324,6 @@ class Stream(CloudFormationModel):
 class KinesisBackend(BaseBackend):
     def __init__(self):
         self.streams = OrderedDict()
-        self.delivery_streams = {}
 
     def create_stream(
         self, stream_name, shard_count, retention_period_hours, region_name

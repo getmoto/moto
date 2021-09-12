@@ -812,7 +812,6 @@ class LogsBackend(BaseBackend):
         if not log_group:
             raise ResourceNotFoundException()
 
-        # TODO: support destinations for Kinesis stream
         service = destination_arn.split(":")[2]
         if service == "lambda":
             from moto.awslambda import (  # pylint: disable=import-outside-toplevel
@@ -829,20 +828,11 @@ class LogsBackend(BaseBackend):
                     "have given CloudWatch Logs permission to execute your "
                     "function."
                 )
-        elif service == "firehose":
-            from moto.firehose import (  # pylint: disable=import-outside-toplevel
-                firehose_backends,
+        else:
+            raise InvalidParameterException(
+                f"Service '{service}' has not implemented for "
+                f"put_subscription_filter()"
             )
-
-            firehose = firehose_backends[self.region_name].lookup_name_from_arn(
-                destination_arn
-            )
-            if not firehose:
-                raise InvalidParameterException(
-                    "Could not deliver test message to specified Firehose "
-                    "stream. Check if the given Firehose stream is in ACTIVE "
-                    "state."
-                )
 
         log_group.put_subscription_filter(
             filter_name, filter_pattern, destination_arn, role_arn
