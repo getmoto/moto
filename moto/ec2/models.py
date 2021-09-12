@@ -4836,6 +4836,7 @@ class Route(CloudFormationModel):
         transit_gateway=None,
         interface=None,
         vpc_pcx=None,
+        carrier_gateway=None,
     ):
         self.id = generate_route_id(
             route_table.id, destination_cidr_block, destination_ipv6_cidr_block
@@ -4852,6 +4853,7 @@ class Route(CloudFormationModel):
         self.transit_gateway = transit_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
+        self.carrier_gateway = carrier_gateway
 
     @property
     def physical_resource_id(self):
@@ -5124,6 +5126,7 @@ class RouteBackend(object):
         transit_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
+        carrier_gateway_id=None,
     ):
         gateway = None
         nat_gateway = None
@@ -5131,6 +5134,7 @@ class RouteBackend(object):
         egress_only_igw = None
         interface = None
         prefix_list = None
+        carrier_gateway = None
 
         route_table = self.get_route_table(route_table_id)
 
@@ -5159,6 +5163,8 @@ class RouteBackend(object):
                 transit_gateway = self.transit_gateways.get(transit_gateway_id)
             if destination_prefix_list_id is not None:
                 prefix_list = self.managed_prefix_lists.get(destination_prefix_list_id)
+            if carrier_gateway_id is not None:
+                carrier_gateway = self.carrier_gateways.get(carrier_gateway_id)
 
         route = Route(
             route_table,
@@ -5172,6 +5178,7 @@ class RouteBackend(object):
             egress_only_igw=egress_only_igw,
             transit_gateway=transit_gateway,
             interface=interface,
+            carrier_gateway=carrier_gateway,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
             if vpc_peering_connection_id
             else None,
