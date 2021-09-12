@@ -703,3 +703,11 @@ class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
                 association_id
             ),
         )
+
+
+class InvalidCarrierGatewayID(EC2ClientError):
+    def __init__(self, carrier_gateway_id):
+        super(InvalidCarrierGatewayID, self).__init__(
+            "InvalidCarrierGatewayID.NotFound",
+            "The CarrierGateway ID '{0}' does not exist".format(carrier_gateway_id),
+        )

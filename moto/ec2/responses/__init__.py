@@ -39,6 +39,7 @@ from .transit_gateways import TransitGateways
 from .transit_gateway_route_tables import TransitGatewayRouteTable
 from .transit_gateway_attachments import TransitGatewayAttachment
 from .iam_instance_profiles import IamInstanceProfiles
+from .carrier_gateways import CarrierGateway
 
 
 class EC2Response(
@@ -81,6 +82,7 @@ class EC2Response(
     TransitGatewayRouteTable,
     TransitGatewayAttachment,
     IamInstanceProfiles,
+    CarrierGateway,
 ):
     @property
     def ec2_backend(self):

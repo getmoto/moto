@@ -116,6 +116,7 @@ from .exceptions import (
     InvalidVpcEndPointIdError,
     InvalidTaggableResourceType,
     InvalidGatewayIDError,
+    InvalidCarrierGatewayID,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -160,6 +161,7 @@ from .utils import (
     random_vpc_cidr_association_id,
     random_vpc_peering_connection_id,
     random_iam_instance_profile_association_id,
+    random_carrier_gateway_id,
     generic_filter,
     is_valid_resource_id,
     get_prefix,
@@ -4834,6 +4836,7 @@ class Route(CloudFormationModel):
         transit_gateway=None,
         interface=None,
         vpc_pcx=None,
+        carrier_gateway=None,
     ):
         self.id = generate_route_id(
             route_table.id, destination_cidr_block, destination_ipv6_cidr_block
@@ -4850,6 +4853,7 @@ class Route(CloudFormationModel):
         self.transit_gateway = transit_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
+        self.carrier_gateway = carrier_gateway
 
     @property
     def physical_resource_id(self):
@@ -5122,6 +5126,7 @@ class RouteBackend(object):
         transit_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
+        carrier_gateway_id=None,
     ):
         gateway = None
         nat_gateway = None
@@ -5129,6 +5134,7 @@ class RouteBackend(object):
         egress_only_igw = None
         interface = None
         prefix_list = None
+        carrier_gateway = None
 
         route_table = self.get_route_table(route_table_id)
 
@@ -5157,6 +5163,8 @@ class RouteBackend(object):
                 transit_gateway = self.transit_gateways.get(transit_gateway_id)
             if destination_prefix_list_id is not None:
                 prefix_list = self.managed_prefix_lists.get(destination_prefix_list_id)
+            if carrier_gateway_id is not None:
+                carrier_gateway = self.carrier_gateways.get(carrier_gateway_id)
 
         route = Route(
             route_table,
@@ -5170,6 +5178,7 @@ class RouteBackend(object):
             egress_only_igw=egress_only_igw,
             transit_gateway=transit_gateway,
             interface=interface,
+            carrier_gateway=carrier_gateway,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
             if vpc_peering_connection_id
             else None,
@@ -5342,6 +5351,66 @@ class InternetGatewayBackend(object):
     def get_internet_gateway(self, internet_gateway_id):
         igw_ids = [internet_gateway_id]
         return self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
+
+
+class CarrierGateway(TaggedEC2Resource):
+    def __init__(self, ec2_backend, vpc_id, tags=None):
+        self.id = random_carrier_gateway_id()
+        self.ec2_backend = ec2_backend
+        self.vpc_id = vpc_id
+        self.state = "available"
+        self.add_tags(tags or {})
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
+
+
+class CarrierGatewayBackend(object):
+    def __init__(self):
+        self.carrier_gateways = {}
+        super(CarrierGatewayBackend, self).__init__()
+
+    def create_carrier_gateway(self, vpc_id, tags=None):
+        vpc = self.get_vpc(vpc_id)
+        if not vpc:
+            raise InvalidVPCIdError(vpc_id)
+        carrier_gateway = CarrierGateway(self, vpc_id, tags)
+        self.carrier_gateways[carrier_gateway.id] = carrier_gateway
+        return carrier_gateway
+
+    def delete_carrier_gateway(self, id):
+        if not self.carrier_gateways.get(id):
+            raise InvalidCarrierGatewayID(id)
+        carrier_gateway = self.carrier_gateways.pop(id)
+        carrier_gateway.state = "deleted"
+        return carrier_gateway
+
+    def describe_carrier_gateways(self, ids=None, filters=None):
+        carrier_gateways = list(self.carrier_gateways.values())
+
+        if ids:
+            carrier_gateways = [
+                carrier_gateway
+                for carrier_gateway in carrier_gateways
+                if carrier_gateway.id in ids
+            ]
+
+        attr_pairs = (
+            ("carrier-gateway-id", "id"),
+            ("state", "state"),
+            ("vpc-id", "vpc_id"),
+            ("owner-id", "owner_id"),
+        )
+
+        result = carrier_gateways
+        if filters:
+            result = filter_resources(carrier_gateways, filters, attr_pairs)
+        return result
 
 
 class EgressOnlyInternetGateway(TaggedEC2Resource):
@@ -7976,6 +8045,7 @@ class EC2Backend(
     TransitGatewayRelationsBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
+    CarrierGatewayBackend,
 ):
     def __init__(self, region_name):
         self.region_name = region_name
