@@ -43,7 +43,9 @@ DESCRIBE_NAT_GATEWAYS_RESPONSE = """<DescribeNatGatewaysResponse xmlns="http://e
             <natGatewayAddressSet>
             {% for address_set in nat_gateway.address_set %}
                 <item>
+                    {% if address_set.allocationId %}
                     <allocationId>{{ address_set.allocationId }}</allocationId>
+                    {% endif %}
                     {% if address_set.privateIp %}
                     <privateIp>{{ address_set.privateIp }}</privateIp>
                     {% endif %}
@@ -82,7 +84,9 @@ CREATE_NAT_GATEWAY = """<CreateNatGatewayResponse xmlns="http://ec2.amazonaws.co
         <natGatewayAddressSet>
             {% for address_set in nat_gateway.address_set %}
                 <item>
+                    {% if address_set.allocationId %}
                     <allocationId>{{ address_set.allocationId }}</allocationId>
+                    {% endif %}
                     {% if address_set.privateIp %}
                     <privateIp>{{ address_set.privateIp }}</privateIp>
                     {% endif %}

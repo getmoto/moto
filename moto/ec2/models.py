@@ -7683,7 +7683,10 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         )
 
         # associate allocation with ENI
-        self.ec2_backend.associate_address(eni=self._eni, allocation_id=allocation_id)
+        if allocation_id and connectivity_type != "private":
+            self.ec2_backend.associate_address(
+                eni=self._eni, allocation_id=allocation_id
+            )
         self.add_tags(tags or {})
         self.vpc_id = self.ec2_backend.get_subnet(subnet_id).vpc_id
 
@@ -7770,15 +7773,16 @@ class NatGatewayBackend(object):
         nat_gateway = NatGateway(
             self, subnet_id, allocation_id, tags, connectivity_type
         )
-        eips = self.address_by_allocation([allocation_id])
-        eip = eips[0] if len(eips) > 0 else None
         address_set = {}
-        address_set["allocationId"] = allocation_id
-        if eip:
-            address_set["publicIp"] = eip.public_ip or None
-            address_set["networkInterfaceId"] = nat_gateway._eni.id
-            address_set["privateIp"] = nat_gateway._eni.private_ip_address
-            nat_gateway.address_set.append(address_set)
+        if allocation_id:
+            eips = self.address_by_allocation([allocation_id])
+            eip = eips[0] if len(eips) > 0 else None
+            if eip:
+                address_set["allocationId"] = allocation_id
+                address_set["publicIp"] = eip.public_ip or None
+        address_set["networkInterfaceId"] = nat_gateway._eni.id
+        address_set["privateIp"] = nat_gateway._eni.private_ip_address
+        nat_gateway.address_set.append(address_set)
         self.nat_gateways[nat_gateway.id] = nat_gateway
         return nat_gateway
 
