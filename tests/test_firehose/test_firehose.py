@@ -31,9 +31,9 @@ def test_warnings():
 
     client = boto3.client("firehose", region_name=TEST_REGION)
     s3_dest_config = sample_s3_dest_config()
-    stream_name = f"test_warning_{get_random_hex(6)}"
 
     # DeliveryStreamEncryption is not supported.
+    stream_name = f"test_warning_{get_random_hex(6)}"
     with warnings.catch_warnings(record=True) as warn_msg:
         client.create_delivery_stream(
             DeliveryStreamName=stream_name,
@@ -44,19 +44,9 @@ def test_warnings():
         warn_msg[-1].message
     )
 
-
-@mock_firehose
-def test_unimplemented_features():
-    """Test features that raise an exception as they're unimplemented."""
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't capture non-client exceptions in server mode")
-
-    client = boto3.client("firehose", region_name=TEST_REGION)
-    s3_dest_config = sample_s3_dest_config()
-    stream_name = f"test_unimplemented_{get_random_hex(6)}"
-
     # Can't create a delivery stream for Splunk as it's unimplemented.
-    with pytest.raises(NotImplementedError):
+    stream_name = f"test_splunk_destination_{get_random_hex(6)}"
+    with warnings.catch_warnings(record=True) as warn_msg:
         client.create_delivery_stream(
             DeliveryStreamName=stream_name,
             SplunkDestinationConfiguration={
@@ -66,13 +56,17 @@ def test_unimplemented_features():
                 "S3Configuration": {"RoleARN": "foo", "BucketARN": "foo"},
             },
         )
+    assert "Splunk destination delivery stream is not yet implemented" in str(
+        warn_msg[-1].message
+    )
 
     # Can't update a delivery stream to Splunk as it's unimplemented.
+    stream_name = f"test_update_splunk_destination_{get_random_hex(6)}"
     client.create_delivery_stream(
         DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config,
     )
 
-    with pytest.raises(NotImplementedError):
+    with warnings.catch_warnings(record=True) as warn_msg:
         client.update_destination(
             DeliveryStreamName=stream_name,
             CurrentDeliveryStreamVersionId="1",
@@ -83,6 +77,9 @@ def test_unimplemented_features():
                 "HECToken": "foo",
             },
         )
+    assert "Splunk destination delivery stream is not yet implemented" in str(
+        warn_msg[-1].message
+    )
 
 
 @mock_firehose
