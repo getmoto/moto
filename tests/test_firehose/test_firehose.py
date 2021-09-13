@@ -23,6 +23,55 @@ def sample_s3_dest_config():
 
 
 @mock_firehose
+def test_unimplemented_features():
+    """Test features that raise a warning as they're unimplemented."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+
+    # DeliveryStreamEncryption is not supported.
+    stream_name = f"test_warning_{get_random_hex(6)}"
+    with warnings.catch_warnings(record=True) as warn_msg:
+        client.create_delivery_stream(
+            DeliveryStreamName=stream_name,
+            ExtendedS3DestinationConfiguration=s3_dest_config,
+            DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
+        )
+    assert "server-side encryption enabled is not yet implemented" in str(
+        warn_msg[-1].message
+    )
+
+    # Can't create a delivery stream for Splunk as it's unimplemented.
+    stream_name = f"test_unimplemented_{get_random_hex(6)}"
+    with pytest.raises(NotImplementedError):
+        client.create_delivery_stream(
+            DeliveryStreamName=stream_name,
+            SplunkDestinationConfiguration={
+                "HECEndpoint": "foo",
+                "HECEndpointType": "foo",
+                "HECToken": "foo",
+                "S3Configuration": {"RoleARN": "foo", "BucketARN": "foo"},
+            },
+        )
+
+    # Can't update a delivery stream to Splunk as it's unimplemented.
+    client.create_delivery_stream(
+        DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config,
+    )
+
+    with pytest.raises(NotImplementedError):
+        client.update_destination(
+            DeliveryStreamName=stream_name,
+            CurrentDeliveryStreamVersionId="1",
+            DestinationId="destinationId-000000000001",
+            SplunkDestinationUpdate={
+                "HECEndpoint": "foo",
+                "HECEndpointType": "foo",
+                "HECToken": "foo",
+            },
+        )
+
+
+@mock_firehose
 def test_create_delivery_stream_failures():
     """Test errors invoking create_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -99,25 +148,6 @@ def test_create_delivery_stream_failures():
     assert (
         "KinesisSourceStreamConfig is only applicable for "
         "KinesisStreamAsSource stream type" in err["Message"]
-    )
-
-
-@mock_firehose
-def test_unimplemented_features():
-    """Test features that raise a warning as they're unimplemented."""
-    client = boto3.client("firehose", region_name=TEST_REGION)
-    s3_dest_config = sample_s3_dest_config()
-    stream_name = f"test_warnings_{get_random_hex(6)}"
-
-    # DeliveryStreamEncryption is not supported.
-    with warnings.catch_warnings(record=True) as warn_msg:
-        client.create_delivery_stream(
-            DeliveryStreamName=stream_name,
-            ExtendedS3DestinationConfiguration=s3_dest_config,
-            DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
-        )
-    assert "server-side encryption enabled is not yet implemented" in str(
-        warn_msg[-1].message
     )
 
 
