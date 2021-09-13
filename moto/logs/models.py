@@ -5,6 +5,7 @@ from boto3 import Session
 from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
+from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
     ResourceNotFoundException,
     ResourceAlreadyExistsException,
@@ -32,6 +33,7 @@ class LogEvent(BaseModel):
         self.message = log_event["message"]
         self.event_id = self.__class__._event_id
         self.__class__._event_id += 1
+        ""
 
     def to_filter_dict(self):
         return {
@@ -525,6 +527,7 @@ class LogsBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.groups = dict()  # { logGroupName: LogGroup}
+        self.filters = MetricFilters()
         self.queries = dict()
         self.resource_policies = dict()
 
@@ -795,6 +798,24 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         log_group.untag(tags)
+
+    def put_metric_filter(
+        self, filter_name, filter_pattern, log_group_name, metric_transformations
+    ):
+        self.filters.add_filter(
+            filter_name, filter_pattern, log_group_name, metric_transformations
+        )
+
+    def describe_metric_filters(
+        self, prefix=None, log_group_name=None, metric_name=None, metric_namespace=None
+    ):
+        filters = self.filters.get_matching_filters(
+            prefix, log_group_name, metric_name, metric_namespace
+        )
+        return filters
+
+    def delete_metric_filter(self, filter_name=None, log_group_name=None):
+        self.filters.delete_filter(filter_name, log_group_name)
 
     def describe_subscription_filters(self, log_group_name):
         log_group = self.groups.get(log_group_name)
