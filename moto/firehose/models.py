@@ -16,6 +16,7 @@ from base64 import b64decode
 from datetime import datetime
 from time import time
 from uuid import uuid4
+import warnings
 
 import requests
 
@@ -208,7 +209,7 @@ class FirehoseBackend(BaseBackend):
 
         # Rule out situations that are not yet implemented.
         if delivery_stream_encryption_configuration_input:
-            raise NotImplementedError(
+            warnings.warn(
                 "A delivery stream with server-side encryption enabled is not "
                 "yet implemented"
             )

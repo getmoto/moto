@@ -1,4 +1,6 @@
 """Unit tests specific to basic Firehose Delivery Stream-related APIs."""
+import warnings
+
 import boto3
 from botocore.exceptions import ClientError
 import pytest
@@ -27,6 +29,7 @@ def test_create_delivery_stream_failures():
     s3_dest_config = sample_s3_dest_config()
     failure_name = f"test_failure_{get_random_hex(6)}"
 
+    # Create too many streams.
     for idx in range(DeliveryStream.MAX_STREAMS_PER_REGION):
         client.create_delivery_stream(
             DeliveryStreamName=f"{failure_name}_{idx}",
@@ -96,6 +99,25 @@ def test_create_delivery_stream_failures():
     assert (
         "KinesisSourceStreamConfig is only applicable for "
         "KinesisStreamAsSource stream type" in err["Message"]
+    )
+
+
+@mock_firehose
+def test_unimplemented_features():
+    """Test features that raise a warning as they're unimplemented."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+    stream_name = f"test_warnings_{get_random_hex(6)}"
+
+    # DeliveryStreamEncryption is not supported.
+    with warnings.catch_warnings(record=True) as warn_msg:
+        client.create_delivery_stream(
+            DeliveryStreamName=stream_name,
+            ExtendedS3DestinationConfiguration=s3_dest_config,
+            DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
+        )
+    assert "server-side encryption enabled is not yet implemented" in str(
+        warn_msg[-1].message
     )
 
 
