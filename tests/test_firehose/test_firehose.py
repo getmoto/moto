@@ -1,4 +1,5 @@
 """Unit tests specific to basic Firehose Delivery Stream-related APIs."""
+from unittest import SkipTest
 import warnings
 
 import boto3
@@ -23,13 +24,16 @@ def sample_s3_dest_config():
 
 
 @mock_firehose
-def test_unimplemented_features():
+def test_warnings():
     """Test features that raise a warning as they're unimplemented."""
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't capture warnings in server mode")
+
     client = boto3.client("firehose", region_name=TEST_REGION)
     s3_dest_config = sample_s3_dest_config()
+    stream_name = f"test_warning_{get_random_hex(6)}"
 
     # DeliveryStreamEncryption is not supported.
-    stream_name = f"test_warning_{get_random_hex(6)}"
     with warnings.catch_warnings(record=True) as warn_msg:
         client.create_delivery_stream(
             DeliveryStreamName=stream_name,
@@ -40,8 +44,18 @@ def test_unimplemented_features():
         warn_msg[-1].message
     )
 
-    # Can't create a delivery stream for Splunk as it's unimplemented.
+
+@mock_firehose
+def test_unimplemented_features():
+    """Test features that raise an exception as they're unimplemented."""
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't capture non-client exceptions in server mode")
+
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
     stream_name = f"test_unimplemented_{get_random_hex(6)}"
+
+    # Can't create a delivery stream for Splunk as it's unimplemented.
     with pytest.raises(NotImplementedError):
         client.create_delivery_stream(
             DeliveryStreamName=stream_name,
