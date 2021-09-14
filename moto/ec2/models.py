@@ -131,6 +131,7 @@ from .utils import (
     random_internet_gateway_id,
     random_egress_only_internet_gateway_id,
     random_ip,
+    random_mac_address,
     random_ipv6_cidr,
     random_transit_gateway_attachment_id,
     random_transit_gateway_route_table_id,
@@ -280,6 +281,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         public_ip_auto_assign=True,
         group_ids=None,
         description=None,
+        tags=None
     ):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
@@ -295,9 +297,11 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.public_ip = None
         self.public_ip_auto_assign = public_ip_auto_assign
         self.start()
-
+        self.add_tags(tags or {})
+        self.status = "available"
         self.attachments = []
-
+        self.mac_address = random_mac_address()
+        self.interface_type = "interface"
         # Local set to the ENI. When attached to an instance, @property group_set
         #   returns groups for both self and the attached instance.
         self._group_set = []
@@ -318,6 +322,10 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
                     self.ec2_backend.groups[subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
+
+    @property
+    def owner_id(self):
+        return ACCOUNT_ID
 
     @staticmethod
     def cloudformation_name_type():
@@ -430,10 +438,9 @@ class NetworkInterfaceBackend(object):
             private_ip_addresses,
             group_ids=group_ids,
             description=description,
+            tags=tags,
             **kwargs
         )
-        if tags:
-            eni.add_tags(tags)
         self.enis[eni.id] = eni
         return eni
 
