@@ -59,8 +59,12 @@ class RouteTables(BaseResponse):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        destination_prefix_list_id = self._get_param("DestinationPrefixListId")
         self.ec2_backend.delete_route(
-            route_table_id, destination_cidr_block, destination_ipv6_cidr_block
+            route_table_id,
+            destination_cidr_block,
+            destination_ipv6_cidr_block,
+            destination_prefix_list_id,
         )
         template = self.response_template(DELETE_ROUTE_RESPONSE)
         return template.render()
@@ -76,7 +80,8 @@ class RouteTables(BaseResponse):
         filters = filters_from_querystring(self.querystring)
         route_tables = self.ec2_backend.describe_route_tables(route_table_ids, filters)
         template = self.response_template(DESCRIBE_ROUTE_TABLES_RESPONSE)
-        return template.render(route_tables=route_tables)
+        rendered = template.render(route_tables=route_tables)
+        return rendered
 
     def disassociate_route_table(self):
         association_id = self._get_param("AssociationId")
@@ -151,8 +156,12 @@ CREATE_ROUTE_TABLE_RESPONSE = """
            <item>
               {% if route.destination_ipv6_cidr_block %}
               <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
-              {% else %}
+              {% endif %}
+              {% if route.destination_cidr_block %}
               <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+              {% endif %}
+              {% if route.destination_prefix_list_id %}
+                <destinationPrefixListId>{{ route.destination_prefix_list_id }}</destinationPrefixListId>
               {% endif %}
              <gatewayId>local</gatewayId>
              <state>active</state>
@@ -189,17 +198,16 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
               <item>
                 {% if route.destination_ipv6_cidr_block %}
                 <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
-                {% else %}
-                <destinationCidrBlock>{{ route.destination_cidr_block or "" }}</destinationCidrBlock>
+                {% endif %}
+                {% if route.destination_cidr_block %}
+                <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+                {% endif %}
+                {% if route.destination_prefix_list %}
+                  <destinationPrefixListId>{{ route.destination_prefix_list.id }}</destinationPrefixListId>
                 {% endif %}
                 {% if route.local %}
                   <gatewayId>local</gatewayId>
                   <origin>CreateRouteTable</origin>
-                  <state>active</state>
-                {% endif %}
-                {% if route.prefix_list %}
-                  <destinationPrefixListId>{{ route.prefix_list.id }}</destinationPrefixListId>
-                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.gateway %}
