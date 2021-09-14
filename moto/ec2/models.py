@@ -7787,7 +7787,9 @@ class NatGatewayBackend(object):
         return nat_gateway
 
     def delete_nat_gateway(self, nat_gateway_id):
-        return self.nat_gateways.pop(nat_gateway_id)
+        nat_gw = self.nat_gateways.get(nat_gateway_id)
+        nat_gw.state = "deleted"
+        return nat_gw
 
 
 class LaunchTemplateVersion(object):
