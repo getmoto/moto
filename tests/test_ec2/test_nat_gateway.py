@@ -51,7 +51,7 @@ def test_describe_nat_gateway_tags():
                 "ResourceType": "nat-gateway",
                 "Tags": [
                     {"Key": "name", "Value": "some-nat-gateway"},
-                    {"Key": "name", "Value": "some-nat-gateway-1"},
+                    {"Key": "name1", "Value": "some-nat-gateway-1"},
                 ],
             }
         ],
@@ -62,7 +62,7 @@ def test_describe_nat_gateway_tags():
     assert describe_response["NatGateways"][0]["VpcId"] == vpc_id
     assert describe_response["NatGateways"][0]["Tags"] == [
         {"Key": "name", "Value": "some-nat-gateway"},
-        {"Key": "name", "Value": "some-nat-gateway-1"},
+        {"Key": "name1", "Value": "some-nat-gateway-1"},
     ]
 
 

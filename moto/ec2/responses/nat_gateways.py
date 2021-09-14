@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from moto.ec2.utils import filters_from_querystring, add_tag_specification
 
 
 class NatGateways(BaseResponse):
@@ -9,8 +9,8 @@ class NatGateways(BaseResponse):
         allocation_id = self._get_param("AllocationId")
         connectivity_type = self._get_param("ConnectivityType")
         tags = self._get_multi_param("TagSpecification")
-        if tags:
-            tags = tags[0].get("Tag")
+        tags = add_tag_specification(tags)
+
         nat_gateway = self.ec2_backend.create_nat_gateway(
             subnet_id=subnet_id,
             allocation_id=allocation_id,
@@ -28,7 +28,8 @@ class NatGateways(BaseResponse):
 
     def describe_nat_gateways(self):
         filters = filters_from_querystring(self.querystring)
-        nat_gateways = self.ec2_backend.describe_nat_gateways(filters)
+        nat_gateway_ids = self._get_multi_param("NatGatewayId")
+        nat_gateways = self.ec2_backend.describe_nat_gateways(filters, nat_gateway_ids)
         template = self.response_template(DESCRIBE_NAT_GATEWAYS_RESPONSE)
         return template.render(nat_gateways=nat_gateways)
 
@@ -40,28 +41,36 @@ DESCRIBE_NAT_GATEWAYS_RESPONSE = """<DescribeNatGatewaysResponse xmlns="http://e
          <item>
             <subnetId>{{ nat_gateway.subnet_id }}</subnetId>
             <natGatewayAddressSet>
+            {% for address_set in nat_gateway.address_set %}
                 <item>
-                    <networkInterfaceId>{{ nat_gateway.network_interface_id }}</networkInterfaceId>
-                    <publicIp>{{ nat_gateway.public_ip }}</publicIp>
-                    <allocationId>{{ nat_gateway.allocation_id }}</allocationId>
-                    <privateIp>{{ nat_gateway.private_ip }}</privateIp>
+                    {% if address_set.allocationId %}
+                    <allocationId>{{ address_set.allocationId }}</allocationId>
+                    {% endif %}
+                    {% if address_set.privateIp %}
+                    <privateIp>{{ address_set.privateIp }}</privateIp>
+                    {% endif %}
+                    {% if address_set.publicIp %}
+                    <publicIp>{{ address_set.publicIp }}</publicIp>
+                    {% endif %}
+                    {% if address_set.networkInterfaceId %}
+                    <networkInterfaceId>{{ address_set.networkInterfaceId }}</networkInterfaceId>
+                    {% endif %}
                 </item>
+            {% endfor %}
             </natGatewayAddressSet>
             <createTime>{{ nat_gateway.create_time }}</createTime>
             <vpcId>{{ nat_gateway.vpc_id }}</vpcId>
             <natGatewayId>{{ nat_gateway.id }}</natGatewayId>
             <connectivityType>{{ nat_gateway.connectivity_type }}</connectivityType>
             <state>{{ nat_gateway.state }}</state>
-            {% if nat_gateway.tags %}
-                <tagSet>
-                    {% for tag in nat_gateway.tags %}
-                      <item>
-                        <key>{{ tag['Key'] }}</key>
-                        <value>{{ tag['Value'] }}</value>
-                      </item>
-                    {% endfor %}
-                </tagSet>
-            {% endif %}
+            <tagSet>
+                {% for tag in nat_gateway.get_tags() %}
+                <item>
+                    <key>{{ tag.key }}</key>
+                    <value>{{ tag.value }}</value>
+                </item>
+                {% endfor %}
+            </tagSet>
         </item>
     {% endfor %}
     </natGatewaySet>
@@ -73,15 +82,36 @@ CREATE_NAT_GATEWAY = """<CreateNatGatewayResponse xmlns="http://ec2.amazonaws.co
     <natGateway>
         <subnetId>{{ nat_gateway.subnet_id }}</subnetId>
         <natGatewayAddressSet>
-            <item>
-                <allocationId>{{ nat_gateway.allocation_id }}</allocationId>
-            </item>
+            {% for address_set in nat_gateway.address_set %}
+                <item>
+                    {% if address_set.allocationId %}
+                    <allocationId>{{ address_set.allocationId }}</allocationId>
+                    {% endif %}
+                    {% if address_set.privateIp %}
+                    <privateIp>{{ address_set.privateIp }}</privateIp>
+                    {% endif %}
+                    {% if address_set.publicIp %}
+                    <publicIp>{{ address_set.publicIp }}</publicIp>
+                    {% endif %}
+                    {% if address_set.networkInterfaceId %}
+                    <networkInterfaceId>{{ address_set.networkInterfaceId }}</networkInterfaceId>
+                    {% endif %}
+                </item>
+            {% endfor %}
         </natGatewayAddressSet>
         <createTime>{{ nat_gateway.create_time }}</createTime>
         <vpcId>{{ nat_gateway.vpc_id }}</vpcId>
         <natGatewayId>{{ nat_gateway.id }}</natGatewayId>
         <connectivityType>{{ nat_gateway.connectivity_type }}</connectivityType>
         <state>{{ nat_gateway.state }}</state>
+        <tagSet>
+        {% for tag in nat_gateway.get_tags() %}
+            <item>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+            </item>
+        {% endfor %}
+        </tagSet>
     </natGateway>
 </CreateNatGatewayResponse>
 """
