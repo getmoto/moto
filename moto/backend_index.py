@@ -47,6 +47,7 @@ backend_url_patterns = [
     ("emr", re.compile("https?://(.+).elasticmapreduce.amazonaws.com")),
     ("emr", re.compile("https?://elasticmapreduce.(.+).amazonaws.com")),
     ("events", re.compile("https?://events\\.(.+)\\.amazonaws\\.com")),
+    ("firehose", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
     ("forecast", re.compile("https?://forecast\\.(.+)\\.amazonaws\\.com")),
     ("glacier", re.compile("https?://glacier.(.+).amazonaws.com")),
     ("glue", re.compile("https?://glue\\.(.+)\\.amazonaws\\.com")),
@@ -54,7 +55,6 @@ backend_url_patterns = [
     ("iot", re.compile("https?://iot\\.(.+)\\.amazonaws\\.com")),
     ("iot-data", re.compile("https?://data.iot.(.+).amazonaws.com")),
     ("kinesis", re.compile("https?://kinesis\\.(.+)\\.amazonaws\\.com")),
-    ("kinesis", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
     ("kinesisvideo", re.compile("https?://kinesisvideo.(.+).amazonaws.com")),
     (
         "kinesis-video-archived-media",

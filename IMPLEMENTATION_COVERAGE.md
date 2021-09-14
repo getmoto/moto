@@ -4525,18 +4525,22 @@
 <details>
 <summary>0% implemented</summary>
 
-- [ ] create_delivery_stream
-- [ ] delete_delivery_stream
-- [ ] describe_delivery_stream
-- [ ] list_delivery_streams
-- [ ] list_tags_for_delivery_stream
-- [ ] put_record
-- [ ] put_record_batch
+- [ ] can_paginate
+- [X] create_delivery_stream
+- [X] delete_delivery_stream
+- [X] describe_delivery_stream
+- [ ] generate_presigned_url
+- [ ] get_paginator
+- [ ] get_waiter
+- [X] list_delivery_streams
+- [X] list_tags_for_delivery_stream
+- [X] put_record
+- [X] put_record_batch
 - [ ] start_delivery_stream_encryption
 - [ ] stop_delivery_stream_encryption
-- [ ] tag_delivery_stream
-- [ ] untag_delivery_stream
-- [ ] update_destination
+- [X] tag_delivery_stream
+- [X] untag_delivery_stream
+- [X] update_destination
 </details>
 
 ## fis

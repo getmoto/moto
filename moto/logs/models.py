@@ -828,21 +828,31 @@ class LogsBackend(BaseBackend):
     def put_subscription_filter(
         self, log_group_name, filter_name, filter_pattern, destination_arn, role_arn
     ):
-        # TODO: support other destinations like Kinesis stream
-        from moto.awslambda import lambda_backends  # due to circular dependency
-
         log_group = self.groups.get(log_group_name)
 
         if not log_group:
             raise ResourceNotFoundException()
 
-        lambda_func = lambda_backends[self.region_name].get_function(destination_arn)
+        service = destination_arn.split(":")[2]
+        if service == "lambda":
+            from moto.awslambda import (  # pylint: disable=import-outside-toplevel
+                lambda_backends,
+            )
 
-        # no specific permission check implemented
-        if not lambda_func:
+            lambda_func = lambda_backends[self.region_name].get_function(
+                destination_arn
+            )
+            # no specific permission check implemented
+            if not lambda_func:
+                raise InvalidParameterException(
+                    "Could not execute the lambda function. Make sure you "
+                    "have given CloudWatch Logs permission to execute your "
+                    "function."
+                )
+        else:
             raise InvalidParameterException(
-                "Could not execute the lambda function. "
-                "Make sure you have given CloudWatch Logs permission to execute your function."
+                f"Service '{service}' has not implemented for "
+                f"put_subscription_filter()"
             )
 
         log_group.put_subscription_filter(
