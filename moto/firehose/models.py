@@ -3,8 +3,11 @@
 Incomplete list of unfinished items:
   - The create_delivery_stream() argument
     DeliveryStreamEncryptionConfigurationInput is not supported.
+  - The S3BackupMode argument is ignored as are most of the other
+    destination arguments.
+  - Data record size and number of transactions are ignored.
   - Better validation of delivery destination parameters, e.g.,
-    validation of the url for an http endpoint (boto3 does this),
+    validation of the url for an http endpoint (boto3 does this).
   - Better handling of the put_record_batch() API.  Not only is
     the existing logic bare bones, but for the ElasticSearch and
     RedShift destinations, the data is just ignored.
@@ -12,8 +15,11 @@ Incomplete list of unfinished items:
     are reported back to the user.  Instead an exception is raised.
   - put_record(), put_record_batch() always set "Encrypted" to False.
 """
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from datetime import datetime
+from gzip import GzipFile
+import io
+import json
 from time import time
 from uuid import uuid4
 import warnings
@@ -32,7 +38,6 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.core.utils import get_random_hex
 from moto.s3 import s3_backend
 from moto.utilities.tagging_service import TaggingService
 
@@ -162,11 +167,6 @@ class FirehoseBackend(BaseBackend):
         self.region_name = region_name
         self.delivery_streams = {}
         self.tagger = TaggingService()
-
-    def lookup_name_from_arn(self, arn):
-        """Given an ARN, return the associated delivery stream name."""
-        # TODO - need to test
-        return self.delivery_streams.get(arn.split("/")[-1])
 
     def reset(self):
         """Re-initializes all attributes for this instance."""
@@ -425,7 +425,7 @@ class FirehoseBackend(BaseBackend):
         return (
             f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
             f"{delivery_stream_name}-{version_id}-"
-            f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{get_random_hex()}"
+            f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{str(uuid4())}"
         )
 
     def put_s3_records(self, delivery_stream_name, version_id, s3_destination, records):
@@ -620,6 +620,41 @@ class FirehoseBackend(BaseBackend):
         # documentation:  "You can update a delivery stream to enable Amazon
         # S3 backup if it is disabled.  If backup is enabled, you can't update
         # the delivery stream to disable it."
+
+    def lookup_name_from_arn(self, arn):
+        """Given an ARN, return the associated delivery stream name."""
+        return self.delivery_streams.get(arn.split("/")[-1])
+
+    def send_log_event(
+        self,
+        delivery_stream_arn,
+        filter_name,
+        log_group_name,
+        log_stream_name,
+        log_events,
+    ):  # pylint:  disable=too-many-arguments
+        """Send log events to a S3 bucket after encoding and gzipping it."""
+        data = {
+            "logEvents": log_events,
+            "logGroup": log_group_name,
+            "logStream": log_stream_name,
+            "messageType": "DATA_MESSAGE",
+            "owner": ACCOUNT_ID,
+            "subscriptionFilters": [filter_name],
+        }
+
+        output = io.BytesIO()
+        with GzipFile(fileobj=output, mode="w") as fhandle:
+            fhandle.write(json.dumps(data, separators=(",", ":")).encode("utf-8"))
+        gzipped_payload = b64encode(output.getvalue()).decode("utf-8")
+
+        delivery_stream = self.lookup_name_from_arn(delivery_stream_arn)
+        self.put_s3_records(
+            delivery_stream.delivery_stream_name,
+            delivery_stream.version_id,
+            delivery_stream.destinations[0]["S3"],
+            [{"Data": gzipped_payload}],
+        )
 
 
 firehose_backends = {}
