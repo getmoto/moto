@@ -123,10 +123,10 @@ class LogStream(BaseModel):
         self.events += events
         self.upload_sequence_token += 1
 
-        if self.destination_arn and self.destination_arn.split(":")[2] == "lambda":
-            from moto.awslambda import lambda_backends  # due to circular dependency
-
-            lambda_log_events = [
+        service = None
+        if self.destination_arn:
+            service = self.destination_arn.split(":")[2]
+            formatted_log_events = [
                 {
                     "id": event.event_id,
                     "timestamp": event.timestamp,
@@ -135,12 +135,27 @@ class LogStream(BaseModel):
                 for event in events
             ]
 
+        if service == "lambda":
+            from moto.awslambda import lambda_backends  # due to circular dependency
+
             lambda_backends[self.region].send_log_event(
                 self.destination_arn,
                 self.filter_name,
                 log_group_name,
                 log_stream_name,
-                lambda_log_events,
+                formatted_log_events,
+            )
+        elif service == "firehose":
+            from moto.firehose import (  # pylint: disable=import-outside-toplevel
+                firehose_backends,
+            )
+
+            firehose_backends[self.region].send_log_event(
+                self.destination_arn,
+                self.filter_name,
+                log_group_name,
+                log_stream_name,
+                formatted_log_events,
             )
 
         return "{:056d}".format(self.upload_sequence_token)
@@ -849,7 +864,22 @@ class LogsBackend(BaseBackend):
                     "have given CloudWatch Logs permission to execute your "
                     "function."
                 )
+        elif service == "firehose":
+            from moto.firehose import (  # pylint: disable=import-outside-toplevel
+                firehose_backends,
+            )
+
+            firehose = firehose_backends[self.region_name].lookup_name_from_arn(
+                destination_arn
+            )
+            if not firehose:
+                raise InvalidParameterException(
+                    "Could not deliver test message to specified Firehose "
+                    "stream. Check if the given Firehose stream is in ACTIVE "
+                    "state."
+                )
         else:
+            # TODO: support Kinesis stream destinations
             raise InvalidParameterException(
                 f"Service '{service}' has not implemented for "
                 f"put_subscription_filter()"

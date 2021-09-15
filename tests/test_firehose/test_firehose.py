@@ -493,3 +493,30 @@ def test_update_destination():
         "Changing the destination type to or from HttpEndpoint is not "
         "supported at this time"
     ) in err["Message"]
+
+
+@mock_firehose
+def test_lookup_name_from_arn():
+    """Test delivery stream instance can be retrieved given ARN.
+
+    This won't work in TEST_SERVER_MODE as this script won't have access
+    to 'firehose_backends'.
+    """
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't access firehose_backend in server mode")
+
+    client = boto3.client("firehose", region_name=TEST_REGION)
+    s3_dest_config = sample_s3_dest_config()
+    stream_name = "test_lookup"
+
+    arn = client.create_delivery_stream(
+        DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config,
+    )["DeliveryStreamARN"]
+
+    from moto.firehose.models import (  # pylint: disable=import-outside-toplevel
+        firehose_backends,
+    )
+
+    delivery_stream = firehose_backends[TEST_REGION].lookup_name_from_arn(arn)
+    assert delivery_stream.delivery_stream_arn == arn
+    assert delivery_stream.delivery_stream_name == stream_name
