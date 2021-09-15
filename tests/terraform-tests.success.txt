@@ -124,5 +124,5 @@ TestAccAWSSecurityGroupRule_
 TestAccAWSVpnGateway
 TestAccAWSVpnGatewayAttachment
 TestAccAWSEc2CarrierGateway
-TestAccDataSourceAwsNetworkInterface
+TestAccDataSourceAwsNetworkInterface_
 TestAccAWSNatGateway
