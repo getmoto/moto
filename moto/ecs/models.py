@@ -402,7 +402,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
         # TODO: LoadBalancers
         # TODO: Role
 
@@ -424,7 +424,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
 
         ecs_backend = ecs_backends[region_name]
         service_name = original_resource.name
