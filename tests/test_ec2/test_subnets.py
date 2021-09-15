@@ -731,3 +731,64 @@ def test_describe_subnets_by_state():
     ).get("Subnets", [])
     for subnet in subnets:
         subnet["State"].should.equal("available")
+
+
+@mock_ec2
+def test_associate_subnet_cidr_block():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet_object = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
+    )
+
+    subnets = client.describe_subnets(SubnetIds=[subnet_object.id])["Subnets"]
+    association_set = subnets[0]["Ipv6CidrBlockAssociationSet"]
+    association_set.should.equal([])
+
+    res = client.associate_subnet_cidr_block(
+        Ipv6CidrBlock="1080::1:200C:417A/112", SubnetId=subnet_object.id
+    )
+    res.should.have.key("Ipv6CidrBlockAssociation")
+    association = res["Ipv6CidrBlockAssociation"]
+    association.should.have.key("AssociationId").match("subnet-cidr-assoc-[a-z0-9]+")
+    association.should.have.key("Ipv6CidrBlock").equals("1080::1:200C:417A/112")
+    association.should.have.key("Ipv6CidrBlockState").equals({"State": "associated"})
+
+    subnets = client.describe_subnets(SubnetIds=[subnet_object.id])["Subnets"]
+    association_set = subnets[0]["Ipv6CidrBlockAssociationSet"]
+    association_set.should.have.length_of(1)
+    association_set[0].should.have.key("AssociationId").equal(
+        association["AssociationId"]
+    )
+    association_set[0].should.have.key("Ipv6CidrBlock").equals("1080::1:200C:417A/112")
+
+
+@mock_ec2
+def test_disassociate_subnet_cidr_block():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet_object = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
+    )
+
+    client.associate_subnet_cidr_block(
+        Ipv6CidrBlock="1080::1:200C:417A/111", SubnetId=subnet_object.id
+    )
+    association_id = client.associate_subnet_cidr_block(
+        Ipv6CidrBlock="1080::1:200C:417A/999", SubnetId=subnet_object.id
+    )["Ipv6CidrBlockAssociation"]["AssociationId"]
+
+    subnets = client.describe_subnets(SubnetIds=[subnet_object.id])["Subnets"]
+    association_set = subnets[0]["Ipv6CidrBlockAssociationSet"]
+    association_set.should.have.length_of(2)
+
+    client.disassociate_subnet_cidr_block(AssociationId=association_id)
+
+    subnets = client.describe_subnets(SubnetIds=[subnet_object.id])["Subnets"]
+    association_set = subnets[0]["Ipv6CidrBlockAssociationSet"]
+    association_set.should.have.length_of(1)
+    association_set[0]["Ipv6CidrBlock"].should.equal("1080::1:200C:417A/111")
