@@ -278,16 +278,16 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         private_ip_address,
         private_ip_addresses=None,
         device_index=0,
-        public_ip_auto_assign=True,
+        public_ip_auto_assign=False,
         group_ids=None,
         description=None,
-        tags=None
+        tags=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
-        self.private_ip_address = private_ip_address or random_private_ip()
-        self.private_ip_addresses = private_ip_addresses
+        self.private_ip_address = private_ip_address or None
+        self.private_ip_addresses = private_ip_addresses or []
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
@@ -305,6 +305,19 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         # Local set to the ENI. When attached to an instance, @property group_set
         #   returns groups for both self and the attached instance.
         self._group_set = []
+
+        if not self.private_ip_address:
+            if self.private_ip_addresses:
+                for ip in self.private_ip_addresses:
+                    if ip.get("Primary", False) in ["true", True, "True"]:
+                        self.private_ip_address = ip.get("PrivateIpAddress")
+            else:
+                self.private_ip_address = random_private_ip()
+
+        if not self.private_ip_addresses and self.private_ip_address:
+            self.private_ip_addresses.append(
+                {"Primary": True, "PrivateIpAddress": self.private_ip_address}
+            )
 
         group = None
         if group_ids:
@@ -326,6 +339,17 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
     @property
     def owner_id(self):
         return ACCOUNT_ID
+
+    @property
+    def association(self):
+        association = {}
+        if self.public_ip:
+            eips = self.ec2_backend.address_by_ip([self.public_ip])
+            eip = eips[0] if len(eips) > 0 else None
+            if eip:
+                association["allocationId"] = eip.allocation_id or None
+                association["associationId"] = eip.association_id or None
+        return association
 
     @staticmethod
     def cloudformation_name_type():
@@ -7706,8 +7730,9 @@ class NatGateway(CloudFormationModel):
 
     @property
     def public_ip(self):
-        eips = self._backend.address_by_allocation([self.allocation_id])
-        return eips[0].public_ip
+        if self.allocation_id:
+            eips = self._backend.address_by_allocation([self.allocation_id])
+        return eips[0].public_ip if self.allocation_id else None
 
     @staticmethod
     def cloudformation_name_type():

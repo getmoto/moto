@@ -11,13 +11,6 @@ class ElasticNetworkInterfaces(BaseResponse):
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
         description = self._get_param("Description")
-        interface_type = self._get_param("InterfaceType")
-        ipv4_prefix = self._get_multi_param("Ipv4Prefix")
-        ipv4_prefix_count = self._get_param("Ipv4PrefixCount")
-        ipv6_prefix = self._get_multi_param("Ipv6Prefix")
-        ipv6_prefix_count = self._get_multi_param("Ipv6PrefixCount")
-        ipv6_addresses = self._get_multi_param("Ipv6Addresses")
-        ipv6_address_count = self._get_param("Ipv6AddressCount")
         tags = self._get_multi_param("TagSpecification")
         tags = add_tag_specification(tags)
 
@@ -91,6 +84,8 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
 <CreateNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>2c6021ec-d705-445a-9780-420d0c7ab793</requestId>
     <networkInterface>
+        <association></association>
+        <attachment></attachment>
         <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
         <subnetId>{{ eni.subnet.id }}</subnetId>
         <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
@@ -115,6 +110,15 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
              </item>
          {% endfor %}
          </groupSet>
+        {% if eni.association %}
+        <association>
+            <publicIp>{{ eni.public_ip }}</publicIp>
+            <ipOwnerId>{{ eni.owner_id }}</ipOwnerId>
+            <allocationId>{{ eni.association.allocationId }}</allocationId>
+            <associationId>{{ eni.association.associationId }}</associationId>
+            <natEnabled>true</natEnabled>
+        </association>
+        {% endif %}
         <tagSet>
           {% for tag in eni.get_tags() %}
               <item>
@@ -169,6 +173,15 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
               </item>
           {% endfor %}
           </groupSet>
+          {% if eni.association %}
+          <association>
+            <publicIp>{{ eni.public_ip }}</publicIp>
+            <ipOwnerId>{{ eni.owner_id }}</ipOwnerId>
+            <allocationId>{{ eni.association.allocationId }}</allocationId>
+            <associationId>{{ eni.association.associationId }}</associationId>
+            <natEnabled>true</natEnabled>
+          </association>
+          {% endif %}
           <tagSet>
             {% for tag in eni.get_tags() %}
                 <item>
