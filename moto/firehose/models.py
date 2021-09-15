@@ -153,11 +153,11 @@ class DeliveryStream(
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
 
-        self.create_timestamp = str(datetime.utcnow())
+        self.create_timestamp = datetime.utcnow().isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
 
         # I believe boto3 only adds this field after an update ...
-        self.last_update_timestamp = str(datetime.utcnow())
+        self.last_update_timestamp = datetime.utcnow().isoformat()
 
 
 class FirehoseBackend(BaseBackend):
@@ -614,7 +614,7 @@ class FirehoseBackend(BaseBackend):
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
-        delivery_stream.last_update_timestamp = str(datetime.utcnow())
+        delivery_stream.last_update_timestamp = datetime.utcnow().isoformat()
 
         # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
         # documentation:  "You can update a delivery stream to enable Amazon
