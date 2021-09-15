@@ -886,12 +886,11 @@ class SQSBackend(BaseBackend):
         ):
             raise ReceiptHandleIsInvalid()
 
+        # Delete message from queue regardless of pending state
         new_messages = []
         for message in queue._messages:
-            # Only delete message if it is not visible and the receipt_handle
-            # matches.
             if message.receipt_handle == receipt_handle:
-                queue.pending_messages.remove(message)
+                queue.pending_messages.discard(message)
                 continue
             new_messages.append(message)
         queue._messages = new_messages

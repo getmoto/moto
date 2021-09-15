@@ -1072,6 +1072,87 @@ def test_revoke_security_group_egress():
 
 
 @mock_ec2
+def test_update_security_group_rule_descriptions_egress():
+    ec2 = boto3.resource("ec2", "us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = ec2.create_security_group(
+        Description="Test SG", GroupName="test-sg", VpcId=vpc.id
+    )
+    sg_id = sg.id
+
+    ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
+        "IpPermissionsEgress"
+    ][0]["IpRanges"]
+    ip_ranges.should.have.length_of(1)
+    ip_ranges[0].should.equal({"CidrIp": "0.0.0.0/0"})
+
+    client.update_security_group_rule_descriptions_egress(
+        GroupName="test-sg",
+        IpPermissions=[
+            {
+                "IpProtocol": "-1",
+                "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": "my d3scription"}],
+                "UserIdGroupPairs": [],
+                "Ipv6Ranges": [],
+                "PrefixListIds": [],
+            }
+        ],
+    )
+
+    ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
+        "IpPermissionsEgress"
+    ][0]["IpRanges"]
+    ip_ranges.should.have.length_of(1)
+    ip_ranges[0].should.equal({"CidrIp": "0.0.0.0/0", "Description": "my d3scription"})
+
+
+@mock_ec2
+def test_update_security_group_rule_descriptions_ingress():
+    ec2 = boto3.resource("ec2", "us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = ec2.create_security_group(
+        Description="Test SG", GroupName="test-sg", VpcId=vpc.id
+    )
+    sg_id = sg.id
+
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27017,
+            "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "first desc"}],
+        }
+    ]
+    client.authorize_security_group_ingress(GroupId=sg_id, IpPermissions=ip_permissions)
+
+    ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
+        "IpPermissions"
+    ][0]["IpRanges"]
+    ip_ranges.should.have.length_of(1)
+    ip_ranges[0].should.equal({"CidrIp": "1.2.3.4/32", "Description": "first desc"})
+
+    client.update_security_group_rule_descriptions_ingress(
+        GroupName="test-sg",
+        IpPermissions=[
+            {
+                "IpProtocol": "tcp",
+                "FromPort": 27017,
+                "ToPort": 27017,
+                "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "second desc"}],
+            }
+        ],
+    )
+
+    ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
+        "IpPermissions"
+    ][0]["IpRanges"]
+    ip_ranges.should.have.length_of(1)
+    ip_ranges[0].should.equal({"CidrIp": "1.2.3.4/32", "Description": "second desc"})
+
+
+@mock_ec2
 def test_non_existent_security_group_raises_error_on_authorize():
     client = boto3.client("ec2", "us-east-1")
     non_existent_sg = "sg-123abc"

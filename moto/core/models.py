@@ -840,7 +840,7 @@ class MotoAPIBackend(BaseBackend):
     def reset(self):
         import moto.backends as backends
 
-        for name, backends_ in backends.named_backends():
+        for name, backends_ in backends.loaded_backends():
             if name == "moto_api":
                 continue
             for region_name, backend in backends_.items():
