@@ -171,12 +171,10 @@ def test_describe_certificate():
 def test_describe_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as err:
         client.describe_certificate(CertificateArn=BAD_ARN)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+
+    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_acm
@@ -204,12 +202,11 @@ def test_export_certificate():
 @mock_acm
 def test_export_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
-    try:
+
+    with pytest.raises(ClientError) as err:
         client.export_certificate(CertificateArn=BAD_ARN, Passphrase="pass")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+
+    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 # Also tests ListTagsForCertificate
