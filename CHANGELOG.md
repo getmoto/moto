@@ -4,6 +4,69 @@ Moto Changelog
 Unreleased
 -----
 
+2.2.7
+-----
+    General:
+        * Performance improvements when using Moto in Server Mode.
+          Only services that are actually used will now be loaded into memory, greatly reducing the waiting times when starting the server, making an initial request and calling the reset-api.
+
+    New Services:
+        * Firehose
+            * create_delivery_stream()
+            * delete_delivery_stream()
+            * describe_delivery_stream()
+            * list_delivery_streams()
+            * list_tags_for_delivery_stream()
+            * put_record()
+            * put_record_batch()
+            * tag_delivery_stream()
+            * untag_delivery_stream()
+            * update_destination()
+
+    New Methods:
+        * Autoscaling:
+            * delete_lifecycle_hook()
+            * describe_lifecycle_hooks()
+            * put_lifecycle_hook()
+        * EC2:
+            * associate_subnet_cidr_block()
+            * create_carrier_gateway()
+            * delete_carrier_gateway()
+            * describe_carrier_gateways()
+            * describe_spot_price_history()
+            * disassociate_subnet_cidr_block()
+            * update_security_group_rule_descriptions_egress()
+            * update_security_group_rule_descriptions_ingress()
+        * Logs:
+            * delete_metric_filter()
+            * describe_metric_filters()
+            * put_metric_filter()
+        * SageMaker:
+            * list_training_jobs()
+        * Transcribe
+            * create_vocabulary()
+            * delete_transcription_job()
+            * delete_vocabulary()
+            * get_transcription_job()
+            * get_vocabulary()
+            * list_transcription_jobs()
+            * start_transcription_job()
+
+    Miscellaneous:
+        * DynamoDB: Improved support for the ReturnConsumedCapacity-parameter across all methods
+        * EC2:create_route() now supports the parameters CarrierGatewayId, DestinationPrefixListId
+        * EC2:create_subnet() now supports the Ipv6CidrBlock-parameter
+        * EC2:describe_nat_gateways() now supports the NatGatewayIds-parameter
+        * EC2:describe_vpn_gateways() now supports the VpnGatewayIds-parameter
+        * EC2:modify_network_interface_attribute() now supports the SourceDestCheck-parameter
+        * EC2:replace_route() now supports the parameters DestinationIpv6CidrBlock, DestinationPrefixListId, NatGatewayId, EgressOnlyInternetGatewayId, TransitGatewayId
+        * EC2:run_instances() now supports the InstanceMarketOptions.MarketType-parameter
+        * Logs:put_log_events() now supports Firehose as a destination
+        * Logs:put_subscription_filter() now supports Firehose as a destination
+        * S3:create_bucket(): Improved error handling for duplicate buckets
+        * S3:head_object() now validates incoming calls when using the `set_initial_no_auth_action_count`-decorator
+        * SSM:put_parameter() now supports the DataType-parameter
+
 2.2.6
 -----
     General:
