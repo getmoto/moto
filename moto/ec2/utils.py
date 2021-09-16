@@ -257,9 +257,13 @@ def random_ipv6_cidr():
     return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
 
 
-def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
+def generate_route_id(
+    route_table_id, cidr_block, ipv6_cidr_block=None, prefix_list=None
+):
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
+    if prefix_list and not cidr_block:
+        cidr_block = prefix_list
     return "%s~%s" % (route_table_id, cidr_block)
 
 

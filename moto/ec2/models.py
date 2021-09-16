@@ -136,7 +136,6 @@ from .utils import (
     random_transit_gateway_attachment_id,
     random_transit_gateway_route_table_id,
     random_vpc_ep_id,
-    randor_ipv4_cidr,
     random_launch_template_id,
     random_nat_gateway_id,
     random_transit_gateway_id,
@@ -3746,8 +3745,8 @@ class VPCBackend(object):
 
         # validates if vpc is present or not.
         self.get_vpc(vpc_id)
+        destination_prefix_list_id = None
 
-        service_destination_cidr = None
         if type and type.lower() == "interface":
 
             network_interface_ids = []
@@ -3760,10 +3759,10 @@ class VPCBackend(object):
 
         else:
             # considering gateway if type is not mentioned.
-            service_destination_cidr = randor_ipv4_cidr()
+            for prefix_list in self.managed_prefix_lists.values():
+                if prefix_list.prefix_list_name == service_name:
+                    destination_prefix_list_id = prefix_list.id
 
-            for route_table_id in route_table_ids:
-                self.create_route(route_table_id, service_destination_cidr)
         if dns_entries:
             dns_entries = [dns_entries]
 
@@ -3782,15 +3781,23 @@ class VPCBackend(object):
             security_group_ids,
             tags,
             private_dns_enabled,
-            service_destination_cidr,
+            destination_prefix_list_id,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
 
+        if destination_prefix_list_id:
+            for route_table_id in route_table_ids:
+                self.create_route(
+                    route_table_id,
+                    None,
+                    gateway_id=vpc_endpoint_id,
+                    destination_prefix_list_id=destination_prefix_list_id,
+                )
+
         return vpc_end_point
 
     def delete_vpc_endpoints(self, vpce_ids=[]):
-        vpce_ids
         for vpce_id in vpce_ids:
             vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
             if vpc_endpoint:
@@ -3800,7 +3807,7 @@ class VPCBackend(object):
                 else:
                     for route_table_id in vpc_endpoint.route_table_ids:
                         self.delete_route(
-                            route_table_id, vpc_endpoint.service_destination_cidr
+                            route_table_id, vpc_endpoint.destination_prefix_list_id
                         )
                 vpc_endpoint.state = "deleted"
         return True
@@ -3838,6 +3845,12 @@ class VPCBackend(object):
             "services": services,
             "availability_zones": availability_zones,
         }
+
+    def get_vpc_end_point(self, vpc_end_point_id):
+        vpc_end_point = self.vpc_end_points.get(vpc_end_point_id)
+        if not vpc_end_point:
+            raise InvalidVpcEndPointIdError(vpc_end_point_id)
+        return vpc_end_point
 
 
 class PeeringConnectionStatus(object):
@@ -4863,7 +4876,7 @@ class Route(CloudFormationModel):
         route_table,
         destination_cidr_block,
         destination_ipv6_cidr_block,
-        prefix_list=None,
+        destination_prefix_list=None,
         local=False,
         gateway=None,
         instance=None,
@@ -4875,12 +4888,15 @@ class Route(CloudFormationModel):
         carrier_gateway=None,
     ):
         self.id = generate_route_id(
-            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
+            route_table.id,
+            destination_cidr_block,
+            destination_ipv6_cidr_block,
+            destination_prefix_list.id if destination_prefix_list else None,
         )
         self.route_table = route_table
         self.destination_cidr_block = destination_cidr_block
         self.destination_ipv6_cidr_block = destination_ipv6_cidr_block
-        self.prefix_list = prefix_list
+        self.destination_prefix_list = destination_prefix_list
         self.local = local
         self.gateway = gateway
         self.instance = instance
@@ -4951,7 +4967,7 @@ class VPCEndPoint(TaggedEC2Resource):
         security_group_ids=None,
         tags=None,
         private_dns_enabled=None,
-        service_destination_cidr=None,
+        destination_prefix_list_id=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = id
@@ -4966,10 +4982,9 @@ class VPCEndPoint(TaggedEC2Resource):
         self.client_token = client_token
         self.security_group_ids = security_group_ids
         self.private_dns_enabled = private_dns_enabled
-        # self.created_at = utc_date_and_time()
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
-        self.service_destination_cidr = service_destination_cidr
+        self.destination_prefix_list_id = destination_prefix_list_id
 
     @property
     def owner_id(self):
@@ -5169,7 +5184,7 @@ class RouteBackend(object):
         transit_gateway = None
         egress_only_igw = None
         interface = None
-        prefix_list = None
+        destination_prefix_list = None
         carrier_gateway = None
 
         route_table = self.get_route_table(route_table_id)
@@ -5184,6 +5199,8 @@ class RouteBackend(object):
                     gateway = self.get_vpn_gateway(gateway_id)
                 elif EC2_RESOURCE_TO_PREFIX["internet-gateway"] in gateway_id:
                     gateway = self.get_internet_gateway(gateway_id)
+                elif EC2_RESOURCE_TO_PREFIX["vpc-endpoint"] in gateway_id:
+                    gateway = self.get_vpc_end_point(gateway_id)
 
             try:
                 if destination_cidr_block:
@@ -5198,7 +5215,9 @@ class RouteBackend(object):
             if transit_gateway_id is not None:
                 transit_gateway = self.transit_gateways.get(transit_gateway_id)
             if destination_prefix_list_id is not None:
-                prefix_list = self.managed_prefix_lists.get(destination_prefix_list_id)
+                destination_prefix_list = self.managed_prefix_lists.get(
+                    destination_prefix_list_id
+                )
             if carrier_gateway_id is not None:
                 carrier_gateway = self.carrier_gateways.get(carrier_gateway_id)
 
@@ -5206,7 +5225,7 @@ class RouteBackend(object):
             route_table,
             destination_cidr_block,
             destination_ipv6_cidr_block,
-            prefix_list,
+            destination_prefix_list,
             local=local,
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
@@ -5283,12 +5302,18 @@ class RouteBackend(object):
         return route_table.get(route_id)
 
     def delete_route(
-        self, route_table_id, destination_cidr_block, destination_ipv6_cidr_block=None
+        self,
+        route_table_id,
+        destination_cidr_block,
+        destination_ipv6_cidr_block=None,
+        destination_prefix_list_id=None,
     ):
         cidr = destination_cidr_block
         route_table = self.get_route_table(route_table_id)
         if destination_ipv6_cidr_block:
             cidr = destination_ipv6_cidr_block
+        if destination_prefix_list_id:
+            cidr = destination_prefix_list_id
         route_id = generate_route_id(route_table_id, cidr)
         deleted = route_table.routes.pop(route_id, None)
         if not deleted:
