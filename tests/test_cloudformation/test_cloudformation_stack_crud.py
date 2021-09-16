@@ -11,6 +11,7 @@ import boto.s3
 import boto.s3.key
 import boto.cloudformation
 from boto.exception import BotoServerError
+from freezegun import freeze_time
 import sure  # noqa
 
 import pytest
@@ -19,6 +20,8 @@ from moto.core import ACCOUNT_ID
 from moto import (
     mock_cloudformation_deprecated,
     mock_s3_deprecated,
+    mock_sns_deprecated,
+    mock_sqs_deprecated,
     mock_route53_deprecated,
     mock_iam_deprecated,
     mock_dynamodb2_deprecated,
@@ -151,18 +154,69 @@ def test_creating_stacks_across_regions():
 
 
 @mock_cloudformation_deprecated
+@mock_sns_deprecated
+@mock_sqs_deprecated
 def test_create_stack_with_notification_arn():
+    sqs_conn = boto.connect_sqs()
+    queue = sqs_conn.create_queue("fake-queue", visibility_timeout=3)
+    queue_arn = queue.get_attributes()["QueueArn"]
+
+    sns_conn = boto.connect_sns()
+    topic = sns_conn.create_topic("fake-topic")
+    topic_arn = topic["CreateTopicResponse"]["CreateTopicResult"]["TopicArn"]
+
+    sns_conn.subscribe(topic_arn, "sqs", queue_arn)
+
     conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack_with_notifications",
-        template_body=dummy_template_json,
-        notification_arns="arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID),
-    )
+    with freeze_time("2015-01-01 12:00:00"):
+        conn.create_stack(
+            "test_stack_with_notifications",
+            template_body=dummy_template_json,
+            notification_arns=topic_arn,
+        )
 
     stack = conn.describe_stacks()[0]
-    [n.value for n in stack.notification_arns].should.contain(
-        "arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)
-    )
+    [n.value for n in stack.notification_arns].should.contain(topic_arn)
+
+    with freeze_time("2015-01-01 12:00:01"):
+        message = queue.read(1)
+
+    msg = json.loads(message.get_body())
+    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain("Timestamp='2015-01-01T12:00:00.000Z'\n")
+    msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
+    msg["Message"].should.contain("ResourceStatus='CREATE_IN_PROGRESS'\n")
+    msg["Message"].should.contain("ResourceStatusReason='User Initiated'\n")
+    msg["Message"].should.contain("ResourceType='AWS::CloudFormation::Stack'\n")
+    msg["Message"].should.contain("StackName='test_stack_with_notifications'\n")
+    msg.should.have.key("MessageId")
+    msg.should.have.key("Signature")
+    msg.should.have.key("SignatureVersion")
+    msg.should.have.key("Subject")
+    msg["Timestamp"].should.equal("2015-01-01T12:00:00.000Z")
+    msg["TopicArn"].should.equal(topic_arn)
+    msg.should.have.key("Type")
+    msg.should.have.key("UnsubscribeURL")
+
+    with freeze_time("2015-01-01 12:00:02"):
+        message = queue.read(1)
+
+    msg = json.loads(message.get_body())
+    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain("Timestamp='2015-01-01T12:00:00.000Z'\n")
+    msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
+    msg["Message"].should.contain("ResourceStatus='CREATE_COMPLETE'\n")
+    msg["Message"].should.contain("ResourceStatusReason='None'\n")
+    msg["Message"].should.contain("ResourceType='AWS::CloudFormation::Stack'\n")
+    msg["Message"].should.contain("StackName='test_stack_with_notifications'\n")
+    msg.should.have.key("MessageId")
+    msg.should.have.key("Signature")
+    msg.should.have.key("SignatureVersion")
+    msg.should.have.key("Subject")
+    msg["Timestamp"].should.equal("2015-01-01T12:00:00.000Z")
+    msg["TopicArn"].should.equal(topic_arn)
+    msg.should.have.key("Type")
+    msg.should.have.key("UnsubscribeURL")
 
 
 @mock_cloudformation_deprecated

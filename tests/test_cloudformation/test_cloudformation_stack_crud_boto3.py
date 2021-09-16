@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from freezegun import freeze_time
 import pytz
 
 import boto3
@@ -11,7 +12,14 @@ import sure  # noqa
 
 import pytest
 
-from moto import mock_cloudformation, mock_dynamodb2, mock_s3, mock_sqs, mock_ec2
+from moto import (
+    mock_cloudformation,
+    mock_dynamodb2,
+    mock_s3,
+    mock_sns,
+    mock_sqs,
+    mock_ec2,
+)
 from moto.core import ACCOUNT_ID
 from .test_cloudformation_stack_crud import dummy_template_json2, dummy_template_json4
 from tests import EXAMPLE_AMI_ID
@@ -901,18 +909,64 @@ def test_creating_stacks_across_regions():
 
 
 @mock_cloudformation
+@mock_sns
+@mock_sqs
 def test_create_stack_with_notification_arn():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="fake-queue")
+    queue_arn = queue.attributes["QueueArn"]
+
+    sns = boto3.client("sns", region_name="us-east-1")
+    topic = sns.create_topic(Name="fake-topic")
+    topic_arn = topic["TopicArn"]
+
+    sns.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_arn)
+
     cf = boto3.resource("cloudformation", region_name="us-east-1")
     cf.create_stack(
         StackName="test_stack_with_notifications",
         TemplateBody=dummy_template_json,
-        NotificationARNs=["arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)],
+        NotificationARNs=[topic_arn],
     )
 
     stack = list(cf.stacks.all())[0]
-    stack.notification_arns.should.contain(
-        "arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)
-    )
+    stack.notification_arns.should.contain(topic_arn)
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    msg = json.loads(messages[0].body)
+    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
+    msg["Message"].should.contain("ResourceStatus='CREATE_IN_PROGRESS'\n")
+    msg["Message"].should.contain("ResourceStatusReason='User Initiated'\n")
+    msg["Message"].should.contain("ResourceType='AWS::CloudFormation::Stack'\n")
+    msg["Message"].should.contain("StackName='test_stack_with_notifications'\n")
+    msg.should.have.key("MessageId")
+    msg.should.have.key("Signature")
+    msg.should.have.key("SignatureVersion")
+    msg.should.have.key("Subject")
+    msg.should.have.key("Timestamp")
+    msg["TopicArn"].should.equal(topic_arn)
+    msg.should.have.key("Type")
+    msg.should.have.key("UnsubscribeURL")
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    msg = json.loads(messages[0].body)
+    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
+    msg["Message"].should.contain("ResourceStatus='CREATE_COMPLETE'\n")
+    msg["Message"].should.contain("ResourceStatusReason='None'\n")
+    msg["Message"].should.contain("ResourceType='AWS::CloudFormation::Stack'\n")
+    msg["Message"].should.contain("StackName='test_stack_with_notifications'\n")
+    msg.should.have.key("MessageId")
+    msg.should.have.key("Signature")
+    msg.should.have.key("SignatureVersion")
+    msg.should.have.key("Subject")
+    msg.should.have.key("Timestamp")
+    msg["TopicArn"].should.equal(topic_arn)
+    msg.should.have.key("Type")
+    msg.should.have.key("UnsubscribeURL")
 
 
 @mock_cloudformation
