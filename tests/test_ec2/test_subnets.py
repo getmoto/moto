@@ -618,14 +618,14 @@ def validate_subnet_details_after_creating_eni(
                 ],
             )["NetworkInterface"]
             enis_created.append(eni)
-            ip_addresses_assigned = ip_addresses_assigned + nr_of_ip_addresses + 1  #
+            ip_addresses_assigned = ip_addresses_assigned + nr_of_ip_addresses  #
+
     # Verify that the nr of available IP addresses takes these ENIs into account
     updated_subnet = client.describe_subnets(SubnetIds=[subnet["SubnetId"]])["Subnets"][
         0
     ]
-    private_addresses = [
-        eni["PrivateIpAddress"] for eni in enis_created if eni["PrivateIpAddress"]
-    ]
+
+    private_addresses = []
     for eni in enis_created:
         private_addresses.extend(
             [address["PrivateIpAddress"] for address in eni["PrivateIpAddresses"]]
