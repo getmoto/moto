@@ -748,13 +748,13 @@ def test_create_route_with_egress_only_igw():
     route_table = ec2.create_route_table(VpcId=vpc.id)
 
     ec2_client.create_route(
-        RouteTableId=route_table.id, EgressOnlyInternetGatewayId=eigw_id
+        RouteTableId=route_table.id, EgressOnlyInternetGatewayId=eigw_id, DestinationIpv6CidrBlock="::/0"
     )
 
     route_table.reload()
-    eigw_route = [r for r in route_table.routes if r.destination_cidr_block == ""][0]
-    eigw_route.egress_only_internet_gateway_id.should.equal(eigw_id)
-    eigw_route.state.should.equal("active")
+    eigw_route = [r for r in route_table.routes_attribute if r.get("DestinationIpv6CidrBlock") == "::/0"][0]
+    eigw_route.get("EgressOnlyInternetGatewayId").should.equal(eigw_id)
+    eigw_route.get("State").should.equal("active")
 
 
 @mock_ec2

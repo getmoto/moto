@@ -955,13 +955,13 @@ def test_delete_vpc_end_points():
     route_table = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
     vpc_end_point1 = ec2.create_vpc_endpoint(
         VpcId=vpc["Vpc"]["VpcId"],
-        ServiceName="com.amazonaws.us-east-1.s3",
+        ServiceName="com.amazonaws.us-west-1.s3",
         RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
         VpcEndpointType="gateway",
     )["VpcEndpoint"]
     vpc_end_point2 = ec2.create_vpc_endpoint(
         VpcId=vpc["Vpc"]["VpcId"],
-        ServiceName="com.amazonaws.us-east-2.s3",
+        ServiceName="com.amazonaws.us-west-1.s3",
         RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
         VpcEndpointType="gateway",
     )

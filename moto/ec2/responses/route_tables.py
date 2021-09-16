@@ -222,27 +222,31 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 {% if route.vpc_pcx %}
                   <vpcPeeringConnectionId>{{ route.vpc_pcx.id }}</vpcPeeringConnectionId>
                   <origin>CreateRoute</origin>
-                  <state>blackhole</state>
+                  <state>active</state>
                 {% endif %}
                 {% if route.carrier_gateway %}
                   <carrierGatewayId>{{ route.carrier_gateway.id }}</carrierGatewayId>
                   <origin>CreateRoute</origin>
-                  <state>blackhole</state>
+                  <state>active</state>
                 {% endif %}
                 {% if route.nat_gateway %}
                   <natGatewayId>{{ route.nat_gateway.id }}</natGatewayId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.egress_only_igw %}
                   <egressOnlyInternetGatewayId>{{ route.egress_only_igw.id }}</egressOnlyInternetGatewayId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.transit_gateway %}
                   <transitGatewayId>{{ route.transit_gateway.id }}</transitGatewayId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.interface %}
                   <networkInterfaceId>{{ route.interface.id }}</networkInterfaceId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
               </item>

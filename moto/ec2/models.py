@@ -3760,7 +3760,6 @@ class VPCBackend(object):
         return vpc_end_point
 
     def delete_vpc_endpoints(self, vpce_ids=[]):
-        vpce_ids
         for vpce_id in vpce_ids:
             vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
             if vpc_endpoint:
