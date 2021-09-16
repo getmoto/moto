@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from moto.acm.models import AWS_ROOT_CA
 
 import os
 import uuid
@@ -7,6 +8,8 @@ import boto3
 import pytest
 import sure  # noqa
 from botocore.exceptions import ClientError
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization, hashes
 from freezegun import freeze_time
 from moto import mock_acm, settings
 from moto.core import ACCOUNT_ID
@@ -170,6 +173,39 @@ def test_describe_certificate_with_bad_arn():
 
     try:
         client.describe_certificate(CertificateArn=BAD_ARN)
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    else:
+        raise RuntimeError("Should of raised ResourceNotFoundException")
+
+
+@mock_acm
+def test_export_certificate():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    resp = client.export_certificate(CertificateArn=arn, Passphrase="pass")
+    resp["Certificate"].should.equal(SERVER_CRT.decode())
+    resp["CertificateChain"].should.equal(CA_CRT.decode() + "\n" + AWS_ROOT_CA.decode())
+    resp.should.have.key("PrivateKey")
+
+    key = serialization.load_pem_private_key(
+        bytes(resp["PrivateKey"], "utf-8"), password=b"pass", backend=default_backend()
+    )
+
+    private_key = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    private_key.should.equal(SERVER_KEY)
+
+
+@mock_acm
+def test_export_certificate_with_bad_arn():
+    client = boto3.client("acm", region_name="eu-central-1")
+    try:
+        client.export_certificate(CertificateArn=BAD_ARN, Passphrase="pass")
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     else:
