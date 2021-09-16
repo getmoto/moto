@@ -309,8 +309,15 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         if not self.private_ip_address:
             if self.private_ip_addresses:
                 for ip in self.private_ip_addresses:
-                    if ip.get("Primary", False) in ["true", True, "True"]:
+                    if isinstance(ip, list) and ip.get("Primary", False) in [
+                        "true",
+                        True,
+                        "True",
+                    ]:
                         self.private_ip_address = ip.get("PrivateIpAddress")
+                    if isinstance(ip, str):
+                        self.private_ip_address = self.private_ip_addresses[0]
+                        break
             else:
                 self.private_ip_address = random_private_ip()
 
@@ -4062,9 +4069,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             for eni in self.ec2_backend.get_all_network_interfaces()
             if eni.subnet.id == self.id
         ]
-        addresses_taken = [
-            eni.private_ip_address for eni in enis if eni.private_ip_address
-        ]
+        addresses_taken = []
         for eni in enis:
             if eni.private_ip_addresses:
                 addresses_taken.extend(eni.private_ip_addresses)
