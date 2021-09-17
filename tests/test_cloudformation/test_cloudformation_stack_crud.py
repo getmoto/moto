@@ -85,6 +85,33 @@ def test_create_stack():
     conn.create_stack("test_stack", template_body=dummy_template_json)
 
     stack = conn.describe_stacks()[0]
+    stack.stack_id.should.contain(
+        "arn:aws:cloudformation:us-east-1:123456789:stack/test_stack/"
+    )
+    stack.stack_name.should.equal("test_stack")
+    stack.get_template().should.equal(
+        {
+            "GetTemplateResponse": {
+                "GetTemplateResult": {
+                    "TemplateBody": dummy_template_json,
+                    "ResponseMetadata": {
+                        "RequestId": "2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE"
+                    },
+                }
+            }
+        }
+    )
+
+
+@mock_cloudformation_deprecated
+def test_create_stack_with_other_region():
+    conn = boto.cloudformation.connect_to_region("us-west-2")
+    conn.create_stack("test_stack", template_body=dummy_template_json)
+
+    stack = conn.describe_stacks()[0]
+    stack.stack_id.should.contain(
+        "arn:aws:cloudformation:us-west-2:123456789:stack/test_stack/"
+    )
     stack.stack_name.should.equal("test_stack")
     stack.get_template().should.equal(
         {

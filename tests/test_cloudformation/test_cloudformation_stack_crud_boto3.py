@@ -907,6 +907,13 @@ def test_creating_stacks_across_regions():
     list(west1_cf.stacks.all()).should.have.length_of(1)
     list(west2_cf.stacks.all()).should.have.length_of(1)
 
+    list(west1_cf.stacks.all())[0].stack_id.should.contain(
+        "arn:aws:cloudformation:us-west-1:123456789:stack/test_stack/"
+    )
+    list(west2_cf.stacks.all())[0].stack_id.should.contain(
+        "arn:aws:cloudformation:us-west-2:123456789:stack/test_stack/"
+    )
+
 
 @mock_cloudformation
 @mock_sns
