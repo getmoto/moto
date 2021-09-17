@@ -85,7 +85,9 @@ def test_create_stack():
     conn.create_stack("test_stack", template_body=dummy_template_json)
 
     stack = conn.describe_stacks()[0]
-    stack.stack_id.should.contain("arn:aws:cloudformation:us-east-1:123456789:stack/test_stack/")
+    stack.stack_id.should.contain(
+        "arn:aws:cloudformation:us-east-1:123456789:stack/test_stack/"
+    )
     stack.stack_name.should.equal("test_stack")
     stack.get_template().should.equal(
         {
@@ -107,7 +109,9 @@ def test_create_stack_with_other_region():
     conn.create_stack("test_stack", template_body=dummy_template_json)
 
     stack = conn.describe_stacks()[0]
-    stack.stack_id.should.contain("arn:aws:cloudformation:us-west-2:123456789:stack/test_stack/")
+    stack.stack_id.should.contain(
+        "arn:aws:cloudformation:us-west-2:123456789:stack/test_stack/"
+    )
     stack.stack_name.should.equal("test_stack")
     stack.get_template().should.equal(
         {
