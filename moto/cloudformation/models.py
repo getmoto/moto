@@ -623,7 +623,7 @@ class CloudFormationBackend(BaseBackend):
         tags=None,
         role_arn=None,
     ):
-        stack_id = generate_stack_id(name)
+        stack_id = generate_stack_id(name, region_name)
         new_stack = FakeStack(
             stack_id=stack_id,
             name=name,
