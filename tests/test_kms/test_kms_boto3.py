@@ -31,6 +31,17 @@ def _get_encoded_value(plaintext):
 
 
 @mock_kms
+def test_create_key_without_description():
+    conn = boto3.client("kms", region_name="us-east-1")
+    metadata = conn.create_key(Policy="my policy")["KeyMetadata"]
+
+    metadata.should.have.key("AWSAccountId").equals(ACCOUNT_ID)
+    metadata.should.have.key("KeyId")
+    metadata.should.have.key("Arn")
+    metadata.should.have.key("Description").equal("")
+
+
+@mock_kms
 def test_create_key():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
@@ -41,9 +52,11 @@ def test_create_key():
     )
 
     key["KeyMetadata"]["Arn"].should.equal(
-        "arn:aws:kms:us-east-1:123456789012:key/{}".format(key["KeyMetadata"]["KeyId"])
+        "arn:aws:kms:us-east-1:{}:key/{}".format(
+            ACCOUNT_ID, key["KeyMetadata"]["KeyId"]
+        )
     )
-    key["KeyMetadata"]["AWSAccountId"].should.equal("123456789012")
+    key["KeyMetadata"]["AWSAccountId"].should.equal(ACCOUNT_ID)
     key["KeyMetadata"]["CreationDate"].should.be.a(datetime)
     key["KeyMetadata"]["CustomerMasterKeySpec"].should.equal("SYMMETRIC_DEFAULT")
     key["KeyMetadata"]["Description"].should.equal("my key")

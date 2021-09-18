@@ -24,7 +24,7 @@ class Key(CloudFormationModel):
         self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
-        self.description = description
+        self.description = description or ""
         self.enabled = True
         self.region = region
         self.account_id = ACCOUNT_ID
