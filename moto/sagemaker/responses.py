@@ -302,7 +302,7 @@ class SageMakerResponse(BaseResponse):
             errors = []
             if max_results and max_results not in max_results_range:
                 errors.append(
-                    "Value '%s' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to %s".format(
+                    "Value '{0}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {1}".format(
                         max_results, max_results_range[-1]
                     )
                 )
