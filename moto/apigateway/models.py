@@ -659,23 +659,45 @@ class UsagePlanKey(BaseModel, dict):
 
 
 class RestAPI(CloudFormationModel):
+
+    PROP_ID = "id"
+    PROP_NAME = "name"
+    PROP_DESCRIPTON = "description"
+    PROP_VERSION = "version"
+    PROP_BINARY_MEDIA_TYPES = "binaryMediaTypes"
+    PROP_CREATED_DATE = "createdDate"
+    PROP_API_KEY_SOURCE = "apiKeySource"
+    PROP_ENDPOINT_CONFIGURATION = "endpointConfiguration"
+    PROP_TAGS = "tags"
+    PROP_POLICY = "policy"
+    PROP_DISABLE_EXECUTE_API_ENDPOINT = "disableExecuteApiEndpoint"
+    PROP_MINIMUM_COMPRESSION_SIZE = "minimumCompressionSize"
+
+    # operations
+    OPERATION_ADD = "add"
+    OPERATION_REPLACE = "replace"
+    OPERATION_REMOVE = "remove"
+    OPERATION_PATH = "path"
+    OPERATION_VALUE = "value"
+    OPERATION_OP = "op"
+
     def __init__(self, id, region_name, name, description, **kwargs):
         super(RestAPI, self).__init__()
         self.id = id
         self.region_name = region_name
         self.name = name
         self.description = description
-        self.version = kwargs.get("version") or "V1"
-        self.binaryMediaTypes = kwargs.get("binaryMediaTypes") or []
+        self.version = kwargs.get(RestAPI.PROP_VERSION) or "V1"
+        self.binaryMediaTypes = kwargs.get(RestAPI.PROP_BINARY_MEDIA_TYPES) or []
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
-        self.policy = kwargs.get("policy") or None
+        self.policy = kwargs.get(RestAPI.PROP_POLICY) or None
         self.endpoint_configuration = kwargs.get("endpoint_configuration") or {
             "types": ["EDGE"]
         }
-        self.tags = kwargs.get("tags") or {}
+        self.tags = kwargs.get(RestAPI.PROP_TAGS) or {}
         self.disableExecuteApiEndpoint = (
-            kwargs.get("disableExecuteApiEndpoint") or False
+            kwargs.get(RestAPI.PROP_DISABLE_EXECUTE_API_ENDPOINT) or False
         )
         self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments = {}
@@ -690,35 +712,49 @@ class RestAPI(CloudFormationModel):
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "version": self.version,
-            "binaryMediaTypes": self.binaryMediaTypes,
-            "createdDate": self.create_date,
-            "apiKeySource": self.api_key_source,
-            "endpointConfiguration": self.endpoint_configuration,
-            "tags": self.tags,
-            "policy": self.policy,
-            "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
-            "minimumCompressionSize": self.minimum_compression_size,
+            self.PROP_ID: self.id,
+            self.PROP_NAME: self.name,
+            self.PROP_DESCRIPTON: self.description,
+            self.PROP_VERSION: self.version,
+            self.PROP_BINARY_MEDIA_TYPES: self.binaryMediaTypes,
+            self.PROP_CREATED_DATE: self.create_date,
+            self.PROP_API_KEY_SOURCE: self.api_key_source,
+            self.PROP_ENDPOINT_CONFIGURATION: self.endpoint_configuration,
+            self.PROP_TAGS: self.tags,
+            self.PROP_POLICY: self.policy,
+            self.PROP_DISABLE_EXECUTE_API_ENDPOINT: self.disableExecuteApiEndpoint,
+            self.PROP_MINIMUM_COMPRESSION_SIZE: self.minimum_compression_size,
         }
 
     def apply_patch_operations(self, patch_operations):
+        def to_path(prop):
+            return "/" + prop
+
         for op in patch_operations:
-            path = op["path"]
-            value = op["value"]
-            if op["op"] == "replace":
-                if "/name" in path:
+            path = op[self.OPERATION_PATH]
+            value = ""
+            if self.OPERATION_VALUE in op:
+                value = op[self.OPERATION_VALUE]
+            operaton = op[self.OPERATION_OP]
+            if operaton == self.OPERATION_REPLACE:
+                if to_path(self.PROP_NAME) in path:
                     self.name = value
-                if "/description" in path:
+                if to_path(self.PROP_DESCRIPTON) in path:
                     self.description = value
-                if "/apiKeySource" in path:
+                if to_path(self.PROP_API_KEY_SOURCE) in path:
                     self.api_key_source = value
-                if "/binaryMediaTypes" in path:
-                    self.binaryMediaTypes = value
-                if "/disableExecuteApiEndpoint" in path:
+                if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
+                    self.binaryMediaTypes = [value]
+                if to_path(self.PROP_DISABLE_EXECUTE_API_ENDPOINT) in path:
                     self.disableExecuteApiEndpoint = bool(value)
+            elif operaton == self.OPERATION_ADD:
+                if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
+                    self.binaryMediaTypes.append(value)
+            elif operaton == self.OPERATION_REMOVE:
+                if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
+                    self.binaryMediaTypes.remove(value)
+                if to_path(self.PROP_DESCRIPTON) in path:
+                    self.description = ""
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

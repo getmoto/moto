@@ -111,8 +111,8 @@ class APIGatewayResponse(BaseResponse):
     def __validte_rest_patch_operations(self, patch_operations):
         for op in patch_operations:
             path = op["path"]
-            value = op["value"]
             if "apiKeySource" in path:
+                value = op["value"]
                 return self.__validate_api_key_source(value)
 
     def restapis_individual(self, request, full_url, headers):

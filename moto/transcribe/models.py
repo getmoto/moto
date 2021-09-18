@@ -181,7 +181,9 @@ class FakeTranscriptionJob(BaseObject):
                     )
                     if self.output_key is not None
                     else transcript_file_uri
-                    + "{1}.json".format(self.output_key, self.transcription_job_name)
+                    + "{transcription_job_name}.json".format(
+                        transcription_job_name=self.transcription_job_name
+                    )
                 )
                 self.output_location_type = "CUSTOMER_BUCKET"
             else:
