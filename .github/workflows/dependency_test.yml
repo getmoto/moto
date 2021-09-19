@@ -24,6 +24,6 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: buildfolder-${{ matrix.part }}
+        name: buildfolder-${{ matrix.python-version }}
         path: |
           test_results_*.log
