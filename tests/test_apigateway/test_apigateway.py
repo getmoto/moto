@@ -1046,6 +1046,7 @@ def test_get_delete_request_validators():
         }
     )
 
+
 @mock_apigateway
 def test_update_request_validator():
     ID = "id"
@@ -1083,6 +1084,7 @@ def test_update_request_validator():
             VALIDATE_REQUEST_PARAMETERS: False,
         }
     )
+
 
 @mock_apigateway
 def test_update_stage_configuration():

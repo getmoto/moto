@@ -678,9 +678,13 @@ class RequestValidator(BaseModel, dict):
                 if to_path(RequestValidator.PROP_NAME) in path:
                     self[RequestValidator.PROP_NAME] = value
                 if to_path(RequestValidator.PROP_VALIDATE_REQUEST_BODY) in path:
-                    self[RequestValidator.PROP_VALIDATE_REQUEST_BODY] = value.lower() in ("true")
+                    self[
+                        RequestValidator.PROP_VALIDATE_REQUEST_BODY
+                    ] = value.lower() in ("true")
                 if to_path(RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS) in path:
-                    self[RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS] = value.lower() in ("true")
+                    self[
+                        RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS
+                    ] = value.lower() in ("true")
 
     def to_dict(self):
         return {
