@@ -128,3 +128,8 @@ TestAccAWSVpnGatewayAttachment
 TestAccAWSEc2CarrierGateway
 TestAccDataSourceAwsNetworkInterface_
 TestAccAWSNatGateway
+TestAccAWSENI_PrivateIpsCount
+TestAccAWSENI_SourceDestCheck
+TestAccAWSENI_Tags
+TestAccAWSENI_basic
+TestAccAWSENI_disappears

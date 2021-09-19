@@ -5,6 +5,7 @@ import hashlib
 import fnmatch
 import random
 import re
+import ipaddress
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
@@ -229,7 +230,11 @@ def random_public_ip():
     return "54.214.{0}.{1}".format(random.choice(range(255)), random.choice(range(255)))
 
 
-def random_private_ip():
+def random_private_ip(cidr=None):
+    if cidr:
+        ips = ipaddress.ip_network(cidr)
+        ip_list = [str(ip) for ip in ips]
+        return ip_list[random.choice(range(0, len(ip_list)))]
     return "10.{0}.{1}.{2}".format(
         random.choice(range(255)), random.choice(range(255)), random.choice(range(255))
     )
@@ -238,6 +243,13 @@ def random_private_ip():
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+    )
+
+
+def generate_dns_from_ip(ip, type="internal"):
+    splits = ip.split("/")[0].split(".") if "/" in ip else ip.split(".")
+    return "ip-{}-{}-{}-{}.ec2.{}".format(
+        splits[0], splits[1], splits[2], splits[3], type
     )
 
 
@@ -357,6 +369,16 @@ def dict_from_querystring(parameter, querystring_dict):
             use_dict[use_dict_index][use_dict_element_property] = value[0]
 
     return use_dict
+
+
+def get_attribute_value(parameter, querystring_dict):
+    for key, value in querystring_dict.items():
+        match = re.search(r"{0}.Value".format(parameter), key)
+        if match:
+            if value[0].lower() in ["true", "false"]:
+                return True if value[0].lower() in ["true"] else False
+            return value[0]
+    return None
 
 
 def get_object_value(obj, attr):

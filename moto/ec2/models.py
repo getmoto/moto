@@ -131,6 +131,7 @@ from .utils import (
     random_internet_gateway_id,
     random_egress_only_internet_gateway_id,
     random_ip,
+    generate_dns_from_ip,
     random_mac_address,
     random_ipv6_cidr,
     random_transit_gateway_attachment_id,
@@ -281,12 +282,14 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         group_ids=None,
         description=None,
         tags=None,
+        **kwargs
     ):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
         self.private_ip_address = private_ip_address or None
         self.private_ip_addresses = private_ip_addresses or []
+
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
@@ -305,25 +308,52 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         #   returns groups for both self and the attached instance.
         self._group_set = []
 
+        if self.private_ip_addresses:
+            primary_selected = True if private_ip_address else False
+            for item in self.private_ip_addresses.copy():
+                if isinstance(item, str):
+                    self.private_ip_addresses.remove(item)
+                    self.private_ip_addresses.append(
+                        {
+                            "Primary": True if not primary_selected else False,
+                            "PrivateIpAddress": item,
+                        }
+                    )
+                    primary_selected = True
+
         if not self.private_ip_address:
             if self.private_ip_addresses:
                 for ip in self.private_ip_addresses:
-                    if isinstance(ip, list) and ip.get("Primary", False) in [
-                        "true",
-                        True,
-                        "True",
-                    ]:
+                    if isinstance(ip, dict) and ip.get("Primary"):
                         self.private_ip_address = ip.get("PrivateIpAddress")
-                    if isinstance(ip, str):
-                        self.private_ip_address = self.private_ip_addresses[0]
                         break
-            else:
-                self.private_ip_address = random_private_ip()
+            if not self.private_ip_addresses:
+                self.private_ip_address = random_private_ip(self.subnet.cidr_block)
 
-        if not self.private_ip_addresses and self.private_ip_address:
+        if not self.private_ip_addresses:
             self.private_ip_addresses.append(
                 {"Primary": True, "PrivateIpAddress": self.private_ip_address}
             )
+
+        secondary_ips = kwargs.get("secondary_ips_count", None)
+        if secondary_ips:
+            ips = [
+                random_private_ip(self.subnet.cidr_block)
+                for index in range(0, int(secondary_ips))
+            ]
+            if ips:
+                self.private_ip_addresses.extend(
+                    [{"Primary": False, "PrivateIpAddress": ip} for ip in ips]
+                )
+
+        vpc = self.ec2_backend.get_vpc(self.subnet.vpc_id)
+        if vpc and vpc.enable_dns_hostnames:
+            self.private_dns_name = generate_dns_from_ip(
+                self.private_ip_address, type="internal"
+            )
+            for address in self.private_ip_addresses:
+                if address.get("Primary", None):
+                    address["PrivateDnsName"] = self.private_dns_name
 
         group = None
         if group_ids:
@@ -341,6 +371,10 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
                     self.ec2_backend.groups[subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
+        if not group_ids:
+            group = self.ec2_backend.get_default_security_group(vpc.id)
+            if group:
+                self._group_set.append(group)
 
     @property
     def owner_id(self):
@@ -523,13 +557,17 @@ class NetworkInterfaceBackend(object):
         found_eni.instance.detach_eni(found_eni)
 
     def modify_network_interface_attribute(
-        self, eni_id, group_ids, source_dest_check=None
+        self, eni_id, group_ids, source_dest_check=None, description=None
     ):
         eni = self.get_network_interface(eni_id)
         groups = [self.get_security_group_from_id(group_id) for group_id in group_ids]
-        eni._group_set = groups
-        if source_dest_check:
+        if groups:
+            eni._group_set = groups
+        if source_dest_check in [True, False]:
             eni.source_dest_check = source_dest_check
+
+        if description:
+            eni.description = description
 
     def get_all_network_interfaces(self, eni_ids=None, filters=None):
         enis = self.enis.values()
@@ -543,6 +581,30 @@ class NetworkInterfaceBackend(object):
                 raise InvalidNetworkInterfaceIdError(invalid_id)
 
         return generic_filter(filters, enis)
+
+    def unassign_private_ip_addresses(self, eni_id=None, private_ip_address=None):
+        eni = self.get_network_interface(eni_id)
+        if private_ip_address:
+            for item in eni.private_ip_addresses.copy():
+                if item.get("PrivateIpAddress") in private_ip_address:
+                    eni.private_ip_addresses.remove(item)
+        return eni
+
+    def assign_private_ip_addresses(self, eni_id=None, secondary_ips_count=None):
+        eni = self.get_network_interface(eni_id)
+        eni_assigned_ips = [
+            item.get("PrivateIpAddress") for item in eni.private_ip_addresses
+        ]
+        while True:
+            if not secondary_ips_count:
+                break
+            ip = random_private_ip(eni.subnet.cidr_block)
+            if ip not in eni_assigned_ips:
+                eni.private_ip_addresses.append(
+                    {"Primary": False, "PrivateIpAddress": ip}
+                )
+                secondary_ips_count -= 1
+        return eni
 
 
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
@@ -2429,6 +2491,11 @@ class SecurityGroupBackend(object):
         if group is None:
             group = self.get_security_group_from_name(group_name_or_id, vpc_id)
         return group
+
+    def get_default_security_group(self, vpc_id=None):
+        for group_id, group in self.groups[vpc_id or self.default_vpc.id].items():
+            if group.is_default:
+                return group
 
     def authorize_security_group_ingress(
         self,
