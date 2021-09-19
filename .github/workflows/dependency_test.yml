@@ -20,3 +20,10 @@ jobs:
     - name: Run test
       run: |
         scripts/dependency_test.sh
+    - name: Archive logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: buildfolder-${{ matrix.python-version }}
+        path: |
+          test_results_*.log
