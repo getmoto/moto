@@ -960,6 +960,131 @@ def test_delete_authorizer():
 
 
 @mock_apigateway
+def test_create_request_validator():
+    ID = "id"
+    NAME = "name"
+    VALIDATE_REQUEST_BODY = "validateRequestBody"
+    VALIDATE_REQUEST_PARAMETERS = "validateRequestParameters"
+    PARAM_NAME = "my-validator"
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response[ID]
+    response = client.create_request_validator(
+        restApiId=api_id,
+        name=PARAM_NAME,
+        validateRequestBody=True,
+        validateRequestParameters=True,
+    )
+
+    response.pop("ResponseMetadata")
+    response.pop("id")
+    response.should.equal(
+        {
+            NAME: PARAM_NAME,
+            VALIDATE_REQUEST_BODY: True,
+            VALIDATE_REQUEST_PARAMETERS: True,
+        }
+    )
+
+
+@mock_apigateway
+def test_get_delete_request_validators():
+    ID = "id"
+    NAME = "name"
+    VALIDATE_REQUEST_BODY = "validateRequestBody"
+    VALIDATE_REQUEST_PARAMETERS = "validateRequestParameters"
+    PARAM_NAME = "my-validator"
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response[ID]
+    response = client.create_request_validator(
+        restApiId=api_id,
+        name=PARAM_NAME,
+        validateRequestBody=True,
+        validateRequestParameters=True,
+    )
+
+    # test get single validator by
+    validator_id = response[ID]
+    response = client.get_request_validator(
+        restApiId=api_id, requestValidatorId=validator_id
+    )
+
+    response.pop("ResponseMetadata")
+
+    response.should.equal(
+        {
+            ID: validator_id,
+            NAME: PARAM_NAME,
+            VALIDATE_REQUEST_BODY: True,
+            VALIDATE_REQUEST_PARAMETERS: True,
+        }
+    )
+
+    # delete validator
+    response = client.delete_request_validator(
+        restApiId=api_id, requestValidatorId=validator_id
+    )
+
+    client.create_request_validator(
+        restApiId=api_id,
+        name=PARAM_NAME + "2",
+        validateRequestBody=True,
+        validateRequestParameters=True,
+    )
+
+    response = client.get_request_validators(restApiId=api_id, position="0", limit=123)
+    response.should.equal(
+        {
+            "items": [
+                {
+                    NAME: PARAM_NAME,
+                    VALIDATE_REQUEST_BODY: True,
+                    VALIDATE_REQUEST_PARAMETERS: True,
+                }
+            ]
+        }
+    )
+
+@mock_apigateway
+def test_update_request_validator():
+    ID = "id"
+    NAME = "name"
+    VALIDATE_REQUEST_BODY = "validateRequestBody"
+    VALIDATE_REQUEST_PARAMETERS = "validateRequestParameters"
+    PARAM_NAME = "my-validator"
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response[ID]
+    response = client.create_request_validator(
+        restApiId=api_id,
+        name=PARAM_NAME,
+        validateRequestBody=True,
+        validateRequestParameters=True,
+    )
+
+    validator_id = response[ID]
+
+    response = client.update_request_validator(
+        restApiId=api_id,
+        requestValidatorId=validator_id,
+        patchOperations=[
+            {"op": "replace", "path": "/name", "value": PARAM_NAME + PARAM_NAME},
+            {"op": "replace", "path": "/validateRequestBody", "value": "False"},
+            {"op": "replace", "path": "/validateRequestParameters", "value": "False"},
+        ],
+    )
+    response.pop("ResponseMetadata")
+    response.should.equal(
+        {
+            ID: validator_id,
+            NAME: PARAM_NAME + PARAM_NAME,
+            VALIDATE_REQUEST_BODY: False,
+            VALIDATE_REQUEST_PARAMETERS: False,
+        }
+    )
+
+@mock_apigateway
 def test_update_stage_configuration():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
