@@ -189,7 +189,7 @@ class SecretsManagerBackend(BaseBackend):
         epoch = datetime.datetime.utcfromtimestamp(0)
         return (dt - epoch).total_seconds()
 
-    def _client_request_token_validator(client_request_token):
+    def _client_request_token_validator(self, client_request_token):
         token_length = len(client_request_token)
         if token_length < 32 or token_length > 64:
             msg = "ClientRequestToken " "must be 32-64 characters long."
