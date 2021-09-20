@@ -72,6 +72,13 @@ def secret_arn(region, secret_id):
     )
 
 
+def client_request_token_validator(client_request_token):
+    token_length = len(client_request_token)
+    if token_length < 32 or token_length > 64:
+        msg = "ClientRequestToken " "must be 32-64 characters long."
+        raise InvalidParameterException(msg)
+
+
 def get_secret_name_from_arn(secret_id):
     # can fetch by both arn and by name
     # but we are storing via name

@@ -19,7 +19,7 @@ from .exceptions import (
     InvalidRequestException,
     ClientError,
 )
-from .utils import random_password, secret_arn, get_secret_name_from_arn
+from .utils import random_password, secret_arn, get_secret_name_from_arn, client_request_token_validator
 from .list_secrets.filters import all, tag_key, tag_value, description, name
 
 
@@ -266,12 +266,6 @@ class SecretsManagerBackend(BaseBackend):
                 "You can't perform this operation on the secret because it was marked for deletion."
             )
 
-        if client_request_token:
-            token_length = len(client_request_token)
-            if token_length < 32 or token_length > 64:
-                msg = "ClientRequestToken " "must be 32-64 characters long."
-                raise InvalidParameterException(msg)
-
         secret = self.secrets[secret_id]
         tags = secret.tags
         description = secret.description
@@ -330,7 +324,9 @@ class SecretsManagerBackend(BaseBackend):
         if version_stages is None:
             version_stages = ["AWSCURRENT"]
 
-        if not version_id:
+        if version_id:
+            utils.client_request_token_validator(version_id)
+        else:
             version_id = str(uuid.uuid4())
 
         secret_version = {
@@ -424,12 +420,6 @@ class SecretsManagerBackend(BaseBackend):
                 perform the operation on a secret that's currently marked deleted."
             )
 
-        if client_request_token:
-            token_length = len(client_request_token)
-            if token_length < 32 or token_length > 64:
-                msg = "ClientRequestToken " "must be 32-64 characters long."
-                raise InvalidParameterException(msg)
-
         if rotation_lambda_arn:
             if len(rotation_lambda_arn) > 2048:
                 msg = "RotationLambdaARN " "must <= 2048 characters long."
@@ -471,7 +461,12 @@ class SecretsManagerBackend(BaseBackend):
             pass
 
         old_secret_version = secret.versions[secret.default_version_id]
-        new_version_id = client_request_token or str(uuid.uuid4())
+
+        if client_request_token:
+            utils.client_request_token_validator(client_request_token)
+            new_version_id = client_request_token
+        else:
+            new_version_id = str(uuid.uuid4())
 
         # We add the new secret version as "pending". The previous version remains
         # as "current" for now. Once we've passed the new secret through the lambda
