@@ -19,7 +19,7 @@ from .exceptions import (
     InvalidRequestException,
     ClientError,
 )
-from .utils import random_password, secret_arn, get_secret_name_from_arn, client_request_token_validator
+from .utils import random_password, secret_arn, get_secret_name_from_arn
 from .list_secrets.filters import all, tag_key, tag_value, description, name
 
 
@@ -189,6 +189,12 @@ class SecretsManagerBackend(BaseBackend):
         epoch = datetime.datetime.utcfromtimestamp(0)
         return (dt - epoch).total_seconds()
 
+    def _client_request_token_validator(client_request_token):
+        token_length = len(client_request_token)
+        if token_length < 32 or token_length > 64:
+            msg = "ClientRequestToken " "must be 32-64 characters long."
+            raise InvalidParameterException(msg)
+
     def get_secret_value(self, secret_id, version_id, version_stage):
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
@@ -325,7 +331,7 @@ class SecretsManagerBackend(BaseBackend):
             version_stages = ["AWSCURRENT"]
 
         if version_id:
-            utils.client_request_token_validator(version_id)
+            self._client_request_token_validator(version_id)
         else:
             version_id = str(uuid.uuid4())
 
@@ -463,7 +469,7 @@ class SecretsManagerBackend(BaseBackend):
         old_secret_version = secret.versions[secret.default_version_id]
 
         if client_request_token:
-            utils.client_request_token_validator(client_request_token)
+            self._client_request_token_validator(client_request_token)
             new_version_id = client_request_token
         else:
             new_version_id = str(uuid.uuid4())
