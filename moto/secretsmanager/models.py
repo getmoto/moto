@@ -251,6 +251,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_id,
         secret_string=None,
         secret_binary=None,
+        client_request_token=None,
         kms_key_id=None,
         **kwargs
     ):
@@ -265,6 +266,12 @@ class SecretsManagerBackend(BaseBackend):
                 "You can't perform this operation on the secret because it was marked for deletion."
             )
 
+        if client_request_token:
+            token_length = len(client_request_token)
+            if token_length < 32 or token_length > 64:
+                msg = "ClientRequestToken " "must be 32-64 characters long."
+                raise InvalidParameterException(msg)
+
         secret = self.secrets[secret_id]
         tags = secret.tags
         description = secret.description
@@ -274,6 +281,7 @@ class SecretsManagerBackend(BaseBackend):
             secret_string=secret_string,
             secret_binary=secret_binary,
             description=description,
+            version_id=client_request_token,
             tags=tags,
             kms_key_id=kms_key_id,
         )
