@@ -118,6 +118,7 @@ def test_describe_task_definition():
 
     resp = batch_client.describe_job_definitions(jobDefinitions=["sleep10", "test1"])
     len(resp["jobDefinitions"]).should.equal(3)
+    resp["jobDefinitions"][0]["tags"].should.equal({})
 
     resp = batch_client.describe_job_definitions(jobDefinitionName="tagged_def")
     resp["jobDefinitions"][0]["tags"].should.equal(
