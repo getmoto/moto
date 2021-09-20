@@ -188,7 +188,7 @@ class JobDefinition(CloudFormationModel):
         _type,
         container_properties,
         region_name,
-        tags,
+        tags={},
         revision=0,
         retry_strategy=0,
     ):
@@ -1241,6 +1241,8 @@ class BatchBackend(BaseBackend):
             except Exception:
                 raise ClientException("retryStrategy is malformed")
         if job_def is None:
+            if not tags:
+                tags = {}
             job_def = JobDefinition(
                 def_name,
                 parameters,
@@ -1295,6 +1297,8 @@ class BatchBackend(BaseBackend):
         # Got all the job defs were after, filter then by status
         if status is not None:
             return [job for job in jobs if job.status == status]
+        for job in jobs:
+            job.describe()
         return jobs
 
     def submit_job(
