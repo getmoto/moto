@@ -67,7 +67,7 @@ def test_elastic_network_interfaces_boto3():
 
     with pytest.raises(ClientError) as ex:
         ec2.create_network_interface(SubnetId=subnet.id, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
@@ -84,7 +84,7 @@ def test_elastic_network_interfaces_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.delete_network_interface(NetworkInterfaceId=eni_id, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
@@ -283,7 +283,7 @@ def test_elastic_network_interfaces_modify_attribute_boto3():
             NetworkInterfaceId=eni_id, Groups=[sec_group2.id], DryRun=True
         )
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )

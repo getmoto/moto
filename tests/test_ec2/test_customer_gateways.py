@@ -79,7 +79,8 @@ def test_delete_customer_gateways_boto3():
 
     ec2.delete_customer_gateway(CustomerGatewayId=customer_gateway["CustomerGatewayId"])
     cgws = ec2.describe_customer_gateways()["CustomerGateways"]
-    cgws.should.have.length_of(0)
+    cgws.should.have.length_of(1)
+    cgws[0].should.have.key("State").equal("deleted")
 
 
 # Has boto3 equivalent

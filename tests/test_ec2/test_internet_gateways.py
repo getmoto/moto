@@ -54,7 +54,7 @@ def test_igw_create_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.create_internet_gateway(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateInternetGateway operation: Request would have succeeded, but DryRun flag is set"
@@ -101,7 +101,7 @@ def test_igw_attach_boto3():
 
     with pytest.raises(ClientError) as ex:
         vpc.attach_internet_gateway(InternetGatewayId=igw.id, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the AttachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
@@ -210,7 +210,7 @@ def test_igw_detach_boto3():
             InternetGatewayId=igw.id, VpcId=vpc.id, DryRun=True
         )
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DetachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -352,7 +352,7 @@ def test_igw_delete_boto3():
     with pytest.raises(ClientError) as ex:
         client.delete_internet_gateway(InternetGatewayId=igw.id, DryRun=True)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteInternetGateway operation: Request would have succeeded, but DryRun flag is set"
     )

@@ -69,7 +69,7 @@ def test_create_and_delete_volume_boto3():
 
     with pytest.raises(ClientError) as ex:
         volume.delete(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set"
@@ -187,7 +187,7 @@ def test_create_encrypted_volume_dryrun_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_volume(Size=80, AvailabilityZone="us-east-1a", DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
@@ -517,7 +517,7 @@ def test_volume_attach_and_detach_boto3():
         volume.attach_to_instance(
             InstanceId=instance["InstanceId"], Device="/dev/sdh", DryRun=True
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set"
@@ -531,7 +531,7 @@ def test_volume_attach_and_detach_boto3():
 
     with pytest.raises(ClientError) as ex:
         volume.detach_from_instance(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set"
@@ -610,7 +610,7 @@ def test_create_snapshot_boto3():
 
     with pytest.raises(ClientError) as ex:
         volume.create_snapshot(Description="a dryrun snapshot", DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
@@ -1255,7 +1255,7 @@ def test_modify_attribute_blockDeviceMapping_boto3():
             ],
             DryRun=True,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
@@ -1306,7 +1306,7 @@ def test_volume_tag_escaping_boto3():
 
     with pytest.raises(ClientError) as ex:
         snapshot.create_tags(Tags=[{"Key": "key", "Value": "</closed>"}], DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"

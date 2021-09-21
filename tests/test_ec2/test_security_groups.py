@@ -61,7 +61,7 @@ def test_create_and_describe_security_group_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.create_security_group(GroupName="test", Description="test", DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
@@ -83,7 +83,7 @@ def test_create_and_describe_security_group_boto3():
 
     all_groups = client.describe_security_groups()["SecurityGroups"]
     # The default group gets created automatically
-    all_groups.should.have.length_of(3)
+    all_groups.should.have.length_of(2)
     group_names = [group["GroupName"] for group in all_groups]
     set(group_names).should.equal(set(["default", "test security group"]))
 
@@ -124,7 +124,7 @@ def test_default_security_group():
 def test_default_security_group_boto3():
     client = boto3.client("ec2", "us-west-1")
     groups = client.describe_security_groups()["SecurityGroups"]
-    groups.should.have.length_of(2)
+    groups.should.have.length_of(1)
     groups[0]["GroupName"].should.equal("default")
 
 
@@ -188,7 +188,7 @@ def test_create_and_describe_vpc_security_group_boto3():
     ec2.create_security_group(GroupName=name, Description="non-vpc-group")
 
     all_groups = client.describe_security_groups()["SecurityGroups"]
-    all_groups.should.have.length_of(4)  # 2 default, 1 vpc, 1 no-vpc
+    all_groups.should.have.length_of(3)  # 1 default, 1 vpc, 1 no-vpc
 
     all_groups = client.describe_security_groups(
         Filters=[{"Name": "vpc_id", "Values": [vpc_id]}]
@@ -235,7 +235,7 @@ def test_create_two_security_groups_with_same_name_in_different_vpc_boto3():
 
     all_groups = client.describe_security_groups()["SecurityGroups"]
 
-    all_groups.should.have.length_of(4)
+    all_groups.should.have.length_of(3)
     group_names = [group["GroupName"] for group in all_groups]
     # The default group is created automatically
     set(group_names).should.equal(set(["default", name]))
@@ -294,7 +294,7 @@ def test_deleting_security_groups_boto3():
     security_group1 = ec2.create_security_group(GroupName="test1", Description="test1")
     ec2.create_security_group(GroupName="test2", Description="test2")
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(4)
+    client.describe_security_groups()["SecurityGroups"].should.have.length_of(3)
 
     # Deleting a group that doesn't exist should throw an error
     with pytest.raises(ClientError) as ex:
@@ -306,18 +306,18 @@ def test_deleting_security_groups_boto3():
     # Delete by name
     with pytest.raises(ClientError) as ex:
         client.delete_security_group(GroupName="test2", DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.delete_security_group(GroupName="test2")
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(3)
+    client.describe_security_groups()["SecurityGroups"].should.have.length_of(2)
 
     # Delete by group id
     client.delete_security_group(GroupId=security_group1.id)
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(2)
+    client.describe_security_groups()["SecurityGroups"].should.have.length_of(1)
 
 
 # Has boto3 equivalent
@@ -336,18 +336,18 @@ def test_delete_security_group_in_vpc_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(2)
+    client.describe_security_groups()["SecurityGroups"].should.have.length_of(1)
 
     group = ec2.create_security_group(
         GroupName="test1", Description="test1", VpcId="vpc-12345"
     )
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(3)
+    client.describe_security_groups()["SecurityGroups"].should.have.length_of(2)
 
     # this should not throw an exception
     client.delete_security_group(GroupId=group.id)
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(2)
+    client.describe_security_groups()["SecurityGroups"].should.have.length_of(1)
 
 
 # Has boto3 equivalent
@@ -502,7 +502,7 @@ def test_authorize_ip_range_and_revoke_boto3():
             CidrIp="123.123.123.123/32",
             DryRun=True,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the GrantSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
@@ -538,7 +538,7 @@ def test_authorize_ip_range_and_revoke_boto3():
     # Actually revoke
     with pytest.raises(ClientError) as ex:
         security_group.revoke_ingress(IpPermissions=ingress_permissions, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
@@ -565,7 +565,7 @@ def test_authorize_ip_range_and_revoke_boto3():
         egress_security_group.authorize_egress(
             IpPermissions=egress_permissions, DryRun=True
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the GrantSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
@@ -573,17 +573,10 @@ def test_authorize_ip_range_and_revoke_boto3():
 
     egress_security_group.authorize_egress(IpPermissions=egress_permissions)
 
-    # There are two egress rules associated with the security group:
-    # the default outbound rule and the new one
-    egress_security_group.ip_permissions_egress[0]["IpProtocol"].should.equal("-1")
+    egress_security_group.ip_permissions_egress[0]["FromPort"].should.equal(22)
+    egress_security_group.ip_permissions_egress[0]["IpProtocol"].should.equal("tcp")
+    egress_security_group.ip_permissions_egress[0]["ToPort"].should.equal(2222)
     egress_security_group.ip_permissions_egress[0]["IpRanges"].should.equal(
-        [{"CidrIp": "0.0.0.0/0"}]
-    )
-    # and the new one
-    egress_security_group.ip_permissions_egress[1]["FromPort"].should.equal(22)
-    egress_security_group.ip_permissions_egress[1]["IpProtocol"].should.equal("tcp")
-    egress_security_group.ip_permissions_egress[1]["ToPort"].should.equal(2222)
-    egress_security_group.ip_permissions_egress[1]["IpRanges"].should.equal(
         [{"CidrIp": "123.123.123.123/32"}]
     )
 
@@ -601,7 +594,7 @@ def test_authorize_ip_range_and_revoke_boto3():
         egress_security_group.revoke_egress(
             IpPermissions=egress_permissions, DryRun=True,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
@@ -701,7 +694,7 @@ def test_authorize_other_group_and_revoke_boto3():
         security_group.revoke_ingress(IpPermissions=wrong_permissions)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidPermission.NotFound")
+    ex.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
 
     # Actually revoke
     security_group.revoke_ingress(IpPermissions=permissions)
@@ -908,7 +901,7 @@ def test_describe_security_groups():
     resp[0].should.have.key("GroupId").equal(sg1.id)
 
     resp = client.describe_security_groups()["SecurityGroups"]
-    resp.should.have.length_of(4)
+    resp.should.have.length_of(3)
 
 
 # Has boto3 equivalent
@@ -1105,6 +1098,7 @@ def test_sec_group_rule_limit_boto3(use_vpc):
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
+    limit = 60
     if use_vpc:
         vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
         sg = ec2.create_security_group(
@@ -1113,13 +1107,11 @@ def test_sec_group_rule_limit_boto3(use_vpc):
         other_sg = ec2.create_security_group(
             GroupName="test_2", Description="test_other", VpcId=vpc.id
         )
-        limit = 50
     else:
         sg = ec2.create_security_group(GroupName="test", Description="test")
         other_sg = ec2.create_security_group(
             GroupName="test_2", Description="test_other"
         )
-        limit = 100
 
     # INGRESS
     with pytest.raises(ClientError) as ex:

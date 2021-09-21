@@ -134,7 +134,7 @@ def test_key_pairs_create_dryrun_boto3():
     with pytest.raises(ClientError) as ex:
         ec2.create_key_pair(KeyName="foo", DryRun=True)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -233,7 +233,7 @@ def test_key_pairs_delete_exist_boto3():
     with pytest.raises(ClientError) as ex:
         client.delete_key_pair(KeyName="foo", DryRun=True)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
@@ -279,7 +279,7 @@ def test_key_pairs_import_boto3():
             KeyName="foo", PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH, DryRun=True
         )
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )

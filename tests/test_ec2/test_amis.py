@@ -110,7 +110,7 @@ def test_ami_create_and_delete_boto3():
         ec2.create_image(
             InstanceId=instance["InstanceId"], Name="test-ami", DryRun=True
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     err = ex.value.response["Error"]
     err["Code"].should.equal("DryRunOperation")
     err["Message"].should.equal(
@@ -167,7 +167,7 @@ def test_ami_create_and_delete_boto3():
     # Deregister
     with pytest.raises(ClientError) as ex:
         ec2.deregister_image(ImageId=image_id, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     err = ex.value.response["Error"]
     err["Code"].should.equal("DryRunOperation")
     err["Message"].should.equal(
@@ -295,7 +295,7 @@ def test_ami_copy_boto3():
             Description="this is a test copy ami",
             DryRun=True,
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     err = ex.value.response["Error"]
     err["Code"].should.equal("DryRunOperation")
     err["Message"].should.equal(
@@ -422,7 +422,7 @@ def test_ami_tagging_boto3():
 
     with pytest.raises(ClientError) as ex:
         image.create_tags(Tags=[{"Key": "a key", "Value": "some value"}], DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     err = ex.value.response["Error"]
     err["Code"].should.equal("DryRunOperation")
     err["Message"].should.equal(
@@ -620,7 +620,7 @@ def test_ami_filters_boto3():
         Filters=[{"Name": "architecture", "Values": ["x86_64"]}]
     )["Images"]
     [ami["ImageId"] for ami in amis_by_architecture].should.contain(imageB_id)
-    amis_by_architecture.should.have.length_of(36)
+    amis_by_architecture.should.have.length_of(40)
 
     amis_by_kernel = ec2.describe_images(
         Filters=[{"Name": "kernel-id", "Values": ["k-abcd1234"]}]
@@ -637,7 +637,7 @@ def test_ami_filters_boto3():
         Filters=[{"Name": "platform", "Values": ["windows"]}]
     )["Images"]
     [ami["ImageId"] for ami in amis_by_platform].should.contain(imageA_id)
-    amis_by_platform.should.have.length_of(24)
+    amis_by_platform.should.have.length_of(25)
 
     amis_by_id = ec2.describe_images(
         Filters=[{"Name": "image-id", "Values": [imageA_id]}]
@@ -650,7 +650,7 @@ def test_ami_filters_boto3():
     ami_ids_by_state = [ami["ImageId"] for ami in amis_by_state]
     ami_ids_by_state.should.contain(imageA_id)
     ami_ids_by_state.should.contain(imageB.id)
-    amis_by_state.should.have.length_of(36)
+    amis_by_state.should.have.length_of(40)
 
     amis_by_name = ec2.describe_images(
         Filters=[{"Name": "name", "Values": [imageA.name]}]
@@ -660,7 +660,7 @@ def test_ami_filters_boto3():
     amis_by_public = ec2.describe_images(
         Filters=[{"Name": "is-public", "Values": ["true"]}]
     )["Images"]
-    amis_by_public.should.have.length_of(34)
+    amis_by_public.should.have.length_of(38)
 
     amis_by_nonpublic = ec2.describe_images(
         Filters=[{"Name": "is-public", "Values": ["false"]}]
@@ -868,7 +868,7 @@ def test_ami_attribute_group_permissions_boto3():
     # Add 'all' group and confirm
     with pytest.raises(ClientError) as ex:
         image.modify_attribute(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyImageAttribute operation: Request would have succeeded, but DryRun flag is set"
