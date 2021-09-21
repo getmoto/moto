@@ -566,7 +566,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         super(Instance, self).__init__()
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
-        self.lifecycle = kwargs.get("lifecycle", "")
+        self.lifecycle = kwargs.get("lifecycle")
         self.image_id = image_id
         self._state = InstanceState("running", 16)
         self._reason = ""

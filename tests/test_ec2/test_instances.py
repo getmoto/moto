@@ -1786,3 +1786,23 @@ def test_instance_termination_protection():
     instances.should.have.length_of(1)
     instance = instances[0]
     instance["State"]["Name"].should.equal("terminated")
+
+
+@mock_ec2
+def test_instance_lifecycle():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    result = ec2_resource.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {
+                "DeviceName": "/dev/sda1",
+                "Ebs": {"VolumeSize": 50, "DeleteOnTermination": True},
+            }
+        ],
+    )
+    instance = result[0]
+
+    assert instance.instance_lifecycle is None
