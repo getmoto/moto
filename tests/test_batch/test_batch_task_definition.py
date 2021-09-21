@@ -27,6 +27,25 @@ def test_register_task_definition():
 @mock_ecs
 @mock_iam
 @mock_batch
+def test_register_task_definition_with_tags():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    _setup(ec2_client, iam_client)
+
+    resp = register_job_def_with_tags(batch_client)
+
+    resp.should.contain("jobDefinitionArn")
+    resp.should.contain("jobDefinitionName")
+    resp.should.contain("revision")
+
+    assert resp["jobDefinitionArn"].endswith(
+        "{0}:{1}".format(resp["jobDefinitionName"], resp["revision"])
+    )
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
 def test_reregister_task_definition():
     # Reregistering task with the same name bumps the revision number
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
@@ -89,15 +108,22 @@ def test_describe_task_definition():
     register_job_def(batch_client, definition_name="sleep10")
     register_job_def(batch_client, definition_name="sleep10")
     register_job_def(batch_client, definition_name="test1")
+    register_job_def_with_tags(batch_client, definition_name="tagged_def")
 
     resp = batch_client.describe_job_definitions(jobDefinitionName="sleep10")
     len(resp["jobDefinitions"]).should.equal(2)
 
     resp = batch_client.describe_job_definitions()
-    len(resp["jobDefinitions"]).should.equal(3)
+    len(resp["jobDefinitions"]).should.equal(4)
 
     resp = batch_client.describe_job_definitions(jobDefinitions=["sleep10", "test1"])
     len(resp["jobDefinitions"]).should.equal(3)
+    resp["jobDefinitions"][0]["tags"].should.equal({})
+
+    resp = batch_client.describe_job_definitions(jobDefinitionName="tagged_def")
+    resp["jobDefinitions"][0]["tags"].should.equal(
+        {"foo": "123", "bar": "456",}
+    )
 
     for job_definition in resp["jobDefinitions"]:
         job_definition["status"].should.equal("ACTIVE")
@@ -113,4 +139,18 @@ def register_job_def(batch_client, definition_name="sleep10"):
             "memory": random.randint(4, 128),
             "command": ["sleep", "10"],
         },
+    )
+
+
+def register_job_def_with_tags(batch_client, definition_name="sleep10"):
+    return batch_client.register_job_definition(
+        jobDefinitionName=definition_name,
+        type="container",
+        containerProperties={
+            "image": "busybox",
+            "vcpus": 1,
+            "memory": random.randint(4, 128),
+            "command": ["sleep", "10"],
+        },
+        tags={"foo": "123", "bar": "456",},
     )
