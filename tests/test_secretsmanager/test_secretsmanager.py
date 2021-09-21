@@ -5,10 +5,11 @@ import boto3
 
 from moto import mock_secretsmanager, mock_lambda, settings
 from moto.core import ACCOUNT_ID
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 import string
 import pytz
 from datetime import datetime
+from uuid import uuid4
 import sure  # noqa
 import pytest
 
@@ -1184,3 +1185,33 @@ def test_secret_versions_to_stages_attribute_discrepancy():
     assert list_vtos[previous_version_id] == ["AWSPREVIOUS"]
 
     assert describe_vtos == list_vtos
+
+
+@mock_secretsmanager
+def test_update_secret_with_client_request_token():
+    client = boto3.client("secretsmanager", region_name="us-west-2")
+    secret_name = "test-secret"
+    client_request_token = str(uuid4())
+
+    client.create_secret(Name=secret_name, SecretString="first-secret")
+    updated_secret = client.update_secret(
+        SecretId=secret_name,
+        SecretString="second-secret",
+        ClientRequestToken=client_request_token,
+    )
+    assert client_request_token == updated_secret["VersionId"]
+    updated_secret = client.update_secret(
+        SecretId=secret_name, SecretString="third-secret",
+    )
+    assert client_request_token != updated_secret["VersionId"]
+    invalid_request_token = "test-token"
+    with pytest.raises(ParamValidationError) as pve:
+        client.update_secret(
+            SecretId=secret_name,
+            SecretString="fourth-secret",
+            ClientRequestToken=invalid_request_token,
+        )
+        pve.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+        pve.value.response["Error"]["Message"].should.equal(
+            "ClientRequestToken must be 32-64 characters long."
+        )
