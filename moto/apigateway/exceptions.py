@@ -192,8 +192,8 @@ class RestAPINotFound(NotFoundException):
         )
 
 
-class RequestValidatorNotFound(NotFoundException):
-    code = 404
+class RequestValidatorNotFound(BadRequestException):
+    code = 400
 
     def __init__(self):
         super(RequestValidatorNotFound, self).__init__(
