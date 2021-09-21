@@ -192,7 +192,7 @@ class SecretsManagerBackend(BaseBackend):
     def _client_request_token_validator(client_request_token):
         token_length = len(client_request_token)
         if token_length < 32 or token_length > 64:
-            msg = "ClientRequestToken " "must be 32-64 characters long."
+            msg = "ClientRequestToken must be 32-64 characters long."
             raise InvalidParameterException(msg)
 
     def get_secret_value(self, secret_id, version_id, version_stage):
