@@ -343,6 +343,9 @@ class Resource(CloudFormationModel):
             raise MethodNotFoundException()
         return method
 
+    def delete_method(self, method_type):
+        self.resource_methods.pop(method_type)
+
     def add_integration(
         self,
         method_type,
@@ -1117,6 +1120,10 @@ class APIGatewayBackend(BaseBackend):
         resource = self.get_resource(function_id, resource_id)
         method = resource.get_method(method_type)
         return method.apply_operations(patch_operations)
+
+    def delete_method(self, function_id, resource_id, method_type):
+        resource = self.get_resource(function_id, resource_id)
+        resource.delete_method(method_type)
 
     def get_authorizer(self, restapi_id, authorizer_id):
         api = self.get_rest_api(restapi_id)

@@ -180,8 +180,11 @@ class APIGatewayResponse(BaseResponse):
         method_type = url_path_parts[6]
 
         if self.method == "GET":
-            method = self.backend.get_method(function_id, resource_id, method_type)
-            return 200, {}, json.dumps(method)
+            try:
+                method = self.backend.get_method(function_id, resource_id, method_type)
+                return 200, {}, json.dumps(method)
+            except NotFoundException as nfe:
+                return self.error("NotFoundException", nfe.message)
         elif self.method == "PUT":
             authorization_type = self._get_param("authorizationType")
             api_key_required = self._get_param("apiKeyRequired")
