@@ -97,28 +97,6 @@ def test_describe_vpn_connections():
 
 
 @mock_ec2
-def test_describe_vpn_connections_boto3():
-    client = boto3.client("ec2", region_name="us-east-1")
-    cnx = client.describe_vpn_connections()["VpnConnections"]
-    cnx.should.have.length_of(0)
-
-    client.create_vpn_connection(
-        Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
-    )
-    cnx = client.describe_vpn_connections()["VpnConnections"]
-    cnx.should.have.length_of(1)
-
-    vpn_id = client.create_vpn_connection(
-        Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
-    )["VpnConnection"]["VpnConnectionId"]
-    cnx = client.describe_vpn_connections()["VpnConnections"]
-    cnx.should.have.length_of(2)
-
-    cnx = client.describe_vpn_connections(VpnConnectionIds=[vpn_id])["VpnConnections"]
-    cnx.should.have.length_of(1)
-
-
-@mock_ec2
 def test_create_vpn_connection_with_vpn_gateway():
     client = boto3.client("ec2", region_name="us-east-1")
 
