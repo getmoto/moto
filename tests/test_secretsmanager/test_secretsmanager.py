@@ -648,7 +648,7 @@ def test_rotate_secret_rotation_period_too_long():
 
 
 def get_rotation_zip_file():
-    from tests.test_awslambda.test_lambda import _process_lambda
+    from tests.test_awslambda.utilities import _process_lambda
 
     func_str = """
 import boto3
@@ -723,7 +723,7 @@ if settings.TEST_SERVER_MODE:
     @mock_lambda
     @mock_secretsmanager
     def test_rotate_secret_using_lambda():
-        from tests.test_awslambda.test_lambda import get_role_name
+        from tests.test_awslambda.utilities import get_role_name
 
         # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
         lambda_conn = boto3.client(
