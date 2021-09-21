@@ -1205,13 +1205,13 @@ def test_update_secret_with_client_request_token():
     )
     assert client_request_token != updated_secret["VersionId"]
     invalid_request_token = "test-token"
-    with pytest.raises(ParamValidationError) as ipe:
+    with pytest.raises(ParamValidationError) as pve:
         client.update_secret(
             SecretId=secret_name,
             SecretString="fourth-secret",
             ClientRequestToken=invalid_request_token,
         )
-        ipe.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-        ipe.value.response["Error"]["Message"].should.equal(
+        pve.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+        pve.value.response["Error"]["Message"].should.equal(
             "ClientRequestToken must be 32-64 characters long."
         )
