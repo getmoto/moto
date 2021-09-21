@@ -308,30 +308,25 @@ class APIGatewayResponse(BaseResponse):
         url_path_parts = self.path.split("/")
         restapi_id = url_path_parts[2]
 
-        try:
-            restApi = self.backend.get_rest_api(restapi_id)
-            if self.method == "GET":
-                validators = restApi.get_request_validators()
-                res = json.dumps(
-                    {"items": [validator.to_dict() for validator in validators]}
-                )
-                return 200, {}, res
-            if self.method == "POST":
-                name = self._get_param("name")
-                validateRequestBody = self._get_bool_param("validateRequestBody")
-                validateRequestParameters = self._get_bool_param(
-                    "validateRequestParameters"
-                )
-                validator = restApi.create_request_validator(
-                    name=name,
-                    validateRequestBody=validateRequestBody,
-                    validateRequestParameters=validateRequestParameters,
-                )
-                return 200, {}, json.dumps(validator)
-        except BadRequestException as e:
-            return self.error("BadRequestException", e.message)
-        except NotFoundException as e:
-            return self.error("NotFoundException", e.message)
+        restApi = self.backend.get_rest_api(restapi_id)
+        if self.method == "GET":
+            validators = restApi.get_request_validators()
+            res = json.dumps(
+                {"item": [validator.to_dict() for validator in validators]}
+            )
+            return 200, {}, res
+        if self.method == "POST":
+            name = self._get_param("name")
+            validateRequestBody = self._get_bool_param("validateRequestBody")
+            validateRequestParameters = self._get_bool_param(
+                "validateRequestParameters"
+            )
+            validator = restApi.create_request_validator(
+                name=name,
+                validateRequestBody=validateRequestBody,
+                validateRequestParameters=validateRequestParameters,
+            )
+            return 200, {}, json.dumps(validator)
 
     def request_validator_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -339,17 +334,15 @@ class APIGatewayResponse(BaseResponse):
         restapi_id = url_path_parts[2]
         validator_id = url_path_parts[4]
         restApi = self.backend.get_rest_api(restapi_id)
-        validators = restApi.get_request_validators()
-        index = [x["id"] for x in validators].index(validator_id)
         if self.method == "GET":
-            return 200, {}, json.dumps(validators[index])
+            return 200, {}, json.dumps(restApi.get_request_validator(validator_id))
         if self.method == "DELETE":
-            del validators[index]
+            restApi.delete_request_validator(validator_id)
             return 202, {}, ""
         if self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
-            validators[index].apply_patch_operations(patch_operations)
-            return 200, {}, json.dumps(validators[index])
+            validator = restApi.update_request_validator(validator_id, patch_operations)
+            return 200, {}, json.dumps(validator)
 
     def authorizers(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

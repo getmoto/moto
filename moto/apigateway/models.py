@@ -41,6 +41,7 @@ from .exceptions import (
     InvalidRestApiId,
     InvalidModelName,
     RestAPINotFound,
+    RequestValidatorNotFound,
     ModelNotFound,
     ApiKeyValueMinLength,
 )
@@ -751,7 +752,7 @@ class RestAPI(CloudFormationModel):
         self.stages = {}
         self.resources = {}
         self.models = {}
-        self.request_validators = []
+        self.request_validators = {}
         self.add_child("/")  # Add default child
 
     def __repr__(self):
@@ -1002,11 +1003,25 @@ class RestAPI(CloudFormationModel):
             validateRequestBody=validateRequestBody,
             validateRequestParameters=validateRequestParameters,
         )
-        self.request_validators.append(request_validator)
+        self.request_validators[validator_id] = request_validator
         return request_validator
 
     def get_request_validators(self):
-        return self.request_validators
+        return list(self.request_validators.values())
+
+    def get_request_validator(self, validator_id):
+        reqeust_validator = self.request_validators.get(validator_id)
+        if reqeust_validator is None:
+            raise RequestValidatorNotFound()
+        return reqeust_validator
+
+    def delete_request_validator(self, validator_id):
+        reqeust_validator = self.request_validators.pop(validator_id)
+        return reqeust_validator
+
+    def update_request_validator(self, validator_id, patch_operations):
+        self.request_validators[validator_id].apply_patch_operations(patch_operations)
+        return self.request_validators[validator_id]
 
 
 class DomainName(BaseModel, dict):
