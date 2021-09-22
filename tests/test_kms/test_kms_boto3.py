@@ -9,12 +9,14 @@ import os
 
 import boto3
 import botocore.exceptions
+from botocore.exceptions import ClientError
 import sure  # noqa
 from freezegun import freeze_time
 import pytest
 
 from moto import mock_kms
 from moto.core import ACCOUNT_ID
+
 
 PLAINTEXT_VECTORS = [
     b"some encodeable plaintext",
@@ -50,6 +52,7 @@ def test_create_key():
         KeyUsage="ENCRYPT_DECRYPT",
         Tags=[{"TagKey": "project", "TagValue": "moto"}],
     )
+    print(key["KeyMetadata"])
 
     key["KeyMetadata"]["Arn"].should.equal(
         "arn:aws:kms:us-east-1:{}:key/{}".format(
@@ -112,11 +115,12 @@ def test_create_key():
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_512"])
 
 
+@pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
 @mock_kms
-def test_describe_key():
+def test_describe_key(id_or_arn):
     client = boto3.client("kms", region_name="us-east-1")
     response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT",)
-    key_id = response["KeyMetadata"]["KeyId"]
+    key_id = response["KeyMetadata"][id_or_arn]
 
     response = client.describe_key(KeyId=key_id)
 
@@ -161,6 +165,51 @@ def test_get_key_policy_default():
     )
 
 
+@mock_kms
+def test_describe_key_via_alias():
+    client = boto3.client("kms", region_name="us-east-1")
+    response = client.create_key(Description="my key")
+    key_id = response["KeyMetadata"]["KeyId"]
+
+    client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
+
+    alias_key = client.describe_key(KeyId="alias/my-alias")
+    alias_key["KeyMetadata"]["Description"].should.equal("my key")
+
+
+@mock_kms
+def test__create_alias__can_create_multiple_aliases_for_same_key_id():
+    client = boto3.client("kms", region_name="us-east-1")
+    response = client.create_key(Description="my key")
+    key_id = response["KeyMetadata"]["KeyId"]
+
+    alias_names = ["alias/al1", "alias/al2", "alias/al3"]
+    for name in alias_names:
+        client.create_alias(AliasName=name, TargetKeyId=key_id)
+
+    aliases = client.list_aliases(KeyId=key_id)["Aliases"]
+
+    for name in alias_names:
+        alias_arn = "arn:aws:kms:us-east-1:{}:{}".format(ACCOUNT_ID, name)
+        aliases.should.contain(
+            {"AliasName": name, "AliasArn": alias_arn, "TargetKeyId": key_id}
+        )
+
+
+@mock_kms
+def test_list_aliases():
+    client = boto3.client("kms", region_name="us-east-1")
+    client.create_key(Description="my key")
+
+    aliases = client.list_aliases()["Aliases"]
+    aliases.should.have.length_of(4)
+    default_alias_names = ["aws/ebs", "aws/s3", "aws/redshift", "aws/rds"]
+    for name in default_alias_names:
+        full_name = "alias/{}".format(name)
+        arn = "arn:aws:kms:us-east-1:{}:{}".format(ACCOUNT_ID, full_name)
+        aliases.should.contain({"AliasName": full_name, "AliasArn": arn})
+
+
 @pytest.mark.parametrize(
     "key_id",
     [
@@ -176,6 +225,54 @@ def test_describe_key_via_alias_invalid_alias(key_id):
 
     with pytest.raises(client.exceptions.NotFoundException):
         client.describe_key(KeyId=key_id)
+
+
+@mock_kms
+def test_list_keys():
+    client = boto3.client("kms", region_name="us-east-1")
+    k1 = client.create_key(Description="key1")["KeyMetadata"]
+    k2 = client.create_key(Description="key2")["KeyMetadata"]
+
+    keys = client.list_keys()["Keys"]
+    keys.should.have.length_of(2)
+    keys.should.contain({"KeyId": k1["KeyId"], "KeyArn": k1["Arn"]})
+    keys.should.contain({"KeyId": k2["KeyId"], "KeyArn": k2["Arn"]})
+
+
+@pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
+@mock_kms
+def test_enable_key_rotation(id_or_arn):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1")["KeyMetadata"]
+    key_id = key[id_or_arn]
+
+    client.get_key_rotation_status(KeyId=key_id)["KeyRotationEnabled"].should.equal(
+        False
+    )
+
+    client.enable_key_rotation(KeyId=key_id)
+    client.get_key_rotation_status(KeyId=key_id)["KeyRotationEnabled"].should.equal(
+        True
+    )
+
+    client.disable_key_rotation(KeyId=key_id)
+    client.get_key_rotation_status(KeyId=key_id)["KeyRotationEnabled"].should.equal(
+        False
+    )
+
+
+@mock_kms
+def test_enable_key_rotation_with_alias_name_should_fail():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="my key")["KeyMetadata"]
+    key_id = key["KeyId"]
+
+    client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
+    with pytest.raises(ClientError) as ex:
+        client.enable_key_rotation(KeyId="alias/my-alias")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid keyId alias/my-alias")
 
 
 @mock_kms
@@ -410,6 +507,50 @@ def test_list_resource_tags_with_arn():
     response = client.list_resource_tags(KeyId=keyid)
     assert response["Tags"][0]["TagKey"] == "string"
     assert response["Tags"][0]["TagValue"] == "string"
+
+
+@mock_kms
+def test_unknown_tag_methods():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.tag_resource(KeyId="unknown", Tags=[])
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Invalid keyId unknown")
+    err["Code"].should.equal("NotFoundException")
+
+    with pytest.raises(ClientError) as ex:
+        client.untag_resource(KeyId="unknown", TagKeys=[])
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Invalid keyId unknown")
+    err["Code"].should.equal("NotFoundException")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_resource_tags(KeyId="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Invalid keyId unknown")
+    err["Code"].should.equal("NotFoundException")
+
+
+@mock_kms
+def test_list_resource_tags_after_untagging():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="cancel-key-deletion")
+    response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
+
+    keyid = response["KeyId"]
+    client.tag_resource(
+        KeyId=keyid,
+        Tags=[
+            {"TagKey": "key1", "TagValue": "s1"},
+            {"TagKey": "key2", "TagValue": "s2"},
+        ],
+    )
+
+    client.untag_resource(KeyId=keyid, TagKeys=["key2"])
+
+    tags = client.list_resource_tags(KeyId=keyid)["Tags"]
+    tags.should.equal([{"TagKey": "key1", "TagValue": "s1"}])
 
 
 @pytest.mark.parametrize(
@@ -685,3 +826,209 @@ def test_put_key_policy_key_not_found():
             PolicyName="default",
             Policy="new policy",
         )
+
+
+@pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
+@mock_kms
+def test_get_key_policy(id_or_arn):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="my awesome key policy")
+    key_id = key["KeyMetadata"][id_or_arn]
+
+    # Straight from the docs:
+    #   PolicyName: Specifies the name of the key policy. The only valid name is default .
+    # But.. why.
+    response = client.get_key_policy(KeyId=key_id, PolicyName="default")
+    response["Policy"].should.equal("my awesome key policy")
+
+
+@pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
+@mock_kms
+def test_put_key_policy(id_or_arn):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"][id_or_arn]
+
+    r = client.put_key_policy(KeyId=key_id, PolicyName="default", Policy="policy 2.0")
+
+    response = client.get_key_policy(KeyId=key_id, PolicyName="default")
+    response["Policy"].should.equal("policy 2.0")
+
+
+@mock_kms
+def test_put_key_policy_using_alias_shouldnt_work():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+    client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
+
+    with pytest.raises(ClientError) as ex:
+        client.put_key_policy(
+            KeyId="alias/my-alias", PolicyName="default", Policy="policy 2.0"
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid keyId alias/my-alias")
+
+    response = client.get_key_policy(KeyId=key_id, PolicyName="default")
+    response["Policy"].should.equal("initial policy")
+
+
+@mock_kms
+def test_list_key_policies():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    policies = client.list_key_policies(KeyId=key_id)
+    policies["PolicyNames"].should.equal(["default"])
+
+
+@pytest.mark.parametrize(
+    "reserved_alias",
+    ["alias/aws/ebs", "alias/aws/s3", "alias/aws/redshift", "alias/aws/rds",],
+)
+@mock_kms
+def test__create_alias__raises_if_reserved_alias(reserved_alias):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_alias(AliasName=reserved_alias, TargetKeyId=key_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("")
+
+
+@pytest.mark.parametrize(
+    "name", ["alias/my-alias!", "alias/my-alias$", "alias/my-alias@",]
+)
+@mock_kms
+def test__create_alias__raises_if_alias_has_restricted_characters(name):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_alias(AliasName=name, TargetKeyId=key_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value '{}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$".format(
+            name
+        )
+    )
+
+
+@mock_kms
+def test__create_alias__raises_if_alias_has_restricted_characters_semicolon():
+    # Similar test as above, but with different error msg
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_alias(AliasName="alias/my:alias", TargetKeyId=key_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "alias/my:alias contains invalid characters for an alias"
+    )
+
+
+@pytest.mark.parametrize("name", ["alias/my-alias_/", "alias/my_alias-/"])
+@mock_kms
+def test__create_alias__accepted_characters(name):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    client.create_alias(AliasName=name, TargetKeyId=key_id)
+
+
+@mock_kms
+def test__create_alias__raises_if_target_key_id_is_existing_alias():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+    name = "alias/my-alias"
+
+    client.create_alias(AliasName=name, TargetKeyId=key_id)
+
+    with pytest.raises(ClientError) as ex:
+        client.create_alias(AliasName=name, TargetKeyId=name)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Aliases must refer to keys. Not aliases")
+
+
+@mock_kms
+def test__create_alias__raises_if_wrong_prefix():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_alias(AliasName="wrongprefix/my-alias", TargetKeyId=key_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Invalid identifier")
+
+
+@mock_kms
+def test__create_alias__raises_if_duplicate():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="key1", Policy="initial policy")
+    key_id = key["KeyMetadata"]["KeyId"]
+    alias = "alias/my-alias"
+
+    client.create_alias(AliasName=alias, TargetKeyId=key_id)
+
+    with pytest.raises(ClientError) as ex:
+        client.create_alias(AliasName=alias, TargetKeyId=key_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("AlreadyExistsException")
+    err["Message"].should.equal(
+        f"An alias with the name arn:aws:kms:us-east-1:{ACCOUNT_ID}:alias/my-alias already exists"
+    )
+
+
+@mock_kms
+def test__delete_alias():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key = client.create_key(Description="key1", Policy="initial policy")
+    client.create_alias(AliasName="alias/a1", TargetKeyId=key["KeyMetadata"]["KeyId"])
+
+    key = client.create_key(Description="key2", Policy="initial policy")
+    client.create_alias(AliasName="alias/a2", TargetKeyId=key["KeyMetadata"]["KeyId"])
+
+    client.delete_alias(AliasName="alias/a1")
+
+    # we can create the alias again, since it has been deleted
+    client.create_alias(AliasName="alias/a1", TargetKeyId=key["KeyMetadata"]["KeyId"])
+
+
+@mock_kms
+def test__delete_alias__raises_if_wrong_prefix():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_alias(AliasName="wrongprefix/my-alias")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Invalid identifier")
+
+
+@mock_kms
+def test__delete_alias__raises_if_alias_is_not_found():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_alias(AliasName="alias/unknown-alias")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal(
+        f"Alias arn:aws:kms:us-east-1:{ACCOUNT_ID}:alias/unknown-alias is not found."
+    )
