@@ -3851,14 +3851,20 @@ class VPCBackend(object):
 
         default_services = []
         for _backends in backends.unique_backends():
-            for region_name, backend in _backends.items():
-                if region_name not in [region, "global"]:
-                    continue
-                service = backend.default_vpc_endpoint_service(
+            if region in _backends:
+                service = _backends[region].default_vpc_endpoint_service(
                     region, zones, vpce_random_number
                 )
                 if service:
                     default_services.extend(service)
+
+            if "global" in _backends:
+                service = _backends["global"].default_vpc_endpoint_service(
+                    region, zones, vpce_random_number
+                )
+                if service:
+                    default_services.extend(service)
+
         return default_services
 
     @staticmethod
@@ -3975,12 +3981,12 @@ class VPCBackend(object):
 
         # Determine the start index into list of services based on the
         # next_token argument.
-        # TODO - service name is not unique; but a combo of service name and
-        # service type is unique.  But if the user filters out that type?
         start = 0
-        vpc_service_names = sorted([x["ServiceName"] for x in filtered_services])
+        vpc_service_tokens = sorted(
+            [f"{x['ServiceName']}-{x['ServiceId']}" for x in filtered_services]
+        )
         if next_token:
-            if next_token not in vpc_service_names:
+            if next_token not in vpc_service_tokens:
                 raise InvalidNextToken(next_token)
             start = vpc_service_names.index(next_token)
 
@@ -3992,7 +3998,8 @@ class VPCBackend(object):
         # If necessary, set the value of the next_token.
         next_token = None
         if len(filtered_services) > (start + max_results):
-            next_token = filtered_services[start + max_results]
+            service = filtered_services[start + max_results]
+            next_token = f"{service['ServiceName']}-{service['ServiceId']}"
 
         return {
             "servicesDetails": filtered_services[start : start + max_results],
