@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import json
 import os
 import base64
 import datetime
-import pytz
 import hashlib
 import copy
 import itertools
@@ -18,8 +15,9 @@ import sys
 import time
 import uuid
 
-
 from bisect import insort
+import pytz
+
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
@@ -1300,6 +1298,36 @@ class S3Backend(BaseBackend):
         self.buckets = {}
         self.account_public_access_block = None
         self.tagger = TaggingService()
+
+    @staticmethod
+    def default_vpc_endpoint_service(region, zones, random_number_func):
+        """List of dicts representing default VPC endpoints for this service."""
+        return [
+            {
+                "AcceptanceRequired": False,
+                "AvailabilityZones": zones,
+                "BaseEndpointDnsNames": [f"s3.{region}.vpce.amazonaws.com"],
+                "ManagesVpcEndpoints": False,
+                "Owner": "amazon",
+                "ServiceId": f"vpce-svc-{random_number_func()}",
+                "ServiceName": f"com.amazonaws.{region}.s3",
+                "ServiceType": [{"ServiceType": "Interface"}],
+                "Tags": [],
+                "VpcEndpointPolicySupported": True,
+            },
+            {
+                "AcceptanceRequired": False,
+                "AvailabilityZones": zones,
+                "BaseEndpointDnsNames": [f"s3.{region}.amazonaws.com"],
+                "ManagesVpcEndpoints": False,
+                "Owner": "amazon",
+                "ServiceId": f"vpce-svc-{random_number_func()}",
+                "ServiceName": f"com.amazonaws.{region}.s3",
+                "ServiceType": [{"ServiceType": "Gateway"}],
+                "Tags": [],
+                "VpcEndpointPolicySupported": True,
+            },
+        ]
 
         # TODO: This is broken! DO NOT IMPORT MUTABLE DATA TYPES FROM OTHER AREAS -- THIS BREAKS UNMOCKING!
         # WRAP WITH A GETTER/SETTER FUNCTION

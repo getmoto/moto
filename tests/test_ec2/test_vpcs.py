@@ -865,37 +865,6 @@ def test_describe_classic_link_dns_support_multiple():
 
 
 @mock_ec2
-def test_describe_vpc_end_point_services():
-    ec2 = boto3.client("ec2", region_name="us-west-1")
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-
-    route_table = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
-
-    ec2.create_vpc_endpoint(
-        VpcId=vpc["Vpc"]["VpcId"],
-        ServiceName="com.amazonaws.us-east-1.s3",
-        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
-        VpcEndpointType="gateway",
-    )
-
-    vpc_end_point_services = ec2.describe_vpc_endpoint_services()
-
-    assert vpc_end_point_services.get("ServiceDetails").should.be.true
-    assert vpc_end_point_services.get("ServiceNames").should.be.true
-    assert vpc_end_point_services.get("ServiceNames") == ["com.amazonaws.us-east-1.s3"]
-    assert (
-        vpc_end_point_services.get("ServiceDetails")[0]
-        .get("ServiceType", [])[0]
-        .get("ServiceType")
-        == "gateway"
-    )
-    assert vpc_end_point_services.get("ServiceDetails")[0].get("AvailabilityZones") == [
-        "us-west-1a",
-        "us-west-1b",
-    ]
-
-
-@mock_ec2
 def test_describe_vpc_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")

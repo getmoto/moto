@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import functools
 import inspect
 import os
@@ -698,6 +695,13 @@ class BaseBackend:
             paths[url_path] = handler
 
         return paths
+
+    @staticmethod
+    def default_vpc_endpoint_service(
+        region, zones, random_number_func
+    ):  # pylint: disable=unused-argument
+        """List of dicts representing default VPC endpoints for the service."""
+        return []
 
     def decorator(self, func=None):
         if settings.TEST_SERVER_MODE:
