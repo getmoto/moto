@@ -287,6 +287,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
+        if isinstance(private_ip_address, list) and private_ip_address:
+            private_ip_address = private_ip_address[0]
         self.private_ip_address = private_ip_address or None
         self.private_ip_addresses = private_ip_addresses or []
 
