@@ -2,6 +2,7 @@ import boto3
 import sure  # noqa
 from moto import mock_apigateway
 from moto.apigateway.exceptions import RequestValidatorNotFound
+from botocore.exceptions import ClientError
 import pytest
 
 ID = "id"
@@ -116,10 +117,11 @@ def test_delete_request_validator():
     response = client.delete_request_validator(
         restApiId=api_id, requestValidatorId=validator_id
     )
-    with pytest.raises(RequestValidatorNotFound):
-        response = client.get_request_validator(
-            restApiId=api_id, requestValidatorId=validator_id
-        )
+    with pytest.raises(ClientError) as ex:
+        client.get_request_validator(restApiId=api_id, requestValidatorId=validator_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("BadRequestException")
+    err["Message"].should.equal("Invalid Request Validator Id specified")
 
 
 @mock_apigateway
