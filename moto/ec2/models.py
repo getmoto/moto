@@ -703,7 +703,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             kwargs.get("nics", {}),
             private_ip=kwargs.get("private_ip"),
             associate_public_ip=self.associate_public_ip,
-            security_groups=self.security_groups
+            security_groups=self.security_groups,
         )
 
     def __del__(self):
@@ -926,9 +926,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @property
     def dynamic_group_list(self):
-            return self.security_groups
+        return self.security_groups
 
-    def prep_nics(self, nic_spec, private_ip=None, associate_public_ip=None, security_groups=None):
+    def prep_nics(
+        self, nic_spec, private_ip=None, associate_public_ip=None, security_groups=None
+    ):
         self.nics = {}
 
         if self.subnet_id:
@@ -988,9 +990,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 group_id = nic.get("SecurityGroupId")
                 group_ids = [group_id] if group_id else []
                 if security_groups:
-                    group_ids.extend([
-                        group.id for group in security_groups
-                    ])
+                    group_ids.extend([group.id for group in security_groups])
 
                 use_nic = self.ec2_backend.create_network_interface(
                     subnet,
