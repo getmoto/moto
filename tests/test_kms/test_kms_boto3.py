@@ -398,6 +398,20 @@ def test_list_resource_tags():
     assert response["Tags"][0]["TagValue"] == "string"
 
 
+@mock_kms
+def test_list_resource_tags_with_arn():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="cancel-key-deletion")
+    client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
+
+    keyid = key["KeyMetadata"]["Arn"]
+    client.tag_resource(KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}])
+
+    response = client.list_resource_tags(KeyId=keyid)
+    assert response["Tags"][0]["TagKey"] == "string"
+    assert response["Tags"][0]["TagValue"] == "string"
+
+
 @pytest.mark.parametrize(
     "kwargs,expected_key_length",
     (
