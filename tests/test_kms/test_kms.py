@@ -707,9 +707,6 @@ def test_key_tag_on_create_key_on_arn_happy():
     _check_tags(key["KeyMetadata"]["Arn"], tags, client)
 
 
-
-
-
 @mock_kms
 def test_key_tag_added_happy():
     client = boto3.client("kms", region_name="us-east-1")
@@ -723,6 +720,7 @@ def test_key_tag_added_happy():
     client.tag_resource(KeyId=key_id, Tags=tags)
     _check_tags(key_id, tags, client)
 
+
 @mock_kms
 def test_key_tag_added_arn_based_happy():
     client = boto3.client("kms", region_name="us-east-1")
@@ -735,6 +733,7 @@ def test_key_tag_added_arn_based_happy():
     ]
     client.tag_resource(KeyId=key_id, Tags=tags)
     _check_tags(key_id, tags, client)
+
 
 @mock_kms_deprecated
 def test_key_tagging_sad():

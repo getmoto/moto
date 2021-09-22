@@ -404,10 +404,8 @@ def test_list_resource_tags_with_arn():
     key = client.create_key(Description="cancel-key-deletion")
     client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
 
-    keyid = key['KeyMetadata']['Arn']
-    client.tag_resource(
-        KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}]
-    )
+    keyid = key["KeyMetadata"]["Arn"]
+    client.tag_resource(KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}])
 
     response = client.list_resource_tags(KeyId=keyid)
     assert response["Tags"][0]["TagKey"] == "string"
