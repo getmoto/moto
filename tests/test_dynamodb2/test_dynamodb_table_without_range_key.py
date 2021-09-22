@@ -3,9 +3,12 @@ from __future__ import unicode_literals
 import boto
 import boto3
 from boto3.dynamodb.conditions import Key
+import pytest
 import sure  # noqa
+from datetime import datetime
 from freezegun import freeze_time
 from boto.exception import JSONResponseError
+from botocore.exceptions import ClientError
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from tests.helpers import requires_boto_gte
 import botocore
@@ -27,6 +30,7 @@ def create_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
 def test_create_table():
@@ -59,7 +63,71 @@ def test_create_table():
     conn.describe_table("messages").should.equal(expected)
 
 
+@mock_dynamodb2
+def test_create_table_boto3():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_col", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    actual = client.describe_table(TableName="messages")["Table"]
+
+    actual.should.have.key("AttributeDefinitions").equal(
+        [
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_col", "AttributeType": "S"},
+        ]
+    )
+    actual.should.have.key("CreationDateTime").be.a(datetime)
+    actual.should.have.key("GlobalSecondaryIndexes").equal(
+        [
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "IndexStatus": "ACTIVE",
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ]
+    )
+    actual.should.have.key("LocalSecondaryIndexes").equal([])
+    actual.should.have.key("ProvisionedThroughput").equal(
+        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 1, "WriteCapacityUnits": 1}
+    )
+    actual.should.have.key("TableSizeBytes").equal(0)
+    actual.should.have.key("TableName").equal("messages")
+    actual.should.have.key("TableStatus").equal("ACTIVE")
+    actual.should.have.key("TableArn").equal(
+        "arn:aws:dynamodb:us-east-1:123456789011:table/messages"
+    )
+    actual.should.have.key("KeySchema").equal(
+        [{"AttributeName": "id", "KeyType": "HASH"}]
+    )
+    actual.should.have.key("ItemCount").equal(0)
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_delete_table():
     create_table()
@@ -72,7 +140,30 @@ def test_delete_table():
     conn.delete_table.when.called_with("messages").should.throw(JSONResponseError)
 
 
+@mock_dynamodb2
+def test_delete_table_boto3():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    conn.list_tables()["TableNames"].should.have.length_of(1)
+
+    conn.delete_table(TableName="messages")
+    conn.list_tables()["TableNames"].should.have.length_of(0)
+
+    with pytest.raises(ClientError) as ex:
+        conn.delete_table(TableName="messages")
+
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_update_table_throughput():
     table = create_table()
@@ -85,7 +176,28 @@ def test_update_table_throughput():
     table.throughput["write"].should.equal(6)
 
 
+@mock_dynamodb2
+def test_update_table_throughput_boto3():
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    table = conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table.provisioned_throughput["ReadCapacityUnits"].should.equal(5)
+    table.provisioned_throughput["WriteCapacityUnits"].should.equal(5)
+
+    table.update(
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6}
+    )
+
+    table.provisioned_throughput["ReadCapacityUnits"].should.equal(5)
+    table.provisioned_throughput["WriteCapacityUnits"].should.equal(6)
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_item_add_and_describe_and_update():
     table = create_table()
@@ -121,7 +233,44 @@ def test_item_add_and_describe_and_update():
     )
 
 
+@mock_dynamodb2
+def test_item_add_and_describe_and_update_boto3():
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    table = conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    data = {
+        "id": "LOLCat Forum",
+        "Body": "http://url_to_lolcat.gif",
+        "SentBy": "User A",
+    }
+
+    table.put_item(Item=data)
+    returned_item = table.get_item(Key={"id": "LOLCat Forum"})
+    returned_item.shouldnt.have.key("ConsumedCapacity")
+
+    dict(returned_item["Item"]).should.equal(
+        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User A",}
+    )
+
+    table.update_item(
+        Key={"id": "LOLCat Forum"},
+        UpdateExpression="SET SentBy=:user",
+        ExpressionAttributeValues={":user": "User B"},
+    )
+
+    returned_item = table.get_item(Key={"id": "LOLCat Forum"})
+    returned_item["Item"].should.equal(
+        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User B",}
+    )
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_item_partial_save():
     table = create_table()
@@ -149,6 +298,7 @@ def test_item_partial_save():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_item_put_without_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -163,7 +313,27 @@ def test_item_put_without_table():
     ).should.throw(JSONResponseError)
 
 
+@mock_dynamodb2
+def test_item_put_without_table_boto3():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName="messages",
+            Item={
+                "forum_name": {"S": "LOLCat Forum"},
+                "Body": {"S": "http://url_to_lolcat.gif"},
+                "SentBy": {"S": "User A"},
+            },
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -173,7 +343,20 @@ def test_get_item_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
+@mock_dynamodb2
+def test_get_item_with_undeclared_table_boto3():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        conn.get_item(TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}})
+
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+
+
 @requires_boto_gte("2.30.0")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_delete_item():
     table = create_table()
@@ -198,7 +381,35 @@ def test_delete_item():
     item.delete().should.equal(True)
 
 
+@mock_dynamodb2
+def test_delete_item_boto3():
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    table = conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    item_data = {
+        "id": "LOLCat Forum",
+        "Body": "http://url_to_lolcat.gif",
+        "SentBy": "User A",
+        "ReceivedTime": "12/9/2011 11:36:03 PM",
+    }
+    table.put_item(Item=item_data)
+
+    table.item_count.should.equal(1)
+
+    table.delete_item(Key={"id": "LOLCat Forum"})
+
+    table.item_count.should.equal(0)
+
+    table.delete_item(Key={"id": "LOLCat Forum"})
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_delete_item_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -208,7 +419,24 @@ def test_delete_item_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
+@mock_dynamodb2
+def test_delete_item_with_undeclared_table_boto3():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        conn.delete_item(
+            TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}}
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("ConditionalCheckFailedException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "A condition specified in the operation could not be evaluated."
+    )
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query():
     table = create_table()
@@ -229,6 +457,7 @@ def test_query():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -245,6 +474,7 @@ def test_query_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_scan():
     table = create_table()
@@ -296,6 +526,7 @@ def test_scan():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_scan_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -311,7 +542,20 @@ def test_scan_with_undeclared_table():
     ).should.throw(JSONResponseError)
 
 
+@mock_dynamodb2
+def test_scan_with_undeclared_table_boto3():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        conn.scan(TableName="messages")
+
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_write_batch():
     table = create_table()
@@ -344,6 +588,7 @@ def test_write_batch():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_batch_read():
     table = create_table()
@@ -382,6 +627,7 @@ def test_batch_read():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_key_fields():
     table = create_table()
@@ -389,7 +635,21 @@ def test_get_key_fields():
     kf[0].should.equal("forum_name")
 
 
+@mock_dynamodb2
+def test_get_key_schema():
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    table = conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table.key_schema.should.equal([{"AttributeName": "id", "KeyType": "HASH"}])
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_missing_item():
     table = create_table()
@@ -397,6 +657,7 @@ def test_get_missing_item():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_special_item():
     table = Table.create(
@@ -411,6 +672,7 @@ def test_get_special_item():
     dict(returned_item).should.equal(data)
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_update_item_remove():
     conn = boto.dynamodb2.connect_to_region("us-east-1")
@@ -427,6 +689,7 @@ def test_update_item_remove():
     dict(returned_item).should.equal({"username": "steve"})
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_update_item_nested_remove():
     conn = boto.dynamodb2.connect_to_region("us-east-1")
@@ -478,6 +741,7 @@ def test_update_item_double_nested_remove():
     dict(returned_item["Item"]).should.equal(expected_item)
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_update_item_set():
     conn = boto.dynamodb2.connect_to_region("us-east-1")
@@ -498,6 +762,31 @@ def test_update_item_set():
     dict(returned_item).should.equal({"username": "steve", "foo": "bar", "blah": "baz"})
 
 
+@mock_dynamodb2
+def test_update_item_set_boto3():
+    conn = boto3.resource("dynamodb", region_name="us-east-1")
+    table = conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    data = {"username": "steve", "SentBy": "User A"}
+    table.put_item(Item=data)
+    key_map = {"username": "steve"}
+
+    table.update_item(
+        Key=key_map,
+        UpdateExpression="SET foo=:bar, blah=:baz REMOVE SentBy",
+        ExpressionAttributeValues={":bar": "bar", ":baz": "baz"},
+    )
+
+    returned_item = table.get_item(Key=key_map)["Item"]
+    dict(returned_item).should.equal({"username": "steve", "foo": "bar", "blah": "baz"})
+
+
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_failed_overwrite():
     table = Table.create(
@@ -525,6 +814,7 @@ def test_failed_overwrite():
     dict(returned_item).should.equal(data4)
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_conflicting_writes():
     table = Table.create("messages", schema=[HashKey("id")])
