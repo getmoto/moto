@@ -212,6 +212,7 @@ else:
 
 OWNER_ID = ACCOUNT_ID
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
+DEFAULT_VPC_ENDPOINT_SERVICES = []
 
 
 def utc_date_and_time():
@@ -3834,6 +3835,9 @@ class VPCBackend(object):
     @staticmethod
     def _collect_default_endpoint_services(region):
         """Return list of default services using list of backends."""
+        if DEFAULT_VPC_ENDPOINT_SERVICES:
+            return DEFAULT_VPC_ENDPOINT_SERVICES
+
         zones = [
             zone.name
             for zones in RegionsAndZonesBackend.zones.values()
@@ -3849,23 +3853,21 @@ class VPCBackend(object):
 
         from moto import backends  # pylint: disable=import-outside-toplevel
 
-        default_services = []
         for _backends in backends.unique_backends():
             if region in _backends:
                 service = _backends[region].default_vpc_endpoint_service(
                     region, zones, vpce_random_number
                 )
                 if service:
-                    default_services.extend(service)
+                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
 
             if "global" in _backends:
                 service = _backends["global"].default_vpc_endpoint_service(
                     region, zones, vpce_random_number
                 )
                 if service:
-                    default_services.extend(service)
-
-        return default_services
+                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
+        return DEFAULT_VPC_ENDPOINT_SERVICES
 
     @staticmethod
     def _matches_service_by_tags(service, filter_item):
@@ -3988,7 +3990,7 @@ class VPCBackend(object):
         if next_token:
             if next_token not in vpc_service_tokens:
                 raise InvalidNextToken(next_token)
-            start = vpc_service_names.index(next_token)
+            start = vpc_service_tokens.index(next_token)
 
         # Determine the stop index into the list of services based on the
         # max_results argument.

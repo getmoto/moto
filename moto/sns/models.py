@@ -387,6 +387,24 @@ class SNSBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(region, zones, random_number_func):
+        """List of dicts representing default VPC endpoints for this service."""
+        return [
+            {
+                "AcceptanceRequired": False,
+                "AvailabilityZones": zones,
+                "BaseEndpointDnsNames": [f"sns.{region}.vpce.amazonaws.com"],
+                "ManagesVpcEndpoints": False,
+                "Owner": "amazon",
+                "ServiceId": f"vpce-svc-{random_number_func()}",
+                "ServiceName": f"com.amazonaws.{region}.sns",
+                "ServiceType": [{"ServiceType": "Interface"}],
+                "Tags": [],
+                "VpcEndpointPolicySupported": True,
+            },
+        ]
+
     def update_sms_attributes(self, attrs):
         self.sms_attributes.update(attrs)
 
