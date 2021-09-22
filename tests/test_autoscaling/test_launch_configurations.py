@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+import base64
+
 import boto
 import boto3
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
@@ -15,6 +18,7 @@ from tests.helpers import requires_boto_gte
 from tests import EXAMPLE_AMI_ID
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_create_launch_configuration():
     conn = boto.connect_autoscale()
@@ -47,6 +51,42 @@ def test_create_launch_configuration():
     launch_config.spot_price.should.equal(0.1)
 
 
+@mock_autoscaling
+def test_create_launch_configuration_boto3():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t1.micro",
+        KeyName="the_keys",
+        SecurityGroups=["default", "default2"],
+        UserData="This is some user_data",
+        InstanceMonitoring={"Enabled": True},
+        IamInstanceProfile="arn:aws:iam::{}:instance-profile/testing".format(
+            ACCOUNT_ID
+        ),
+        SpotPrice="0.1",
+    )
+
+    launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
+    launch_config["LaunchConfigurationName"].should.equal("tester")
+    launch_config.should.have.key("LaunchConfigurationARN")
+    launch_config["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    launch_config["InstanceType"].should.equal("t1.micro")
+    launch_config["KeyName"].should.equal("the_keys")
+    set(launch_config["SecurityGroups"]).should.equal(set(["default", "default2"]))
+    userdata = launch_config["UserData"]
+    userdata = base64.b64decode(userdata)
+    userdata.should.equal(b"This is some user_data")
+    launch_config["InstanceMonitoring"].should.equal({"Enabled": True})
+    launch_config["IamInstanceProfile"].should.equal(
+        "arn:aws:iam::{}:instance-profile/testing".format(ACCOUNT_ID)
+    )
+    launch_config["SpotPrice"].should.equal("0.1")
+    launch_config["BlockDeviceMappings"].should.equal([])
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.27.0")
 @mock_autoscaling_deprecated
 def test_create_launch_configuration_with_block_device_mappings():
@@ -116,6 +156,67 @@ def test_create_launch_configuration_with_block_device_mappings():
     returned_mapping["/dev/xvdb"].ephemeral_name.should.equal("ephemeral0")
 
 
+@mock_autoscaling
+def test_create_launch_configuration_with_block_device_mappings_boto3():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t1.micro",
+        KeyName="the_keys",
+        SecurityGroups=["default", "default2"],
+        UserData="This is some user_data",
+        InstanceMonitoring={"Enabled": True},
+        IamInstanceProfile="arn:aws:iam::{}:instance-profile/testing".format(
+            ACCOUNT_ID
+        ),
+        SpotPrice="0.1",
+        BlockDeviceMappings=[
+            {"DeviceName": "/dev/xvdb", "VirtualName": "ephemeral0"},
+            {
+                "DeviceName": "/dev/xvdp",
+                "Ebs": {"SnapshotId": "snap-1234abcd", "VolumeType": "standard"},
+            },
+            {
+                "DeviceName": "/dev/xvdh",
+                "Ebs": {
+                    "VolumeType": "io1",
+                    "VolumeSize": 100,
+                    "Iops": 1000,
+                    "DeleteOnTermination": False,
+                },
+            },
+        ],
+    )
+
+    launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
+    launch_config["LaunchConfigurationName"].should.equal("tester")
+
+    mappings = launch_config["BlockDeviceMappings"]
+    mappings.should.have.length_of(3)
+
+    xvdh = [m for m in mappings if m["DeviceName"] == "/dev/xvdh"][0]
+    xvdp = [m for m in mappings if m["DeviceName"] == "/dev/xvdp"][0]
+    xvdb = [m for m in mappings if m["DeviceName"] == "/dev/xvdb"][0]
+
+    xvdh.shouldnt.have.key("VirtualName")
+    xvdh.should.have.key("Ebs")
+    xvdh["Ebs"]["VolumeSize"].should.equal(100)
+    xvdh["Ebs"]["VolumeType"].should.equal("io1")
+    xvdh["Ebs"]["DeleteOnTermination"].should.equal(False)
+    xvdh["Ebs"]["Iops"].should.equal(1000)
+
+    xvdp.shouldnt.have.key("VirtualName")
+    xvdp.should.have.key("Ebs")
+    xvdp["Ebs"]["SnapshotId"].should.equal("snap-1234abcd")
+    xvdp["Ebs"]["VolumeType"].should.equal("standard")
+    xvdp["Ebs"]["DeleteOnTermination"].should.equal(False)
+
+    xvdb["VirtualName"].should.equal("ephemeral0")
+    xvdb.shouldnt.have.key("Ebs")
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.12")
 @mock_autoscaling_deprecated
 def test_create_launch_configuration_for_2_12():
@@ -129,6 +230,7 @@ def test_create_launch_configuration_for_2_12():
     launch_config.ebs_optimized.should.equal(True)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.25.0")
 @mock_autoscaling_deprecated
 def test_create_launch_configuration_using_ip_association():
@@ -142,6 +244,23 @@ def test_create_launch_configuration_using_ip_association():
     launch_config.associate_public_ip_address.should.equal(True)
 
 
+@mock_autoscaling
+def test_create_launch_configuration_additional_parameters():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t1.micro",
+        EbsOptimized=True,
+        AssociatePublicIpAddress=True,
+    )
+
+    launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
+    launch_config["EbsOptimized"].should.equal(True)
+    launch_config["AssociatePublicIpAddress"].should.equal(True)
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.25.0")
 @mock_autoscaling_deprecated
 def test_create_launch_configuration_using_ip_association_should_default_to_false():
@@ -153,6 +272,21 @@ def test_create_launch_configuration_using_ip_association_should_default_to_fals
     launch_config.associate_public_ip_address.should.equal(False)
 
 
+@mock_autoscaling
+def test_create_launch_configuration_additional_params_default_to_false():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t1.micro",
+    )
+
+    launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
+    launch_config["EbsOptimized"].should.equal(False)
+    launch_config["AssociatePublicIpAddress"].should.equal(False)
+
+
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_create_launch_configuration_defaults():
     """Test with the minimum inputs and check that all of the proper defaults
@@ -177,6 +311,29 @@ def test_create_launch_configuration_defaults():
     launch_config.spot_price.should.equal(None)
 
 
+@mock_autoscaling
+def test_create_launch_configuration_defaults_boto3():
+    """Test with the minimum inputs and check that all of the proper defaults
+    are assigned for the other attributes"""
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="m1.small",
+    )
+
+    launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
+
+    # Defaults
+    launch_config["KeyName"].should.equal("")
+    launch_config["SecurityGroups"].should.equal([])
+    launch_config["UserData"].should.equal("")
+    launch_config["InstanceMonitoring"].should.equal({"Enabled": False})
+    launch_config.shouldnt.have.key("IamInstanceProfile")
+    launch_config.shouldnt.have.key("SpotPrice")
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.12")
 @mock_autoscaling_deprecated
 def test_create_launch_configuration_defaults_for_2_12():
@@ -188,6 +345,7 @@ def test_create_launch_configuration_defaults_for_2_12():
     launch_config.ebs_optimized.should.equal(False)
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_launch_configuration_describe_filter():
     conn = boto.connect_autoscale()
@@ -204,6 +362,25 @@ def test_launch_configuration_describe_filter():
         names=["tester", "tester2"]
     ).should.have.length_of(2)
     conn.get_all_launch_configurations().should.have.length_of(3)
+
+
+@mock_autoscaling
+def test_launch_configuration_describe_filter_boto3():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    for name in ["tester", "tester2", "tester3"]:
+        client.create_launch_configuration(
+            LaunchConfigurationName=name,
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="m1.small",
+        )
+
+    configs = client.describe_launch_configurations(
+        LaunchConfigurationNames=["tester", "tester2"]
+    )
+    configs["LaunchConfigurations"].should.have.length_of(2)
+    client.describe_launch_configurations()[
+        "LaunchConfigurations"
+    ].should.have.length_of(3)
 
 
 @mock_autoscaling
@@ -229,6 +406,7 @@ def test_launch_configuration_describe_paginated():
     assert "NextToken" not in response2.keys()
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_launch_configuration_delete():
     conn = boto.connect_autoscale()
@@ -241,6 +419,26 @@ def test_launch_configuration_delete():
 
     conn.delete_launch_configuration("tester")
     conn.get_all_launch_configurations().should.have.length_of(0)
+
+
+@mock_autoscaling
+def test_launch_configuration_delete_boto3():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="m1.small",
+    )
+
+    client.describe_launch_configurations()[
+        "LaunchConfigurations"
+    ].should.have.length_of(1)
+
+    client.delete_launch_configuration(LaunchConfigurationName="tester")
+
+    client.describe_launch_configurations()[
+        "LaunchConfigurations"
+    ].should.have.length_of(0)
 
 
 @pytest.mark.parametrize(
