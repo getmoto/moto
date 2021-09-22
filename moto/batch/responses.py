@@ -177,14 +177,15 @@ class BatchResponse(BaseResponse):
         container_properties = self._get_param("containerProperties")
         def_name = self._get_param("jobDefinitionName")
         parameters = self._get_param("parameters")
+        tags = self._get_param("tags")
         retry_strategy = self._get_param("retryStrategy")
         _type = self._get_param("type")
-
         try:
             name, arn, revision = self.batch_backend.register_job_definition(
                 def_name=def_name,
                 parameters=parameters,
                 _type=_type,
+                tags=tags,
                 retry_strategy=retry_strategy,
                 container_properties=container_properties,
             )

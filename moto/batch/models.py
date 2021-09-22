@@ -16,7 +16,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 from moto.logs import logs_backends
 
-from .exceptions import InvalidParameterValueException, ClientException
+from .exceptions import InvalidParameterValueException, ClientException, ValidationError
 from .utils import (
     make_arn_for_compute_env,
     make_arn_for_job_queue,
@@ -28,6 +28,7 @@ from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.utilities.docker_utilities import DockerModel, parse_image_ref
+from ..utilities.tagging_service import TaggingService
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -187,6 +188,7 @@ class JobDefinition(CloudFormationModel):
         _type,
         container_properties,
         region_name,
+        tags={},
         revision=0,
         retry_strategy=0,
     ):
@@ -198,13 +200,24 @@ class JobDefinition(CloudFormationModel):
         self.container_properties = container_properties
         self.arn = None
         self.status = "ACTIVE"
-
+        self.tagger = TaggingService()
         if parameters is None:
             parameters = {}
         self.parameters = parameters
 
         self._validate()
         self._update_arn()
+
+        tags = self._format_tags(tags)
+        # Validate the tags before proceeding.
+        errmsg = self.tagger.validate_tags(tags or [])
+        if errmsg:
+            raise ValidationError(errmsg)
+
+        self.tagger.tag_resource(self.arn, tags or [])
+
+    def _format_tags(self, tags):
+        return [{"Key": k, "Value": v} for k, v in tags.items()]
 
     def _update_arn(self):
         self.revision += 1
@@ -267,6 +280,7 @@ class JobDefinition(CloudFormationModel):
             "revision": self.revision,
             "status": self.status,
             "type": self.type,
+            "tags": self.tagger.get_tag_dict_for_resource(self.arn),
         }
         if self.container_properties is not None:
             result["containerProperties"] = self.container_properties
@@ -294,15 +308,14 @@ class JobDefinition(CloudFormationModel):
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
-
         res = backend.register_job_definition(
             def_name=resource_name,
             parameters=lowercase_first_key(properties.get("Parameters", {})),
             _type="container",
+            tags=lowercase_first_key(properties.get("Tags", {})),
             retry_strategy=lowercase_first_key(properties["RetryStrategy"]),
             container_properties=lowercase_first_key(properties["ContainerProperties"]),
         )
-
         arn = res[1]
 
         return backend.get_job_definition_by_arn(arn)
@@ -1209,7 +1222,7 @@ class BatchBackend(BaseBackend):
             del self._job_queues[job_queue.arn]
 
     def register_job_definition(
-        self, def_name, parameters, _type, retry_strategy, container_properties
+        self, def_name, parameters, _type, tags, retry_strategy, container_properties
     ):
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
@@ -1220,13 +1233,15 @@ class BatchBackend(BaseBackend):
                 retry_strategy = retry_strategy["attempts"]
             except Exception:
                 raise ClientException("retryStrategy is malformed")
-
         if job_def is None:
+            if not tags:
+                tags = {}
             job_def = JobDefinition(
                 def_name,
                 parameters,
                 _type,
                 container_properties,
+                tags=tags,
                 region_name=self.region_name,
                 retry_strategy=retry_strategy,
             )
@@ -1275,6 +1290,8 @@ class BatchBackend(BaseBackend):
         # Got all the job defs were after, filter then by status
         if status is not None:
             return [job for job in jobs if job.status == status]
+        for job in jobs:
+            job.describe()
         return jobs
 
     def submit_job(

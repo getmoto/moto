@@ -189,6 +189,12 @@ class SecretsManagerBackend(BaseBackend):
         epoch = datetime.datetime.utcfromtimestamp(0)
         return (dt - epoch).total_seconds()
 
+    def _client_request_token_validator(self, client_request_token):
+        token_length = len(client_request_token)
+        if token_length < 32 or token_length > 64:
+            msg = "ClientRequestToken must be 32-64 characters long."
+            raise InvalidParameterException(msg)
+
     def get_secret_value(self, secret_id, version_id, version_stage):
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
@@ -251,6 +257,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_id,
         secret_string=None,
         secret_binary=None,
+        client_request_token=None,
         kms_key_id=None,
         **kwargs
     ):
@@ -274,6 +281,7 @@ class SecretsManagerBackend(BaseBackend):
             secret_string=secret_string,
             secret_binary=secret_binary,
             description=description,
+            version_id=client_request_token,
             tags=tags,
             kms_key_id=kms_key_id,
         )
@@ -322,7 +330,9 @@ class SecretsManagerBackend(BaseBackend):
         if version_stages is None:
             version_stages = ["AWSCURRENT"]
 
-        if not version_id:
+        if version_id:
+            self._client_request_token_validator(version_id)
+        else:
             version_id = str(uuid.uuid4())
 
         secret_version = {
@@ -416,12 +426,6 @@ class SecretsManagerBackend(BaseBackend):
                 perform the operation on a secret that's currently marked deleted."
             )
 
-        if client_request_token:
-            token_length = len(client_request_token)
-            if token_length < 32 or token_length > 64:
-                msg = "ClientRequestToken " "must be 32-64 characters long."
-                raise InvalidParameterException(msg)
-
         if rotation_lambda_arn:
             if len(rotation_lambda_arn) > 2048:
                 msg = "RotationLambdaARN " "must <= 2048 characters long."
@@ -463,7 +467,12 @@ class SecretsManagerBackend(BaseBackend):
             pass
 
         old_secret_version = secret.versions[secret.default_version_id]
-        new_version_id = client_request_token or str(uuid.uuid4())
+
+        if client_request_token:
+            self._client_request_token_validator(client_request_token)
+            new_version_id = client_request_token
+        else:
+            new_version_id = str(uuid.uuid4())
 
         # We add the new secret version as "pending". The previous version remains
         # as "current" for now. Once we've passed the new secret through the lambda

@@ -18,7 +18,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         iam_backend.detach_role_policy(policy_arn, role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DetachRolePolicyResponse")
+        return template.render(name="DetachRolePolicy")
 
     def attach_group_policy(self):
         policy_arn = self._get_param("PolicyArn")
@@ -215,7 +215,7 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         iam_backend.delete_role(role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DeleteRoleResponse")
+        return template.render(name="DeleteRole")
 
     def list_role_policies(self):
         role_name = self._get_param("RoleName")
@@ -229,14 +229,14 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         iam_backend.put_role_policy(role_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="PutRolePolicyResponse")
+        return template.render(name="PutRolePolicy")
 
     def delete_role_policy(self):
         role_name = self._get_param("RoleName")
         policy_name = self._get_param("PolicyName")
         iam_backend.delete_role_policy(role_name, policy_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DeleteRolePolicyResponse")
+        return template.render(name="DeleteRolePolicy")
 
     def get_role_policy(self):
         role_name = self._get_param("RoleName")
@@ -256,7 +256,7 @@ class IamResponse(BaseResponse):
         role = iam_backend.get_role(role_name)
         role.assume_role_policy_document = self._get_param("PolicyDocument")
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="UpdateAssumeRolePolicyResponse")
+        return template.render(name="UpdateAssumeRolePolicy")
 
     def update_role_description(self):
         role_name = self._get_param("RoleName")
@@ -444,7 +444,7 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         iam_backend.put_group_policy(group_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="PutGroupPolicyResponse")
+        return template.render(name="PutGroupPolicy")
 
     def list_group_policies(self):
         group_name = self._get_param("GroupName")
@@ -469,7 +469,8 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
         iam_backend.delete_group_policy(group_name, policy_name)
-        return ""
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteGroupPolicy")
 
     def delete_group(self):
         group_name = self._get_param("GroupName")

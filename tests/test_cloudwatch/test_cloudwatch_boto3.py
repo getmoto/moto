@@ -92,7 +92,88 @@ def test_get_dashboard_fail():
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ResourceNotFound")
     else:
-        raise RuntimeError("Should of raised error")
+        raise RuntimeError("Should have raised error")
+
+
+@mock_cloudwatch
+def test_create_alarm():
+    region = "eu-west-1"
+    cloudwatch = boto3.client("cloudwatch", region)
+
+    name = "tester"
+    cloudwatch.put_metric_alarm(
+        AlarmActions=["arn:alarm"],
+        AlarmDescription="A test",
+        AlarmName=name,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        Dimensions=[{"Name": "InstanceId", "Value": "i-0123457"}],
+        EvaluationPeriods=5,
+        InsufficientDataActions=["arn:insufficient"],
+        Namespace="{0}_namespace".format(name),
+        MetricName="{0}_metric".format(name),
+        OKActions=["arn:ok"],
+        Period=60,
+        Statistic="Average",
+        Threshold=2,
+        Unit="Seconds",
+    )
+
+    alarms = cloudwatch.describe_alarms()["MetricAlarms"]
+    alarms.should.have.length_of(1)
+    alarm = alarms[0]
+    alarm.should.have.key("AlarmName").equal("tester")
+    alarm.should.have.key("Namespace").equal("tester_namespace")
+    alarm.should.have.key("MetricName").equal("tester_metric")
+    alarm.should.have.key("ComparisonOperator").equal("GreaterThanOrEqualToThreshold")
+    alarm.should.have.key("Threshold").equal(2.0)
+    alarm.should.have.key("Period").equal(60)
+    alarm.should.have.key("EvaluationPeriods").equal(5)
+    alarm.should.have.key("Statistic").should.equal("Average")
+    alarm.should.have.key("AlarmDescription").equal("A test")
+    alarm.should.have.key("Dimensions").equal(
+        [{"Name": "InstanceId", "Value": "i-0123457"}]
+    )
+    alarm.should.have.key("AlarmActions").equal(["arn:alarm"])
+    alarm.should.have.key("OKActions").equal(["arn:ok"])
+    alarm.should.have.key("InsufficientDataActions").equal(["arn:insufficient"])
+    alarm.should.have.key("Unit").equal("Seconds")
+    alarm.should.have.key("AlarmArn").equal(
+        "arn:aws:cloudwatch:{}:{}:alarm:{}".format(region, ACCOUNT_ID, name)
+    )
+
+
+@mock_cloudwatch
+def test_delete_alarm():
+    cloudwatch = boto3.client("cloudwatch", region_name="eu-central-1")
+
+    alarms = cloudwatch.describe_alarms()["MetricAlarms"]
+    alarms.should.have.length_of(0)
+
+    name = "tester"
+    cloudwatch.put_metric_alarm(
+        AlarmActions=["arn:alarm"],
+        AlarmDescription="A test",
+        AlarmName=name,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        Dimensions=[{"Name": "InstanceId", "Value": "i-0123457"}],
+        EvaluationPeriods=5,
+        InsufficientDataActions=["arn:insufficient"],
+        Namespace="{0}_namespace".format(name),
+        MetricName="{0}_metric".format(name),
+        OKActions=["arn:ok"],
+        Period=60,
+        Statistic="Average",
+        Threshold=2,
+        Unit="Seconds",
+    )
+
+    alarms = cloudwatch.describe_alarms()["MetricAlarms"]
+    alarms.should.have.length_of(1)
+
+    cloudwatch.delete_alarms(AlarmNames=[name])
+
+    alarms = cloudwatch.describe_alarms()["MetricAlarms"]
+    alarms.should.have.length_of(0)
 
 
 @mock_cloudwatch
