@@ -651,8 +651,8 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
             </item>
         {% endfor %}
     </serviceDetailSet>
-    {% if nextToken is defined %}
-        <nextToken>{{ nextToken }}</nextToken>
+    {% if vpc_end_points.nextToken|length %}
+        <nextToken>{{ vpc_end_points.nextToken }}</nextToken>
     {% endif %}
 </DescribeVpcEndpointServicesResponse>"""
 

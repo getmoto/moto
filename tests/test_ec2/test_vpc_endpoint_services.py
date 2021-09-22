@@ -196,10 +196,30 @@ def test_describe_vpc_endpoint_services_filters():
 @mock_ec2
 def test_describe_vpc_default_endpoint_services():
     """Test successfull calls as well as the next_token arg."""
-    # next_token, full list
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
-    vpc_end_point_services = ec2.describe_vpc_endpoint_services(
-        Filters=[{"Name": "service-type", "Values": ["Gateway"]}]
+    # Verify the major components of the response. The unit test for filters
+    # verifies the contents of some of the ServicesDetails entries, so the
+    # focus of this unit test will be the larger components of the response.
+    all_services = ec2.describe_vpc_endpoint_services()
+    assert set(all_services.keys()) == set(
+        ["ServiceNames", "ServiceDetails", "ResponseMetadata"]
     )
-    # TODO Check each component; filters only checks ServiceDetails.
+    assert len(all_services["ServiceDetails"]) == len(all_services["ServiceNames"])
+    all_names = [x["ServiceName"] for x in all_services["ServiceDetails"]]
+    assert set(all_names) == set(all_services["ServiceNames"])
+
+    # Verify the handling of the next token.
+    partial_services = ec2.describe_vpc_endpoint_services(MaxResults=2)
+    assert len(partial_services["ServiceDetails"]) == 2
+    assert len(partial_services["ServiceNames"]) == 2
+    assert all_names[0] == partial_services["ServiceNames"][0]
+    assert all_names[1] == partial_services["ServiceNames"][1]
+    assert all_names[0] == partial_services["ServiceDetails"][0]["ServiceName"]
+    assert all_names[1] == partial_services["ServiceDetails"][1]["ServiceName"]
+    # assert partial_services["NextToken"] == (
+    #     f"{all_names[2]}-{all_services['ServiceDetails'][2]['ServiceId']}"
+    # )
+
+    # Use the next token to receive another service.
+    # Use the next token to receive the remaining services.

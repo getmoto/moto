@@ -3996,14 +3996,14 @@ class VPCBackend(object):
             max_results = MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS
 
         # If necessary, set the value of the next_token.
-        next_token = None
+        next_token = ""
         if len(filtered_services) > (start + max_results):
             service = filtered_services[start + max_results]
             next_token = f"{service['ServiceName']}-{service['ServiceId']}"
 
         return {
             "servicesDetails": filtered_services[start : start + max_results],
-            "serviceNames": vpc_service_names,
+            "serviceNames": vpc_service_names[start : start + max_results],
             "nextToken": next_token,
         }
 
