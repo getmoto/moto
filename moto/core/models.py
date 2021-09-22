@@ -375,7 +375,6 @@ class BotocoreStubber:
     def __call__(self, event_name, request, **kwargs):
         if not self.enabled:
             return None
-
         response = None
         response_callback = None
         found_index = None

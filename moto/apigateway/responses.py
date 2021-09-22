@@ -306,6 +306,58 @@ class APIGatewayResponse(BaseResponse):
 
         return 200, {}, json.dumps(authorizer_response)
 
+    def request_validators(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+        try:
+            restApi = self.backend.get_rest_api(restapi_id)
+            if self.method == "GET":
+                validators = restApi.get_request_validators()
+                res = json.dumps(
+                    {"item": [validator.to_dict() for validator in validators]}
+                )
+                return 200, {}, res
+            if self.method == "POST":
+                name = self._get_param("name")
+                validateRequestBody = self._get_bool_param("validateRequestBody")
+                validateRequestParameters = self._get_bool_param(
+                    "validateRequestParameters"
+                )
+                validator = restApi.create_request_validator(
+                    name=name,
+                    validateRequestBody=validateRequestBody,
+                    validateRequestParameters=validateRequestParameters,
+                )
+                return 200, {}, json.dumps(validator)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except CrossAccountNotAllowed as e:
+            return self.error("AccessDeniedException", e.message)
+
+    def request_validator_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+        validator_id = url_path_parts[4]
+        try:
+            restApi = self.backend.get_rest_api(restapi_id)
+            if self.method == "GET":
+                return 200, {}, json.dumps(restApi.get_request_validator(validator_id))
+            if self.method == "DELETE":
+                restApi.delete_request_validator(validator_id)
+                return 202, {}, ""
+            if self.method == "PATCH":
+                patch_operations = self._get_param("patchOperations")
+                validator = restApi.update_request_validator(
+                    validator_id, patch_operations
+                )
+                return 200, {}, json.dumps(validator)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except CrossAccountNotAllowed as e:
+            return self.error("AccessDeniedException", e.message)
+
     def authorizers(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
