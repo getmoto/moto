@@ -346,7 +346,8 @@ class KmsBackend(BaseBackend):
 
         return plaintext, ciphertext_blob, arn
 
-    def list_resource_tags(self, key_id):
+    def list_resource_tags(self, key_id_or_arn):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             return self.tagger.list_tags_for_resource(key_id)
         raise JsonRESTError(
@@ -354,7 +355,8 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def tag_resource(self, key_id, tags):
+    def tag_resource(self, key_id_or_arn, tags):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.tag_resource(key_id, tags)
             return {}
@@ -363,7 +365,8 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def untag_resource(self, key_id, tag_names):
+    def untag_resource(self, key_id_or_arn, tag_names):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.untag_resource_using_names(key_id, tag_names)
             return {}
