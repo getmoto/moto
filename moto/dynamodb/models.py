@@ -317,6 +317,13 @@ class DynamoDBBackend(BaseBackend):
     def __init__(self):
         self.tables = OrderedDict()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "dynamodb", "Gateway"
+        )
+
     def create_table(self, name, **params):
         table = Table(name, **params)
         self.tables[name] = table

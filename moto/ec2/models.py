@@ -3542,6 +3542,15 @@ class VPCBackend(object):
         self.vpc_refs[self.__class__].add(weakref.ref(self))
         super().__init__()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ec2", "Interface", private_dns_names=True
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ec2messages", "Interface", private_dns_names=True
+        )
+
     @classmethod
     def get_vpc_refs(cls):
         for inst_ref in cls.vpc_refs[cls]:
