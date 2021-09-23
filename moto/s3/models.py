@@ -1300,34 +1300,13 @@ class S3Backend(BaseBackend):
         self.tagger = TaggingService()
 
     @staticmethod
-    def default_vpc_endpoint_service(region, zones, random_number_func):
+    def default_vpc_endpoint_service(service_region, zones):
         """List of dicts representing default VPC endpoints for this service."""
-        return [
-            {
-                "AcceptanceRequired": False,
-                "AvailabilityZones": zones,
-                "BaseEndpointDnsNames": [f"s3.{region}.vpce.amazonaws.com"],
-                "ManagesVpcEndpoints": False,
-                "Owner": "amazon",
-                "ServiceId": f"vpce-svc-{random_number_func()}",
-                "ServiceName": f"com.amazonaws.{region}.s3",
-                "ServiceType": [{"ServiceType": "Interface"}],
-                "Tags": [],
-                "VpcEndpointPolicySupported": True,
-            },
-            {
-                "AcceptanceRequired": False,
-                "AvailabilityZones": zones,
-                "BaseEndpointDnsNames": [f"s3.{region}.amazonaws.com"],
-                "ManagesVpcEndpoints": False,
-                "Owner": "amazon",
-                "ServiceId": f"vpce-svc-{random_number_func()}",
-                "ServiceName": f"com.amazonaws.{region}.s3",
-                "ServiceType": [{"ServiceType": "Gateway"}],
-                "Tags": [],
-                "VpcEndpointPolicySupported": True,
-            },
-        ]
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "s3", "Interface"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "s3", "Gateway"
+        )
 
         # TODO: This is broken! DO NOT IMPORT MUTABLE DATA TYPES FROM OTHER AREAS -- THIS BREAKS UNMOCKING!
         # WRAP WITH A GETTER/SETTER FUNCTION

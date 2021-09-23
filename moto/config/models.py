@@ -855,27 +855,11 @@ class ConfigBackend(BaseBackend):
         self.config_schema = None
 
     @staticmethod
-    def default_vpc_endpoint_service(region, zones, random_number_func):
+    def default_vpc_endpoint_service(service_region, zones):
         """List of dicts representing default VPC endpoints for this service."""
-        return [
-            {
-                "AcceptanceRequired": False,
-                "AvailabilityZones": zones,
-                "BaseEndpointDnsNames": [f"config.{region}.vpce.amazonaws.com"],
-                "ManagesVpcEndpoints": False,
-                "Owner": "amazon",
-                "PrivateDnsName": f"config.{region}.amazonaws.com",
-                "PrivateDnsNameVerificationState": "verified",
-                "PrivateDnsNames": [
-                    {"PrivateDnsName": f"config.{region}.amazonaws.com"},
-                ],
-                "ServiceId": f"vpce-svc-{random_number_func()}",
-                "ServiceName": f"com.amazonaws.{region}.config",
-                "ServiceType": [{"ServiceType": "Interface"}],
-                "Tags": [],
-                "VpcEndpointPolicySupported": True,
-            },
-        ]
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "config", "Interface", private_dns_names=True
+        )
 
     def _validate_resource_types(self, resource_list):
         if not self.config_schema:

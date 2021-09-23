@@ -5,11 +5,11 @@ from datetime import datetime
 import itertools
 import ipaddress
 import json
-from os import listdir, environ
+from operator import itemgetter
+from os import listdir
+from os import environ
 import pathlib
-import random
 import re
-import string
 import warnings
 import weakref
 
@@ -3845,25 +3845,17 @@ class VPCBackend(object):
             if zone.name.startswith(region)
         ]
 
-        # Rather than import this function in each of the backends, this
-        # function will be passed as an argument.
-        def vpce_random_number():
-            """Create a 17 digit number of lowercase hex."""
-            return "".join([random.choice(string.hexdigits.lower()) for i in range(17)])
-
         from moto import backends  # pylint: disable=import-outside-toplevel
 
         for _backends in backends.unique_backends():
             if region in _backends:
-                service = _backends[region].default_vpc_endpoint_service(
-                    region, zones, vpce_random_number
-                )
+                service = _backends[region].default_vpc_endpoint_service(region, zones)
                 if service:
                     DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
 
             if "global" in _backends:
                 service = _backends["global"].default_vpc_endpoint_service(
-                    region, zones, vpce_random_number
+                    region, zones
                 )
                 if service:
                     DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
@@ -3971,14 +3963,14 @@ class VPCBackend(object):
         """
         default_services = self._collect_default_endpoint_services(region)
 
-        vpc_service_names = sorted([x["ServiceName"] for x in default_services])
         for service_name in service_names:
-            if service_name not in vpc_service_names:
+            if service_name not in [x["ServiceName"] for x in default_services]:
                 raise InvalidServiceName(service_name)
 
         # Apply filters specified in the service_names and filters arguments.
-        filtered_services = self._filter_endpoint_services(
-            service_names, filters, default_services
+        filtered_services = sorted(
+            self._filter_endpoint_services(service_names, filters, default_services),
+            key=itemgetter("ServiceName", "ServiceId"),
         )
 
         # Determine the start index into list of services based on the
@@ -4005,7 +3997,9 @@ class VPCBackend(object):
 
         return {
             "servicesDetails": filtered_services[start : start + max_results],
-            "serviceNames": vpc_service_names[start : start + max_results],
+            "serviceNames": [
+                x["ServiceName"] for x in filtered_services[start : start + max_results]
+            ],
             "nextToken": next_token,
         }
 
