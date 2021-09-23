@@ -72,6 +72,7 @@ MOCK_POLICY_3 = """
 """
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_all_server_certs():
     conn = boto.connect_iam()
@@ -88,6 +89,7 @@ def test_get_all_server_certs():
     )
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_server_cert_doesnt_exist():
     conn = boto.connect_iam()
@@ -96,6 +98,7 @@ def test_get_server_cert_doesnt_exist():
         conn.get_server_certificate("NonExistant")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_server_cert():
     conn = boto.connect_iam()
@@ -108,6 +111,7 @@ def test_get_server_cert():
     )
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_upload_server_cert():
     conn = boto.connect_iam()
@@ -120,6 +124,7 @@ def test_upload_server_cert():
     )
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_delete_server_cert():
     conn = boto.connect_iam()
@@ -133,6 +138,7 @@ def test_delete_server_cert():
         conn.delete_server_cert("certname")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_role__should_throw__when_role_does_not_exist():
     conn = boto.connect_iam()
@@ -142,6 +148,17 @@ def test_get_role__should_throw__when_role_does_not_exist():
     ex.value.message.should.contain("not found")
 
 
+@mock_iam
+def test_get_role__should_throw__when_role_does_not_exist_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.get_role(RoleName="unexisting_role")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.contain("not found")
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
     conn = boto.connect_iam()
@@ -151,6 +168,17 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
     ex.value.message.should.contain("not found")
 
 
+@mock_iam
+def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.get_instance_profile(InstanceProfileName="unexisting_instance_profile")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.contain("not found")
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_create_role_and_instance_profile():
     conn = boto.connect_iam()
@@ -179,6 +207,39 @@ def test_create_role_and_instance_profile():
 
 
 @mock_iam
+def test_create_role_and_instance_profile_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+    )
+
+    conn.add_role_to_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+
+    role = conn.get_role(RoleName="my-role")["Role"]
+    role["Path"].should.equal("/my-path/")
+    role["AssumeRolePolicyDocument"].should.equal("some policy")
+
+    profile = conn.get_instance_profile(InstanceProfileName="my-profile")[
+        "InstanceProfile"
+    ]
+    profile["Path"].should.equal("my-path")
+
+    profile["Roles"].should.have.length_of(1)
+    role_from_profile = profile["Roles"][0]
+    role_from_profile["RoleId"].should.equal(role["RoleId"])
+    role_from_profile["RoleName"].should.equal("my-role")
+
+    conn.list_roles()["Roles"][0]["RoleName"].should.equal("my-role")
+
+    # Test with an empty path:
+    profile = conn.create_instance_profile(InstanceProfileName="my-other-profile")
+    profile["InstanceProfile"]["Path"].should.equal("/")
+
+
+@mock_iam
 def test_create_instance_profile_should_throw_when_name_is_not_unique():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
@@ -186,6 +247,7 @@ def test_create_instance_profile_should_throw_when_name_is_not_unique():
         conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_remove_role_from_instance_profile():
     conn = boto.connect_iam()
@@ -203,6 +265,32 @@ def test_remove_role_from_instance_profile():
 
     profile = conn.get_instance_profile("my-profile")
     dict(profile.roles).should.be.empty
+
+
+@mock_iam
+def test_remove_role_from_instance_profile_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+    )
+    conn.add_role_to_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+
+    profile = conn.get_instance_profile(InstanceProfileName="my-profile")[
+        "InstanceProfile"
+    ]
+    profile["Roles"].should.have.length_of(1)
+
+    conn.remove_role_from_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+
+    profile = conn.get_instance_profile(InstanceProfileName="my-profile")[
+        "InstanceProfile"
+    ]
+    profile["Roles"].should.have.length_of(0)
 
 
 @mock_iam()
@@ -313,6 +401,7 @@ def test_delete_role():
         conn.get_role(RoleName="my-role")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_list_instance_profiles():
     conn = boto.connect_iam()
@@ -328,6 +417,26 @@ def test_list_instance_profiles():
     profiles[0].roles.role_name.should.equal("my-role")
 
 
+@mock_iam
+def test_list_instance_profiles_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+    )
+
+    conn.add_role_to_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+
+    profiles = conn.list_instance_profiles()["InstanceProfiles"]
+
+    len(profiles).should.equal(1)
+    profiles[0]["InstanceProfileName"].should.equal("my-profile")
+    profiles[0]["Roles"][0]["RoleName"].should.equal("my-role")
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_list_instance_profiles_for_role():
     conn = boto.connect_iam()
@@ -372,6 +481,46 @@ def test_list_instance_profiles_for_role():
     len(profile_list).should.equal(0)
 
 
+@mock_iam
+def test_list_instance_profiles_for_role_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path",
+    )
+    conn.create_role(
+        RoleName="my-role2", AssumeRolePolicyDocument="some policy2", Path="my-path2",
+    )
+
+    profile_name_list = ["my-profile", "my-profile2"]
+    profile_path_list = ["my-path", "my-path2"]
+    for profile_count in range(0, 2):
+        conn.create_instance_profile(
+            InstanceProfileName=profile_name_list[profile_count],
+            Path=profile_path_list[profile_count],
+        )
+
+    for profile_count in range(0, 2):
+        conn.add_role_to_instance_profile(
+            InstanceProfileName=profile_name_list[profile_count], RoleName="my-role"
+        )
+
+    profile_dump = conn.list_instance_profiles_for_role(RoleName="my-role")
+    profile_list = profile_dump["InstanceProfiles"]
+    for profile_count in range(0, len(profile_list)):
+        profile_name_list.remove(profile_list[profile_count]["InstanceProfileName"])
+        profile_path_list.remove(profile_list[profile_count]["Path"])
+        profile_list[profile_count]["Roles"][0]["RoleName"].should.equal("my-role")
+
+    profile_name_list.should.have.length_of(0)
+    profile_path_list.should.have.length_of(0)
+
+    profile_dump2 = conn.list_instance_profiles_for_role(RoleName="my-role2")
+    profile_list = profile_dump2["InstanceProfiles"]
+    profile_list.should.have.length_of(0)
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_list_role_policies():
     conn = boto.connect_iam()
@@ -394,6 +543,39 @@ def test_list_role_policies():
         conn.delete_role_policy("my-role", "test policy")
 
 
+@mock_iam
+def test_list_role_policies_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path",
+    )
+    conn.put_role_policy(
+        RoleName="my-role", PolicyName="test policy", PolicyDocument=MOCK_POLICY
+    )
+    role = conn.list_role_policies(RoleName="my-role")
+    role["PolicyNames"].should.equal(["test policy"])
+
+    conn.put_role_policy(
+        RoleName="my-role", PolicyName="test policy 2", PolicyDocument=MOCK_POLICY
+    )
+    role = conn.list_role_policies(RoleName="my-role")
+    role["PolicyNames"].should.have.length_of(2)
+
+    conn.delete_role_policy(RoleName="my-role", PolicyName="test policy")
+    role = conn.list_role_policies(RoleName="my-role")
+    role["PolicyNames"].should.equal(["test policy 2"])
+
+    with pytest.raises(ClientError) as ex:
+        conn.delete_role_policy(RoleName="my-role", PolicyName="test policy")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(
+        "The role policy with name test policy cannot be found."
+    )
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_put_role_policy():
     conn = boto.connect_iam()
@@ -408,6 +590,20 @@ def test_put_role_policy():
 
 
 @mock_iam
+def test_put_role_policy_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path",
+    )
+    conn.put_role_policy(
+        RoleName="my-role", PolicyName="test policy", PolicyDocument=MOCK_POLICY
+    )
+    policy = conn.get_role_policy(RoleName="my-role", PolicyName="test policy")
+    policy["PolicyName"].should.equal("test policy")
+    policy["PolicyDocument"].should.equal(json.loads(MOCK_POLICY))
+
+
+@mock_iam
 def test_get_role_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -417,6 +613,7 @@ def test_get_role_policy():
         conn.get_role_policy(RoleName="my-role", PolicyName="does-not-exist")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_update_assume_role_policy():
     conn = boto.connect_iam()
@@ -424,6 +621,17 @@ def test_update_assume_role_policy():
     conn.update_assume_role_policy(role.role_name, "my-policy")
     role = conn.get_role("my-role")
     role.assume_role_policy_document.should.equal("my-policy")
+
+
+@mock_iam
+def test_update_assume_role_policy_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path",
+    )
+    conn.update_assume_role_policy(RoleName="my-role", PolicyDocument="new policy")
+    role = conn.get_role(RoleName="my-role")["Role"]
+    role["AssumeRolePolicyDocument"].should.equal("new policy")
 
 
 @mock_iam
@@ -759,6 +967,7 @@ def test_delete_default_policy_version():
         )
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_create_user():
     conn = boto.connect_iam()
@@ -767,6 +976,24 @@ def test_create_user():
         conn.create_user("my-user")
 
 
+@mock_iam
+def test_create_user_boto():
+    conn = boto3.client("iam", region_name="us-east-1")
+    u = conn.create_user(UserName="my-user")["User"]
+    u["Path"].should.equal("/")
+    u["UserName"].should.equal("my-user")
+    u.should.have.key("UserId")
+    u["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    u["CreateDate"].should.be.a(datetime)
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_user(UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("EntityAlreadyExists")
+    err["Message"].should.equal("User my-user already exists")
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_user():
     conn = boto.connect_iam()
@@ -774,6 +1001,25 @@ def test_get_user():
         conn.get_user("my-user")
     conn.create_user("my-user")
     conn.get_user("my-user")
+
+
+@mock_iam
+def test_get_user_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("The user with name my-user cannot be found.")
+
+    conn.create_user(UserName="my-user")
+
+    u = conn.get_user(UserName="my-user")["User"]
+    u["Path"].should.equal("/")
+    u["UserName"].should.equal("my-user")
+    u.should.have.key("UserId")
+    u["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
+    u["CreateDate"].should.be.a(datetime)
 
 
 @mock_iam()
@@ -789,12 +1035,21 @@ def test_update_user():
         conn.get_user(UserName="my-user")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_current_user():
     """If no user is specific, IAM returns the current user"""
     conn = boto.connect_iam()
     user = conn.get_user()["get_user_response"]["get_user_result"]["user"]
     user["user_name"].should.equal("default_user")
+
+
+@mock_iam
+def test_get_current_user_boto3():
+    """If no user is specific, IAM returns the current user"""
+    conn = boto3.client("iam", region_name="us-east-1")
+    user = conn.get_user()["User"]
+    user["UserName"].should.equal("default_user")
 
 
 @mock_iam()
@@ -840,6 +1095,7 @@ def test_user_policies():
     len(policies["PolicyNames"]).should.equal(0)
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_create_login_profile():
     conn = boto.connect_iam()
@@ -851,6 +1107,30 @@ def test_create_login_profile():
         conn.create_login_profile("my-user", "my-pass")
 
 
+@mock_iam
+def test_create_login_profile_with_unknown_user():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.create_login_profile(UserName="my-user", Password="my-pass")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("The user with name my-user cannot be found.")
+
+
+@mock_iam
+def test_create_login_profile_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="my-user")
+    conn.create_login_profile(UserName="my-user", Password="my-pass")
+
+    with pytest.raises(ClientError) as ex:
+        conn.create_login_profile(UserName="my-user", Password="my-pass")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("User my-user already has password")
+    err["Message"].should.equal(None)
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_delete_login_profile():
     conn = boto.connect_iam()
@@ -859,6 +1139,39 @@ def test_delete_login_profile():
         conn.delete_login_profile("my-user")
     conn.create_login_profile("my-user", "my-pass")
     conn.delete_login_profile("my-user")
+
+
+@mock_iam
+def test_delete_login_profile_with_unknown_user():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.delete_login_profile(UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("The user with name my-user cannot be found.")
+
+
+@mock_iam
+def test_delete_nonexistent_login_profile():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="my-user")
+    with pytest.raises(ClientError) as ex:
+        conn.delete_login_profile(UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("Login profile for my-user not found")
+
+
+@mock_iam
+def test_delete_login_profile_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="my-user")
+    conn.create_login_profile(UserName="my-user", Password="my-pass")
+    conn.delete_login_profile(UserName="my-user")
+
+    conn.get_login_profile.when.called_with(UserName="my-user").should.throw(
+        ClientError
+    )
 
 
 @mock_iam
@@ -889,6 +1202,7 @@ def test_create_access_key():
     assert access_key["AccessKeyId"].startswith("AKIA")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_all_access_keys():
     """If no access keys exist there should be none in the response,
@@ -934,6 +1248,7 @@ def test_list_access_keys():
     )
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_delete_access_key_deprecated():
     conn = boto.connect_iam()
@@ -1179,6 +1494,7 @@ def test_enable_virtual_mfa_device():
     response["IsTruncated"].should_not.be.ok
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_delete_user_deprecated():
     conn = boto.connect_iam()
@@ -1227,6 +1543,7 @@ def test_delete_user():
         conn.get_user(UserName="my-user")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_generate_credential_report():
     conn = boto.connect_iam()
@@ -1249,6 +1566,7 @@ def test_boto3_generate_credential_report():
     result["State"].should.equal("COMPLETE")
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_credential_report():
     conn = boto.connect_iam()
@@ -1349,6 +1667,7 @@ def test_get_access_key_last_used_when_used():
         resp["AccessKeyLastUsed"].should_not.contain("LastUsedDate")
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.39")
 @mock_iam_deprecated()
 def test_managed_policy():
@@ -1450,6 +1769,99 @@ def test_managed_policy():
 
     with pytest.raises(BotoServerError):
         conn.detach_role_policy("arn:aws:iam::aws:policy/Nonexistent", role_name)
+
+
+@mock_iam
+def test_managed_policy_boto3():
+    conn = boto3.client("iam", region_name="us-west-1")
+
+    conn.create_policy(
+        PolicyName="UserManagedPolicy",
+        PolicyDocument=MOCK_POLICY,
+        Path="/mypolicy/",
+        Description="my user managed policy",
+    )
+
+    marker = "0"
+    aws_policies = []
+    while marker is not None:
+        response = conn.list_policies(Scope="AWS", Marker=marker)
+        for policy in response["Policies"]:
+            aws_policies.append(policy)
+        marker = response.get("Marker")
+    set(p.name for p in aws_managed_policies).should.equal(
+        set(p["PolicyName"] for p in aws_policies)
+    )
+
+    user_policies = conn.list_policies(Scope="Local")["Policies"]
+    set(["UserManagedPolicy"]).should.equal(set(p["PolicyName"] for p in user_policies))
+
+    marker = "0"
+    all_policies = []
+    while marker is not None:
+        response = conn.list_policies(Marker=marker)
+        for policy in response["Policies"]:
+            all_policies.append(policy)
+        marker = response.get("Marker")
+    set(p["PolicyName"] for p in aws_policies + user_policies).should.equal(
+        set(p["PolicyName"] for p in all_policies)
+    )
+
+    role_name = "my-new-role"
+    conn.create_role(
+        RoleName=role_name, AssumeRolePolicyDocument="test policy", Path="my-path",
+    )
+    for policy_name in [
+        "AmazonElasticMapReduceRole",
+        "AWSControlTowerServiceRolePolicy",
+    ]:
+        policy_arn = "arn:aws:iam::aws:policy/service-role/" + policy_name
+        conn.attach_role_policy(PolicyArn=policy_arn, RoleName=role_name)
+
+    rows = conn.list_policies(OnlyAttached=True)["Policies"]
+    rows.should.have.length_of(2)
+    for x in rows:
+        x["AttachmentCount"].should.be.greater_than(0)
+
+    resp = conn.list_attached_role_policies(RoleName=role_name)
+    resp["AttachedPolicies"].should.have.length_of(2)
+
+    conn.detach_role_policy(
+        PolicyArn="arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
+        RoleName=role_name,
+    )
+    rows = conn.list_policies(OnlyAttached=True)["Policies"]
+    [r["PolicyName"] for r in rows].should.contain("AWSControlTowerServiceRolePolicy")
+    [r["PolicyName"] for r in rows].shouldnt.contain("AmazonElasticMapReduceRole")
+    for x in rows:
+        x["AttachmentCount"].should.be.greater_than(0)
+
+    policies = conn.list_attached_role_policies(RoleName=role_name)["AttachedPolicies"]
+    [p["PolicyName"] for p in policies].should.contain(
+        "AWSControlTowerServiceRolePolicy"
+    )
+    [p["PolicyName"] for p in policies].shouldnt.contain("AmazonElasticMapReduceRole")
+
+    with pytest.raises(ClientError) as ex:
+        conn.detach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
+            RoleName=role_name,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(
+        "Policy arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole was not found."
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.detach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/Nonexistent", RoleName=role_name
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal(
+        "Policy arn:aws:iam::aws:policy/Nonexistent was not found."
+    )
 
 
 @mock_iam

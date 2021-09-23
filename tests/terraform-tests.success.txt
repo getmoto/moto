@@ -109,3 +109,4 @@ TestAccAWSEc2CarrierGateway
 TestAccDataSourceAwsNetworkInterface_
 TestAccAWSNatGateway
 TestAccAWSRouteTable_
+TestAccAWSRouteTableAssociation_

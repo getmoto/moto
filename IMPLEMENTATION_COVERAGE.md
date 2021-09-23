@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>43% implemented</summary>
+<summary>44% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -50,7 +50,7 @@
 - [ ] delete_gateway_response
 - [X] delete_integration
 - [X] delete_integration_response
-- [ ] delete_method
+- [X] delete_method
 - [X] delete_method_response
 - [ ] delete_model
 - [ ] delete_request_validator

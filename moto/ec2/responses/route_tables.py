@@ -258,7 +258,12 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 <routeTableAssociationId>{{ association_id }}</routeTableAssociationId>
                 <routeTableId>{{ route_table.id }}</routeTableId>
                 <main>true</main>
+                {% if subnet_id.startswith("igw") %}
+                <gatewayId>{{ subnet_id }}</gatewayId>
+                {% endif %}
+                {% if subnet_id.startswith("subnet") %}
                 <subnetId>{{ subnet_id }}</subnetId>
+                {% endif %}
                 <associationState>
                   <state>associated</state>
                 </associationState>

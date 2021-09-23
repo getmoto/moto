@@ -312,7 +312,7 @@ def test_launch_instance_instance_lifecycle():
 
     response = client.describe_instances()
     instance = response["Reservations"][0]["Instances"][0]
-    instance["InstanceLifecycle"].should.equal("")
+    instance.get("InstanceLifecycle").should.equal(None)
 
 
 @mock_ec2
