@@ -1316,6 +1316,8 @@
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
+- [ ] get_vpn_connection_device_sample_configuration
+- [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -1437,7 +1439,7 @@
 
 ## ecr
 <details>
-<summary>76% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -1448,6 +1450,7 @@
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
+- [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
 - [X] describe_registry
@@ -1933,7 +1936,7 @@
 
 ## glacier
 <details>
-<summary>12% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] abort_multipart_upload
 - [ ] abort_vault_lock
@@ -1945,7 +1948,7 @@
 - [X] delete_vault
 - [ ] delete_vault_access_policy
 - [ ] delete_vault_notifications
-- [ ] describe_job
+- [X] describe_job
 - [ ] describe_vault
 - [ ] get_data_retrieval_policy
 - [ ] get_job_output
@@ -1960,13 +1963,13 @@
 - [ ] list_parts
 - [ ] list_provisioned_capacity
 - [ ] list_tags_for_vault
-- [ ] list_vaults
+- [X] list_vaults
 - [ ] purchase_provisioned_capacity
 - [ ] remove_tags_from_vault
 - [ ] set_data_retrieval_policy
 - [ ] set_vault_access_policy
 - [ ] set_vault_notifications
-- [ ] upload_archive
+- [X] upload_archive
 - [ ] upload_multipart_part
 </details>
 
@@ -2494,6 +2497,7 @@
 - [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
+- [ ] put_verification_state_on_violation
 - [ ] register_ca_certificate
 - [X] register_certificate
 - [X] register_certificate_without_ca
