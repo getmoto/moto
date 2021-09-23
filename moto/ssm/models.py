@@ -688,6 +688,15 @@ class SimpleSystemManagerBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ssm", "Interface", private_dns_names=True
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ssmmessages", "Interface", private_dns_names=True
+        )
+
     def _generate_document_information(self, ssm_document, document_format):
         content = self._get_document_content(document_format, ssm_document)
         base = {

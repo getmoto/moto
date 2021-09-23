@@ -705,17 +705,24 @@ class BaseBackend:
         return None
 
     @staticmethod
+    def vpce_random_number():
+        """Return random number for a VPC endpoint service ID."""
+        return "".join([random.choice(string.hexdigits.lower()) for i in range(17)])
+
+    @staticmethod
     def default_vpc_endpoint_service_factory(
         service_region,
         zones,
         service="",
         service_type="Interface",
         private_dns_names=False,
-    ):
+        extended_service_name="",
+    ):  # pylint: disable=too-many-arguments
         """List of dicts representing default VPC endpoints for this service."""
-        vpce_random_number = "".join(
-            [random.choice(string.hexdigits.lower()) for i in range(17)]
-        )
+        if extended_service_name:
+            service_name = f"com.amazonaws.{service_region}.{extended_service_name}"
+        else:
+            service_name = f"com.amazonaws.{service_region}.{service}"
 
         endpoint_service = {
             "AcceptanceRequired": False,
@@ -723,8 +730,8 @@ class BaseBackend:
             "BaseEndpointDnsNames": [f"{service}.{service_region}.vpce.amazonaws.com"],
             "ManagesVpcEndpoints": False,
             "Owner": "amazon",
-            "ServiceId": f"vpce-svc-{vpce_random_number}",
-            "ServiceName": f"com.amazonaws.{service_region}.{service}",
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": service_name,
             "ServiceType": [{"ServiceType": service_type}],
             "Tags": [],
             "VpcEndpointPolicySupported": True,

@@ -174,6 +174,18 @@ class FirehoseBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "firehose",
+            "Interface",
+            private_dns_names=True,
+            extended_service_name="kinesis-firehose",
+        )
+
     def create_delivery_stream(
         self,
         region,

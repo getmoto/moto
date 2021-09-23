@@ -877,6 +877,58 @@ class SageMakerModelBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        api_service = BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "api.sagemaker", "Interface", private_dns_names=True
+        )
+
+        notebook_service_id = f"vpce-svc-{BaseBackend.vpce_random_number()}"
+        studio_service_id = f"vpce-svc-{BaseBackend.vpce_random_number()}"
+
+        notebook_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"{notebook_service_id}.{service_region}.vpce.amazonaws.com",
+                f"notebook.{service_region}.vpce.sagemaker.aws",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": "*.notebook.us-east-1.sagemaker.aws",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.notebook.{service_region}.sagemaker.aws"}
+            ],
+            "ServiceId": notebook_service_id,
+            "ServiceName": f"aws.sagemaker.{service_region}.notebook",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        studio_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"{studio_service_id}.{service_region}.vpce.amazonaws.com",
+                "studio.us-east-1.vpce.sagemaker.aws",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": f"*.studio.{service_region}.sagemaker.aws",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.studio.{service_region}.sagemaker.aws"}
+            ],
+            "ServiceId": studio_service_id,
+            "ServiceName": f"aws.sagemaker.{service_region}.studio",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return api_service + [notebook_service, studio_service]
+
     def create_model(self, **kwargs):
         model_obj = Model(
             region_name=self.region_name,
