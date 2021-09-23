@@ -917,6 +917,28 @@ def test_send_receive_message_with_attributes_with_labels():
 
 
 @mock_sqs
+def test_receive_message_with_xml_content():
+    sqs = boto3.client("sqs", region_name="eu-west-2")
+    queue_url = sqs.create_queue(QueueName="test-queue")["QueueUrl"]
+    original_payload = '<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"/>'
+    data = {"Payload": {"DataType": "String", "StringValue": original_payload}}
+
+    sqs.send_message(
+        QueueUrl=queue_url, MessageBody="NSWSS Atom Feed", MessageAttributes=data
+    )
+
+    messages = sqs.receive_message(
+        QueueUrl=queue_url,
+        MessageAttributeNames=("Payload",),
+        MaxNumberOfMessages=1,
+        VisibilityTimeout=0,
+    )["Messages"]
+
+    attr = messages[0]["MessageAttributes"]["Payload"]["StringValue"]
+    attr.should.equal(original_payload)
+
+
+@mock_sqs
 def test_change_message_visibility_than_permitted():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
