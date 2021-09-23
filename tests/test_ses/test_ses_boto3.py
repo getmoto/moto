@@ -115,6 +115,32 @@ def test_send_email_when_verify_source():
 
 
 @mock_ses
+def test_send_unverified_email_with_chevrons():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    # Sending an email to an unverified source should fail
+    with pytest.raises(ClientError) as ex:
+        conn.send_email(
+            Source=f"John Smith <foobar@example.com>",  # << Unverified source address
+            Destination={
+                "ToAddresses": ["blah@example.com"],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            },
+            Message={
+                "Subject": {"Data": "Hello!"},
+                "Body": {"Html": {"Data": "<html>Hi</html>"}},
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("MessageRejected")
+    # The source should be returned exactly as provided - without XML encoding issues
+    err["Message"].should.equal(
+        "Email address not verified John Smith <foobar@example.com>"
+    )
+
+
+@mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
