@@ -881,7 +881,7 @@ class SageMakerModelBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint services."""
         api_service = BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "api.sagemaker"
+            service_region, zones, "api.sagemaker", special_service_name="sagemaker.api"
         )
 
         notebook_service_id = f"vpce-svc-{BaseBackend.vpce_random_number()}"

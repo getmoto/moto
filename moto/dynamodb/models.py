@@ -326,6 +326,7 @@ class DynamoDBBackend(BaseBackend):
             zones,
             "dynamodb",
             "Gateway",
+            private_dns_names=False,
             base_endpoint_dns_names=[f"dynamodb.{service_region}.amazonaws.com"],
         )
 
