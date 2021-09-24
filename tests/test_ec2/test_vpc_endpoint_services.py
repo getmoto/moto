@@ -218,7 +218,7 @@ def test_describe_vpc_default_endpoint_services():
     assert all_names[0] == partial_services["ServiceDetails"][0]["ServiceName"]
     assert all_names[1] == partial_services["ServiceDetails"][1]["ServiceName"]
     assert partial_services["NextToken"] == (
-        f"{all_names[2]}-{all_services['ServiceDetails'][2]['ServiceId']}"
+        all_services["ServiceDetails"][2]["ServiceId"]
     )
 
     # Use the next token to receive another service.
@@ -229,9 +229,7 @@ def test_describe_vpc_default_endpoint_services():
     assert len(more_services["ServiceNames"]) == 1
     assert all_names[2] == more_services["ServiceNames"][0]
     assert all_names[2] == more_services["ServiceDetails"][0]["ServiceName"]
-    assert more_services["NextToken"] == (
-        f"{all_names[3]}-{all_services['ServiceDetails'][3]['ServiceId']}"
-    )
+    assert more_services["NextToken"] == all_services["ServiceDetails"][3]["ServiceId"]
 
     # Use the next token to receive the remaining services.
     remaining_services = ec2.describe_vpc_endpoint_services(

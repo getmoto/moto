@@ -183,7 +183,7 @@ class FirehoseBackend(BaseBackend):
             "firehose",
             "Interface",
             private_dns_names=True,
-            extended_service_name="kinesis-firehose",
+            special_service_name="kinesis-firehose",
         )
 
     def create_delivery_stream(

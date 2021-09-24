@@ -716,11 +716,11 @@ class BaseBackend:
         service="",
         service_type="Interface",
         private_dns_names=False,
-        extended_service_name="",
+        special_service_name="",
     ):  # pylint: disable=too-many-arguments
         """List of dicts representing default VPC endpoints for this service."""
-        if extended_service_name:
-            service_name = f"com.amazonaws.{service_region}.{extended_service_name}"
+        if special_service_name:
+            service_name = f"com.amazonaws.{service_region}.{special_service_name}"
         else:
             service_name = f"com.amazonaws.{service_region}.{service}"
 

@@ -3971,7 +3971,6 @@ class VPCBackend(object):
         The DryRun parameter is ignored.
         """
         default_services = self._collect_default_endpoint_services(region)
-
         for service_name in service_names:
             if service_name not in [x["ServiceName"] for x in default_services]:
                 raise InvalidServiceName(service_name)
@@ -3979,19 +3978,17 @@ class VPCBackend(object):
         # Apply filters specified in the service_names and filters arguments.
         filtered_services = sorted(
             self._filter_endpoint_services(service_names, filters, default_services),
-            key=itemgetter("ServiceName", "ServiceId"),
+            key=itemgetter("ServiceName"),
         )
 
         # Determine the start index into list of services based on the
         # next_token argument.
         start = 0
-        vpc_service_tokens = sorted(
-            [f"{x['ServiceName']}-{x['ServiceId']}" for x in filtered_services]
-        )
+        vpce_ids = [x["ServiceId"] for x in filtered_services]
         if next_token:
-            if next_token not in vpc_service_tokens:
+            if next_token not in vpce_ids:
                 raise InvalidNextToken(next_token)
-            start = vpc_service_tokens.index(next_token)
+            start = vpce_ids.index(next_token)
 
         # Determine the stop index into the list of services based on the
         # max_results argument.
@@ -4002,7 +3999,7 @@ class VPCBackend(object):
         next_token = ""
         if len(filtered_services) > (start + max_results):
             service = filtered_services[start + max_results]
-            next_token = f"{service['ServiceName']}-{service['ServiceId']}"
+            next_token = service["ServiceId"]
 
         return {
             "servicesDetails": filtered_services[start : start + max_results],

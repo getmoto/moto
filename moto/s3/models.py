@@ -1302,10 +1302,33 @@ class S3Backend(BaseBackend):
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
         """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "s3", "Interface"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "s3", "Gateway"
+        accesspoint = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"accesspoint.s3-global.{service_region}.vpce.amazonaws.com",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": "*.accesspoint.s3-global.amazonaws.com",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": "*.accesspoint.s3-global.amazonaws.com"}
+            ],
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": "com.amazonaws.s3-global.accesspoint",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return (
+            BaseBackend.default_vpc_endpoint_service_factory(
+                service_region, zones, "s3", "Interface"
+            )
+            + BaseBackend.default_vpc_endpoint_service_factory(
+                service_region, zones, "s3", "Gateway"
+            )
+            + [accesspoint]
         )
 
         # TODO: This is broken! DO NOT IMPORT MUTABLE DATA TYPES FROM OTHER AREAS -- THIS BREAKS UNMOCKING!

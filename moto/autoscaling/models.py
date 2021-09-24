@@ -622,6 +622,19 @@ class AutoScalingBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(ec2_backend, elb_backend, elbv2_backend)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "autoscaling", "Interface", private_dns_names=True
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "autoscaling-plans",
+            "Interface",
+            private_dns_names=True,
+        )
+
     def create_launch_configuration(
         self,
         name,

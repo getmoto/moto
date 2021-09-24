@@ -334,7 +334,7 @@ class KinesisBackend(BaseBackend):
             "kinesis",
             "Interface",
             private_dns_names=True,
-            extended_service_name="kinesis-streams",
+            special_service_name="kinesis-streams",
         )
 
     def create_stream(

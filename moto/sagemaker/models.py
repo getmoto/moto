@@ -896,7 +896,7 @@ class SageMakerModelBackend(BaseBackend):
             ],
             "ManagesVpcEndpoints": False,
             "Owner": "amazon",
-            "PrivateDnsName": "*.notebook.us-east-1.sagemaker.aws",
+            "PrivateDnsName": f"*.notebook.{service_region}.sagemaker.aws",
             "PrivateDnsNameVerificationState": "verified",
             "PrivateDnsNames": [
                 {"PrivateDnsName": f"*.notebook.{service_region}.sagemaker.aws"}
@@ -912,7 +912,7 @@ class SageMakerModelBackend(BaseBackend):
             "AvailabilityZones": zones,
             "BaseEndpointDnsNames": [
                 f"{studio_service_id}.{service_region}.vpce.amazonaws.com",
-                "studio.us-east-1.vpce.sagemaker.aws",
+                f"studio.{service_region}.vpce.sagemaker.aws",
             ],
             "ManagesVpcEndpoints": False,
             "Owner": "amazon",
