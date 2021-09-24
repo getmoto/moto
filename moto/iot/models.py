@@ -1306,7 +1306,7 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )
@@ -1338,7 +1338,7 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )
