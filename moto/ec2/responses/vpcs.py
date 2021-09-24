@@ -604,7 +604,7 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
     <serviceDetailSet>
         {% for service in vpc_end_points.servicesDetails %}
             <item>
-                <acceptanceRequired>{{ service.AcceptanceRequired }}</acceptanceRequired>
+                <acceptanceRequired>{{ 'true' if service.AcceptanceRequired else 'false' }}</acceptanceRequired>
                 <availabilityZonesSet>
                     {% for zone in service.AvailabilityZones %}
                         <item>{{ zone }}</item>
@@ -615,7 +615,7 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                         <item>{{ endpoint }}</item>
                     {% endfor %}
                 </baseEndpointDnsNameSet>
-                <managesVpcEndpoints>{{ service.ManagesVpcEndpoints }}</managesVpcEndpoints>
+                <managesVpcEndpoints>{{ 'true' if service.ManagesVpcEndpoints else 'false' }}</managesVpcEndpoints>
                 <owner>{{ service.Owner }}</owner>
                 {% if service.PrivateDnsName is defined %}
                     <privateDnsName>{{ service.PrivateDnsName }}</privateDnsName>
@@ -647,7 +647,7 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                         {% endfor %}
                     {% endfor %}
                 </tagSet>
-                <vpcEndpointPolicySupported>{{ service.VpcEndpointPolicySupported }}</vpcEndpointPolicySupported>
+                <vpcEndpointPolicySupported>{{ 'true' if service.VpcEndpointPolicySupported else 'false' }}</vpcEndpointPolicySupported>
             </item>
         {% endfor %}
     </serviceDetailSet>
