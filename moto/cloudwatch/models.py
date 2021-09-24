@@ -312,6 +312,13 @@ class CloudWatchBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "monitoring"
+        )
+
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
     # Computed on the fly

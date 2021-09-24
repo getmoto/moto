@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import functools
 import inspect
 import os
+import random
 import re
+import string
 import types
 from abc import abstractmethod
 from io import BytesIO
@@ -697,6 +696,63 @@ class BaseBackend:
             paths[url_path] = handler
 
         return paths
+
+    @staticmethod
+    def default_vpc_endpoint_service(
+        service_region, zones,
+    ):  # pylint: disable=unused-argument
+        """Invoke the factory method for any VPC endpoint(s) services."""
+        return None
+
+    @staticmethod
+    def vpce_random_number():
+        """Return random number for a VPC endpoint service ID."""
+        return "".join([random.choice(string.hexdigits.lower()) for i in range(17)])
+
+    @staticmethod
+    def default_vpc_endpoint_service_factory(
+        service_region,
+        zones,
+        service="",
+        service_type="Interface",
+        private_dns_names=True,
+        special_service_name="",
+        policy_supported=True,
+        base_endpoint_dns_names=None,
+    ):  # pylint: disable=too-many-arguments
+        """List of dicts representing default VPC endpoints for this service."""
+        if special_service_name:
+            service_name = f"com.amazonaws.{service_region}.{special_service_name}"
+        else:
+            service_name = f"com.amazonaws.{service_region}.{service}"
+
+        if not base_endpoint_dns_names:
+            base_endpoint_dns_names = [f"{service}.{service_region}.vpce.amazonaws.com"]
+
+        endpoint_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": base_endpoint_dns_names,
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": service_name,
+            "ServiceType": [{"ServiceType": service_type}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": policy_supported,
+        }
+
+        # Don't know how private DNS names are different, so for now just
+        # one will be added.
+        if private_dns_names:
+            endpoint_service[
+                "PrivateDnsName"
+            ] = f"{service}.{service_region}.amazonaws.com"
+            endpoint_service["PrivateDnsNameVerificationState"] = "verified"
+            endpoint_service["PrivateDnsNames"] = [
+                {"PrivateDnsName": f"{service}.{service_region}.amazonaws.com"}
+            ]
+        return [endpoint_service]
 
     def decorator(self, func=None):
         if settings.TEST_SERVER_MODE:

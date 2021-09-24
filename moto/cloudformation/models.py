@@ -499,6 +499,13 @@ class CloudFormationBackend(BaseBackend):
         self.exports = OrderedDict()
         self.change_sets = OrderedDict()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "cloudformation", policy_supported=False
+        )
+
     def _resolve_update_parameters(self, instance, incoming_params):
         parameters = dict(
             [

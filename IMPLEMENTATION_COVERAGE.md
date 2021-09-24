@@ -1249,7 +1249,7 @@
 - [ ] describe_vpc_endpoint_connections
 - [ ] describe_vpc_endpoint_service_configurations
 - [ ] describe_vpc_endpoint_service_permissions
-- [ ] describe_vpc_endpoint_services
+- [X] describe_vpc_endpoint_services
 - [X] describe_vpc_endpoints
 - [X] describe_vpc_peering_connections
 - [X] describe_vpcs
