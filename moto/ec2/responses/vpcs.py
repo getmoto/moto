@@ -605,11 +605,11 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
         {% for service in vpc_end_points.servicesDetails %}
             <item>
                 <acceptanceRequired>{{ 'true' if service.AcceptanceRequired else 'false' }}</acceptanceRequired>
-                <availabilityZonesSet>
+                <availabilityZoneSet>
                     {% for zone in service.AvailabilityZones %}
                         <item>{{ zone }}</item>
                     {% endfor %}
-                </availabilityZonesSet>
+                </availabilityZoneSet>
                 <baseEndpointDnsNameSet>
                     {% for endpoint in service.BaseEndpointDnsNames %}
                         <item>{{ endpoint }}</item>
@@ -619,13 +619,13 @@ DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesRespons
                 <owner>{{ service.Owner }}</owner>
                 {% if service.PrivateDnsName is defined %}
                     <privateDnsName>{{ service.PrivateDnsName }}</privateDnsName>
-                    <privateDnsNamesSet>
-                        {% for name in service.PrivateDnsNames %}
+                    <privateDnsNameSet>
+                        {% for dns_name in service.PrivateDnsNames %}
                             <item>
-                                <privateDnsNames>{{ name.PrivateDnsName }}</privateDnsNames>
+                                <privateDnsName>{{ dns_name.PrivateDnsName }}</privateDnsName>
                             </item>
                         {% endfor %}
-                    </privateDnsNamesSet>
+                    </privateDnsNameSet>
                     <privateDnsNameVerificationState>{{ service.PrivateDnsNameVerificationState }}</privateDnsNameVerificationState>
                 {% endif %}
                 <serviceId>{{ service.ServiceId }}</serviceId>
