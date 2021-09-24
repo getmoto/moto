@@ -1075,6 +1075,19 @@ class DynamoDBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        # No 'vpce' in the base endpoint DNS name
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "dynamodb",
+            "Gateway",
+            private_dns_names=False,
+            base_endpoint_dns_names=[f"dynamodb.{service_region}.amazonaws.com"],
+        )
+
     def create_table(self, name, **params):
         if name in self.tables:
             return None
