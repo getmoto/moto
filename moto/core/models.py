@@ -715,7 +715,7 @@ class BaseBackend:
         zones,
         service="",
         service_type="Interface",
-        private_dns_names=False,
+        private_dns_names=True,
         special_service_name="",
         policy_supported=True,
         base_endpoint_dns_names=None,
