@@ -516,6 +516,7 @@ class IoTBackend(BaseBackend):
             "data.iot",
             private_dns_names=False,
             special_service_name="iot.data",
+            policy_supported=False,
         )
 
     def create_thing(self, thing_name, thing_type_name, attribute_payload):

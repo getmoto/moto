@@ -580,7 +580,7 @@ class RedshiftBackend(BaseBackend):
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "redshift"
         ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift-data"
+            service_region, zones, "redshift-data", policy_supported=False
         )
 
     def enable_snapshot_copy(self, **kwargs):

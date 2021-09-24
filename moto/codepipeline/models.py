@@ -75,7 +75,7 @@ class CodePipelineBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "codepipeline"
+            service_region, zones, "codepipeline", policy_supported=False
         )
 
     @property

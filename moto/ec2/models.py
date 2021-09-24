@@ -3542,15 +3542,6 @@ class VPCBackend(object):
         self.vpc_refs[self.__class__].add(weakref.ref(self))
         super().__init__()
 
-    @staticmethod
-    def default_vpc_endpoint_service(service_region, zones):
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ec2"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ec2messages"
-        )
-
     @classmethod
     def get_vpc_refs(cls):
         for inst_ref in cls.vpc_refs[cls]:
@@ -8291,6 +8282,15 @@ class EC2Backend(
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ec2"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ec2messages"
+        )
 
     # Use this to generate a proper error template response when in a response
     # handler.

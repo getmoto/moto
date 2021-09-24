@@ -717,6 +717,8 @@ class BaseBackend:
         service_type="Interface",
         private_dns_names=False,
         special_service_name="",
+        policy_supported=True,
+        base_endpoint_dns_names=None,
     ):  # pylint: disable=too-many-arguments
         """List of dicts representing default VPC endpoints for this service."""
         if special_service_name:
@@ -724,17 +726,20 @@ class BaseBackend:
         else:
             service_name = f"com.amazonaws.{service_region}.{service}"
 
+        if not base_endpoint_dns_names:
+            base_endpoint_dns_names = [f"{service}.{service_region}.vpce.amazonaws.com"]
+
         endpoint_service = {
             "AcceptanceRequired": False,
             "AvailabilityZones": zones,
-            "BaseEndpointDnsNames": [f"{service}.{service_region}.vpce.amazonaws.com"],
+            "BaseEndpointDnsNames": base_endpoint_dns_names,
             "ManagesVpcEndpoints": False,
             "Owner": "amazon",
             "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
             "ServiceName": service_name,
             "ServiceType": [{"ServiceType": service_type}],
             "Tags": [],
-            "VpcEndpointPolicySupported": True,
+            "VpcEndpointPolicySupported": policy_supported,
         }
 
         # Don't know how private DNS names are different, so for now just
