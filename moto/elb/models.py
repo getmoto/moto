@@ -279,6 +279,17 @@ class ELBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "elasticloadbalancing",
+            "Interface",
+            private_dns_names=True,
+        )
+
     def create_load_balancer(
         self,
         name,
