@@ -2054,7 +2054,9 @@ def test_list_job_executions_for_thing():
         job_id
     )
 
-    job_execution = client.list_job_executions_for_thing(thingName=name, status="QUEUED")
+    job_execution = client.list_job_executions_for_thing(
+        thingName=name, status="QUEUED"
+    )
     job_execution.should.have.key("executionSummaries")
     job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
         job_id
