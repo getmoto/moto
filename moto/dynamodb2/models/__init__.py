@@ -711,7 +711,7 @@ class Table(CloudFormationModel):
         projection_expression,
         index_name=None,
         filter_expression=None,
-        **filter_kwargs
+        **filter_kwargs,
     ):
         results = []
 
@@ -1301,7 +1301,7 @@ class DynamoDBBackend(BaseBackend):
         expr_names=None,
         expr_values=None,
         filter_expression=None,
-        **filter_kwargs
+        **filter_kwargs,
     ):
         table = self.tables.get(table_name)
         if not table:
@@ -1324,7 +1324,7 @@ class DynamoDBBackend(BaseBackend):
             projection_expression,
             index_name,
             filter_expression,
-            **filter_kwargs
+            **filter_kwargs,
         )
 
     def scan(
