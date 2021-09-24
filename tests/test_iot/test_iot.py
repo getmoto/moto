@@ -2011,6 +2011,12 @@ def test_list_job_executions_for_job():
         "thingArn"
     ).which.should.equal(thing["thingArn"])
 
+    job_execution = client.list_job_executions_for_job(jobId=job_id, status="QUEUED")
+    job_execution.should.have.key("executionSummaries")
+    job_execution["executionSummaries"][0].should.have.key(
+        "thingArn"
+    ).which.should.equal(thing["thingArn"])
+
 
 @mock_iot
 def test_list_job_executions_for_thing():
