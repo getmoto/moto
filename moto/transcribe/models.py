@@ -454,13 +454,9 @@ class TranscribeBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint services."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "transcribe", "Interface", private_dns_names=True
+            service_region, zones, "transcribe"
         ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region,
-            zones,
-            "transcribestreaming",
-            "Interface",
-            private_dns_names=True,
+            service_region, zones, "transcribestreaming"
         )
 
     def start_transcription_job(self, **kwargs):

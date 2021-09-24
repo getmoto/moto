@@ -503,7 +503,7 @@ class CloudFormationBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "cloudformation", "Interface", private_dns_names=True
+            service_region, zones, "cloudformation"
         )
 
     def _resolve_update_parameters(self, instance, incoming_params):

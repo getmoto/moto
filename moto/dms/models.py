@@ -29,7 +29,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "dms", "Interface", private_dns_names=True
+            service_region, zones, "dms"
         )
 
     def create_replication_task(

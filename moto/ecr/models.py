@@ -356,12 +356,7 @@ class ECRBackend(BaseBackend):
             "VpcEndpointPolicySupported": True,
         }
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region,
-            zones,
-            "api.ecr",
-            "Interface",
-            private_dns_names=True,
-            special_service_name="ecr.api",
+            service_region, zones, "api.ecr", special_service_name="ecr.api",
         ) + [docker_endpoint]
 
     def _get_repository(self, name, registry_id=None) -> Repository:

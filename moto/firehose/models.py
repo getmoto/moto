@@ -178,12 +178,7 @@ class FirehoseBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region,
-            zones,
-            "firehose",
-            "Interface",
-            private_dns_names=True,
-            special_service_name="kinesis-firehose",
+            service_region, zones, "firehose", special_service_name="kinesis-firehose"
         )
 
     def create_delivery_stream(

@@ -329,12 +329,7 @@ class KinesisBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region,
-            zones,
-            "kinesis",
-            "Interface",
-            private_dns_names=True,
-            special_service_name="kinesis-streams",
+            service_region, zones, "kinesis", special_service_name="kinesis-streams"
         )
 
     def create_stream(

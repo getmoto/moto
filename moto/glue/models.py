@@ -28,7 +28,7 @@ class GlueBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "glue", "Interface", private_dns_names=True
+            service_region, zones, "glue"
         )
 
     def create_database(self, database_name, database_input):

@@ -858,7 +858,7 @@ class ConfigBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """List of dicts representing default VPC endpoints for this service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "config", "Interface", private_dns_names=True
+            service_region, zones, "config"
         )
 
     def _validate_resource_types(self, resource_list):

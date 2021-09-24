@@ -578,9 +578,9 @@ class RedshiftBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift", "Interface", private_dns_names=True
+            service_region, zones, "redshift"
         ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift-data", "Interface", private_dns_names=True
+            service_region, zones, "redshift-data"
         )
 
     def enable_snapshot_copy(self, **kwargs):

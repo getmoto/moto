@@ -509,12 +509,11 @@ class IoTBackend(BaseBackend):
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "iot", "Interface", private_dns_names=True
+            service_region, zones, "iot"
         ) + BaseBackend.default_vpc_endpoint_service_factory(
             service_region,
             zones,
             "data.iot",
-            "Interface",
             private_dns_names=False,
             special_service_name="iot.data",
         )
