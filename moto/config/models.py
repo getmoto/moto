@@ -791,7 +791,7 @@ class ConfigRule(ConfigEmptyDictable):
         # Verify input parameter names are actual parameters for the rule ID.
         if param_names:
             allowed_names = {x["Name"] for x in rule_info["Parameters"]}
-            if allowed_names.difference(set(param_names)):
+            if not set(param_names).issubset(allowed_names):
                 raise InvalidParameterValueException(
                     "Unknown parameters provided in the inputParameters: "
                     + self.input_parameters.replace('"', '\\"')
