@@ -237,3 +237,23 @@ def test_describe_vpc_default_endpoint_services():
     )
     assert len(remaining_services["ServiceDetails"]) == len(all_names) - 3
     assert "NextToken" not in remaining_services
+
+    # Extract one service and verify all the fields.  This time the data is
+    # extracted from the actual response.
+    config_service = ec2.describe_vpc_endpoint_services(
+        ServiceNames=["com.amazonaws.us-west-1.config"]
+    )
+    details = config_service["ServiceDetails"][0]
+    assert details["AcceptanceRequired"] is False
+    assert details["AvailabilityZones"] == ["us-west-1a", "us-west-1b"]
+    assert details["BaseEndpointDnsNames"] == ["config.us-west-1.vpce.amazonaws.com"]
+    assert details["ManagesVpcEndpoints"] is False
+    assert details["Owner"] == "amazon"
+    assert details["PrivateDnsName"] == "config.us-west-1.amazonaws.com"
+    assert details["PrivateDnsNames"] == [
+        {"PrivateDnsName": "config.us-west-1.amazonaws.com"}
+    ]
+    assert details["PrivateDnsNameVerificationState"] == "verified"
+    assert details["ServiceName"] == "com.amazonaws.us-west-1.config"
+    assert details["ServiceType"] == [{"ServiceType": "Interface"}]
+    assert details["VpcEndpointPolicySupported"] is True
