@@ -1684,6 +1684,28 @@ class APIGatewayBackend(BaseBackend):
         else:
             return model
 
+    def get_request_validators(self, restapi_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validators()
+
+    def create_request_validator(self, restapi_id, name, body, params):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.create_request_validator(
+            name=name, validateRequestBody=body, validateRequestParameters=params,
+        )
+
+    def get_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validator(validator_id)
+
+    def delete_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        restApi.delete_request_validator(validator_id)
+
+    def update_request_validator(self, restapi_id, validator_id, patch_operations):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.update_request_validator(validator_id, patch_operations)
+
 
 apigateway_backends = {}
 for region_name in Session().get_available_regions("apigateway"):

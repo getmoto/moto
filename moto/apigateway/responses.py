@@ -311,23 +311,19 @@ class APIGatewayResponse(BaseResponse):
         url_path_parts = self.path.split("/")
         restapi_id = url_path_parts[2]
         try:
-            restApi = self.backend.get_rest_api(restapi_id)
+
             if self.method == "GET":
-                validators = restApi.get_request_validators()
+                validators = self.backend.get_request_validators(restapi_id)
                 res = json.dumps(
                     {"item": [validator.to_dict() for validator in validators]}
                 )
                 return 200, {}, res
             if self.method == "POST":
                 name = self._get_param("name")
-                validateRequestBody = self._get_bool_param("validateRequestBody")
-                validateRequestParameters = self._get_bool_param(
-                    "validateRequestParameters"
-                )
-                validator = restApi.create_request_validator(
-                    name=name,
-                    validateRequestBody=validateRequestBody,
-                    validateRequestParameters=validateRequestParameters,
+                body = self._get_bool_param("validateRequestBody")
+                params = self._get_bool_param("validateRequestParameters")
+                validator = self.backend.create_request_validator(
+                    restapi_id, name, body, params
                 )
                 return 200, {}, json.dumps(validator)
         except BadRequestException as e:
@@ -341,16 +337,16 @@ class APIGatewayResponse(BaseResponse):
         restapi_id = url_path_parts[2]
         validator_id = url_path_parts[4]
         try:
-            restApi = self.backend.get_rest_api(restapi_id)
             if self.method == "GET":
-                return 200, {}, json.dumps(restApi.get_request_validator(validator_id))
+                validator = self.backend.get_request_validator(restapi_id, validator_id)
+                return 200, {}, json.dumps(validator)
             if self.method == "DELETE":
-                restApi.delete_request_validator(validator_id)
+                self.backend.delete_request_validator(restapi_id, validator_id)
                 return 202, {}, ""
             if self.method == "PATCH":
                 patch_operations = self._get_param("patchOperations")
-                validator = restApi.update_request_validator(
-                    validator_id, patch_operations
+                validator = self.backend.update_request_validator(
+                    restapi_id, validator_id, patch_operations
                 )
                 return 200, {}, json.dumps(validator)
         except BadRequestException as e:

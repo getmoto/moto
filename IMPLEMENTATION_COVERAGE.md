@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>44% implemented</summary>
+<summary>48% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -32,7 +32,7 @@
 - [ ] create_documentation_version
 - [X] create_domain_name
 - [X] create_model
-- [ ] create_request_validator
+- [X] create_request_validator
 - [X] create_resource
 - [X] create_rest_api
 - [X] create_stage
@@ -53,7 +53,7 @@
 - [X] delete_method
 - [X] delete_method_response
 - [ ] delete_model
-- [ ] delete_request_validator
+- [X] delete_request_validator
 - [X] delete_resource
 - [X] delete_rest_api
 - [X] delete_stage
@@ -90,8 +90,8 @@
 - [X] get_model
 - [ ] get_model_template
 - [X] get_models
-- [ ] get_request_validator
-- [ ] get_request_validators
+- [X] get_request_validator
+- [X] get_request_validators
 - [X] get_resource
 - [ ] get_resources
 - [X] get_rest_api
@@ -137,7 +137,7 @@
 - [X] update_method
 - [X] update_method_response
 - [ ] update_model
-- [ ] update_request_validator
+- [X] update_request_validator
 - [ ] update_resource
 - [X] update_rest_api
 - [X] update_stage
@@ -1687,7 +1687,7 @@
 
 ## elb
 <details>
-<summary>34% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
@@ -1715,7 +1715,7 @@
 - [ ] modify_load_balancer_attributes
 - [ ] register_instances_with_load_balancer
 - [ ] remove_tags
-- [ ] set_load_balancer_listener_ssl_certificate
+- [X] set_load_balancer_listener_ssl_certificate
 - [ ] set_load_balancer_policies_for_backend_server
 - [X] set_load_balancer_policies_of_listener
 </details>
