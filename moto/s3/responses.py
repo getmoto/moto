@@ -80,6 +80,7 @@ DEFAULT_REGION_NAME = "us-east-1"
 
 ACTION_MAP = {
     "BUCKET": {
+        "HEAD": {"DEFAULT": "HeadBucket",},
         "GET": {
             "uploads": "ListBucketMultipartUploads",
             "location": "GetBucketLocation",
@@ -311,7 +312,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         body = "{0}".format(body).encode("utf-8")
 
         if method == "HEAD":
-            return self._bucket_response_head(bucket_name)
+            return self._bucket_response_head(bucket_name, querystring)
         elif method == "GET":
             return self._bucket_response_get(bucket_name, querystring)
         elif method == "PUT":
@@ -335,7 +336,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         return querystring
 
-    def _bucket_response_head(self, bucket_name):
+    def _bucket_response_head(self, bucket_name, querystring):
+        self._set_action("BUCKET", "HEAD", querystring)
+        self._authenticate_and_authorize_s3_action()
+
         try:
             self.backend.head_bucket(bucket_name)
         except MissingBucket:
