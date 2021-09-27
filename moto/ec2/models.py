@@ -572,7 +572,24 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
         self.lifecycle = kwargs.get("lifecycle")
-        self.image_id = image_id
+
+        launch_template_arg = kwargs.get("launch_template", {})
+        if launch_template_arg and not image_id:
+            # the image id from the template should be used
+            template = (
+                ec2_backend.describe_launch_templates(
+                    template_ids=[launch_template_arg["LaunchTemplateId"]]
+                )[0]
+                if "LaunchTemplateId" in launch_template_arg
+                else ec2_backend.describe_launch_templates(
+                    template_names=[launch_template_arg["LaunchTemplateName"]]
+                )[0]
+            )
+            version = launch_template_arg.get("Version", template.latest_version_number)
+            self.image_id = template.get_version(int(version)).image_id
+        else:
+            self.image_id = image_id
+
         self._state = InstanceState("running", 16)
         self._reason = ""
         self._state_reason = StateReason()
@@ -600,7 +617,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             # If we are in EC2-Classic, autoassign a public IP
             self.associate_public_ip = True
 
-        amis = self.ec2_backend.describe_images(filters={"image-id": image_id})
+        amis = self.ec2_backend.describe_images(filters={"image-id": self.image_id})
         ami = amis[0] if amis else None
         if ami is None:
             warnings.warn(
@@ -608,7 +625,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 "in the near future this will "
                 "cause an error.\n"
                 "Use ec2_backend.describe_images() to "
-                "find suitable image for your test".format(image_id),
+                "find suitable image for your test".format(self.image_id),
                 PendingDeprecationWarning,
             )
 

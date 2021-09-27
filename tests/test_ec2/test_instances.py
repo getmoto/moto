@@ -2931,3 +2931,30 @@ def test_instance_lifecycle():
     instance = result[0]
 
     assert instance.instance_lifecycle is None
+
+
+@mock_ec2
+@pytest.mark.parametrize(
+    "launch_template_kind", ("LaunchTemplateId", "LaunchTemplateName")
+)
+def test_create_instance_with_launch_template_id_produces_no_warning(
+    launch_template_kind,
+):
+    client, resource = (
+        boto3.client("ec2", region_name="us-west-1"),
+        boto3.resource("ec2", region_name="us-west-1"),
+    )
+
+    template = client.create_launch_template(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
+    )["LaunchTemplate"]
+
+    with pytest.warns(None) as captured_warnings:
+        resource.create_instances(
+            MinCount=1,
+            MaxCount=1,
+            LaunchTemplate={launch_template_kind: template[launch_template_kind]},
+        )
+
+    assert len(captured_warnings) == 0
