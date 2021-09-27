@@ -96,6 +96,7 @@ def test_delete_task_definition():
     resp = batch_client.describe_job_definitions()
     len(resp["jobDefinitions"]).should.equal(0)
 
+
 @mock_ec2
 @mock_ecs
 @mock_iam
@@ -106,7 +107,9 @@ def test_delete_task_definition_by_name():
 
     resp = register_job_def(batch_client)
 
-    batch_client.deregister_job_definition(jobDefinition=f"{resp['jobDefinitionName']}:{resp['revision']}")
+    batch_client.deregister_job_definition(
+        jobDefinition=f"{resp['jobDefinitionName']}:{resp['revision']}"
+    )
 
     resp = batch_client.describe_job_definitions()
     len(resp["jobDefinitions"]).should.equal(0)
