@@ -717,6 +717,7 @@ class BatchBackend(BaseBackend):
         return latest_job
 
     def get_job_definition_by_name_revision(self, name, revision):
+        revision = int(revision)
         for job_def in self._job_definitions.values():
             if job_def.name == name and job_def.revision == revision:
                 return job_def
