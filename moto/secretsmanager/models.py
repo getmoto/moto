@@ -270,7 +270,7 @@ class SecretsManagerBackend(BaseBackend):
     ):
 
         # error if secret does not exist
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         if self.secrets[secret_id].is_deleted():
@@ -701,7 +701,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def tag_resource(self, secret_id, tags):
 
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]
@@ -714,7 +714,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def untag_resource(self, secret_id, tag_keys):
 
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]
@@ -729,7 +729,7 @@ class SecretsManagerBackend(BaseBackend):
     def update_secret_version_stage(
         self, secret_id, version_stage, remove_from_version_id, move_to_version_id
     ):
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]
