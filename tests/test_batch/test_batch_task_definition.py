@@ -101,6 +101,24 @@ def test_delete_task_definition():
 @mock_ecs
 @mock_iam
 @mock_batch
+def test_delete_task_definition_by_name():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    _setup(ec2_client, iam_client)
+
+    resp = register_job_def(batch_client)
+
+    batch_client.deregister_job_definition(
+        jobDefinition=f"{resp['jobDefinitionName']}:{resp['revision']}"
+    )
+
+    resp = batch_client.describe_job_definitions()
+    len(resp["jobDefinitions"]).should.equal(0)
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
 def test_describe_task_definition():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
