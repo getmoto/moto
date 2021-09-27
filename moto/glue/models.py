@@ -24,6 +24,13 @@ class GlueBackend(BaseBackend):
         self.databases = OrderedDict()
         self.crawlers = OrderedDict()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "glue"
+        )
+
     def create_database(self, database_name, database_input):
         if database_name in self.databases:
             raise DatabaseAlreadyExistsException()

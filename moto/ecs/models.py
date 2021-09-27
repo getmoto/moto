@@ -675,6 +675,13 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ecs"
+        )
+
     def _get_cluster(self, name):
         # short name or full ARN of the cluster
         cluster_name = name.split("/")[-1]

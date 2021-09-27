@@ -1,8 +1,28 @@
 Moto Changelog
 ===================
 
-Unreleased
+2.2.8
 -----
+    New Services:
+        * ACM:
+            * export_certificate()
+        * APIGateway:
+            * create_request_validator()
+            * delete_request_validator()
+            * get_request_validators()
+            * update_request_validator()
+
+    Miscellaneous:
+        * APIGateway: update_rest_api() now has improved support for the patchOperations-parameter
+        * Batch: register_job_definition() now supports the tags-parameter
+        * CloudFormation: Stack Events are now propagated to SNS when the NotificationARNs-parameter is supplied.
+        * EC2: describe_vpc_endpoint_services() now returns the default endpoints for implemented services 
+        * IOT: list_job_executions_for_job() now supports the status-parameter
+        * IOT: list_job_executions_for_thing() now supports the status-parameter
+        * KMS: list_resource_tags() now supports an ARN as the KeyId-parameter
+        * KMS: tag_resource() now supports an ARN as the KeyId-parameter
+        * KMS: untag_resource() now supports an ARN as the KeyId-parameter
+        * SecretsManager: update_secret() now supports the ClientRequestToken-parameter
 
 2.2.7
 -----

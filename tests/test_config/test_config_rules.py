@@ -317,6 +317,7 @@ def test_valid_put_config_managed_rule():
     # Create managed rule and compare input against describe_config_rule()
     # output.
     managed_rule = managed_config_rule()
+    managed_rule["Source"]["SourceIdentifier"] = "IAM_PASSWORD_POLICY"
     managed_rule["Scope"]["ComplianceResourceTypes"] = ["AWS::IAM::Group"]
     managed_rule["Scope"]["ComplianceResourceId"] = "basic_test"
     managed_rule["InputParameters"] = '{"RequireUppercaseCharacters":"true"}'
@@ -336,7 +337,6 @@ def test_valid_put_config_managed_rule():
     managed_rule["ConfigRuleId"] = rule_id
     managed_rule["Description"] = "Updated Managed S3 Public Read Rule"
     managed_rule["Scope"]["ComplianceResourceTypes"] = ["AWS::S3::Bucket"]
-    managed_rule["Scope"]["ComplianceResourceId"] = "S3-BUCKET_VERSIONING_ENABLED"
     managed_rule["MaximumExecutionFrequency"] = "Six_Hours"
     managed_rule["InputParameters"] = "{}"
     client.put_config_rule(ConfigRule=managed_rule)
@@ -344,6 +344,25 @@ def test_valid_put_config_managed_rule():
     rsp = client.describe_config_rules(ConfigRuleNames=[managed_rule["ConfigRuleName"]])
     managed_rule_json = json.dumps(managed_rule, sort_keys=True)
     rsp_json = json.dumps(rsp["ConfigRules"][0], sort_keys=True)
+    assert managed_rule_json == rsp_json
+
+    # Valid InputParameters.
+    managed_rule = {
+        "ConfigRuleName": f"input_param_test_{random_string()}",
+        "Description": "Provide subset of allowed input parameters",
+        "InputParameters": '{"blockedPort1":"22","blockedPort2":"3389"}',
+        "Scope": {"ComplianceResourceTypes": ["AWS::IAM::SecurityGroup"]},
+        "Source": {"Owner": "AWS", "SourceIdentifier": "RESTRICTED_INCOMING_TRAFFIC"},
+    }
+    client.put_config_rule(ConfigRule=managed_rule)
+
+    rsp = client.describe_config_rules(ConfigRuleNames=[managed_rule["ConfigRuleName"]])
+    managed_rule_json = json.dumps(managed_rule, sort_keys=True)
+    new_config_rule = rsp["ConfigRules"][0]
+    del new_config_rule["ConfigRuleArn"]
+    del new_config_rule["ConfigRuleId"]
+    del new_config_rule["ConfigRuleState"]
+    rsp_json = json.dumps(new_config_rule, sort_keys=True)
     assert managed_rule_json == rsp_json
 
 

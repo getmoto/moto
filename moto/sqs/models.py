@@ -584,6 +584,13 @@ class SQSBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "sqs"
+        )
+
     def create_queue(self, name, tags=None, **kwargs):
         queue = self.queues.get(name)
         if queue:

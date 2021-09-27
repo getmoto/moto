@@ -387,6 +387,13 @@ class SNSBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """List of dicts representing default VPC endpoints for this service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "sns"
+        )
+
     def update_sms_attributes(self, attrs):
         self.sms_attributes.update(attrs)
 

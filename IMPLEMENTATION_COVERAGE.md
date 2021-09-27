@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>43% implemented</summary>
+<summary>48% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -32,7 +32,7 @@
 - [ ] create_documentation_version
 - [X] create_domain_name
 - [X] create_model
-- [ ] create_request_validator
+- [X] create_request_validator
 - [X] create_resource
 - [X] create_rest_api
 - [X] create_stage
@@ -50,10 +50,10 @@
 - [ ] delete_gateway_response
 - [X] delete_integration
 - [X] delete_integration_response
-- [ ] delete_method
+- [X] delete_method
 - [X] delete_method_response
 - [ ] delete_model
-- [ ] delete_request_validator
+- [X] delete_request_validator
 - [X] delete_resource
 - [X] delete_rest_api
 - [X] delete_stage
@@ -90,8 +90,8 @@
 - [X] get_model
 - [ ] get_model_template
 - [X] get_models
-- [ ] get_request_validator
-- [ ] get_request_validators
+- [X] get_request_validator
+- [X] get_request_validators
 - [X] get_resource
 - [ ] get_resources
 - [X] get_rest_api
@@ -137,7 +137,7 @@
 - [X] update_method
 - [X] update_method_response
 - [ ] update_model
-- [ ] update_request_validator
+- [X] update_request_validator
 - [ ] update_resource
 - [X] update_rest_api
 - [X] update_stage
@@ -1249,7 +1249,7 @@
 - [ ] describe_vpc_endpoint_connections
 - [ ] describe_vpc_endpoint_service_configurations
 - [ ] describe_vpc_endpoint_service_permissions
-- [ ] describe_vpc_endpoint_services
+- [X] describe_vpc_endpoint_services
 - [X] describe_vpc_endpoints
 - [X] describe_vpc_peering_connections
 - [X] describe_vpcs
@@ -1316,6 +1316,8 @@
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
+- [ ] get_vpn_connection_device_sample_configuration
+- [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -1437,7 +1439,7 @@
 
 ## ecr
 <details>
-<summary>76% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -1448,6 +1450,7 @@
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
+- [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
 - [X] describe_registry
@@ -1684,7 +1687,7 @@
 
 ## elb
 <details>
-<summary>34% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
@@ -1712,7 +1715,7 @@
 - [ ] modify_load_balancer_attributes
 - [ ] register_instances_with_load_balancer
 - [ ] remove_tags
-- [ ] set_load_balancer_listener_ssl_certificate
+- [X] set_load_balancer_listener_ssl_certificate
 - [ ] set_load_balancer_policies_for_backend_server
 - [X] set_load_balancer_policies_of_listener
 </details>
@@ -1933,7 +1936,7 @@
 
 ## glacier
 <details>
-<summary>12% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] abort_multipart_upload
 - [ ] abort_vault_lock
@@ -1945,7 +1948,7 @@
 - [X] delete_vault
 - [ ] delete_vault_access_policy
 - [ ] delete_vault_notifications
-- [ ] describe_job
+- [X] describe_job
 - [ ] describe_vault
 - [ ] get_data_retrieval_policy
 - [ ] get_job_output
@@ -1960,13 +1963,13 @@
 - [ ] list_parts
 - [ ] list_provisioned_capacity
 - [ ] list_tags_for_vault
-- [ ] list_vaults
+- [X] list_vaults
 - [ ] purchase_provisioned_capacity
 - [ ] remove_tags_from_vault
 - [ ] set_data_retrieval_policy
 - [ ] set_vault_access_policy
 - [ ] set_vault_notifications
-- [ ] upload_archive
+- [X] upload_archive
 - [ ] upload_multipart_part
 </details>
 
@@ -2494,6 +2497,7 @@
 - [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
+- [ ] put_verification_state_on_violation
 - [ ] register_ca_certificate
 - [X] register_certificate
 - [X] register_certificate_without_ca

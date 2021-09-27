@@ -31,7 +31,7 @@ ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <Errors>
       <Error>
         <Code>{{error_type}}</Code>
-        <Message>{{message}}</Message>
+        <Message><![CDATA[{{message}}]]></Message>
         {% block extra %}{% endblock %}
       </Error>
     </Errors>

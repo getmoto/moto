@@ -553,6 +553,13 @@ class ELBv2Backend(BaseBackend):
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticloadbalancing"
+        )
+
     @property
     def ec2_backend(self):
         """

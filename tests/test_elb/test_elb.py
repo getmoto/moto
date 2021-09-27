@@ -17,8 +17,10 @@ import sure  # noqa
 from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
+from uuid import uuid4
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated
 @mock_ec2_deprecated
 def test_create_load_balancer():
@@ -49,6 +51,86 @@ def test_create_load_balancer():
     listener2.protocol.should.equal("TCP")
 
 
+@pytest.mark.parametrize("region_name", ["us-east-1", "ap-south-1"])
+@pytest.mark.parametrize(
+    "zones",
+    [
+        ["us-east-1a"],
+        ["us-east-1a", "us-east-1b"],
+        ["eu-north-1a", "eu-north-1b", "eu-north-1c"],
+    ],
+)
+@mock_elb
+@mock_ec2
+def test_create_load_balancer_boto3(zones, region_name):
+    # Both regions and availability zones are parametrized
+    # This does not seem to have an effect on the DNS name
+    client = boto3.client("elb", region_name=region_name)
+    ec2 = boto3.resource("ec2", region_name=region_name)
+
+    security_group = ec2.create_security_group(
+        GroupName="sg01", Description="Test security group sg01"
+    )
+
+    lb = client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[
+            {"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080},
+            {"Protocol": "http", "LoadBalancerPort": 81, "InstancePort": 9000},
+        ],
+        AvailabilityZones=zones,
+        Scheme="internal",
+        SecurityGroups=[security_group.id],
+    )
+    lb.should.have.key("DNSName").equal("my-lb.us-east-1.elb.amazonaws.com")
+
+    describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
+        "LoadBalancerDescriptions"
+    ][0]
+    describe.should.have.key("LoadBalancerName").equal("my-lb")
+    describe.should.have.key("DNSName").equal("my-lb.us-east-1.elb.amazonaws.com")
+    describe.should.have.key("CanonicalHostedZoneName").equal(
+        "my-lb.us-east-1.elb.amazonaws.com"
+    )
+    describe.should.have.key("AvailabilityZones").equal(zones)
+    describe.should.have.key("VPCId")
+    describe.should.have.key("SecurityGroups").equal([security_group.id])
+    describe.should.have.key("Scheme").equal("internal")
+
+    describe.should.have.key("ListenerDescriptions")
+    describe["ListenerDescriptions"].should.have.length_of(2)
+
+    tcp = [
+        l["Listener"]
+        for l in describe["ListenerDescriptions"]
+        if l["Listener"]["Protocol"] == "TCP"
+    ][0]
+    http = [
+        l["Listener"]
+        for l in describe["ListenerDescriptions"]
+        if l["Listener"]["Protocol"] == "HTTP"
+    ][0]
+    tcp.should.equal(
+        {
+            "Protocol": "TCP",
+            "LoadBalancerPort": 80,
+            "InstanceProtocol": "TCP",
+            "InstancePort": 8080,
+            "SSLCertificateId": "None",
+        }
+    )
+    http.should.equal(
+        {
+            "Protocol": "HTTP",
+            "LoadBalancerPort": 81,
+            "InstanceProtocol": "HTTP",
+            "InstancePort": 9000,
+            "SSLCertificateId": "None",
+        }
+    )
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_getting_missing_elb():
     conn = boto.connect_elb()
@@ -57,6 +139,19 @@ def test_getting_missing_elb():
     ).should.throw(BotoServerError)
 
 
+@mock_elb
+def test_get_missing_elb_boto3():
+    client = boto3.client("elb", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        client.describe_load_balancers(LoadBalancerNames=["unknown-lb"])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("LoadBalancerNotFound")
+    err["Message"].should.equal(
+        "The specified load balancer does not exist: unknown-lb"
+    )
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_create_elb_in_multiple_region():
     zones = ["us-east-1a", "us-east-1b"]
@@ -72,6 +167,41 @@ def test_create_elb_in_multiple_region():
     list(west2_conn.get_all_load_balancers()).should.have.length_of(1)
 
 
+@mock_elb
+def test_create_elb_in_multiple_region_boto3():
+    client_east = boto3.client("elb", region_name="us-east-2")
+    client_west = boto3.client("elb", region_name="us-west-2")
+
+    name_east = str(uuid4())[0:6]
+    name_west = str(uuid4())[0:6]
+
+    client_east.create_load_balancer(
+        LoadBalancerName=name_east,
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+    client_west.create_load_balancer(
+        LoadBalancerName=name_west,
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    east_names = [
+        lb["LoadBalancerName"]
+        for lb in client_east.describe_load_balancers()["LoadBalancerDescriptions"]
+    ]
+    east_names.should.contain(name_east)
+    east_names.shouldnt.contain(name_west)
+
+    west_names = [
+        lb["LoadBalancerName"]
+        for lb in client_west.describe_load_balancers()["LoadBalancerDescriptions"]
+    ]
+    west_names.should.contain(name_west)
+    west_names.shouldnt.contain(name_east)
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_create_load_balancer_with_certificate():
     conn = boto.connect_elb()
@@ -99,6 +229,35 @@ def test_create_load_balancer_with_certificate():
     listener.ssl_certificate_id.should.equal(
         "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID)
     )
+
+
+@mock_elb
+def test_create_load_balancer_with_certificate_boto3():
+    client = boto3.client("elb", region_name="us-east-2")
+
+    name = str(uuid4())[0:6]
+    cert_id = "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID)
+
+    client.create_load_balancer(
+        LoadBalancerName=name,
+        Listeners=[
+            {
+                "Protocol": "https",
+                "LoadBalancerPort": 8443,
+                "InstancePort": 443,
+                "SSLCertificateId": cert_id,
+            }
+        ],
+        AvailabilityZones=["us-east-1a"],
+    )
+    describe = client.describe_load_balancers(LoadBalancerNames=[name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    describe["Scheme"].should.equal("internet-facing")
+
+    listener = describe["ListenerDescriptions"][0]["Listener"]
+    listener.should.have.key("Protocol").equal("HTTPS")
+    listener.should.have.key("SSLCertificateId").equals(cert_id)
 
 
 @mock_elb
@@ -190,6 +349,7 @@ def test_apply_security_groups_to_load_balancer():
     )
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_add_listener():
     conn = boto.connect_elb()
@@ -210,6 +370,7 @@ def test_add_listener():
     listener2.protocol.should.equal("TCP")
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_delete_listener():
     conn = boto.connect_elb()
@@ -272,6 +433,7 @@ def test_create_and_delete_listener_boto3_support():
     list(balancer["ListenerDescriptions"]).should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_set_sslcertificate():
     conn = boto.connect_elb()
@@ -289,6 +451,38 @@ def test_set_sslcertificate():
     listener1.ssl_certificate_id.should.equal("arn:certificate")
 
 
+@mock_elb
+def test_set_sslcertificate_boto3():
+    client = boto3.client("elb", region_name="us-east-1")
+    lb_name = str(uuid4())[0:6]
+
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[
+            {"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080},
+            {"Protocol": "https", "LoadBalancerPort": 81, "InstancePort": 8081},
+        ],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.set_load_balancer_listener_ssl_certificate(
+        LoadBalancerName=lb_name,
+        LoadBalancerPort=81,
+        SSLCertificateId="arn:certificate",
+    )
+
+    elb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+
+    listener = elb["ListenerDescriptions"][0]["Listener"]
+    listener.should.have.key("LoadBalancerPort").equals(80)
+    listener.should.have.key("SSLCertificateId").equals("None")
+
+    listener = elb["ListenerDescriptions"][1]["Listener"]
+    listener.should.have.key("LoadBalancerPort").equals(81)
+    listener.should.have.key("SSLCertificateId").equals("arn:certificate")
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_get_load_balancers_by_name():
     conn = boto.connect_elb()
@@ -306,6 +500,50 @@ def test_get_load_balancers_by_name():
     ).should.have.length_of(2)
 
 
+@mock_elb
+def test_get_load_balancers_by_name_boto3():
+    client = boto3.client("elb", region_name="us-east-1")
+    lb_name1 = str(uuid4())[0:6]
+    lb_name2 = str(uuid4())[0:6]
+
+    client.create_load_balancer(
+        LoadBalancerName=lb_name1,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.create_load_balancer(
+        LoadBalancerName=lb_name2,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    lbs = client.describe_load_balancers(LoadBalancerNames=[lb_name1])
+    lbs["LoadBalancerDescriptions"].should.have.length_of(1)
+
+    lbs = client.describe_load_balancers(LoadBalancerNames=[lb_name2])
+    lbs["LoadBalancerDescriptions"].should.have.length_of(1)
+
+    lbs = client.describe_load_balancers(LoadBalancerNames=[lb_name1, lb_name2])
+    lbs["LoadBalancerDescriptions"].should.have.length_of(2)
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_load_balancers(LoadBalancerNames=["unknownlb"])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("LoadBalancerNotFound")
+    err["Message"].should.equal(
+        f"The specified load balancer does not exist: unknownlb"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_load_balancers(LoadBalancerNames=[lb_name1, "unknownlb"])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("LoadBalancerNotFound")
+    # Bug - message sometimes shows the lb that does exist
+    err["Message"].should.match(f"The specified load balancer does not exist:")
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_delete_load_balancer():
     conn = boto.connect_elb()
@@ -322,6 +560,38 @@ def test_delete_load_balancer():
     balancers.should.have.length_of(0)
 
 
+@mock_elb
+def test_delete_load_balancer_boto3():
+    client = boto3.client("elb", region_name="us-east-1")
+    lb_name1 = str(uuid4())[0:6]
+    lb_name2 = str(uuid4())[0:6]
+
+    client.create_load_balancer(
+        LoadBalancerName=lb_name1,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.create_load_balancer(
+        LoadBalancerName=lb_name2,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    lbs = client.describe_load_balancers()["LoadBalancerDescriptions"]
+    lb_names = [lb["LoadBalancerName"] for lb in lbs]
+    lb_names.should.contain(lb_name1)
+    lb_names.should.contain(lb_name2)
+
+    client.delete_load_balancer(LoadBalancerName=lb_name1)
+
+    lbs = client.describe_load_balancers()["LoadBalancerDescriptions"]
+    lb_names = [lb["LoadBalancerName"] for lb in lbs]
+    lb_names.shouldnt.contain(lb_name1)
+    lb_names.should.contain(lb_name2)
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_create_health_check():
     conn = boto.connect_elb()
@@ -375,6 +645,7 @@ def test_create_health_check_boto3():
     balancer["HealthCheck"]["UnhealthyThreshold"].should.equal(5)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 @mock_elb_deprecated
 def test_register_instances():
@@ -417,6 +688,7 @@ def test_register_instances_boto3():
     set(instance_ids).should.equal(set([instance_id1, instance_id2]))
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 @mock_elb_deprecated
 def test_deregister_instances():
@@ -470,6 +742,7 @@ def test_deregister_instances_boto3():
     balancer["Instances"][0]["InstanceId"].should.equal(instance_id2)
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_default_attributes():
     conn = boto.connect_elb()
@@ -483,6 +756,27 @@ def test_default_attributes():
     attributes.connecting_settings.idle_timeout.should.equal(60)
 
 
+@mock_elb
+def test_default_attributes_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
+        "LoadBalancerAttributes"
+    ]
+    attributes.should.have.key("CrossZoneLoadBalancing").equal({"Enabled": False})
+    attributes.should.have.key("AccessLog").equal({"Enabled": False})
+    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False})
+    attributes.should.have.key("ConnectionSettings").equal({"IdleTimeout": 60})
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_cross_zone_load_balancing_attribute():
     conn = boto.connect_elb()
@@ -498,6 +792,43 @@ def test_cross_zone_load_balancing_attribute():
     attributes.cross_zone_load_balancing.enabled.should.be.false
 
 
+@mock_elb
+def test_cross_zone_load_balancing_attribute_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerName=lb_name,
+        LoadBalancerAttributes={"CrossZoneLoadBalancing": {"Enabled": True}},
+    )
+
+    attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
+        "LoadBalancerAttributes"
+    ]
+    # Bug: This property is not properly propagated
+    attributes.should.have.key("CrossZoneLoadBalancing").equal({"Enabled": False})
+    attributes.should.have.key("AccessLog").equal({"Enabled": False})
+    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False})
+    attributes.should.have.key("ConnectionSettings").equal({"IdleTimeout": 60})
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerName=lb_name,
+        LoadBalancerAttributes={"CrossZoneLoadBalancing": {"Enabled": False}},
+    )
+
+    attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
+        "LoadBalancerAttributes"
+    ]
+    attributes.should.have.key("CrossZoneLoadBalancing").equal({"Enabled": False})
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_connection_draining_attribute():
     conn = boto.connect_elb()
@@ -524,6 +855,43 @@ def test_connection_draining_attribute():
     attributes.connection_draining.enabled.should.be.false
 
 
+@mock_elb
+def test_connection_draining_attribute_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerName=lb_name,
+        LoadBalancerAttributes={"ConnectionDraining": {"Enabled": True, "Timeout": 42}},
+    )
+
+    attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
+        "LoadBalancerAttributes"
+    ]
+    attributes.should.have.key("ConnectionDraining").equal(
+        {"Enabled": True, "Timeout": 42}
+    )
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerName=lb_name,
+        LoadBalancerAttributes={"ConnectionDraining": {"Enabled": False}},
+    )
+
+    attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
+        "LoadBalancerAttributes"
+    ]
+    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False})
+
+
+# This does not work in Boto3, so we can't write a equivalent test
+# Moto always looks for attribute 's3_bucket_name', but Boto3 sends 'S3BucketName'
+# We'll need to rewrite this feature completely anyway, to get rid of the boto-objects
 @mock_elb_deprecated
 def test_access_log_attribute():
     conn = boto.connect_elb()
@@ -549,6 +917,9 @@ def test_access_log_attribute():
     attributes.access_log.enabled.should.be.false
 
 
+# This does not work in Boto3, so we can't write a equivalent test
+# Moto always looks for attribute 'idle_timeout', but Boto3 sends 'IdleTimeout'
+# We'll need to rewrite this feature completely anyway, to get rid of the boto-objects
 @mock_elb_deprecated
 def test_connection_settings_attribute():
     conn = boto.connect_elb()
@@ -568,6 +939,7 @@ def test_connection_settings_attribute():
     attributes.connecting_settings.idle_timeout.should.equal(60)
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_create_lb_cookie_stickiness_policy():
     conn = boto.connect_elb()
@@ -591,6 +963,37 @@ def test_create_lb_cookie_stickiness_policy():
     lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
 
 
+@mock_elb
+def test_create_lb_cookie_stickiness_policy_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    lbc_policies = balancer["Policies"]["LBCookieStickinessPolicies"]
+    lbc_policies.should.have.length_of(0)
+
+    client.create_lb_cookie_stickiness_policy(
+        LoadBalancerName=lb_name, PolicyName="pname", CookieExpirationPeriod=42
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    policies = balancer["Policies"]
+    lbc_policies = policies["LBCookieStickinessPolicies"]
+    lbc_policies.should.have.length_of(1)
+    lbc_policies[0].should.equal({"PolicyName": "pname", "CookieExpirationPeriod": 42})
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_create_lb_cookie_stickiness_policy_no_expiry():
     conn = boto.connect_elb()
@@ -605,6 +1008,37 @@ def test_create_lb_cookie_stickiness_policy_no_expiry():
     lb.policies.lb_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
 
 
+@mock_elb
+def test_create_lb_cookie_stickiness_policy_no_expiry_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    lbc_policies = balancer["Policies"]["LBCookieStickinessPolicies"]
+    lbc_policies.should.have.length_of(0)
+
+    client.create_lb_cookie_stickiness_policy(
+        LoadBalancerName=lb_name, PolicyName="pname"
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    policies = balancer["Policies"]
+    lbc_policies = policies["LBCookieStickinessPolicies"]
+    lbc_policies.should.have.length_of(1)
+    lbc_policies[0].should.equal({"PolicyName": "pname"})
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_create_app_cookie_stickiness_policy():
     conn = boto.connect_elb()
@@ -620,6 +1054,37 @@ def test_create_app_cookie_stickiness_policy():
     lb.policies.app_cookie_stickiness_policies[0].policy_name.should.equal(policy_name)
 
 
+@mock_elb
+def test_create_app_cookie_stickiness_policy_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    lbc_policies = balancer["Policies"]["AppCookieStickinessPolicies"]
+    lbc_policies.should.have.length_of(0)
+
+    client.create_app_cookie_stickiness_policy(
+        LoadBalancerName=lb_name, PolicyName="pname", CookieName="cname"
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    policies = balancer["Policies"]
+    lbc_policies = policies["AppCookieStickinessPolicies"]
+    lbc_policies.should.have.length_of(1)
+    lbc_policies[0].should.equal({"CookieName": "cname", "PolicyName": "pname"})
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_create_lb_policy():
     conn = boto.connect_elb()
@@ -633,6 +1098,34 @@ def test_create_lb_policy():
     lb.policies.other_policies[0].policy_name.should.equal(policy_name)
 
 
+@mock_elb
+def test_create_lb_policy_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.create_load_balancer_policy(
+        LoadBalancerName=lb_name,
+        PolicyName="ProxyPolicy",
+        PolicyTypeName="ProxyProtocolPolicyType",
+        PolicyAttributes=[
+            {"AttributeName": "ProxyProtocol", "AttributeValue": "true",},
+        ],
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    policies = balancer["Policies"]
+    policies.should.have.key("OtherPolicies").equal(["ProxyPolicy"])
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_set_policies_of_listener():
     conn = boto.connect_elb()
@@ -656,6 +1149,48 @@ def test_set_policies_of_listener():
     listener.policy_names[0].should.equal(policy_name)
 
 
+@mock_elb
+def test_set_policies_of_listener_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[
+            {"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080},
+            {"Protocol": "https", "LoadBalancerPort": 81, "InstancePort": 8081},
+        ],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.create_app_cookie_stickiness_policy(
+        LoadBalancerName=lb_name, PolicyName="pname", CookieName="cname"
+    )
+
+    client.set_load_balancer_policies_of_listener(
+        LoadBalancerName=lb_name, LoadBalancerPort=81, PolicyNames=["pname"]
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+
+    http_l = [
+        l
+        for l in balancer["ListenerDescriptions"]
+        if l["Listener"]["Protocol"] == "HTTP"
+    ][0]
+    http_l.should.have.key("PolicyNames").should.equal([])
+
+    https_l = [
+        l
+        for l in balancer["ListenerDescriptions"]
+        if l["Listener"]["Protocol"] == "HTTPS"
+    ][0]
+    https_l.should.have.key("PolicyNames").should.equal(["pname"])
+
+
+# Has boto3 equivalent
 @mock_elb_deprecated
 def test_set_policies_of_backend_server():
     conn = boto.connect_elb()
@@ -676,6 +1211,38 @@ def test_set_policies_of_backend_server():
     backend.policies[0].policy_name.should.equal(policy_name)
 
 
+@mock_elb
+def test_set_policies_of_backend_server_boto3():
+    lb_name = str(uuid4())[0:6]
+
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[
+            {"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080},
+            {"Protocol": "https", "LoadBalancerPort": 81, "InstancePort": 8081},
+        ],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    client.create_app_cookie_stickiness_policy(
+        LoadBalancerName=lb_name, PolicyName="pname", CookieName="cname"
+    )
+
+    client.set_load_balancer_policies_for_backend_server(
+        LoadBalancerName=lb_name, InstancePort=8081, PolicyNames=["pname"]
+    )
+
+    balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    balancer.should.have.key("BackendServerDescriptions")
+    desc = balancer["BackendServerDescriptions"]
+    desc.should.have.length_of(1)
+    desc[0].should.equal({"InstancePort": 8081, "PolicyNames": ["pname"]})
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 @mock_elb_deprecated
 def test_describe_instance_health():
@@ -940,4 +1507,27 @@ def test_create_load_balancer_duplicate():
     conn.create_load_balancer("my-lb", [], ports)
     conn.create_load_balancer.when.called_with("my-lb", [], ports).should.throw(
         BotoServerError
+    )
+
+
+@mock_elb
+def test_create_load_balancer_duplicate_boto3():
+    lb_name = str(uuid4())[0:6]
+    client = boto3.client("elb", region_name="us-east-1")
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_load_balancer(
+            LoadBalancerName=lb_name,
+            Listeners=[
+                {"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}
+            ],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("DuplicateLoadBalancerName")
+    err["Message"].should.equal(
+        f"The specified load balancer name already exists for this account: {lb_name}"
     )

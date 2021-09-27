@@ -80,6 +80,13 @@ class AthenaBackend(BaseBackend):
         self.executions = {}
         self.named_queries = {}
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "athena"
+        )
+
     def create_work_group(self, name, configuration, description, tags):
         if name in self.work_groups:
             return None

@@ -31,7 +31,10 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
-UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+UNSIGNED_ACTIONS = {
+    "AssumeRoleWithSAML": ("sts", "us-east-1"),
+    "AssumeRoleWithWebIdentity": ("sts", "us-east-1"),
+}
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
