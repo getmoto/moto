@@ -954,7 +954,8 @@ def test_can_list_secret_version_ids():
 
 
 @mock_secretsmanager
-def test_update_secret():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_update_secret(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
@@ -963,18 +964,18 @@ def test_update_secret():
     assert created_secret["Name"] == "test-secret"
     assert created_secret["VersionId"] != ""
 
-    secret = conn.get_secret_value(SecretId="test-secret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
+
+    secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "foosecret"
 
-    updated_secret = conn.update_secret(
-        SecretId="test-secret", SecretString="barsecret"
-    )
+    updated_secret = conn.update_secret(SecretId=secret_id, SecretString="barsecret")
 
     assert updated_secret["ARN"]
     assert updated_secret["Name"] == "test-secret"
     assert updated_secret["VersionId"] != ""
 
-    secret = conn.get_secret_value(SecretId="test-secret")
+    secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "barsecret"
     assert created_secret["VersionId"] != updated_secret["VersionId"]
 
@@ -1100,15 +1101,17 @@ def test_update_secret_marked_as_deleted_after_restoring():
 
 
 @mock_secretsmanager
-def test_tag_resource():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_tag_resource(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
     )
 
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
+        SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
     )
 
     secrets = conn.list_secrets()
@@ -1130,18 +1133,20 @@ def test_tag_resource():
 
 
 @mock_secretsmanager
-def test_untag_resource():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_untag_resource(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
     conn.tag_resource(
-        SecretId="test-secret",
+        SecretId=secret_id,
         Tags=[
             {"Key": "FirstTag", "Value": "SomeValue"},
             {"Key": "SecondTag", "Value": "SomeValue"},
         ],
     )
 
-    conn.untag_resource(SecretId="test-secret", TagKeys=["FirstTag"])
+    conn.untag_resource(SecretId=secret_id, TagKeys=["FirstTag"])
     secrets = conn.list_secrets()
     assert secrets["SecretList"][0].get("Tags") == [
         {"Key": "SecondTag", "Value": "SomeValue"},
