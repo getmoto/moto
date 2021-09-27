@@ -567,7 +567,24 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
         self.lifecycle = kwargs.get("lifecycle")
-        self.image_id = image_id
+        self.launch_template = launch_template = kwargs.get("launch_template", {})
+
+        if launch_template and not image_id:
+            if "LaunchTemplateId" in launch_template:
+                template = ec2_backend.describe_launch_templates(
+                    template_ids=[launch_template["LaunchTemplateId"]]
+                )[0]
+            else:
+                template = ec2_backend.describe_launch_templates(
+                    template_names=[launch_template["LaunchTemplateName"]]
+                )[0]
+            version = int(
+                launch_template.get("Version", template.latest_version_number)
+            )
+            self.image_id = template.get_version(version).image_id
+        else:
+            self.image_id = image_id
+
         self._state = InstanceState("running", 16)
         self._reason = ""
         self._state_reason = StateReason()
@@ -595,7 +612,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             # If we are in EC2-Classic, autoassign a public IP
             self.associate_public_ip = True
 
-        amis = self.ec2_backend.describe_images(filters={"image-id": image_id})
+        amis = self.ec2_backend.describe_images(filters={"image-id": self.image_id})
         ami = amis[0] if amis else None
         if ami is None:
             warnings.warn(
@@ -603,7 +620,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 "in the near future this will "
                 "cause an error.\n"
                 "Use ec2_backend.describe_images() to "
-                "find suitable image for your test".format(image_id),
+                "find suitable image for your test".format(self.image_id),
                 PendingDeprecationWarning,
             )
 

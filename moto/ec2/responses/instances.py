@@ -69,6 +69,7 @@ class InstanceResponse(BaseResponse):
             "instance_initiated_shutdown_behavior": self._get_param(
                 "InstanceInitiatedShutdownBehavior"
             ),
+            "launch_template": self._get_multi_param_dict("LaunchTemplate"),
         }
 
         mappings = self._parse_block_device_mapping()
