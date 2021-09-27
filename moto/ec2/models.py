@@ -575,18 +575,18 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.launch_template = launch_template = kwargs.get("launch_template", {})
 
         if launch_template and not image_id:
-            if "LaunchTemplateId" in launch_template:
-                template = ec2_backend.describe_launch_templates(
+            # the image id from the template should be used
+            template = (
+                ec2_backend.describe_launch_templates(
                     template_ids=[launch_template["LaunchTemplateId"]]
                 )[0]
-            else:
-                template = ec2_backend.describe_launch_templates(
+                if "LaunchTemplateId" in launch_template
+                else ec2_backend.describe_launch_templates(
                     template_names=[launch_template["LaunchTemplateName"]]
                 )[0]
-            version = int(
-                launch_template.get("Version", template.latest_version_number)
             )
-            self.image_id = template.get_version(version).image_id
+            version = launch_template.get("Version", template.latest_version_number)
+            self.image_id = template.get_version(int(version)).image_id
         else:
             self.image_id = image_id
 
