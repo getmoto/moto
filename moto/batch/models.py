@@ -217,14 +217,7 @@ class JobDefinition(CloudFormationModel):
         self.tagger.tag_resource(self.arn, tags or [])
 
     def _format_tags(self, tags):
-        formatted_tags = []
-        for item in tags.items():
-            tag = {}
-            tag["Key"] = item[0]
-            tag["Value"] = item[1]
-            print(tag)
-            formatted_tags.append(tag)
-        return formatted_tags
+        return [{"Key": k, "Value": v} for k, v in tags.items()]
 
     def _update_arn(self):
         self.revision += 1
