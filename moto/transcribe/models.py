@@ -181,7 +181,9 @@ class FakeTranscriptionJob(BaseObject):
                     )
                     if self.output_key is not None
                     else transcript_file_uri
-                    + "{1}.json".format(self.output_key, self.transcription_job_name)
+                    + "{transcription_job_name}.json".format(
+                        transcription_job_name=self.transcription_job_name
+                    )
                 )
                 self.output_location_type = "CUSTOMER_BUCKET"
             else:
@@ -447,6 +449,15 @@ class TranscribeBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "transcribe"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "transcribestreaming"
+        )
 
     def start_transcription_job(self, **kwargs):
 

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import importlib
 import moto
+import sys
 
 
 decorators = [
@@ -26,8 +27,21 @@ def backends():
         yield _import_backend(module_name, backends_name)
 
 
-def named_backends():
-    for name, (module_name, backends_name) in BACKENDS.items():
+def unique_backends():
+    for module_name, backends_name in sorted(set(BACKENDS.values())):
+        yield _import_backend(module_name, backends_name)
+
+
+def loaded_backends():
+    loaded_modules = sys.modules.keys()
+    loaded_modules = [m for m in loaded_modules if m.startswith("moto.")]
+    imported_backends = [
+        name
+        for name, (module_name, _) in BACKENDS.items()
+        if f"moto.{module_name}" in loaded_modules
+    ]
+    for name in imported_backends:
+        module_name, backends_name = BACKENDS[name]
         yield name, _import_backend(module_name, backends_name)
 
 

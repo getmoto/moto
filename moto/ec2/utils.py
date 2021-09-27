@@ -241,6 +241,14 @@ def random_ip():
     )
 
 
+def random_mac_address():
+    return "02:00:00:%02x:%02x:%02x" % (
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255),
+    )
+
+
 def randor_ipv4_cidr():
     return "10.0.{}.{}/16".format(random.randint(0, 255), random.randint(0, 255))
 
@@ -249,9 +257,13 @@ def random_ipv6_cidr():
     return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
 
 
-def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
+def generate_route_id(
+    route_table_id, cidr_block, ipv6_cidr_block=None, prefix_list=None
+):
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
+    if prefix_list and not cidr_block:
+        cidr_block = prefix_list
     return "%s~%s" % (route_table_id, cidr_block)
 
 

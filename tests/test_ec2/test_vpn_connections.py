@@ -5,10 +5,11 @@ import boto3
 import pytest
 import sure  # noqa
 from boto.exception import EC2ResponseError
-from botocore.client import ClientError
+from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_ec2_deprecated
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_create_vpn_connections():
     conn = boto.connect_vpc("the_key", "the_secret")
@@ -20,6 +21,17 @@ def test_create_vpn_connections():
     vpn_connection.type.should.equal("ipsec.1")
 
 
+@mock_ec2
+def test_create_vpn_connections_boto3():
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpn_connection = client.create_vpn_connection(
+        Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
+    )["VpnConnection"]
+    vpn_connection["VpnConnectionId"].should.match(r"vpn-\w+")
+    vpn_connection["Type"].should.equal("ipsec.1")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_delete_vpn_connections():
     conn = boto.connect_vpc("the_key", "the_secret")
@@ -33,6 +45,24 @@ def test_delete_vpn_connections():
     list_of_vpn_connections[0].state.should.equal("deleted")
 
 
+@mock_ec2
+def test_delete_vpn_connections_boto3():
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpn_connection = client.create_vpn_connection(
+        Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
+    )["VpnConnection"]
+
+    cnx = client.describe_vpn_connections()["VpnConnections"]
+    cnx.should.have.length_of(1)
+
+    client.delete_vpn_connection(VpnConnectionId=vpn_connection["VpnConnectionId"])
+
+    cnx = client.describe_vpn_connections()["VpnConnections"]
+    cnx.should.have.length_of(1)
+    cnx[0].should.have.key("State").equal("deleted")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_delete_vpn_connections_bad_id():
     conn = boto.connect_vpc("the_key", "the_secret")
@@ -40,6 +70,17 @@ def test_delete_vpn_connections_bad_id():
         conn.delete_vpn_connection("vpn-0123abcd")
 
 
+@mock_ec2
+def test_delete_vpn_connections_bad_id_boto3():
+    client = boto3.client("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_vpn_connection(VpnConnectionId="vpn-0123abcd")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidVpnConnectionID.NotFound")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_describe_vpn_connections():
     conn = boto.connect_vpc("the_key", "the_secret")

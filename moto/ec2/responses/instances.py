@@ -386,7 +386,9 @@ EC2_RUN_INSTANCES = (
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
+          {% if instance.lifecycle %}
           <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
+          {% endif %}
           <placement>
             <availabilityZone>{{ instance.placement}}</availabilityZone>
             <groupName/>
@@ -538,7 +540,9 @@ EC2_DESCRIBE_INSTANCES = (
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>{{ instance.launch_time }}</launchTime>
+                    {% if instance.lifecycle %}
                     <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
+                    {% endif %}
                     <placement>
                       <availabilityZone>{{ instance.placement }}</availabilityZone>
                       <groupName/>

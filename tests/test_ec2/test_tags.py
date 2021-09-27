@@ -15,6 +15,7 @@ import pytest
 from tests import EXAMPLE_AMI_ID
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_add_tag():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -39,6 +40,33 @@ def test_add_tag():
     existing_instance.tags["a key"].should.equal("some value")
 
 
+@mock_ec2
+def test_instance_create_tags():
+    ec2 = boto3.resource("ec2", "us-west-1")
+    client = boto3.client("ec2", "us-west-1")
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+
+    with pytest.raises(ClientError) as ex:
+        instance.create_tags(
+            Tags=[{"Key": "a key", "Value": "some value"}], DryRun=True
+        )
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
+    chain = itertools.chain.from_iterable
+    existing_instances = list(
+        chain([res["Instances"] for res in client.describe_instances()["Reservations"]])
+    )
+    existing_instances.should.have.length_of(1)
+    existing_instance = existing_instances[0]
+    existing_instance["Tags"].should.equal([{"Key": "a key", "Value": "some value"}])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_remove_tag():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -68,6 +96,40 @@ def test_remove_tag():
     instance.remove_tag("a key", "some value")
 
 
+@mock_ec2
+def test_instance_delete_tags():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+
+    instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
+
+    tags = client.describe_tags()["Tags"]
+    tag = tags[0]
+    tag.should.have.key("Key").equal("a key")
+    tag.should.have.key("Value").equal("some value")
+
+    with pytest.raises(ClientError) as ex:
+        instance.delete_tags(DryRun=True)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    # Specifying key only
+    instance.delete_tags(Tags=[{"Key": "a key"}])
+    client.describe_tags()["Tags"].should.have.length_of(0)
+
+    instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
+    client.describe_tags()["Tags"].should.have.length_of(1)
+
+    # Specifying key and value
+    instance.delete_tags(Tags=[{"Key": "a key", "Value": "some value"}])
+    client.describe_tags()["Tags"].should.have.length_of(0)
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_get_all_tags():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -82,6 +144,7 @@ def test_get_all_tags():
     tag.value.should.equal("some value")
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_get_all_tags_with_special_characters():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -96,6 +159,20 @@ def test_get_all_tags_with_special_characters():
     tag.value.should.equal("some<> value")
 
 
+@mock_ec2
+def test_get_all_tags_with_special_characters_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+
+    instance.create_tags(Tags=[{"Key": "a key", "Value": "some<> value"}])
+
+    tag = client.describe_tags()["Tags"][0]
+    tag.should.have.key("Key").equal("a key")
+    tag.should.have.key("Value").equal("some<> value")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_create_tags():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -123,6 +200,40 @@ def test_create_tags():
     )
 
 
+@mock_ec2
+def test_create_tags_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    tag_list = [
+        {"Key": "a key", "Value": "some value"},
+        {"Key": "another key", "Value": "some other value"},
+        {"Key": "blank key", "Value": ""},
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_tags(Resources=[instance.id], Tags=tag_list, DryRun=True)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    client.create_tags(Resources=[instance.id], Tags=tag_list)
+    tags = client.describe_tags()["Tags"]
+    tags.should.have.length_of(3)
+    for expected_tag in tag_list:
+        tags.should.contain(
+            {
+                "Key": expected_tag["Key"],
+                "ResourceId": instance.id,
+                "ResourceType": "instance",
+                "Value": expected_tag["Value"],
+            }
+        )
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_tag_limit_exceeded():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -152,6 +263,35 @@ def test_tag_limit_exceeded():
     tag.value.should.equal("a value")
 
 
+@mock_ec2
+def test_tag_limit_exceeded_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    tag_list = []
+    for i in range(51):
+        tag_list.append({"Key": "{0:02d}".format(i + 1), "Value": ""})
+
+    with pytest.raises(ClientError) as ex:
+        client.create_tags(Resources=[instance.id], Tags=tag_list)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("TagLimitExceeded")
+
+    instance.create_tags(Tags=[{"Key": "a key", "Value": "a value"}])
+    with pytest.raises(ClientError) as ex:
+        client.create_tags(Resources=[instance.id], Tags=tag_list)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("TagLimitExceeded")
+
+    tags = client.describe_tags()["Tags"]
+    tags.should.have.length_of(1)
+    tags[0].should.have.key("Key").equal("a key")
+    tags[0].should.have.key("Value").equal("a value")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_invalid_parameter_tag_null():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -165,6 +305,7 @@ def test_invalid_parameter_tag_null():
     cm.value.request_id.should_not.be.none
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_invalid_id():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -181,6 +322,27 @@ def test_invalid_id():
     cm.value.request_id.should_not.be.none
 
 
+@mock_ec2
+def test_invalid_id_boto3():
+    client = boto3.client("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.create_tags(
+            Resources=["ami-blah"], Tags=[{"Key": "key", "Value": "tag"}]
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidID")
+
+    with pytest.raises(ClientError) as ex:
+        client.create_tags(
+            Resources=["blah-blah"], Tags=[{"Key": "key", "Value": "tag"}]
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidID")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_get_all_tags_resource_id_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -208,6 +370,59 @@ def test_get_all_tags_resource_id_filter():
     tag.value.should.equal("some value")
 
 
+@mock_ec2
+def test_get_all_tags_resource_filter_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    client.create_tags(
+        Resources=[instance.id],
+        Tags=[{"Key": "an instance key", "Value": "some value"}],
+    )
+    image = instance.create_image(Name="test-ami", Description="this is a test ami")
+    image.create_tags(Tags=[{"Key": "an image key", "Value": "some value"}])
+
+    expected = {
+        "Key": "an instance key",
+        "ResourceId": instance.id,
+        "ResourceType": "instance",
+        "Value": "some value",
+    }
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-id", "Values": [instance.id]}]
+    )["Tags"]
+    tags.should.equal([expected])
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-type", "Values": ["instance"]}]
+    )["Tags"]
+    tags.should.equal([expected])
+    tags = client.describe_tags(
+        Filters=[{"Name": "key", "Values": ["an instance key"]}]
+    )["Tags"]
+    tags.should.equal([expected])
+
+    expected = {
+        "Key": "an image key",
+        "ResourceId": image.id,
+        "ResourceType": "image",
+        "Value": "some value",
+    }
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-id", "Values": [image.id]}]
+    )["Tags"]
+    tags.should.equal([expected])
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-type", "Values": ["image"]}]
+    )["Tags"]
+    tags.should.equal([expected])
+
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-type", "Values": ["unknown"]}]
+    )["Tags"]
+    tags.should.equal([])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_get_all_tags_resource_type_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -235,6 +450,7 @@ def test_get_all_tags_resource_type_filter():
     tag.value.should.equal("some value")
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_get_all_tags_key_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -254,6 +470,7 @@ def test_get_all_tags_key_filter():
     tag.value.should.equal("some value")
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_get_all_tags_value_filter():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -298,6 +515,43 @@ def test_get_all_tags_value_filter():
     tags.should.have.length_of(1)
 
 
+@mock_ec2
+def test_get_all_tags_value_filter_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    def create_instance_with_tag(value):
+        instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[
+            0
+        ]
+        tag = {"Key": "an instance key", "Value": value}
+        client.create_tags(Resources=[instance.id], Tags=[tag])
+        return instance
+
+    instance_a = create_instance_with_tag("some value")
+    instance_b = create_instance_with_tag("some other value")
+    instance_c = create_instance_with_tag("other value*")
+    instance_d = create_instance_with_tag("other value**")
+    instance_e = create_instance_with_tag("other value*?")
+
+    image = instance_a.create_image(Name="test-ami", Description="this is a test ami")
+    image.create_tags(Tags=[{"Key": "an image key", "Value": "some value"}])
+
+    def filter_by_value(query, expected):
+        filter = {"Name": "value", "Values": [query]}
+        tags = client.describe_tags(Filters=[filter])["Tags"]
+        set([t["ResourceId"] for t in tags]).should.equal(set(expected))
+
+    filter_by_value("some value", [instance_a.id, image.id])
+    filter_by_value("some*value", [instance_a.id, instance_b.id, image.id])
+    filter_by_value("*some*value", [instance_a.id, instance_b.id, image.id])
+    filter_by_value("*some*value*", [instance_a.id, instance_b.id, image.id])
+    filter_by_value("*value\*", [instance_c.id])
+    filter_by_value("*value\*\*", [instance_d.id])
+    filter_by_value("*value\*\?", [instance_e.id])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_retrieved_instances_must_contain_their_tags():
     tag_key = "Tag name"
@@ -329,6 +583,33 @@ def test_retrieved_instances_must_contain_their_tags():
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
+@mock_ec2
+def test_retrieved_instances_must_contain_their_tags_boto3():
+    tag_key = "Tag name"
+    tag_value = "Tag value"
+    tags_to_be_set = {"Key": tag_key, "Value": tag_value}
+
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+
+    reservations = client.describe_instances()["Reservations"]
+    reservations.should.have.length_of(1)
+    instances = reservations[0]["Instances"]
+    instances.should.have.length_of(1)
+    instances[0]["InstanceId"].should.equal(instance.id)
+    instances[0].shouldnt.have.key("Tags")
+
+    client.create_tags(Resources=[instance.id], Tags=[tags_to_be_set])
+    reservations = client.describe_instances()["Reservations"]
+    instance = reservations[0]["Instances"][0]
+    retrieved_tags = instance["Tags"]
+
+    # Check whether tag is present with correct value
+    retrieved_tags.should.equal([{"Key": tag_key, "Value": tag_value}])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_retrieved_volumes_must_contain_their_tags():
     tag_key = "Tag name"
@@ -352,6 +633,24 @@ def test_retrieved_volumes_must_contain_their_tags():
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
+@mock_ec2
+def test_retrieved_volumes_must_contain_their_tags_boto3():
+    tag_key = "Tag name"
+    tag_value = "Tag value"
+    tags_to_be_set = {"Key": tag_key, "Value": tag_value}
+
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    client = boto3.client("ec2", region_name="eu-west-1")
+    volume = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
+    volume.tags.should.be.none
+
+    client.create_tags(Resources=[volume.id], Tags=[tags_to_be_set])
+
+    volume.reload()
+    volume.tags.should.equal([{"Key": tag_key, "Value": tag_value}])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_retrieved_snapshots_must_contain_their_tags():
     tag_key = "Tag name"
@@ -376,6 +675,24 @@ def test_retrieved_snapshots_must_contain_their_tags():
     retrieved_tags[tag_key].should.equal(tag_value)
 
 
+@mock_ec2
+def test_retrieved_snapshots_must_contain_their_tags_boto3():
+    tag_key = "Tag name"
+    tag_value = "Tag value"
+    tags_to_be_set = {"Key": tag_key, "Value": tag_value}
+
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    client = boto3.client("ec2", region_name="eu-west-1")
+
+    volume = ec2.create_volume(Size=80, AvailabilityZone="eu-west-1a")
+    snapshot = ec2.create_snapshot(VolumeId=volume.id)
+    client.create_tags(Resources=[snapshot.id], Tags=[tags_to_be_set])
+
+    snapshot = client.describe_snapshots(SnapshotIds=[snapshot.id])["Snapshots"][0]
+    snapshot["Tags"].should.equal([{"Key": tag_key, "Value": tag_value}])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_filter_instances_by_wildcard_tags():
     conn = boto.connect_ec2(
@@ -396,6 +713,36 @@ def test_filter_instances_by_wildcard_tags():
 
     reservations = conn.get_all_reservations(filters={"tag-value": "Value*"})
     reservations.should.have.length_of(2)
+
+
+@mock_ec2
+def test_filter_instances_by_wildcard_tags_boto3():
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    client = boto3.client("ec2", region_name="eu-west-1")
+
+    reservations = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    instance_a, instance_b = reservations
+
+    instance_a.create_tags(Tags=[{"Key": "Key1", "Value": "Value1"}])
+    instance_b.create_tags(Tags=[{"Key": "Key1", "Value": "Value2"}])
+
+    res = client.describe_instances(
+        Filters=[{"Name": "tag:Key1", "Values": ["Value*"]}]
+    )
+    res["Reservations"][0]["Instances"].should.have.length_of(2)
+
+    res = client.describe_instances(Filters=[{"Name": "tag-key", "Values": ["Key*"]}])
+    res["Reservations"][0]["Instances"].should.have.length_of(2)
+
+    res = client.describe_instances(
+        Filters=[{"Name": "tag-value", "Values": ["Value*"]}]
+    )
+    res["Reservations"][0]["Instances"].should.have.length_of(2)
+
+    res = client.describe_instances(
+        Filters=[{"Name": "tag-value", "Values": ["Value2*"]}]
+    )
+    res["Reservations"][0]["Instances"].should.have.length_of(1)
 
 
 @mock_ec2
