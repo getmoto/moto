@@ -1866,10 +1866,10 @@ LIST_USER_TAGS_TEMPLATE = """<ListUserTagsResponse>
    <ListUserTagsResult>
       <Tags>
         {% for tag in user_tags %}
-          <item>
+          <member>
             <Key>{{ tag.Key }}</Key>
             <Value>{{ tag.Value }}</Value>
-          </item>
+          </member>
         {% endfor %}
        </Tags>
       <IsTruncated>false</IsTruncated>
