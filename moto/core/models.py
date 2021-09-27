@@ -128,6 +128,8 @@ class BaseMockAWS:
             attr_value = getattr(klass, attr)
             if not hasattr(attr_value, "__call__"):
                 continue
+            if not hasattr(attr_value, "__name__"):
+                continue
 
             # Check if this is a classmethod. If so, skip patching
             if inspect.ismethod(attr_value) and attr_value.__self__ is klass:
