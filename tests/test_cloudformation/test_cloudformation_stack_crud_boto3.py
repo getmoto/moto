@@ -3,12 +3,10 @@ from __future__ import unicode_literals
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from freezegun import freeze_time
 import pytz
 
 import boto3
-from botocore.exceptions import ClientError, ValidationError
-import sure  # noqa
+from botocore.exceptions import ClientError
 
 import pytest
 
@@ -1021,6 +1019,43 @@ def test_boto3_update_stack_fail_missing_new_parameter():
         cf_conn.update_stack(
             StackName=name, TemplateBody=dummy_parametrized_template_json
         )
+
+
+@mock_cloudformation
+def test_boto3_update_stack_fail_update_same_template_body():
+
+    name = "update_stack_with_previous_value"
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    params = [
+        {"ParameterKey": "TagName", "ParameterValue": "foo"},
+        {"ParameterKey": "TagDescription", "ParameterValue": "bar"},
+    ]
+
+    cf_conn.create_stack(
+        StackName=name, TemplateBody=dummy_template_yaml_with_ref, Parameters=params,
+    )
+
+    with pytest.raises(ClientError) as exp:
+        cf_conn.update_stack(
+            StackName=name,
+            TemplateBody=dummy_template_yaml_with_ref,
+            Parameters=params,
+        )
+    exp_err = exp.value.response.get("Error")
+    exp_metadata = exp.value.response.get("ResponseMetadata")
+
+    exp_err.get("Code").should.equal("ValidationError")
+    exp_err.get("Message").should.equal(f"Stack [{name}] already exists")
+    exp_metadata.get("HTTPStatusCode").should.equal(400)
+
+    cf_conn.update_stack(
+        StackName=name,
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=[
+            {"ParameterKey": "TagName", "ParameterValue": "new_foo"},
+            {"ParameterKey": "TagDescription", "ParameterValue": "new_bar"},
+        ],
+    )
 
 
 @mock_cloudformation
