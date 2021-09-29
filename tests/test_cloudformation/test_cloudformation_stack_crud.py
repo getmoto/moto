@@ -5,11 +5,13 @@ import json
 
 import boto
 import boto3
+import boto.dynamodb2
 import boto.iam
 import boto.s3
 import boto.s3.key
 import boto.cloudformation
 from boto.exception import BotoServerError
+from freezegun import freeze_time
 import sure  # noqa
 
 import pytest
@@ -18,10 +20,11 @@ from moto.core import ACCOUNT_ID
 from moto import (
     mock_cloudformation_deprecated,
     mock_s3_deprecated,
+    mock_sns_deprecated,
+    mock_sqs_deprecated,
     mock_route53_deprecated,
     mock_iam_deprecated,
-    mock_dynamodb2,
-    mock_cloudformation,
+    mock_dynamodb2_deprecated,
 )
 from moto.cloudformation import cloudformation_backends
 
@@ -73,6 +76,7 @@ dummy_template4 = {
 dummy_template_json = json.dumps(dummy_template)
 dummy_template_json2 = json.dumps(dummy_template2)
 dummy_template_json3 = json.dumps(dummy_template3)
+dummy_template_json4 = json.dumps(dummy_template4)
 
 
 @mock_cloudformation_deprecated
@@ -81,6 +85,33 @@ def test_create_stack():
     conn.create_stack("test_stack", template_body=dummy_template_json)
 
     stack = conn.describe_stacks()[0]
+    stack.stack_id.should.contain(
+        "arn:aws:cloudformation:us-east-1:123456789:stack/test_stack/"
+    )
+    stack.stack_name.should.equal("test_stack")
+    stack.get_template().should.equal(
+        {
+            "GetTemplateResponse": {
+                "GetTemplateResult": {
+                    "TemplateBody": dummy_template_json,
+                    "ResponseMetadata": {
+                        "RequestId": "2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE"
+                    },
+                }
+            }
+        }
+    )
+
+
+@mock_cloudformation_deprecated
+def test_create_stack_with_other_region():
+    conn = boto.cloudformation.connect_to_region("us-west-2")
+    conn.create_stack("test_stack", template_body=dummy_template_json)
+
+    stack = conn.describe_stacks()[0]
+    stack.stack_id.should.contain(
+        "arn:aws:cloudformation:us-west-2:123456789:stack/test_stack/"
+    )
     stack.stack_name.should.equal("test_stack")
     stack.get_template().should.equal(
         {
@@ -150,18 +181,69 @@ def test_creating_stacks_across_regions():
 
 
 @mock_cloudformation_deprecated
+@mock_sns_deprecated
+@mock_sqs_deprecated
 def test_create_stack_with_notification_arn():
+    sqs_conn = boto.connect_sqs()
+    queue = sqs_conn.create_queue("fake-queue", visibility_timeout=3)
+    queue_arn = queue.get_attributes()["QueueArn"]
+
+    sns_conn = boto.connect_sns()
+    topic = sns_conn.create_topic("fake-topic")
+    topic_arn = topic["CreateTopicResponse"]["CreateTopicResult"]["TopicArn"]
+
+    sns_conn.subscribe(topic_arn, "sqs", queue_arn)
+
     conn = boto.connect_cloudformation()
-    conn.create_stack(
-        "test_stack_with_notifications",
-        template_body=dummy_template_json,
-        notification_arns="arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID),
-    )
+    with freeze_time("2015-01-01 12:00:00"):
+        conn.create_stack(
+            "test_stack_with_notifications",
+            template_body=dummy_template_json,
+            notification_arns=topic_arn,
+        )
 
     stack = conn.describe_stacks()[0]
-    [n.value for n in stack.notification_arns].should.contain(
-        "arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)
-    )
+    [n.value for n in stack.notification_arns].should.contain(topic_arn)
+
+    with freeze_time("2015-01-01 12:00:01"):
+        message = queue.read(1)
+
+    msg = json.loads(message.get_body())
+    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain("Timestamp='2015-01-01T12:00:00.000Z'\n")
+    msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
+    msg["Message"].should.contain("ResourceStatus='CREATE_IN_PROGRESS'\n")
+    msg["Message"].should.contain("ResourceStatusReason='User Initiated'\n")
+    msg["Message"].should.contain("ResourceType='AWS::CloudFormation::Stack'\n")
+    msg["Message"].should.contain("StackName='test_stack_with_notifications'\n")
+    msg.should.have.key("MessageId")
+    msg.should.have.key("Signature")
+    msg.should.have.key("SignatureVersion")
+    msg.should.have.key("Subject")
+    msg["Timestamp"].should.equal("2015-01-01T12:00:00.000Z")
+    msg["TopicArn"].should.equal(topic_arn)
+    msg.should.have.key("Type")
+    msg.should.have.key("UnsubscribeURL")
+
+    with freeze_time("2015-01-01 12:00:02"):
+        message = queue.read(1)
+
+    msg = json.loads(message.get_body())
+    msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
+    msg["Message"].should.contain("Timestamp='2015-01-01T12:00:00.000Z'\n")
+    msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
+    msg["Message"].should.contain("ResourceStatus='CREATE_COMPLETE'\n")
+    msg["Message"].should.contain("ResourceStatusReason='None'\n")
+    msg["Message"].should.contain("ResourceType='AWS::CloudFormation::Stack'\n")
+    msg["Message"].should.contain("StackName='test_stack_with_notifications'\n")
+    msg.should.have.key("MessageId")
+    msg.should.have.key("Signature")
+    msg.should.have.key("SignatureVersion")
+    msg.should.have.key("Subject")
+    msg["Timestamp"].should.equal("2015-01-01T12:00:00.000Z")
+    msg["TopicArn"].should.equal(topic_arn)
+    msg.should.have.key("Type")
+    msg.should.have.key("UnsubscribeURL")
 
 
 @mock_cloudformation_deprecated
@@ -213,32 +295,17 @@ def test_describe_stack_by_stack_id():
     stack_by_id.stack_name.should.equal("test_stack")
 
 
-@mock_dynamodb2
+@mock_dynamodb2_deprecated
 @mock_cloudformation_deprecated
 def test_delete_stack_dynamo_template():
     conn = boto.connect_cloudformation()
-    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
-    conn.create_stack("test_stack", template_body=dummy_template4)
-    table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(1)
+    db_conn = boto.dynamodb2.connect_to_region("us-east-1")
+    #
+    conn.create_stack("test_stack", template_body=dummy_template_json4)
+    db_conn.list_tables()["TableNames"].should.have.length_of(1)
+    #
     conn.delete_stack("test_stack")
-    table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(0)
-    conn.create_stack("test_stack", template_body=dummy_template4)
-
-
-@mock_dynamodb2
-@mock_cloudformation
-def test_delete_stack_dynamo_template():
-    conn = boto3.client("cloudformation", region_name="us-east-1")
-    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
-    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template4))
-    table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(1)
-    conn.delete_stack(StackName="test_stack")
-    table_desc = dynamodb_client.list_tables()
-    len(table_desc.get("TableNames")).should.equal(0)
-    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template4))
+    db_conn.list_tables()["TableNames"].should.have.length_of(0)
 
 
 @mock_cloudformation_deprecated

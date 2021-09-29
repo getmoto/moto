@@ -8,7 +8,7 @@ import re
 import uuid
 
 from boto3 import Session
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis
@@ -711,7 +711,7 @@ class Table(CloudFormationModel):
         projection_expression,
         index_name=None,
         filter_expression=None,
-        **filter_kwargs
+        **filter_kwargs,
     ):
         results = []
 
@@ -958,16 +958,6 @@ class Table(CloudFormationModel):
 
         return results, last_evaluated_key
 
-    def lookup(self, *args, **kwargs):
-        if not self.schema:
-            self.describe()
-        for x, arg in enumerate(args):
-            kwargs[self.schema[x].name] = arg
-        ret = self.get_item(**kwargs)
-        if not ret.keys():
-            return None
-        return ret
-
     def delete(self, region_name):
         dynamodb_backends[region_name].delete_table(self.name)
 
@@ -1085,6 +1075,19 @@ class DynamoDBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        # No 'vpce' in the base endpoint DNS name
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "dynamodb",
+            "Gateway",
+            private_dns_names=False,
+            base_endpoint_dns_names=[f"dynamodb.{service_region}.amazonaws.com"],
+        )
+
     def create_table(self, name, **params):
         if name in self.tables:
             return None
@@ -1094,6 +1097,14 @@ class DynamoDBBackend(BaseBackend):
 
     def delete_table(self, name):
         return self.tables.pop(name, None)
+
+    def describe_endpoints(self):
+        return [
+            {
+                "Address": "dynamodb.{}.amazonaws.com".format(self.region_name),
+                "CachePeriodInMinutes": 1440,
+            }
+        ]
 
     def tag_resource(self, table_arn, tags):
         for table in self.tables:
@@ -1290,7 +1301,7 @@ class DynamoDBBackend(BaseBackend):
         expr_names=None,
         expr_values=None,
         filter_expression=None,
-        **filter_kwargs
+        **filter_kwargs,
     ):
         table = self.tables.get(table_name)
         if not table:
@@ -1313,7 +1324,7 @@ class DynamoDBBackend(BaseBackend):
             projection_expression,
             index_name,
             filter_expression,
-            **filter_kwargs
+            **filter_kwargs,
         )
 
     def scan(
@@ -1409,6 +1420,22 @@ class DynamoDBBackend(BaseBackend):
 
         # Update does not fail on new items, so create one
         if item is None:
+            if update_expression:
+                # Validate AST before creating anything
+                item = Item(
+                    hash_value,
+                    table.hash_key_type,
+                    range_value,
+                    table.range_key_type,
+                    attrs={},
+                )
+                UpdateExpressionValidator(
+                    update_expression_ast,
+                    expression_attribute_names=expression_attribute_names,
+                    expression_attribute_values=expression_attribute_values,
+                    item=item,
+                    table=table,
+                ).validate()
             data = {table.hash_key_attr: {hash_value.type: hash_value.value}}
             if range_value:
                 data.update(

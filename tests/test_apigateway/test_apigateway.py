@@ -9,6 +9,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 from moto import mock_apigateway, mock_cognitoidp, settings
+from moto.apigateway.exceptions import NoIntegrationDefined
 from moto.core import ACCOUNT_ID
 from moto.core.models import responses_mock
 import pytest
@@ -42,7 +43,7 @@ def test_create_and_get_rest_api():
 
 
 @mock_apigateway
-def test_upate_rest_api():
+def test_update_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
@@ -86,7 +87,7 @@ def test_upate_rest_api():
 
 
 @mock_apigateway
-def test_upate_rest_api_invalid_api_id():
+def test_update_rest_api_invalid_api_id():
     client = boto3.client("apigateway", region_name="us-west-2")
     patchOperations = [
         {"op": "replace", "path": "/apiKeySource", "value": "AUTHORIZER"}
@@ -94,6 +95,27 @@ def test_upate_rest_api_invalid_api_id():
     with pytest.raises(ClientError) as ex:
         client.update_rest_api(restApiId="api_id", patchOperations=patchOperations)
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_update_rest_api_operation_add_remove():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    patchOperations = [
+        {"op": "add", "path": "/binaryMediaTypes", "value": "image/png"},
+        {"op": "add", "path": "/binaryMediaTypes", "value": "image/jpeg"},
+    ]
+    response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
+    response["binaryMediaTypes"].should.equal(["image/png", "image/jpeg"])
+    response["description"].should.equal("this is my api")
+    patchOperations = [
+        {"op": "remove", "path": "/binaryMediaTypes", "value": "image/png"},
+        {"op": "remove", "path": "/description"},
+    ]
+    response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
+    response["binaryMediaTypes"].should.equal(["image/jpeg"])
+    response["description"].should.equal("")
 
 
 @mock_apigateway
@@ -442,6 +464,32 @@ def test_create_method_response():
 
 
 @mock_apigateway
+def test_delete_method():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
+    )
+
+    client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    client.delete_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid Method identifier specified")
+
+
+@mock_apigateway
 def test_integrations():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -474,13 +522,7 @@ def test_integrations():
     response.should.equal(
         {
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "httpMethod": "GET",
-            "integrationResponses": {
-                "200": {
-                    "responseTemplates": {"application/json": None},
-                    "statusCode": 200,
-                }
-            },
+            "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
         }
@@ -495,13 +537,7 @@ def test_integrations():
     response.should.equal(
         {
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "httpMethod": "GET",
-            "integrationResponses": {
-                "200": {
-                    "responseTemplates": {"application/json": None},
-                    "statusCode": 200,
-                }
-            },
+            "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
         }
@@ -511,18 +547,10 @@ def test_integrations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["resourceMethods"]["GET"]["httpMethod"].should.equal("GET")
+    response["resourceMethods"]["GET"]["authorizationType"].should.equal("none")
     response["resourceMethods"]["GET"]["methodIntegration"].should.equal(
-        {
-            "httpMethod": "GET",
-            "integrationResponses": {
-                "200": {
-                    "responseTemplates": {"application/json": None},
-                    "statusCode": 200,
-                }
-            },
-            "type": "HTTP",
-            "uri": "http://httpbin.org/robots.txt",
-        }
+        {"httpMethod": "POST", "type": "HTTP", "uri": "http://httpbin.org/robots.txt",}
     )
 
     client.delete_integration(restApiId=api_id, resourceId=root_id, httpMethod="GET")
@@ -611,7 +639,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
         }
     )
 
@@ -626,7 +654,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
         }
     )
 
@@ -637,7 +665,7 @@ def test_integration_response():
     response["methodIntegration"]["integrationResponses"].should.equal(
         {
             "200": {
-                "responseTemplates": {"application/json": None},
+                "responseTemplates": {},  # Note: TF compatibility
                 "selectionPattern": "foobar",
                 "statusCode": "200",
             }
@@ -687,7 +715,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
             "contentHandling": "CONVERT_TO_BINARY",
         }
     )
@@ -703,7 +731,7 @@ def test_integration_response():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": None},
+            "responseTemplates": {},  # Note: TF compatibility
             "contentHandling": "CONVERT_TO_BINARY",
         }
     )
@@ -1277,7 +1305,7 @@ def test_create_deployment_requires_REST_method_integrations():
 
     with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     ex.value.response["Error"]["Message"].should.equal(
         "No integration defined for method"
     )
@@ -1724,12 +1752,6 @@ def test_get_domain_names():
 def test_get_domain_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
-    # quering an invalid domain name which is not present
-    with pytest.raises(ClientError) as ex:
-        client.get_domain_name(domainName=domain_name)
-
-    ex.value.response["Error"]["Message"].should.equal("Invalid Domain Name specified")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     # adding a domain name
     client.create_domain_name(domainName=domain_name)
     # retrieving the data of added domain name.
@@ -1873,7 +1895,7 @@ def test_http_proxying_integration():
         httpMethod="GET",
         type="HTTP",
         uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="POST",
+        integrationHttpMethod="GET",
     )
 
     stage_name = "staging"
@@ -2297,3 +2319,87 @@ def create_method_integration(client, api_id, httpMethod="GET"):
         statusCode="200",
         responseTemplates={},
     )
+    return root_id
+
+
+@mock_apigateway
+def test_get_integration_response_unknown_response():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    root_id = create_method_integration(client, api_id)
+    client.get_integration_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+    with pytest.raises(ClientError) as ex:
+        client.get_integration_response(
+            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="300"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid Response status code specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_delete_stage_unknown_stage():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    with pytest.raises(ClientError) as ex:
+        client.delete_stage(restApiId=api_id, stageName="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid stage identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_get_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_api_key(apiKey="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid API Key identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_get_domain_name_unknown_domainname():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_domain_name(domainName="www.google.com")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_update_domain_name_unknown_domainname():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.update_domain_name(domainName="www.google.fr", patchOperations=[])
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_delete_domain_name_unknown_domainname():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_domain_name(domainName="www.google.com")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")

@@ -4,6 +4,7 @@ import boto
 import boto3
 from boto.route53.healthcheck import HealthCheck
 from boto.route53.record import ResourceRecordSets
+from botocore.exceptions import ClientError
 
 import sure  # noqa
 
@@ -15,6 +16,7 @@ import pytest
 from moto import mock_route53, mock_route53_deprecated
 
 
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_hosted_zone():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -39,6 +41,71 @@ def test_hosted_zone():
     )
 
 
+@mock_route53
+def test_create_hosted_zone_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+    response = conn.create_hosted_zone(
+        Name="testdns.aws.com.", CallerReference=str(hash("foo"))
+    )
+    firstzone = response["HostedZone"]
+    firstzone.should.have.key("Id").match(r"/hostedzone/[A-Z0-9]+")
+    firstzone.should.have.key("Name").equal("testdns.aws.com.")
+    firstzone.should.have.key("Config").equal({"PrivateZone": False})
+    firstzone.should.have.key("ResourceRecordSetCount").equal(0)
+
+    delegation = response["DelegationSet"]
+    delegation.should.equal({"NameServers": ["moto.test.com"]})
+
+
+@mock_route53
+def test_list_hosted_zones():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    res = conn.list_hosted_zones()["HostedZones"]
+    res.should.have.length_of(0)
+
+    zone1 = conn.create_hosted_zone(
+        Name="testdns1.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]
+    zone2 = conn.create_hosted_zone(
+        Name="testdns2.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]
+
+    res = conn.list_hosted_zones()["HostedZones"]
+    res.should.have.length_of(2)
+
+    res.should.contain(zone1)
+    res.should.contain(zone2)
+
+
+@mock_route53
+def test_delete_hosted_zone():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone1 = conn.create_hosted_zone(
+        Name="testdns1.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]
+    conn.create_hosted_zone(Name="testdns2.aws.com.", CallerReference=str(hash("foo")))
+
+    conn.delete_hosted_zone(Id=zone1["Id"])
+
+    res = conn.list_hosted_zones()["HostedZones"]
+    res.should.have.length_of(1)
+
+
+@mock_route53
+def test_get_unknown_hosted_zone():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        conn.get_hosted_zone(Id="unknown")
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchHostedZone")
+    err["Message"].should.equal("Zone unknown Not Found")
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_rrset():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -152,6 +219,34 @@ def test_rrset():
     rrsets.should.have.length_of(0)
 
 
+@mock_route53
+def test_list_resource_record_set_unknown_zone():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        conn.list_resource_record_sets(HostedZoneId="abcd")
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchHostedZone")
+    err["Message"].should.equal("Zone abcd Not Found")
+
+
+@mock_route53
+def test_list_resource_record_set_unknown_type():
+    conn = boto3.client("route53", region_name="us-east-1")
+    zone = conn.create_hosted_zone(
+        Name="testdns1.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.list_resource_record_sets(HostedZoneId=zone["Id"], StartRecordType="A")
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("400")
+    err["Message"].should.equal("Bad Request")
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_rrset_with_multiple_values():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -169,6 +264,7 @@ def test_rrset_with_multiple_values():
     set(rrsets[0].resource_records).should.equal(set(["1.2.3.4", "5.6.7.8"]))
 
 
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_alias_rrset():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -205,6 +301,7 @@ def test_alias_rrset():
     rrsets[0].resource_records.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_create_health_check():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -235,6 +332,65 @@ def test_create_health_check():
     config["FailureThreshold"].should.equal("2")
 
 
+@mock_route53
+def test_create_health_check_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    check = conn.create_health_check(
+        CallerReference="?",
+        HealthCheckConfig={
+            "IPAddress": "10.0.0.25",
+            "Port": 80,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "FullyQualifiedDomainName": "example.com",
+            "SearchString": "a good response",
+            "RequestInterval": 10,
+            "FailureThreshold": 2,
+        },
+    )["HealthCheck"]
+    check.should.have.key("Id").match("[a-z0-9-]+")
+    check.should.have.key("CallerReference")
+    check.should.have.key("HealthCheckConfig")
+    check["HealthCheckConfig"].should.have.key("IPAddress").equal("10.0.0.25")
+    check["HealthCheckConfig"].should.have.key("Port").equal(80)
+    check["HealthCheckConfig"].should.have.key("Type").equal("HTTP")
+    check["HealthCheckConfig"].should.have.key("ResourcePath").equal("/")
+    check["HealthCheckConfig"].should.have.key("FullyQualifiedDomainName").equal(
+        "example.com"
+    )
+    check["HealthCheckConfig"].should.have.key("SearchString").equal("a good response")
+    check["HealthCheckConfig"].should.have.key("RequestInterval").equal(10)
+    check["HealthCheckConfig"].should.have.key("FailureThreshold").equal(2)
+    check.should.have.key("HealthCheckVersion").equal(1)
+
+
+@mock_route53
+def test_list_health_checks_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
+
+    check = conn.create_health_check(
+        CallerReference="?",
+        HealthCheckConfig={
+            "IPAddress": "10.0.0.25",
+            "Port": 80,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "FullyQualifiedDomainName": "example.com",
+            "SearchString": "a good response",
+            "RequestInterval": 10,
+            "FailureThreshold": 2,
+        },
+    )["HealthCheck"]
+
+    checks = conn.list_health_checks()["HealthChecks"]
+    checks.should.have.length_of(1)
+    checks.should.contain(check)
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_delete_health_check():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -251,6 +407,33 @@ def test_delete_health_check():
     list(checks).should.have.length_of(0)
 
 
+@mock_route53
+def test_delete_health_checks_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
+
+    check = conn.create_health_check(
+        CallerReference="?",
+        HealthCheckConfig={
+            "IPAddress": "10.0.0.25",
+            "Port": 80,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "FullyQualifiedDomainName": "example.com",
+            "SearchString": "a good response",
+            "RequestInterval": 10,
+            "FailureThreshold": 2,
+        },
+    )["HealthCheck"]
+
+    conn.delete_health_check(HealthCheckId=check["Id"])
+
+    checks = conn.list_health_checks()["HealthChecks"]
+    checks.should.have.length_of(0)
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_use_health_check_in_resource_record_set():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -273,6 +456,53 @@ def test_use_health_check_in_resource_record_set():
     record_sets[0].health_check.should.equal(check_id)
 
 
+@mock_route53
+def test_use_health_check_in_resource_record_set_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    check = conn.create_health_check(
+        CallerReference="?",
+        HealthCheckConfig={
+            "IPAddress": "10.0.0.25",
+            "Port": 80,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "RequestInterval": 10,
+            "FailureThreshold": 2,
+        },
+    )["HealthCheck"]
+    check_id = check["Id"]
+
+    zone = conn.create_hosted_zone(
+        Name="testdns.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    conn.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "foo.bar.testdns.aws.com",
+                        "Type": "A",
+                        "HealthCheckId": check_id,
+                        "ResourceRecords": [{"Value": "1.2.3.4"}],
+                    },
+                }
+            ]
+        },
+    )
+
+    record_sets = conn.list_resource_record_sets(HostedZoneId=zone_id)[
+        "ResourceRecordSets"
+    ]
+    record_sets[0]["Name"].should.equal("foo.bar.testdns.aws.com.")
+    record_sets[0]["HealthCheckId"].should.equal(check_id)
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_hosted_zone_comment_preserved():
     conn = boto.connect_route53("the_key", "the_secret")
@@ -294,6 +524,25 @@ def test_hosted_zone_comment_preserved():
     zone.config["Comment"].should.equal("test comment")
 
 
+@mock_route53
+def test_hosted_zone_comment_preserved_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    firstzone = conn.create_hosted_zone(
+        Name="testdns.aws.com",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig={"Comment": "test comment"},
+    )
+    zone_id = firstzone["HostedZone"]["Id"]
+
+    hosted_zone = conn.get_hosted_zone(Id=zone_id)
+    hosted_zone["HostedZone"]["Config"]["Comment"].should.equal("test comment")
+
+    hosted_zones = conn.list_hosted_zones()
+    hosted_zones["HostedZones"][0]["Config"]["Comment"].should.equal("test comment")
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_deleting_weighted_route():
     conn = boto.connect_route53()
@@ -319,6 +568,63 @@ def test_deleting_weighted_route():
     cname.identifier.should.equal("success-test-bar")
 
 
+@mock_route53
+def test_deleting_weighted_route_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone = conn.create_hosted_zone(
+        Name="testdns.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    for identifier in ["success-test-foo", "success-test-bar"]:
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {
+                            "Name": "cname.testdns.aws.com",
+                            "Type": "CNAME",
+                            "SetIdentifier": identifier,
+                            "Weight": 50,
+                        },
+                    }
+                ]
+            },
+        )
+
+    cnames = conn.list_resource_record_sets(
+        HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
+    )["ResourceRecordSets"]
+    cnames.should.have.length_of(2)
+
+    conn.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "DELETE",
+                    "ResourceRecordSet": {
+                        "Name": "cname.testdns.aws.com",
+                        "Type": "CNAME",
+                        "SetIdentifier": "success-test-foo",
+                    },
+                }
+            ]
+        },
+    )
+
+    cnames = conn.list_resource_record_sets(
+        HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
+    )["ResourceRecordSets"]
+    cnames.should.have.length_of(1)
+    cnames[0]["Name"].should.equal("cname.testdns.aws.com.")
+    cnames[0]["SetIdentifier"].should.equal("success-test-bar")
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_deleting_latency_route():
     conn = boto.connect_route53()
@@ -350,6 +656,70 @@ def test_deleting_latency_route():
     cname.region.should.equal("us-west-1")
 
 
+@mock_route53
+def test_deleting_latency_route_boto3():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone = conn.create_hosted_zone(
+        Name="testdns.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    for _id, region in [
+        ("success-test-foo", "us-west-2"),
+        ("success-test-bar", "us-west-1"),
+    ]:
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {
+                            "Name": "cname.testdns.aws.com",
+                            "Type": "CNAME",
+                            "SetIdentifier": _id,
+                            "Region": region,
+                            "ResourceRecords": [{"Value": "example.com"}],
+                        },
+                    }
+                ]
+            },
+        )
+
+    cnames = conn.list_resource_record_sets(
+        HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
+    )["ResourceRecordSets"]
+    cnames.should.have.length_of(2)
+    foo_cname = [
+        cname for cname in cnames if cname["SetIdentifier"] == "success-test-foo"
+    ][0]
+    foo_cname["Region"].should.equal("us-west-2")
+
+    conn.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "DELETE",
+                    "ResourceRecordSet": {
+                        "Name": "cname.testdns.aws.com",
+                        "Type": "CNAME",
+                        "SetIdentifier": "success-test-foo",
+                    },
+                }
+            ]
+        },
+    )
+    cnames = conn.list_resource_record_sets(
+        HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
+    )["ResourceRecordSets"]
+    cnames.should.have.length_of(1)
+    cnames[0]["SetIdentifier"].should.equal("success-test-bar")
+    cnames[0]["Region"].should.equal("us-west-1")
+
+
+# Has boto3 equivalent
 @mock_route53_deprecated
 def test_hosted_zone_private_zone_preserved():
     conn = boto.connect_route53("the_key", "the_secret")

@@ -1,13 +1,10 @@
 import json
 from abc import ABCMeta, abstractmethod
 
-import six
-
 from moto.sts.models import ACCOUNT_ID
 
 
-@six.add_metaclass(ABCMeta)
-class TestConfig:
+class TestConfig(metaclass=ABCMeta):
     """Provides the interface to use for creating test configurations.
 
     This class will provide the interface for what information will be

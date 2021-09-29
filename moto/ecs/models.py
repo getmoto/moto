@@ -307,6 +307,7 @@ class Service(BaseObject, CloudFormationModel):
         tags=None,
         deployment_controller=None,
         launch_type=None,
+        service_registries=None,
     ):
         self.cluster_arn = cluster.arn
         self.arn = "arn:aws:ecs:{0}:{1}:service/{2}".format(
@@ -324,6 +325,7 @@ class Service(BaseObject, CloudFormationModel):
         self.deployment_controller = deployment_controller or {"type": "ECS"}
         self.events = []
         self.launch_type = launch_type
+        self.service_registries = service_registries or []
         if self.deployment_controller["type"] == "ECS":
             self.deployments = [
                 {
@@ -400,7 +402,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
         # TODO: LoadBalancers
         # TODO: Role
 
@@ -422,7 +424,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
 
         ecs_backend = ecs_backends[region_name]
         service_name = original_resource.name
@@ -672,6 +674,13 @@ class EC2ContainerServiceBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ecs"
+        )
 
     def _get_cluster(self, name):
         # short name or full ARN of the cluster
@@ -1076,6 +1085,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         tags=None,
         deployment_controller=None,
         launch_type=None,
+        service_registries=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -1101,6 +1111,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             tags,
             deployment_controller,
             launch_type,
+            service_registries=service_registries,
         )
         cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
         self.services[cluster_service_pair] = service

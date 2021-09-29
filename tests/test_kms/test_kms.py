@@ -5,7 +5,6 @@ import re
 
 import boto.kms
 import boto3
-import six
 import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -23,12 +22,13 @@ PLAINTEXT_VECTORS = [
 
 
 def _get_encoded_value(plaintext):
-    if isinstance(plaintext, six.binary_type):
+    if isinstance(plaintext, bytes):
         return plaintext
 
     return plaintext.encode("utf-8")
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_describe_key():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -42,6 +42,7 @@ def test_describe_key():
     key["KeyMetadata"]["KeyUsage"].should.equal("ENCRYPT_DECRYPT")
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_describe_key_via_alias():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -58,6 +59,7 @@ def test_describe_key_via_alias():
     alias_key["KeyMetadata"]["Arn"].should.equal(key["KeyMetadata"]["Arn"])
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_describe_key_via_alias_not_found():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -73,6 +75,7 @@ def test_describe_key_via_alias_not_found():
     )
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_describe_key_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -87,12 +90,14 @@ def test_describe_key_via_arn():
     the_key["KeyMetadata"]["KeyId"].should.equal(key["KeyMetadata"]["KeyId"])
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_describe_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.describe_key.when.called_with("not-a-key").should.throw(NotFoundException)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_list_keys():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -108,6 +113,7 @@ def test_list_keys():
     keys["Keys"].should.have.length_of(2)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_enable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -122,6 +128,7 @@ def test_enable_key_rotation():
     conn.get_key_rotation_status(key_id)["KeyRotationEnabled"].should.equal(True)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_enable_key_rotation_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -136,6 +143,7 @@ def test_enable_key_rotation_via_arn():
     conn.get_key_rotation_status(key_id)["KeyRotationEnabled"].should.equal(True)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_enable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -144,6 +152,7 @@ def test_enable_key_rotation_with_missing_key():
     )
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_enable_key_rotation_with_alias_name_should_fail():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -162,6 +171,7 @@ def test_enable_key_rotation_with_alias_name_should_fail():
     )
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_disable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -178,6 +188,7 @@ def test_disable_key_rotation():
     conn.get_key_rotation_status(key_id)["KeyRotationEnabled"].should.equal(False)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_generate_data_key():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -200,6 +211,7 @@ def test_generate_data_key():
     response["KeyId"].should.equal(key_arn)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_disable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -208,6 +220,7 @@ def test_disable_key_rotation_with_missing_key():
     )
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_get_key_rotation_status_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -216,6 +229,7 @@ def test_get_key_rotation_status_with_missing_key():
     )
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_get_key_rotation_status():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -228,6 +242,7 @@ def test_get_key_rotation_status():
     conn.get_key_rotation_status(key_id)["KeyRotationEnabled"].should.equal(False)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_create_key_defaults_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -240,6 +255,7 @@ def test_create_key_defaults_key_rotation():
     conn.get_key_rotation_status(key_id)["KeyRotationEnabled"].should.equal(False)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_get_key_policy():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -253,6 +269,7 @@ def test_get_key_policy():
     policy["Policy"].should.equal("my policy")
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_get_key_policy_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -265,6 +282,7 @@ def test_get_key_policy_via_arn():
     policy["Policy"].should.equal("my policy")
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_put_key_policy():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -279,6 +297,7 @@ def test_put_key_policy():
     policy["Policy"].should.equal("new policy")
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_put_key_policy_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -293,6 +312,7 @@ def test_put_key_policy_via_arn():
     policy["Policy"].should.equal("new policy")
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_put_key_policy_via_alias_should_not_update():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -312,19 +332,7 @@ def test_put_key_policy_via_alias_should_not_update():
     policy["Policy"].should.equal("my policy")
 
 
-@mock_kms_deprecated
-def test_put_key_policy():
-    conn = boto.kms.connect_to_region("us-west-2")
-
-    key = conn.create_key(
-        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
-    )
-    conn.put_key_policy(key["KeyMetadata"]["Arn"], "default", "new policy")
-
-    policy = conn.get_key_policy(key["KeyMetadata"]["KeyId"], "default")
-    policy["Policy"].should.equal("new policy")
-
-
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_list_key_policies():
     conn = boto.kms.connect_to_region("us-west-2")
@@ -338,6 +346,7 @@ def test_list_key_policies():
     policies["PolicyNames"].should.equal(["default"])
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__returns_none_if_correct():
     kms = boto.connect_kms()
@@ -349,6 +358,7 @@ def test__create_alias__returns_none_if_correct():
     resp.should.be.none
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__raises_if_reserved_alias():
     kms = boto.connect_kms()
@@ -374,6 +384,7 @@ def test__create_alias__raises_if_reserved_alias():
         ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     kms = boto.connect_kms()
@@ -385,6 +396,7 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     kms.create_alias("alias/my-alias5", key_id).should.be.none
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__raises_if_wrong_prefix():
     kms = boto.connect_kms()
@@ -404,6 +416,7 @@ def test__create_alias__raises_if_wrong_prefix():
     ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__raises_if_duplicate():
     region = "us-west-2"
@@ -436,6 +449,7 @@ def test__create_alias__raises_if_duplicate():
     ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__raises_if_alias_has_restricted_characters():
     kms = boto.connect_kms()
@@ -468,6 +482,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters():
         ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__raises_if_alias_has_colon_character():
     # For some reason, colons are not accepted for an alias, even though they
@@ -494,6 +509,7 @@ def test__create_alias__raises_if_alias_has_colon_character():
         ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @pytest.mark.parametrize("alias_name", ["alias/my-alias_/", "alias/my_alias-/"])
 @mock_kms_deprecated
 def test__create_alias__accepted_characters(alias_name):
@@ -504,6 +520,7 @@ def test__create_alias__accepted_characters(alias_name):
     kms.create_alias(alias_name, key_id)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__create_alias__raises_if_target_key_id_is_existing_alias():
     kms = boto.connect_kms()
@@ -525,6 +542,7 @@ def test__create_alias__raises_if_target_key_id_is_existing_alias():
     ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__delete_alias():
     kms = boto.connect_kms()
@@ -549,6 +567,7 @@ def test__delete_alias():
     kms.create_alias(alias, key_id)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__delete_alias__raises_if_wrong_prefix():
     kms = boto.connect_kms()
@@ -565,6 +584,7 @@ def test__delete_alias__raises_if_wrong_prefix():
     ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__delete_alias__raises_if_alias_is_not_found():
     region = "us-west-2"
@@ -588,6 +608,7 @@ def test__delete_alias__raises_if_alias_is_not_found():
     ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test__list_aliases():
     region = "eu-west-1"
@@ -682,10 +703,19 @@ def test__assert_default_policy():
     )
 
 
-if six.PY2:
-    sort = sorted
-else:
-    sort = lambda l: sorted(l, key=lambda d: d.keys())
+sort = lambda l: sorted(l, key=lambda d: d.keys())
+
+
+def _check_tags(key_id, created_tags, client):
+    result = client.list_resource_tags(KeyId=key_id)
+    actual = result.get("Tags", [])
+    assert sort(created_tags) == sort(actual)
+
+    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
+
+    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
+    expected = [{"TagKey": "key2", "TagValue": "value2"}]
+    assert sort(expected) == sort(actual)
 
 
 @mock_kms
@@ -697,17 +727,19 @@ def test_key_tag_on_create_key_happy():
         {"TagKey": "key2", "TagValue": "value2"},
     ]
     key = client.create_key(Description="test-key-tagging", Tags=tags)
-    key_id = key["KeyMetadata"]["KeyId"]
+    _check_tags(key["KeyMetadata"]["KeyId"], tags, client)
 
-    result = client.list_resource_tags(KeyId=key_id)
-    actual = result.get("Tags", [])
-    assert sort(tags) == sort(actual)
 
-    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
+@mock_kms
+def test_key_tag_on_create_key_on_arn_happy():
+    client = boto3.client("kms", region_name="us-east-1")
 
-    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
-    expected = [{"TagKey": "key2", "TagValue": "value2"}]
-    assert sort(expected) == sort(actual)
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    key = client.create_key(Description="test-key-tagging", Tags=tags)
+    _check_tags(key["KeyMetadata"]["Arn"], tags, client)
 
 
 @mock_kms
@@ -721,18 +753,24 @@ def test_key_tag_added_happy():
         {"TagKey": "key2", "TagValue": "value2"},
     ]
     client.tag_resource(KeyId=key_id, Tags=tags)
-
-    result = client.list_resource_tags(KeyId=key_id)
-    actual = result.get("Tags", [])
-    assert sort(tags) == sort(actual)
-
-    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
-
-    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
-    expected = [{"TagKey": "key2", "TagValue": "value2"}]
-    assert sort(expected) == sort(actual)
+    _check_tags(key_id, tags, client)
 
 
+@mock_kms
+def test_key_tag_added_arn_based_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key = client.create_key(Description="test-key-tagging")
+    key_id = key["KeyMetadata"]["Arn"]
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    client.tag_resource(KeyId=key_id, Tags=tags)
+    _check_tags(key_id, tags, client)
+
+
+# Has boto3 equivalent
 @mock_kms_deprecated
 def test_key_tagging_sad():
     b = KmsBackend()

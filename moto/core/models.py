@@ -1,28 +1,32 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import functools
 import inspect
 import os
-import pkg_resources
+import random
 import re
-import six
+import string
 import types
 from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
+
+try:
+    from importlib.metadata import version
+except ImportError:
+    from importlib_metadata import version
+
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
 from distutils.version import LooseVersion
-from six.moves.urllib.parse import urlparse
+from http.client import responses as http_responses
+from urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
-from moto.compat import patch
+from unittest.mock import patch
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
@@ -30,10 +34,9 @@ from .utils import (
 )
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
-RESPONSES_VERSION = pkg_resources.get_distribution("responses").version
 
 
-class BaseMockAWS(object):
+class BaseMockAWS:
     nested_count = 0
     mocks_active = False
 
@@ -125,6 +128,8 @@ class BaseMockAWS(object):
             attr_value = getattr(klass, attr)
             if not hasattr(attr_value, "__call__"):
                 continue
+            if not hasattr(attr_value, "__name__"):
+                continue
 
             # Check if this is a classmethod. If so, skip patching
             if inspect.ismethod(attr_value) and attr_value.__self__ is klass:
@@ -213,12 +218,12 @@ class CallbackResponse(responses.CallbackResponse):
             url = urlparse(request.url)
             if request.body is None:
                 body = None
-            elif isinstance(request.body, six.text_type):
-                body = six.BytesIO(six.b(request.body))
+            elif isinstance(request.body, str):
+                body = BytesIO(request.body.encode("UTF-8"))
             elif hasattr(request.body, "read"):
-                body = six.BytesIO(request.body.read())
+                body = BytesIO(request.body.read())
             else:
-                body = six.BytesIO(request.body)
+                body = BytesIO(request.body)
             req = Request.from_values(
                 path="?".join([url.path, url.query]),
                 input_stream=body,
@@ -228,7 +233,7 @@ class CallbackResponse(responses.CallbackResponse):
                 base_url="{scheme}://{netloc}".format(
                     scheme=url.scheme, netloc=url.netloc
                 ),
-                headers=[(k, v) for k, v in six.iteritems(request.headers)],
+                headers=[(k, v) for k, v in request.headers.items()],
             )
             request = req
         headers = self.get_headers()
@@ -243,7 +248,7 @@ class CallbackResponse(responses.CallbackResponse):
 
         return responses.HTTPResponse(
             status=status,
-            reason=six.moves.http_client.responses.get(status),
+            reason=http_responses.get(status),
             body=body,
             headers=headers,
             preload_content=False,
@@ -261,7 +266,7 @@ class CallbackResponse(responses.CallbackResponse):
         if responses._is_string(url):
             if responses._has_unicode(url):
                 url = responses._clean_unicode(url)
-                if not isinstance(other, six.text_type):
+                if not isinstance(other, str):
                     other = other.encode("ascii").decode("utf8")
             return self._url_matches_strict(url, other)
         elif isinstance(url, responses.Pattern) and url.match(other):
@@ -282,21 +287,46 @@ responses_mock.add_passthru("http")
 
 
 def _find_first_match_legacy(self, request):
+    matches = []
     for i, match in enumerate(self._matches):
         if match.matches(request):
-            return match
+            matches.append(match)
 
+    # Look for implemented callbacks first
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
+    if implemented_matches:
+        return implemented_matches[0]
+    elif matches:
+        # We had matches, but all were of type not_implemented_callback
+        return matches[0]
     return None
 
 
 def _find_first_match(self, request):
+    matches = []
     match_failed_reasons = []
     for i, match in enumerate(self._matches):
         match_result, reason = match.matches(request)
         if match_result:
-            return match, match_failed_reasons
+            matches.append(match)
         else:
             match_failed_reasons.append(reason)
+
+    # Look for implemented callbacks first
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
+    if implemented_matches:
+        return implemented_matches[0], []
+    elif matches:
+        # We had matches, but all were of type not_implemented_callback
+        return matches[0], match_failed_reasons
 
     return None, match_failed_reasons
 
@@ -306,6 +336,7 @@ def _find_first_match(self, request):
 #  - First request matches on the appropriate S3 URL
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match
+RESPONSES_VERSION = version("responses")
 if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
     responses_mock._find_match = types.MethodType(
         _find_first_match_legacy, responses_mock
@@ -319,7 +350,7 @@ BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "P
 
 class MockRawResponse(BytesIO):
     def __init__(self, input):
-        if isinstance(input, six.text_type):
+        if isinstance(input, str):
             input = input.encode("utf-8")
         super(MockRawResponse, self).__init__(input)
 
@@ -330,7 +361,7 @@ class MockRawResponse(BytesIO):
             contents = self.read()
 
 
-class BotocoreStubber(object):
+class BotocoreStubber:
     def __init__(self):
         self.enabled = False
         self.methods = defaultdict(list)
@@ -345,7 +376,6 @@ class BotocoreStubber(object):
     def __call__(self, event_name, request, **kwargs):
         if not self.enabled:
             return None
-
         response = None
         response_callback = None
         found_index = None
@@ -363,7 +393,7 @@ class BotocoreStubber(object):
 
         if response_callback is not None:
             for header, value in request.headers.items():
-                if isinstance(value, six.binary_type):
+                if isinstance(value, bytes):
                     request.headers[header] = value.decode("utf-8")
             status, headers, body = response_callback(
                 request, request.url, request.headers
@@ -479,43 +509,10 @@ class ServerModeMockAWS(BaseMockAWS):
                 kwargs["endpoint_url"] = "http://localhost:5000"
             return real_boto3_resource(*args, **kwargs)
 
-        def fake_httplib_send_output(self, message_body=None, *args, **kwargs):
-            def _convert_to_bytes(mixed_buffer):
-                bytes_buffer = []
-                for chunk in mixed_buffer:
-                    if isinstance(chunk, six.text_type):
-                        bytes_buffer.append(chunk.encode("utf-8"))
-                    else:
-                        bytes_buffer.append(chunk)
-                msg = b"\r\n".join(bytes_buffer)
-                return msg
-
-            self._buffer.extend((b"", b""))
-            msg = _convert_to_bytes(self._buffer)
-            del self._buffer[:]
-            if isinstance(message_body, bytes):
-                msg += message_body
-                message_body = None
-            self.send(msg)
-            # if self._expect_header_set:
-            #     read, write, exc = select.select([self.sock], [], [self.sock], 1)
-            #     if read:
-            #         self._handle_expect_response(message_body)
-            #         return
-            if message_body is not None:
-                self.send(message_body)
-
         self._client_patcher = patch("boto3.client", fake_boto3_client)
         self._resource_patcher = patch("boto3.resource", fake_boto3_resource)
-        if six.PY2:
-            self._httplib_patcher = patch(
-                "httplib.HTTPConnection._send_output", fake_httplib_send_output
-            )
-
         self._client_patcher.start()
         self._resource_patcher.start()
-        if six.PY2:
-            self._httplib_patcher.start()
 
     def _get_region(self, *args, **kwargs):
         if "region_name" in kwargs:
@@ -529,8 +526,6 @@ class ServerModeMockAWS(BaseMockAWS):
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
-            if six.PY2:
-                self._httplib_patcher.stop()
 
 
 class Model(type):
@@ -572,8 +567,7 @@ class InstanceTrackerMeta(type):
         return cls
 
 
-@six.add_metaclass(InstanceTrackerMeta)
-class BaseModel(object):
+class BaseModel(metaclass=InstanceTrackerMeta):
     def __new__(cls, *args, **kwargs):
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)
@@ -598,6 +592,7 @@ class CloudFormationModel(BaseModel):
         # See for example https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
         return "AWS::SERVICE::RESOURCE"
 
+    @classmethod
     @abstractmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -608,6 +603,7 @@ class CloudFormationModel(BaseModel):
         # and return an instance of the resource class
         pass
 
+    @classmethod
     @abstractmethod
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
@@ -619,6 +615,7 @@ class CloudFormationModel(BaseModel):
         # the change in parameters and no-op when nothing has changed.
         pass
 
+    @classmethod
     @abstractmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -630,7 +627,7 @@ class CloudFormationModel(BaseModel):
         pass
 
 
-class BaseBackend(object):
+class BaseBackend:
     def _reset_model_refs(self):
         # Remove all references to the models stored
         for service, models in model_data.items():
@@ -702,6 +699,63 @@ class BaseBackend(object):
 
         return paths
 
+    @staticmethod
+    def default_vpc_endpoint_service(
+        service_region, zones,
+    ):  # pylint: disable=unused-argument
+        """Invoke the factory method for any VPC endpoint(s) services."""
+        return None
+
+    @staticmethod
+    def vpce_random_number():
+        """Return random number for a VPC endpoint service ID."""
+        return "".join([random.choice(string.hexdigits.lower()) for i in range(17)])
+
+    @staticmethod
+    def default_vpc_endpoint_service_factory(
+        service_region,
+        zones,
+        service="",
+        service_type="Interface",
+        private_dns_names=True,
+        special_service_name="",
+        policy_supported=True,
+        base_endpoint_dns_names=None,
+    ):  # pylint: disable=too-many-arguments
+        """List of dicts representing default VPC endpoints for this service."""
+        if special_service_name:
+            service_name = f"com.amazonaws.{service_region}.{special_service_name}"
+        else:
+            service_name = f"com.amazonaws.{service_region}.{service}"
+
+        if not base_endpoint_dns_names:
+            base_endpoint_dns_names = [f"{service}.{service_region}.vpce.amazonaws.com"]
+
+        endpoint_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": base_endpoint_dns_names,
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": service_name,
+            "ServiceType": [{"ServiceType": service_type}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": policy_supported,
+        }
+
+        # Don't know how private DNS names are different, so for now just
+        # one will be added.
+        if private_dns_names:
+            endpoint_service[
+                "PrivateDnsName"
+            ] = f"{service}.{service_region}.amazonaws.com"
+            endpoint_service["PrivateDnsNameVerificationState"] = "verified"
+            endpoint_service["PrivateDnsNames"] = [
+                {"PrivateDnsName": f"{service}.{service_region}.amazonaws.com"}
+            ]
+        return [endpoint_service]
+
     def decorator(self, func=None):
         if settings.TEST_SERVER_MODE:
             mocked_backend = ServerModeMockAWS({"global": self})
@@ -724,7 +778,7 @@ class BaseBackend(object):
     #     raise NotImplementedError()
 
 
-class ConfigQueryModel(object):
+class ConfigQueryModel:
     def __init__(self, backends):
         """Inits based on the resource type's backends (1 for each region if applicable)"""
         self.backends = backends
@@ -817,7 +871,7 @@ class ConfigQueryModel(object):
         raise NotImplementedError()
 
 
-class base_decorator(object):
+class base_decorator:
     mock_backend = MockAWS
 
     def __init__(self, backends):
@@ -843,7 +897,7 @@ class MotoAPIBackend(BaseBackend):
     def reset(self):
         import moto.backends as backends
 
-        for name, backends_ in backends.named_backends():
+        for name, backends_ in backends.loaded_backends():
             if name == "moto_api":
                 continue
             for region_name, backend in backends_.items():

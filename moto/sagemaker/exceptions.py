@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError, JsonRESTError
+from moto.core.exceptions import RESTError, JsonRESTError, AWSError
 
 ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
 {% block extra %}<ModelName>{{ model }}</ModelName>{% endblock %}
@@ -32,3 +32,7 @@ class MissingModel(ModelError):
 class ValidationError(JsonRESTError):
     def __init__(self, message, **kwargs):
         super(ValidationError, self).__init__("ValidationException", message, **kwargs)
+
+
+class AWSValidationException(AWSError):
+    TYPE = "ValidationException"

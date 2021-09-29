@@ -121,7 +121,7 @@ class ELBResponse(BaseResponse):
         ssl_certificate_id = self.querystring["SSLCertificateId"][0]
         lb_port = self.querystring["LoadBalancerPort"][0]
 
-        self.elb_backend.set_load_balancer_listener_sslcertificate(
+        self.elb_backend.set_load_balancer_listener_ssl_certificate(
             load_balancer_name, lb_port, ssl_certificate_id
         )
 
@@ -216,7 +216,7 @@ class ELBResponse(BaseResponse):
 
         self.elb_backend.create_app_cookie_stickiness_policy(load_balancer_name, policy)
 
-        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
+        template = self.response_template(CREATE_APP_COOKIE_STICKINESS_POLICY_TEMPLATE)
         return template.render()
 
     def create_lb_cookie_stickiness_policy(self):
@@ -232,7 +232,7 @@ class ELBResponse(BaseResponse):
 
         self.elb_backend.create_lb_cookie_stickiness_policy(load_balancer_name, policy)
 
-        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
+        template = self.response_template(CREATE_LB_COOKIE_STICKINESS_POLICY_TEMPLATE)
         return template.render()
 
     def set_load_balancer_policies_of_listener(self):
@@ -699,6 +699,22 @@ CREATE_LOAD_BALANCER_POLICY_TEMPLATE = """<CreateLoadBalancerPolicyResponse xmln
       <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
   </ResponseMetadata>
 </CreateLoadBalancerPolicyResponse>
+"""
+
+CREATE_LB_COOKIE_STICKINESS_POLICY_TEMPLATE = """<CreateLBCookieStickinessPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <CreateLBCookieStickinessPolicyResult/>
+  <ResponseMetadata>
+      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateLBCookieStickinessPolicyResponse>
+"""
+
+CREATE_APP_COOKIE_STICKINESS_POLICY_TEMPLATE = """<CreateAppCookieStickinessPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <CreateAppCookieStickinessPolicyResult/>
+  <ResponseMetadata>
+      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateAppCookieStickinessPolicyResponse>
 """
 
 SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE = """<SetLoadBalancerPoliciesOfListenerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">

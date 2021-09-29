@@ -35,9 +35,13 @@ class SpotInstances(BaseResponse):
         return template.render(requests=requests)
 
     def describe_spot_price_history(self):
-        raise NotImplementedError(
-            "SpotInstances.describe_spot_price_history is not yet implemented"
+        instance_types_filters = self._get_multi_param("InstanceType")
+        filter_dict = filters_from_querystring(self.querystring)
+        prices = self.ec2_backend.describe_spot_price_history(
+            instance_types_filters, filter_dict
         )
+        template = self.response_template(DESCRIBE_SPOT_PRICE_HISTORY_TEMPLATE)
+        return template.render(prices=prices)
 
     def request_spot_instances(self):
         price = self._get_param("SpotPrice")
@@ -228,3 +232,18 @@ CANCEL_SPOT_INSTANCES_TEMPLATE = """<CancelSpotInstanceRequestsResponse xmlns="h
     {% endfor %}
   </spotInstanceRequestSet>
 </CancelSpotInstanceRequestsResponse>"""
+
+DESCRIBE_SPOT_PRICE_HISTORY_TEMPLATE = """<DescribeSpotPriceHistoryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotPriceHistorySet>
+    {% for price in prices %}
+    <item>
+      <instanceType>{{ price.InstanceType }}</instanceType>
+      <productDescription>Linux/UNIX (Amazon VPC)</productDescription>
+      <spotPrice>0.00001</spotPrice>
+      <availabilityZone>{{ price.Location }}</availabilityZone>
+      <timestamp>2006-01-02T15:04:05.999999999Z</timestamp>
+    </item>
+    {% endfor %}
+  </spotPriceHistorySet>
+  </DescribeSpotPriceHistoryResponse>"""

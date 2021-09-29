@@ -5,8 +5,13 @@ import zipfile
 from botocore.exceptions import ClientError
 from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
 import pytest
+import re
 from string import Template
 from uuid import uuid4
+
+
+def random_stack_name():
+    return str(uuid4())[0:6]
 
 
 def _process_lambda(func_str):
@@ -74,6 +79,7 @@ def test_lambda_can_be_updated_by_cloudformation():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     lmbda = boto3.client("lambda", region_name="us-east-1")
     body2, stack = create_stack(cf, s3)
+    stack_name = re.search(":stack/(.+)/", stack["StackId"]).group(1)
     created_fn_name = get_created_function_name(cf, stack)
     # Verify function has been created
     created_fn = lmbda.get_function(FunctionName=created_fn_name)
@@ -83,7 +89,7 @@ def test_lambda_can_be_updated_by_cloudformation():
     created_fn["Configuration"]["Runtime"].should.equal("python3.7")
     created_fn["Code"]["Location"].should.match("/test1.zip")
     # Update CF stack
-    cf.update_stack(StackName="teststack", TemplateBody=body2)
+    cf.update_stack(StackName=stack_name, TemplateBody=body2)
     updated_fn_name = get_created_function_name(cf, stack)
     # Verify function has been updated
     updated_fn = lmbda.get_function(FunctionName=updated_fn_name)
@@ -124,7 +130,7 @@ def test_event_source_mapping_create_from_cloudformation_json():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     lmbda = boto3.client("lambda", region_name="us-east-1")
 
-    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
@@ -143,7 +149,7 @@ def test_event_source_mapping_create_from_cloudformation_json():
         }
     )
 
-    cf.create_stack(StackName="test-event-source", TemplateBody=template)
+    cf.create_stack(StackName=random_stack_name(), TemplateBody=template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
     event_sources["EventSourceMappings"].should.have.length_of(1)
@@ -162,7 +168,7 @@ def test_event_source_mapping_delete_stack():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     lmbda = boto3.client("lambda", region_name="us-east-1")
 
-    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
@@ -178,7 +184,7 @@ def test_event_source_mapping_delete_stack():
         }
     )
 
-    esm_stack = cf.create_stack(StackName="test-event-source", TemplateBody=template)
+    esm_stack = cf.create_stack(StackName=random_stack_name(), TemplateBody=template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
     event_sources["EventSourceMappings"].should.have.length_of(1)
@@ -199,7 +205,7 @@ def test_event_source_mapping_update_from_cloudformation_json():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     lmbda = boto3.client("lambda", region_name="us-east-1")
 
-    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
@@ -218,7 +224,8 @@ def test_event_source_mapping_update_from_cloudformation_json():
         }
     )
 
-    cf.create_stack(StackName="test-event-source", TemplateBody=original_template)
+    stack_name = random_stack_name()
+    cf.create_stack(StackName=stack_name, TemplateBody=original_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
     original_esm = event_sources["EventSourceMappings"][0]
 
@@ -236,7 +243,7 @@ def test_event_source_mapping_update_from_cloudformation_json():
         }
     )
 
-    cf.update_stack(StackName="test-event-source", TemplateBody=new_template)
+    cf.update_stack(StackName=stack_name, TemplateBody=new_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
     updated_esm = event_sources["EventSourceMappings"][0]
 
@@ -254,7 +261,7 @@ def test_event_source_mapping_delete_from_cloudformation_json():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     lmbda = boto3.client("lambda", region_name="us-east-1")
 
-    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
@@ -273,7 +280,8 @@ def test_event_source_mapping_delete_from_cloudformation_json():
         }
     )
 
-    cf.create_stack(StackName="test-event-source", TemplateBody=original_template)
+    stack_name = random_stack_name()
+    cf.create_stack(StackName=stack_name, TemplateBody=original_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
     original_esm = event_sources["EventSourceMappings"][0]
 
@@ -291,7 +299,7 @@ def test_event_source_mapping_delete_from_cloudformation_json():
         }
     )
 
-    cf.update_stack(StackName="test-event-source", TemplateBody=new_template)
+    cf.update_stack(StackName=stack_name, TemplateBody=new_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
     event_sources["EventSourceMappings"].should.have.length_of(1)
@@ -304,12 +312,13 @@ def test_event_source_mapping_delete_from_cloudformation_json():
 
 def create_stack(cf, s3):
     bucket_name = str(uuid4())
+    stack_name = random_stack_name()
     s3.create_bucket(Bucket=bucket_name)
     s3.put_object(Bucket=bucket_name, Key="test1.zip", Body=get_zip_file())
     s3.put_object(Bucket=bucket_name, Key="test2.zip", Body=get_zip_file())
     body1 = get_template(bucket_name, "1", "python3.7")
     body2 = get_template(bucket_name, "2", "python3.8")
-    stack = cf.create_stack(StackName="teststack", TemplateBody=body1)
+    stack = cf.create_stack(StackName=stack_name, TemplateBody=body1)
     return body2, stack
 
 
@@ -334,10 +343,12 @@ def get_role_arn():
     with mock_iam():
         iam = boto3.client("iam", region_name="us-west-2")
         try:
-            return iam.get_role(RoleName="my-role")["Role"]["Arn"]
-        except ClientError:
-            return iam.create_role(
+            iam.create_role(
                 RoleName="my-role",
                 AssumeRolePolicyDocument="some policy",
                 Path="/my-path/",
-            )["Role"]["Arn"]
+            )
+        except ClientError:
+            pass  # Will fail second/third time - difficult to execute once with parallel tests
+
+        return iam.get_role(RoleName="my-role")["Role"]["Arn"]

@@ -14,7 +14,6 @@ from moto.organizations.models import (
 
 import boto3
 import json
-import six
 import sure  # noqa
 from botocore.exceptions import ClientError
 import pytest
@@ -557,15 +556,30 @@ def test_detach_policy():
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
-    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
-    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
-    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=ou_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=root_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.detach_policy(PolicyId=policy_id, TargetId=account_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    # Attach/List/Detach policy
+    for name, target in [("OU", ou_id), ("Root", root_id), ("Account", account_id)]:
+        #
+        with sure.ensure("We should start with 0 policies"):
+            get_nonaws_policies(target, client).should.have.length_of(0)
+        #
+        client.attach_policy(PolicyId=policy_id, TargetId=target)
+        with sure.ensure("Expecting 1 policy after creation of target={0}", name):
+            get_nonaws_policies(target, client).should.have.length_of(1)
+        #
+        response = client.detach_policy(PolicyId=policy_id, TargetId=target)
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        with sure.ensure("Expecting 0 policies after deletion of target={0}", name):
+            get_nonaws_policies(target, client).should.have.length_of(0)
+
+
+def get_nonaws_policies(account_id, client):
+    return [
+        p
+        for p in client.list_policies_for_target(
+            TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
+        )["Policies"]
+        if not p["AwsManaged"]
+    ]
 
 
 @mock_organizations
@@ -947,9 +961,9 @@ def test_list_targets_for_policy():
     response = client.list_targets_for_policy(PolicyId=policy_id)
     for target in response["Targets"]:
         target.should.be.a(dict)
-        target.should.have.key("Name").should.be.a(six.string_types)
-        target.should.have.key("Arn").should.be.a(six.string_types)
-        target.should.have.key("TargetId").should.be.a(six.string_types)
+        target.should.have.key("Name").should.be.a(str)
+        target.should.have.key("Arn").should.be.a(str)
+        target.should.have.key("TargetId").should.be.a(str)
         target.should.have.key("Type").should.be.within(
             ["ROOT", "ORGANIZATIONAL_UNIT", "ACCOUNT"]
         )
@@ -1164,16 +1178,6 @@ def test__get_resource_for_tagging_non_existing_policy():
     ex.message.should.equal("You specified a target that doesn't exist.")
 
 
-def test__get_resource_for_tagging_non_existing_policy():
-    org_backend = OrganizationsBackend()
-    with pytest.raises(TargetNotFoundException) as e:
-        org_backend._get_resource_for_tagging("p-y1vas4da")
-    ex = e.value
-    ex.code.should.equal(400)
-    ex.description.should.contain("TargetNotFoundException")
-    ex.message.should.equal("You specified a target that doesn't exist.")
-
-
 def test__get_resource_to_tag_incorrect_resource():
     org_backend = OrganizationsBackend()
     with pytest.raises(InvalidInputException) as e:
@@ -1324,7 +1328,7 @@ def test_enable_aws_service_access():
     service = response["EnabledServicePrincipals"][0]
     service["ServicePrincipal"].should.equal("config.amazonaws.com")
     date_enabled = service["DateEnabled"]
-    date_enabled["DateEnabled"].should.be.a(datetime)
+    date_enabled.should.be.a(datetime)
 
     # enabling the same service again should not result in any error or change
     # when
@@ -1339,7 +1343,7 @@ def test_enable_aws_service_access():
 
 
 @mock_organizations
-def test_enable_aws_service_access():
+def test_enable_aws_service_access_error():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
 
@@ -1355,7 +1359,7 @@ def test_enable_aws_service_access():
 
 
 @mock_organizations
-def test_enable_aws_service_access():
+def test_enable_multiple_aws_service_access():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")

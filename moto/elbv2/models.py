@@ -4,7 +4,7 @@ import datetime
 import re
 from jinja2 import Template
 from botocore.exceptions import ParamValidationError
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -70,6 +70,7 @@ class FakeTargetGroup(CloudFormationModel):
         healthcheck_path=None,
         healthcheck_interval_seconds=None,
         healthcheck_timeout_seconds=None,
+        healthcheck_enabled=None,
         healthy_threshold_count=None,
         unhealthy_threshold_count=None,
         matcher=None,
@@ -82,19 +83,21 @@ class FakeTargetGroup(CloudFormationModel):
         self.vpc_id = vpc_id
         self.protocol = protocol
         self.port = port
-        self.healthcheck_protocol = healthcheck_protocol or "HTTP"
-        self.healthcheck_port = healthcheck_port or str(self.port)
-        self.healthcheck_path = healthcheck_path or "/"
+        self.healthcheck_protocol = healthcheck_protocol or self.protocol
+        self.healthcheck_port = healthcheck_port
+        self.healthcheck_path = healthcheck_path
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
+        self.healthcheck_enabled = healthcheck_enabled
         self.healthy_threshold_count = healthy_threshold_count or 5
         self.unhealthy_threshold_count = unhealthy_threshold_count or 2
         self.load_balancer_arns = []
         self.tags = {}
-        if matcher is None:
-            self.matcher = {"HttpCode": "200"}
-        else:
-            self.matcher = matcher
+        self.matcher = matcher
+        if self.protocol != "TCP":
+            self.matcher = self.matcher or {"HttpCode": "200"}
+            self.healthcheck_path = self.healthcheck_path or "/"
+            self.healthcheck_port = self.healthcheck_port or str(self.port)
         self.target_type = target_type
 
         self.attributes = {
@@ -209,7 +212,7 @@ class FakeListener(CloudFormationModel):
     ):
         self.load_balancer_arn = load_balancer_arn
         self.arn = arn
-        self.protocol = protocol.upper()
+        self.protocol = (protocol or "").upper()
         self.port = port
         self.ssl_policy = ssl_policy
         self.certificate = certificate
@@ -224,6 +227,7 @@ class FakeListener(CloudFormationModel):
             actions=default_actions,
             is_default=True,
         )
+        self.tags = {}
 
     @property
     def physical_resource_id(self):
@@ -437,6 +441,7 @@ class FakeLoadBalancer(CloudFormationModel):
         dns_name,
         state,
         scheme="internet-facing",
+        loadbalancer_type=None,
     ):
         self.name = name
         self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
@@ -449,14 +454,15 @@ class FakeLoadBalancer(CloudFormationModel):
         self.arn = arn
         self.dns_name = dns_name
         self.state = state
+        self.loadbalancer_type = loadbalancer_type or "application"
 
         self.stack = "ipv4"
         self.attrs = {
-            "access_logs.s3.enabled": "false",
+            # "access_logs.s3.enabled": "false",  # commented out for TF compatibility
             "access_logs.s3.bucket": None,
             "access_logs.s3.prefix": None,
             "deletion_protection.enabled": "false",
-            "idle_timeout.timeout_seconds": "60",
+            # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
         }
 
     @property
@@ -547,6 +553,13 @@ class ELBv2Backend(BaseBackend):
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticloadbalancing"
+        )
+
     @property
     def ec2_backend(self):
         """
@@ -573,7 +586,12 @@ class ELBv2Backend(BaseBackend):
         self.__init__(region_name)
 
     def create_load_balancer(
-        self, name, security_groups, subnet_ids, scheme="internet-facing"
+        self,
+        name,
+        security_groups,
+        subnet_ids,
+        scheme="internet-facing",
+        loadbalancer_type=None,
     ):
         vpc_id = None
         subnets = []
@@ -605,6 +623,7 @@ class ELBv2Backend(BaseBackend):
             vpc_id=vpc_id,
             dns_name=dns_name,
             state=state,
+            loadbalancer_type=loadbalancer_type,
         )
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
@@ -634,7 +653,7 @@ class ELBv2Backend(BaseBackend):
                 )
             elif action_type == "forward" and "ForwardConfig" not in action:
                 default_actions.append(
-                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"]}
                 )
             elif action_type in [
                 "redirect",
@@ -666,8 +685,12 @@ class ELBv2Backend(BaseBackend):
         listener = listeners[0]
 
         # validate conditions
+        # see: https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-rule.html
         self._validate_conditions(conditions)
 
+        # TODO: check QueryStringConfig condition
+        # TODO: check HttpRequestMethodConfig condition
+        # TODO: check SourceIpConfig condition
         # TODO: check pattern of value for 'host-header'
         # TODO: check pattern of value for 'path-pattern'
 
@@ -778,6 +801,10 @@ class ELBv2Backend(BaseBackend):
                 )
         if values is None or len(values) == 0:
             raise InvalidConditionValueError("A condition value must be specified")
+        if condition.get("Values") and condition.get("PathPatternConfig"):
+            raise InvalidConditionValueError(
+                "You cannot provide both Values and 'PathPatternConfig' for a condition of type 'path-pattern'"
+            )
         for value in values:
             if len(value) > 128:
                 raise InvalidConditionValueError(
@@ -955,7 +982,7 @@ Member must satisfy regular expression pattern: {}".format(
             action_type = action["Type"]
             if action_type == "forward":
                 default_actions.append(
-                    {"type": action_type, "target_group_arn": action["TargetGroupArn"],}
+                    {"type": action_type, "target_group_arn": action["TargetGroupArn"]}
                 )
             elif action_type in [
                 "redirect",
@@ -1340,6 +1367,7 @@ Member must satisfy regular expression pattern: {}".format(
         healthy_threshold_count=None,
         unhealthy_threshold_count=None,
         http_codes=None,
+        health_check_enabled=None,
     ):
         target_group = self.target_groups.get(arn)
         if target_group is None:
@@ -1366,6 +1394,8 @@ Member must satisfy regular expression pattern: {}".format(
             target_group.healthcheck_protocol = health_check_proto
         if health_check_timeout is not None:
             target_group.healthcheck_timeout_seconds = health_check_timeout
+        if health_check_enabled is not None:
+            target_group.healthcheck_enabled = health_check_enabled
         if healthy_threshold_count is not None:
             target_group.healthy_threshold_count = healthy_threshold_count
         if unhealthy_threshold_count is not None:

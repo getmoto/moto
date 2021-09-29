@@ -268,7 +268,7 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
   <ownerId>{{ snapshot.owner_id }}</ownerId>
   <volumeSize>{{ snapshot.volume.size }}</volumeSize>
   <description>{{ snapshot.description }}</description>
-  <encrypted>{{ snapshot.encrypted }}</encrypted>
+  <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
   <tagSet>
     {% for tag in snapshot.get_tags() %}
       <item>
@@ -309,7 +309,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
              <ownerId>{{ snapshot.owner_id }}</ownerId>
             <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
-             <encrypted>{{ snapshot.encrypted }}</encrypted>
+             <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
              <tagSet>
                {% for tag in snapshot.get_tags() %}
                  <item>

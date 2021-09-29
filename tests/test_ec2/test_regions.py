@@ -2,10 +2,12 @@ from __future__ import unicode_literals
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
+import boto3
 import sure
 from boto3 import Session
 
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
+from moto import mock_autoscaling, mock_ec2, mock_elb
 
 from moto.ec2 import ec2_backends
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
@@ -30,6 +32,12 @@ def add_servers_to_region(ami_id, count, region):
         conn.run_instances(ami_id)
 
 
+def add_servers_to_region_boto3(ami_id, count, region):
+    ec2 = boto3.resource("ec2", region_name=region)
+    ec2.create_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_add_servers_to_a_single_region():
     region = "ap-northeast-1"
@@ -44,6 +52,21 @@ def test_add_servers_to_a_single_region():
     image_ids.should.equal([EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2])
 
 
+@mock_ec2
+def test_add_servers_to_a_single_region_boto3():
+    region = "ap-northeast-1"
+    add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region)
+    add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region)
+
+    client = boto3.client("ec2", region_name=region)
+    reservations = client.describe_instances()["Reservations"]
+    reservations.should.have.length_of(2)
+
+    image_ids = [r["Instances"][0]["ImageId"] for r in reservations]
+    image_ids.should.equal([EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2])
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_add_servers_to_multiple_regions():
     region1 = "us-east-1"
@@ -63,6 +86,26 @@ def test_add_servers_to_multiple_regions():
     ap_reservations[0].instances[0].image_id.should.equal(EXAMPLE_AMI_ID2)
 
 
+@mock_ec2
+def test_add_servers_to_multiple_regions_boto3():
+    region1 = "us-east-1"
+    region2 = "ap-northeast-1"
+    add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region1)
+    add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region2)
+
+    us_client = boto3.client("ec2", region_name=region1)
+    ap_client = boto3.client("ec2", region_name=region2)
+    us_reservations = us_client.describe_instances()["Reservations"]
+    ap_reservations = ap_client.describe_instances()["Reservations"]
+
+    us_reservations.should.have.length_of(1)
+    ap_reservations.should.have.length_of(1)
+
+    us_reservations[0]["Instances"][0]["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    ap_reservations[0]["Instances"][0]["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+
+
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 @mock_elb_deprecated
 def test_create_autoscaling_group():
@@ -161,3 +204,69 @@ def test_create_autoscaling_group():
     list(ap_group.termination_policies).should.equal(
         ["OldestInstance", "NewestInstance"]
     )
+
+
+@mock_autoscaling
+@mock_elb
+@mock_ec2
+def test_create_autoscaling_group_boto3():
+    regions = [("us-east-1", "c"), ("ap-northeast-1", "a")]
+    for region, zone in regions:
+        a_zone = "{}{}".format(region, zone)
+        asg_name = "{}_tester_group".format(region)
+        lb_name = "{}_lb".format(region)
+        config_name = "{}_tester".format(region)
+
+        elb_client = boto3.client("elb", region_name=region)
+        elb_client.create_load_balancer(
+            LoadBalancerName=lb_name,
+            Listeners=[
+                {"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}
+            ],
+            AvailabilityZones=[],
+        )
+
+        as_client = boto3.client("autoscaling", region_name=region)
+        as_client.create_launch_configuration(
+            LaunchConfigurationName=config_name,
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="m1.small",
+        )
+
+        ec2_client = boto3.client("ec2", region_name=region)
+        subnet_id = ec2_client.describe_subnets(
+            Filters=[{"Name": "availability-zone", "Values": [a_zone]}]
+        )["Subnets"][0]["SubnetId"]
+
+        as_client.create_auto_scaling_group(
+            AutoScalingGroupName=asg_name,
+            AvailabilityZones=[a_zone],
+            DefaultCooldown=60,
+            DesiredCapacity=2,
+            HealthCheckGracePeriod=100,
+            HealthCheckType="EC2",
+            LaunchConfigurationName=config_name,
+            LoadBalancerNames=[lb_name],
+            MinSize=2,
+            MaxSize=2,
+            PlacementGroup="us_test_placement",
+            VPCZoneIdentifier=subnet_id,
+            TerminationPolicies=["OldestInstance", "NewestInstance"],
+        )
+
+        groups = as_client.describe_auto_scaling_groups()["AutoScalingGroups"]
+        groups.should.have.length_of(1)
+        group = groups[0]
+
+        group["AutoScalingGroupName"].should.equal(asg_name)
+        group["DesiredCapacity"].should.equal(2)
+        group["MaxSize"].should.equal(2)
+        group["MinSize"].should.equal(2)
+        group["VPCZoneIdentifier"].should.equal(subnet_id)
+        group["LaunchConfigurationName"].should.equal(config_name)
+        group["DefaultCooldown"].should.equal(60)
+        group["HealthCheckGracePeriod"].should.equal(100)
+        group["HealthCheckType"].should.equal("EC2")
+        group["LoadBalancerNames"].should.equal([lb_name])
+        group["PlacementGroup"].should.equal("us_test_placement")
+        group["TerminationPolicies"].should.equal(["OldestInstance", "NewestInstance"])

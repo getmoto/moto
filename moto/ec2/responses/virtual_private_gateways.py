@@ -13,7 +13,18 @@ class VirtualPrivateGateways(BaseResponse):
 
     def create_vpn_gateway(self):
         type = self._get_param("Type")
-        vpn_gateway = self.ec2_backend.create_vpn_gateway(type)
+        amazon_side_asn = self._get_param("AmazonSideAsn")
+        availability_zone = self._get_param("AvailabilityZone")
+        tags = self._get_multi_param("TagSpecification")
+        tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
+        tags = (tags or {}).get("Tag", [])
+        tags = {t["Key"]: t["Value"] for t in tags}
+        vpn_gateway = self.ec2_backend.create_vpn_gateway(
+            type=type,
+            amazon_side_asn=amazon_side_asn,
+            availability_zone=availability_zone,
+            tags=tags,
+        )
         template = self.response_template(CREATE_VPN_GATEWAY_RESPONSE)
         return template.render(vpn_gateway=vpn_gateway)
 
@@ -25,7 +36,8 @@ class VirtualPrivateGateways(BaseResponse):
 
     def describe_vpn_gateways(self):
         filters = filters_from_querystring(self.querystring)
-        vpn_gateways = self.ec2_backend.get_all_vpn_gateways(filters)
+        vpn_gw_ids = self._get_multi_param("VpnGatewayId")
+        vpn_gateways = self.ec2_backend.describe_vpn_gateways(filters, vpn_gw_ids)
         template = self.response_template(DESCRIBE_VPN_GATEWAYS_RESPONSE)
         return template.render(vpn_gateways=vpn_gateways)
 
@@ -42,15 +54,16 @@ CREATE_VPN_GATEWAY_RESPONSE = """
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpnGateway>
     <vpnGatewayId>{{ vpn_gateway.id }}</vpnGatewayId>
-    <state>available</state>
+    {% if vpn_gateway.amazon_side_asn %}
+    <amazonSideAsn>{{ vpn_gateway.amazon_side_asn }}</amazonSideAsn>
+    {% endif %}
+    <state>{{ vpn_gateway.state }}</state>
     <type>{{ vpn_gateway.type }}</type>
-    <availabilityZone>us-east-1a</availabilityZone>
+    <availabilityZone>{{ vpn_gateway.availability_zone }}</availabilityZone>
     <attachments/>
     <tagSet>
       {% for tag in vpn_gateway.get_tags() %}
         <item>
-          <resourceId>{{ tag.resource_id }}</resourceId>
-          <resourceType>{{ tag.resource_type }}</resourceType>
           <key>{{ tag.key }}</key>
           <value>{{ tag.value }}</value>
         </item>
@@ -66,9 +79,12 @@ DESCRIBE_VPN_GATEWAYS_RESPONSE = """
     {% for vpn_gateway in vpn_gateways %}
       <item>
         <vpnGatewayId>{{ vpn_gateway.id }}</vpnGatewayId>
-        <state>available</state>
+        {% if vpn_gateway.amazon_side_asn %}
+        <amazonSideAsn>{{ vpn_gateway.amazon_side_asn }}</amazonSideAsn>
+        {% endif %}
+        <state>{{ vpn_gateway.state }}</state>
         <type>{{ vpn_gateway.id }}</type>
-        <availabilityZone>us-east-1a</availabilityZone>
+        <availabilityZone>{{ vpn_gateway.availability_zone }}</availabilityZone>
         <attachments>
           {% for attachment in vpn_gateway.attachments.values() %}
             <item>
@@ -81,8 +97,6 @@ DESCRIBE_VPN_GATEWAYS_RESPONSE = """
         <tagSet>
           {% for tag in vpn_gateway.get_tags() %}
             <item>
-              <resourceId>{{ tag.resource_id }}</resourceId>
-              <resourceType>{{ tag.resource_type }}</resourceType>
               <key>{{ tag.key }}</key>
               <value>{{ tag.value }}</value>
             </item>

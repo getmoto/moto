@@ -29,6 +29,7 @@ from .utils import (
 from tests import EXAMPLE_AMI_ID
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 @mock_elb_deprecated
 @mock_ec2_deprecated
@@ -118,6 +119,111 @@ def test_create_autoscaling_group():
     len(instances_attached).should.equal(INSTANCE_COUNT_START + INSTANCE_COUNT_GROUP)
 
 
+@mock_autoscaling
+@mock_ec2
+@mock_elb
+def test_create_autoscaling_group_boto3_within_elb():
+    mocked_networking = setup_networking()
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="test_lb",
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=[],
+    )
+
+    # we attach a couple of machines to the load balancer
+    # that are not managed by the auto scaling group
+    INSTANCE_COUNT_START = 3
+    INSTANCE_COUNT_GROUP = 2
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    instances = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t1.micro",
+        MaxCount=INSTANCE_COUNT_START,
+        MinCount=INSTANCE_COUNT_START,
+        SubnetId=mocked_networking["subnet1"],
+    )
+
+    instances_ids = [_.id for _ in instances]
+    elb_client.register_instances_with_load_balancer(
+        LoadBalancerName="test_lb",
+        Instances=[{"InstanceId": id} for id in instances_ids],
+    )
+
+    as_client = boto3.client("autoscaling", region_name="us-east-1")
+    as_client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+
+    as_client.create_auto_scaling_group(
+        AutoScalingGroupName="tester_group",
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+        DefaultCooldown=60,
+        DesiredCapacity=INSTANCE_COUNT_GROUP,
+        HealthCheckGracePeriod=100,
+        HealthCheckType="EC2",
+        LaunchConfigurationName="tester",
+        LoadBalancerNames=["test_lb"],
+        MinSize=INSTANCE_COUNT_GROUP,
+        MaxSize=INSTANCE_COUNT_GROUP,
+        PlacementGroup="test_placement",
+        Tags=[
+            {
+                "ResourceId": "tester_group",
+                "ResourceType": "group",
+                "Key": "test_key",
+                "Value": "test_value",
+                "PropagateAtLaunch": True,
+            }
+        ],
+        TerminationPolicies=["OldestInstance", "NewestInstance"],
+        VPCZoneIdentifier="{subnet1},{subnet2}".format(
+            subnet1=mocked_networking["subnet1"], subnet2=mocked_networking["subnet2"]
+        ),
+    )
+
+    group = as_client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
+    group["AutoScalingGroupName"].should.equal("tester_group")
+    set(group["AvailabilityZones"]).should.equal(set(["us-east-1a", "us-east-1b"]))
+    group["DesiredCapacity"].should.equal(2)
+    group["MaxSize"].should.equal(INSTANCE_COUNT_GROUP)
+    group["MinSize"].should.equal(INSTANCE_COUNT_GROUP)
+    group["Instances"].should.have.length_of(INSTANCE_COUNT_GROUP)
+    group["VPCZoneIdentifier"].should.equal(
+        "{subnet1},{subnet2}".format(
+            subnet1=mocked_networking["subnet1"], subnet2=mocked_networking["subnet2"]
+        )
+    )
+    group["LaunchConfigurationName"].should.equal("tester")
+    group["DefaultCooldown"].should.equal(60)
+    group["HealthCheckGracePeriod"].should.equal(100)
+    group["HealthCheckType"].should.equal("EC2")
+    group["LoadBalancerNames"].should.equal(["test_lb"])
+    group["PlacementGroup"].should.equal("test_placement")
+    list(group["TerminationPolicies"]).should.equal(
+        ["OldestInstance", "NewestInstance"]
+    )
+    list(group["Tags"]).should.have.length_of(1)
+    tag = group["Tags"][0]
+    tag["ResourceId"].should.equal("tester_group")
+    tag["Key"].should.equal("test_key")
+    tag["Value"].should.equal("test_value")
+    tag["PropagateAtLaunch"].should.equal(True)
+
+    instances_attached = elb_client.describe_instance_health(
+        LoadBalancerName="test_lb"
+    )["InstanceStates"]
+    instances_attached.should.have.length_of(
+        INSTANCE_COUNT_START + INSTANCE_COUNT_GROUP
+    )
+    attached_ids = [i["InstanceId"] for i in instances_attached]
+    for ec2_instance_id in instances_ids:
+        attached_ids.should.contain(ec2_instance_id)
+
+
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_create_autoscaling_groups_defaults():
     """Test with the minimum inputs and check that all of the proper defaults
@@ -156,6 +262,46 @@ def test_create_autoscaling_groups_defaults():
     group.placement_group.should.equal(None)
     list(group.termination_policies).should.equal([])
     list(group.tags).should.equal([])
+
+
+@mock_autoscaling
+def test_create_autoscaling_groups_defaults_boto3():
+    """Test with the minimum inputs and check that all of the proper defaults
+    are assigned for the other attributes"""
+
+    mocked_networking = setup_networking()
+    as_client = boto3.client("autoscaling", region_name="us-east-1")
+    as_client.create_launch_configuration(
+        LaunchConfigurationName="tester_config",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+
+    as_client.create_auto_scaling_group(
+        AutoScalingGroupName="tester_group",
+        LaunchConfigurationName="tester_config",
+        MinSize=2,
+        MaxSize=2,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    group = as_client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
+    group["AutoScalingGroupName"].should.equal("tester_group")
+    group["MaxSize"].should.equal(2)
+    group["MinSize"].should.equal(2)
+    group["LaunchConfigurationName"].should.equal("tester_config")
+
+    # Defaults
+    group["AvailabilityZones"].should.equal(["us-east-1a"])  # subnet1
+    group["DesiredCapacity"].should.equal(2)
+    group["VPCZoneIdentifier"].should.equal(mocked_networking["subnet1"])
+    group["DefaultCooldown"].should.equal(300)
+    group["HealthCheckGracePeriod"].should.equal(300)
+    group["HealthCheckType"].should.equal("EC2")
+    group["LoadBalancerNames"].should.equal([])
+    group.shouldnt.have.key("PlacementGroup")
+    group["TerminationPolicies"].should.equal([])
+    group["Tags"].should.equal([])
 
 
 @mock_autoscaling
@@ -226,6 +372,7 @@ def test_propogate_tags():
     tags.should.contain({"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"})
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_filter():
     mocked_networking = setup_networking_deprecated()
@@ -254,6 +401,7 @@ def test_autoscaling_group_describe_filter():
     conn.get_all_groups().should.have.length_of(3)
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_autoscaling_update():
     mocked_networking = setup_networking_deprecated()
@@ -286,6 +434,7 @@ def test_autoscaling_update():
     group.vpc_zone_identifier.should.equal(mocked_networking["subnet2"])
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_autoscaling_tags_update():
     mocked_networking = setup_networking_deprecated()
@@ -334,6 +483,7 @@ def test_autoscaling_tags_update():
     group.tags.should.have.length_of(2)
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 def test_autoscaling_group_delete():
     mocked_networking = setup_networking_deprecated()
@@ -358,6 +508,35 @@ def test_autoscaling_group_delete():
     conn.get_all_groups().should.have.length_of(0)
 
 
+@mock_autoscaling
+def test_autoscaling_group_delete_boto3():
+    mocked_networking = setup_networking()
+    as_client = boto3.client("autoscaling", region_name="us-east-1")
+    as_client.create_launch_configuration(
+        LaunchConfigurationName="tester_config",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+
+    as_client.create_auto_scaling_group(
+        AutoScalingGroupName="tester_group",
+        LaunchConfigurationName="tester_config",
+        MinSize=2,
+        MaxSize=2,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    as_client.describe_auto_scaling_groups()["AutoScalingGroups"].should.have.length_of(
+        1
+    )
+
+    as_client.delete_auto_scaling_group(AutoScalingGroupName="tester_group")
+    as_client.describe_auto_scaling_groups()["AutoScalingGroups"].should.have.length_of(
+        0
+    )
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_instances():
@@ -392,6 +571,7 @@ def test_autoscaling_group_describe_instances():
     instances[0].instance_type.should.equal("t2.medium")
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_autoscaling_deprecated
 def test_set_desired_capacity_up():
@@ -426,6 +606,7 @@ def test_set_desired_capacity_up():
     instances.should.have.length_of(3)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_autoscaling_deprecated
 def test_set_desired_capacity_down():
@@ -460,6 +641,7 @@ def test_set_desired_capacity_down():
     instances.should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_autoscaling_deprecated
 def test_set_desired_capacity_the_same():
@@ -494,6 +676,7 @@ def test_set_desired_capacity_the_same():
     instances.should.have.length_of(2)
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 @mock_elb_deprecated
 def test_autoscaling_group_with_elb():
@@ -2392,6 +2575,146 @@ def test_suspend_processes():
 
 
 @mock_autoscaling
+def test_suspend_processes_all_by_default():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="lc", ImageId=EXAMPLE_AMI_ID, InstanceType="t2.medium"
+    )
+    client.create_auto_scaling_group(
+        LaunchConfigurationName="lc",
+        AutoScalingGroupName="test-asg",
+        MinSize=1,
+        MaxSize=1,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    # When we suspend with no processes specified
+    client.suspend_processes(AutoScalingGroupName="test-asg")
+
+    res = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test-asg"])
+
+    # All processes should be suspended
+    all_proc_names = [
+        "Launch",
+        "Terminate",
+        "AddToLoadBalancer",
+        "AlarmNotification",
+        "AZRebalance",
+        "HealthCheck",
+        "InstanceRefresh",
+        "ReplaceUnhealthy",
+        "ScheduledActions",
+    ]
+    suspended_proc_names = [
+        proc["ProcessName"]
+        for proc in res["AutoScalingGroups"][0]["SuspendedProcesses"]
+    ]
+    set(suspended_proc_names).should.equal(set(all_proc_names))
+
+
+@mock_autoscaling
+def test_suspend_additional_processes():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="lc", ImageId=EXAMPLE_AMI_ID, InstanceType="t2.medium"
+    )
+    client.create_auto_scaling_group(
+        LaunchConfigurationName="lc",
+        AutoScalingGroupName="test-asg",
+        MinSize=1,
+        MaxSize=1,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    # When we suspend the 'Launch' and 'Terminate' processes in separate calls
+    client.suspend_processes(
+        AutoScalingGroupName="test-asg", ScalingProcesses=["Launch"]
+    )
+    client.suspend_processes(
+        AutoScalingGroupName="test-asg", ScalingProcesses=["Terminate"]
+    )
+
+    res = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test-asg"])
+
+    # Both 'Launch' and 'Terminate' should be suspended
+    launch_suspended = False
+    terminate_suspended = False
+    for proc in res["AutoScalingGroups"][0]["SuspendedProcesses"]:
+        if proc.get("ProcessName") == "Launch":
+            launch_suspended = True
+        if proc.get("ProcessName") == "Terminate":
+            terminate_suspended = True
+
+    assert launch_suspended is True
+    assert terminate_suspended is True
+
+
+@mock_autoscaling
+def test_resume_processes():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="lc", ImageId=EXAMPLE_AMI_ID, InstanceType="t2.medium"
+    )
+    client.create_auto_scaling_group(
+        LaunchConfigurationName="lc",
+        AutoScalingGroupName="test-asg",
+        MinSize=1,
+        MaxSize=1,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    # When we suspect 'Launch' and 'Termiate' process then resume 'Launch'
+    client.suspend_processes(
+        AutoScalingGroupName="test-asg", ScalingProcesses=["Launch", "Terminate"]
+    )
+
+    client.resume_processes(
+        AutoScalingGroupName="test-asg", ScalingProcesses=["Launch"]
+    )
+
+    res = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test-asg"])
+
+    # Only 'Terminate' should be suspended
+    expected_suspended_processes = [
+        {"ProcessName": "Terminate", "SuspensionReason": ""}
+    ]
+    res["AutoScalingGroups"][0]["SuspendedProcesses"].should.equal(
+        expected_suspended_processes
+    )
+
+
+@mock_autoscaling
+def test_resume_processes_all_by_default():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="lc", ImageId=EXAMPLE_AMI_ID, InstanceType="t2.medium"
+    )
+    client.create_auto_scaling_group(
+        LaunchConfigurationName="lc",
+        AutoScalingGroupName="test-asg",
+        MinSize=1,
+        MaxSize=1,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    # When we suspend two processes then resume with no process argument
+    client.suspend_processes(
+        AutoScalingGroupName="test-asg", ScalingProcesses=["Launch", "Terminate"]
+    )
+
+    client.resume_processes(AutoScalingGroupName="test-asg")
+
+    res = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test-asg"])
+
+    # No processes should be suspended
+    res["AutoScalingGroups"][0]["SuspendedProcesses"].should.equal([])
+
+
+@mock_autoscaling
 def test_set_instance_protection():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -2640,3 +2963,177 @@ def test_terminate_instance_in_auto_scaling_group_no_decrement():
     original_instance_id.shouldnt.be.within(
         [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
     )
+
+
+@mock_autoscaling
+@mock_ec2
+def test_delete_tags_by_key():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="TestLC",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+    tag_to_delete = {
+        "ResourceId": "tag_test_asg",
+        "ResourceType": "auto-scaling-group",
+        "PropagateAtLaunch": True,
+        "Key": "TestDeleteTagKey1",
+        "Value": "TestTagValue1",
+    }
+    tag_to_keep = {
+        "ResourceId": "tag_test_asg",
+        "ResourceType": "auto-scaling-group",
+        "PropagateAtLaunch": True,
+        "Key": "TestTagKey1",
+        "Value": "TestTagValue1",
+    }
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="tag_test_asg",
+        MinSize=1,
+        MaxSize=2,
+        LaunchConfigurationName="TestLC",
+        Tags=[tag_to_delete, tag_to_keep],
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    client.delete_tags(
+        Tags=[
+            {
+                "ResourceId": "tag_test_asg",
+                "ResourceType": "auto-scaling-group",
+                "PropagateAtLaunch": True,
+                "Key": "TestDeleteTagKey1",
+            }
+        ]
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=["tag_test_asg"]
+    )
+    group = response["AutoScalingGroups"][0]
+    tags = group["Tags"]
+    tags.should.contain(tag_to_keep)
+    tags.should_not.contain(tag_to_delete)
+
+
+@mock_ec2
+@mock_autoscaling
+def test_attach_instances():
+    asg_client = boto3.client("autoscaling", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "KeyName": "foobar",
+        "ImageId": "ami-pytest",
+        "MinCount": 1,
+        "MaxCount": 1,
+        "InstanceType": "c4.2xlarge",
+        "TagSpecifications": [
+            {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "val"}]},
+        ],
+    }
+    fake_instance = ec2_client.run_instances(**kwargs)["Instances"][0]
+    fake_lc = asg_client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId="ami-pytest",
+        InstanceType="t3.micro",
+        KeyName="foobar",
+    )
+    fake_asg = asg_client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=0,
+        MaxSize=1,
+        AvailabilityZones=[fake_instance["Placement"]["AvailabilityZone"]],
+    )
+    asg_client.attach_instances(
+        InstanceIds=[fake_instance["InstanceId"],], AutoScalingGroupName="test_asg"
+    )
+    response = asg_client.describe_auto_scaling_instances()
+    len(response["AutoScalingInstances"]).should.equal(1)
+    for instance in response["AutoScalingInstances"]:
+        instance["LaunchConfigurationName"].should.equal("test_launch_configuration")
+        instance["AutoScalingGroupName"].should.equal("test_asg")
+        instance["InstanceType"].should.equal("c4.2xlarge")
+
+
+@mock_autoscaling
+def test_autoscaling_lifecyclehook():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    fake_lc = client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId="ami-pytest",
+        InstanceType="t3.micro",
+        KeyName="foobar",
+    )
+    fake_asg = client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=0,
+        MaxSize=1,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+    fake_lfh = client.put_lifecycle_hook(
+        LifecycleHookName="test-lifecyclehook",
+        AutoScalingGroupName="test_asg",
+        LifecycleTransition="autoscaling:EC2_INSTANCE_TERMINATING",
+    )
+
+    response = client.describe_lifecycle_hooks(
+        AutoScalingGroupName="test_asg", LifecycleHookNames=["test-lifecyclehook"]
+    )
+    len(response["LifecycleHooks"]).should.equal(1)
+    for hook in response["LifecycleHooks"]:
+        hook["LifecycleHookName"].should.equal("test-lifecyclehook")
+        hook["AutoScalingGroupName"].should.equal("test_asg")
+        hook["LifecycleTransition"].should.equal("autoscaling:EC2_INSTANCE_TERMINATING")
+
+    client.delete_lifecycle_hook(
+        LifecycleHookName="test-lifecyclehook", AutoScalingGroupName="test_asg",
+    )
+
+    response = client.describe_lifecycle_hooks(
+        AutoScalingGroupName="test_asg", LifecycleHookNames=["test-lifecyclehook"]
+    )
+
+    len(response["LifecycleHooks"]).should.equal(0)
+
+
+@pytest.mark.parametrize(
+    "original,new", [(2, 1), (2, 3), (1, 5), (1, 1)],
+)
+@mock_autoscaling
+def test_set_desired_capacity_without_protection_boto3(original, new):
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="tester_group",
+        LaunchConfigurationName="test_launch_configuration",
+        AvailabilityZones=["us-east-1a"],
+        MinSize=original,
+        MaxSize=original,
+        DesiredCapacity=original,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    group = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
+    group["DesiredCapacity"].should.equal(original)
+    instances = client.describe_auto_scaling_instances()["AutoScalingInstances"]
+    instances.should.have.length_of(original)
+
+    client.update_auto_scaling_group(
+        AutoScalingGroupName="tester_group", DesiredCapacity=new
+    )
+
+    group = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
+    group["DesiredCapacity"].should.equal(new)
+    instances = client.describe_auto_scaling_instances()["AutoScalingInstances"]
+    instances.should.have.length_of(new)

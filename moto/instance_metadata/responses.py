@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import datetime
 import json
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 

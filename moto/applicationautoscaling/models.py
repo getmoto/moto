@@ -72,6 +72,13 @@ class ApplicationAutoscalingBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region, ecs)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "application-autoscaling"
+        )
+
     @property
     def applicationautoscaling_backend(self):
         return applicationautoscaling_backends[self.region]
@@ -155,7 +162,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             service_namespace, resource_id, scalable_dimension, policy_name
         )
         if policy_key in self.policies:
-            old_policy = self.policies[policy_name]
+            old_policy = self.policies[policy_key]
             policy = FakeApplicationAutoscalingPolicy(
                 region_name=self.region,
                 policy_name=policy_name,
