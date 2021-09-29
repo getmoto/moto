@@ -1866,7 +1866,10 @@ def test_filter_description():
         Description="Another Description That Awes The Human Mind", GroupName="test-2"
     )
 
-    filter_to_match_group_1_description = {"Name": "description", "Values": ["Excellent"]}
+    filter_to_match_group_1_description = {
+        "Name": "description",
+        "Values": ["Excellent"],
+    }
 
     security_groups = ec2r.security_groups.filter(
         Filters=[filter_to_match_group_1_description]
@@ -1890,34 +1893,34 @@ def test_filter_egress__ip_permission__cidr():
     )
 
     sg1.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7357,
-                    'IpProtocol': 'tcp',
-                    'IpRanges' : [ {'CidrIp': '10.250.0.0/16'}, {'CidrIp': '10.251.0.0/16'}]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7357,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.250.0.0/16"}, {"CidrIp": "10.251.0.0/16"}],
+            }
+        ]
     )
     sg2.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7357,
-                    'IpProtocol': 'tcp',
-                    'IpRanges' : [ {'CidrIp': '172.16.0.0/16'}, {'CidrIp' : '172.17.0.0/16'} ]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7357,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "172.16.0.0/16"}, {"CidrIp": "172.17.0.0/16"}],
+            }
+        ]
     )
-    filter_to_match_group_1 = {"Name": "egress.ip-permission.cidr", "Values": ["10.250.0.0/16"]}
-    security_groups = ec2r.security_groups.filter(
-        Filters=[filter_to_match_group_1]
-    )
+    filter_to_match_group_1 = {
+        "Name": "egress.ip-permission.cidr",
+        "Values": ["10.250.0.0/16"],
+    }
+    security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
-
 
 
 @mock_ec2
@@ -1933,33 +1936,35 @@ def test_filter_egress__ip_permission__from_port():
     )
 
     sg1.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7359,
-                    'IpProtocol': 'tcp',
-                    'IpRanges' : [ {'CidrIp': '10.250.0.0/16'}, {'CidrIp': '10.251.0.0/16'}]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7359,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.250.0.0/16"}, {"CidrIp": "10.251.0.0/16"}],
+            }
+        ]
     )
     sg2.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 8000,
-                    'ToPort': 8020,
-                    'IpProtocol': 'tcp',
-                    'IpRanges' : [ {'CidrIp': '172.16.0.0/16'}, {'CidrIp' : '172.17.0.0/16'} ]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 8000,
+                "ToPort": 8020,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "172.16.0.0/16"}, {"CidrIp": "172.17.0.0/16"}],
+            }
+        ]
     )
-    filter_to_match_group_1 = {"Name": "egress.ip-permission.from-port", "Values": ["7357"]}
-    security_groups = ec2r.security_groups.filter(
-        Filters=[filter_to_match_group_1]
-    )
+    filter_to_match_group_1 = {
+        "Name": "egress.ip-permission.from-port",
+        "Values": ["7357"],
+    }
+    security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
+
 
 @mock_ec2
 def test_filter_egress__ip_permission__group_id():
@@ -1980,42 +1985,36 @@ def test_filter_egress__ip_permission__group_id():
     )
 
     sg1.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7359,
-                    'IpProtocol': 'tcp',
-                    'UserIdGroupPairs' : [
-                        {
-                            'GroupId' : sg3.group_id
-                        }
-                    ]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7359,
+                "IpProtocol": "tcp",
+                "UserIdGroupPairs": [{"GroupId": sg3.group_id}],
+            }
+        ]
     )
     sg2.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 8000,
-                    'ToPort': 8020,
-                    'IpProtocol': 'tcp',
-                    'UserIdGroupPairs' :  [
-                        {
-                            'GroupId' : sg4.group_id
-                        }
-                    ]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 8000,
+                "ToPort": 8020,
+                "IpProtocol": "tcp",
+                "UserIdGroupPairs": [{"GroupId": sg4.group_id}],
+            }
+        ]
     )
 
-    filter_to_match_group_1 = {"Name": "egress.ip-permission.group-id", "Values": [sg3.group_id]}
-    security_groups = ec2r.security_groups.filter(
-        Filters=[filter_to_match_group_1]
-    )
+    filter_to_match_group_1 = {
+        "Name": "egress.ip-permission.group-id",
+        "Values": [sg3.group_id],
+    }
+    security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
+
 
 @mock_ec2
 def test_filter_egress__ip_permission__group_name():
@@ -2036,42 +2035,36 @@ def test_filter_egress__ip_permission__group_name():
     )
 
     sg1.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7359,
-                    'IpProtocol': 'tcp',
-                    'UserIdGroupPairs' : [
-                        {
-                            'GroupId' : sg3.group_id
-                        }
-                    ]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7359,
+                "IpProtocol": "tcp",
+                "UserIdGroupPairs": [{"GroupId": sg3.group_id}],
+            }
+        ]
     )
     sg2.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 8000,
-                    'ToPort': 8020,
-                    'IpProtocol': 'tcp',
-                    'UserIdGroupPairs' :  [
-                        {
-                            'GroupId' : sg4.group_id
-                        }
-                    ]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 8000,
+                "ToPort": 8020,
+                "IpProtocol": "tcp",
+                "UserIdGroupPairs": [{"GroupId": sg4.group_id}],
+            }
+        ]
     )
 
-    filter_to_match_group_1 = {"Name": "egress.ip-permission.group-name", "Values": [sg3.group_name]}
-    security_groups = ec2r.security_groups.filter(
-        Filters=[filter_to_match_group_1]
-    )
+    filter_to_match_group_1 = {
+        "Name": "egress.ip-permission.group-name",
+        "Values": [sg3.group_name],
+    }
+    security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
+
 
 @mock_ec2
 def test_filter_egress__ip_permission__protocol():
@@ -2086,33 +2079,35 @@ def test_filter_egress__ip_permission__protocol():
     )
 
     sg1.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7359,
-                    'IpProtocol': 'tcp',
-                    'IpRanges' : [ {'CidrIp': '10.250.0.0/16'}, {'CidrIp': '10.251.0.0/16'}]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7359,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.250.0.0/16"}, {"CidrIp": "10.251.0.0/16"}],
+            }
+        ]
     )
     sg2.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7359,
-                    'IpProtocol': 'udp',
-                    'IpRanges' : [ {'CidrIp': '10.250.0.0/16'}, {'CidrIp': '10.251.0.0/16'}]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7359,
+                "IpProtocol": "udp",
+                "IpRanges": [{"CidrIp": "10.250.0.0/16"}, {"CidrIp": "10.251.0.0/16"}],
+            }
+        ]
     )
-    filter_to_match_group_1 = {"Name": "egress.ip-permission.protocol", "Values": ['tcp']}
-    security_groups = ec2r.security_groups.filter(
-        Filters=[filter_to_match_group_1]
-    )
+    filter_to_match_group_1 = {
+        "Name": "egress.ip-permission.protocol",
+        "Values": ["tcp"],
+    }
+    security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
+
 
 @mock_ec2
 def test_filter_egress__ip_permission__to_port():
@@ -2127,33 +2122,35 @@ def test_filter_egress__ip_permission__to_port():
     )
 
     sg1.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7359,
-                    'IpProtocol': 'tcp',
-                    'IpRanges' : [ {'CidrIp': '10.250.0.0/16'}, {'CidrIp': '10.251.0.0/16'}]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7359,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.250.0.0/16"}, {"CidrIp": "10.251.0.0/16"}],
+            }
+        ]
     )
     sg2.authorize_egress(
-            IpPermissions = [
-                {
-                    'FromPort' : 7357,
-                    'ToPort': 7360,
-                    'IpProtocol': 'tcp',
-                    'IpRanges' : [ {'CidrIp': '172.16.0.0/16'}, {'CidrIp' : '172.17.0.0/16'} ]
-                }
-            ]
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7360,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "172.16.0.0/16"}, {"CidrIp": "172.17.0.0/16"}],
+            }
+        ]
     )
-    filter_to_match_group_1 = {"Name": "egress.ip-permission.to-port", "Values": ["7359"]}
-    security_groups = ec2r.security_groups.filter(
-        Filters=[filter_to_match_group_1]
-    )
+    filter_to_match_group_1 = {
+        "Name": "egress.ip-permission.to-port",
+        "Values": ["7359"],
+    }
+    security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
+
 
 @mock_ec2
 def test_get_groups_by_ippermissions_group_id_filter():
