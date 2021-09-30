@@ -143,6 +143,16 @@ def test_create_delivery_stream_failures():
         in err["Message"]
     )
 
+    # At least one destination configuration is required.
+    with pytest.raises(ClientError) as exc:
+        client.create_delivery_stream(DeliveryStreamName=f"{failure_name}_2manyconfigs")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        "Exactly one destination configuration is supported for a Firehose"
+        in err["Message"]
+    )
+
     # Provide a Kinesis source configuration, but use DirectPut stream type.
     with pytest.raises(ClientError) as exc:
         client.create_delivery_stream(
