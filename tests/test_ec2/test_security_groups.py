@@ -191,7 +191,7 @@ def test_create_and_describe_vpc_security_group_boto3():
     all_groups.should.have.length_of(3)  # 1 default, 1 vpc, 1 no-vpc
 
     all_groups = client.describe_security_groups(
-        Filters=[{"Name": "vpc_id", "Values": [vpc_id]}]
+        Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
     )["SecurityGroups"]
 
     all_groups.should.have.length_of(1)
@@ -2017,7 +2017,10 @@ def test_filter_egress__ip_permission__group_id():
 
 
 @mock_ec2
-def test_filter_egress__ip_permission__group_name():
+def test_filter_egress__ip_permission__group_name_create_with_id_filter_by_name():
+    """
+    this fails to find the group in the AWS API, so we should also fail to find it
+    """
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
 
@@ -2059,6 +2062,60 @@ def test_filter_egress__ip_permission__group_name():
         "Name": "egress.ip-permission.group-name",
         "Values": [sg3.group_name],
     }
+    sg1.load()
+    sg2.load()
+
+    security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
+
+    security_groups = list(security_groups)
+    assert len(security_groups) == 0
+
+@mock_ec2
+def test_filter_egress__ip_permission__group_name_create_with_id_filter_by_id():
+    ec2r = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
+
+    sg1 = vpc.create_security_group(
+        Description="A Described Description Descriptor", GroupName="test-1"
+    )
+    sg2 = vpc.create_security_group(
+        Description="Another Description That Awes The Human Mind", GroupName="test-2"
+    )
+    sg3 = vpc.create_security_group(
+        Description="Yet Another Descriptive Description", GroupName="test-3"
+    )
+    sg4 = vpc.create_security_group(
+        Description="Such Description Much Described", GroupName="test-4"
+    )
+
+    sg1.authorize_egress(
+        IpPermissions=[
+            {
+                "FromPort": 7357,
+                "ToPort": 7359,
+                "IpProtocol": "tcp",
+                "UserIdGroupPairs": [{"GroupId": sg3.group_id}],
+            }
+        ]
+    )
+    sg2.authorize_egress(
+        IpPermissions=[
+            {
+                "FromPort": 8000,
+                "ToPort": 8020,
+                "IpProtocol": "tcp",
+                "UserIdGroupPairs": [{"GroupId": sg4.group_id}],
+            }
+        ]
+    )
+
+    filter_to_match_group_1 = {
+        "Name": "egress.ip-permission.group-id",
+        "Values": [sg3.group_id],
+    }
+    sg1.load()
+    sg2.load()
+
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
