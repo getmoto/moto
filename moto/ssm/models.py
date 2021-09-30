@@ -1547,6 +1547,12 @@ class SimpleSystemManagerBackend(BaseBackend):
                 "1 validation error detected: Value '' at 'value' failed to satisfy"
                 " constraint: Member must have length greater than or equal to 1."
             )
+        if overwrite and tags:
+            raise ValidationException(
+                "Invalid request: tags and overwrite can't be used together. To create a "
+                "parameter with tags, please remove overwrite flag. To update tags for an "
+                "existing parameter, please use AddTagsToResource or RemoveTagsFromResource."
+            )
         if name.lower().lstrip("/").startswith("aws") or name.lower().lstrip(
             "/"
         ).startswith("ssm"):
