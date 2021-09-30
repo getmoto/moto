@@ -279,6 +279,19 @@ def test_put_parameter(name):
         "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
     new_data_type = "aws:ec2:image"
+
+    with pytest.raises(ClientError) as ex:
+        response = client.put_parameter(
+            Name=name,
+            Description="desc 3",
+            Value="value 3",
+            Type="String",
+            Overwrite=True,
+            Tags=[{"Key": "foo", "Value": "bar"}],
+            DataType=new_data_type,
+        )
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+
     response = client.put_parameter(
         Name=name,
         Description="desc 3",
