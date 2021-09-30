@@ -1053,7 +1053,7 @@ def test_describe_parameters_tags():
 
 
 @mock_ssm
-def test_tags_in_list_tags_from_resource():
+def test_tags_in_list_tags_from_resource_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
@@ -1066,8 +1066,31 @@ def test_tags_in_list_tags_from_resource():
     tags = client.list_tags_for_resource(
         ResourceId="/spam/eggs", ResourceType="Parameter"
     )
-
     assert tags.get("TagList") == [{"Key": "spam", "Value": "eggs"}]
+
+    client.delete_parameter(Name="/spam/eggs")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceType="Parameter", ResourceId="/spam/eggs")
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceId"
+
+
+@mock_ssm
+def test_tags_invalid_resource_id():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceType="Parameter", ResourceId="bar")
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceId"
+
+
+@mock_ssm
+def test_tags_invalid_resource_type():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceType="foo", ResourceId="bar")
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceType"
 
 
 @mock_ssm
@@ -1632,12 +1655,21 @@ def test_get_parameter_history_missing_parameter():
 def test_add_remove_list_tags_for_resource():
     client = boto3.client("ssm", region_name="us-east-1")
 
+    with pytest.raises(ClientError) as ce:
+        client.add_tags_to_resource(
+            ResourceId="test",
+            ResourceType="Parameter",
+            Tags=[{"Key": "test-key", "Value": "test-value"}],
+        )
+    assert ce.value.response["Error"]["Code"] == "InvalidResourceId"
+
+    client.put_parameter(Name="test", Value="value", Type="String")
+
     client.add_tags_to_resource(
         ResourceId="test",
         ResourceType="Parameter",
         Tags=[{"Key": "test-key", "Value": "test-value"}],
     )
-
     response = client.list_tags_for_resource(
         ResourceId="test", ResourceType="Parameter"
     )

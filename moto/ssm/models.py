@@ -38,6 +38,8 @@ from .exceptions import (
     ParameterMaxVersionLimitExceeded,
     DocumentPermissionLimit,
     InvalidPermissionType,
+    InvalidResourceId,
+    InvalidResourceType,
 )
 
 
@@ -835,6 +837,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             documents.delete(*keys_to_delete)
 
             if len(documents.versions) == 0:
+                self._resource_tags.get("Document", {}).pop(name, None)
                 del self._documents[name]
 
     def get_document(self, name, document_version, version_name, document_format):
@@ -1029,6 +1032,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         )
 
     def delete_parameter(self, name):
+        self._resource_tags.get("Parameter", {}).pop(name, None)
         return self._parameters.pop(name, None)
 
     def delete_parameters(self, names):
@@ -1037,6 +1041,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             try:
                 del self._parameters[name]
                 result.append(name)
+                self._resource_tags.get("Parameter", {}).pop(name, None)
             except KeyError:
                 pass
         return result
@@ -1617,17 +1622,43 @@ class SimpleSystemManagerBackend(BaseBackend):
         return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         for key, value in tags.items():
             self._resource_tags[resource_type][resource_id][key] = value
 
     def remove_tags_from_resource(self, resource_type, resource_id, keys):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         tags = self._resource_tags[resource_type][resource_id]
         for key in keys:
             if key in tags:
                 del tags[key]
 
     def list_tags_for_resource(self, resource_type, resource_id):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         return self._resource_tags[resource_type][resource_id]
+
+    def _validate_resource_type_and_id(self, resource_type, resource_id):
+        if resource_type == "Parameter":
+            if resource_id not in self._parameters:
+                raise InvalidResourceId()
+            else:
+                return
+        elif resource_type == "Document":
+            if resource_id not in self._documents:
+                raise InvalidResourceId()
+            else:
+                return
+        elif resource_type not in (
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.remove_tags_from_resource
+            "ManagedInstance",
+            "MaintenanceWindow",
+            "PatchBaseline",
+            "OpsItem",
+            "OpsMetadata",
+        ):
+            raise InvalidResourceType()
+        else:
+            raise InvalidResourceId()
 
     def send_command(self, **kwargs):
         command = Command(
