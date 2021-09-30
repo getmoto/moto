@@ -2070,6 +2070,7 @@ def test_filter_egress__ip_permission__group_name_create_with_id_filter_by_name(
     security_groups = list(security_groups)
     assert len(security_groups) == 0
 
+
 @mock_ec2
 def test_filter_egress__ip_permission__group_name_create_with_id_filter_by_id():
     ec2r = boto3.resource("ec2", region_name="us-west-1")

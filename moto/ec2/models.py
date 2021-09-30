@@ -2336,7 +2336,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.egress_rules:
                 for sg in rule.source_groups:
-                    if glob_matches(value, sg.get('GroupId', None)):
+                    if glob_matches(value, sg.get("GroupId", None)):
                         return True
         return False
 
@@ -2344,7 +2344,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.egress_rules:
                 for group in rule.source_groups:
-                    if glob_matches(value, group.get('GroupName', None)):
+                    if glob_matches(value, group.get("GroupName", None)):
                         return True
         return False
 
@@ -2406,7 +2406,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.ingress_rules:
                 for group in rule.source_groups:
-                    if glob_matches(value, group.get('GroupId', None)):
+                    if glob_matches(value, group.get("GroupId", None)):
                         return True
         return False
 
@@ -2414,7 +2414,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.ingress_rules:
                 for group in rule.source_groups:
-                    if glob_matches(value, group.get('GroupName', None)):
+                    if glob_matches(value, group.get("GroupName", None)):
                         return True
         return False
 
