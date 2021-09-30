@@ -152,7 +152,7 @@ def test_create_and_describe_vpc_security_group():
     cm.value.status.should.equal(400)
     cm.value.request_id.should_not.be.none
 
-    all_groups = conn.get_all_security_groups(filters={"vpc_id": [vpc_id]})
+    all_groups = conn.get_all_security_groups(filters={"vpc-id": [vpc_id]})
 
     all_groups[0].vpc_id.should.equal(vpc_id)
 
@@ -856,7 +856,7 @@ def test_get_all_security_groups():
     resp.should.have.length_of(1)
     resp[0].id.should.equal(sg1.id)
 
-    resp = conn.get_all_security_groups(filters={"vpc_id": ["vpc-mjm05d27"]})
+    resp = conn.get_all_security_groups(filters={"vpc-id": ["vpc-mjm05d27"]})
     resp.should.have.length_of(1)
     resp[0].id.should.equal(sg1.id)
 
