@@ -185,6 +185,8 @@ def initialize_service(service, api_protocol):
             else None
         )
         render_template(tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename)
+    # append mock to initi files
+    append_mock_to_init_py(service)
 
 
 def to_upper_camel_case(string):
@@ -506,8 +508,10 @@ def main():
         )
 
     click.echo(
-        'Remaining setup:  add the mock into "docs/index.rst" and '
-        '"IMPLEMENTATION_COVERAGE.md", and run scripts/update_backend_index.py.'
+        'Remaining setup:\n'
+        '- Add the mock into "docs/index.rst",\n'
+        '- Add the mock into "IMPLEMENTATION_COVERAGE.md",\n'
+        '- Run scripts/update_backend_index.py.'
     )
 
 
