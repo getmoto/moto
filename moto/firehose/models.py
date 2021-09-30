@@ -77,11 +77,12 @@ def find_destination_config_in_args(api_args):
         if name in destination_names and arg_value:
             configs.append((DESTINATION_TYPES_TO_NAMES[name], arg_value))
 
-    # Only a single destination configuration is allowed.
-    if len(configs) > 1:
+    # One and only one destination configuration is allowed.
+    if len(configs) != 1:
         raise InvalidArgumentException(
             "Exactly one destination configuration is supported for a Firehose"
         )
+
     return configs[0]
 
 
