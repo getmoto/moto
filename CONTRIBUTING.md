@@ -1,3 +1,5 @@
+# Table of Contents
+
 - [Contributing code](#contributing-code)
   * [Running the tests locally](#running-the-tests-locally)
   * [Linting](#linting)
@@ -39,9 +41,10 @@ TEST_SERVER_MODE=true pytest -sv tests/test_service/..
  - When writing tests, one test should only verify a single feature/method. I.e., one test for `create_resource()`, another for `update_resource()`, etc.
  - When writing negative tests, try to use the following format:
  ```
- with pytest.raises(botocore.exceptions.ClientError) as ex:
+ with pytest.raises(botocore.exceptions.ClientError) as exc:
      client.failing_call(..)
- err = ex.value.response["Error"]
+ err = exc.value.response["Error"]
+ # These assertions use the 'sure' library, but any assertion style is accepted
  err["Code"].should.equal(..)
  err["Message"].should.equal(..)
  ```
@@ -70,7 +73,7 @@ How to teach Moto to support a new AWS endpoint:
 
 Implementing a new service from scratch is more work, but still quite straightforward. All the code that intercepts network requests to `*.amazonaws.com` is already handled for you in `moto/core` - all that's necessary for new services to be recognized is to create a new decorator and determine which URLs should be intercepted.
 
-See this PR for an example of what's involved in creating a new service: https://github.com/spulec/moto/pull/2409/files
+See this PR for an example of what's involved in creating a new service: https://github.com/spulec/moto/pull/4076/files
 
 Note the `urls.py` that redirects all incoming URL requests to a generic `dispatch` method, which in turn will call the appropriate method in `responses.py`. 
 
