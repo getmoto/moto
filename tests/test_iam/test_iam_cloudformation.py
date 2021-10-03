@@ -1659,6 +1659,4 @@ def test_iam_roles():
         for resource in resources
         if resource["ResourceType"] == "AWS::IAM::Role"
     ]
-    {r["PhysicalResourceId"] for r in role_resources}.should.equal(
-        set(role_names)
-    )
+    {r["PhysicalResourceId"] for r in role_resources}.should.equal(set(role_names))
