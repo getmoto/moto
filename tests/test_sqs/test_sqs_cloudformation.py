@@ -110,7 +110,9 @@ def test_update_stack():
     client = boto3.client("sqs", region_name="us-west-1")
     queues = client.list_queues()["QueueUrls"]
     queues.should.have.length_of(1)
-    attrs = client.get_queue_attributes(QueueUrl=queues[0])["Attributes"]
+    attrs = client.get_queue_attributes(QueueUrl=queues[0], AttributeNames=["All"])[
+        "Attributes"
+    ]
     attrs["VisibilityTimeout"].should.equal("60")
 
     # when updating
@@ -121,7 +123,9 @@ def test_update_stack():
     # then the attribute should be updated
     queues = client.list_queues()["QueueUrls"]
     queues.should.have.length_of(1)
-    attrs = client.get_queue_attributes(QueueUrl=queues[0])["Attributes"]
+    attrs = client.get_queue_attributes(QueueUrl=queues[0], AttributeNames=["All"])[
+        "Attributes"
+    ]
     attrs["VisibilityTimeout"].should.equal("100")
 
 

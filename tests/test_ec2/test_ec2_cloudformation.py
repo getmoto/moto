@@ -61,7 +61,7 @@ def test_vpc_single_instance_in_subnet():
     eip["InstanceId"].should.equal(instance["InstanceId"])
 
     security_group = ec2.describe_security_groups(
-        Filters=[{"Name": "vpc_id", "Values": [vpc["VpcId"]]}]
+        Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
     )["SecurityGroups"][0]
     security_group["VpcId"].should.equal(vpc["VpcId"])
 
