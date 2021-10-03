@@ -11,6 +11,7 @@ import sure  # noqa
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 
 # Has boto3 equivalent
@@ -212,13 +213,14 @@ def test_route_tables_filters_standard_boto3():
     route_table2 = ec2.create_route_table(VpcId=vpc2.id)
 
     all_route_tables = client.describe_route_tables()["RouteTables"]
-    all_route_tables.should.have.length_of(5)
+    all_ids = [rt["RouteTableId"] for rt in all_route_tables]
+    all_ids.should.contain(route_table1.id)
+    all_ids.should.contain(route_table2.id)
 
     # Filter by main route table
     main_route_tables = client.describe_route_tables(
         Filters=[{"Name": "association.main", "Values": ["true"]}]
     )["RouteTables"]
-    main_route_tables.should.have.length_of(3)
     main_route_table_ids = [
         route_table["RouteTableId"] for route_table in main_route_tables
     ]
@@ -320,9 +322,6 @@ def test_route_tables_filters_associations_boto3():
     )["AssociationId"]
     client.associate_route_table(RouteTableId=route_table1.id, SubnetId=subnet2.id)
     client.associate_route_table(RouteTableId=route_table2.id, SubnetId=subnet3.id)
-
-    all_route_tables = client.describe_route_tables()["RouteTables"]
-    all_route_tables.should.have.length_of(4)
 
     # Filter by association ID
     association1_route_tables = client.describe_route_tables(
@@ -429,9 +428,6 @@ def test_route_table_associations_boto3():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
     route_table = ec2.create_route_table(VpcId=vpc.id)
-
-    all_route_tables = client.describe_route_tables()["RouteTables"]
-    all_route_tables.should.have.length_of(3)
 
     # Refresh
     r = client.describe_route_tables(RouteTableIds=[route_table.id])["RouteTables"][0]
@@ -584,7 +580,9 @@ def test_route_table_replace_route_table_association_boto3():
     route_table2_id = ec2.create_route_table(VpcId=vpc.id).id
 
     all_route_tables = client.describe_route_tables()["RouteTables"]
-    all_route_tables.should.have.length_of(4)
+    all_ids = [rt["RouteTableId"] for rt in all_route_tables]
+    all_ids.should.contain(route_table1_id)
+    all_ids.should.contain(route_table2_id)
 
     # Refresh
     route_table1 = client.describe_route_tables(RouteTableIds=[route_table1_id])[
@@ -691,16 +689,17 @@ def test_route_table_get_by_tag_boto3():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
 
     route_table = ec2.create_route_table(VpcId=vpc.id)
-    route_table.create_tags(Tags=[{"Key": "Name", "Value": "TestRouteTable"}])
+    tag_value = str(uuid4())
+    route_table.create_tags(Tags=[{"Key": "Name", "Value": tag_value}])
 
-    filters = [{"Name": "tag:Name", "Values": ["TestRouteTable"]}]
+    filters = [{"Name": "tag:Name", "Values": [tag_value]}]
     route_tables = list(ec2.route_tables.filter(Filters=filters))
 
     route_tables.should.have.length_of(1)
     route_tables[0].vpc_id.should.equal(vpc.id)
     route_tables[0].id.should.equal(route_table.id)
     route_tables[0].tags.should.have.length_of(1)
-    route_tables[0].tags[0].should.equal({"Key": "Name", "Value": "TestRouteTable"})
+    route_tables[0].tags[0].should.equal({"Key": "Name", "Value": tag_value})
 
 
 # Has boto3 equivalent
@@ -1163,7 +1162,9 @@ def test_network_acl_tagging_boto3():
     route_table = ec2.create_route_table(VpcId=vpc.id)
     route_table.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
 
-    tag = client.describe_tags()["Tags"][0]
+    tag = client.describe_tags(
+        Filters=[{"Name": "resource-id", "Values": [route_table.id]}]
+    )["Tags"][0]
     tag.should.have.key("ResourceType").equal("route-table")
     tag.should.have.key("Key").equal("a key")
     tag.should.have.key("Value").equal("some value")

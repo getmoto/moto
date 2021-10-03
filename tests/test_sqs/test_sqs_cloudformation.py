@@ -1,10 +1,10 @@
 import boto3
+
 import json
 import sure  # noqa
-
 from moto import mock_sqs, mock_cloudformation
 from moto.core import ACCOUNT_ID
-
+from uuid import uuid4
 
 simple_queue = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -46,12 +46,13 @@ def test_describe_stack_subresources():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
 
-    cf.create_stack(StackName="test_sqs", TemplateBody=simple_queue_json)
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=simple_queue_json)
 
     queue_url = client.list_queues()["QueueUrls"][0]
     queue_url.should.contain("{}/{}".format(ACCOUNT_ID, "my-queue"))
 
-    stack = res.Stack("test_sqs")
+    stack = res.Stack(stack_name)
     for s in stack.resource_summaries.all():
         s.resource_type.should.equal("AWS::SQS::Queue")
         s.logical_id.should.equal("QueueGroup")
@@ -64,12 +65,13 @@ def test_list_stack_resources():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
 
-    cf.create_stack(StackName="test_sqs", TemplateBody=simple_queue_json)
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=simple_queue_json)
 
     queue_url = client.list_queues()["QueueUrls"][0]
     queue_url.should.contain("{}/{}".format(ACCOUNT_ID, "my-queue"))
 
-    queue = cf.list_stack_resources(StackName="test_sqs")["StackResourceSummaries"][0]
+    queue = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"][0]
 
     queue.should.have.key("ResourceType").equal("AWS::SQS::Queue")
     queue.should.have.key("LogicalResourceId").should.equal("QueueGroup")
@@ -82,9 +84,14 @@ def test_create_from_cloudformation_json_with_tags():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
 
-    cf.create_stack(StackName="test-sqs", TemplateBody=sqs_template_with_tags)
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=sqs_template_with_tags)
 
-    queue_url = client.list_queues()["QueueUrls"][0]
+    response = cf.describe_stack_resources(StackName=stack_name)
+    q_name = response["StackResources"][0]["PhysicalResourceId"]
+
+    all_urls = client.list_queues()["QueueUrls"]
+    queue_url = [url for url in all_urls if url.endswith(q_name)][0]
 
     queue_tags = client.list_queue_tags(QueueUrl=queue_url)["Tags"]
     queue_tags.should.equal({"keyname1": "value1", "keyname2": "value2"})
@@ -105,7 +112,8 @@ def test_update_stack():
     sqs_template_json = json.dumps(sqs_template)
 
     cf = boto3.client("cloudformation", region_name="us-west-1")
-    cf.create_stack(StackName="test_stack", TemplateBody=sqs_template_json)
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client = boto3.client("sqs", region_name="us-west-1")
     queues = client.list_queues()["QueueUrls"]
@@ -118,7 +126,7 @@ def test_update_stack():
     # when updating
     sqs_template["Resources"]["QueueGroup"]["Properties"]["VisibilityTimeout"] = 100
     sqs_template_json = json.dumps(sqs_template)
-    cf.update_stack(StackName="test_stack", TemplateBody=sqs_template_json)
+    cf.update_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     # then the attribute should be updated
     queues = client.list_queues()["QueueUrls"]
@@ -144,14 +152,15 @@ def test_update_stack_and_remove_resource():
     sqs_template_json = json.dumps(sqs_template)
 
     cf = boto3.client("cloudformation", region_name="us-west-1")
-    cf.create_stack(StackName="test_stack", TemplateBody=sqs_template_json)
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client = boto3.client("sqs", region_name="us-west-1")
     client.list_queues()["QueueUrls"].should.have.length_of(1)
 
     sqs_template["Resources"].pop("QueueGroup")
     sqs_template_json = json.dumps(sqs_template)
-    cf.update_stack(StackName="test_stack", TemplateBody=sqs_template_json)
+    cf.update_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client.list_queues().shouldnt.have.key(
         "QueueUrls"
@@ -165,7 +174,8 @@ def test_update_stack_and_add_resource():
     sqs_template_json = json.dumps(sqs_template)
 
     cf = boto3.client("cloudformation", region_name="us-west-1")
-    cf.create_stack(StackName="test_stack", TemplateBody=sqs_template_json)
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client = boto3.client("sqs", region_name="us-west-1")
     client.list_queues().shouldnt.have.key("QueueUrls")
@@ -180,6 +190,6 @@ def test_update_stack_and_add_resource():
         },
     }
     sqs_template_json = json.dumps(sqs_template)
-    cf.update_stack(StackName="test_stack", TemplateBody=sqs_template_json)
+    cf.update_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client.list_queues()["QueueUrls"].should.have.length_of(1)

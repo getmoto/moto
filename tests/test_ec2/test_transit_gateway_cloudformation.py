@@ -9,6 +9,7 @@ from moto import (
     mock_cloudformation,
     mock_ec2,
 )
+from uuid import uuid4
 
 
 @mock_cloudformation
@@ -16,8 +17,6 @@ from moto import (
 def test_transit_gateway_by_cloudformation_simple():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", "us-east-1")
-
-    ec2.describe_transit_gateways()["TransitGateways"].should.have.length_of(0)
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -30,9 +29,17 @@ def test_transit_gateway_by_cloudformation_simple():
         },
     }
     template = json.dumps(template)
-    cf_client.create_stack(StackName="test_stack", TemplateBody=template)
+    stack_name = str(uuid4())
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
-    gateways = ec2.describe_transit_gateways()["TransitGateways"]
+    resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    gateway_id = resources[0]["PhysicalResourceId"]
+
+    gateways = ec2.describe_transit_gateways(TransitGatewayIds=[gateway_id])[
+        "TransitGateways"
+    ]
     gateways.should.have.length_of(1)
     gateways[0]["TransitGatewayId"].should.match("tgw-[0-9a-z]+")
     gateways[0]["State"].should.equal("available")
@@ -49,8 +56,6 @@ def test_transit_gateway_by_cloudformation_simple():
 def test_transit_gateway_by_cloudformation():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", "us-east-1")
-
-    ec2.describe_transit_gateways()["TransitGateways"].should.have.length_of(0)
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -69,9 +74,17 @@ def test_transit_gateway_by_cloudformation():
         },
     }
     template = json.dumps(template)
-    cf_client.create_stack(StackName="test_stack", TemplateBody=template)
+    stack_name = str(uuid4())
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
-    gateways = ec2.describe_transit_gateways()["TransitGateways"]
+    resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    gateway_id = resources[0]["PhysicalResourceId"]
+
+    gateways = ec2.describe_transit_gateways(TransitGatewayIds=[gateway_id])[
+        "TransitGateways"
+    ]
     gateways.should.have.length_of(1)
     gateways[0]["TransitGatewayId"].should.match("tgw-[0-9a-z]+")
     gateways[0]["State"].should.equal("available")
@@ -82,5 +95,5 @@ def test_transit_gateway_by_cloudformation():
     tags = gateways[0].get("Tags", {})
     tags.should.have.length_of(4)
     tags.should.contain({"Key": "foo", "Value": "bar"})
-    tags.should.contain({"Key": "aws:cloudformation:stack-name", "Value": "test_stack"})
+    tags.should.contain({"Key": "aws:cloudformation:stack-name", "Value": stack_name})
     tags.should.contain({"Key": "aws:cloudformation:logical-id", "Value": "ttg"})

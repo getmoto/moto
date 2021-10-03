@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from uuid import uuid4
 
 
 VPC_CIDR = "10.0.0.0/16"
@@ -50,8 +51,6 @@ def test_igw_create_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
-    client.describe_internet_gateways()["InternetGateways"].should.have.length_of(0)
-
     with pytest.raises(ClientError) as ex:
         client.create_internet_gateway(DryRun=True)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
@@ -61,10 +60,11 @@ def test_igw_create_boto3():
     )
 
     igw = ec2.create_internet_gateway()
-    client.describe_internet_gateways()["InternetGateways"].should.have.length_of(1)
     igw.id.should.match(r"igw-[0-9a-f]+")
 
-    igw = client.describe_internet_gateways()["InternetGateways"][0]
+    igw = client.describe_internet_gateways(InternetGatewayIds=[igw.id])[
+        "InternetGateways"
+    ][0]
     igw["Attachments"].should.have.length_of(0)
 
 
@@ -109,7 +109,9 @@ def test_igw_attach_boto3():
 
     vpc.attach_internet_gateway(InternetGatewayId=igw.id)
 
-    igw = client.describe_internet_gateways()["InternetGateways"][0]
+    igw = client.describe_internet_gateways(InternetGatewayIds=[igw.id])[
+        "InternetGateways"
+    ][0]
     igw["Attachments"].should.equal([{"State": "available", "VpcId": vpc.id}])
 
 
@@ -216,7 +218,9 @@ def test_igw_detach_boto3():
     )
 
     client.detach_internet_gateway(InternetGatewayId=igw.id, VpcId=vpc.id)
-    igw = client.describe_internet_gateways()["InternetGateways"][0]
+    igw = igw = client.describe_internet_gateways(InternetGatewayIds=[igw.id])[
+        "InternetGateways"
+    ][0]
     igw["Attachments"].should.have.length_of(0)
 
 
@@ -345,9 +349,8 @@ def test_igw_delete_boto3():
     client = boto3.client("ec2", region_name="us-west-1")
     ec2.create_vpc(CidrBlock=VPC_CIDR)
 
-    client.describe_internet_gateways()["InternetGateways"].should.have.length_of(0)
     igw = ec2.create_internet_gateway()
-    client.describe_internet_gateways()["InternetGateways"].should.have.length_of(1)
+    [i["InternetGatewayId"] for i in (retrieve_all(client))].should.contain(igw.id)
 
     with pytest.raises(ClientError) as ex:
         client.delete_internet_gateway(InternetGatewayId=igw.id, DryRun=True)
@@ -358,7 +361,7 @@ def test_igw_delete_boto3():
     )
 
     client.delete_internet_gateway(InternetGatewayId=igw.id)
-    client.describe_internet_gateways()["InternetGateways"].should.have.length_of(0)
+    [i["InternetGatewayId"] for i in (retrieve_all(client))].shouldnt.contain(igw.id)
 
 
 # Has boto3 equivalent
@@ -495,13 +498,12 @@ def test_igw_filter_by_tags_boto3():
 
     igw1 = ec2.create_internet_gateway()
     igw2 = ec2.create_internet_gateway()
-    igw1.create_tags(Tags=[{"Key": "tests", "Value": "yes"}])
+    tag_value = str(uuid4())
+    igw1.create_tags(Tags=[{"Key": "tests", "Value": tag_value}])
 
-    result = client.describe_internet_gateways(
-        Filters=[{"Name": "tag:tests", "Values": ["yes"]}]
-    )
-    result["InternetGateways"].should.have.length_of(1)
-    result["InternetGateways"][0]["InternetGatewayId"].should.equal(igw1.id)
+    result = retrieve_all(client, [{"Name": "tag:tests", "Values": [tag_value]}])
+    result.should.have.length_of(1)
+    result[0]["InternetGatewayId"].should.equal(igw1.id)
 
 
 # Has boto3 equivalent
@@ -561,11 +563,10 @@ def test_igw_filter_by_attachment_state_boto3():
     vpc = ec2.create_vpc(CidrBlock=VPC_CIDR)
     client.attach_internet_gateway(InternetGatewayId=igw1.id, VpcId=vpc.id)
 
-    result = client.describe_internet_gateways(
-        Filters=[{"Name": "attachment.state", "Values": ["available"]}]
-    )
-    result["InternetGateways"].should.have.length_of(1)
-    result["InternetGateways"][0]["InternetGatewayId"].should.equal(igw1.id)
+    filters = [{"Name": "attachment.state", "Values": ["available"]}]
+    all_ids = [igw["InternetGatewayId"] for igw in (retrieve_all(client, filters))]
+    all_ids.should.contain(igw1.id)
+    all_ids.shouldnt.contain(igw2.id)
 
 
 @mock_ec2
@@ -582,3 +583,14 @@ def test_create_internet_gateway_with_tags():
     )
     igw.tags.should.have.length_of(1)
     igw.tags.should.equal([{"Key": "test", "Value": "TestRouteTable"}])
+
+
+def retrieve_all(client, filters=[]):
+    resp = client.describe_internet_gateways(Filters=filters)
+    all_igws = resp["InternetGateways"]
+    token = resp.get("NextToken")
+    while token:
+        resp = client.describe_internet_gateways(NextToken=token, Filters=filters)
+        all_igws.extend(resp["InternetGateways"])
+        token = resp.get("NextToken")
+    return all_igws

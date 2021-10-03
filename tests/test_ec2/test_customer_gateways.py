@@ -48,9 +48,25 @@ def test_describe_customer_gateways_boto3():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     customer_gateway = create_customer_gateway(ec2)
+    cg_id = customer_gateway["CustomerGatewayId"]
+
     cgws = ec2.describe_customer_gateways()["CustomerGateways"]
-    cgws.should.have.length_of(1)
-    cgws[0]["CustomerGatewayId"].should.match(customer_gateway["CustomerGatewayId"])
+    cg_ids = [cg["CustomerGatewayId"] for cg in cgws]
+    cg_ids.should.contain(cg_id)
+
+    cgw = ec2.describe_customer_gateways(CustomerGatewayIds=[cg_id])[
+        "CustomerGateways"
+    ][0]
+    cgw.should.have.key("BgpAsn")
+    cgw.should.have.key("CustomerGatewayId").equal(cg_id)
+    cgw.should.have.key("IpAddress")
+    cgw.should.have.key("State").equal("available")
+    cgw.should.have.key("Type").equal("ipsec.1")
+
+    all_cgws = ec2.describe_customer_gateways()["CustomerGateways"]
+    assert (
+        len(all_cgws) >= 1
+    ), "Should have at least the one CustomerGateway we just created"
 
 
 # Has boto3 equivalent
@@ -73,12 +89,19 @@ def test_delete_customer_gateways_boto3():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     customer_gateway = create_customer_gateway(ec2)
+    cg_id = customer_gateway["CustomerGatewayId"]
 
-    cgws = ec2.describe_customer_gateways()["CustomerGateways"]
+    cgws = ec2.describe_customer_gateways(CustomerGatewayIds=[cg_id])[
+        "CustomerGateways"
+    ]
     cgws.should.have.length_of(1)
+    cgws[0].should.have.key("State").equal("available")
 
     ec2.delete_customer_gateway(CustomerGatewayId=customer_gateway["CustomerGatewayId"])
-    cgws = ec2.describe_customer_gateways()["CustomerGateways"]
+
+    cgws = ec2.describe_customer_gateways(CustomerGatewayIds=[cg_id])[
+        "CustomerGateways"
+    ]
     cgws.should.have.length_of(1)
     cgws[0].should.have.key("State").equal("deleted")
 

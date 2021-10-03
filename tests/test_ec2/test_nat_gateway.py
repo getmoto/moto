@@ -2,11 +2,14 @@ from __future__ import unicode_literals
 import boto3
 
 import sure  # noqa
-from moto import mock_ec2
+from moto import mock_ec2, settings
+from unittest import SkipTest
 
 
 @mock_ec2
 def test_describe_nat_gateways():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("ServerMode is not guaranteed to have no resources")
     conn = boto3.client("ec2", "us-east-1")
 
     response = conn.describe_nat_gateways()
@@ -43,7 +46,7 @@ def test_describe_nat_gateway_tags():
     allocation_id = conn.allocate_address(Domain="vpc")["AllocationId"]
     subnet_id = subnet["Subnet"]["SubnetId"]
 
-    conn.create_nat_gateway(
+    gateway = conn.create_nat_gateway(
         SubnetId=subnet_id,
         AllocationId=allocation_id,
         TagSpecifications=[
@@ -55,12 +58,15 @@ def test_describe_nat_gateway_tags():
                 ],
             }
         ],
-    )
+    )["NatGateway"]
 
-    describe_response = conn.describe_nat_gateways()
+    describe_all = retrieve_all_gateways(conn)
+    [gw["VpcId"] for gw in describe_all].should.contain(vpc_id)
+    describe_gateway = [gw for gw in describe_all if gw["VpcId"] == vpc_id]
 
-    assert describe_response["NatGateways"][0]["VpcId"] == vpc_id
-    assert describe_response["NatGateways"][0]["Tags"] == [
+    assert describe_gateway[0]["NatGatewayId"] == gateway["NatGatewayId"]
+    assert describe_gateway[0]["VpcId"] == vpc_id
+    assert describe_gateway[0]["Tags"] == [
         {"Key": "name", "Value": "some-nat-gateway"},
         {"Key": "name1", "Value": "some-nat-gateway-1"},
     ]
@@ -112,31 +118,27 @@ def test_create_and_describe_nat_gateway():
         SubnetId=subnet_id, AllocationId=allocation_id
     )
     nat_gateway_id = create_response["NatGateway"]["NatGatewayId"]
-    describe_response = conn.describe_nat_gateways()
+    net_interface_id = create_response["NatGateway"]["NatGatewayAddresses"][0][
+        "NetworkInterfaceId"
+    ]
 
-    enis = conn.describe_network_interfaces()["NetworkInterfaces"]
-    eni_id = enis[0]["NetworkInterfaceId"]
     public_ip = conn.describe_addresses(AllocationIds=[allocation_id])["Addresses"][0][
         "PublicIp"
     ]
 
-    describe_response["NatGateways"].should.have.length_of(1)
-    describe_response["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_id)
-    describe_response["NatGateways"][0]["State"].should.equal("available")
-    describe_response["NatGateways"][0]["SubnetId"].should.equal(subnet_id)
-    describe_response["NatGateways"][0]["VpcId"].should.equal(vpc_id)
-    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
-        "AllocationId"
-    ].should.equal(allocation_id)
-    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
-        "NetworkInterfaceId"
-    ].should.equal(eni_id)
-    assert describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
-        "PrivateIp"
-    ].startswith("10.")
-    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
-        "PublicIp"
-    ].should.equal(public_ip)
+    describe = conn.describe_nat_gateways(NatGatewayIds=[nat_gateway_id])["NatGateways"]
+
+    describe.should.have.length_of(1)
+    describe[0]["NatGatewayId"].should.equal(nat_gateway_id)
+    describe[0]["State"].should.equal("available")
+    describe[0]["SubnetId"].should.equal(subnet_id)
+    describe[0]["VpcId"].should.equal(vpc_id)
+    describe[0]["NatGatewayAddresses"][0]["AllocationId"].should.equal(allocation_id)
+    describe[0]["NatGatewayAddresses"][0]["NetworkInterfaceId"].should.equal(
+        net_interface_id
+    )
+    assert describe[0]["NatGatewayAddresses"][0]["PrivateIp"].startswith("10.")
+    describe[0]["NatGatewayAddresses"][0]["PublicIp"].should.equal(public_ip)
 
 
 @mock_ec2
@@ -204,8 +206,9 @@ def test_describe_nat_gateway_filter_by_subnet_id():
     nat_gateway_id_1 = create_response_1["NatGateway"]["NatGatewayId"]
     # nat_gateway_id_2 = create_response_2["NatGateway"]["NatGatewayId"]
 
-    describe_response = conn.describe_nat_gateways()
-    describe_response["NatGateways"].should.have.length_of(2)
+    all_gws = retrieve_all_gateways(conn)
+    all_gw_ids = [gw["NatGatewayId"] for gw in all_gws]
+    all_gw_ids.should.contain(nat_gateway_id_1)
 
     describe_response = conn.describe_nat_gateways(
         Filters=[{"Name": "subnet-id", "Values": [subnet_id_1]}]
@@ -244,9 +247,6 @@ def test_describe_nat_gateway_filter_vpc_id():
     conn.create_nat_gateway(SubnetId=subnet_id_2, AllocationId=allocation_id_2)
     nat_gateway_id_1 = create_response_1["NatGateway"]["NatGatewayId"]
 
-    describe_response = conn.describe_nat_gateways()
-    describe_response["NatGateways"].should.have.length_of(2)
-
     describe_response = conn.describe_nat_gateways(
         Filters=[{"Name": "vpc-id", "Values": [vpc_id_1]}]
     )
@@ -258,3 +258,14 @@ def test_describe_nat_gateway_filter_vpc_id():
     describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
         "AllocationId"
     ].should.equal(allocation_id_1)
+
+
+def retrieve_all_gateways(client, filters=[]):
+    resp = client.describe_nat_gateways(Filters=filters)
+    all_gws = resp["NatGateways"]
+    token = resp.get("NextToken")
+    while token:
+        resp = client.describe_nat_gateways(Filters=filters, NextToken=token)
+        all_gws.extend(resp["NatGateways"])
+        token = resp.get("NextToken")
+    return all_gws

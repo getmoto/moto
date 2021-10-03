@@ -29,8 +29,11 @@ class SpotInstances(BaseResponse):
         )
 
     def describe_spot_instance_requests(self):
+        spot_instance_ids = self._get_multi_param("SpotInstanceRequestId")
         filters = filters_from_querystring(self.querystring)
-        requests = self.ec2_backend.describe_spot_instance_requests(filters=filters)
+        requests = self.ec2_backend.describe_spot_instance_requests(
+            filters=filters, spot_instance_ids=spot_instance_ids
+        )
         template = self.response_template(DESCRIBE_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 

@@ -8,6 +8,8 @@ from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
 import sure  # noqa
+import random
+import uuid
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from unittest import SkipTest
@@ -269,9 +271,6 @@ def test_describe_dhcp_options_boto3():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
-    all_options = client.describe_dhcp_options()["DhcpOptions"]
-    all_options.should.have.length_of(0)
-
     dhcp_options = ec2.create_dhcp_options(
         DhcpConfigurations=[
             {"Key": "domain-name", "Values": [SAMPLE_DOMAIN_NAME]},
@@ -284,9 +283,12 @@ def test_describe_dhcp_options_boto3():
     all_options.should.have.length_of(1)
 
     all_options = client.describe_dhcp_options()["DhcpOptions"]
-    all_options.should.have.length_of(1)
-    all_options[0]["DhcpOptionsId"].should.equal(dhcp_options.id)
-    config = all_options[0]["DhcpConfigurations"]
+    assert len(all_options) >= 1, "Should have recently created DHCP option"
+    recently_created = [
+        o for o in all_options if o["DhcpOptionsId"] == dhcp_options.id
+    ][0]
+    recently_created["DhcpOptionsId"].should.equal(dhcp_options.id)
+    config = recently_created["DhcpConfigurations"]
     config.should.have.length_of(2)
     config.should.contain(
         {
@@ -445,17 +447,22 @@ def test_dhcp_tagging_boto3():
         ]
     )
 
-    dhcp_option.create_tags(Tags=[{"Key": "a tag", "Value": "some value"}])
+    tag_value = str(uuid.uuid4())
+    dhcp_option.create_tags(Tags=[{"Key": "a tag", "Value": tag_value}])
 
-    tag = client.describe_tags()["Tags"][0]
+    tag = client.describe_tags(
+        Filters=[{"Name": "resource-id", "Values": [dhcp_option.id]}]
+    )["Tags"][0]
     tag.should.have.key("ResourceId").equal(dhcp_option.id)
     tag.should.have.key("ResourceType").equal("dhcp-options")
     tag.should.have.key("Key").equal("a tag")
-    tag.should.have.key("Value").equal("some value")
+    tag.should.have.key("Value").equal(tag_value)
 
     # Refresh the DHCP options
-    dhcp_option = client.describe_dhcp_options()["DhcpOptions"][0]
-    dhcp_option["Tags"].should.equal([{"Key": "a tag", "Value": "some value"}])
+    dhcp_option = client.describe_dhcp_options(DhcpOptionsIds=[dhcp_option.id])[
+        "DhcpOptions"
+    ][0]
+    dhcp_option["Tags"].should.equal([{"Key": "a tag", "Value": tag_value}])
 
 
 # Has boto3 equivalent
@@ -500,16 +507,19 @@ def test_dhcp_options_get_by_tag_boto3():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
+    dhcp_tag_value = str(uuid.uuid4())
+
     dhcp1 = ec2.create_dhcp_options(
         DhcpConfigurations=[
             {"Key": "domain-name", "Values": ["example.com"]},
             {"Key": "domain-name-servers", "Values": ["10.0.10.2"]},
         ]
     )
+    dhcp1_tag_name = str(uuid.uuid4())
     dhcp1.create_tags(
         Tags=[
-            {"Key": "Name", "Value": "TestDhcpOptions1"},
-            {"Key": "test-tag", "Value": "test-value"},
+            {"Key": "Name", "Value": dhcp1_tag_name},
+            {"Key": "test-tag", "Value": dhcp_tag_value},
         ]
     )
 
@@ -519,17 +529,18 @@ def test_dhcp_options_get_by_tag_boto3():
             {"Key": "domain-name-servers", "Values": ["10.0.20.2"]},
         ]
     )
+    dhcp2_tag_name = str(uuid.uuid4())
     dhcp2.create_tags(
         Tags=[
-            {"Key": "Name", "Value": "TestDhcpOptions2"},
-            {"Key": "test-tag", "Value": "test-value"},
+            {"Key": "Name", "Value": dhcp2_tag_name},
+            {"Key": "test-tag", "Value": dhcp_tag_value},
         ]
     )
 
     dhcp_options_sets = client.describe_dhcp_options(
         Filters=[
-            {"Name": "tag:Name", "Values": ["TestDhcpOptions1"]},
-            {"Name": "tag:test-tag", "Values": ["test-value"]},
+            {"Name": "tag:Name", "Values": [dhcp1_tag_name]},
+            {"Name": "tag:test-tag", "Values": [dhcp_tag_value]},
         ]
     )["DhcpOptions"]
 
@@ -542,13 +553,13 @@ def test_dhcp_options_get_by_tag_boto3():
     )
     tags = dhcp_options_sets[0]["Tags"]
     tags.should.have.length_of(2)
-    tags.should.contain({"Key": "Name", "Value": "TestDhcpOptions1"})
-    tags.should.contain({"Key": "test-tag", "Value": "test-value"})
+    tags.should.contain({"Key": "Name", "Value": dhcp1_tag_name})
+    tags.should.contain({"Key": "test-tag", "Value": dhcp_tag_value})
 
     dhcp_options_sets = client.describe_dhcp_options(
         Filters=[
-            {"Name": "tag:Name", "Values": ["TestDhcpOptions2"]},
-            {"Name": "tag:test-tag", "Values": ["test-value"]},
+            {"Name": "tag:Name", "Values": [dhcp2_tag_name]},
+            {"Name": "tag:test-tag", "Values": [dhcp_tag_value]},
         ]
     )["DhcpOptions"]
 
@@ -561,11 +572,11 @@ def test_dhcp_options_get_by_tag_boto3():
     )
     tags = dhcp_options_sets[0]["Tags"]
     tags.should.have.length_of(2)
-    tags.should.contain({"Key": "Name", "Value": "TestDhcpOptions2"})
-    tags.should.contain({"Key": "test-tag", "Value": "test-value"})
+    tags.should.contain({"Key": "Name", "Value": dhcp2_tag_name})
+    tags.should.contain({"Key": "test-tag", "Value": dhcp_tag_value})
 
     dhcp_options_sets = client.describe_dhcp_options(
-        Filters=[{"Name": "tag:test-tag", "Values": ["test-value"]}]
+        Filters=[{"Name": "tag:test-tag", "Values": [dhcp_tag_value]}]
     )["DhcpOptions"]
 
     dhcp_options_sets.should.have.length_of(2)
@@ -625,8 +636,10 @@ def test_dhcp_options_get_by_id_boto3():
     dhcp1.create_tags(Tags=[{"Key": "Name", "Value": "TestDhcpOptions2"}])
     dhcp1.create_tags(Tags=[{"Key": "test-tag", "Value": "test-value"}])
 
-    d = client.describe_dhcp_options()["DhcpOptions"]
-    d.should.have.length_of(2)
+    options = client.describe_dhcp_options()["DhcpOptions"]
+    d_ids = [d["DhcpOptionsId"] for d in options]
+    d_ids.should.contain(dhcp1.id)
+    d_ids.should.contain(dhcp2.id)
 
     d = client.describe_dhcp_options(
         Filters=[{"Name": "dhcp-options-id", "Values": [dhcp1.id]}]
@@ -647,28 +660,32 @@ def test_dhcp_options_get_by_id_boto3():
 def test_dhcp_options_get_by_value_filter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
+    random_server_1 = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
+    random_server_2 = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
+    random_server_3 = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
+
     ec2.create_dhcp_options(
         DhcpConfigurations=[
             {"Key": "domain-name", "Values": ["example.com"]},
-            {"Key": "domain-name-servers", "Values": ["10.0.10.2"]},
+            {"Key": "domain-name-servers", "Values": [random_server_1]},
         ]
     )
 
     ec2.create_dhcp_options(
         DhcpConfigurations=[
             {"Key": "domain-name", "Values": ["example.com"]},
-            {"Key": "domain-name-servers", "Values": ["10.0.20.2"]},
+            {"Key": "domain-name-servers", "Values": [random_server_2]},
         ]
     )
 
     ec2.create_dhcp_options(
         DhcpConfigurations=[
             {"Key": "domain-name", "Values": ["example.com"]},
-            {"Key": "domain-name-servers", "Values": ["10.0.30.2"]},
+            {"Key": "domain-name-servers", "Values": [random_server_3]},
         ]
     )
 
-    filters = [{"Name": "value", "Values": ["10.0.10.2"]}]
+    filters = [{"Name": "value", "Values": [random_server_2]}]
     dhcp_options_sets = list(ec2.dhcp_options_sets.filter(Filters=filters))
     dhcp_options_sets.should.have.length_of(1)
 
@@ -677,30 +694,36 @@ def test_dhcp_options_get_by_value_filter():
 def test_dhcp_options_get_by_key_filter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
+    random_domain_name = str(uuid.uuid4())[0:6]
+
     ec2.create_dhcp_options(
-        DhcpConfigurations=[
-            {"Key": "domain-name", "Values": ["example.com"]},
-            {"Key": "domain-name-servers", "Values": ["10.0.10.2"]},
-        ]
+        DhcpConfigurations=[{"Key": "domain-name", "Values": [random_domain_name]},]
     )
 
     ec2.create_dhcp_options(
-        DhcpConfigurations=[
-            {"Key": "domain-name", "Values": ["example.com"]},
-            {"Key": "domain-name-servers", "Values": ["10.0.20.2"]},
-        ]
+        DhcpConfigurations=[{"Key": "domain-name", "Values": ["example.com"]},]
     )
 
     ec2.create_dhcp_options(
-        DhcpConfigurations=[
-            {"Key": "domain-name", "Values": ["example.com"]},
-            {"Key": "domain-name-servers", "Values": ["10.0.30.2"]},
-        ]
+        DhcpConfigurations=[{"Key": "domain-name", "Values": [random_domain_name]},]
     )
 
     filters = [{"Name": "key", "Values": ["domain-name"]}]
     dhcp_options_sets = list(ec2.dhcp_options_sets.filter(Filters=filters))
-    dhcp_options_sets.should.have.length_of(3)
+    assert (
+        len(dhcp_options_sets) >= 3
+    ), "Should have at least 3 DHCP options just created"
+
+    configs = []
+    for d in dhcp_options_sets:
+        configs.extend(d.dhcp_configurations)
+
+    servers = []
+    for config in configs:
+        if config["Key"] == "domain-name":
+            servers.extend(config["Values"])
+    servers.should.contain({"Value": random_domain_name})
+    servers.should.contain({"Value": "example.com"})
 
 
 # Has boto3 equivalent

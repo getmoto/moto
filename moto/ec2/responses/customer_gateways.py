@@ -27,7 +27,10 @@ class CustomerGateways(BaseResponse):
 
     def describe_customer_gateways(self):
         filters = filters_from_querystring(self.querystring)
-        customer_gateways = self.ec2_backend.get_all_customer_gateways(filters)
+        customer_gateway_ids = self._get_multi_param("CustomerGatewayId")
+        customer_gateways = self.ec2_backend.get_all_customer_gateways(
+            filters, customer_gateway_ids
+        )
         template = self.response_template(DESCRIBE_CUSTOMER_GATEWAYS_RESPONSE)
         return template.render(customer_gateways=customer_gateways)
 

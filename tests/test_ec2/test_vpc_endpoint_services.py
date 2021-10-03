@@ -4,11 +4,16 @@ import pytest
 import boto3
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_ec2, settings
+from unittest import SkipTest
 
 
 @mock_ec2
 def test_describe_vpc_endpoint_services_bad_args():
+    if settings.TEST_SERVER_MODE:
+        # Long-running operation - doesn't quite work in ServerMode, with parallel tests
+        # Probably needs some locking to force the initialization to only occur once
+        raise SkipTest("Can't run in ServerMode")
     """Verify exceptions are raised for bad arguments."""
     ec2 = boto3.client("ec2", region_name="us-west-1")
 

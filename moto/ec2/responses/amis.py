@@ -52,6 +52,7 @@ class AmisResponse(BaseResponse):
             context=self,
         )
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
+
         return template.render(images=images)
 
     def describe_image_attribute(self):

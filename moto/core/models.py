@@ -481,9 +481,11 @@ MockAWS = BotocoreEventMockAWS
 
 class ServerModeMockAWS(BaseMockAWS):
     def reset(self):
-        import requests
+        call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
+        if not call_reset_api or call_reset_api.lower() != "false":
+            import requests
 
-        requests.post("http://localhost:5000/moto-api/reset")
+            requests.post("http://localhost:5000/moto-api/reset")
 
     def enable_patching(self):
         if self.__class__.nested_count == 1:

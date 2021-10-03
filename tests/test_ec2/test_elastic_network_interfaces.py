@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import pytest
+import random
 
 import boto3
 from botocore.exceptions import ClientError
@@ -11,6 +12,7 @@ import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 
 # Has boto3 equivalent
@@ -75,9 +77,11 @@ def test_elastic_network_interfaces_boto3():
 
     eni_id = ec2.create_network_interface(SubnetId=subnet.id).id
 
-    all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(1)
-    eni = all_enis[0]
+    my_enis = client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ]
+    my_enis.should.have.length_of(1)
+    eni = my_enis[0]
     eni["Groups"].should.have.length_of(0)
     eni["PrivateIpAddresses"].should.have.length_of(1)
     eni["PrivateIpAddresses"][0]["PrivateIpAddress"].startswith("10.").should.be.true
@@ -93,7 +97,15 @@ def test_elastic_network_interfaces_boto3():
     client.delete_network_interface(NetworkInterfaceId=eni_id)
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(0)
+    [eni["NetworkInterfaceId"] for eni in all_enis].shouldnt.contain(eni_id)
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal(
+        "InvalidNetworkInterfaceID.NotFound"
+    )
 
     with pytest.raises(ClientError) as ex:
         client.delete_network_interface(NetworkInterfaceId=eni_id)
@@ -155,12 +167,16 @@ def test_elastic_network_interfaces_with_private_ip_boto3():
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
 
     private_ip = "54.0.0.1"
-    ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+    eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(1)
+    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni.id)
 
-    eni = all_enis[0]
+    my_enis = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])[
+        "NetworkInterfaces"
+    ]
+
+    eni = my_enis[0]
     eni["Groups"].should.have.length_of(0)
 
     eni["PrivateIpAddresses"].should.have.length_of(1)
@@ -201,16 +217,16 @@ def test_elastic_network_interfaces_with_groups_boto3():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
 
-    sec_group1 = ec2.create_security_group(GroupName="group #1", Description="n/a")
-    sec_group2 = ec2.create_security_group(GroupName="group #2", Description="n/a")
-    subnet.create_network_interface(Groups=[sec_group1.id, sec_group2.id])
+    sec_group1 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
+    sec_group2 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
+    my_eni = subnet.create_network_interface(Groups=[sec_group1.id, sec_group2.id])
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(1)
+    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(my_eni.id)
 
-    eni = all_enis[0]
-    eni["Groups"].should.have.length_of(2)
-    set([group["GroupId"] for group in eni["Groups"]]).should.equal(
+    my_eni = [eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id][0]
+    my_eni["Groups"].should.have.length_of(2)
+    set([group["GroupId"] for group in my_eni["Groups"]]).should.equal(
         set([sec_group1.id, sec_group2.id])
     )
 
@@ -267,16 +283,16 @@ def test_elastic_network_interfaces_modify_attribute_boto3():
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
-    sec_group1 = ec2.create_security_group(GroupName="group #1", Description="n/a")
-    sec_group2 = ec2.create_security_group(GroupName="group #2", Description="n/a")
+    sec_group1 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
+    sec_group2 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
     eni_id = subnet.create_network_interface(Groups=[sec_group1.id]).id
 
-    all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(1)
+    my_eni = client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ][0]
 
-    eni = all_enis[0]
-    eni["Groups"].should.have.length_of(1)
-    eni["Groups"][0]["GroupId"].should.equal(sec_group1.id)
+    my_eni["Groups"].should.have.length_of(1)
+    my_eni["Groups"][0]["GroupId"].should.equal(sec_group1.id)
 
     with pytest.raises(ClientError) as ex:
         client.modify_network_interface_attribute(
@@ -292,12 +308,11 @@ def test_elastic_network_interfaces_modify_attribute_boto3():
         NetworkInterfaceId=eni_id, Groups=[sec_group2.id]
     )
 
-    all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(1)
-
-    eni = all_enis[0]
-    eni["Groups"].should.have.length_of(1)
-    eni["Groups"][0]["GroupId"].should.equal(sec_group2.id)
+    my_eni = client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ][0]
+    my_eni["Groups"].should.have.length_of(1)
+    my_eni["Groups"][0]["GroupId"].should.equal(sec_group2.id)
 
 
 # Has boto3 equivalent
@@ -370,15 +385,17 @@ def test_elastic_network_interfaces_filtering_boto3():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
 
-    sec_group1 = ec2.create_security_group(GroupName="group #1", Description="n/a")
-    sec_group2 = ec2.create_security_group(GroupName="group #2", Description="n/a")
+    sec_group1 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
+    sec_group2 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
 
     eni1 = subnet.create_network_interface(Groups=[sec_group1.id, sec_group2.id])
     eni2 = subnet.create_network_interface(Groups=[sec_group1.id])
-    eni3 = subnet.create_network_interface(Description="test description")
+    eni3 = subnet.create_network_interface(Description=str(uuid4()))
 
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(3)
+    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni1.id)
+    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni2.id)
+    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(eni3.id)
 
     # Filter by NetworkInterfaceId
     enis_by_id = client.describe_network_interfaces(NetworkInterfaceIds=[eni1.id])[
@@ -453,13 +470,14 @@ def test_elastic_network_interfaces_get_by_tag_name():
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    eni1.create_tags(Tags=[{"Key": "Name", "Value": "eni1"}])
+    tag_value = str(uuid4())
+    eni1.create_tags(Tags=[{"Key": "Name", "Value": tag_value}])
 
     # The status of the new interface should be 'available'
     waiter = ec2_client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
-    filters = [{"Name": "tag:Name", "Values": ["eni1"]}]
+    filters = [{"Name": "tag:Name", "Values": [tag_value]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(1)
 
@@ -496,32 +514,33 @@ def test_elastic_network_interfaces_get_by_availability_zone():
 
     filters = [{"Name": "availability-zone", "Values": ["us-west-2a"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(1)
+    [eni.id for eni in enis].should.contain(eni1.id)
+    [eni.id for eni in enis].shouldnt.contain(eni2.id)
 
     filters = [{"Name": "availability-zone", "Values": ["us-west-2c"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
-    enis.should.have.length_of(0)
+    [eni.id for eni in enis].shouldnt.contain(eni1.id)
+    [eni.id for eni in enis].shouldnt.contain(eni2.id)
 
 
 @mock_ec2
 def test_elastic_network_interfaces_get_by_private_ip():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
+    random_ip = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
     )
 
-    eni1 = ec2.create_network_interface(
-        SubnetId=subnet.id, PrivateIpAddress="10.0.10.5"
-    )
+    eni1 = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=random_ip)
 
     # The status of the new interface should be 'available'
     waiter = ec2_client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
-    filters = [{"Name": "private-ip-address", "Values": ["10.0.10.5"]}]
+    filters = [{"Name": "private-ip-address", "Values": [random_ip]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(1)
 
@@ -529,7 +548,7 @@ def test_elastic_network_interfaces_get_by_private_ip():
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(0)
 
-    filters = [{"Name": "addresses.private-ip-address", "Values": ["10.0.10.5"]}]
+    filters = [{"Name": "addresses.private-ip-address", "Values": [random_ip]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(1)
 
@@ -602,8 +621,9 @@ def test_elastic_network_interfaces_get_by_description():
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
     )
 
+    desc = str(uuid4())
     eni1 = ec2.create_network_interface(
-        SubnetId=subnet.id, PrivateIpAddress="10.0.10.5", Description="test interface"
+        SubnetId=subnet.id, PrivateIpAddress="10.0.10.5", Description=desc
     )
 
     # The status of the new interface should be 'available'
@@ -624,18 +644,20 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
 
+    random_ip = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
+
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
     )
 
-    sg = ec2_client.create_security_group(Description="test", GroupName="test_sg")
+    sg = ec2_client.create_security_group(Description="test", GroupName=str(uuid4()))
     sg_id = sg["GroupId"]
 
     eni1 = ec2.create_network_interface(
         SubnetId=subnet.id,
-        PrivateIpAddress="10.0.10.5",
-        Description="test interface",
+        PrivateIpAddress=random_ip,
+        Description=str(uuid4()),
         Groups=[sg_id],
     )
 
@@ -740,6 +762,9 @@ def test_elastic_network_interfaces_filter_by_tag():
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
     )
 
+    dev_env = f"dev-{str(uuid4())[0:4]}"
+    prod_env = f"prod-{str(uuid4())[0:4]}"
+
     eni_dev = ec2.create_network_interface(
         SubnetId=subnet.id,
         PrivateIpAddress="10.0.10.5",
@@ -747,7 +772,7 @@ def test_elastic_network_interfaces_filter_by_tag():
         TagSpecifications=[
             {
                 "ResourceType": "network-interface",
-                "Tags": [{"Key": "environment", "Value": "dev"}],
+                "Tags": [{"Key": "environment", "Value": dev_env}],
             },
         ],
     )
@@ -759,7 +784,7 @@ def test_elastic_network_interfaces_filter_by_tag():
         TagSpecifications=[
             {
                 "ResourceType": "network-interface",
-                "Tags": [{"Key": "environment", "Value": "prod"}],
+                "Tags": [{"Key": "environment", "Value": prod_env}],
             },
         ],
     )
@@ -774,19 +799,19 @@ def test_elastic_network_interfaces_filter_by_tag():
     resp["NetworkInterfaces"].should.have.length_of(0)
 
     resp = ec2_client.describe_network_interfaces(
-        Filters=[{"Name": "tag:environment", "Values": ["dev"]}]
+        Filters=[{"Name": "tag:environment", "Values": [dev_env]}]
     )
     resp["NetworkInterfaces"].should.have.length_of(1)
     resp["NetworkInterfaces"][0]["Description"].should.equal("dev interface")
 
     resp = ec2_client.describe_network_interfaces(
-        Filters=[{"Name": "tag:environment", "Values": ["prod"]}]
+        Filters=[{"Name": "tag:environment", "Values": [prod_env]}]
     )
     resp["NetworkInterfaces"].should.have.length_of(1)
     resp["NetworkInterfaces"][0]["Description"].should.equal("prod interface")
 
     resp = ec2_client.describe_network_interfaces(
-        Filters=[{"Name": "tag:environment", "Values": ["dev", "prod"]}]
+        Filters=[{"Name": "tag:environment", "Values": [dev_env, prod_env]}]
     )
     resp["NetworkInterfaces"].should.have.length_of(2)
 

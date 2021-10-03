@@ -8,12 +8,16 @@ import pytest
 
 import boto3
 import boto
+import boto.ec2
 from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2 import ec2_backend
+from random import randint
+from uuid import uuid4
+from unittest import SkipTest
 
 
 # Has boto3 equivalent
@@ -67,25 +71,25 @@ def test_create_and_describe_security_group_boto3():
         "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    security_group = ec2.create_security_group(
-        GroupName="test security group", Description="test"
-    )
+    sec_name = str(uuid4())
+    security_group = ec2.create_security_group(GroupName=sec_name, Description="test")
 
-    security_group.group_name.should.equal("test security group")
+    security_group.group_name.should.equal(sec_name)
     security_group.description.should.equal("test")
 
     # Trying to create another group with the same name should throw an error
     with pytest.raises(ClientError) as ex:
-        client.create_security_group(GroupName="test security group", Description="n/a")
+        client.create_security_group(GroupName=sec_name, Description="n/a")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidGroup.Duplicate")
 
-    all_groups = client.describe_security_groups()["SecurityGroups"]
+    all_groups = retrieve_all_sgs(client)
     # The default group gets created automatically
-    all_groups.should.have.length_of(2)
-    group_names = [group["GroupName"] for group in all_groups]
-    set(group_names).should.equal(set(["default", "test security group"]))
+    [g["GroupId"] for g in all_groups].should.contain(security_group.id)
+    group_names = set([group["GroupName"] for group in all_groups])
+    group_names.should.contain("default")
+    group_names.should.contain(sec_name)
 
 
 # Has boto3 equivalent
@@ -123,9 +127,8 @@ def test_default_security_group():
 @mock_ec2
 def test_default_security_group_boto3():
     client = boto3.client("ec2", "us-west-1")
-    groups = client.describe_security_groups()["SecurityGroups"]
-    groups.should.have.length_of(1)
-    groups[0]["GroupName"].should.equal("default")
+    groups = retrieve_all_sgs(client)
+    [g["GroupName"] for g in groups].should.contain("default")
 
 
 # Has boto3 equivalent
@@ -165,16 +168,16 @@ def test_create_and_describe_vpc_security_group_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
-    name = "test secgr"
-    vpc_id = "vpc-5300000c"
-    security_group = ec2.create_security_group(
+    name = str(uuid4())
+    vpc_id = f"vpc-{str(uuid4())[0:6]}"
+    group_with = ec2.create_security_group(
         GroupName=name, Description="test", VpcId=vpc_id
     )
 
-    security_group.vpc_id.should.equal(vpc_id)
+    group_with.vpc_id.should.equal(vpc_id)
 
-    security_group.group_name.should.equal(name)
-    security_group.description.should.equal("test")
+    group_with.group_name.should.equal(name)
+    group_with.description.should.equal("test")
 
     # Trying to create another group with the same name in the same VPC should
     # throw an error
@@ -185,10 +188,13 @@ def test_create_and_describe_vpc_security_group_boto3():
     ex.value.response["Error"]["Code"].should.equal("InvalidGroup.Duplicate")
 
     # Trying to create another group in the same name without VPC should pass
-    ec2.create_security_group(GroupName=name, Description="non-vpc-group")
+    group_without = ec2.create_security_group(
+        GroupName=name, Description="non-vpc-group"
+    )
 
-    all_groups = client.describe_security_groups()["SecurityGroups"]
-    all_groups.should.have.length_of(3)  # 1 default, 1 vpc, 1 no-vpc
+    all_groups = retrieve_all_sgs(client)
+    [a["GroupId"] for a in all_groups].should.contain(group_with.id)
+    [a["GroupId"] for a in all_groups].should.contain(group_without.id)
 
     all_groups = client.describe_security_groups(
         Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
@@ -226,19 +232,20 @@ def test_create_two_security_groups_with_same_name_in_different_vpc_boto3():
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
-    name = "test security group"
+    name = str(uuid4())
     vpc_id = "vpc-5300000c"
     vpc_id2 = "vpc-5300000d"
 
-    ec2.create_security_group(GroupName=name, Description="n/a 1", VpcId=vpc_id)
-    ec2.create_security_group(GroupName=name, Description="n/a 2", VpcId=vpc_id2)
+    sg1 = ec2.create_security_group(GroupName=name, Description="n/a 1", VpcId=vpc_id)
+    sg2 = ec2.create_security_group(GroupName=name, Description="n/a 2", VpcId=vpc_id2)
 
-    all_groups = client.describe_security_groups()["SecurityGroups"]
+    all_groups = retrieve_all_sgs(client)
+    group_ids = [group["GroupId"] for group in all_groups]
+    group_ids.should.contain(sg1.id)
+    group_ids.should.contain(sg2.id)
 
-    all_groups.should.have.length_of(3)
     group_names = [group["GroupName"] for group in all_groups]
-    # The default group is created automatically
-    set(group_names).should.equal(set(["default", name]))
+    group_names.should.contain(name)
 
 
 @mock_ec2
@@ -247,7 +254,7 @@ def test_create_two_security_groups_in_vpc_with_ipv6_enabled():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", AmazonProvidedIpv6CidrBlock=True)
 
     security_group = ec2.create_security_group(
-        GroupName="sg01", Description="Test security group sg01", VpcId=vpc.id
+        GroupName=str(uuid4()), Description="Test security group sg01", VpcId=vpc.id
     )
 
     # The security group must have two defaul egress rules (one for ipv4 and aonther for ipv6)
@@ -291,10 +298,14 @@ def test_deleting_security_groups():
 def test_deleting_security_groups_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
-    security_group1 = ec2.create_security_group(GroupName="test1", Description="test1")
-    ec2.create_security_group(GroupName="test2", Description="test2")
+    sg_name1 = str(uuid4())
+    sg_name2 = str(uuid4())
+    group1 = ec2.create_security_group(GroupName=sg_name1, Description="test desc 1")
+    group2 = ec2.create_security_group(GroupName=sg_name2, Description="test desc 2")
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(3)
+    all_groups = retrieve_all_sgs(client)
+    [g["GroupId"] for g in all_groups].should.contain(group1.id)
+    [g["GroupId"] for g in all_groups].should.contain(group2.id)
 
     # Deleting a group that doesn't exist should throw an error
     with pytest.raises(ClientError) as ex:
@@ -305,19 +316,24 @@ def test_deleting_security_groups_boto3():
 
     # Delete by name
     with pytest.raises(ClientError) as ex:
-        client.delete_security_group(GroupName="test2", DryRun=True)
+        client.delete_security_group(GroupName=sg_name2, DryRun=True)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    client.delete_security_group(GroupName="test2")
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(2)
+    client.delete_security_group(GroupName=sg_name2)
+
+    all_groups = retrieve_all_sgs(client)
+    [g["GroupId"] for g in all_groups].should.contain(group1.id)
+    [g["GroupId"] for g in all_groups].shouldnt.contain(group2.id)
 
     # Delete by group id
-    client.delete_security_group(GroupId=security_group1.id)
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(1)
+    client.delete_security_group(GroupId=group1.id)
+
+    all_groups = retrieve_all_sgs(client)
+    [g["GroupId"] for g in all_groups].shouldnt.contain(group1.id)
 
 
 # Has boto3 equivalent
@@ -336,18 +352,18 @@ def test_delete_security_group_in_vpc_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(1)
-
     group = ec2.create_security_group(
-        GroupName="test1", Description="test1", VpcId="vpc-12345"
+        GroupName=str(uuid4()), Description="test1", VpcId="vpc-12345"
     )
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(2)
+    all_groups = retrieve_all_sgs(client)
+    [g["GroupId"] for g in all_groups].should.contain(group.id)
 
     # this should not throw an exception
     client.delete_security_group(GroupId=group.id)
 
-    client.describe_security_groups()["SecurityGroups"].should.have.length_of(1)
+    all_groups = retrieve_all_sgs(client)
+    [g["GroupId"] for g in all_groups].shouldnt.contain(group.id)
 
 
 # Has boto3 equivalent
@@ -492,7 +508,9 @@ def test_authorize_ip_range_and_revoke():
 def test_authorize_ip_range_and_revoke_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
-    security_group = ec2.create_security_group(GroupName="test", Description="test")
+    security_group = ec2.create_security_group(
+        GroupName=str(uuid4()), Description="test"
+    )
 
     with pytest.raises(ClientError) as ex:
         security_group.authorize_ingress(
@@ -550,7 +568,7 @@ def test_authorize_ip_range_and_revoke_boto3():
 
     # Test for egress as well
     egress_security_group = ec2.create_security_group(
-        GroupName="testegress", Description="testegress", VpcId="vpc-3432589"
+        GroupName=str(uuid4()), Description="desc", VpcId="vpc-3432589"
     )
     egress_permissions = [
         {
@@ -656,11 +674,14 @@ def test_authorize_other_group_and_revoke():
 def test_authorize_other_group_and_revoke_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
-    security_group = ec2.create_security_group(GroupName="test", Description="test")
-    other_security_group = ec2.create_security_group(
-        GroupName="other", Description="other"
+    sg_name = str(uuid4())
+    security_group = ec2.create_security_group(
+        GroupName=sg_name, Description="test desc"
     )
-    ec2.create_security_group(GroupName="wrong", Description="wrong")
+    other_security_group = ec2.create_security_group(
+        GroupName=str(uuid4()), Description="other"
+    )
+    ec2.create_security_group(GroupName=str(uuid4()), Description="wrong")
 
     # Note: Should be easier to use the SourceSecurityGroupNames-parameter, but that's not supported atm
     permissions = [
@@ -679,7 +700,7 @@ def test_authorize_other_group_and_revoke_boto3():
     ]
     security_group.authorize_ingress(IpPermissions=permissions)
 
-    found_sec_group = client.describe_security_groups(GroupNames=["test"])[
+    found_sec_group = client.describe_security_groups(GroupNames=[sg_name])[
         "SecurityGroups"
     ][0]
     found_sec_group["IpPermissions"][0]["ToPort"].should.equal(2222)
@@ -699,7 +720,7 @@ def test_authorize_other_group_and_revoke_boto3():
     # Actually revoke
     security_group.revoke_ingress(IpPermissions=permissions)
 
-    found_sec_group = client.describe_security_groups(GroupNames=["test"])[
+    found_sec_group = client.describe_security_groups(GroupNames=[sg_name])[
         "SecurityGroups"
     ][0]
     found_sec_group["IpPermissions"].should.have.length_of(0)
@@ -712,10 +733,10 @@ def test_authorize_other_group_egress_and_revoke():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
 
     sg01 = ec2.create_security_group(
-        GroupName="sg01", Description="Test security group sg01", VpcId=vpc.id
+        GroupName=str(uuid4()), Description="Test security group sg01", VpcId=vpc.id
     )
     sg02 = ec2.create_security_group(
-        GroupName="sg02", Description="Test security group sg02", VpcId=vpc.id
+        GroupName=str(uuid4()), Description="Test security group sg02", VpcId=vpc.id
     )
 
     ip_permission = {
@@ -788,11 +809,13 @@ def test_authorize_group_in_vpc_boto3():
     vpc_id = "vpc-12345"
 
     # create 2 groups in a vpc
+    sec_name1 = str(uuid4())
+    sec_name2 = str(uuid4())
     security_group = ec2.create_security_group(
-        GroupName="test1", Description="test1", VpcId=vpc_id
+        GroupName=sec_name1, Description="test desc 1", VpcId=vpc_id
     )
     other_security_group = ec2.create_security_group(
-        GroupName="test2", Description="test2", VpcId=vpc_id
+        GroupName=sec_name2, Description="test desc 2", VpcId=vpc_id
     )
 
     permissions = [
@@ -812,7 +835,7 @@ def test_authorize_group_in_vpc_boto3():
     security_group.authorize_ingress(IpPermissions=permissions)
 
     # Check that the rule is accurate
-    found_sec_group = client.describe_security_groups(GroupNames=["test1"])[
+    found_sec_group = client.describe_security_groups(GroupNames=[sec_name1])[
         "SecurityGroups"
     ][0]
     found_sec_group["IpPermissions"][0]["ToPort"].should.equal(2222)
@@ -824,7 +847,7 @@ def test_authorize_group_in_vpc_boto3():
     security_group.revoke_ingress(IpPermissions=permissions)
 
     # And check that it gets revoked
-    found_sec_group = client.describe_security_groups(GroupNames=["test1"])[
+    found_sec_group = client.describe_security_groups(GroupNames=[sec_name1])[
         "SecurityGroups"
     ][0]
     found_sec_group["IpPermissions"].should.have.length_of(0)
@@ -872,13 +895,13 @@ def test_get_all_security_groups():
 def test_describe_security_groups():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
-    vpc_id = "vpc-mjm05d27"
-    sg1 = ec2.create_security_group(
-        GroupName="test1", Description="test1", VpcId=vpc_id
-    )
-    ec2.create_security_group(GroupName="test2", Description="test2")
+    vpc_id = f"vpc-{str(uuid4())[0:6]}"
+    name_1 = str(uuid4())
+    desc_1 = str(uuid4())
+    sg1 = ec2.create_security_group(GroupName=name_1, Description=desc_1, VpcId=vpc_id)
+    sg2 = ec2.create_security_group(GroupName=str(uuid4()), Description="test desc 2")
 
-    resp = client.describe_security_groups(GroupNames=["test1"])["SecurityGroups"]
+    resp = client.describe_security_groups(GroupNames=[name_1])["SecurityGroups"]
     resp.should.have.length_of(1)
     resp[0].should.have.key("GroupId").equal(sg1.id)
 
@@ -895,13 +918,15 @@ def test_describe_security_groups():
     resp[0].should.have.key("GroupId").equal(sg1.id)
 
     resp = client.describe_security_groups(
-        Filters=[{"Name": "description", "Values": ["test1"]}]
+        Filters=[{"Name": "description", "Values": [desc_1]}]
     )["SecurityGroups"]
     resp.should.have.length_of(1)
     resp[0].should.have.key("GroupId").equal(sg1.id)
 
-    resp = client.describe_security_groups()["SecurityGroups"]
-    resp.should.have.length_of(3)
+    all_sgs = retrieve_all_sgs(client)
+    sg_ids = [sg["GroupId"] for sg in all_sgs]
+    sg_ids.should.contain(sg1.id)
+    sg_ids.should.contain(sg2.id)
 
 
 # Has boto3 equivalent
@@ -921,7 +946,7 @@ def test_authorize_bad_cidr_throws_invalid_parameter_value():
 @mock_ec2
 def test_authorize_bad_cidr_throws_invalid_parameter_value_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
-    sec_group = ec2.create_security_group(GroupName="test", Description="test")
+    sec_group = ec2.create_security_group(GroupName=str(uuid4()), Description="test")
     with pytest.raises(ClientError) as ex:
         permissions = [
             {
@@ -979,16 +1004,18 @@ def test_security_group_tag_filtering():
 def test_security_group_tag_filtering_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
-    sg = ec2.create_security_group(GroupName="test-sg", Description="Test SG")
-    sg.create_tags(Tags=[{"Key": "test-tag", "Value": "test-value"}])
+    sg = ec2.create_security_group(GroupName=str(uuid4()), Description="Test SG")
+    tag_name = str(uuid4())[0:6]
+    tag_val = str(uuid4())
+    sg.create_tags(Tags=[{"Key": tag_name, "Value": tag_val}])
 
     groups = client.describe_security_groups(
-        Filters=[{"Name": "tag:test-tag", "Values": ["test-value"]}]
+        Filters=[{"Name": f"tag:{tag_name}", "Values": [tag_val]}]
     )["SecurityGroups"]
     groups.should.have.length_of(1)
 
     groups = client.describe_security_groups(
-        Filters=[{"Name": "tag:test-tag", "Values": ["unknown"]}]
+        Filters=[{"Name": f"tag:{tag_name}", "Values": ["unknown"]}]
     )["SecurityGroups"]
     groups.should.have.length_of(0)
 
@@ -1011,12 +1038,13 @@ def test_authorize_all_protocols_with_no_port_specification():
 def test_authorize_all_protocols_with_no_port_specification_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
-    sg = ec2.create_security_group(GroupName="test", Description="test")
+    sg_name = str(uuid4())
+    sg = ec2.create_security_group(GroupName=sg_name, Description="test desc")
 
     permissions = [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}]
     sg.authorize_ingress(IpPermissions=permissions)
 
-    sg = client.describe_security_groups(GroupNames=["test"])["SecurityGroups"][0]
+    sg = client.describe_security_groups(GroupNames=[sg_name])["SecurityGroups"][0]
     permission = sg["IpPermissions"][0]
     permission.should.have.key("IpProtocol").equal("-1")
     permission.should.have.key("IpRanges").equal([{"CidrIp": "0.0.0.0/0"}])
@@ -1102,15 +1130,15 @@ def test_sec_group_rule_limit_boto3(use_vpc):
     if use_vpc:
         vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
         sg = ec2.create_security_group(
-            GroupName="test", Description="test", VpcId=vpc.id
+            GroupName=str(uuid4()), Description="test", VpcId=vpc.id
         )
         other_sg = ec2.create_security_group(
-            GroupName="test_2", Description="test_other", VpcId=vpc.id
+            GroupName=str(uuid4()), Description="test_other", VpcId=vpc.id
         )
     else:
-        sg = ec2.create_security_group(GroupName="test", Description="test")
+        sg = ec2.create_security_group(GroupName=str(uuid4()), Description="test")
         other_sg = ec2.create_security_group(
-            GroupName="test_2", Description="test_other"
+            GroupName=str(uuid4()), Description="test_other"
         )
 
     # INGRESS
@@ -1383,7 +1411,7 @@ def test_description_in_ip_permissions():
 def test_security_group_tagging_boto3():
     conn = boto3.client("ec2", region_name="us-east-1")
 
-    sg = conn.create_security_group(GroupName="test-sg", Description="Test SG")
+    sg = conn.create_security_group(GroupName=str(uuid4()), Description="Test SG")
 
     with pytest.raises(ClientError) as ex:
         conn.create_tags(
@@ -1397,26 +1425,34 @@ def test_security_group_tagging_boto3():
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    conn.create_tags(Resources=[sg["GroupId"]], Tags=[{"Key": "Test", "Value": "Tag"}])
+    tag_val = str(uuid4())
+    conn.create_tags(
+        Resources=[sg["GroupId"]], Tags=[{"Key": "Test", "Value": tag_val}]
+    )
     describe = conn.describe_security_groups(
-        Filters=[{"Name": "tag-value", "Values": ["Tag"]}]
+        Filters=[{"Name": "tag-value", "Values": [tag_val]}]
     )
     tag = describe["SecurityGroups"][0]["Tags"][0]
-    tag["Value"].should.equal("Tag")
+    tag["Value"].should.equal(tag_val)
     tag["Key"].should.equal("Test")
 
 
 @mock_ec2
 def test_security_group_wildcard_tag_filter_boto3():
     conn = boto3.client("ec2", region_name="us-east-1")
-    sg = conn.create_security_group(GroupName="test-sg", Description="Test SG")
-    conn.create_tags(Resources=[sg["GroupId"]], Tags=[{"Key": "Test", "Value": "Tag"}])
+    sg = conn.create_security_group(GroupName=str(uuid4()), Description="Test SG")
+
+    rand_name = str(uuid4())[0:6]
+    tag_val = f"random {rand_name} things"
+    conn.create_tags(
+        Resources=[sg["GroupId"]], Tags=[{"Key": "Test", "Value": tag_val}]
+    )
     describe = conn.describe_security_groups(
-        Filters=[{"Name": "tag-value", "Values": ["*"]}]
+        Filters=[{"Name": "tag-value", "Values": [f"*{rand_name}*"]}]
     )
 
     tag = describe["SecurityGroups"][0]["Tags"][0]
-    tag["Value"].should.equal("Tag")
+    tag["Value"].should.equal(tag_val)
     tag["Key"].should.equal("Test")
 
 
@@ -1426,22 +1462,40 @@ def test_security_group_filter_ip_permission():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
 
     conn = boto3.client("ec2", region_name="us-east-1")
+    sg_name = str(uuid4())[0:6]
     sg = ec2.create_security_group(
-        GroupName="test-sg", Description="Test SG", VpcId=vpc.id
+        GroupName=sg_name, Description="Test SG", VpcId=vpc.id
     )
 
+    from_port = randint(0, 65535)
+    to_port = randint(0, 65535)
     ip_permissions = [
-        {"IpProtocol": "tcp", "FromPort": 27017, "ToPort": 27017, "IpRanges": [],},
+        {
+            "IpProtocol": "tcp",
+            "FromPort": from_port,
+            "ToPort": to_port,
+            "IpRanges": [],
+        },
     ]
 
     sg.authorize_ingress(IpPermissions=ip_permissions)
 
-    describe = conn.describe_security_groups(
-        Filters=[{"Name": "ip-permission.from-port", "Values": ["27017"]}]
-    )["SecurityGroups"]
+    filters = [{"Name": "ip-permission.from-port", "Values": [f"{from_port}"]}]
+    describe = retrieve_all_sgs(conn, filters)
     describe.should.have.length_of(1)
 
-    describe[0]["GroupName"].should.equal("test-sg")
+    describe[0]["GroupName"].should.equal(sg_name)
+
+
+def retrieve_all_sgs(conn, filters=[]):
+    res = conn.describe_security_groups(Filters=filters)
+    all_groups = res["SecurityGroups"]
+    next_token = res.get("NextToken")
+    while next_token:
+        res = conn.describe_security_groups(Filters=filters)
+        all_groups.extend(res["SecurityGroups"])
+        next_token = res.get("NextToken")
+    return all_groups
 
 
 @mock_ec2
@@ -1451,17 +1505,13 @@ def test_authorize_and_revoke_in_bulk():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
 
     sg01 = ec2.create_security_group(
-        GroupName="sg01", Description="Test security group sg01", VpcId=vpc.id
+        GroupName=str(uuid4()), Description="Test sg01", VpcId=vpc.id
     )
     sg02 = ec2.create_security_group(
-        GroupName="sg02", Description="Test security group sg02", VpcId=vpc.id
+        GroupName=str(uuid4()), Description="Test sg02", VpcId=vpc.id
     )
-    sg03 = ec2.create_security_group(
-        GroupName="sg03", Description="Test security group sg03"
-    )
-    sg04 = ec2.create_security_group(
-        GroupName="sg04", Description="Test security group sg04"
-    )
+    sg03 = ec2.create_security_group(GroupName=str(uuid4()), Description="Test sg03")
+    sg04 = ec2.create_security_group(GroupName=str(uuid4()), Description="Test sg04")
     ip_permissions = [
         {
             "IpProtocol": "tcp",
@@ -1595,7 +1645,7 @@ def test_authorize_and_revoke_in_bulk():
 @mock_ec2
 def test_security_group_ingress_without_multirule():
     ec2 = boto3.resource("ec2", "ca-central-1")
-    sg = ec2.create_security_group(Description="Test SG", GroupName="test-sg")
+    sg = ec2.create_security_group(Description="Test SG", GroupName=str(uuid4()))
 
     assert len(sg.ip_permissions) == 0
     sg.authorize_ingress(
@@ -1609,7 +1659,7 @@ def test_security_group_ingress_without_multirule():
 @mock_ec2
 def test_security_group_ingress_without_multirule_after_reload():
     ec2 = boto3.resource("ec2", "ca-central-1")
-    sg = ec2.create_security_group(Description="Test SG", GroupName="test-sg")
+    sg = ec2.create_security_group(Description="Test SG", GroupName=str(uuid4()))
 
     assert len(sg.ip_permissions) == 0
     sg.authorize_ingress(
@@ -1650,10 +1700,10 @@ def test_get_all_security_groups_filter_with_same_vpc_id_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     vpc_id = "vpc-5300000c"
     security_group = ec2.create_security_group(
-        GroupName="test1", Description="test1", VpcId=vpc_id
+        GroupName=str(uuid4()), Description="test1", VpcId=vpc_id
     )
     security_group2 = ec2.create_security_group(
-        GroupName="test2", Description="test2", VpcId=vpc_id
+        GroupName=str(uuid4()), Description="test2", VpcId=vpc_id
     )
 
     security_group.vpc_id.should.equal(vpc_id)
@@ -1676,7 +1726,7 @@ def test_revoke_security_group_egress():
     ec2 = boto3.resource("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     sg = ec2.create_security_group(
-        Description="Test SG", GroupName="test-sg", VpcId=vpc.id
+        Description="Test SG", GroupName=str(uuid4()), VpcId=vpc.id
     )
 
     sg.ip_permissions_egress.should.equal(
@@ -1712,8 +1762,9 @@ def test_update_security_group_rule_descriptions_egress():
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg_name = str(uuid4())
     sg = ec2.create_security_group(
-        Description="Test SG", GroupName="test-sg", VpcId=vpc.id
+        Description="Test SG", GroupName=sg_name, VpcId=vpc.id
     )
     sg_id = sg.id
 
@@ -1724,7 +1775,7 @@ def test_update_security_group_rule_descriptions_egress():
     ip_ranges[0].should.equal({"CidrIp": "0.0.0.0/0"})
 
     client.update_security_group_rule_descriptions_egress(
-        GroupName="test-sg",
+        GroupName=sg_name,
         IpPermissions=[
             {
                 "IpProtocol": "-1",
@@ -1748,8 +1799,9 @@ def test_update_security_group_rule_descriptions_ingress():
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg_name = str(uuid4())
     sg = ec2.create_security_group(
-        Description="Test SG", GroupName="test-sg", VpcId=vpc.id
+        Description="Test SG", GroupName=sg_name, VpcId=vpc.id
     )
     sg_id = sg.id
 
@@ -1770,7 +1822,7 @@ def test_update_security_group_rule_descriptions_ingress():
     ip_ranges[0].should.equal({"CidrIp": "1.2.3.4/32", "Description": "first desc"})
 
     client.update_security_group_rule_descriptions_ingress(
-        GroupName="test-sg",
+        GroupName=sg_name,
         IpPermissions=[
             {
                 "IpProtocol": "tcp",
@@ -1811,7 +1863,7 @@ def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api()
     ec2_resource = boto3.resource("ec2", region_name="us-east-1")
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
-    group_name = "test-backend-authorize"
+    group_name = str(uuid4())
     sg = ec2_resource.create_security_group(
         GroupName=group_name, Description="test", VpcId=vpc.id
     )
@@ -1859,8 +1911,9 @@ def test_filter_description():
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.0.0/16")
 
+    unique = str(uuid4())
     sg1 = vpc.create_security_group(
-        Description="An Excellent Description", GroupName="test-1"
+        Description=(f"A {unique} Description"), GroupName="test-1"
     )
     sg2 = vpc.create_security_group(
         Description="Another Description That Awes The Human Mind", GroupName="test-2"
@@ -1868,7 +1921,7 @@ def test_filter_description():
 
     filter_to_match_group_1_description = {
         "Name": "description",
-        "Values": ["Excellent"],
+        "Values": [unique],
     }
 
     security_groups = ec2r.security_groups.filter(
@@ -1882,6 +1935,10 @@ def test_filter_description():
 
 @mock_ec2
 def test_filter_egress__ip_permission__cidr():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "CIDR's might already exist due to other tests creating IP ranges"
+        )
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
 
@@ -1935,10 +1992,11 @@ def test_filter_egress__ip_permission__from_port():
         Description="Another Description That Awes The Human Mind", GroupName="test-2"
     )
 
+    from_port = randint(1, 9999)
     sg1.authorize_egress(
         IpPermissions=[
             {
-                "FromPort": 7357,
+                "FromPort": from_port,
                 "ToPort": 7359,
                 "IpProtocol": "tcp",
                 "IpRanges": [{"CidrIp": "10.250.0.0/16"}, {"CidrIp": "10.251.0.0/16"}],
@@ -1957,7 +2015,7 @@ def test_filter_egress__ip_permission__from_port():
     )
     filter_to_match_group_1 = {
         "Name": "egress.ip-permission.from-port",
-        "Values": ["7357"],
+        "Values": [f"{from_port}"],
     }
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
@@ -2162,9 +2220,9 @@ def test_filter_egress__ip_permission__protocol():
     }
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
-    security_groups = list(security_groups)
-    assert len(security_groups) == 1
-    assert security_groups[0].group_id == sg1.group_id
+    group_ids = [sg.group_id for sg in security_groups]
+    group_ids.should.contain(sg1.group_id)
+    group_ids.shouldnt.contain(sg2.group_id)
 
 
 @mock_ec2
@@ -2179,11 +2237,12 @@ def test_filter_egress__ip_permission__to_port():
         Description="Another Description That Awes The Human Mind", GroupName="test-2"
     )
 
+    to_port = randint(1, 9999)
     sg1.authorize_egress(
         IpPermissions=[
             {
                 "FromPort": 7357,
-                "ToPort": 7359,
+                "ToPort": to_port,
                 "IpProtocol": "tcp",
                 "IpRanges": [{"CidrIp": "10.250.0.0/16"}, {"CidrIp": "10.251.0.0/16"}],
             }
@@ -2201,7 +2260,7 @@ def test_filter_egress__ip_permission__to_port():
     )
     filter_to_match_group_1 = {
         "Name": "egress.ip-permission.to-port",
-        "Values": ["7359"],
+        "Values": [f"{to_port}"],
     }
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
