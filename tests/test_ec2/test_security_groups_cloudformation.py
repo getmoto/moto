@@ -1,6 +1,8 @@
 import boto3
+import json
 import sure  # noqa
 from moto import mock_cloudformation, mock_ec2
+from tests import EXAMPLE_AMI_ID
 
 
 SEC_GROUP_INGRESS = """{
@@ -85,6 +87,44 @@ SEC_GROUP_INGRESS_WITHOUT_DESC = """{
 }
 """
 
+SEC_GROUP_SOURCE = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "my-security-group": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {"GroupDescription": "My other group"},
+        },
+        "Ec2Instance2": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "SecurityGroups": [{"Ref": "InstanceSecurityGroup"}],
+                "ImageId": EXAMPLE_AMI_ID,
+            },
+        },
+        "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "My security group",
+                "Tags": [{"Key": "bar", "Value": "baz"}],
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "123.123.123.123/32",
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "8000",
+                        "SourceSecurityGroupId": {"Ref": "my-security-group"},
+                    },
+                ],
+            },
+        },
+    },
+}
+
 
 @mock_cloudformation
 @mock_ec2
@@ -137,3 +177,46 @@ def test_security_group_ingress_without_description():
     len(group["IpPermissions"]).should.be(1)
     ingress = group["IpPermissions"][0]
     ingress["IpRanges"].should.equal([{"CidrIp": "10.0.0.0/8"}])
+
+
+@mock_ec2
+@mock_cloudformation
+def test_stack_security_groups():
+
+    template = json.dumps(SEC_GROUP_SOURCE)
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(
+        StackName="security_group_stack",
+        TemplateBody=template,
+        Tags=[{"Key": "foo", "Value": "bar"}],
+    )
+
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    instance_group = ec2.describe_security_groups(
+        Filters=[{"Name": "description", "Values": ["My security group"]}]
+    )["SecurityGroups"][0]
+    instance_group.should.have.key("Description").equal("My security group")
+    instance_group.should.have.key("Tags")
+    instance_group["Tags"].should.contain({"Key": "bar", "Value": "baz"})
+    instance_group["Tags"].should.contain({"Key": "foo", "Value": "bar"})
+    other_group = ec2.describe_security_groups(
+        Filters=[{"Name": "description", "Values": ["My other group"]}]
+    )["SecurityGroups"][0]
+
+    ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
+
+    ec2_instance["NetworkInterfaces"][0]["Groups"][0]["GroupId"].should.equal(
+        instance_group["GroupId"]
+    )
+
+    rule1, rule2 = instance_group["IpPermissions"]
+    int(rule1["ToPort"]).should.equal(22)
+    int(rule1["FromPort"]).should.equal(22)
+    rule1["IpRanges"][0]["CidrIp"].should.equal("123.123.123.123/32")
+    rule1["IpProtocol"].should.equal("tcp")
+
+    int(rule2["ToPort"]).should.equal(8000)
+    int(rule2["FromPort"]).should.equal(80)
+    rule2["IpProtocol"].should.equal("tcp")
+    rule2["UserIdGroupPairs"][0]["GroupId"].should.equal(other_group["GroupId"])
