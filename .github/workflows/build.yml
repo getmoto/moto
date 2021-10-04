@@ -199,6 +199,21 @@ jobs:
       with:
         fail_ci_if_error: false
         flags: servertests
+    - name: "Stop MotoServer"
+      if: always()
+      run: |
+        mkdir serverlogs
+        pwd
+        ls -la
+        cp server_output.log serverlogs/server_output.log
+        docker stop motoserver
+    - name: Archive TF logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: motoserver-${{ matrix.python-version }}
+        path: |
+          serverlogs/*
 
   test_responses:
     name: Test Responses==0.12.0
