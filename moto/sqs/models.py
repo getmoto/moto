@@ -632,6 +632,8 @@ class SQSBackend(BaseBackend):
         prefix_re = re.compile(re_str)
         qs = []
         for name, q in self.queues.items():
+            if not isinstance(name, (str, bytes)):
+                print("Unable to search for {} (type: {})".format(name, type(name)))
             if prefix_re.search(name):
                 qs.append(q)
         return qs[:1000]
