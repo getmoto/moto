@@ -1,3 +1,15 @@
+# Table of Contents
+
+- [Contributing code](#contributing-code)
+  * [Running the tests locally](#running-the-tests-locally)
+  * [Linting](#linting)
+  * [General notes](#general-notes)
+- [Missing features](#missing-features)
+- [Missing services](#missing-services)
+    + [Generating template code of services.](#generating-template-code-of-services)
+    + [URL Indexing](#url-indexing)
+- [Maintainers](#maintainers)
+
 # Contributing code
 
 Moto has a [Code of Conduct](https://github.com/spulec/moto/blob/master/CODE_OF_CONDUCT.md), you can expect to be treated with respect at all times when interacting with this project.
@@ -11,14 +23,40 @@ You should be able to run `make init` to install the dependencies and then `make
 
 ## Linting
 
-Run `make lint` or `black --check moto tests` to verify whether your code confirms to the guidelines.
+Ensure that the correct version of black is installed - `black==19.10b0`. (Different versions of black will return different results.)  
+Run `make lint` to verify whether your code confirms to the guidelines.  
+Use `make format` to automatically format your code, if it does not conform to `black`'s rules.
 
-## Getting to grips with the codebase
+## General notes
 
-Moto maintains a list of [good first issues](https://github.com/spulec/moto/contribute) which you may want to look at before
-implementing a whole new endpoint.
+Some tips that might help during development:
+ - A dedicated TaggingService exists in `moto.utilities`, to help with storing/retrieving tags for resources. Not all services use it yet, but contributors are encouraged to  use the TaggingService for all new features.  
+ - Our CI runs all tests twice - one normal run, and one run in ServerMode. In ServerMode, Moto is started as a stand-alone Flask server, and all tests are run against this Flask-instance.
+To verify whether your tests pass in ServerMode, you can run the following commands:
+```
+pip install .[all,server]
+moto_server
+TEST_SERVER_MODE=true pytest -sv tests/test_service/..
+```
+ - When writing tests, one test should only verify a single feature/method. I.e., one test for `create_resource()`, another for `update_resource()`, etc.
+ - When writing negative tests, try to use the following format:
+ ```
+ with pytest.raises(botocore.exceptions.ClientError) as exc:
+     client.failing_call(..)
+ err = exc.value.response["Error"]
+ # These assertions use the 'sure' library, but any assertion style is accepted
+ err["Code"].should.equal(..)
+ err["Message"].should.equal(..)
+ ```
+ This is the best way to ensure that exceptions are dealt with correctly by Moto.
+  - If a service is only partially implemented, a warning can be used to inform the user. For instance:
+  ```
+  import warnings
+  warnings.warn("The Filters-parameter is not yet implemented for client.method()")
+  ```
 
-## Missing features
+
+# Missing features
 
 Moto is easier to contribute to than you probably think. There's [a list of which endpoints have been implemented](https://github.com/spulec/moto/blob/master/IMPLEMENTATION_COVERAGE.md) and we invite you to add new endpoints to existing services or to add new services.
 
@@ -31,16 +69,11 @@ How to teach Moto to support a new AWS endpoint:
 * Implementing the feature itself can be done by creating a method called `import_certificate` in `moto/acm/responses.py`. It's considered good practice to deal with input/output formatting and validation in `responses.py`, and create a method `import_certificate` in `moto/acm/models.py` that handles the actual import logic.
 * If you can also implement the code that gets that test passing then great! If not, just ask the community for a hand and somebody will assist you.
 
-## Before pushing changes to GitHub
-
-1. Run `black moto/ tests/` over your code to ensure that it is properly formatted
-1. Run `make test` to ensure your tests are passing
-
-## Missing services
+# Missing services
 
 Implementing a new service from scratch is more work, but still quite straightforward. All the code that intercepts network requests to `*.amazonaws.com` is already handled for you in `moto/core` - all that's necessary for new services to be recognized is to create a new decorator and determine which URLs should be intercepted.
 
-See this PR for an example of what's involved in creating a new service: https://github.com/spulec/moto/pull/2409/files
+See this PR for an example of what's involved in creating a new service: https://github.com/spulec/moto/pull/4076/files
 
 Note the `urls.py` that redirects all incoming URL requests to a generic `dispatch` method, which in turn will call the appropriate method in `responses.py`. 
 
@@ -84,12 +117,12 @@ You will still need to add the mock into "__init__.py"
 In order to speed up the performance of MotoServer, all AWS URL's that need intercepting are indexed.  
 When adding/replacing any URLs in `{service}/urls.py`, please run `python scripts/update_backend_index.py` to update this index.
 
-## Maintainers
+# Maintainers
 
-### Releasing a new version of Moto
+## Releasing a new version of Moto
 
-You'll need a PyPi account and a DockerHub account to release Moto. After we release a new PyPi package we build and push the [motoserver/moto](https://hub.docker.com/r/motoserver/moto/) Docker image.
-
-* First, `scripts/bump_version` modifies the version and opens a PR
-* Then, merge the new pull request
-* Finally, generate and ship the new artifacts with `make publish`
+* Ensure the CHANGELOG document mentions the new release, and lists all significant changes.
+* Go to the dedicated [Release Action](https://github.com/spulec/moto/actions/workflows/release.yml) in our CI
+* Click 'Run workflow' on the top right
+* Provide the version you want to release
+* That's it - everything else is automated.

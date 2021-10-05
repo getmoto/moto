@@ -755,7 +755,8 @@ def test_get_resource_policy_secret():
 
 
 @mock_secretsmanager
-def test_update_secret_version_stage():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_update_secret_version_stage(pass_arn):
     custom_stage = "CUSTOM_STAGE"
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -765,13 +766,14 @@ def test_update_secret_version_stage():
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
     )
     create_secret = json.loads(create_secret.data.decode("utf-8"))
+    secret_id = create_secret["ARN"] if pass_arn else DEFAULT_SECRET_NAME
     initial_version = create_secret["VersionId"]
 
     # Create a new version
     put_secret = test_client.post(
         "/",
         data={
-            "SecretId": DEFAULT_SECRET_NAME,
+            "SecretId": secret_id,
             "SecretString": "secret",
             "VersionStages": [custom_stage],
         },
@@ -782,7 +784,7 @@ def test_update_secret_version_stage():
 
     describe_secret = test_client.post(
         "/",
-        data={"SecretId": "test-secret"},
+        data={"SecretId": secret_id},
         headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
     )
 
@@ -795,7 +797,7 @@ def test_update_secret_version_stage():
     test_client.post(
         "/",
         data={
-            "SecretId": "test-secret",
+            "SecretId": secret_id,
             "VersionStage": custom_stage,
             "RemoveFromVersionId": new_version,
             "MoveToVersionId": initial_version,
@@ -805,7 +807,7 @@ def test_update_secret_version_stage():
 
     describe_secret = test_client.post(
         "/",
-        data={"SecretId": "test-secret"},
+        data={"SecretId": secret_id},
         headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
     )
 

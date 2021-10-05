@@ -1117,7 +1117,7 @@ DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<DescribeTargetGroupAttributesRes
   </ResponseMetadata>
 </DescribeTargetGroupAttributesResponse>"""
 
-DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+DESCRIBE_LISTENERS_TEMPLATE = """<DescribeListenersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeListenersResult>
     <Listeners>
       {% for listener in listeners %}
@@ -1148,7 +1148,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
   <ResponseMetadata>
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
-</DescribeLoadBalancersResponse>"""
+</DescribeListenersResponse>"""
 
 CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ConfigureHealthCheckResult>

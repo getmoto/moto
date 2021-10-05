@@ -344,6 +344,9 @@ class Resource(CloudFormationModel):
             raise MethodNotFoundException()
         return method
 
+    def delete_method(self, method_type):
+        self.resource_methods.pop(method_type)
+
     def add_integration(
         self,
         method_type,
@@ -1196,6 +1199,10 @@ class APIGatewayBackend(BaseBackend):
         method = resource.get_method(method_type)
         return method.apply_operations(patch_operations)
 
+    def delete_method(self, function_id, resource_id, method_type):
+        resource = self.get_resource(function_id, resource_id)
+        resource.delete_method(method_type)
+
     def get_authorizer(self, restapi_id, authorizer_id):
         api = self.get_rest_api(restapi_id)
         authorizer = api.authorizers.get(authorizer_id)
@@ -1676,6 +1683,28 @@ class APIGatewayBackend(BaseBackend):
             raise ModelNotFound
         else:
             return model
+
+    def get_request_validators(self, restapi_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validators()
+
+    def create_request_validator(self, restapi_id, name, body, params):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.create_request_validator(
+            name=name, validateRequestBody=body, validateRequestParameters=params,
+        )
+
+    def get_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validator(validator_id)
+
+    def delete_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        restApi.delete_request_validator(validator_id)
+
+    def update_request_validator(self, restapi_id, validator_id, patch_operations):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.update_request_validator(validator_id, patch_operations)
 
 
 apigateway_backends = {}

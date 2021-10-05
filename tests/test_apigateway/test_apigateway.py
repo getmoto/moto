@@ -464,6 +464,32 @@ def test_create_method_response():
 
 
 @mock_apigateway
+def test_delete_method():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
+    )
+
+    client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    client.delete_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid Method identifier specified")
+
+
+@mock_apigateway
 def test_integrations():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")

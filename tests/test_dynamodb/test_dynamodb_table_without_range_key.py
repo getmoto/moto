@@ -22,6 +22,7 @@ def create_table(conn):
     return table
 
 
+# Has boto3 equivalent
 @freeze_time("2012-01-14")
 @mock_dynamodb_deprecated
 def test_create_table():
@@ -47,6 +48,7 @@ def test_create_table():
     conn.describe_table("messages").should.equal(expected)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_delete_table():
     conn = boto.connect_dynamodb()
@@ -61,6 +63,7 @@ def test_delete_table():
     )
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_update_table_throughput():
     conn = boto.connect_dynamodb()
@@ -75,6 +78,7 @@ def test_update_table_throughput():
     table.write_units.should.equal(6)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_item_add_and_describe_and_update():
     conn = boto.connect_dynamodb()
@@ -114,6 +118,7 @@ def test_item_add_and_describe_and_update():
     )
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_item_put_without_table():
     conn = boto.connect_dynamodb()
@@ -123,6 +128,7 @@ def test_item_put_without_table():
     ).should.throw(DynamoDBResponseError)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_get_missing_item():
     conn = boto.connect_dynamodb()
@@ -133,6 +139,7 @@ def test_get_missing_item():
     )
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_get_item_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -142,6 +149,7 @@ def test_get_item_with_undeclared_table():
     ).should.throw(DynamoDBKeyNotFoundError)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_delete_item():
     conn = boto.connect_dynamodb()
@@ -166,6 +174,7 @@ def test_delete_item():
     item.delete.when.called_with().should.throw(DynamoDBResponseError)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_delete_item_with_attribute_response():
     conn = boto.connect_dynamodb()
@@ -200,6 +209,7 @@ def test_delete_item_with_attribute_response():
     item.delete.when.called_with().should.throw(DynamoDBResponseError)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_delete_item_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -209,6 +219,7 @@ def test_delete_item_with_undeclared_table():
     ).should.throw(DynamoDBResponseError)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_query():
     conn = boto.connect_dynamodb()
@@ -226,6 +237,7 @@ def test_query():
     results.response["Items"].should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_query_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -235,6 +247,7 @@ def test_query_with_undeclared_table():
     ).should.throw(DynamoDBResponseError)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_scan():
     conn = boto.connect_dynamodb()
@@ -286,6 +299,7 @@ def test_scan():
     results.response["Items"].should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_scan_with_undeclared_table():
     conn = boto.connect_dynamodb()
@@ -301,6 +315,7 @@ def test_scan_with_undeclared_table():
     ).should.throw(DynamoDBResponseError)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_scan_after_has_item():
     conn = boto.connect_dynamodb()
@@ -312,6 +327,7 @@ def test_scan_after_has_item():
     list(table.scan()).should.equal([])
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_write_batch():
     conn = boto.connect_dynamodb()
@@ -358,6 +374,7 @@ def test_write_batch():
     table.item_count.should.equal(1)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_batch_read():
     conn = boto.connect_dynamodb()

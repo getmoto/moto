@@ -325,6 +325,13 @@ class KinesisBackend(BaseBackend):
     def __init__(self):
         self.streams = OrderedDict()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "kinesis", special_service_name="kinesis-streams"
+        )
+
     def create_stream(
         self, stream_name, shard_count, retention_period_hours, region_name
     ):

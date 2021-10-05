@@ -13,6 +13,7 @@ from moto import mock_ec2, mock_ec2_deprecated
 from tests.helpers import requires_boto_gte
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.32.0")
 @mock_ec2_deprecated
 def test_vpc_peering_connections():
@@ -26,6 +27,26 @@ def test_vpc_peering_connections():
     return vpc_pcx
 
 
+def create_vpx_pcx(ec2, client):
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    peer_vpc = ec2.create_vpc(CidrBlock="11.0.0.0/16")
+    vpc_pcx = client.create_vpc_peering_connection(VpcId=vpc.id, PeerVpcId=peer_vpc.id)
+    vpc_pcx = vpc_pcx["VpcPeeringConnection"]
+    return vpc_pcx
+
+
+@mock_ec2
+def test_vpc_peering_connections_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    vpc_pcx = create_vpx_pcx(ec2, client)
+
+    vpc_pcx.should.have.key("VpcPeeringConnectionId")
+    vpc_pcx["Status"]["Code"].should.equal("initiating-request")
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.32.0")
 @mock_ec2_deprecated
 def test_vpc_peering_connections_get_all():
@@ -38,6 +59,18 @@ def test_vpc_peering_connections_get_all():
     all_vpc_pcxs[0]._status.code.should.equal("pending-acceptance")
 
 
+@mock_ec2
+def test_vpc_peering_connections_get_all_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc_pcx = create_vpx_pcx(ec2, client)
+
+    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
+    all_vpc_pcxs.should.have.length_of(1)
+    all_vpc_pcxs[0]["Status"]["Code"].should.equal("pending-acceptance")
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.32.0")
 @mock_ec2_deprecated
 def test_vpc_peering_connections_accept():
@@ -58,6 +91,29 @@ def test_vpc_peering_connections_accept():
     all_vpc_pcxs[0]._status.code.should.equal("active")
 
 
+@mock_ec2
+def test_vpc_peering_connections_accept_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc_pcx = create_vpx_pcx(ec2, client)
+    vpc_pcx_id = vpc_pcx["VpcPeeringConnectionId"]
+
+    vpc_pcx = client.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
+    vpc_pcx = vpc_pcx["VpcPeeringConnection"]
+    vpc_pcx["Status"]["Code"].should.equal("active")
+
+    with pytest.raises(ClientError) as ex:
+        client.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidStateTransition")
+
+    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
+    all_vpc_pcxs.should.have.length_of(1)
+    all_vpc_pcxs[0]["Status"]["Code"].should.equal("active")
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.32.0")
 @mock_ec2_deprecated
 def test_vpc_peering_connections_reject():
@@ -78,6 +134,27 @@ def test_vpc_peering_connections_reject():
     all_vpc_pcxs[0]._status.code.should.equal("rejected")
 
 
+@mock_ec2
+def test_vpc_peering_connections_reject_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc_pcx = create_vpx_pcx(ec2, client)
+    vpc_pcx_id = vpc_pcx["VpcPeeringConnectionId"]
+
+    client.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
+
+    with pytest.raises(ClientError) as ex:
+        client.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("InvalidStateTransition")
+
+    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
+    all_vpc_pcxs.should.have.length_of(1)
+    all_vpc_pcxs[0]["Status"]["Code"].should.equal("rejected")
+
+
+# Has boto3 equivalent
 @requires_boto_gte("2.32.1")
 @mock_ec2_deprecated
 def test_vpc_peering_connections_delete():
@@ -96,6 +173,28 @@ def test_vpc_peering_connections_delete():
     cm.value.code.should.equal("InvalidVpcPeeringConnectionId.NotFound")
     cm.value.status.should.equal(400)
     cm.value.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_vpc_peering_connections_delete_boto3():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc_pcx = create_vpx_pcx(ec2, client)
+    vpc_pcx_id = vpc_pcx["VpcPeeringConnectionId"]
+
+    client.delete_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
+
+    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
+    all_vpc_pcxs.should.have.length_of(1)
+    all_vpc_pcxs[0]["Status"]["Code"].should.equal("deleted")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_vpc_peering_connection(VpcPeeringConnectionId="pcx-1234abcd")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal(
+        "InvalidVpcPeeringConnectionId.NotFound"
+    )
 
 
 @mock_ec2

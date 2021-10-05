@@ -1,31 +1,38 @@
 #!/usr/bin/env python
 """Download markdown files with AWS managed ConfigRule info and convert to JSON.
 
-The first markdown file is read to obtain the names of markdown files for
-all the AWS managed config rules.  Then each of those markdown files are read
-and info is extracted with the final results written to a JSON file.
+Invocation:  pull_down_aws_managed_rules.py
+    There are no command line options.  MANAGED_RULES_OUTPUT_FILENAME
+    is the variable containing the name of the output file that will be
+    overwritten when this script is run.
 
-The JSON output will look as follows:
+Summary:
+    The first markdown file is read to obtain the names of markdown files
+    for all the AWS managed config rules.  Then each of those markdown files
+    are read and info is extracted with the final results written to a JSON
+    file.
 
-{
-    "ManagedRules": [
-        {
-            "ACCESS_KEYS_ROTATED": {
-                "AWS Region": "All supported AWS regions",
-                "Parameters": [
-                    {
-                        "Default": "90",
-                        "Name": "maxAccessKeyAgeType",
-                        "Optional": false,
-                        "Type": "intDefault"
-                        }
-                ],
-                "Trigger type": "Periodic"
+    The JSON output will look as follows:
+
+    {
+        "ManagedRules": [
+            {
+                "ACCESS_KEYS_ROTATED": {
+                    "AWS Region": "All supported AWS regions",
+                    "Parameters": [
+                        {
+                            "Default": "90",
+                            "Name": "maxAccessKeyAgeType",
+                            "Optional": false,
+                            "Type": "intDefault"
+                            }
+                    ],
+                    "Trigger type": "Periodic"
+                },
             },
-        },
-        ...
-    ]
-}
+            ...
+        ]
+    }
 """
 import json
 import re

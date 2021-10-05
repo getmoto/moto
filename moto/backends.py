@@ -27,6 +27,11 @@ def backends():
         yield _import_backend(module_name, backends_name)
 
 
+def unique_backends():
+    for module_name, backends_name in sorted(set(BACKENDS.values())):
+        yield _import_backend(module_name, backends_name)
+
+
 def loaded_backends():
     loaded_modules = sys.modules.keys()
     loaded_modules = [m for m in loaded_modules if m.startswith("moto.")]

@@ -224,5 +224,5 @@ class MethodNotFoundException(NotFoundException):
 
     def __init__(self):
         super(MethodNotFoundException, self).__init__(
-            "NotFoundException", "Invalid method properties specified"
+            "NotFoundException", "Invalid Method identifier specified"
         )

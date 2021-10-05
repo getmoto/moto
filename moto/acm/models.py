@@ -417,6 +417,13 @@ class AWSCertificateManagerBackend(BaseBackend):
         self.__init__(region)
 
     @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "acm-pca"
+        )
+
+    @staticmethod
     def _arn_not_found(arn):
         msg = "Certificate with arn {0} not found in account {1}".format(
             arn, DEFAULT_ACCOUNT_ID

@@ -34,14 +34,39 @@ def test_create_cluster_boto3():
         MasterUsername="user",
         MasterUserPassword="password",
     )
-    response["Cluster"]["NodeType"].should.equal("ds2.xlarge")
-    create_time = response["Cluster"]["ClusterCreateTime"]
+    cluster = response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal("test")
+    cluster["NodeType"].should.equal("ds2.xlarge")
+    cluster["ClusterStatus"].should.equal("creating")
+    create_time = cluster["ClusterCreateTime"]
     create_time.should.be.lower_than(datetime.datetime.now(create_time.tzinfo))
     create_time.should.be.greater_than(
         datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1)
     )
-    response["Cluster"]["EnhancedVpcRouting"].should.equal(False)
-    response["Cluster"]["KmsKeyId"].should.equal("")
+    cluster["MasterUsername"].should.equal("user")
+    cluster["DBName"].should.equal("test")
+    cluster["AutomatedSnapshotRetentionPeriod"].should.equal(1)
+    cluster["ClusterSecurityGroups"].should.equal(
+        [{"ClusterSecurityGroupName": "Default", "Status": "active"}]
+    )
+    cluster["VpcSecurityGroups"].should.equal([])
+    cluster["ClusterParameterGroups"].should.equal(
+        [
+            {
+                "ParameterGroupName": "default.redshift-1.0",
+                "ParameterApplyStatus": "in-sync",
+            }
+        ]
+    )
+    cluster["ClusterSubnetGroupName"].should.equal("")
+    cluster["AvailabilityZone"].should.equal("us-east-1a")
+    cluster["PreferredMaintenanceWindow"].should.equal("Mon:03:00-Mon:03:30")
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["NumberOfNodes"].should.equal(1)
+    cluster["EnhancedVpcRouting"].should.equal(False)
+    cluster["KmsKeyId"].should.equal("")
+    cluster["Endpoint"]["Port"].should.equal(5439)
 
 
 @mock_redshift
@@ -125,6 +150,7 @@ def test_no_snapshot_copy_grants():
     len(response["SnapshotCopyGrants"]).should.equal(0)
 
 
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_create_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -175,6 +201,93 @@ def test_create_cluster():
     cluster["NumberOfNodes"].should.equal(3)
 
 
+@mock_redshift
+def test_create_cluster_all_attributes():
+    """
+    Ran against AWS (on 30/05/2021)
+    Disabled assertions are bugs/not-yet-implemented
+    """
+    region = "us-east-1"
+    client = boto3.client("redshift", region_name=region)
+    cluster_identifier = "my-cluster"
+
+    cluster_response = client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        NodeType="dc1.large",
+        MasterUsername="username",
+        MasterUserPassword="Password1",
+        DBName="my_db",
+        ClusterType="multi-node",
+        AvailabilityZone="us-east-1d",
+        PreferredMaintenanceWindow="Mon:03:00-Mon:11:00",
+        AutomatedSnapshotRetentionPeriod=10,
+        Port=1234,
+        ClusterVersion="1.0",
+        AllowVersionUpgrade=True,
+        NumberOfNodes=3,
+    )
+    cluster = cluster_response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal(cluster_identifier)
+    cluster["NodeType"].should.equal("dc1.large")
+    cluster["ClusterStatus"].should.equal("creating")
+    # cluster["ClusterAvailabilityStatus"].should.equal("Modifying")
+    cluster["MasterUsername"].should.equal("username")
+    cluster["DBName"].should.equal("my_db")
+    cluster["AutomatedSnapshotRetentionPeriod"].should.equal(10)
+    # cluster["ManualSnapshotRetentionPeriod"].should.equal(-1)
+    # cluster["ClusterSecurityGroups"].should.equal([])
+    cluster["ClusterParameterGroups"].should.have.length_of(1)
+    param_group = cluster["ClusterParameterGroups"][0]
+    param_group.should.equal(
+        {
+            "ParameterGroupName": "default.redshift-1.0",
+            "ParameterApplyStatus": "in-sync",
+        }
+    )
+    # cluster["ClusterSubnetGroupName"].should.equal("default")
+    cluster["AvailabilityZone"].should.equal("us-east-1d")
+    cluster["PreferredMaintenanceWindow"].should.equal("Mon:03:00-Mon:11:00")
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["NumberOfNodes"].should.equal(3)
+    # cluster["PubliclyAccessible"].should.equal(True)
+    cluster["Encrypted"].should.equal(False)
+    cluster["EnhancedVpcRouting"].should.equal(False)
+
+    cluster_response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = cluster_response["Clusters"][0]
+
+    cluster["ClusterIdentifier"].should.equal(cluster_identifier)
+    # AWS returns 'Available' (upper cased)
+    cluster["ClusterStatus"].should.equal("available")
+    # cluster["ClusterAvailabilityStatus"].should.equal("Available")
+    cluster["NodeType"].should.equal("dc1.large")
+    cluster["MasterUsername"].should.equal("username")
+    cluster["DBName"].should.equal("my_db")
+    # AWS returns: ClusterSecurityGroups=[]
+    # cluster["ClusterSecurityGroups"][0]["ClusterSecurityGroupName"].should.equal("Default")
+    # AWS returns default sg: [{'VpcSecurityGroupId': 'sg-...', 'Status': 'active'}],
+    # cluster["VpcSecurityGroups"].should.equal([])
+    # cluster["ClusterSubnetGroupName"].should.equal("default")
+    # AWS returns default VPC ID
+    # cluster["VpcId"].should.equal("vpc-...")
+    cluster["AvailabilityZone"].should.equal("us-east-1d")
+    cluster["PreferredMaintenanceWindow"].should.equal("Mon:03:00-Mon:11:00")
+    cluster["ClusterParameterGroups"][0]["ParameterGroupName"].should.equal(
+        "default.redshift-1.0"
+    )
+    cluster["AutomatedSnapshotRetentionPeriod"].should.equal(10)
+    # Endpoint only returned when ClusterStatus=Available
+    cluster["Endpoint"]["Address"].should.match(
+        "{}.[a-z0-9]+.{}.redshift.amazonaws.com".format(cluster_identifier, region)
+    )
+    cluster["Endpoint"]["Port"].should.equal(1234)
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["NumberOfNodes"].should.equal(3)
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_create_single_node_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -201,6 +314,33 @@ def test_create_single_node_cluster():
     cluster["NumberOfNodes"].should.equal(1)
 
 
+@mock_redshift
+def test_create_single_node_cluster_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+
+    cluster = client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        NodeType="dw.hs1.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="Password1",
+        DBName="my_db",
+        ClusterType="single-node",
+    )["Cluster"]
+    cluster["ClusterIdentifier"].should.equal(cluster_identifier)
+    cluster["NumberOfNodes"].should.equal(1)
+
+    cluster_response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = cluster_response["Clusters"][0]
+
+    cluster["ClusterIdentifier"].should.equal(cluster_identifier)
+    cluster["NodeType"].should.equal("dw.hs1.xlarge")
+    cluster["MasterUsername"].should.equal("username")
+    cluster["DBName"].should.equal("my_db")
+    cluster["NumberOfNodes"].should.equal(1)
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_default_cluster_attributes():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -284,6 +424,7 @@ def test_create_cluster_in_subnet_group_boto3():
     cluster["ClusterSubnetGroupName"].should.equal("my_subnet_group")
 
 
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_create_cluster_with_security_group():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -337,6 +478,7 @@ def test_create_cluster_with_security_group_boto3():
     set(group_names).should.equal({"security_group1", "security_group2"})
 
 
+# Has boto3 equivalent
 @mock_redshift_deprecated
 @mock_ec2_deprecated
 def test_create_cluster_with_vpc_security_groups():
@@ -405,6 +547,7 @@ def test_create_cluster_with_iam_roles():
     iam_roles_arn.should.equal(iam_roles)
 
 
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_create_cluster_with_parameter_group():
     conn = boto.connect_redshift()
@@ -429,6 +572,44 @@ def test_create_cluster_with_parameter_group():
     )
 
 
+@mock_redshift
+def test_create_cluster_with_parameter_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_id = "my-cluster"
+    group = client.create_cluster_parameter_group(
+        ParameterGroupName="my-parameter-group",
+        ParameterGroupFamily="redshift-1.0",
+        Description="This is my group",
+    )["ClusterParameterGroup"]
+    group["ParameterGroupName"].should.equal("my-parameter-group")
+    group["ParameterGroupFamily"].should.equal("redshift-1.0")
+    group["Description"].should.equal("This is my group")
+    group["Tags"].should.equal([])
+
+    cluster = client.create_cluster(
+        ClusterIdentifier=cluster_id,
+        NodeType="dc1.large",
+        MasterUsername="username",
+        MasterUserPassword="Password1",
+        ClusterType="single-node",
+        ClusterParameterGroupName="my-parameter-group",
+    )["Cluster"]
+    cluster["ClusterParameterGroups"].should.have.length_of(1)
+    cluster["ClusterParameterGroups"][0]["ParameterGroupName"].should.equal(
+        "my-parameter-group"
+    )
+    cluster["ClusterParameterGroups"][0]["ParameterApplyStatus"].should.equal("in-sync")
+
+    cluster_response = client.describe_clusters(ClusterIdentifier=cluster_id)
+    cluster = cluster_response["Clusters"][0]
+    cluster["ClusterParameterGroups"].should.have.length_of(1)
+    cluster["ClusterParameterGroups"][0]["ParameterGroupName"].should.equal(
+        "my-parameter-group"
+    )
+    cluster["ClusterParameterGroups"][0]["ParameterApplyStatus"].should.equal("in-sync")
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_describe_non_existent_cluster():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -437,6 +618,17 @@ def test_describe_non_existent_cluster():
     )
 
 
+@mock_redshift
+def test_describe_non_existent_cluster_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.describe_clusters(ClusterIdentifier="not-a-cluster")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ClusterNotFound")
+    err["Message"].should.equal("Cluster not-a-cluster not found.")
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_delete_cluster():
     conn = boto.connect_redshift()
@@ -536,6 +728,62 @@ def test_modify_cluster_vpc_routing():
     cluster["EnhancedVpcRouting"].should.equal(True)
 
 
+@mock_redshift
+def test_modify_cluster_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+    client.create_cluster_security_group(
+        ClusterSecurityGroupName="security_group",
+        Description="This is my security group",
+    )
+    client.create_cluster_parameter_group(
+        ParameterGroupName="my_parameter_group",
+        ParameterGroupFamily="redshift-1.0",
+        Description="This is my parameter group",
+    )
+
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        NodeType="single-node",
+        MasterUsername="username",
+        MasterUserPassword="password",
+    )
+
+    cluster_response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = cluster_response["Clusters"][0]
+    cluster["EnhancedVpcRouting"].should.equal(False)
+
+    client.modify_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="multi-node",
+        NumberOfNodes=4,
+        NodeType="dw.hs1.xlarge",
+        ClusterSecurityGroups=["security_group"],
+        MasterUserPassword="new_password",
+        ClusterParameterGroupName="my_parameter_group",
+        AutomatedSnapshotRetentionPeriod=7,
+        PreferredMaintenanceWindow="Tue:03:00-Tue:11:00",
+        AllowVersionUpgrade=False,
+        NewClusterIdentifier=cluster_identifier,
+    )
+
+    cluster_response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = cluster_response["Clusters"][0]
+    cluster["ClusterIdentifier"].should.equal(cluster_identifier)
+    cluster["NodeType"].should.equal("dw.hs1.xlarge")
+    cluster["ClusterSecurityGroups"][0]["ClusterSecurityGroupName"].should.equal(
+        "security_group"
+    )
+    cluster["PreferredMaintenanceWindow"].should.equal("Tue:03:00-Tue:11:00")
+    cluster["ClusterParameterGroups"][0]["ParameterGroupName"].should.equal(
+        "my_parameter_group"
+    )
+    cluster["AutomatedSnapshotRetentionPeriod"].should.equal(7)
+    cluster["AllowVersionUpgrade"].should.equal(False)
+    cluster["NumberOfNodes"].should.equal(4)
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_modify_cluster():
     conn = boto.connect_redshift()
@@ -668,6 +916,7 @@ def test_authorize_security_group_ingress():
     )
 
 
+# Has boto3 equivalent
 @mock_redshift_deprecated
 @mock_ec2_deprecated
 def test_create_invalid_cluster_subnet_group():
@@ -677,12 +926,39 @@ def test_create_invalid_cluster_subnet_group():
     ).should.throw(InvalidSubnet)
 
 
+@mock_redshift
+@mock_ec2
+def test_create_invalid_cluster_subnet_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.create_cluster_subnet_group(
+            ClusterSubnetGroupName="my_subnet",
+            Description="This is my subnet group",
+            SubnetIds=["subnet-1234"],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidSubnet")
+    err["Message"].should.match("Subnet \[[a-z0-9-']+\] not found.")
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_describe_non_existent_subnet_group():
     conn = boto.redshift.connect_to_region("us-east-1")
     conn.describe_cluster_subnet_groups.when.called_with(
         "not-a-subnet-group"
     ).should.throw(ClusterSubnetGroupNotFound)
+
+
+@mock_redshift
+@mock_ec2
+def test_describe_non_existent_subnet_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.describe_cluster_subnet_groups(ClusterSubnetGroupName="my_subnet")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ClusterSubnetGroupNotFound")
+    err["Message"].should.equal("Subnet group my_subnet not found.")
 
 
 @mock_redshift
@@ -715,6 +991,7 @@ def test_delete_cluster_subnet_group():
     ).should.throw(ClientError)
 
 
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_create_cluster_security_group():
     conn = boto.connect_redshift()
@@ -730,6 +1007,33 @@ def test_create_cluster_security_group():
     list(my_group["IPRanges"]).should.equal([])
 
 
+@mock_redshift
+def test_create_cluster_security_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    group = client.create_cluster_security_group(
+        ClusterSecurityGroupName="my_security_group",
+        Description="This is my security group",
+        Tags=[{"Key": "tag_key", "Value": "tag_value"}],
+    )["ClusterSecurityGroup"]
+    group["ClusterSecurityGroupName"].should.equal("my_security_group")
+    group["Description"].should.equal("This is my security group")
+    group["EC2SecurityGroups"].should.equal([])
+    group["IPRanges"].should.equal([])
+    group["Tags"].should.equal([{"Key": "tag_key", "Value": "tag_value"}])
+
+    groups_response = client.describe_cluster_security_groups(
+        ClusterSecurityGroupName="my_security_group"
+    )
+    my_group = groups_response["ClusterSecurityGroups"][0]
+
+    my_group["ClusterSecurityGroupName"].should.equal("my_security_group")
+    my_group["Description"].should.equal("This is my security group")
+    my_group["EC2SecurityGroups"].should.equal([])
+    my_group["IPRanges"].should.equal([])
+    my_group["Tags"].should.equal([{"Key": "tag_key", "Value": "tag_value"}])
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_describe_non_existent_security_group():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -738,6 +1042,18 @@ def test_describe_non_existent_security_group():
     ).should.throw(ClusterSecurityGroupNotFound)
 
 
+@mock_redshift
+def test_describe_non_existent_security_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_cluster_security_groups(ClusterSecurityGroupName="non-existent")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ClusterSecurityGroupNotFound")
+    err["Message"].should.equal("Security group non-existent not found.")
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_delete_cluster_security_group():
     conn = boto.connect_redshift()
@@ -763,6 +1079,33 @@ def test_delete_cluster_security_group():
     ).should.throw(ClusterSecurityGroupNotFound)
 
 
+@mock_redshift
+def test_delete_cluster_security_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster_security_group(
+        ClusterSecurityGroupName="my_security_group",
+        Description="This is my security group",
+    )
+
+    groups = client.describe_cluster_security_groups()["ClusterSecurityGroups"]
+    groups.should.have.length_of(2)  # The default group already exists
+
+    client.delete_cluster_security_group(ClusterSecurityGroupName="my_security_group")
+
+    groups = client.describe_cluster_security_groups()["ClusterSecurityGroups"]
+    groups.should.have.length_of(1)
+
+    # Delete invalid id
+    with pytest.raises(ClientError) as ex:
+        client.delete_cluster_security_group(
+            ClusterSecurityGroupName="not-a-security-group"
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ClusterSecurityGroupNotFound")
+    err["Message"].should.equal("Security group not-a-security-group not found.")
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_create_cluster_parameter_group():
     conn = boto.connect_redshift()
@@ -780,6 +1123,30 @@ def test_create_cluster_parameter_group():
     my_group["Description"].should.equal("This is my parameter group")
 
 
+@mock_redshift
+def test_create_cluster_parameter_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    group = client.create_cluster_parameter_group(
+        ParameterGroupName="my-parameter-group",
+        ParameterGroupFamily="redshift-1.0",
+        Description="This is my group",
+    )["ClusterParameterGroup"]
+    group["ParameterGroupName"].should.equal("my-parameter-group")
+    group["ParameterGroupFamily"].should.equal("redshift-1.0")
+    group["Description"].should.equal("This is my group")
+    group["Tags"].should.equal([])
+
+    groups_response = client.describe_cluster_parameter_groups(
+        ParameterGroupName="my-parameter-group"
+    )
+    my_group = groups_response["ParameterGroups"][0]
+
+    my_group["ParameterGroupName"].should.equal("my-parameter-group")
+    my_group["ParameterGroupFamily"].should.equal("redshift-1.0")
+    my_group["Description"].should.equal("This is my group")
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_describe_non_existent_parameter_group():
     conn = boto.redshift.connect_to_region("us-east-1")
@@ -788,6 +1155,19 @@ def test_describe_non_existent_parameter_group():
     ).should.throw(ClusterParameterGroupNotFound)
 
 
+@mock_redshift
+def test_describe_non_existent_parameter_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.describe_cluster_parameter_groups(
+            ParameterGroupName="not-a-parameter-group"
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ClusterParameterGroupNotFound")
+    err["Message"].should.equal("Parameter group not-a-parameter-group not found.")
+
+
+# Has boto3 equivalent
 @mock_redshift_deprecated
 def test_delete_cluster_parameter_group():
     conn = boto.connect_redshift()
@@ -813,6 +1193,35 @@ def test_delete_cluster_parameter_group():
     conn.delete_cluster_parameter_group.when.called_with(
         "not-a-parameter-group"
     ).should.throw(ClusterParameterGroupNotFound)
+
+
+@mock_redshift
+def test_delete_parameter_group_boto3():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster_parameter_group(
+        ParameterGroupName="my-parameter-group",
+        ParameterGroupFamily="redshift-1.0",
+        Description="This is my group",
+    )
+    client.describe_cluster_parameter_groups()["ParameterGroups"].should.have.length_of(
+        2
+    )
+
+    x = client.delete_cluster_parameter_group(ParameterGroupName="my-parameter-group")
+    del x["ResponseMetadata"]
+    x.should.equal({})
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_cluster_parameter_group(ParameterGroupName="my-parameter-group")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ClusterParameterGroupNotFound")
+    # BUG: This is what AWS returns
+    # err["Message"].should.equal("ParameterGroup not found: my-parameter-group")
+    err["Message"].should.equal("Parameter group my-parameter-group not found.")
+
+    client.describe_cluster_parameter_groups()["ParameterGroups"].should.have.length_of(
+        1
+    )
 
 
 @mock_redshift
@@ -1511,9 +1920,36 @@ def test_delete_cluster_without_final_snapshot():
         MasterUserPassword="password",
         NodeType="ds2.xlarge",
     )
-    client.delete_cluster(
+    cluster_response = client.delete_cluster(
         ClusterIdentifier=cluster_identifier, SkipFinalClusterSnapshot=True
     )
+    cluster = cluster_response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal(cluster_identifier)
+    cluster["NodeType"].should.equal("ds2.xlarge")
+    # Bug: This is what AWS returns
+    # cluster["ClusterStatus"].should.equal("deleting")
+    cluster["MasterUsername"].should.equal("user")
+    cluster["DBName"].should.equal("test")
+    endpoint = cluster["Endpoint"]
+    endpoint["Address"].should.match(
+        "{}.[a-z0-9]+.{}.redshift.amazonaws.com".format(cluster_identifier, "us-east-1")
+    )
+    endpoint["Port"].should.equal(5439)
+    cluster["AutomatedSnapshotRetentionPeriod"].should.equal(1)
+    cluster["ClusterParameterGroups"].should.have.length_of(1)
+    param_group = cluster["ClusterParameterGroups"][0]
+    param_group.should.equal(
+        {
+            "ParameterGroupName": "default.redshift-1.0",
+            "ParameterApplyStatus": "in-sync",
+        }
+    )
+    cluster["AvailabilityZone"].should.equal("us-east-1a")
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["NumberOfNodes"].should.equal(1)
+    cluster["Encrypted"].should.equal(False)
+    cluster["EnhancedVpcRouting"].should.equal(False)
 
     resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
     resp["Snapshots"].should.have.length_of(0)

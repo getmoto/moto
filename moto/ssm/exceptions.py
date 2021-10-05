@@ -23,6 +23,24 @@ class InvalidFilterValue(JsonRESTError):
         super(InvalidFilterValue, self).__init__("InvalidFilterValue", message)
 
 
+class InvalidResourceId(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidResourceId, self).__init__(
+            "InvalidResourceId", "Invalid Resource Id"
+        )
+
+
+class InvalidResourceType(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidResourceType, self).__init__(
+            "InvalidResourceType", "Invalid Resource Type"
+        )
+
+
 class ParameterNotFound(JsonRESTError):
     code = 400
 

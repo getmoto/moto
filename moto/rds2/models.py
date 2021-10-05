@@ -847,6 +847,15 @@ class RDS2Backend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "rds"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "rds-data"
+        )
+
     def create_database(self, db_kwargs):
         database_id = db_kwargs["db_instance_identifier"]
         database = Database(**db_kwargs)

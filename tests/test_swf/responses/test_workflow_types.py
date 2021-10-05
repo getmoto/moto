@@ -1,6 +1,7 @@
 import sure
 import boto
 import boto3
+import pytest
 
 from moto import mock_swf_deprecated
 from moto import mock_swf
@@ -9,6 +10,7 @@ from botocore.exceptions import ClientError
 
 
 # RegisterWorkflowType endpoint
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_register_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -21,6 +23,26 @@ def test_register_workflow_type():
     actype["workflowType"]["version"].should.equal("v1.0")
 
 
+# RegisterWorkflowType endpoint
+@mock_swf
+def test_register_workflow_type_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="test-workflow", version="v1.0"
+    )
+
+    types = client.list_workflow_types(
+        domain="test-domain", registrationStatus="REGISTERED"
+    )
+    actype = types["typeInfos"][0]
+    actype["workflowType"]["name"].should.equal("test-workflow")
+    actype["workflowType"]["version"].should.equal("v1.0")
+
+
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_register_already_existing_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -32,6 +54,27 @@ def test_register_already_existing_workflow_type():
     ).should.throw(SWFResponseError)
 
 
+@mock_swf
+def test_register_already_existing_workflow_type_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="test-workflow", version="v1.0"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.register_workflow_type(
+            domain="test-domain", name="test-workflow", version="v1.0"
+        )
+    ex.value.response["Error"]["Code"].should.equal("TypeAlreadyExistsFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "WorkflowType=[name=test-workflow, version=v1.0]"
+    )
+
+
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_register_with_wrong_parameter_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -43,6 +86,7 @@ def test_register_with_wrong_parameter_type():
 
 
 # ListWorkflowTypes endpoint
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_list_workflow_types():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -59,6 +103,34 @@ def test_list_workflow_types():
     names.should.equal(["a-test-workflow", "b-test-workflow", "c-test-workflow"])
 
 
+# ListWorkflowTypes endpoint
+@mock_swf
+def test_list_workflow_types_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="b-test-workflow", version="v1.0"
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="a-test-workflow", version="v1.0"
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="c-test-workflow", version="v1.0"
+    )
+
+    all_workflow_types = client.list_workflow_types(
+        domain="test-domain", registrationStatus="REGISTERED"
+    )
+    names = [
+        activity_type["workflowType"]["name"]
+        for activity_type in all_workflow_types["typeInfos"]
+    ]
+    names.should.equal(["a-test-workflow", "b-test-workflow", "c-test-workflow"])
+
+
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_list_workflow_types_reverse_order():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -77,7 +149,35 @@ def test_list_workflow_types_reverse_order():
     names.should.equal(["c-test-workflow", "b-test-workflow", "a-test-workflow"])
 
 
+# ListWorkflowTypes endpoint
+@mock_swf
+def test_list_workflow_types_reverse_order_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="b-test-workflow", version="v1.0"
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="a-test-workflow", version="v1.0"
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="c-test-workflow", version="v1.0"
+    )
+
+    all_workflow_types = client.list_workflow_types(
+        domain="test-domain", registrationStatus="REGISTERED", reverseOrder=True
+    )
+    names = [
+        activity_type["workflowType"]["name"]
+        for activity_type in all_workflow_types["typeInfos"]
+    ]
+    names.should.equal(["c-test-workflow", "b-test-workflow", "a-test-workflow"])
+
+
 # DeprecateWorkflowType endpoint
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_deprecate_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -91,6 +191,29 @@ def test_deprecate_workflow_type():
     actype["workflowType"]["version"].should.equal("v1.0")
 
 
+# DeprecateWorkflowType endpoint
+@mock_swf
+def test_deprecate_workflow_type_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="test-workflow", version="v1.0"
+    )
+    client.deprecate_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+
+    actypes = client.list_workflow_types(
+        domain="test-domain", registrationStatus="DEPRECATED"
+    )
+    actype = actypes["typeInfos"][0]
+    actype["workflowType"]["name"].should.equal("test-workflow")
+    actype["workflowType"]["version"].should.equal("v1.0")
+
+
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_deprecate_already_deprecated_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -103,6 +226,31 @@ def test_deprecate_already_deprecated_workflow_type():
     ).should.throw(SWFResponseError)
 
 
+@mock_swf
+def test_deprecate_already_deprecated_workflow_type_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="test-workflow", version="v1.0"
+    )
+    client.deprecate_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.deprecate_workflow_type(
+            domain="test-domain",
+            workflowType={"name": "test-workflow", "version": "v1.0"},
+        )
+    ex.value.response["Error"]["Code"].should.equal("TypeDeprecatedFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "WorkflowType=[name=test-workflow, version=v1.0]"
+    )
+
+
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_deprecate_non_existent_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -111,6 +259,24 @@ def test_deprecate_non_existent_workflow_type():
     conn.deprecate_workflow_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
     ).should.throw(SWFResponseError)
+
+
+@mock_swf
+def test_deprecate_non_existent_workflow_type_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.deprecate_workflow_type(
+            domain="test-domain",
+            workflowType={"name": "test-workflow", "version": "v1.0"},
+        )
+    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Unknown type: WorkflowType=[name=test-workflow, version=v1.0]"
+    )
 
 
 # UndeprecateWorkflowType endpoint
@@ -185,6 +351,7 @@ def test_undeprecate_non_existent_workflow_type():
 
 
 # DescribeWorkflowType endpoint
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_describe_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -242,6 +409,7 @@ def test_describe_workflow_type_full_boto3():
     resp["configuration"]["defaultLambdaRole"].should.equal("arn:bar")
 
 
+# Has boto3 equivalent
 @mock_swf_deprecated
 def test_describe_non_existent_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
@@ -250,3 +418,21 @@ def test_describe_non_existent_workflow_type():
     conn.describe_workflow_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
     ).should.throw(SWFResponseError)
+
+
+@mock_swf
+def test_describe_non_existent_workflow_type_boto3():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_workflow_type(
+            domain="test-domain",
+            workflowType={"name": "non-existent", "version": "v1.0"},
+        )
+    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Unknown type: WorkflowType=[name=non-existent, version=v1.0]"
+    )

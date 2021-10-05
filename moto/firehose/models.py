@@ -77,11 +77,12 @@ def find_destination_config_in_args(api_args):
         if name in destination_names and arg_value:
             configs.append((DESTINATION_TYPES_TO_NAMES[name], arg_value))
 
-    # Only a single destination configuration is allowed.
-    if len(configs) > 1:
+    # One and only one destination configuration is allowed.
+    if len(configs) != 1:
         raise InvalidArgumentException(
             "Exactly one destination configuration is supported for a Firehose"
         )
+
     return configs[0]
 
 
@@ -173,6 +174,13 @@ class FirehoseBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "firehose", special_service_name="kinesis-firehose"
+        )
 
     def create_delivery_stream(
         self,

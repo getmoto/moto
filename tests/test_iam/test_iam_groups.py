@@ -4,6 +4,7 @@ from datetime import datetime
 
 import boto
 import boto3
+import json
 import sure  # noqa
 
 import pytest
@@ -25,6 +26,7 @@ MOCK_POLICY = """
 """
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_create_group():
     conn = boto.connect_iam()
@@ -33,6 +35,18 @@ def test_create_group():
         conn.create_group("my-group")
 
 
+@mock_iam
+def test_create_group_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    with pytest.raises(ClientError) as ex:
+        conn.create_group(GroupName="my-group")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("Group my-group already exists")
+    err["Message"].should.equal(None)
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_group():
     conn = boto.connect_iam()
@@ -40,6 +54,26 @@ def test_get_group():
     conn.get_group("my-group")
     with pytest.raises(BotoServerError):
         conn.get_group("not-group")
+
+
+@mock_iam
+def test_get_group_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    created = conn.create_group(GroupName="my-group")["Group"]
+    created["Path"].should.equal("/")
+    created["GroupName"].should.equal("my-group")
+    created.should.have.key("GroupId")
+    created["Arn"].should.equal("arn:aws:iam::{}:group/my-group".format(ACCOUNT_ID))
+    created["CreateDate"].should.be.a(datetime)
+
+    retrieved = conn.get_group(GroupName="my-group")["Group"]
+    retrieved.should.equal(created)
+
+    with pytest.raises(ClientError) as ex:
+        conn.get_group(GroupName="not-group")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("Group not-group not found")
 
 
 @mock_iam()
@@ -63,6 +97,7 @@ def test_get_group_current():
     ] == "arn:aws:iam::{}:group/some/location/my-other-group".format(ACCOUNT_ID)
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_all_groups():
     conn = boto.connect_iam()
@@ -74,6 +109,16 @@ def test_get_all_groups():
     groups.should.have.length_of(2)
 
 
+@mock_iam
+def test_get_all_groups_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group1")
+    conn.create_group(GroupName="my-group2")
+    groups = conn.list_groups()["Groups"]
+    groups.should.have.length_of(2)
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_add_user_to_group():
     conn = boto.connect_iam()
@@ -86,6 +131,36 @@ def test_add_user_to_group():
     conn.add_user_to_group("my-group", "my-user")
 
 
+@mock_iam
+def test_add_unknown_user_to_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.add_user_to_group(GroupName="my-group", UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("The user with name my-user cannot be found.")
+
+
+@mock_iam
+def test_add_user_to_unknown_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="my-user")
+    with pytest.raises(ClientError) as ex:
+        conn.add_user_to_group(GroupName="my-group", UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("Group my-group not found")
+
+
+@mock_iam
+def test_add_user_to_group_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    conn.create_user(UserName="my-user")
+    conn.add_user_to_group(GroupName="my-group", UserName="my-user")
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_remove_user_from_group():
     conn = boto.connect_iam()
@@ -99,6 +174,38 @@ def test_remove_user_from_group():
     conn.remove_user_from_group("my-group", "my-user")
 
 
+@mock_iam
+def test_remove_user_from_unknown_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.remove_user_from_group(GroupName="my-group", UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("Group my-group not found")
+
+
+@mock_iam
+def test_remove_nonattached_user_from_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    conn.create_user(UserName="my-user")
+    with pytest.raises(ClientError) as ex:
+        conn.remove_user_from_group(GroupName="my-group", UserName="my-user")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("User my-user not in group my-group")
+
+
+@mock_iam
+def test_remove_user_from_group_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    conn.create_user(UserName="my-user")
+    conn.add_user_to_group(GroupName="my-group", UserName="my-user")
+    conn.remove_user_from_group(GroupName="my-group", UserName="my-user")
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_groups_for_user():
     conn = boto.connect_iam()
@@ -115,11 +222,35 @@ def test_get_groups_for_user():
     groups.should.have.length_of(2)
 
 
+@mock_iam
+def test_get_groups_for_user_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group1")
+    conn.create_group(GroupName="my-group2")
+    conn.create_group(GroupName="other-group")
+    conn.create_user(UserName="my-user")
+    conn.add_user_to_group(GroupName="my-group1", UserName="my-user")
+    conn.add_user_to_group(GroupName="my-group2", UserName="my-user")
+
+    groups = conn.list_groups_for_user(UserName="my-user")["Groups"]
+    groups.should.have.length_of(2)
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_put_group_policy():
     conn = boto.connect_iam()
     conn.create_group("my-group")
     conn.put_group_policy("my-group", "my-policy", MOCK_POLICY)
+
+
+@mock_iam
+def test_put_group_policy_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    conn.put_group_policy(
+        GroupName="my-group", PolicyName="my-policy", PolicyDocument=MOCK_POLICY
+    )
 
 
 @mock_iam
@@ -146,6 +277,7 @@ def test_attach_group_policies():
     ].should.be.empty
 
 
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_group_policy():
     conn = boto.connect_iam()
@@ -157,6 +289,26 @@ def test_get_group_policy():
     conn.get_group_policy("my-group", "my-policy")
 
 
+@mock_iam
+def test_get_group_policy_boto3():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    with pytest.raises(ClientError) as ex:
+        conn.get_group_policy(GroupName="my-group", PolicyName="my-policy")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("Policy my-policy not found")
+
+    conn.put_group_policy(
+        GroupName="my-group", PolicyName="my-policy", PolicyDocument=MOCK_POLICY
+    )
+    policy = conn.get_group_policy(GroupName="my-group", PolicyName="my-policy")
+    policy["GroupName"].should.equal("my-group")
+    policy["PolicyName"].should.equal("my-policy")
+    policy["PolicyDocument"].should.equal(json.loads(MOCK_POLICY))
+
+
+# Has boto3 equivalent
 @mock_iam_deprecated()
 def test_get_all_group_policies():
     conn = boto.connect_iam()
