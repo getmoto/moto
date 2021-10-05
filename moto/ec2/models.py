@@ -6403,9 +6403,6 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         self.association_id = None
         self.add_tags(tags or {})
 
-    def __repr__(self):
-        return "ElasticAddress({}, {})".format(self.id, self.public_ip)
-
     @staticmethod
     def cloudformation_name_type():
         return None

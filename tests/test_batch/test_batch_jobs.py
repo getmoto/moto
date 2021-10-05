@@ -185,7 +185,6 @@ def test_terminate_job():
     resp["jobs"][0]["statusReason"].should.equal("test_terminate")
 
     ls_name = f"{job_def_name}/default/{job_id}"
-    print(ls_name)
 
     resp = logs_client.get_log_events(
         logGroupName="/aws/batch/job", logStreamName=ls_name
