@@ -5,6 +5,7 @@ import sure  # noqa
 from moto import mock_sqs, mock_cloudformation
 from moto.core import ACCOUNT_ID
 from string import Template
+from random import randint
 from uuid import uuid4
 
 simple_queue = Template(
@@ -203,3 +204,22 @@ def test_update_stack_and_add_resource():
     cf.update_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client.list_queues(QueueNamePrefix=q_name)["QueueUrls"].should.have.length_of(1)
+
+
+@mock_sqs
+@mock_cloudformation
+def test_create_queue_passing_integer_as_name():
+    """
+    Passing the queue name as an Integer in the CloudFormation template
+    This works in AWS - it simply converts the integer to a string, and treats it as any other name
+    """
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    stack_name = str(uuid4())[0:6]
+    q_name = f"{randint(10000000, 99999999)}"
+    template_body = simple_queue.substitute(q_name=q_name)
+    cf.create_stack(StackName=stack_name, TemplateBody=template_body)
+
+    queue_urls = client.list_queues(QueueNamePrefix=q_name[0:6])["QueueUrls"]
+    queue_urls.should.have.length_of(1)
