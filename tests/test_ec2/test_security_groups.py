@@ -1992,7 +1992,7 @@ def test_filter_egress__ip_permission__from_port():
         Description="Another Description That Awes The Human Mind", GroupName="test-2"
     )
 
-    from_port = randint(1, 9999)
+    from_port = randint(9999, 59999)
     sg1.authorize_egress(
         IpPermissions=[
             {
@@ -2020,8 +2020,8 @@ def test_filter_egress__ip_permission__from_port():
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
-    assert len(security_groups) == 1
-    assert security_groups[0].group_id == sg1.group_id
+    [s.group_id for s in security_groups].should.contain(sg1.group_id)
+    [s.group_id for s in security_groups].shouldnt.contain(sg2.group_id)
 
 
 @mock_ec2
@@ -2237,7 +2237,7 @@ def test_filter_egress__ip_permission__to_port():
         Description="Another Description That Awes The Human Mind", GroupName="test-2"
     )
 
-    to_port = randint(1, 9999)
+    to_port = randint(9999, 59999)
     sg1.authorize_egress(
         IpPermissions=[
             {
@@ -2265,8 +2265,8 @@ def test_filter_egress__ip_permission__to_port():
     security_groups = ec2r.security_groups.filter(Filters=[filter_to_match_group_1])
 
     security_groups = list(security_groups)
-    assert len(security_groups) == 1
-    assert security_groups[0].group_id == sg1.group_id
+    [s.group_id for s in security_groups].should.contain(sg1.group_id)
+    [s.group_id for s in security_groups].shouldnt.contain(sg2.group_id)
 
 
 @mock_ec2
