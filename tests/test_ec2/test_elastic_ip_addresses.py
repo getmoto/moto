@@ -6,6 +6,7 @@ import boto
 import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
+from uuid import uuid4
 
 import sure  # noqa
 
@@ -65,7 +66,9 @@ def test_eip_allocate_classic_boto3():
     standard.should.have.key("PublicIp")
     standard.should.have.key("Domain").equal("standard")
 
-    standard = ec2.ClassicAddress(standard["PublicIp"])
+    public_ip = standard["PublicIp"]
+
+    standard = ec2.ClassicAddress(public_ip)
     standard.load()
 
     with pytest.raises(ClientError) as ex:
@@ -77,7 +80,9 @@ def test_eip_allocate_classic_boto3():
     )
 
     standard.release()
-    client.describe_addresses()["Addresses"].should.be.empty
+
+    all_addresses = client.describe_addresses()["Addresses"]
+    [a["PublicIp"] for a in all_addresses].shouldnt.contain(public_ip)
 
 
 # Has boto3 equivalent
@@ -119,12 +124,20 @@ def test_eip_allocate_vpc_boto3():
     vpc.should.have.key("AllocationId")
     vpc.should.have.key("Domain").equal("vpc")
 
-    client.describe_addresses()["Addresses"].should.have.length_of(1)
+    allocation_id = vpc["AllocationId"]
 
-    vpc = ec2.VpcAddress(vpc["AllocationId"])
+    all_addresses = client.describe_addresses()["Addresses"]
+    [a["AllocationId"] for a in all_addresses if "AllocationId" in a].should.contain(
+        allocation_id
+    )
+
+    vpc = ec2.VpcAddress(allocation_id)
     vpc.release()
 
-    client.describe_addresses()["Addresses"].should.be.empty
+    all_addresses = client.describe_addresses()["Addresses"]
+    [a["AllocationId"] for a in all_addresses if "AllocationId" in a].shouldnt.contain(
+        allocation_id
+    )
 
 
 @mock_ec2
@@ -264,7 +277,12 @@ def test_eip_associate_classic_boto3():
     eip.reload()
     eip.instance_id.should.be.equal("")
     eip.release()
-    client.describe_addresses()["Addresses"].should.be.empty
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_addresses(PublicIps=[eip.public_ip])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidAddress.NotFound")
+    err["Message"].should.equal("Address '{'" + eip.public_ip + "'}' not found.")
 
     instance.terminate()
 
@@ -835,7 +853,9 @@ def test_eip_describe_boto3():
     # Release all IPs
     for eip in eips:
         eip.release()
-    client.describe_addresses()["Addresses"].should.have.length_of(0)
+    all_addresses = client.describe_addresses()["Addresses"]
+    [a["PublicIp"] for a in all_addresses].shouldnt.contain(eips[0].public_ip)
+    [a["PublicIp"] for a in all_addresses].shouldnt.contain(eips[1].public_ip)
 
 
 # Has boto3 equivalent
@@ -908,16 +928,21 @@ def test_eip_filters():
     inst3.public_ip_address.should.equal(addresses[0].public_ip)
 
     # Param search by Filter
-    def check_vpc_filter_valid(filter_name, filter_values):
+    def check_vpc_filter_valid(filter_name, filter_values, all_values=True):
         addresses = list(
             service.vpc_addresses.filter(
                 Filters=[{"Name": filter_name, "Values": filter_values}]
             )
         )
-        len(addresses).should.equal(2)
-        ips = [addr.public_ip for addr in addresses]
-        set(ips).should.equal(set([eip1.public_ip, eip2.public_ip]))
-        ips.should.contain(inst1.public_ip_address)
+        if all_values:
+            len(addresses).should.equal(2)
+            ips = [addr.public_ip for addr in addresses]
+            set(ips).should.equal(set([eip1.public_ip, eip2.public_ip]))
+            ips.should.contain(inst1.public_ip_address)
+        else:
+            ips = [addr.public_ip for addr in addresses]
+            ips.should.contain(eip1.public_ip)
+            ips.should.contain(eip2.public_ip)
 
     def check_vpc_filter_invalid(filter_name):
         addresses = list(
@@ -927,8 +952,8 @@ def test_eip_filters():
         )
         len(addresses).should.equal(0)
 
-    def check_vpc_filter(filter_name, filter_values):
-        check_vpc_filter_valid(filter_name, filter_values)
+    def check_vpc_filter(filter_name, filter_values, all_values=True):
+        check_vpc_filter_valid(filter_name, filter_values, all_values)
         check_vpc_filter_invalid(filter_name)
 
     check_vpc_filter("allocation-id", [eip1.allocation_id, eip2.allocation_id])
@@ -947,6 +972,7 @@ def test_eip_filters():
             inst1.network_interfaces_attribute[0].get("PrivateIpAddress"),
             inst2.network_interfaces_attribute[0].get("PrivateIpAddress"),
         ],
+        all_values=False,  # Other ENI's may have the same ip address
     )
     check_vpc_filter("public-ip", [inst1.public_ip_address, inst2.public_ip_address])
 
@@ -954,7 +980,10 @@ def test_eip_filters():
     addresses = list(
         service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
     )
-    len(addresses).should.equal(3)
+    public_ips = [a.public_ip for a in addresses]
+    public_ips.should.contain(eip1.public_ip)
+    public_ips.should.contain(eip1.public_ip)
+    public_ips.should.contain(inst1.public_ip_address)
 
 
 @mock_ec2
@@ -963,17 +992,19 @@ def test_eip_tags():
     client = boto3.client("ec2", region_name="us-west-1")
 
     # Allocate one address without tags
-    client.allocate_address(Domain="vpc")
+    no_tags = client.allocate_address(Domain="vpc")
+
     # Allocate one address and add tags
     alloc_tags = client.allocate_address(Domain="vpc")
+    managed_by = str(uuid4())
     with_tags = client.create_tags(
         Resources=[alloc_tags["AllocationId"]],
-        Tags=[{"Key": "ManagedBy", "Value": "MyCode"}],
+        Tags=[{"Key": "ManagedBy", "Value": managed_by}],
     )
     addresses_with_tags = client.describe_addresses(
         Filters=[
             {"Name": "domain", "Values": ["vpc"]},
-            {"Name": "tag:ManagedBy", "Values": ["MyCode"]},
+            {"Name": "tag:ManagedBy", "Values": [managed_by]},
         ]
     )
     len(addresses_with_tags["Addresses"]).should.equal(1)
@@ -981,7 +1012,7 @@ def test_eip_tags():
         service.vpc_addresses.filter(
             Filters=[
                 {"Name": "domain", "Values": ["vpc"]},
-                {"Name": "tag:ManagedBy", "Values": ["MyCode"]},
+                {"Name": "tag:ManagedBy", "Values": [managed_by]},
             ]
         )
     )
@@ -998,8 +1029,10 @@ def test_eip_tags():
     addresses = list(
         service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
     )
-    # Expected total is 2, one with and one without tags
-    len(addresses).should.equal(2)
+    # Expected at least 2, one with and one without tags
+    assert len(addresses) >= 2, "Should find our two created addresses"
+    [a.allocation_id for a in addresses].should.contain(no_tags["AllocationId"])
+    [a.allocation_id for a in addresses].should.contain(alloc_tags["AllocationId"])
 
 
 @mock_ec2
@@ -1011,7 +1044,10 @@ def test_describe_addresses_tags():
         Resources=[alloc_tags["AllocationId"]],
         Tags=[{"Key": "ManagedBy", "Value": "MyCode"}],
     )
-    addresses_with_tags = client.describe_addresses()
+
+    addresses_with_tags = client.describe_addresses(
+        AllocationIds=[alloc_tags["AllocationId"]]
+    )
     assert addresses_with_tags.get("Addresses")[0].get("Tags") == [
         {"Key": "ManagedBy", "Value": "MyCode"}
     ]

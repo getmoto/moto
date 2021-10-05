@@ -11,6 +11,8 @@ from moto import mock_autoscaling, mock_ec2, mock_elb
 
 from moto.ec2 import ec2_backends
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
+from uuid import uuid4
+from .test_instances import retrieve_all_instances
 
 
 def test_use_boto_regions():
@@ -34,7 +36,7 @@ def add_servers_to_region(ami_id, count, region):
 
 def add_servers_to_region_boto3(ami_id, count, region):
     ec2 = boto3.resource("ec2", region_name=region)
-    ec2.create_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
+    return ec2.create_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
 
 
 # Has boto3 equivalent
@@ -55,15 +57,16 @@ def test_add_servers_to_a_single_region():
 @mock_ec2
 def test_add_servers_to_a_single_region_boto3():
     region = "ap-northeast-1"
-    add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region)
-    add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region)
+    id_1 = add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region)[0].id
+    id_2 = add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region)[0].id
 
     client = boto3.client("ec2", region_name=region)
-    reservations = client.describe_instances()["Reservations"]
-    reservations.should.have.length_of(2)
+    instances = retrieve_all_instances(client)
 
-    image_ids = [r["Instances"][0]["ImageId"] for r in reservations]
-    image_ids.should.equal([EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2])
+    instance1 = [i for i in instances if i["InstanceId"] == id_1][0]
+    instance1["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    instance2 = [i for i in instances if i["InstanceId"] == id_2][0]
+    instance2["ImageId"].should.equal(EXAMPLE_AMI_ID2)
 
 
 # Has boto3 equivalent
@@ -90,19 +93,27 @@ def test_add_servers_to_multiple_regions():
 def test_add_servers_to_multiple_regions_boto3():
     region1 = "us-east-1"
     region2 = "ap-northeast-1"
-    add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region1)
-    add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region2)
+    us_id = add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region1)[0].id
+    ap_id = add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region2)[0].id
 
     us_client = boto3.client("ec2", region_name=region1)
     ap_client = boto3.client("ec2", region_name=region2)
-    us_reservations = us_client.describe_instances()["Reservations"]
-    ap_reservations = ap_client.describe_instances()["Reservations"]
+    us_instances = retrieve_all_instances(us_client)
+    ap_instances = retrieve_all_instances(ap_client)
 
-    us_reservations.should.have.length_of(1)
-    ap_reservations.should.have.length_of(1)
+    [r["InstanceId"] for r in us_instances].should.contain(us_id)
+    [r["InstanceId"] for r in us_instances].shouldnt.contain(ap_id)
+    [r["InstanceId"] for r in ap_instances].should.contain(ap_id)
+    [r["InstanceId"] for r in ap_instances].shouldnt.contain(us_id)
 
-    us_reservations[0]["Instances"][0]["ImageId"].should.equal(EXAMPLE_AMI_ID)
-    ap_reservations[0]["Instances"][0]["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+    us_instance = us_client.describe_instances(InstanceIds=[us_id])["Reservations"][0][
+        "Instances"
+    ][0]
+    us_instance["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    ap_instance = ap_client.describe_instances(InstanceIds=[ap_id])["Reservations"][0][
+        "Instances"
+    ][0]
+    ap_instance["ImageId"].should.equal(EXAMPLE_AMI_ID2)
 
 
 # Has boto3 equivalent
@@ -213,9 +224,9 @@ def test_create_autoscaling_group_boto3():
     regions = [("us-east-1", "c"), ("ap-northeast-1", "a")]
     for region, zone in regions:
         a_zone = "{}{}".format(region, zone)
-        asg_name = "{}_tester_group".format(region)
-        lb_name = "{}_lb".format(region)
-        config_name = "{}_tester".format(region)
+        asg_name = "{}_tester_group_{}".format(region, str(uuid4())[0:6])
+        lb_name = "{}_lb_{}".format(region, str(uuid4())[0:6])
+        config_name = "{}_tester_{}".format(region, str(uuid4())[0:6])
 
         elb_client = boto3.client("elb", region_name=region)
         elb_client.create_load_balancer(
@@ -254,7 +265,9 @@ def test_create_autoscaling_group_boto3():
             TerminationPolicies=["OldestInstance", "NewestInstance"],
         )
 
-        groups = as_client.describe_auto_scaling_groups()["AutoScalingGroups"]
+        groups = as_client.describe_auto_scaling_groups(
+            AutoScalingGroupNames=[asg_name]
+        )["AutoScalingGroups"]
         groups.should.have.length_of(1)
         group = groups[0]
 

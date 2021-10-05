@@ -13,6 +13,8 @@ import sure  # noqa
 from moto import mock_ec2_deprecated, mock_ec2
 import pytest
 from tests import EXAMPLE_AMI_ID
+from .test_instances import retrieve_all_instances
+from uuid import uuid4
 
 
 # Has boto3 equivalent
@@ -57,13 +59,9 @@ def test_instance_create_tags():
     )
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
-    chain = itertools.chain.from_iterable
-    existing_instances = list(
-        chain([res["Instances"] for res in client.describe_instances()["Reservations"]])
-    )
-    existing_instances.should.have.length_of(1)
-    existing_instance = existing_instances[0]
-    existing_instance["Tags"].should.equal([{"Key": "a key", "Value": "some value"}])
+    existing_instances = retrieve_all_instances(client)
+    ours = [i for i in existing_instances if i["InstanceId"] == instance.id][0]
+    ours["Tags"].should.equal([{"Key": "a key", "Value": "some value"}])
 
 
 # Has boto3 equivalent
@@ -104,7 +102,9 @@ def test_instance_delete_tags():
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
 
-    tags = client.describe_tags()["Tags"]
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-id", "Values": [instance.id]}]
+    )["Tags"]
     tag = tags[0]
     tag.should.have.key("Key").equal("a key")
     tag.should.have.key("Value").equal("some value")
@@ -119,14 +119,20 @@ def test_instance_delete_tags():
 
     # Specifying key only
     instance.delete_tags(Tags=[{"Key": "a key"}])
-    client.describe_tags()["Tags"].should.have.length_of(0)
+    client.describe_tags(Filters=[{"Name": "resource-id", "Values": [instance.id]}])[
+        "Tags"
+    ].should.have.length_of(0)
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
-    client.describe_tags()["Tags"].should.have.length_of(1)
+    client.describe_tags(Filters=[{"Name": "resource-id", "Values": [instance.id]}])[
+        "Tags"
+    ].should.have.length_of(1)
 
     # Specifying key and value
     instance.delete_tags(Tags=[{"Key": "a key", "Value": "some value"}])
-    client.describe_tags()["Tags"].should.have.length_of(0)
+    client.describe_tags(Filters=[{"Name": "resource-id", "Values": [instance.id]}])[
+        "Tags"
+    ].should.have.length_of(0)
 
 
 # Has boto3 equivalent
@@ -165,10 +171,13 @@ def test_get_all_tags_with_special_characters_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
-    instance.create_tags(Tags=[{"Key": "a key", "Value": "some<> value"}])
+    tag_key = str(uuid4())
+    instance.create_tags(Tags=[{"Key": tag_key, "Value": "some<> value"}])
 
-    tag = client.describe_tags()["Tags"][0]
-    tag.should.have.key("Key").equal("a key")
+    tag = client.describe_tags(Filters=[{"Name": "key", "Values": [tag_key]}])["Tags"][
+        0
+    ]
+    tag.should.have.key("Key").equal(tag_key)
     tag.should.have.key("Value").equal("some<> value")
 
 
@@ -220,7 +229,9 @@ def test_create_tags_boto3():
     )
 
     client.create_tags(Resources=[instance.id], Tags=tag_list)
-    tags = client.describe_tags()["Tags"]
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-id", "Values": [instance.id]}]
+    )["Tags"]
     tags.should.have.length_of(3)
     for expected_tag in tag_list:
         tags.should.contain(
@@ -285,7 +296,9 @@ def test_tag_limit_exceeded_boto3():
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("TagLimitExceeded")
 
-    tags = client.describe_tags()["Tags"]
+    tags = client.describe_tags(
+        Filters=[{"Name": "resource-id", "Values": [instance.id]}]
+    )["Tags"]
     tags.should.have.length_of(1)
     tags[0].should.have.key("Key").equal("a key")
     tags[0].should.have.key("Value").equal("a value")
@@ -375,30 +388,30 @@ def test_get_all_tags_resource_filter_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    inst_tag_key = str(uuid4())[0:6]
     client.create_tags(
-        Resources=[instance.id],
-        Tags=[{"Key": "an instance key", "Value": "some value"}],
+        Resources=[instance.id], Tags=[{"Key": inst_tag_key, "Value": "some value"}],
     )
     image = instance.create_image(Name="test-ami", Description="this is a test ami")
     image.create_tags(Tags=[{"Key": "an image key", "Value": "some value"}])
 
     expected = {
-        "Key": "an instance key",
+        "Key": inst_tag_key,
         "ResourceId": instance.id,
         "ResourceType": "instance",
         "Value": "some value",
     }
-    tags = client.describe_tags(
+    our_tags = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [instance.id]}]
     )["Tags"]
-    tags.should.equal([expected])
-    tags = client.describe_tags(
+    our_tags.should.equal([expected])
+    instances = client.describe_tags(
         Filters=[{"Name": "resource-type", "Values": ["instance"]}]
     )["Tags"]
-    tags.should.equal([expected])
-    tags = client.describe_tags(
-        Filters=[{"Name": "key", "Values": ["an instance key"]}]
-    )["Tags"]
+    instances.should.contain(expected)
+    tags = client.describe_tags(Filters=[{"Name": "key", "Values": [inst_tag_key]}])[
+        "Tags"
+    ]
     tags.should.equal([expected])
 
     expected = {
@@ -407,14 +420,14 @@ def test_get_all_tags_resource_filter_boto3():
         "ResourceType": "image",
         "Value": "some value",
     }
-    tags = client.describe_tags(
+    my_image = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [image.id]}]
     )["Tags"]
-    tags.should.equal([expected])
-    tags = client.describe_tags(
+    my_image.should.equal([expected])
+    all_images = client.describe_tags(
         Filters=[{"Name": "resource-type", "Values": ["image"]}]
     )["Tags"]
-    tags.should.equal([expected])
+    all_images.should.contain(expected)
 
     tags = client.describe_tags(
         Filters=[{"Name": "resource-type", "Values": ["unknown"]}]
@@ -538,9 +551,11 @@ def test_get_all_tags_value_filter_boto3():
     image.create_tags(Tags=[{"Key": "an image key", "Value": "some value"}])
 
     def filter_by_value(query, expected):
-        filter = {"Name": "value", "Values": [query]}
-        tags = client.describe_tags(Filters=[filter])["Tags"]
-        set([t["ResourceId"] for t in tags]).should.equal(set(expected))
+        filters = [{"Name": "value", "Values": [query]}]
+        tags = retrieve_all_tagged(client, filters)
+        actual = set([t["ResourceId"] for t in tags])
+        for e in expected:
+            actual.should.contain(e)
 
     filter_by_value("some value", [instance_a.id, image.id])
     filter_by_value("some*value", [instance_a.id, instance_b.id, image.id])
@@ -593,17 +608,17 @@ def test_retrieved_instances_must_contain_their_tags_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
-    reservations = client.describe_instances()["Reservations"]
-    reservations.should.have.length_of(1)
-    instances = reservations[0]["Instances"]
-    instances.should.have.length_of(1)
-    instances[0]["InstanceId"].should.equal(instance.id)
-    instances[0].shouldnt.have.key("Tags")
+    all_instances = retrieve_all_instances(client)
+    ours = [i for i in all_instances if i["InstanceId"] == instance.id]
+    ours.should.have.length_of(1)
+    ours[0]["InstanceId"].should.equal(instance.id)
+    ours[0].shouldnt.have.key("Tags")
 
     client.create_tags(Resources=[instance.id], Tags=[tags_to_be_set])
-    reservations = client.describe_instances()["Reservations"]
-    instance = reservations[0]["Instances"][0]
-    retrieved_tags = instance["Tags"]
+
+    all_instances = retrieve_all_instances(client)
+    ours = [i for i in all_instances if i["InstanceId"] == instance.id]
+    retrieved_tags = ours[0]["Tags"]
 
     # Check whether tag is present with correct value
     retrieved_tags.should.equal([{"Key": tag_key, "Value": tag_value}])
@@ -822,30 +837,43 @@ def test_delete_tag_empty_resource():
 def test_retrieve_resource_with_multiple_tags():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     blue, green = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    tag_val1 = str(uuid4())
     ec2.create_tags(
         Resources=[blue.instance_id],
         Tags=[
-            {"Key": "environment", "Value": "blue"},
+            {"Key": "environment", "Value": tag_val1},
             {"Key": "application", "Value": "api"},
         ],
     )
+    tag_val2 = str(uuid4())
     ec2.create_tags(
         Resources=[green.instance_id],
         Tags=[
-            {"Key": "environment", "Value": "green"},
+            {"Key": "environment", "Value": tag_val2},
             {"Key": "application", "Value": "api"},
         ],
     )
-    green_instances = list(ec2.instances.filter(Filters=(get_filter("green"))))
+    green_instances = list(ec2.instances.filter(Filters=(get_filter(tag_val2))))
     green_instances.should.equal([green])
-    blue_instances = list(ec2.instances.filter(Filters=(get_filter("blue"))))
+    blue_instances = list(ec2.instances.filter(Filters=(get_filter(tag_val1))))
     blue_instances.should.equal([blue])
 
 
-def get_filter(color):
+def get_filter(tag_val):
     return [
         {"Name": "tag-key", "Values": ["application"]},
         {"Name": "tag-value", "Values": ["api"]},
         {"Name": "tag-key", "Values": ["environment"]},
-        {"Name": "tag-value", "Values": [color]},
+        {"Name": "tag-value", "Values": [tag_val]},
     ]
+
+
+def retrieve_all_tagged(client, filters=[]):
+    resp = client.describe_tags(Filters=filters)
+    tags = resp["Tags"]
+    token = resp.get("NextToken")
+    while token:
+        resp = client.describe_tags(Filters=filters, NextToken=token)
+        tags.extend(resp["Tags"])
+        token = resp.get("Token")
+    return tags

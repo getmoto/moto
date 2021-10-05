@@ -256,11 +256,13 @@ DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DescribeTransitGatewayVpcAttachme
         {% for transit_gateway_vpc_attachment in transit_gateway_vpc_attachments %}
             <item>
                 <creationTime>2021-07-18T08:57:21.000Z</creationTime>
+                {% if transit_gateway_vpc_attachment.options %}
                 <options>
                     <applianceModeSupport>{{ transit_gateway_vpc_attachment.options.ApplianceModeSupport }}</applianceModeSupport>
                     <dnsSupport>{{ transit_gateway_vpc_attachment.options.DnsSupport }}</dnsSupport>
                     <ipv6Support>{{ transit_gateway_vpc_attachment.options.Ipv6Support }}</ipv6Support>
                 </options>
+                {% endif %}
                 <state>{{ transit_gateway_vpc_attachment.state }}</state>
                 <subnetIds>
                 {% for id in transit_gateway_vpc_attachment.subnet_ids %}
@@ -423,17 +425,23 @@ DESCRIBE_TRANSIT_GATEWAY_PEERING_ATTACHMENTS = """<DescribeTransitGatewayPeering
             <item>
                 <createTime>{{ transit_gateway_peering_attachment.create_time }}</createTime>
                 <state>{{ transit_gateway_peering_attachment.state }}</state>
+                {% if transit_gateway_peering_attachment.accepter_tgw_info %}
                 <accepterTgwInfo>
                     <ownerId>{{ transit_gateway_peering_attachment.accepter_tgw_info.ownerId or '' }}</ownerId>
                     <region>{{ transit_gateway_peering_attachment.accepter_tgw_info.region or '' }}</region>
                     <transitGatewayId>{{ transit_gateway_peering_attachment.accepter_tgw_info.transitGatewayId or '' }}</transitGatewayId>
                 </accepterTgwInfo>
+                {% endif %}
+                {% if transit_gateway_peering_attachment.requester_tgw_info %}
                 <requesterTgwInfo>
                     <ownerId>{{ transit_gateway_peering_attachment.requester_tgw_info.ownerId or '' }}</ownerId>
                     <region>{{ transit_gateway_peering_attachment.requester_tgw_info.region or '' }}</region>
                     <transitGatewayId>{{ transit_gateway_peering_attachment.requester_tgw_info.transitGatewayId or '' }}</transitGatewayId>
                 </requesterTgwInfo>
+                {% endif %}
+                {% if transit_gateway_peering_attachment.status %}
                 <status>{{ transit_gateway_peering_attachment.status.code }}</status>
+                {% endif %}
                 <tagSet>
                 {% for tag in transit_gateway_peering_attachment.get_tags() %}
                     <item>

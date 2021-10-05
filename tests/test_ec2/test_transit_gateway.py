@@ -1,11 +1,14 @@
 import boto3
 import sure  # noqa
-from moto import mock_ec2
+from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
+from unittest import SkipTest
 
 
 @mock_ec2
 def test_describe_transit_gateways():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateways()
     response.should.have.key("TransitGateways").equal([])
@@ -34,8 +37,14 @@ def test_create_transit_gateway():
     options.should.have.key("DnsSupport").equal("disable")
     #
     # Verify we can retrieve it
-    response = ec2.describe_transit_gateways()
-    gateways = response["TransitGateways"]
+    all_gateways = retrieve_all_transit_gateways(ec2)
+    [gw["TransitGatewayId"] for gw in all_gateways].should.contain(
+        gateway["TransitGatewayId"]
+    )
+    gateways = ec2.describe_transit_gateways(
+        TransitGatewayIds=[gateway["TransitGatewayId"]]
+    )["TransitGateways"]
+
     gateways.should.have.length_of(1)
     gateways[0].should.have.key("CreationTime")
     gateways[0].should.have.key("TransitGatewayArn").equal(
@@ -79,32 +88,57 @@ def test_create_transit_gateway_with_tags():
 def test_delete_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     g = ec2.create_transit_gateway(Description="my first gateway")["TransitGateway"]
-    ec2.describe_transit_gateways()["TransitGateways"].should.have.length_of(1)
+    g_id = g["TransitGatewayId"]
 
-    ec2.delete_transit_gateway(TransitGatewayId=g["TransitGatewayId"])
-    ec2.describe_transit_gateways()["TransitGateways"].should.have.length_of(0)
+    all_gateways = retrieve_all_transit_gateways(ec2)
+    [g["TransitGatewayId"] for g in all_gateways].should.contain(g_id)
+
+    ec2.delete_transit_gateway(TransitGatewayId=g_id)
+
+    all_gateways = retrieve_all_transit_gateways(ec2)
+    [g["TransitGatewayId"] for g in all_gateways].shouldnt.contain(g_id)
+
+
+@mock_ec2
+def test_describe_transit_gateway_by_id():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    g1 = ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
+    g2 = ec2.create_transit_gateway(Description="my second gatway")["TransitGateway"]
+    g2_id = g2["TransitGatewayId"]
+    g3 = ec2.create_transit_gateway(Description="my third gatway")["TransitGateway"]
+
+    my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g2_id])[
+        "TransitGateways"
+    ][0]
+    my_gateway["TransitGatewayId"].should.equal(g2_id)
+    my_gateway["Description"].should.equal("my second gatway")
 
 
 @mock_ec2
 def test_modify_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     g = ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
-    ec2.describe_transit_gateways()["TransitGateways"].should.have.length_of(1)
-    ec2.describe_transit_gateways()["TransitGateways"][0]["Description"].should.equal(
-        "my first gatway"
+    g_id = g["TransitGatewayId"]
+
+    my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g_id])[
+        "TransitGateways"
+    ][0]
+    my_gateway["Description"].should.equal("my first gatway")
+
+    resp = ec2.modify_transit_gateway(
+        TransitGatewayId=g_id, Description="my first gateway"
     )
 
-    ec2.modify_transit_gateway(
-        TransitGatewayId=g["TransitGatewayId"], Description="my first gateway"
-    )
-    ec2.describe_transit_gateways()["TransitGateways"].should.have.length_of(1)
-    ec2.describe_transit_gateways()["TransitGateways"][0]["Description"].should.equal(
-        "my first gateway"
-    )
+    my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g_id])[
+        "TransitGateways"
+    ][0]
+    my_gateway["Description"].should.equal("my first gateway")
 
 
 @mock_ec2
 def test_describe_transit_gateway_vpc_attachments():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateway_vpc_attachments()
     response.should.have.key("TransitGatewayVpcAttachments").equal([])
@@ -112,9 +146,22 @@ def test_describe_transit_gateway_vpc_attachments():
 
 @mock_ec2
 def test_describe_transit_gateway_attachments():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateway_attachments()
     response.should.have.key("TransitGatewayAttachments").equal([])
+
+
+def retrieve_all_transit_gateways(ec2):
+    resp = ec2.describe_transit_gateways()
+    all_tg = resp["TransitGateways"]
+    token = resp.get("NextToken")
+    while token:
+        resp = ec2.describe_transit_gateways(NextToken=token)
+        all_tg.extend(resp["TransitGateways"])
+        token = resp.get("NextToken")
+    return all_tg
 
 
 @mock_ec2
@@ -130,19 +177,29 @@ def test_create_transit_gateway_vpn_attachment():
         VpnGatewayId=vpn_gateway["VpnGatewayId"],
         CustomerGatewayId=customer_gateway["CustomerGatewayId"],
         TransitGatewayId="gateway_id",
-    ).get("VpnConnection", {})
+    )["VpnConnection"]
+    vpn_conn_id = vpn_connection["VpnConnectionId"]
 
     #
     # Verify we can retrieve it as a general attachment
-    attachments = ec2.describe_transit_gateway_attachments()[
-        "TransitGatewayAttachments"
-    ]
-    attachments.should.have.length_of(1)
+    attachments = retrieve_all_attachments(ec2)
+    [a["ResourceId"] for a in attachments].should.contain(vpn_conn_id)
 
-    attachments[0].should.have.key("ResourceType").equal("vpn")
-    attachments[0].should.have.key("ResourceId").equal(
-        vpn_connection["VpnConnectionId"]
-    )
+    my_attachments = [a for a in attachments if a["ResourceId"] == vpn_conn_id]
+    my_attachments.should.have.length_of(1)
+
+    my_attachments[0].should.have.key("ResourceType").equal("vpn")
+
+
+def retrieve_all_attachments(client):
+    resp = client.describe_transit_gateway_attachments()
+    att = resp["TransitGatewayAttachments"]
+    token = resp.get("NextToken")
+    while token:
+        resp = client.describe_transit_gateway_attachments(NextToken=token)
+        att.extend(resp["TransitGatewayAttachments"])
+        token = resp.get("NextToken")
+    return att
 
 
 @mock_ec2
@@ -168,18 +225,18 @@ def test_create_and_describe_transit_gateway_vpc_attachment():
     attachment.should.have.key("Tags").equal([])
     #
     # Verify we can retrieve it as a VPC attachment
-    attachments = ec2.describe_transit_gateway_vpc_attachments()[
-        "TransitGatewayVpcAttachments"
-    ]
+    attachments = ec2.describe_transit_gateway_vpc_attachments(
+        TransitGatewayAttachmentIds=[attachment["TransitGatewayAttachmentId"]]
+    )["TransitGatewayVpcAttachments"]
     attachments.should.have.length_of(1)
     attachments[0].should.have.key("CreationTime")
     del attachments[0]["CreationTime"]
     attachment.should.equal(attachments[0])
     #
     # Verify we can retrieve it as a general attachment
-    attachments = ec2.describe_transit_gateway_attachments()[
-        "TransitGatewayAttachments"
-    ]
+    attachments = ec2.describe_transit_gateway_attachments(
+        TransitGatewayAttachmentIds=[attachment["TransitGatewayAttachmentId"]]
+    )["TransitGatewayAttachments"]
     attachments.should.have.length_of(1)
     attachments[0].should.have.key("CreationTime")
     attachments[0].should.have.key("TransitGatewayOwnerId").equal(ACCOUNT_ID)
@@ -196,6 +253,8 @@ def test_create_and_describe_transit_gateway_vpc_attachment():
 
 @mock_ec2
 def test_describe_transit_gateway_route_tables():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.describe_transit_gateway_route_tables()
     response.should.have.key("TransitGatewayRouteTables").equal([])
@@ -204,8 +263,6 @@ def test_describe_transit_gateway_route_tables():
 @mock_ec2
 def test_create_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
-    tables = ec2.describe_transit_gateway_route_tables()["TransitGatewayRouteTables"]
-    tables.should.equal([])
 
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
         "TransitGatewayId"
@@ -221,8 +278,10 @@ def test_create_transit_gateway_route_table():
     table.should.have.key("CreationTime")
     table.should.have.key("Tags").equals([])
 
-    tables = ec2.describe_transit_gateway_route_tables()["TransitGatewayRouteTables"]
-    tables.should.have.length_of(2)
+    tables = ec2.describe_transit_gateway_route_tables(
+        TransitGatewayRouteTableIds=[table["TransitGatewayRouteTableId"]]
+    )["TransitGatewayRouteTables"]
+    tables.should.have.length_of(1)
 
 
 @mock_ec2
@@ -260,18 +319,23 @@ def test_delete_transit_gateway_route_table():
     table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
         "TransitGatewayRouteTable"
     ]
+    table_id = table["TransitGatewayRouteTableId"]
 
-    tables = ec2.describe_transit_gateway_route_tables()["TransitGatewayRouteTables"]
-    tables.should.have.length_of(2)
+    tables = ec2.describe_transit_gateway_route_tables(
+        TransitGatewayRouteTableIds=[table_id]
+    )["TransitGatewayRouteTables"]
+    tables.should.have.length_of(1)
+    tables[0]["State"].should.equal("available")
 
-    table = ec2.delete_transit_gateway_route_table(
-        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )
+    table = ec2.delete_transit_gateway_route_table(TransitGatewayRouteTableId=table_id)
 
     table["TransitGatewayRouteTable"].should.have.key("State").equals("deleted")
 
-    tables = ec2.describe_transit_gateway_route_tables()["TransitGatewayRouteTables"]
-    tables.should.have.length_of(2)
+    tables = ec2.describe_transit_gateway_route_tables(
+        TransitGatewayRouteTableIds=[table_id]
+    )["TransitGatewayRouteTables"]
+    tables.should.have.length_of(1)
+    tables[0]["State"].should.equal("deleted")
 
 
 @mock_ec2
@@ -528,7 +592,8 @@ def test_delete_transit_gateway_vpc_attachment():
     )["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
 
     available = ec2.describe_transit_gateway_vpc_attachments(
-        Filters=[{"Name": "state", "Values": ["available"]}]
+        TransitGatewayAttachmentIds=[a1, a2],
+        Filters=[{"Name": "state", "Values": ["available"]}],
     )["TransitGatewayVpcAttachments"]
     available.should.have.length_of(2)
 
@@ -538,9 +603,9 @@ def test_delete_transit_gateway_vpc_attachment():
     a1_removed.should.have.key("TransitGatewayAttachmentId").equal(a1)
     a1_removed.should.have.key("State").equal("deleted")
 
-    all_attchmnts = ec2.describe_transit_gateway_vpc_attachments()[
-        "TransitGatewayVpcAttachments"
-    ]
+    all_attchmnts = ec2.describe_transit_gateway_vpc_attachments(
+        TransitGatewayAttachmentIds=[a1, a2]
+    )["TransitGatewayVpcAttachments"]
     all_attchmnts.should.have.length_of(1)
     [a["TransitGatewayAttachmentId"] for a in all_attchmnts].should.equal([a2])
 

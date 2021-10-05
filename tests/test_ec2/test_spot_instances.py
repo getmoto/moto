@@ -3,6 +3,7 @@ import pytest
 import datetime
 
 import boto
+import boto.ec2
 import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
@@ -13,6 +14,8 @@ from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2.models import ec2_backends
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
+from uuid import uuid4
+from unittest import SkipTest
 
 
 @mock_ec2
@@ -24,8 +27,10 @@ def test_request_spot_instances():
     )["Subnet"]
     subnet_id = subnet["SubnetId"]
 
-    conn.create_security_group(GroupName="group1", Description="description")
-    conn.create_security_group(GroupName="group2", Description="description")
+    sec_name_1 = str(uuid4())
+    sec_name_2 = str(uuid4())
+    conn.create_security_group(GroupName=sec_name_1, Description="description")
+    conn.create_security_group(GroupName=sec_name_2, Description="description")
 
     start_dt = datetime.datetime(2013, 1, 1).replace(tzinfo=pytz.utc)
     end_dt = datetime.datetime(2013, 1, 2).replace(tzinfo=pytz.utc)
@@ -44,7 +49,7 @@ def test_request_spot_instances():
             LaunchSpecification={
                 "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "test",
-                "SecurityGroups": ["group1", "group2"],
+                "SecurityGroups": [sec_name_1, sec_name_2],
                 "UserData": "some test data",
                 "InstanceType": "m1.small",
                 "Placement": {"AvailabilityZone": "us-east-1c"},
@@ -72,7 +77,7 @@ def test_request_spot_instances():
         LaunchSpecification={
             "ImageId": EXAMPLE_AMI_ID,
             "KeyName": "test",
-            "SecurityGroups": ["group1", "group2"],
+            "SecurityGroups": [sec_name_1, sec_name_2],
             "UserData": "some test data",
             "InstanceType": "m1.small",
             "Placement": {"AvailabilityZone": "us-east-1c"},
@@ -82,8 +87,10 @@ def test_request_spot_instances():
             "SubnetId": subnet_id,
         },
     )
+    request_id = request["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
 
-    requests = conn.describe_spot_instance_requests()["SpotInstanceRequests"]
+    all_requests = conn.describe_spot_instance_requests()["SpotInstanceRequests"]
+    requests = [r for r in all_requests if r["SpotInstanceRequestId"] == request_id]
     requests.should.have.length_of(1)
     request = requests[0]
 
@@ -99,7 +106,7 @@ def test_request_spot_instances():
     security_group_names = [
         group["GroupName"] for group in launch_spec["SecurityGroups"]
     ]
-    set(security_group_names).should.equal(set(["group1", "group2"]))
+    set(security_group_names).should.equal(set([sec_name_1, sec_name_2]))
 
     launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
     launch_spec["KeyName"].should.equal("test")
@@ -119,8 +126,10 @@ def test_request_spot_instances_default_arguments():
     request = conn.request_spot_instances(
         SpotPrice="0.5", LaunchSpecification={"ImageId": EXAMPLE_AMI_ID}
     )
+    request_id = request["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
 
-    requests = conn.describe_spot_instance_requests()["SpotInstanceRequests"]
+    all_requests = conn.describe_spot_instance_requests()["SpotInstanceRequests"]
+    requests = [r for r in all_requests if r["SpotInstanceRequestId"] == request_id]
     requests.should.have.length_of(1)
     request = requests[0]
 
@@ -175,11 +184,14 @@ def test_cancel_spot_instance_request():
 def test_cancel_spot_instance_request_boto3():
     client = boto3.client("ec2", region_name="us-west-1")
 
-    client.request_spot_instances(
+    rsi = client.request_spot_instances(
         SpotPrice="0.5", LaunchSpecification={"ImageId": EXAMPLE_AMI_ID}
     )
+    spot_id = rsi["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
 
-    requests = client.describe_spot_instance_requests()["SpotInstanceRequests"]
+    requests = client.describe_spot_instance_requests(SpotInstanceRequestIds=[spot_id])[
+        "SpotInstanceRequests"
+    ]
     requests.should.have.length_of(1)
     request = requests[0]
     request.should.have.key("CreateTime")
@@ -202,7 +214,9 @@ def test_cancel_spot_instance_request_boto3():
         SpotInstanceRequestIds=[request["SpotInstanceRequestId"]]
     )
 
-    requests = client.describe_spot_instance_requests()["SpotInstanceRequests"]
+    requests = client.describe_spot_instance_requests(SpotInstanceRequestIds=[spot_id])[
+        "SpotInstanceRequests"
+    ]
     requests.should.have.length_of(0)
 
 
@@ -245,7 +259,9 @@ def test_request_spot_instances_fulfilled_boto3():
     )
     request_id = request["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
 
-    requests = client.describe_spot_instance_requests()["SpotInstanceRequests"]
+    requests = client.describe_spot_instance_requests(
+        SpotInstanceRequestIds=[request_id]
+    )["SpotInstanceRequests"]
     requests.should.have.length_of(1)
     request = requests[0]
 
@@ -254,7 +270,9 @@ def test_request_spot_instances_fulfilled_boto3():
     if not settings.TEST_SERVER_MODE:
         ec2_backends["us-east-1"].spot_instance_requests[request_id].state = "active"
 
-        requests = client.describe_spot_instance_requests()["SpotInstanceRequests"]
+        requests = client.describe_spot_instance_requests(
+            SpotInstanceRequestIds=[request_id]
+        )["SpotInstanceRequests"]
         requests.should.have.length_of(1)
         request = requests[0]
 
@@ -297,7 +315,9 @@ def test_tag_spot_instance_request_boto3():
         Tags=[{"Key": "tag1", "Value": "value1"}, {"Key": "tag2", "Value": "value2"}],
     )
 
-    requests = client.describe_spot_instance_requests()["SpotInstanceRequests"]
+    requests = client.describe_spot_instance_requests(
+        SpotInstanceRequestIds=[request_id]
+    )["SpotInstanceRequests"]
     requests.should.have.length_of(1)
     request = requests[0]
 
@@ -355,33 +375,38 @@ def test_get_all_spot_instance_requests_filtering_boto3():
     client.request_spot_instances(
         SpotPrice="0.5", LaunchSpecification={"ImageId": EXAMPLE_AMI_ID}
     )
+    tag_value1 = str(uuid4())
     client.create_tags(
         Resources=[request1_id],
-        Tags=[{"Key": "tag1", "Value": "value1"}, {"Key": "tag2", "Value": "value2"}],
+        Tags=[{"Key": "tag1", "Value": tag_value1}, {"Key": "tag2", "Value": "value2"}],
     )
     client.create_tags(
         Resources=[request2_id],
-        Tags=[{"Key": "tag1", "Value": "value1"}, {"Key": "tag2", "Value": "wrong"}],
+        Tags=[{"Key": "tag1", "Value": tag_value1}, {"Key": "tag2", "Value": "wrong"}],
     )
 
     requests = client.describe_spot_instance_requests(
         Filters=[{"Name": "state", "Values": ["active"]}]
     )["SpotInstanceRequests"]
-    requests.should.have.length_of(0)
+    r_ids = [r["SpotInstanceRequestId"] for r in requests]
+    r_ids.shouldnt.contain(request1_id)
+    r_ids.shouldnt.contain(request2_id)
 
     requests = client.describe_spot_instance_requests(
         Filters=[{"Name": "state", "Values": ["open"]}]
     )["SpotInstanceRequests"]
-    requests.should.have.length_of(3)
+    r_ids = [r["SpotInstanceRequestId"] for r in requests]
+    r_ids.should.contain(request1_id)
+    r_ids.should.contain(request2_id)
 
     requests = client.describe_spot_instance_requests(
-        Filters=[{"Name": "tag:tag1", "Values": ["value1"]}]
+        Filters=[{"Name": "tag:tag1", "Values": [tag_value1]}]
     )["SpotInstanceRequests"]
     requests.should.have.length_of(2)
 
     requests = client.describe_spot_instance_requests(
         Filters=[
-            {"Name": "tag:tag1", "Values": ["value1"]},
+            {"Name": "tag:tag1", "Values": [tag_value1]},
             {"Name": "tag:tag2", "Values": ["value2"]},
         ]
     )["SpotInstanceRequests"]
@@ -406,6 +431,10 @@ def test_request_spot_instances_setting_instance_id():
 
 @mock_ec2
 def test_request_spot_instances_instance_lifecycle():
+    if settings.TEST_SERVER_MODE:
+        # Currently no easy way to check which instance was created by request_spot_instance
+        # And we can't just pick the first instance in ServerMode and expect it to be the right one
+        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", region_name="us-east-1")
     request = client.request_spot_instances(SpotPrice="0.5")
 
@@ -431,9 +460,10 @@ def test_launch_spot_instance_instance_lifecycle():
         "InstanceMarketOptions": {"MarketType": "spot"},
     }
 
-    client.run_instances(**kwargs)["Instances"][0]
+    instance = client.run_instances(**kwargs)["Instances"][0]
+    instance_id = instance["InstanceId"]
 
-    response = client.describe_instances()
+    response = client.describe_instances(InstanceIds=[instance_id])
     instance = response["Reservations"][0]["Instances"][0]
     instance["InstanceLifecycle"].should.equal("spot")
 
@@ -453,9 +483,10 @@ def test_launch_instance_instance_lifecycle():
         ],
     }
 
-    client.run_instances(**kwargs)["Instances"][0]
+    instance = client.run_instances(**kwargs)["Instances"][0]
+    instance_id = instance["InstanceId"]
 
-    response = client.describe_instances()
+    response = client.describe_instances(InstanceIds=[instance_id])
     instance = response["Reservations"][0]["Instances"][0]
     instance.get("InstanceLifecycle").should.equal(None)
 

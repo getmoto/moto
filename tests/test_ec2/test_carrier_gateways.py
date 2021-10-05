@@ -2,12 +2,15 @@ import boto3
 import sure  # noqa
 import pytest
 from botocore.exceptions import ClientError
-from moto import mock_ec2
+from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
+from unittest import SkipTest
 
 
 @mock_ec2
 def test_describe_carrier_gateways_none():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-east-1")
     ec2.describe_carrier_gateways()["CarrierGateways"].should.equal([])
 
@@ -20,7 +23,11 @@ def test_describe_carrier_gateways_multiple():
     cg1 = client.create_carrier_gateway(VpcId=vpc.id)["CarrierGateway"]
     cg2 = client.create_carrier_gateway(VpcId=vpc.id)["CarrierGateway"]
 
-    client.describe_carrier_gateways()["CarrierGateways"].should.have.length_of(2)
+    gateways = client.describe_carrier_gateways()["CarrierGateways"]
+    gateway_ids = [g["CarrierGatewayId"] for g in gateways]
+
+    gateway_ids.should.contain(cg1["CarrierGatewayId"])
+    gateway_ids.should.contain(cg2["CarrierGatewayId"])
 
     find_one = client.describe_carrier_gateways(
         CarrierGatewayIds=[cg1["CarrierGatewayId"]]
@@ -86,4 +93,7 @@ def test_delete_carrier_gateways():
     cg = client.create_carrier_gateway(VpcId=vpc.id)["CarrierGateway"]
     client.delete_carrier_gateway(CarrierGatewayId=cg["CarrierGatewayId"])
 
-    client.describe_carrier_gateways()["CarrierGateways"].should.equal([])
+    gateways = client.describe_carrier_gateways()["CarrierGateways"]
+    gateway_ids = [g["CarrierGatewayId"] for g in gateways]
+
+    gateway_ids.shouldnt.contain(cg["CarrierGatewayId"])

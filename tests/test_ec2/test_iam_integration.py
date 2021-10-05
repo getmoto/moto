@@ -10,6 +10,7 @@ import sure  # noqa
 
 from moto import mock_ec2, mock_iam, mock_cloudformation
 from tests import EXAMPLE_AMI_ID
+from uuid import uuid4
 
 
 def quick_instance_creation():
@@ -35,7 +36,7 @@ def test_associate():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
     instance_profile_arn, instance_profile_name = quick_instance_profile_creation(
-        "test_profile"
+        str(uuid4())
     )
 
     association = client.associate_iam_instance_profile(
@@ -58,7 +59,7 @@ def test_invalid_associate():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
     instance_profile_arn, instance_profile_name = quick_instance_profile_creation(
-        "test_profile"
+        str(uuid4())
     )
 
     client.associate_iam_instance_profile(
@@ -109,81 +110,74 @@ def test_invalid_associate():
 def test_describe():
     client = boto3.client("ec2", region_name="us-east-1")
 
-    instance_id = quick_instance_creation()
-    instance_profile_arn, instance_profile_name = quick_instance_profile_creation(
-        "test_profile"
+    instance_id1 = quick_instance_creation()
+    instance_profile_arn1, instance_profile_name1 = quick_instance_profile_creation(
+        str(uuid4())
     )
     client.associate_iam_instance_profile(
         IamInstanceProfile={
-            "Arn": instance_profile_arn,
-            "Name": instance_profile_name,
+            "Arn": instance_profile_arn1,
+            "Name": instance_profile_name1,
         },
-        InstanceId=instance_id,
+        InstanceId=instance_id1,
     )
     associations = client.describe_iam_instance_profile_associations()
-    associations["IamInstanceProfileAssociations"].should.have.length_of(1)
-    associations["IamInstanceProfileAssociations"][0]["InstanceId"].should.equal(
-        instance_id
+    associations = associations["IamInstanceProfileAssociations"]
+    [a["IamInstanceProfile"]["Arn"] for a in associations].should.contain(
+        instance_profile_arn1
     )
-    associations["IamInstanceProfileAssociations"][0]["IamInstanceProfile"][
-        "Arn"
-    ].should.equal(instance_profile_arn)
-    associations["IamInstanceProfileAssociations"][0]["State"].should.equal(
-        "associated"
-    )
+    my_assoc = [
+        a
+        for a in associations
+        if a["IamInstanceProfile"]["Arn"] == instance_profile_arn1
+    ][0]
+    my_assoc["InstanceId"].should.equal(instance_id1)
+    my_assoc["State"].should.equal("associated")
 
-    instance_id = quick_instance_creation()
-    instance_profile_arn, instance_profile_name = quick_instance_profile_creation(
-        "test_profile1"
+    instance_id2 = quick_instance_creation()
+    instance_profile_arn2, instance_profile_name2 = quick_instance_profile_creation(
+        str(uuid4())
     )
     client.associate_iam_instance_profile(
         IamInstanceProfile={
-            "Arn": instance_profile_arn,
-            "Name": instance_profile_name,
+            "Arn": instance_profile_arn2,
+            "Name": instance_profile_name2,
         },
-        InstanceId=instance_id,
+        InstanceId=instance_id2,
     )
 
-    next_test_associations = client.describe_iam_instance_profile_associations()
-    next_test_associations["IamInstanceProfileAssociations"].should.have.length_of(2)
+    associations = client.describe_iam_instance_profile_associations()
+    associations = associations["IamInstanceProfileAssociations"]
+    [a["IamInstanceProfile"]["Arn"] for a in associations].should.contain(
+        instance_profile_arn1
+    )
+    [a["IamInstanceProfile"]["Arn"] for a in associations].should.contain(
+        instance_profile_arn2
+    )
+    my_assoc = [
+        a
+        for a in associations
+        if a["IamInstanceProfile"]["Arn"] == instance_profile_arn1
+    ][0]
 
     associations = client.describe_iam_instance_profile_associations(
-        AssociationIds=[
-            next_test_associations["IamInstanceProfileAssociations"][0][
-                "AssociationId"
-            ],
-        ]
+        AssociationIds=[my_assoc["AssociationId"],]
     )
     associations["IamInstanceProfileAssociations"].should.have.length_of(1)
     associations["IamInstanceProfileAssociations"][0]["IamInstanceProfile"][
         "Arn"
-    ].should.equal(
-        next_test_associations["IamInstanceProfileAssociations"][0][
-            "IamInstanceProfile"
-        ]["Arn"]
-    )
+    ].should.equal(my_assoc["IamInstanceProfile"]["Arn"])
 
     associations = client.describe_iam_instance_profile_associations(
         Filters=[
-            {
-                "Name": "instance-id",
-                "Values": [
-                    next_test_associations["IamInstanceProfileAssociations"][0][
-                        "InstanceId"
-                    ],
-                ],
-            },
+            {"Name": "instance-id", "Values": [my_assoc["InstanceId"],],},
             {"Name": "state", "Values": ["associated"]},
         ]
     )
     associations["IamInstanceProfileAssociations"].should.have.length_of(1)
     associations["IamInstanceProfileAssociations"][0]["IamInstanceProfile"][
         "Arn"
-    ].should.equal(
-        next_test_associations["IamInstanceProfileAssociations"][0][
-            "IamInstanceProfile"
-        ]["Arn"]
-    )
+    ].should.equal(my_assoc["IamInstanceProfile"]["Arn"])
 
 
 @mock_ec2
@@ -192,10 +186,10 @@ def test_replace():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id1 = quick_instance_creation()
     instance_profile_arn1, instance_profile_name1 = quick_instance_profile_creation(
-        "test_profile1"
+        str(uuid4())
     )
     instance_profile_arn2, instance_profile_name2 = quick_instance_profile_creation(
-        "test_profile2"
+        str(uuid4())
     )
 
     association = client.associate_iam_instance_profile(
@@ -226,10 +220,10 @@ def test_invalid_replace():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
     instance_profile_arn, instance_profile_name = quick_instance_profile_creation(
-        "test_profile"
+        str(uuid4())
     )
     instance_profile_arn2, instance_profile_name2 = quick_instance_profile_creation(
-        "test_profile2"
+        str(uuid4())
     )
 
     association = client.associate_iam_instance_profile(
@@ -268,7 +262,7 @@ def test_disassociate():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
     instance_profile_arn, instance_profile_name = quick_instance_profile_creation(
-        "test_profile"
+        str(uuid4())
     )
 
     association = client.associate_iam_instance_profile(
@@ -280,7 +274,10 @@ def test_disassociate():
     )
 
     associations = client.describe_iam_instance_profile_associations()
-    associations["IamInstanceProfileAssociations"].should.have.length_of(1)
+    associations = associations["IamInstanceProfileAssociations"]
+    [a["IamInstanceProfile"]["Arn"] for a in associations].should.contain(
+        instance_profile_arn
+    )
 
     disassociation = client.disassociate_iam_instance_profile(
         AssociationId=association["IamInstanceProfileAssociation"]["AssociationId"],
@@ -294,7 +291,10 @@ def test_disassociate():
     )
 
     associations = client.describe_iam_instance_profile_associations()
-    associations["IamInstanceProfileAssociations"].should.have.length_of(0)
+    associations = associations["IamInstanceProfileAssociations"]
+    [a["IamInstanceProfile"]["Arn"] for a in associations].shouldnt.contain(
+        instance_profile_arn
+    )
 
 
 @mock_ec2

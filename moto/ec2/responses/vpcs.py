@@ -826,7 +826,7 @@ DESCRIBE_PREFIX_LIST = """<DescribePrefixListsResponse xmlns="http://ec2.amazona
     <requestId>8a2ec0e2-6918-4270-ae45-58e61971e97d</requestId>
     <prefixListSet>
     {% for pl in managed_pls %}
-    {% if pl.prefix_list_name.startswith("com.amazonaws.") %}
+    {% if pl.prefix_list_name and pl.prefix_list_name.startswith("com.amazonaws.") %}
         <item>
             <cidrSet>
                 {% for entry in pl.entries.1 %}

@@ -13,6 +13,7 @@ from moto.ec2 import ec2_backends
 from moto.ec2.models import OWNER_ID
 from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
+from uuid import uuid4
 
 
 # Has boto3 equivalent
@@ -391,9 +392,9 @@ def test_volume_filters_boto3():
         Size=25, AvailabilityZone="us-east-1a", SnapshotId=snapshot.id
     )
 
-    ec2.create_tags(
-        Resources=[volume1.id], Tags=[{"Key": "testkey1", "Value": "testvalue1"}]
-    )
+    tag_key1 = str(uuid4())[0:6]
+    tag_val1 = str(uuid4())
+    ec2.create_tags(Resources=[volume1.id], Tags=[{"Key": tag_key1, "Value": tag_val1}])
     ec2.create_tags(
         Resources=[volume2.id], Tags=[{"Key": "testkey2", "Value": "testvalue2"}]
     )
@@ -411,30 +412,84 @@ def test_volume_filters_boto3():
     ][0]
     block_volume = block_mapping["Ebs"]["VolumeId"]
 
-    def verify_filter(name, value, expected=None):
+    def verify_filter(name, value, expected=None, not_expected=None):
+        multiple_results = not_expected is not None
         expected = expected or block_volume
         expected = expected if type(expected) == list else [expected]
         volumes = client.describe_volumes(Filters=[{"Name": name, "Values": [value]}])[
             "Volumes"
         ]
-        set([vol["VolumeId"] for vol in volumes]).should.equal(set(expected))
+        actual = [vol["VolumeId"] for vol in volumes]
+        if multiple_results:
+            for e in expected:
+                actual.should.contain(e)
+            for e in not_expected:
+                actual.shouldnt.contain(e)
+        else:
+            set(actual).should.equal(set(expected))
 
     # We should probably make this less strict, i.e. figure out which formats AWS expects/approves of
     attach_time = block_mapping["Ebs"]["AttachTime"].strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    verify_filter("attachment.attach-time", attach_time)
-    verify_filter("attachment.device", "/dev/sda1")
+    verify_filter(
+        "attachment.attach-time",
+        attach_time,
+        not_expected=[volume1.id, volume2.id, volume3.id, volume4.id],
+    )
+    verify_filter(
+        "attachment.device",
+        "/dev/sda1",
+        not_expected=[volume1.id, volume2.id, volume3.id, volume4.id],
+    )
     verify_filter("attachment.instance-id", instance.id)
-    verify_filter("attachment.status", "attached")
-    verify_filter("size", str(volume2.size), expected=volume2.id)
-    verify_filter("snapshot-id", snapshot.id, expected=volume4.id)
-    verify_filter("status", "in-use")
-    verify_filter("volume-id", volume1.id, expected=volume1.id)
-    verify_filter("tag-key", "testkey1", expected=volume1.id)
-    verify_filter("tag-value", "testvalue1", expected=volume1.id)
-    verify_filter("tag:testkey1", "testvalue1", expected=volume1.id)
-    verify_filter("encrypted", "false", expected=[block_volume, volume2.id])
-    verify_filter("encrypted", "true", expected=[volume1.id, volume3.id, volume4.id])
-    verify_filter("availability-zone", "us-east-1b", expected=volume2.id)
+    verify_filter(
+        "attachment.status",
+        "attached",
+        not_expected=[volume1.id, volume2.id, volume3.id, volume4.id],
+    )
+    verify_filter(
+        "size",
+        str(volume2.size),
+        expected=volume2.id,
+        not_expected=[volume1.id, volume3.id, volume4.id],
+    )
+    verify_filter(
+        "snapshot-id",
+        snapshot.id,
+        expected=volume4.id,
+        not_expected=[volume1.id, volume2.id, volume3.id],
+    )
+    verify_filter(
+        "status",
+        "in-use",
+        not_expected=[volume1.id, volume2.id, volume3.id, volume4.id],
+    )
+    verify_filter(
+        "volume-id",
+        volume1.id,
+        expected=volume1.id,
+        not_expected=[volume2.id, volume3.id, volume4.id],
+    )
+    verify_filter("tag-key", tag_key1, expected=volume1.id)
+    verify_filter("tag-value", tag_val1, expected=volume1.id)
+    verify_filter(f"tag:{tag_key1}", tag_val1, expected=volume1.id)
+    verify_filter(
+        "encrypted",
+        "false",
+        expected=[block_volume, volume2.id],
+        not_expected=[volume1.id, volume3.id, volume4.id],
+    )
+    verify_filter(
+        "encrypted",
+        "true",
+        expected=[volume1.id, volume3.id, volume4.id],
+        not_expected=[block_volume, volume2.id],
+    )
+    verify_filter(
+        "availability-zone",
+        "us-east-1b",
+        expected=volume2.id,
+        not_expected=[volume1.id, volume3.id, volume4.id],
+    )
     #
     create_time = volume4.create_time.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     volumes_by_attach_device = client.describe_volumes(
@@ -634,10 +689,12 @@ def test_create_snapshot_boto3():
     num_snapshots = len(client.describe_snapshots()["Snapshots"])
 
     snapshot = volume.create_snapshot()
-    client.describe_snapshots()["Snapshots"].should.have.length_of(num_snapshots + 1)
+    current_snapshots = client.describe_snapshots()["Snapshots"]
+    [s["SnapshotId"] for s in current_snapshots].should.contain(snapshot.id)
 
     snapshot.delete()
-    client.describe_snapshots()["Snapshots"].should.have.length_of(num_snapshots)
+    current_snapshots = client.describe_snapshots()["Snapshots"]
+    [s["SnapshotId"] for s in current_snapshots].shouldnt.contain(snapshot.id)
 
     # Deleting something that was already deleted should throw an error
     with pytest.raises(ClientError) as ex:
@@ -814,36 +871,53 @@ def test_snapshot_filters_boto3():
     volume1 = ec2.create_volume(Size=20, AvailabilityZone="us-east-1a", Encrypted=False)
     volume2 = ec2.create_volume(Size=25, AvailabilityZone="us-east-1a", Encrypted=True)
 
-    snapshot1 = volume1.create_snapshot(Description="testsnapshot1")
+    snapshot1_desc = str(uuid4())
+
+    snapshot1 = volume1.create_snapshot(Description=snapshot1_desc)
     snapshot2 = volume1.create_snapshot(Description="testsnapshot2")
     snapshot3 = volume2.create_snapshot(Description="testsnapshot3")
 
+    key_name_1 = str(uuid4())[0:6]
+    key_value_1 = str(uuid4())[0:6]
+    key_name_2 = str(uuid4())[0:6]
+    key_value_2 = str(uuid4())[0:6]
     ec2.create_tags(
-        Resources=[snapshot1.id], Tags=[{"Key": "testkey1", "Value": "testvalue1"}]
+        Resources=[snapshot1.id], Tags=[{"Key": key_name_1, "Value": key_value_1}]
     )
     ec2.create_tags(
-        Resources=[snapshot2.id], Tags=[{"Key": "testkey2", "Value": "testvalue2"}]
+        Resources=[snapshot2.id], Tags=[{"Key": key_name_2, "Value": key_value_2}]
     )
 
-    def verify_filter(name, value, expected):
+    def verify_filter(name, value, expected, others=False):
         expected = expected if type(expected) == list else [expected]
         snapshots = client.describe_snapshots(
             Filters=[{"Name": name, "Values": [value]}]
         )["Snapshots"]
-        set([s["SnapshotId"] for s in snapshots]).should.equal(set(expected))
+        if others:
+            actual = set([s["SnapshotId"] for s in snapshots])
+            for e in expected:
+                actual.should.contain(e)
+        else:
+            set([s["SnapshotId"] for s in snapshots]).should.equal(set(expected))
 
-    verify_filter("description", "testsnapshot1", expected=snapshot1.id)
+    verify_filter("description", snapshot1_desc, expected=snapshot1.id)
     verify_filter("snapshot-id", snapshot1.id, expected=snapshot1.id)
     verify_filter("volume-id", volume1.id, expected=[snapshot1.id, snapshot2.id])
     verify_filter(
-        "volume-size", str(volume1.size), expected=[snapshot1.id, snapshot2.id]
+        "volume-size",
+        str(volume1.size),
+        expected=[snapshot1.id, snapshot2.id],
+        others=True,
     )
-    verify_filter("tag-key", "testkey1", expected=snapshot1.id)
-    verify_filter("tag-value", "testvalue1", expected=snapshot1.id)
-    verify_filter("tag:testkey2", "testvalue2", expected=snapshot2.id)
-    verify_filter("encrypted", "true", expected=snapshot3.id)
+    verify_filter("tag-key", key_name_1, expected=snapshot1.id)
+    verify_filter("tag-value", key_value_1, expected=snapshot1.id)
+    verify_filter(f"tag:{key_name_2}", key_value_2, expected=snapshot2.id)
+    verify_filter("encrypted", "true", expected=snapshot3.id, others=True)
     verify_filter(
-        "owner-id", OWNER_ID, expected=[snapshot1.id, snapshot2.id, snapshot3.id]
+        "owner-id",
+        OWNER_ID,
+        expected=[snapshot1.id, snapshot2.id, snapshot3.id],
+        others=True,
     )
     #
     # We should probably make this less strict, i.e. figure out which formats AWS expects/approves of
@@ -1427,10 +1501,7 @@ def test_create_unencrypted_volume_with_kms_key_fails():
 @mock_ec2
 def test_create_encrypted_volume_without_kms_key_should_use_default_key():
     kms = boto3.client("kms", region_name="us-east-1")
-    # Default master key for EBS does not exist until needed.
-    with pytest.raises(ClientError) as ex:
-        kms.describe_key(KeyId="alias/aws/ebs")
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
     # Creating an encrypted volume should create (and use) the default key.
     resource = boto3.resource("ec2", region_name="us-east-1")
     volume = resource.create_volume(

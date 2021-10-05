@@ -402,6 +402,9 @@ class Queue(CloudFormationModel):
         tags = properties.pop("Tags", [])
         tags_dict = tags_from_cloudformation_tags_list(tags)
 
+        # Could be passed as an integer - just treat it as a string
+        resource_name = str(resource_name)
+
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
             name=resource_name, tags=tags_dict, region=region_name, **properties

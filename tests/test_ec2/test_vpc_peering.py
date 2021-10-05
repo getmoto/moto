@@ -64,10 +64,18 @@ def test_vpc_peering_connections_get_all_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc_pcx = create_vpx_pcx(ec2, client)
+    vpc_pcx_id = vpc_pcx["VpcPeeringConnectionId"]
 
-    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]["Status"]["Code"].should.equal("pending-acceptance")
+    all_vpc_pcxs = retrieve_all(client)
+    [vpc_pcx["VpcPeeringConnectionId"] for vpc_pcx in all_vpc_pcxs].should.contain(
+        vpc_pcx_id
+    )
+    my_vpc_pcx = [
+        vpc_pcx
+        for vpc_pcx in all_vpc_pcxs
+        if vpc_pcx["VpcPeeringConnectionId"] == vpc_pcx_id
+    ][0]
+    my_vpc_pcx["Status"]["Code"].should.equal("pending-acceptance")
 
 
 # Has boto3 equivalent
@@ -108,9 +116,11 @@ def test_vpc_peering_connections_accept_boto3():
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidStateTransition")
 
-    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]["Status"]["Code"].should.equal("active")
+    my_vpc_pcxs = client.describe_vpc_peering_connections(
+        VpcPeeringConnectionIds=[vpc_pcx_id]
+    )["VpcPeeringConnections"]
+    my_vpc_pcxs.should.have.length_of(1)
+    my_vpc_pcxs[0]["Status"]["Code"].should.equal("active")
 
 
 # Has boto3 equivalent
@@ -149,9 +159,11 @@ def test_vpc_peering_connections_reject_boto3():
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidStateTransition")
 
-    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]["Status"]["Code"].should.equal("rejected")
+    my_pcxs = client.describe_vpc_peering_connections(
+        VpcPeeringConnectionIds=[vpc_pcx_id]
+    )["VpcPeeringConnections"]
+    my_pcxs.should.have.length_of(1)
+    my_pcxs[0]["Status"]["Code"].should.equal("rejected")
 
 
 # Has boto3 equivalent
@@ -184,9 +196,13 @@ def test_vpc_peering_connections_delete_boto3():
 
     client.delete_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
 
-    all_vpc_pcxs = client.describe_vpc_peering_connections()["VpcPeeringConnections"]
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]["Status"]["Code"].should.equal("deleted")
+    all_vpc_pcxs = retrieve_all(client)
+    [vpcx["VpcPeeringConnectionId"] for vpcx in all_vpc_pcxs].should.contain(vpc_pcx_id)
+
+    my_vpcx = [
+        vpcx for vpcx in all_vpc_pcxs if vpcx["VpcPeeringConnectionId"] == vpc_pcx_id
+    ][0]
+    my_vpcx["Status"]["Code"].should.equal("deleted")
 
     with pytest.raises(ClientError) as ex:
         client.delete_vpc_peering_connection(VpcPeeringConnectionId="pcx-1234abcd")
@@ -342,8 +358,10 @@ def test_describe_vpc_peering_connections_only_returns_requested_id():
     )
     # describe peering
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
-    all_pcx = ec2_usw1.describe_vpc_peering_connections()["VpcPeeringConnections"]
-    all_pcx.should.have.length_of(2)
+    our_vpcx = [vpcx["VpcPeeringConnectionId"] for vpcx in retrieve_all(ec2_usw1)]
+    our_vpcx.should.contain(vpc_pcx_usw1.id)
+    our_vpcx.should.contain(vpc_pcx_usw2.id)
+    our_vpcx.shouldnt.contain(vpc_apn1.id)
 
     both_pcx = ec2_usw1.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_usw1.id, vpc_pcx_usw2.id]
@@ -507,3 +525,14 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region():
         "rejected in region {2}".format("us-west-1", vpc_pcx_usw1.id, "ap-northeast-1")
     )
     cm.value.response["Error"]["Message"].should.equal(exp_msg)
+
+
+def retrieve_all(client):
+    resp = client.describe_vpc_peering_connections()
+    all_vpx = resp["VpcPeeringConnections"]
+    token = resp.get("NextToken")
+    while token:
+        resp = client.describe_vpc_peering_connections(NextToken=token)
+        all_vpx.extend(resp["VpcPeeringConnections"])
+        token = resp.get("NextToken")
+    return all_vpx

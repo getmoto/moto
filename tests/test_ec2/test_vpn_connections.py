@@ -52,14 +52,21 @@ def test_delete_vpn_connections_boto3():
         Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
     )["VpnConnection"]
 
-    cnx = client.describe_vpn_connections()["VpnConnections"]
-    cnx.should.have.length_of(1)
+    conns = retrieve_all_vpncs(client)
+    [c["VpnConnectionId"] for c in conns].should.contain(
+        vpn_connection["VpnConnectionId"]
+    )
 
     client.delete_vpn_connection(VpnConnectionId=vpn_connection["VpnConnectionId"])
 
-    cnx = client.describe_vpn_connections()["VpnConnections"]
-    cnx.should.have.length_of(1)
-    cnx[0].should.have.key("State").equal("deleted")
+    conns = retrieve_all_vpncs(client)
+    [c["VpnConnectionId"] for c in conns].should.contain(
+        vpn_connection["VpnConnectionId"]
+    )
+    my_cnx = [
+        c for c in conns if c["VpnConnectionId"] == vpn_connection["VpnConnectionId"]
+    ][0]
+    my_cnx.should.have.key("State").equal("deleted")
 
 
 # Has boto3 equivalent
@@ -125,7 +132,7 @@ def test_describe_vpn_connections_boto3():
     customer_gateway = client.create_customer_gateway(
         Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534,
     ).get("CustomerGateway", {})
-    client.create_vpn_connection(
+    vpn_connection1 = client.create_vpn_connection(
         Type="ipsec.1",
         VpnGatewayId=vpn_gateway["VpnGatewayId"],
         CustomerGatewayId=customer_gateway["CustomerGatewayId"],
@@ -136,8 +143,13 @@ def test_describe_vpn_connections_boto3():
         CustomerGatewayId=customer_gateway["CustomerGatewayId"],
     )["VpnConnection"]
 
-    conns = client.describe_vpn_connections()["VpnConnections"]
-    conns.should.have.length_of(2)
+    conns = retrieve_all_vpncs(client)
+    [c["VpnConnectionId"] for c in conns].should.contain(
+        vpn_connection1["VpnConnectionId"]
+    )
+    [c["VpnConnectionId"] for c in conns].should.contain(
+        vpn_connection2["VpnConnectionId"]
+    )
 
     conns = client.describe_vpn_connections(
         VpnConnectionIds=[vpn_connection2["VpnConnectionId"]]
@@ -159,3 +171,14 @@ def test_describe_vpn_connections_unknown():
     err = ex.value.response["Error"]
     err["Message"].should.equal("The vpnConnection ID '?' does not exist")
     err["Code"].should.equal("InvalidVpnConnectionID.NotFound")
+
+
+def retrieve_all_vpncs(client, filters=[]):
+    resp = client.describe_vpn_connections(Filters=filters)
+    all_vpncs = resp["VpnConnections"]
+    token = resp.get("NextToken")
+    while token:
+        resp = client.describe_vpn_connections(NextToken=token, Filters=filters)
+        all_vpncs.extend(resp["VpnConnections"])
+        token = resp.get("NextToken")
+    return all_vpncs

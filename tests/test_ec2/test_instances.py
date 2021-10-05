@@ -16,8 +16,10 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2, settings
+from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 
 decode_method = base64.decodebytes
@@ -44,10 +46,13 @@ def test_add_servers():
 @mock_ec2
 def test_add_servers_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
-    client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    for i in resp["Instances"]:
+        i["ImageId"].should.equal(EXAMPLE_AMI_ID)
 
-    reservations = client.describe_instances()["Reservations"]
-    instances = reservations[0]["Instances"]
+    instances = client.describe_instances(
+        InstanceIds=[i["InstanceId"] for i in resp["Instances"]]
+    )["Reservations"][0]["Instances"]
     instances.should.have.length_of(2)
     for i in instances:
         i["ImageId"].should.equal(EXAMPLE_AMI_ID)
@@ -133,7 +138,7 @@ def test_instance_launch_and_terminate_boto3():
     instance["State"].should.equal({"Code": 0, "Name": "pending"})
     instance_id = instance["InstanceId"]
 
-    reservations = client.describe_instances()["Reservations"]
+    reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
     reservations.should.have.length_of(1)
     reservations[0]["ReservationId"].should.equal(reservation["ReservationId"])
     instances = reservations[0]["Instances"]
@@ -171,7 +176,7 @@ def test_instance_launch_and_terminate_boto3():
 
     client.terminate_instances(InstanceIds=[instance_id])
 
-    reservations = client.describe_instances()["Reservations"]
+    reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
     instance = reservations[0]["Instances"][0]
     instance["State"].should.equal({"Code": 48, "Name": "terminated"})
 
@@ -201,7 +206,9 @@ def test_instance_terminate_discard_volumes():
     instance.terminate()
     instance.wait_until_terminated()
 
-    assert not list(ec2_resource.volumes.all())
+    all_volumes_ids = [v.id for v in list(ec2_resource.volumes.all())]
+    for my_id in instance_volume_ids:
+        all_volumes_ids.shouldnt.contain(my_id)
 
 
 @mock_ec2
@@ -229,7 +236,9 @@ def test_instance_terminate_keep_volumes_explicit():
     instance.terminate()
     instance.wait_until_terminated()
 
-    assert len(list(ec2_resource.volumes.all())) == 1
+    all_volumes_ids = [v.id for v in list(ec2_resource.volumes.all())]
+    for my_id in instance_volume_ids:
+        all_volumes_ids.should.contain(my_id)
 
 
 @mock_ec2
@@ -269,14 +278,18 @@ def test_instance_terminate_detach_volumes():
         ],
     )
     instance = result[0]
+    my_volume_ids = []
     for volume in instance.volumes.all():
+        my_volume_ids.append(volume.volume_id)
         response = instance.detach_volume(VolumeId=volume.volume_id)
         response["State"].should.equal("detaching")
 
     instance.terminate()
     instance.wait_until_terminated()
 
-    assert len(list(ec2_resource.volumes.all())) == 2
+    all_volumes_ids = [v.id for v in list(ec2_resource.volumes.all())]
+    for my_id in my_volume_ids:
+        all_volumes_ids.should.contain(my_id)
 
 
 @mock_ec2
@@ -452,17 +465,25 @@ def test_get_instances_by_id_boto3():
 def test_get_paginated_instances():
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
-    for i in range(100):
-        conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
-    resp = client.describe_instances(MaxResults=50)
-    reservations = resp["Reservations"]
-    reservations.should.have.length_of(50)
-    next_token = resp["NextToken"]
+    instances = []
+    for i in range(12):
+        instances.extend(
+            conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+        )
+    instance_ids = [i.id for i in instances]
+
+    resp1 = client.describe_instances(InstanceIds=instance_ids, MaxResults=5)
+    res1 = resp1["Reservations"]
+    res1.should.have.length_of(5)
+    next_token = resp1["NextToken"]
     next_token.should_not.be.none
-    resp2 = client.describe_instances(NextToken=next_token)
-    reservations.extend(resp2["Reservations"])
-    reservations.should.have.length_of(100)
-    assert "NextToken" not in resp2.keys()
+
+    resp2 = client.describe_instances(InstanceIds=instance_ids, NextToken=next_token)
+    resp2["Reservations"].should.have.length_of(7)  # 12 total - 5 from the first call
+    assert "NextToken" not in resp2  # This is it - no more pages
+
+    for i in instances:
+        i.terminate()
 
 
 @mock_ec2
@@ -566,14 +587,15 @@ def test_get_instances_filtering_by_state_boto3():
 
     client.terminate_instances(InstanceIds=[instance1.id])
 
-    reservations = client.describe_instances(
-        Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
-    )["Reservations"]
-    reservations.should.have.length_of(1)
+    instances = retrieve_all_instances(
+        client, [{"Name": "instance-state-name", "Values": ["running"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
     # Since we terminated instance1, only instance2 and instance3 should be
     # returned
-    instance_ids = [instance["InstanceId"] for instance in reservations[0]["Instances"]]
-    set(instance_ids).should.equal(set([instance2.id, instance3.id]))
+    instance_ids.shouldnt.contain(instance1.id)
+    instance_ids.should.contain(instance2.id)
+    instance_ids.should.contain(instance3.id)
 
     reservations = client.describe_instances(
         InstanceIds=[instance2.id],
@@ -590,8 +612,11 @@ def test_get_instances_filtering_by_state_boto3():
     reservations.should.equal([])
 
     # get_all_reservations should still return all 3
-    reservations = client.describe_instances()["Reservations"]
-    reservations[0]["Instances"].should.have.length_of(3)
+    instances = retrieve_all_instances(client, filters=[])
+    instance_ids = [i["InstanceId"] for i in instances]
+    instance_ids.should.contain(instance1.id)
+    instance_ids.should.contain(instance2.id)
+    instance_ids.should.contain(instance3.id)
 
     if not settings.TEST_SERVER_MODE:
         # ServerMode will just throw a generic 500
@@ -703,33 +728,26 @@ def test_get_instances_filtering_by_instance_type_boto3():
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, InstanceType="t1.micro"
     )[0]
 
-    res = client.describe_instances(
-        Filters=[{"Name": "instance-type", "Values": ["m1.small"]}]
-    )["Reservations"]
-    # get_all_reservations should return instance1,2
-    res.should.have.length_of(2)
-    res[0]["Instances"].should.have.length_of(1)
-    res[1]["Instances"].should.have.length_of(1)
-    instance_ids = [r["Instances"][0]["InstanceId"] for r in res]
-    set(instance_ids).should.equal(set([instance1.id, instance2.id]))
+    instances = retrieve_all_instances(
+        client, [{"Name": "instance-type", "Values": ["m1.small"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    set(instance_ids).should.contain(instance1.id)
+    set(instance_ids).should.contain(instance2.id)
 
-    res = client.describe_instances(
-        Filters=[{"Name": "instance-type", "Values": ["t1.micro"]}]
-    )["Reservations"]
-    # get_all_reservations should return one
-    res.should.have.length_of(1)
-    res[0]["Instances"].should.have.length_of(1)
-    res[0]["Instances"][0]["InstanceId"].should.equal(instance3.id)
+    instances = retrieve_all_instances(
+        client, [{"Name": "instance-type", "Values": ["t1.micro"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    instance_ids.should.contain(instance3.id)
 
-    res = client.describe_instances(
-        Filters=[{"Name": "instance-type", "Values": ["t1.micro", "m1.small"]}]
-    )["Reservations"]
-    res.should.have.length_of(3)
-    res[0]["Instances"].should.have.length_of(1)
-    res[1]["Instances"].should.have.length_of(1)
-    res[2]["Instances"].should.have.length_of(1)
-    instance_ids = [r["Instances"][0]["InstanceId"] for r in res]
-    set(instance_ids).should.equal(set([instance1.id, instance2.id, instance3.id]))
+    instances = retrieve_all_instances(
+        client, [{"Name": "instance-type", "Values": ["t1.micro", "m1.small"]}]
+    )
+    instance_ids = [i["InstanceId"] for i in instances]
+    instance_ids.should.contain(instance1.id)
+    instance_ids.should.contain(instance2.id)
+    instance_ids.should.contain(instance3.id)
 
     res = client.describe_instances(
         Filters=[{"Name": "instance-type", "Values": ["bogus"]}]
@@ -770,23 +788,22 @@ def test_get_instances_filtering_by_reason_code_boto3():
     instance1.stop()
     instance2.terminate()
 
-    res = client.describe_instances(
-        Filters=[
-            {"Name": "state-reason-code", "Values": ["Client.UserInitiatedShutdown"]}
-        ]
-    )["Reservations"]
-    # get_all_reservations should return instance1 and instance2
-    res[0]["Instances"].should.have.length_of(2)
-    set([instance1.id, instance2.id]).should.equal(
-        set([i["InstanceId"] for i in res[0]["Instances"]])
-    )
+    filters = [
+        {"Name": "state-reason-code", "Values": ["Client.UserInitiatedShutdown"]}
+    ]
+    instances = retrieve_all_instances(client, filters)
+    instance_ids = [i["InstanceId"] for i in instances]
 
-    res = client.describe_instances(
-        Filters=[{"Name": "state-reason-code", "Values": [""]}]
-    )["Reservations"]
-    # get_all_reservations should return instance 3
-    res[0]["Instances"].should.have.length_of(1)
-    res[0]["Instances"][0]["InstanceId"].should.equal(instance3.id)
+    instance_ids.should.contain(instance1.id)
+    instance_ids.should.contain(instance2.id)
+    instance_ids.shouldnt.contain(instance3.id)
+
+    filters = [{"Name": "state-reason-code", "Values": [""]}]
+    instances = retrieve_all_instances(client, filters)
+    instance_ids = [i["InstanceId"] for i in instances]
+    instance_ids.should.contain(instance3.id)
+    instance_ids.shouldnt.contain(instance1.id)
+    instance_ids.shouldnt.contain(instance2.id)
 
 
 # Has boto3 equivalent
@@ -823,18 +840,18 @@ def test_get_instances_filtering_by_source_dest_check_boto3():
         InstanceId=instance1.id, SourceDestCheck={"Value": False}
     )
 
-    check_false = client.describe_instances(
-        Filters=[{"Name": "source-dest-check", "Values": ["false"]}]
-    )["Reservations"]
-    check_true = client.describe_instances(
-        Filters=[{"Name": "source-dest-check", "Values": ["true"]}]
-    )["Reservations"]
+    instances_false = retrieve_all_instances(
+        client, [{"Name": "source-dest-check", "Values": ["false"]}]
+    )
+    instances_true = retrieve_all_instances(
+        client, [{"Name": "source-dest-check", "Values": ["true"]}]
+    )
 
-    check_false[0]["Instances"].should.have.length_of(1)
-    check_false[0]["Instances"][0]["InstanceId"].should.equal(instance1.id)
+    [i["InstanceId"] for i in instances_false].should.contain(instance1.id)
+    [i["InstanceId"] for i in instances_false].shouldnt.contain(instance2.id)
 
-    check_true[0]["Instances"].should.have.length_of(1)
-    check_true[0]["Instances"][0]["InstanceId"].should.equal(instance2.id)
+    [i["InstanceId"] for i in instances_true].shouldnt.contain(instance1.id)
+    [i["InstanceId"] for i in instances_true].should.contain(instance2.id)
 
 
 # Has boto3 equivalent
@@ -937,20 +954,20 @@ def test_get_instances_filtering_by_image_id():
     reservations = client.describe_instances(
         Filters=[{"Name": "image-id", "Values": [EXAMPLE_AMI_ID]}]
     )["Reservations"]
-    reservations[0]["Instances"].should.have.length_of(1)
+    assert len(reservations[0]["Instances"]) >= 1, "Should return just created instance"
 
 
 @mock_ec2
 def test_get_instances_filtering_by_account_id():
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
-    conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
-    reservations = client.describe_instances(
-        Filters=[{"Name": "owner-id", "Values": ["123456789012"]}]
-    )["Reservations"]
+    instances = retrieve_all_instances(
+        client, filters=[{"Name": "owner-id", "Values": [ACCOUNT_ID]}]
+    )
 
-    reservations[0]["Instances"].should.have.length_of(1)
+    [i["InstanceId"] for i in instances].should.contain(instance.id)
 
 
 @mock_ec2
@@ -987,12 +1004,13 @@ def test_get_instances_filtering_by_ni_private_dns():
 @mock_ec2
 def test_get_instances_filtering_by_instance_group_name():
     client = boto3.client("ec2", region_name="us-east-1")
-    client.create_security_group(Description="test", GroupName="test_sg")
+    sec_group_name = str(uuid4())[0:6]
+    client.create_security_group(Description="test", GroupName=sec_group_name)
     client.run_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=["test_sg"]
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=[sec_group_name]
     )
     reservations = client.describe_instances(
-        Filters=[{"Name": "instance.group-name", "Values": ["test_sg"]}]
+        Filters=[{"Name": "instance.group-name", "Values": [sec_group_name]}]
     )["Reservations"]
     reservations[0]["Instances"].should.have.length_of(1)
 
@@ -1000,10 +1018,13 @@ def test_get_instances_filtering_by_instance_group_name():
 @mock_ec2
 def test_get_instances_filtering_by_instance_group_id():
     client = boto3.client("ec2", region_name="us-east-1")
-    create_sg = client.create_security_group(Description="test", GroupName="test_sg")
+    sec_group_name = str(uuid4())[0:6]
+    create_sg = client.create_security_group(
+        Description="test", GroupName=sec_group_name
+    )
     group_id = create_sg["GroupId"]
     client.run_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=["test_sg"]
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=[sec_group_name]
     )
     reservations = client.describe_instances(
         Filters=[{"Name": "instance.group-id", "Values": [group_id]}]
@@ -1088,11 +1109,17 @@ def test_get_instances_filtering_by_tag_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
     instance1, instance2, instance3 = reservation
-    instance1.create_tags(Tags=[{"Key": "tag1", "Value": "value1"}])
-    instance1.create_tags(Tags=[{"Key": "tag2", "Value": "value2"}])
-    instance2.create_tags(Tags=[{"Key": "tag1", "Value": "value1"}])
-    instance2.create_tags(Tags=[{"Key": "tag2", "Value": "wrong value"}])
-    instance3.create_tags(Tags=[{"Key": "tag2", "Value": "value2"}])
+
+    tag1_name = str(uuid4())[0:6]
+    tag1_val = str(uuid4())
+    tag2_name = str(uuid4())[0:6]
+    tag2_val = str(uuid4())
+
+    instance1.create_tags(Tags=[{"Key": tag1_name, "Value": tag1_val}])
+    instance1.create_tags(Tags=[{"Key": tag2_name, "Value": tag2_val}])
+    instance2.create_tags(Tags=[{"Key": tag1_name, "Value": tag1_val}])
+    instance2.create_tags(Tags=[{"Key": tag2_name, "Value": "wrong value"}])
+    instance3.create_tags(Tags=[{"Key": tag2_name, "Value": tag2_val}])
 
     res = client.describe_instances(
         Filters=[{"Name": "tag:tag0", "Values": ["value0"]}]
@@ -1101,7 +1128,7 @@ def test_get_instances_filtering_by_tag_boto3():
     res["Reservations"].should.have.length_of(0)
 
     res = client.describe_instances(
-        Filters=[{"Name": "tag:tag1", "Values": ["value1"]}]
+        Filters=[{"Name": f"tag:{tag1_name}", "Values": [tag1_val]}]
     )
     # describe_instances should return both instances with this tag value
     res["Reservations"].should.have.length_of(1)
@@ -1111,8 +1138,8 @@ def test_get_instances_filtering_by_tag_boto3():
 
     res = client.describe_instances(
         Filters=[
-            {"Name": "tag:tag1", "Values": ["value1"]},
-            {"Name": "tag:tag2", "Values": ["value2"]},
+            {"Name": f"tag:{tag1_name}", "Values": [tag1_val]},
+            {"Name": f"tag:{tag2_name}", "Values": [tag2_val]},
         ]
     )
     # describe_instances should return the instance with both tag values
@@ -1121,7 +1148,7 @@ def test_get_instances_filtering_by_tag_boto3():
     res["Reservations"][0]["Instances"][0]["InstanceId"].should.equal(instance1.id)
 
     res = client.describe_instances(
-        Filters=[{"Name": "tag:tag2", "Values": ["value2", "bogus"]}]
+        Filters=[{"Name": f"tag:{tag2_name}", "Values": [tag2_val, "bogus"]}]
     )
     # describe_instances should return both instances with one of the
     # acceptable tag values
@@ -1180,11 +1207,16 @@ def test_get_instances_filtering_by_tag_value_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
     instance1, instance2, instance3 = reservation
-    instance1.create_tags(Tags=[{"Key": "tag1", "Value": "value1"}])
-    instance1.create_tags(Tags=[{"Key": "tag2", "Value": "value2"}])
-    instance2.create_tags(Tags=[{"Key": "tag1", "Value": "value1"}])
-    instance2.create_tags(Tags=[{"Key": "tag2", "Value": "wrong value"}])
-    instance3.create_tags(Tags=[{"Key": "tag2", "Value": "value2"}])
+
+    tag1_name = str(uuid4())[0:6]
+    tag1_val = str(uuid4())
+    tag2_name = str(uuid4())[0:6]
+    tag2_val = str(uuid4())
+    instance1.create_tags(Tags=[{"Key": tag1_name, "Value": tag1_val}])
+    instance1.create_tags(Tags=[{"Key": tag2_name, "Value": tag2_val}])
+    instance2.create_tags(Tags=[{"Key": tag1_name, "Value": tag1_val}])
+    instance2.create_tags(Tags=[{"Key": tag2_name, "Value": "wrong value"}])
+    instance3.create_tags(Tags=[{"Key": tag2_name, "Value": tag2_val}])
 
     res = client.describe_instances(
         Filters=[{"Name": "tag-value", "Values": ["value0"]}]
@@ -1193,7 +1225,7 @@ def test_get_instances_filtering_by_tag_value_boto3():
     res["Reservations"].should.have.length_of(0)
 
     res = client.describe_instances(
-        Filters=[{"Name": "tag-value", "Values": ["value1"]}]
+        Filters=[{"Name": "tag-value", "Values": [tag1_val]}]
     )
     # describe_instances should return both instances with this tag value
     res["Reservations"].should.have.length_of(1)
@@ -1202,7 +1234,7 @@ def test_get_instances_filtering_by_tag_value_boto3():
     res["Reservations"][0]["Instances"][1]["InstanceId"].should.equal(instance2.id)
 
     res = client.describe_instances(
-        Filters=[{"Name": "tag-value", "Values": ["value2", "value1"]}]
+        Filters=[{"Name": "tag-value", "Values": [tag2_val, tag1_val]}]
     )
     # describe_instances should return both instances with one of the
     # acceptable tag values
@@ -1213,7 +1245,7 @@ def test_get_instances_filtering_by_tag_value_boto3():
     res["Reservations"][0]["Instances"][2]["InstanceId"].should.equal(instance3.id)
 
     res = client.describe_instances(
-        Filters=[{"Name": "tag-value", "Values": ["value2", "bogus"]}]
+        Filters=[{"Name": "tag-value", "Values": [tag2_val, "bogus"]}]
     )
     # describe_instances should return both instances with one of the
     # acceptable tag values
@@ -1262,17 +1294,21 @@ def test_get_instances_filtering_by_tag_name_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
     instance1, instance2, instance3 = reservation
-    instance1.create_tags(Tags=[{"Key": "tag1", "Value": ""}])
+
+    tag1 = str(uuid4())
+    tag3 = str(uuid4())
+
+    instance1.create_tags(Tags=[{"Key": tag1, "Value": ""}])
     instance1.create_tags(Tags=[{"Key": "tag2", "Value": ""}])
-    instance2.create_tags(Tags=[{"Key": "tag1", "Value": ""}])
+    instance2.create_tags(Tags=[{"Key": tag1, "Value": ""}])
     instance2.create_tags(Tags=[{"Key": "tag2X", "Value": ""}])
-    instance3.create_tags(Tags=[{"Key": "tag3", "Value": ""}])
+    instance3.create_tags(Tags=[{"Key": tag3, "Value": ""}])
 
     res = client.describe_instances(Filters=[{"Name": "tag-key", "Values": ["tagX"]}])
     # describe_instances should return no instances
     res["Reservations"].should.have.length_of(0)
 
-    res = client.describe_instances(Filters=[{"Name": "tag-key", "Values": ["tag1"]}])
+    res = client.describe_instances(Filters=[{"Name": "tag-key", "Values": [tag1]}])
     # describe_instances should return both instances with this tag value
     res["Reservations"].should.have.length_of(1)
     res["Reservations"][0]["Instances"].should.have.length_of(2)
@@ -1280,7 +1316,7 @@ def test_get_instances_filtering_by_tag_name_boto3():
     res["Reservations"][0]["Instances"][1]["InstanceId"].should.equal(instance2.id)
 
     res = client.describe_instances(
-        Filters=[{"Name": "tag-key", "Values": ["tag1", "tag3"]}]
+        Filters=[{"Name": "tag-key", "Values": [tag1, tag3]}]
     )
     # describe_instances should return both instances with one of the
     # acceptable tag values
@@ -1501,10 +1537,10 @@ def test_modify_instance_attribute_security_groups_boto3():
     old_groups.should.equal([])
 
     sg_id = ec2.create_security_group(
-        GroupName="test security group", Description="this is a test security group"
+        GroupName=str(uuid4()), Description="this is a test security group"
     ).id
     sg_id2 = ec2.create_security_group(
-        GroupName="test security group 2", Description="this is a test security group 2"
+        GroupName=str(uuid4()), Description="this is a test security group 2"
     ).id
 
     with pytest.raises(ClientError) as ex:
@@ -1697,8 +1733,12 @@ def test_run_instance_with_security_group_name():
 def test_run_instance_with_security_group_name_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
+    sec_group_name = str(uuid4())[0:6]
+
     with pytest.raises(ClientError) as ex:
-        ec2.create_security_group(GroupName="group1", Description="d", DryRun=True)
+        ec2.create_security_group(
+            GroupName=sec_group_name, Description="d", DryRun=True
+        )
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Message"].should.equal(
@@ -1706,16 +1746,16 @@ def test_run_instance_with_security_group_name_boto3():
     )
 
     group = ec2.create_security_group(
-        GroupName="group1", Description="some description"
+        GroupName=sec_group_name, Description="some description"
     )
 
     res = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=["group1"]
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=[sec_group_name]
     )
     instance = res[0]
 
     instance.security_groups.should.equal(
-        [{"GroupName": "group1", "GroupId": group.id}]
+        [{"GroupName": sec_group_name, "GroupId": group.id}]
     )
 
 
@@ -1734,15 +1774,16 @@ def test_run_instance_with_security_group_id():
 @mock_ec2
 def test_run_instance_with_security_group_id_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
+    sec_group_name = str(uuid4())
     group = ec2.create_security_group(
-        GroupName="group1", Description="some description"
+        GroupName=sec_group_name, Description="some description"
     )
     instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroupIds=[group.id]
     )[0]
 
     instance.security_groups.should.equal(
-        [{"GroupName": "group1", "GroupId": group.id}]
+        [{"GroupName": sec_group_name, "GroupId": group.id}]
     )
 
 
@@ -1955,10 +1996,10 @@ def test_run_instance_with_nic_autocreated_boto3():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
     security_group1 = ec2.create_security_group(
-        GroupName="test security group #1", Description="n/a"
+        GroupName=str(uuid4()), Description="n/a"
     )
     security_group2 = ec2.create_security_group(
-        GroupName="test security group #2", Description="n/a"
+        GroupName=str(uuid4()), Description="n/a"
     )
     private_ip = "10.0.0.1"
 
@@ -1972,13 +2013,16 @@ def test_run_instance_with_nic_autocreated_boto3():
         PrivateIpAddress=private_ip,
     )[0]
 
-    all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
-    all_enis.should.have.length_of(1)
-    eni = all_enis[0]
-
     instance_eni = instance.network_interfaces_attribute
     instance_eni.should.have.length_of(1)
-    instance_eni[0]["NetworkInterfaceId"].should.equal(eni["NetworkInterfaceId"])
+
+    nii = instance_eni[0]["NetworkInterfaceId"]
+
+    my_enis = client.describe_network_interfaces(NetworkInterfaceIds=[nii])[
+        "NetworkInterfaces"
+    ]
+    my_enis.should.have.length_of(1)
+    eni = my_enis[0]
 
     instance.subnet_id.should.equal(subnet.id)
     instance.security_groups.should.have.length_of(2)
@@ -2057,10 +2101,10 @@ def test_run_instance_with_nic_preexisting_boto3():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
     security_group1 = ec2.create_security_group(
-        GroupName="test security group #1", Description="n/a"
+        GroupName=str(uuid4()), Description="n/a"
     )
     security_group2 = ec2.create_security_group(
-        GroupName="test security group #2", Description="n/a"
+        GroupName=str(uuid4()), Description="n/a"
     )
     private_ip = "54.0.0.1"
     eni = ec2.create_network_interface(
@@ -2080,7 +2124,11 @@ def test_run_instance_with_nic_preexisting_boto3():
 
     instance.subnet_id.should.equal(subnet.id)
 
-    all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
+    nii = instance.network_interfaces_attribute[0]["NetworkInterfaceId"]
+
+    all_enis = client.describe_network_interfaces(NetworkInterfaceIds=[nii])[
+        "NetworkInterfaces"
+    ]
     all_enis.should.have.length_of(1)
 
     instance_enis = instance.network_interfaces_attribute
@@ -2186,10 +2234,10 @@ def test_instance_with_nic_attach_detach_boto3():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
     security_group1 = ec2.create_security_group(
-        GroupName="test security group #1", Description="n/a"
+        GroupName=str(uuid4()), Description="n/a"
     )
     security_group2 = ec2.create_security_group(
-        GroupName="test security group #2", Description="n/a"
+        GroupName=str(uuid4()), Description="n/a"
     )
 
     instance = ec2.create_instances(
@@ -2342,9 +2390,9 @@ def test_run_instance_with_block_device_mappings():
         "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": 50}}],
     }
 
-    ec2_client.run_instances(**kwargs)
+    instance_id = ec2_client.run_instances(**kwargs)["Instances"][0]["InstanceId"]
 
-    instances = ec2_client.describe_instances()
+    instances = ec2_client.describe_instances(InstanceIds=[instance_id])
     volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
         "Ebs"
     ]
@@ -2421,9 +2469,10 @@ def test_run_instance_with_block_device_mappings_from_snapshot():
         ],
     }
 
-    ec2_client.run_instances(**kwargs)
+    resp = ec2_client.run_instances(**kwargs)
+    instance_id = resp["Instances"][0]["InstanceId"]
 
-    instances = ec2_client.describe_instances()
+    instances = ec2_client.describe_instances(InstanceIds=[instance_id])
     volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
         "Ebs"
     ]
@@ -2444,6 +2493,8 @@ def test_describe_instance_status_no_instances():
 
 @mock_ec2
 def test_describe_instance_status_no_instances_boto3():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", region_name="us-east-1")
     all_status = client.describe_instance_status()["InstanceStatuses"]
     all_status.should.have.length_of(0)
@@ -2465,12 +2516,15 @@ def test_describe_instance_status_with_instances():
 def test_describe_instance_status_with_instances_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
-    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
+    instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
     all_status = client.describe_instance_status()["InstanceStatuses"]
-    all_status.should.have.length_of(1)
-    all_status[0]["InstanceStatus"]["Status"].should.equal("ok")
-    all_status[0]["SystemStatus"]["Status"].should.equal("ok")
+    instance_ids = [s["InstanceId"] for s in all_status]
+    instance_ids.should.contain(instance.id)
+
+    my_status = [s for s in all_status if s["InstanceId"] == instance.id][0]
+    my_status["InstanceStatus"]["Status"].should.equal("ok")
+    my_status["SystemStatus"]["Status"].should.equal("ok")
 
 
 # Has boto3 equivalent
@@ -2564,19 +2618,26 @@ def test_describe_instance_status_with_instance_filter():
         IncludeAllInstances=True, Filters=state_name_filter["running_and_stopped"]
     )["InstanceStatuses"]
     found_instance_ids = [status["InstanceId"] for status in found_statuses]
-    sorted(found_instance_ids).should.equal(all_instance_ids)
+    for _id in all_instance_ids:
+        found_instance_ids.should.contain(_id)
 
     found_statuses = conn.describe_instance_status(
         IncludeAllInstances=True, Filters=state_name_filter["running"]
     )["InstanceStatuses"]
     found_instance_ids = [status["InstanceId"] for status in found_statuses]
-    sorted(found_instance_ids).should.equal(running_instance_ids)
+    for _id in stopped_instance_ids:
+        found_instance_ids.shouldnt.contain(_id)
+    for _id in running_instance_ids:
+        found_instance_ids.should.contain(_id)
 
     found_statuses = conn.describe_instance_status(
         IncludeAllInstances=True, Filters=state_name_filter["stopped"]
     )["InstanceStatuses"]
     found_instance_ids = [status["InstanceId"] for status in found_statuses]
-    sorted(found_instance_ids).should.equal(stopped_instance_ids)
+    for _id in stopped_instance_ids:
+        found_instance_ids.should.contain(_id)
+    for _id in running_instance_ids:
+        found_instance_ids.shouldnt.contain(_id)
 
     # Filter instance using the state code
     state_code_filter = {
@@ -2591,19 +2652,26 @@ def test_describe_instance_status_with_instance_filter():
         IncludeAllInstances=True, Filters=state_code_filter["running_and_stopped"]
     )["InstanceStatuses"]
     found_instance_ids = [status["InstanceId"] for status in found_statuses]
-    sorted(found_instance_ids).should.equal(all_instance_ids)
+    for _id in all_instance_ids:
+        found_instance_ids.should.contain(_id)
 
     found_statuses = conn.describe_instance_status(
         IncludeAllInstances=True, Filters=state_code_filter["running"]
     )["InstanceStatuses"]
     found_instance_ids = [status["InstanceId"] for status in found_statuses]
-    sorted(found_instance_ids).should.equal(running_instance_ids)
+    for _id in stopped_instance_ids:
+        found_instance_ids.shouldnt.contain(_id)
+    for _id in running_instance_ids:
+        found_instance_ids.should.contain(_id)
 
     found_statuses = conn.describe_instance_status(
         IncludeAllInstances=True, Filters=state_code_filter["stopped"]
     )["InstanceStatuses"]
     found_instance_ids = [status["InstanceId"] for status in found_statuses]
-    sorted(found_instance_ids).should.equal(stopped_instance_ids)
+    for _id in stopped_instance_ids:
+        found_instance_ids.should.contain(_id)
+    for _id in running_instance_ids:
+        found_instance_ids.shouldnt.contain(_id)
 
 
 # Has boto3 equivalent
@@ -2644,14 +2712,23 @@ def test_describe_instance_status_with_non_running_instances_boto3():
     instance2.terminate()
 
     all_running_status = client.describe_instance_status()["InstanceStatuses"]
-    all_running_status.should.have.length_of(1)
-    all_running_status[0]["InstanceId"].should.equal(instance3.id)
-    all_running_status[0]["InstanceState"].should.equal({"Code": 16, "Name": "running"})
+    [status["InstanceId"] for status in all_running_status].shouldnt.contain(
+        instance1.id
+    )
+    [status["InstanceId"] for status in all_running_status].shouldnt.contain(
+        instance2.id
+    )
+    [status["InstanceId"] for status in all_running_status].should.contain(instance3.id)
+
+    my_status = [s for s in all_running_status if s["InstanceId"] == instance3.id][0]
+    my_status["InstanceState"].should.equal({"Code": 16, "Name": "running"})
 
     all_status = client.describe_instance_status(IncludeAllInstances=True)[
         "InstanceStatuses"
     ]
-    all_status.should.have.length_of(3)
+    [status["InstanceId"] for status in all_status].should.contain(instance1.id)
+    [status["InstanceId"] for status in all_status].should.contain(instance2.id)
+    [status["InstanceId"] for status in all_status].should.contain(instance3.id)
 
     status1 = next((s for s in all_status if s["InstanceId"] == instance1.id), None)
     status1["InstanceState"].should.equal({"Code": 80, "Name": "stopped"})
@@ -2698,7 +2775,9 @@ def test_get_instance_by_security_group_boto3():
 
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
-    security_group = ec2.create_security_group(GroupName="test", Description="test")
+    security_group = ec2.create_security_group(
+        GroupName=str(uuid4())[0:6], Description="test"
+    )
 
     with pytest.raises(ClientError) as ex:
         client.modify_instance_attribute(
@@ -2762,14 +2841,21 @@ def test_create_instance_ebs_optimized():
 def test_run_multiple_instances_in_same_command():
     instance_count = 4
     client = boto3.client("ec2", region_name="us-east-1")
-    client.run_instances(
+    instances = client.run_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=instance_count, MaxCount=instance_count
     )
-    reservations = client.describe_instances()["Reservations"]
+    reservation_id = instances["ReservationId"]
 
-    reservations[0]["Instances"].should.have.length_of(instance_count)
+    # TODO: use this filter when implemented
+    # client.describe_instances(Filters=[{"Name": "reservation-id", "Values": [instances["ReservationId"]]}])["Reservations"]
+    all_reservations = retrieve_all_reservations(client)
+    my_reservation = [
+        r for r in all_reservations if r["ReservationId"] == reservation_id
+    ][0]
 
-    instances = reservations[0]["Instances"]
+    my_reservation["Instances"].should.have.length_of(instance_count)
+
+    instances = my_reservation["Instances"]
     for i in range(0, instance_count):
         instances[i]["AmiLaunchIndex"].should.be(i)
 
@@ -2778,17 +2864,15 @@ def test_run_multiple_instances_in_same_command():
 def test_describe_instance_attribute():
     client = boto3.client("ec2", region_name="us-east-1")
     security_group_id = client.create_security_group(
-        GroupName="test security group", Description="this is a test security group"
+        GroupName=str(uuid4()), Description="this is a test security group"
     )["GroupId"]
-    client.run_instances(
+    resp = client.run_instances(
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         SecurityGroupIds=[security_group_id],
     )
-    instance_id = client.describe_instances()["Reservations"][0]["Instances"][0][
-        "InstanceId"
-    ]
+    instance_id = resp["Instances"][0]["InstanceId"]
 
     valid_instance_attributes = [
         "instanceType",
@@ -2855,7 +2939,8 @@ def test_warn_on_invalid_ami():
 def test_filter_wildcard_in_specified_tag_only():
     ec2_client = boto3.client("ec2", region_name="us-west-1")
 
-    tags_name = [{"Key": "Name", "Value": "alice in wonderland"}]
+    name = str(uuid4())[0:6]
+    tags_name = [{"Key": "Name", "Value": f"{name} in wonderland"}]
     ec2_client.run_instances(
         ImageId=EXAMPLE_AMI_ID,
         MaxCount=1,
@@ -2863,7 +2948,7 @@ def test_filter_wildcard_in_specified_tag_only():
         TagSpecifications=[{"ResourceType": "instance", "Tags": tags_name}],
     )
 
-    tags_owner = [{"Key": "Owner", "Value": "alice in wonderland"}]
+    tags_owner = [{"Key": "Owner", "Value": f"{name} in wonderland"}]
     ec2_client.run_instances(
         ImageId=EXAMPLE_AMI_ID,
         MaxCount=1,
@@ -2873,7 +2958,7 @@ def test_filter_wildcard_in_specified_tag_only():
 
     # should only match the Name tag
     response = ec2_client.describe_instances(
-        Filters=[{"Name": "tag:Name", "Values": ["*alice*"]}]
+        Filters=[{"Name": "tag:Name", "Values": [f"*{name}*"]}]
     )
     instances = [i for r in response["Reservations"] for i in r["Instances"]]
     instances.should.have.length_of(1)
@@ -2946,8 +3031,7 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
     )
 
     template = client.create_launch_template(
-        LaunchTemplateName="test-template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
+        LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
     )["LaunchTemplate"]
 
     with pytest.warns(None) as captured_warnings:
@@ -2958,3 +3042,19 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
         )
 
     assert len(captured_warnings) == 0
+
+
+def retrieve_all_reservations(client, filters=[]):
+    resp = client.describe_instances(Filters=filters)
+    all_reservations = resp["Reservations"]
+    next_token = resp.get("NextToken")
+    while next_token:
+        resp = client.describe_instances(Filters=filters, NextToken=next_token)
+        all_reservations.extend(resp["Reservations"])
+        next_token = resp.get("NextToken")
+    return all_reservations
+
+
+def retrieve_all_instances(client, filters=[]):
+    reservations = retrieve_all_reservations(client, filters)
+    return [i for r in reservations for i in r["Instances"]]

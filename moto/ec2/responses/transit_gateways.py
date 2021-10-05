@@ -39,8 +39,11 @@ class TransitGateways(BaseResponse):
         return template.render(transit_gateway=transit_gateway)
 
     def describe_transit_gateways(self):
+        transit_gateway_ids = self._get_multi_param("TransitGatewayIds")
         filters = filters_from_querystring(self.querystring)
-        transit_gateways = self.ec2_backend.describe_transit_gateways(filters)
+        transit_gateways = self.ec2_backend.describe_transit_gateways(
+            filters, transit_gateway_ids
+        )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_RESPONSE)
         return template.render(transit_gateways=transit_gateways)
 
