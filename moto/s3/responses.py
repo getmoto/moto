@@ -1586,7 +1586,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             default_retention = default_retention.get("DefaultRetention")
             mode = default_retention["Mode"]
             days = int(default_retention.get("Days", 0))
-            years = int(default_retention("Years", 0))
+            years = int(default_retention.get("Years", 0))
 
             if days and years:
                 raise MalformedXML
