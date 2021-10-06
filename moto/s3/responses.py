@@ -832,10 +832,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name, self._acl_from_headers(request.headers)
                 )
 
-            if request.headers.get("x-amz-bucket-object-lock-enabled", "") in [
-                "true",
-                "True",
-            ]:
+            if (
+                request.headers.get("x-amz-bucket-object-lock-enabled", "").lower()
+                == "true"
+            ):
                 new_bucket.object_lock_enabled = True
                 new_bucket.versioning_status = "Enabled"
 
@@ -1585,10 +1585,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if default_retention:
             default_retention = default_retention.get("DefaultRetention")
             mode = default_retention["Mode"]
-            days = int(default_retention["Days"]) if "Days" in default_retention else 0
-            years = (
-                int(default_retention["Years"]) if "Years" in default_retention else 0
-            )
+            days = int(default_retention.get("Days", 0))
+            years = int(default_retention("Years", 0))
 
             if days and years:
                 raise MalformedXML
