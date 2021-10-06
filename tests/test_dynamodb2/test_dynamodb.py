@@ -2888,6 +2888,16 @@ def test_condition_expressions():
         )
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException):
+        client.update_item(
+            TableName="test1",
+            Key={"client": {"S": "client2"}, "app": {"S": "app1"}},
+            UpdateExpression="set #match=:match",
+            ConditionExpression="attribute_exists(#existing)",
+            ExpressionAttributeValues={":match": {"S": "match"}},
+            ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
+        )
+
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.delete_item(
             TableName="test1",
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
