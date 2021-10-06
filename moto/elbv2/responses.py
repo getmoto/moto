@@ -872,7 +872,9 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
           {% endfor %}
         </Certificates>
         {% endif %}
+        {% if listener.port %}
         <Port>{{ listener.port }}</Port>
+        {% endif %}
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
         <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
