@@ -1598,6 +1598,9 @@ class S3Backend(BaseBackend):
     def get_object_acl(self, key):
         return key.acl
 
+    def get_object_legal_hold(self, key):
+        return key.lock_legal_status
+
     def get_object_lock_configuration(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return (
@@ -1631,7 +1634,7 @@ class S3Backend(BaseBackend):
         )
 
     def put_object_lock_configuration(
-        self, bucket_name, lock_enabled, mode, days, years
+        self, bucket_name, lock_enabled, mode=None, days=None, years=None
     ):
         bucket = self.get_bucket(bucket_name)
 
@@ -1861,7 +1864,7 @@ class S3Backend(BaseBackend):
         key = self.get_object(bucket_name, key_name, version_id=version_id)
         self.tagger.delete_all_tags_for_resource(key.arn)
 
-    def delete_object(self, bucket_name, key_name, version_id=None):
+    def delete_object(self, bucket_name, key_name, version_id=None, bypass=False):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
@@ -1882,7 +1885,11 @@ class S3Backend(BaseBackend):
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
 
-                            if hasattr(key, "is_locked") and key.is_locked:
+                            if (
+                                hasattr(key, "is_locked")
+                                and key.is_locked
+                                and not bypass
+                            ):
                                 raise AccessDeniedByLock
 
                             if type(key) is FakeDeleteMarker:

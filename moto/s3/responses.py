@@ -692,12 +692,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
             self.backend.put_object_lock_configuration(
                 bucket_name,
-                config["enabled"],
-                config["mode"],
-                config["days"],
-                config["years"],
+                config.get("enabled"),
+                config.get("mode"),
+                config.get("days"),
+                config.get("years"),
             )
-            return ""
+            return 200, {}, ""
 
         if "versioning" in querystring:
             ver = re.search("<Status>([A-Za-z]+)</Status>", body.decode())
@@ -832,7 +832,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name, self._acl_from_headers(request.headers)
                 )
 
-            if request.headers.get("x-amz-bucket-object-lock-enabled", "") == "True":
+            if (
+                request.headers.get("x-amz-bucket-object-lock-enabled", "").lower()
+                == "true"
+            ):
                 new_bucket.object_lock_enabled = True
                 new_bucket.versioning_status = "Enabled"
 
@@ -1224,7 +1227,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 bucket_name, query, key_name, headers=request.headers
             )
         elif method == "DELETE":
-            return self._key_response_delete(bucket_name, query, key_name)
+            return self._key_response_delete(headers, bucket_name, query, key_name)
         elif method == "POST":
             return self._key_response_post(request, body, bucket_name, query, key_name)
         else:
@@ -1312,6 +1315,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             tags = self.backend.get_object_tagging(key)["Tags"]
             template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
             return 200, response_headers, template.render(tags=tags)
+        if "legal-hold" in query:
+            legal_hold = self.backend.get_object_legal_hold(key)
+            template = self.response_template(S3_OBJECT_LEGAL_HOLD)
+            return 200, response_headers, template.render(legal_hold=legal_hold)
 
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
@@ -1567,23 +1574,27 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 404, response_headers, ""
 
     def _lock_config_from_xml(self, xml):
+        response_dict = {"enabled": False, "mode": None, "days": None, "years": None}
         parsed_xml = xmltodict.parse(xml)
         enabled = (
             parsed_xml["ObjectLockConfiguration"]["ObjectLockEnabled"] == "Enabled"
         )
+        response_dict["enabled"] = enabled
 
-        default_retention = parsed_xml["ObjectLockConfiguration"]["Rule"][
-            "DefaultRetention"
-        ]
+        default_retention = parsed_xml.get("ObjectLockConfiguration").get("Rule")
+        if default_retention:
+            default_retention = default_retention.get("DefaultRetention")
+            mode = default_retention["Mode"]
+            days = int(default_retention.get("Days", 0))
+            years = int(default_retention.get("Years", 0))
 
-        mode = default_retention["Mode"]
-        days = int(default_retention["Days"]) if "Days" in default_retention else 0
-        years = int(default_retention["Years"]) if "Years" in default_retention else 0
+            if days and years:
+                raise MalformedXML
+            response_dict["mode"] = mode
+            response_dict["days"] = days
+            response_dict["years"] = years
 
-        if days and years:
-            raise MalformedXML
-
-        return {"enabled": enabled, "mode": mode, "days": days, "years": years}
+        return response_dict
 
     def _acl_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
@@ -1884,7 +1895,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         config = parsed_xml["AccelerateConfiguration"]
         return config["Status"]
 
-    def _key_response_delete(self, bucket_name, query, key_name):
+    def _key_response_delete(self, headers, bucket_name, query, key_name):
         self._set_action("KEY", "DELETE", query)
         self._authenticate_and_authorize_s3_action()
 
@@ -1899,8 +1910,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
             return 204, {}, template.render(version_id=version_id)
+        bypass = headers.get("X-Amz-Bypass-Governance-Retention")
         success, response_meta = self.backend.delete_object(
-            bucket_name, key_name, version_id=version_id
+            bucket_name, key_name, version_id=version_id, bypass=bypass
         )
         response_headers = {}
         if response_meta is not None:
@@ -2312,6 +2324,12 @@ S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       </AccessControlList>
     </AccessControlPolicy>"""
 
+S3_OBJECT_LEGAL_HOLD = """<?xml version="1.0" encoding="UTF-8"?>
+<LegalHold>
+   <Status>{{ legal_hold }}</Status>
+</LegalHold>
+"""
+
 S3_OBJECT_TAGGING_RESPONSE = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <Tagging xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
@@ -2662,13 +2680,15 @@ S3_BUCKET_LOCK_CONFIGURATION = """
     {% else %}
     <ObjectLockEnabled>Disabled</ObjectLockEnabled>
     {% endif %}
+    {% if mode %}
     <Rule>
         <DefaultRetention>
-             <Mode>{{mode}}</Mode>
-             <Days>{{days}}</Days>
-             <Years>{{years}}</Years>
+            <Mode>{{mode}}</Mode>
+            <Days>{{days}}</Days>
+            <Years>{{years}}</Years>
         </DefaultRetention>
-    #</Rule>
+    </Rule>
+    {% endif %}
 </ObjectLockConfiguration>
 """
 
