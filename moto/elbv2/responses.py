@@ -125,6 +125,16 @@ SSL_POLICIES = [
             {"name": "DES-CBC3-SHA", "priority": 19},
         ],
     },
+    {
+        "name": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+        "ssl_protocols": ["TLSv1.2"],
+        "ciphers": [
+            {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
+            {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
+            {"name": "ECDHE-ECDSA-AES256-GCM-SHA384", "priority": 3},
+            {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 4},
+        ],
+    },
 ]
 
 

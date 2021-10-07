@@ -1311,10 +1311,19 @@ def test_describe_ssl_policies():
     client = boto3.client("elbv2", region_name="eu-central-1")
 
     resp = client.describe_ssl_policies()
-    len(resp["SslPolicies"]).should.equal(5)
+    len(resp["SslPolicies"]).should.equal(6)
 
     resp = client.describe_ssl_policies(
-        Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08"]
+        Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08",]
+    )
+    len(resp["SslPolicies"]).should.equal(2)
+
+    resp = client.describe_ssl_policies(
+        Names=[
+            "ELBSecurityPolicy-TLS-1-2-2017-01",
+            "ELBSecurityPolicy-2016-08",
+            "ELBSecurityPolicy-2016-08",
+        ]
     )
     len(resp["SslPolicies"]).should.equal(2)
 
