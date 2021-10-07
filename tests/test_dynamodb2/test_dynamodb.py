@@ -2877,7 +2877,7 @@ def test_condition_expressions():
         ExpressionAttributeValues={":match": {"S": "match"}},
     )
 
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException) as exc:
         client.update_item(
             TableName="test1",
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
@@ -2886,8 +2886,9 @@ def test_condition_expressions():
             ExpressionAttributeValues={":match": {"S": "match"}},
             ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
         )
+    _assert_conditional_check_failed_exception(exc)
 
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException) as exc:
         client.update_item(
             TableName="test1",
             Key={"client": {"S": "client2"}, "app": {"S": "app1"}},
@@ -2896,6 +2897,7 @@ def test_condition_expressions():
             ExpressionAttributeValues={":match": {"S": "match"}},
             ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
         )
+    _assert_conditional_check_failed_exception(exc)
 
     with pytest.raises(client.exceptions.ConditionalCheckFailedException):
         client.delete_item(
@@ -2905,6 +2907,12 @@ def test_condition_expressions():
             ExpressionAttributeValues={":match": {"S": "match"}},
             ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
         )
+
+
+def _assert_conditional_check_failed_exception(exc):
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ConditionalCheckFailedException")
+    err["Message"].should.equal("The conditional request failed")
 
 
 @mock_dynamodb2
@@ -2982,8 +2990,9 @@ def test_condition_expression__attr_doesnt_exist():
     update_if_attr_doesnt_exist()
 
     # Second time should fail
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException) as exc:
         update_if_attr_doesnt_exist()
+    _assert_conditional_check_failed_exception(exc)
 
 
 @mock_dynamodb2
@@ -3022,7 +3031,7 @@ def test_condition_expression__and_order():
 
     # ensure that the RHS of the AND expression is not evaluated if the LHS
     # returns true (as it would result an error)
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
+    with pytest.raises(client.exceptions.ConditionalCheckFailedException) as exc:
         client.update_item(
             TableName="test",
             Key={"forum_name": {"S": "the-key"}},
@@ -3031,6 +3040,7 @@ def test_condition_expression__and_order():
             ExpressionAttributeNames={"#ttl": "ttl"},
             ExpressionAttributeValues={":ttl": {"N": "6"}, ":old_ttl": {"N": "5"}},
         )
+    _assert_conditional_check_failed_exception(exc)
 
 
 @mock_dynamodb2
