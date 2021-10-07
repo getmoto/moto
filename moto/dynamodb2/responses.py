@@ -855,9 +855,7 @@ class DynamoHandler(BaseResponse):
             return self.error(er, mve.exception_msg)
         except ValueError:
             er = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
-            return self.error(
-                er, "An error occurred (ConditionalCheckFailedException) when calling the UpdateItem operation: The conditional request failed"
-            )
+            return self.error(er, "The conditional request failed")
         except TypeError:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, "Validation Exception")
