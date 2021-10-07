@@ -550,29 +550,50 @@ class DynamoHandler(BaseResponse):
                 )
                 hash_key_regex = r"(^|[\s(]){0}\b".format(hash_key_var)
                 i, hash_key_expression = next(
-                    (i, e)
-                    for i, e in enumerate(expressions)
-                    if re.search(hash_key_regex, e)
+                    (
+                        (i, e)
+                        for i, e in enumerate(expressions)
+                        if re.search(hash_key_regex, e)
+                    ),
+                    (None, None),
                 )
+                if hash_key_expression is None:
+                    return self.error(
+                        "ValidationException",
+                        "Query condition missed key schema element: {}".format(
+                            hash_key_var
+                        ),
+                    )
                 hash_key_expression = hash_key_expression.strip("()")
                 expressions.pop(i)
 
                 # TODO implement more than one range expression and OR operators
                 range_key_expression = expressions[0].strip("()")
-                range_key_expression_components = range_key_expression.split()
+                # Split expression, and account for all kinds of whitespacing around commas and brackets
+                range_key_expression_components = re.split(
+                    r"\s*\(\s*|\s*,\s*|\s", range_key_expression
+                )
+                # Skip whitespace
+                range_key_expression_components = [
+                    c for c in range_key_expression_components if c
+                ]
                 range_comparison = range_key_expression_components[1]
 
                 if " and " in range_key_expression.lower():
                     range_comparison = "BETWEEN"
+                    # [range_key, between, x, and, y]
                     range_values = [
                         value_alias_map[range_key_expression_components[2]],
                         value_alias_map[range_key_expression_components[4]],
                     ]
+                    supplied_range_key = range_key_expression_components[0]
                 elif "begins_with" in range_key_expression:
                     range_comparison = "BEGINS_WITH"
+                    # [begins_with, range_key, x]
                     range_values = [
                         value_alias_map[range_key_expression_components[-1]]
                     ]
+                    supplied_range_key = range_key_expression_components[1]
                 elif "begins_with" in range_key_expression.lower():
                     function_used = range_key_expression[
                         range_key_expression.lower().index("begins_with") : len(
@@ -586,7 +607,23 @@ class DynamoHandler(BaseResponse):
                         ),
                     )
                 else:
+                    # [range_key, =, x]
                     range_values = [value_alias_map[range_key_expression_components[2]]]
+                    supplied_range_key = range_key_expression_components[0]
+
+                supplied_range_key = expression_attribute_names.get(
+                    supplied_range_key, supplied_range_key
+                )
+                range_keys = [
+                    k["AttributeName"] for k in index if k["KeyType"] == "RANGE"
+                ]
+                if supplied_range_key not in range_keys:
+                    return self.error(
+                        "ValidationException",
+                        "Query condition missed key schema element: {}".format(
+                            range_keys[0]
+                        ),
+                    )
             else:
                 hash_key_expression = key_condition_expression.strip("()")
                 range_comparison = None

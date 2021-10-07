@@ -757,6 +757,7 @@ class Table(CloudFormationModel):
                 for item in list(self.all_items())
                 if isinstance(item, Item) and item.hash_key == hash_key
             ]
+
         if range_comparison:
             if index_name and not index_range_key:
                 raise ValueError(
