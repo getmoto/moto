@@ -1,8 +1,5 @@
 from __future__ import unicode_literals
 
-import copy
-import sys
-
 import pytest
 import sure  # noqa
 from freezegun import freeze_time
@@ -11,7 +8,6 @@ from moto.core.utils import (
     camelcase_to_underscores,
     underscores_to_camelcase,
     unix_time,
-    py2_strip_unicode_keys,
     camelcase_to_pascal,
     pascal_to_camelcase,
 )

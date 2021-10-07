@@ -4,7 +4,6 @@ from io import open
 import os
 import re
 from setuptools import setup, find_packages
-import sys
 import moto.__init__ as service_list
 
 # Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15

@@ -3,19 +3,16 @@ from __future__ import unicode_literals
 import io
 import os
 import re
-import sys
 
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import (
     amzn_request_id,
     str_to_rfc_1123_datetime,
-    py2_strip_unicode_keys,
     unix_time_millis,
 )
 from urllib.parse import (
     parse_qs,
-    parse_qsl,
     urlparse,
     unquote,
     urlencode,
@@ -24,7 +21,6 @@ from urllib.parse import (
 
 import xmltodict
 
-from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
 from moto.core import ACCOUNT_ID
@@ -664,14 +660,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         parsed_xml = xmltodict.parse(body)
         parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
 
-        # If Python 2, fix the unicode strings:
-        if sys.version_info[0] < 3:
-            parsed_xml = {
-                "PublicAccessBlockConfiguration": py2_strip_unicode_keys(
-                    dict(parsed_xml["PublicAccessBlockConfiguration"])
-                )
-            }
-
         return parsed_xml
 
     def _bucket_response_put(
@@ -893,13 +881,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._authenticate_and_authorize_s3_action()
 
         # POST to bucket-url should create file from form
-        if hasattr(request, "form"):
-            # Not HTTPretty
-            form = request.form
-        else:
-            # HTTPretty, build new form object
-            body = body.decode()
-            form = dict(parse_qsl(body))
+        form = request.form
 
         key = form["key"]
         if "file" in form:
@@ -949,15 +931,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _get_path(request):
-        if isinstance(request, HTTPrettyRequest):
-            path = request.path
-        else:
-            path = (
-                request.full_path
-                if hasattr(request, "full_path")
-                else path_url(request.url)
-            )
-        return path
+        return (
+            request.full_path
+            if hasattr(request, "full_path")
+            else path_url(request.url)
+        )
 
     def _bucket_response_delete_keys(self, request, body, bucket_name):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)

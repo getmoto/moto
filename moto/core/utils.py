@@ -105,29 +105,7 @@ def convert_regex_to_flask_path(url_path):
     return url_path
 
 
-class convert_httpretty_response(object):
-    def __init__(self, callback):
-        self.callback = callback
-
-    @property
-    def __name__(self):
-        # For instance methods, use class and method names. Otherwise
-        # use module and method name
-        if inspect.ismethod(self.callback):
-            outer = self.callback.__self__.__class__.__name__
-        else:
-            outer = self.callback.__module__
-        return "{0}.{1}".format(outer, self.callback.__name__)
-
-    def __call__(self, request, url, headers, **kwargs):
-        result = self.callback(request, url, headers)
-        status, headers, response = result
-        if "server" not in headers:
-            headers["server"] = "amazon.com"
-        return status, headers, response
-
-
-class convert_flask_to_httpretty_response(object):
+class convert_to_flask_response(object):
     def __init__(self, callback):
         self.callback = callback
 
@@ -315,30 +293,6 @@ def path_url(url):
     if parsed_url.query:
         path = path + "?" + parsed_url.query
     return path
-
-
-def py2_strip_unicode_keys(blob):
-    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
-    if type(blob) == unicode:  # noqa
-        return str(blob)
-
-    elif type(blob) == dict:
-        for key in list(blob.keys()):
-            value = blob.pop(key)
-            blob[str(key)] = py2_strip_unicode_keys(value)
-
-    elif type(blob) == list:
-        for i in range(0, len(blob)):
-            blob[i] = py2_strip_unicode_keys(blob[i])
-
-    elif type(blob) == set:
-        new_set = set()
-        for value in blob:
-            new_set.add(py2_strip_unicode_keys(value))
-
-        blob = new_set
-
-    return blob
 
 
 def tags_from_query_string(

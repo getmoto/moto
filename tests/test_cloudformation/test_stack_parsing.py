@@ -11,13 +11,12 @@ from moto.cloudformation.models import FakeStack
 from moto.cloudformation.parsing import (
     resource_class_from_type,
     parse_condition,
-    Export,
+    Output,
 )
 from moto import mock_ssm, settings
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
-from moto.packages.boto.cloudformation.stack import Output
 
 
 dummy_template = {

@@ -25,10 +25,8 @@ from werkzeug.wrappers import Request
 
 from moto import settings
 import responses
-from moto.packages.httpretty import HTTPretty
 from unittest.mock import patch
 from .utils import (
-    convert_httpretty_response,
     convert_regex_to_flask_path,
     convert_flask_to_responses_response,
 )
@@ -170,28 +168,6 @@ class BaseMockAWS:
                 os.environ[k] = v
             else:
                 del os.environ[k]
-
-
-class HttprettyMockAWS(BaseMockAWS):
-    def reset(self):
-        HTTPretty.reset()
-
-    def enable_patching(self):
-        if not HTTPretty.is_enabled():
-            HTTPretty.enable()
-
-        for method in HTTPretty.METHODS:
-            for backend in self.backends_for_urls.values():
-                for key, value in backend.urls.items():
-                    HTTPretty.register_uri(
-                        method=method,
-                        uri=re.compile(key),
-                        body=convert_httpretty_response(value),
-                    )
-
-    def disable_patching(self):
-        HTTPretty.disable()
-        HTTPretty.reset()
 
 
 RESPONSES_METHODS = [
@@ -769,12 +745,6 @@ class BaseBackend:
         else:
             return mocked_backend
 
-    def deprecated_decorator(self, func=None):
-        if func:
-            return HttprettyMockAWS({"global": self})(func)
-        else:
-            return HttprettyMockAWS({"global": self})
-
     # def list_config_service_resources(self, resource_ids, resource_name, limit, next_token):
     #     """For AWS Config. This will list all of the resources of the given type and optional resource name and region"""
     #     raise NotImplementedError()
@@ -880,7 +850,7 @@ class base_decorator:
         self.backends = backends
 
     def __call__(self, func=None):
-        if self.mock_backend != HttprettyMockAWS and settings.TEST_SERVER_MODE:
+        if settings.TEST_SERVER_MODE:
             mocked_backend = ServerModeMockAWS(self.backends)
         else:
             mocked_backend = self.mock_backend(self.backends)
@@ -889,10 +859,6 @@ class base_decorator:
             return mocked_backend(func)
         else:
             return mocked_backend
-
-
-class deprecated_base_decorator(base_decorator):
-    mock_backend = HttprettyMockAWS
 
 
 class MotoAPIBackend(BaseBackend):

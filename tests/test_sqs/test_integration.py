@@ -1,13 +1,6 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-import base64
 import json
 import time
 import uuid
-import hashlib
-
-import boto
 import boto3
 import sure  # noqa
 from moto import mock_sqs, mock_lambda, mock_logs
