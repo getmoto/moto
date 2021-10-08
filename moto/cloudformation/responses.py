@@ -9,7 +9,7 @@ from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
 from moto.core import ACCOUNT_ID
 from .models import cloudformation_backends
-from .exceptions import ValidationError, MissingParameterError
+from .exceptions import ValidationError
 from .utils import yaml_tag_constructor
 
 
@@ -64,31 +64,6 @@ class CloudFormationResponse(BaseResponse):
         key = s3_backend.get_object(bucket_name, key_name)
         return key.value.decode("utf-8")
 
-    def _get_params_from_list(self, parameters_list):
-        # Hack dict-comprehension
-        return dict(
-            [
-                (parameter["parameter_key"], parameter["parameter_value"])
-                for parameter in parameters_list
-            ]
-        )
-
-    def _get_param_values(self, parameters_list, existing_params):
-        result = {}
-        for parameter in parameters_list:
-            if parameter.keys() >= {"parameter_key", "parameter_value"}:
-                result[parameter["parameter_key"]] = parameter["parameter_value"]
-            elif (
-                parameter.keys() >= {"parameter_key", "use_previous_value"}
-                and parameter["parameter_key"] in existing_params
-            ):
-                result[parameter["parameter_key"]] = existing_params[
-                    parameter["parameter_key"]
-                ]
-            else:
-                raise MissingParameterError(parameter["parameter_key"])
-        return result
-
     def create_stack(self):
         stack_name = self._get_param("StackName")
         stack_body = self._get_param("TemplateBody")
@@ -106,8 +81,13 @@ class CloudFormationResponse(BaseResponse):
             )
             return 400, {"status": 400}, template.render(name=stack_name)
 
-        parameters = self._get_params_from_list(parameters_list)
-
+        # Hack dict-comprehension
+        parameters = dict(
+            [
+                (parameter["parameter_key"], parameter["parameter_value"])
+                for parameter in parameters_list
+            ]
+        )
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
         stack_notification_arns = self._get_multi_param("NotificationARNs.member")
@@ -332,22 +312,6 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(GET_TEMPLATE_SUMMARY_TEMPLATE)
         return template.render(template_summary=template_summary)
 
-    def _validate_different_update(self, incoming_params, stack_body, old_stack):
-        if incoming_params and stack_body:
-            new_params = self._get_param_values(incoming_params, old_stack.parameters)
-            if old_stack.template == stack_body and old_stack.parameters == new_params:
-                raise ValidationError(
-                    old_stack.name, message=f"Stack [{old_stack.name}] already exists",
-                )
-
-    def _validate_status(self, stack):
-        if stack.status == "ROLLBACK_COMPLETE":
-            raise ValidationError(
-                stack.stack_id,
-                message="Stack:{0} is in ROLLBACK_COMPLETE state and can not "
-                "be updated.".format(stack.stack_id),
-            )
-
     def update_stack(self):
         stack_name = self._get_param("StackName")
         role_arn = self._get_param("RoleARN")
@@ -372,8 +336,13 @@ class CloudFormationResponse(BaseResponse):
             tags = None
 
         stack = self.cloudformation_backend.get_stack(stack_name)
-        self._validate_different_update(incoming_params, stack_body, stack)
-        self._validate_status(stack)
+        if stack.status == "ROLLBACK_COMPLETE":
+            raise ValidationError(
+                stack.stack_id,
+                message="Stack:{0} is in ROLLBACK_COMPLETE state and can not be updated.".format(
+                    stack.stack_id
+                ),
+            )
 
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,
