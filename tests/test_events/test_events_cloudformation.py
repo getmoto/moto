@@ -185,4 +185,4 @@ def test_delete_rule():
 
     with pytest.raises(ClientError, match="does not exist") as e:
 
-        events_client.describe_rule(Name=name).should
+        events_client.describe_rule(Name=name)
