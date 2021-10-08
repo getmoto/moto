@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 from .responses import EFSResponse
 
 url_bases = [
-    "https?://elasticfilesystem.(.+).amazonaws.com",
-    "https?://elasticfilesystem.amazonaws.com",
+    r"https?://elasticfilesystem\.(.+)\.amazonaws.com",
+    r"https?://elasticfilesystem\.amazonaws.com",
 ]
 
 

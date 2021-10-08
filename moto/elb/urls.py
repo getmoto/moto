@@ -35,6 +35,6 @@ def api_version_elb_backend(*args, **kwargs):
         raise Exception("Unknown ELB API version: {}".format(version))
 
 
-url_bases = ["https?://elasticloadbalancing.(.+).amazonaws.com"]
+url_bases = [r"https?://elasticloadbalancing\.(.+)\.amazonaws.com"]
 
 url_paths = {"{0}/$": api_version_elb_backend}

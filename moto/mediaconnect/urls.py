@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from .responses import MediaConnectResponse
 
 url_bases = [
-    "https?://mediaconnect.(.+).amazonaws.com",
+    r"https?://mediaconnect\.(.+)\.amazonaws.com",
 ]
 
 
