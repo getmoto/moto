@@ -271,6 +271,13 @@ class Rule(CloudFormationModel):
             new_resource_name, cloudformation_json, region_name
         )
 
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        event_backend = events_backends[region_name]
+        event_backend.delete_rule(Name=resource_name)
+
     def describe(self):
         attributes = {
             "Arn": self.arn,
