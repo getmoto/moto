@@ -276,7 +276,7 @@ class Rule(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         event_backend = events_backends[region_name]
-        event_backend.delete_rule(Name=resource_name)
+        event_backend.delete_rule(resource_name)
 
     def describe(self):
         attributes = {
