@@ -1936,7 +1936,7 @@
 
 ## glacier
 <details>
-<summary>21% implemented</summary>
+<summary>24% implemented</summary>
 
 - [ ] abort_multipart_upload
 - [ ] abort_vault_lock
@@ -1951,7 +1951,7 @@
 - [X] describe_job
 - [ ] describe_vault
 - [ ] get_data_retrieval_policy
-- [ ] get_job_output
+- [X] get_job_output
 - [ ] get_vault_access_policy
 - [ ] get_vault_lock
 - [ ] get_vault_notifications
