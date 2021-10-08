@@ -66,7 +66,7 @@ empty = json.dumps(
     {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "EventBridge Rule Test",
-        "Resources": {}
+        "Resources": {},
     }
 )
 
@@ -183,6 +183,6 @@ def test_delete_rule():
     # then
     events_client = boto3.client("events", region_name="eu-central-1")
 
-    with pytest.raises(ClientError, match='does not exist') as e:
+    with pytest.raises(ClientError, match="does not exist") as e:
 
         events_client.describe_rule(Name=name).should
