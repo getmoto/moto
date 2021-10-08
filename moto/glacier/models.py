@@ -224,6 +224,13 @@ class GlacierBackend(BaseBackend):
         vault = self.get_vault(vault_name)
         return vault.list_jobs()
 
+    def get_job_output(self, vault_name, job_id):
+        vault = self.get_vault(vault_name)
+        if vault.job_ready(job_id):
+            return vault.get_job_output(job_id)
+        else:
+            return None
+
     def upload_archive(self, vault_name, body, description):
         vault = self.get_vault(vault_name)
         return vault.create_archive(body, description)
