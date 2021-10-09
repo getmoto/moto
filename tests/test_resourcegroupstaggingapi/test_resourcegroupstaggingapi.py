@@ -11,6 +11,7 @@ from moto import mock_s3
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
+@mock_rds2
 @mock_ec2
 @mock_resourcegroupstaggingapi
 def test_get_resources_ec2():

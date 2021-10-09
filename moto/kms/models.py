@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import json
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -20,10 +21,10 @@ class Key(CloudFormationModel):
     ):
         self.id = generate_key_id()
         self.creation_date = unix_time()
-        self.policy = policy
+        self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
-        self.description = description
+        self.description = description or ""
         self.enabled = True
         self.region = region
         self.account_id = ACCOUNT_ID
@@ -33,6 +34,23 @@ class Key(CloudFormationModel):
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+
+    def generate_default_policy(self):
+        return json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Id": "key-default-1",
+                "Statement": [
+                    {
+                        "Sid": "Enable IAM User Permissions",
+                        "Effect": "Allow",
+                        "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                        "Action": "kms:*",
+                        "Resource": "*",
+                    }
+                ],
+            }
+        )
 
     @property
     def physical_resource_id(self):
@@ -139,7 +157,14 @@ class KmsBackend(BaseBackend):
     def __init__(self):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
-        self.tagger = TaggingService(keyName="TagKey", valueName="TagValue")
+        self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "kms"
+        )
 
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region
@@ -328,7 +353,8 @@ class KmsBackend(BaseBackend):
 
         return plaintext, ciphertext_blob, arn
 
-    def list_resource_tags(self, key_id):
+    def list_resource_tags(self, key_id_or_arn):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             return self.tagger.list_tags_for_resource(key_id)
         raise JsonRESTError(
@@ -336,7 +362,8 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def tag_resource(self, key_id, tags):
+    def tag_resource(self, key_id_or_arn, tags):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.tag_resource(key_id, tags)
             return {}
@@ -345,7 +372,8 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def untag_resource(self, key_id, tag_names):
+    def untag_resource(self, key_id_or_arn, tag_names):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.untag_resource_using_names(key_id, tag_names)
             return {}

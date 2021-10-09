@@ -12,6 +12,7 @@ from .elastic_network_interfaces import ElasticNetworkInterfaces
 from .general import General
 from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
+from .egress_only_internet_gateways import EgressOnlyInternetGateway
 from .ip_addresses import IPAddresses
 from .key_pairs import KeyPairs
 from .launch_templates import LaunchTemplates
@@ -34,7 +35,11 @@ from .vpc_peering_connections import VPCPeeringConnections
 from .vpn_connections import VPNConnections
 from .windows import Windows
 from .nat_gateways import NatGateways
+from .transit_gateways import TransitGateways
+from .transit_gateway_route_tables import TransitGatewayRouteTable
+from .transit_gateway_attachments import TransitGatewayAttachment
 from .iam_instance_profiles import IamInstanceProfiles
+from .carrier_gateways import CarrierGateway
 
 
 class EC2Response(
@@ -50,6 +55,7 @@ class EC2Response(
     General,
     InstanceResponse,
     InternetGateways,
+    EgressOnlyInternetGateway,
     IPAddresses,
     KeyPairs,
     LaunchTemplates,
@@ -72,7 +78,11 @@ class EC2Response(
     VPNConnections,
     Windows,
     NatGateways,
+    TransitGateways,
+    TransitGatewayRouteTable,
+    TransitGatewayAttachment,
     IamInstanceProfiles,
+    CarrierGateway,
 ):
     @property
     def ec2_backend(self):

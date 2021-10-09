@@ -67,6 +67,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         requires_compatibilities = self._get_param("requiresCompatibilities")
         cpu = self._get_param("cpu")
         memory = self._get_param("memory")
+        task_role_arn = self._get_param("taskRoleArn")
+        execution_role_arn = self._get_param("executionRoleArn")
+
         task_definition = self.ecs_backend.register_task_definition(
             family,
             container_definitions,
@@ -77,6 +80,8 @@ class EC2ContainerServiceResponse(BaseResponse):
             requires_compatibilities=requires_compatibilities,
             cpu=cpu,
             memory=memory,
+            task_role_arn=task_role_arn,
+            execution_role_arn=execution_role_arn,
         )
         return json.dumps({"taskDefinition": task_definition.response_object})
 
@@ -171,6 +176,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         desired_count = self._get_int_param("desiredCount")
         load_balancers = self._get_param("loadBalancers")
         scheduling_strategy = self._get_param("schedulingStrategy")
+        service_registries = self._get_param("serviceRegistries")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
@@ -184,6 +190,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
+            service_registries=service_registries,
         )
         return json.dumps({"service": service.response_object})
 

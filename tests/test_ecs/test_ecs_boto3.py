@@ -151,10 +151,16 @@ def test_register_task_definition():
 
     # Registering with optional top-level params
     definition["requiresCompatibilities"] = ["FARGATE"]
+    definition["taskRoleArn"] = "my-custom-task-role-arn"
+    definition["executionRoleArn"] = "my-custom-execution-role-arn"
     response = client.register_task_definition(**definition)
     response["taskDefinition"]["requiresCompatibilities"].should.equal(["FARGATE"])
     response["taskDefinition"]["compatibilities"].should.equal(["EC2", "FARGATE"])
     response["taskDefinition"]["networkMode"].should.equal("awsvpc")
+    response["taskDefinition"]["taskRoleArn"].should.equal("my-custom-task-role-arn")
+    response["taskDefinition"]["executionRoleArn"].should.equal(
+        "my-custom-execution-role-arn"
+    )
 
     definition["requiresCompatibilities"] = ["EC2", "FARGATE"]
     response = client.register_task_definition(**definition)
@@ -333,6 +339,8 @@ def test_describe_task_definitions():
     )
     _ = client.register_task_definition(
         family="test_ecs_task",
+        taskRoleArn="my-task-role-arn",
+        executionRoleArn="my-execution-role-arn",
         containerDefinitions=[
             {
                 "name": "hello_world2",
@@ -372,6 +380,8 @@ def test_describe_task_definitions():
     response["taskDefinition"]["taskDefinitionArn"].should.equal(
         "arn:aws:ecs:us-east-1:{}:task-definition/test_ecs_task:2".format(ACCOUNT_ID)
     )
+    response["taskDefinition"]["taskRoleArn"].should.equal("my-task-role-arn")
+    response["taskDefinition"]["executionRoleArn"].should.equal("my-execution-role-arn")
 
     response = client.describe_task_definition(
         taskDefinition="test_ecs_task:1", include=["TAGS"]

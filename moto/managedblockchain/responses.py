@@ -1,9 +1,10 @@
 from __future__ import unicode_literals
 
 import json
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 
 from moto.core.responses import BaseResponse
+from .exceptions import exception_handler
 from .models import managedblockchain_backends
 from .utils import (
     region_from_managedblckchain_url,
@@ -21,6 +22,7 @@ class ManagedBlockchainResponse(BaseResponse):
         self.backend = backend
 
     @classmethod
+    @exception_handler
     def network_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -73,6 +75,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @classmethod
+    @exception_handler
     def networkid_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -94,6 +97,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, response
 
     @classmethod
+    @exception_handler
     def proposal_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -139,6 +143,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @classmethod
+    @exception_handler
     def proposalid_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -160,6 +165,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, response
 
     @classmethod
+    @exception_handler
     def proposal_votes_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -203,6 +209,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, ""
 
     @classmethod
+    @exception_handler
     def invitation_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -224,6 +231,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, response
 
     @classmethod
+    @exception_handler
     def invitationid_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -243,6 +251,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, ""
 
     @classmethod
+    @exception_handler
     def member_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -283,6 +292,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @classmethod
+    @exception_handler
     def memberid_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -327,6 +337,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, ""
 
     @classmethod
+    @exception_handler
     def node_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
@@ -380,6 +391,7 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, json.dumps(response)
 
     @classmethod
+    @exception_handler
     def nodeid_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
         response_instance = ManagedBlockchainResponse(
