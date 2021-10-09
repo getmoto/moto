@@ -138,6 +138,20 @@ class KinesisResponse(BaseResponse):
         )
         return ""
 
+    def list_shards(self):
+        stream_name = self.parameters.get("StreamName")
+        next_token = self.parameters.get("NextToken")
+        start_id = self.parameters.get("ExclusiveStartShardId")  # noqa
+        max = self.parameters.get("MaxResults", 10000)
+        start_timestamp = self.parameters.get("StreamCreationTimestamp")  # noqa
+        shards, token = self.kinesis_backend.list_shards(
+            stream_name=stream_name, limit=max, next_token=next_token
+        )
+        res = {"Shards": shards}
+        if token:
+            res["NextToken"] = token
+        return json.dumps(res)
+
     def increase_stream_retention_period(self):
         stream_name = self.parameters.get("StreamName")
         retention_period_hours = self.parameters.get("RetentionPeriodHours")

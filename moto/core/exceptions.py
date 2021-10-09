@@ -162,3 +162,11 @@ class InvalidNextTokenException(JsonRESTError):
         super(InvalidNextTokenException, self).__init__(
             "InvalidNextTokenException", "The nextToken provided is invalid"
         )
+
+
+class InvalidToken(AWSError):
+    TYPE = "InvalidToken"
+    STATUS = 400
+
+    def __init__(self, message="Invalid token"):
+        super(InvalidToken, self).__init__("Invalid Token: {}".format(message))

@@ -13,6 +13,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
+from moto.utilities.paginator import paginate
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,
@@ -24,6 +25,7 @@ from .utils import (
     compose_shard_iterator,
     compose_new_shard_iterator,
     decompose_shard_iterator,
+    PAGINATION_MODEL,
 )
 
 
@@ -488,6 +490,12 @@ class KinesisBackend(BaseBackend):
             shard1.put_record(
                 record.partition_key, record.data, record.explicit_hash_key
             )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_shards(self, stream_name, limit=None, next_token=None):
+        stream = self.describe_stream(stream_name)
+        shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
+        return [shard.to_json() for shard in shards]
 
     def increase_stream_retention_period(self, stream_name, retention_period_hours):
         stream = self.describe_stream(stream_name)
