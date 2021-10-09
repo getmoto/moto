@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import re
 import json
 import email
 import datetime
@@ -22,6 +23,7 @@ from .exceptions import (
     RuleSetNameAlreadyExists,
     RuleSetDoesNotExist,
     RuleAlreadyExists,
+    MissingRenderingAttributeException,
 )
 from .utils import get_random_message_id
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
@@ -91,6 +93,17 @@ class SESQuota(BaseModel):
         return self.sent
 
 
+def are_all_variables_present(template, template_data):
+    subject_part = template["subject_part"]
+    text_part = template["text_part"]
+    html_part = template["html_part"]
+
+    for var in re.findall("{{(.+?)}}", subject_part + text_part + html_part):
+        if not template_data.get(var):
+            return var, False
+    return None, True
+
+
 class SESBackend(BaseBackend):
     def __init__(self):
         self.addresses = []
@@ -124,7 +137,8 @@ class SESBackend(BaseBackend):
         self.email_addresses.append(address)
 
     def verify_domain(self, domain):
-        self.domains.append(domain)
+        if domain.lower() not in self.domains:
+            self.domains.append(domain.lower())
 
     def list_identities(self):
         return self.domains + self.addresses
@@ -163,6 +177,9 @@ class SESBackend(BaseBackend):
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
+
+        if not self.templates.get(template[0]):
+            raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -348,6 +365,10 @@ class SESBackend(BaseBackend):
             raise InvalidRenderingParameterException(
                 "Template rendering data is invalid"
             )
+
+        var, are_variables_present = are_all_variables_present(template, template_data)
+        if not are_variables_present:
+            raise MissingRenderingAttributeException(var)
 
         subject_part = template["subject_part"]
         text_part = template["text_part"]

@@ -5,6 +5,7 @@ import os
 
 from moto.core.responses import BaseResponse
 from .models import cognitoidp_backends, find_region_by_value, UserStatus
+from .exceptions import InvalidParameterException
 
 
 class CognitoIdpResponse(BaseResponse):
@@ -19,6 +20,40 @@ class CognitoIdpResponse(BaseResponse):
             name, self.parameters
         )
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
+
+    def set_user_pool_mfa_config(self):
+        user_pool_id = self._get_param("UserPoolId")
+        sms_config = self._get_param("SmsMfaConfiguration", None)
+        token_config = self._get_param("SoftwareTokenMfaConfiguration", None)
+        mfa_config = self._get_param("MfaConfiguration")
+
+        if mfa_config not in ["ON", "OFF", "OPTIONAL"]:
+            raise InvalidParameterException(
+                "[MfaConfiguration] must be one of 'ON', 'OFF', or 'OPTIONAL'."
+            )
+
+        if mfa_config in ["ON", "OPTIONAL"]:
+            if sms_config is None and token_config is None:
+                raise InvalidParameterException(
+                    "At least one of [SmsMfaConfiguration] or [SoftwareTokenMfaConfiguration] must be provided."
+                )
+            if sms_config is not None:
+                if "SmsConfiguration" not in sms_config:
+                    raise InvalidParameterException(
+                        "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
+                    )
+
+        response = cognitoidp_backends[self.region].set_user_pool_mfa_config(
+            user_pool_id, sms_config, token_config, mfa_config
+        )
+        return json.dumps(response)
+
+    def get_user_pool_mfa_config(self):
+        user_pool_id = self._get_param("UserPoolId")
+        response = cognitoidp_backends[self.region].get_user_pool_mfa_config(
+            user_pool_id
+        )
+        return json.dumps(response)
 
     def list_user_pools(self):
         max_results = self._get_param("MaxResults")
@@ -278,6 +313,11 @@ class CognitoIdpResponse(BaseResponse):
         user = cognitoidp_backends[self.region].admin_get_user(user_pool_id, username)
         return json.dumps(user.to_json(extended=True, attributes_key="UserAttributes"))
 
+    def get_user(self):
+        access_token = self._get_param("AccessToken")
+        user = cognitoidp_backends[self.region].get_user(access_token=access_token)
+        return json.dumps(user.to_json(extended=True, attributes_key="UserAttributes"))
+
     def list_users(self):
         user_pool_id = self._get_param("UserPoolId")
         limit = self._get_param("Limit")
@@ -287,12 +327,24 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, limit=limit, pagination_token=token
         )
         if filt:
+            inherent_attributes = {
+                "cognito:user_status": lambda u: u.status,
+                "status": lambda u: "Enabled" if u.enabled else "Disabled",
+                "username": lambda u: u.username,
+            }
             name, value = filt.replace('"', "").replace(" ", "").split("=")
             users = [
                 user
                 for user in users
-                for attribute in user.attributes
-                if attribute["Name"] == name and attribute["Value"] == value
+                if [
+                    attr
+                    for attr in user.attributes
+                    if attr["Name"] == name and attr["Value"] == value
+                ]
+                or (
+                    name in inherent_attributes
+                    and inherent_attributes[name](user) == value
+                )
             ]
         response = {"Users": [user.to_json(extended=True) for user in users]}
         if token:
@@ -376,6 +428,14 @@ class CognitoIdpResponse(BaseResponse):
         attributes = self._get_param("UserAttributes")
         cognitoidp_backends[self.region].admin_update_user_attributes(
             user_pool_id, username, attributes
+        )
+        return ""
+
+    def admin_user_global_sign_out(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_user_global_sign_out(
+            user_pool_id, username
         )
         return ""
 

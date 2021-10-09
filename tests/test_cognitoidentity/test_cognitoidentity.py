@@ -71,6 +71,43 @@ def test_describe_identity_pool():
     assert result["SamlProviderARNs"] == res["SamlProviderARNs"]
 
 
+@pytest.mark.parametrize(
+    "key,initial_value,updated_value",
+    [
+        (
+            "SupportedLoginProviders",
+            {"graph.facebook.com": "123456789012345"},
+            {"graph.facebook.com": "123456789012345", "graph.google.com": "00000000"},
+        ),
+        ("SupportedLoginProviders", {"graph.facebook.com": "123456789012345"}, {}),
+        ("DeveloperProviderName", "dev1", "dev2"),
+    ],
+)
+@mock_cognitoidentity
+def test_update_identity_pool(key, initial_value, updated_value):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    res = conn.create_identity_pool(
+        IdentityPoolName="TestPool",
+        AllowUnauthenticatedIdentities=False,
+        **dict({key: initial_value}),
+    )
+
+    first = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])
+    first[key].should.equal(initial_value)
+
+    response = conn.update_identity_pool(
+        IdentityPoolId=res["IdentityPoolId"],
+        IdentityPoolName="TestPool",
+        AllowUnauthenticatedIdentities=False,
+        **dict({key: updated_value}),
+    )
+    response[key].should.equal(updated_value)
+
+    second = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])
+    second[key].should.equal(response[key])
+
+
 @mock_cognitoidentity
 def test_describe_identity_pool_with_invalid_id_raises_error():
     conn = boto3.client("cognito-identity", "us-west-2")

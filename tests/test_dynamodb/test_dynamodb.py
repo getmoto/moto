@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import six
 import boto
 import boto.dynamodb
 import sure  # noqa
@@ -12,6 +11,7 @@ from moto.dynamodb import dynamodb_backend
 from boto.exception import DynamoDBResponseError
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_list_tables():
     name = "TestTable"
@@ -34,6 +34,7 @@ def test_list_tables_layer_1():
     res.should.equal(expected)
 
 
+# Has boto3 equivalent
 @mock_dynamodb_deprecated
 def test_describe_missing_table():
     conn = boto.connect_dynamodb("the_key", "the_secret")
@@ -41,6 +42,8 @@ def test_describe_missing_table():
         conn.describe_table("messages")
 
 
+# Has boto3 equivalent
+# This test is pointless though, as we treat DynamoDB as a global resource
 @mock_dynamodb_deprecated
 def test_dynamodb_with_connect_to_region():
     # this will work if connected with boto.connect_dynamodb()

@@ -1,20 +1,16 @@
 from __future__ import unicode_literals
 
-import time
-import datetime
 import boto3
-from botocore.exceptions import ClientError
 import sure  # noqa
 from moto import (
     mock_batch,
     mock_iam,
     mock_ec2,
     mock_ecs,
-    mock_logs,
     mock_cloudformation,
 )
-import functools
 import json
+from uuid import uuid4
 
 DEFAULT_REGION = "eu-central-1"
 
@@ -42,17 +38,18 @@ def _setup(ec2_client, iam_client):
     )
     subnet_id = resp["Subnet"]["SubnetId"]
     resp = ec2_client.create_security_group(
-        Description="test_sg_desc", GroupName="test_sg", VpcId=vpc_id
+        Description="test_sg_desc", GroupName=str(uuid4())[0:6], VpcId=vpc_id
     )
     sg_id = resp["GroupId"]
 
+    role_name = str(uuid4())[0:6]
     resp = iam_client.create_role(
-        RoleName="TestRole", AssumeRolePolicyDocument="some_policy"
+        RoleName=role_name, AssumeRolePolicyDocument="some_policy"
     )
     iam_arn = resp["Role"]["Arn"]
-    iam_client.create_instance_profile(InstanceProfileName="TestRole")
+    iam_client.create_instance_profile(InstanceProfileName=role_name)
     iam_client.add_role_to_instance_profile(
-        InstanceProfileName="TestRole", RoleName="TestRole"
+        InstanceProfileName=role_name, RoleName=role_name
     )
 
     return vpc_id, subnet_id, sg_id, iam_arn
@@ -91,7 +88,8 @@ def test_create_env_cf():
     cf_json = json.dumps(create_environment_template)
 
     cf_conn = boto3.client("cloudformation", DEFAULT_REGION)
-    stack_id = cf_conn.create_stack(StackName="test_stack", TemplateBody=cf_json)[
+    stack_name = str(uuid4())[0:6]
+    stack_id = cf_conn.create_stack(StackName=stack_name, TemplateBody=cf_json)[
         "StackId"
     ]
 
@@ -105,7 +103,7 @@ def test_create_env_cf():
         "arn:aws:batch:"
     )
     stack_resources["StackResourceSummaries"][0]["PhysicalResourceId"].should.contain(
-        "test_stack"
+        stack_name
     )
 
 
@@ -154,7 +152,8 @@ def test_create_job_queue_cf():
     cf_json = json.dumps(create_environment_template)
 
     cf_conn = boto3.client("cloudformation", DEFAULT_REGION)
-    stack_id = cf_conn.create_stack(StackName="test_stack", TemplateBody=cf_json)[
+    stack_name = str(uuid4())[0:6]
+    stack_id = cf_conn.create_stack(StackName=stack_name, TemplateBody=cf_json)[
         "StackId"
     ]
 
@@ -171,7 +170,7 @@ def test_create_job_queue_cf():
     job_queue_resource["ResourceStatus"].should.equal("CREATE_COMPLETE")
     # Spot checks on the ARN
     job_queue_resource["PhysicalResourceId"].startswith("arn:aws:batch:")
-    job_queue_resource["PhysicalResourceId"].should.contain("test_stack")
+    job_queue_resource["PhysicalResourceId"].should.contain(stack_name)
     job_queue_resource["PhysicalResourceId"].should.contain("job-queue/")
 
 
@@ -243,7 +242,8 @@ def test_create_job_def_cf():
     cf_json = json.dumps(create_environment_template)
 
     cf_conn = boto3.client("cloudformation", DEFAULT_REGION)
-    stack_id = cf_conn.create_stack(StackName="test_stack", TemplateBody=cf_json)[
+    stack_name = str(uuid4())[0:6]
+    stack_id = cf_conn.create_stack(StackName=stack_name, TemplateBody=cf_json)[
         "StackId"
     ]
 
@@ -260,7 +260,7 @@ def test_create_job_def_cf():
     job_def_resource["ResourceStatus"].should.equal("CREATE_COMPLETE")
     # Spot checks on the ARN
     job_def_resource["PhysicalResourceId"].startswith("arn:aws:batch:")
-    job_def_resource["PhysicalResourceId"].should.contain("test_stack-JobDef")
+    job_def_resource["PhysicalResourceId"].should.contain(f"{stack_name}-JobDef")
     job_def_resource["PhysicalResourceId"].should.contain("job-definition/")
 
     # Test the linux parameter device host path

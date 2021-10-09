@@ -1,6 +1,6 @@
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 
 from .exceptions import InvalidRequestException
@@ -111,6 +111,13 @@ class DataSyncBackend(BaseBackend):
         self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "datasync"
+        )
 
     def create_location(self, location_uri, typ=None, metadata=None):
         """

@@ -4,20 +4,15 @@ import boto3
 import json
 import os
 import sure  # noqa
-import sys
 from datetime import datetime
 from dateutil.tz import tzutc
 from botocore.exceptions import ClientError
 import pytest
 
-from moto import mock_cloudformation, mock_sts, mock_stepfunctions
+from moto import mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
 
-if sys.version_info[0] < 3:
-    import mock
-    from unittest import SkipTest
-else:
-    from unittest import SkipTest, mock
+from unittest import SkipTest, mock
 
 region = "us-east-1"
 simple_definition = (

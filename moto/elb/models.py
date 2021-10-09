@@ -12,7 +12,7 @@ from moto.packages.boto.ec2.elb.attributes import (
     CrossZoneLoadBalancingAttribute,
 )
 from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -75,19 +75,20 @@ class FakeLoadBalancer(CloudFormationModel):
         name,
         zones,
         ports,
-        scheme="internet-facing",
+        scheme=None,
         vpc_id=None,
         subnets=None,
         security_groups=None,
     ):
         self.name = name
         self.health_check = None
-        self.instance_ids = []
+        self.instance_sparse_ids = []
+        self.instance_autoscaling_ids = []
         self.zones = zones
         self.listeners = []
         self.backends = []
         self.created_time = datetime.datetime.now(pytz.utc)
-        self.scheme = scheme
+        self.scheme = scheme or "internet-facing"
         self.attributes = FakeLoadBalancer.get_default_attributes()
         self.policies = Policies()
         self.policies.other_policies = []
@@ -118,6 +119,11 @@ class FakeLoadBalancer(CloudFormationModel):
                 instance_port=(port.get("instance_port") or port["InstancePort"])
             )
             self.backends.append(backend)
+
+    @property
+    def instance_ids(self):
+        """Return all the instances attached to the ELB"""
+        return self.instance_sparse_ids + self.instance_autoscaling_ids
 
     @staticmethod
     def cloudformation_name_type():
@@ -259,7 +265,7 @@ class FakeLoadBalancer(CloudFormationModel):
             del self.tags[key]
 
     def delete(self, region):
-        """ Not exposed as part of the ELB API - used for CloudFormation. """
+        """Not exposed as part of the ELB API - used for CloudFormation."""
         elb_backends[region].delete_load_balancer(self.name)
 
 
@@ -392,7 +398,7 @@ class ELBBackend(BaseBackend):
         load_balancer.health_check = check
         return check
 
-    def set_load_balancer_listener_sslcertificate(
+    def set_load_balancer_listener_ssl_certificate(
         self, name, lb_port, ssl_certificate_id
     ):
         balancer = self.load_balancers.get(name, None)
@@ -403,19 +409,39 @@ class ELBBackend(BaseBackend):
 
         return balancer
 
-    def register_instances(self, load_balancer_name, instance_ids):
+    def register_instances(
+        self, load_balancer_name, instance_ids, from_autoscaling=False
+    ):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.instance_ids.extend(instance_ids)
+        attr_name = (
+            "instance_sparse_ids"
+            if not from_autoscaling
+            else "instance_autoscaling_ids"
+        )
+
+        actual_instance_ids = getattr(load_balancer, attr_name)
+        actual_instance_ids.extend(instance_ids)
         return load_balancer
 
-    def deregister_instances(self, load_balancer_name, instance_ids):
+    def deregister_instances(
+        self, load_balancer_name, instance_ids, from_autoscaling=False
+    ):
         load_balancer = self.get_load_balancer(load_balancer_name)
+        attr_name = (
+            "instance_sparse_ids"
+            if not from_autoscaling
+            else "instance_autoscaling_ids"
+        )
+        actual_instance_ids = getattr(load_balancer, attr_name)
+
         new_instance_ids = [
             instance_id
-            for instance_id in load_balancer.instance_ids
+            for instance_id in actual_instance_ids
             if instance_id not in instance_ids
         ]
-        load_balancer.instance_ids = new_instance_ids
+
+        setattr(load_balancer, attr_name, new_instance_ids)
+
         return load_balancer
 
     def set_cross_zone_load_balancing_attribute(self, load_balancer_name, attribute):

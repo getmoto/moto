@@ -10,7 +10,9 @@ from moto import (
     mock_ec2,
     mock_s3,
 )
+from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
+from uuid import uuid4
 
 
 @mock_cloudformation
@@ -23,8 +25,9 @@ def test_flow_logs_by_cloudformation():
 
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
 
+    bucket_name = str(uuid4())
     bucket = s3.create_bucket(
-        Bucket="test-flow-logs",
+        Bucket=bucket_name,
         CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
@@ -47,11 +50,14 @@ def test_flow_logs_by_cloudformation():
         },
     }
     flow_log_template_json = json.dumps(flow_log_template)
+    stack_name = str(uuid4())
     stack_id = cf_client.create_stack(
-        StackName="test_stack", TemplateBody=flow_log_template_json
+        StackName=stack_name, TemplateBody=flow_log_template_json
     )["StackId"]
 
-    flow_logs = client.describe_flow_logs()["FlowLogs"]
+    flow_logs = client.describe_flow_logs(
+        Filters=[{"Name": "resource-id", "Values": [vpc["VpcId"]]}]
+    )["FlowLogs"]
     flow_logs.should.have.length_of(1)
     flow_logs[0]["ResourceId"].should.equal(vpc["VpcId"])
     flow_logs[0]["LogDestination"].should.equal("arn:aws:s3:::" + bucket.name)
@@ -81,15 +87,26 @@ def test_cloudformation():
 
     client = boto3.client("ec2", region_name="us-east-1")
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = str(uuid4())
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(dummy_template_json)
+        StackName=stack_name, TemplateBody=json.dumps(dummy_template_json)
     )
-    associations = client.describe_iam_instance_profile_associations()
-    associations["IamInstanceProfileAssociations"].should.have.length_of(1)
-    associations["IamInstanceProfileAssociations"][0]["IamInstanceProfile"][
-        "Arn"
-    ].should.contain("test_stack")
 
-    cf_conn.delete_stack(StackName="test_stack")
-    associations = client.describe_iam_instance_profile_associations()
-    associations["IamInstanceProfileAssociations"].should.have.length_of(0)
+    resources = cf_conn.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    iam_id = resources[0]["PhysicalResourceId"]
+    iam_ip_arn = f"arn:aws:iam::{ACCOUNT_ID}:instance-profile/{iam_id}"
+
+    all_assocs = client.describe_iam_instance_profile_associations()[
+        "IamInstanceProfileAssociations"
+    ]
+    our_assoc = [a for a in all_assocs if a["IamInstanceProfile"]["Arn"] == iam_ip_arn]
+    our_assoc[0]["IamInstanceProfile"]["Arn"].should.contain(stack_name)
+    our_assoc_id = our_assoc[0]["AssociationId"]
+
+    cf_conn.delete_stack(StackName=stack_name)
+    associations = client.describe_iam_instance_profile_associations()[
+        "IamInstanceProfileAssociations"
+    ]
+    [a["AssociationId"] for a in associations].shouldnt.contain(our_assoc_id)

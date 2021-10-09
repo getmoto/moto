@@ -5,7 +5,7 @@ import datetime
 
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.utils import random_string
@@ -28,6 +28,7 @@ from .exceptions import (
     SnapshotCopyGrantAlreadyExistsFaultError,
     SnapshotCopyGrantNotFoundFaultError,
     UnknownSnapshotCopyRegionFaultError,
+    ClusterSecurityGroupNotFoundFaultError,
 )
 
 
@@ -423,6 +424,7 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
         super(SecurityGroup, self).__init__(region_name, tags)
         self.cluster_security_group_name = cluster_security_group_name
         self.description = description
+        self.ingress_rules = []
 
     @property
     def resource_id(self):
@@ -571,6 +573,15 @@ class RedshiftBackend(BaseBackend):
         region_name = self.region
         self.__dict__ = {}
         self.__init__(ec2_backend, region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "redshift"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "redshift-data", policy_supported=False
+        )
 
     def enable_snapshot_copy(self, **kwargs):
         cluster_identifier = kwargs["cluster_identifier"]
@@ -748,6 +759,16 @@ class RedshiftBackend(BaseBackend):
         if security_group_identifier in self.security_groups:
             return self.security_groups.pop(security_group_identifier)
         raise ClusterSecurityGroupNotFoundError(security_group_identifier)
+
+    def authorize_cluster_security_group_ingress(self, security_group_name, cidr_ip):
+        security_group = self.security_groups.get(security_group_name)
+        if not security_group:
+            raise ClusterSecurityGroupNotFoundFaultError()
+
+        # just adding the cidr_ip as ingress rule for now as there is no security rule
+        security_group.ingress_rules.append(cidr_ip)
+
+        return security_group
 
     def create_cluster_parameter_group(
         self,

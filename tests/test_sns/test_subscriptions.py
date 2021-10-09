@@ -7,6 +7,7 @@ from moto import mock_sns_deprecated
 from moto.sns.models import DEFAULT_PAGE_SIZE
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_creating_subscription():
     conn = boto.connect_sns()
@@ -38,6 +39,7 @@ def test_creating_subscription():
     subscriptions.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_deleting_subscriptions_by_deleting_topic():
     conn = boto.connect_sns()
@@ -86,6 +88,7 @@ def test_deleting_subscriptions_by_deleting_topic():
     conn.unsubscribe(subscription_arn)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_getting_subscriptions_by_topic():
     conn = boto.connect_sns()
@@ -107,6 +110,7 @@ def test_getting_subscriptions_by_topic():
     topic1_subscriptions[0]["Endpoint"].should.equal("http://example1.com/")
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_subscription_paging():
     conn = boto.connect_sns()
