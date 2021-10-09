@@ -1,8 +1,10 @@
+import pytest
 import copy
 from string import Template
 
 import boto3
 import json
+from botocore.exceptions import ClientError
 from moto import mock_cloudformation, mock_events
 import sure  # noqa
 
@@ -57,6 +59,15 @@ rule_template = Template(
             },
         }
     )
+)
+
+
+empty = json.dumps(
+    {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "EventBridge Rule Test",
+        "Resources": {},
+    }
 )
 
 
@@ -154,3 +165,24 @@ def test_create_rule():
 
     response["Arn"].should.equal(rule_arn)
     response["EventPattern"].should.equal('{"detail-type": ["SomeDetailType"]}')
+
+
+@mock_events
+@mock_cloudformation
+def test_delete_rule():
+    # given
+    cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
+    name = "test-rule"
+    stack_name = "test-stack"
+    template = rule_template.substitute({"rule_name": name})
+    cfn_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    # when
+    cfn_client.update_stack(StackName=stack_name, TemplateBody=empty)
+
+    # then
+    events_client = boto3.client("events", region_name="eu-central-1")
+
+    with pytest.raises(ClientError, match="does not exist") as e:
+
+        events_client.describe_rule(Name=name)
