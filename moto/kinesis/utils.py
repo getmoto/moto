@@ -1,17 +1,10 @@
-import sys
 import base64
 
 from .exceptions import InvalidArgumentError
 
 
-if sys.version_info[0] == 2:
-    encode_method = base64.encodestring
-    decode_method = base64.decodestring
-elif sys.version_info[0] == 3:
-    encode_method = base64.encodebytes
-    decode_method = base64.decodebytes
-else:
-    raise Exception("Python version is not supported")
+encode_method = base64.encodebytes
+decode_method = base64.decodebytes
 
 
 PAGINATION_MODEL = {

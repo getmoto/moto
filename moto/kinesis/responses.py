@@ -152,40 +152,6 @@ class KinesisResponse(BaseResponse):
             res["NextToken"] = token
         return json.dumps(res)
 
-    """ Firehose """
-
-    def create_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        redshift_config = self.parameters.get("RedshiftDestinationConfiguration")
-        s3_config = self.parameters.get("S3DestinationConfiguration")
-        extended_s3_config = self.parameters.get("ExtendedS3DestinationConfiguration")
-
-        if redshift_config:
-            redshift_s3_config = redshift_config["S3Configuration"]
-            stream_kwargs = {
-                "redshift_username": redshift_config["Username"],
-                "redshift_password": redshift_config["Password"],
-                "redshift_jdbc_url": redshift_config["ClusterJDBCURL"],
-                "redshift_role_arn": redshift_config["RoleARN"],
-                "redshift_copy_command": redshift_config["CopyCommand"],
-                "redshift_s3_role_arn": redshift_s3_config["RoleARN"],
-                "redshift_s3_bucket_arn": redshift_s3_config["BucketARN"],
-                "redshift_s3_prefix": redshift_s3_config["Prefix"],
-                "redshift_s3_compression_format": redshift_s3_config.get(
-                    "CompressionFormat"
-                ),
-                "redshift_s3_buffering_hints": redshift_s3_config["BufferingHints"],
-            }
-        elif s3_config:
-            stream_kwargs = {"s3_config": s3_config}
-        elif extended_s3_config:
-            stream_kwargs = {"extended_s3_config": extended_s3_config}
-
-        stream = self.kinesis_backend.create_delivery_stream(
-            stream_name, **stream_kwargs
-        )
-        return ""
-
     def increase_stream_retention_period(self):
         stream_name = self.parameters.get("StreamName")
         retention_period_hours = self.parameters.get("RetentionPeriodHours")
