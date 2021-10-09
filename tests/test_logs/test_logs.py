@@ -1053,6 +1053,7 @@ def test_describe_log_streams_simple_paging():
     )
     resp.should_not.have.key("nextToken")
 
+
 @mock_logs
 def test_describe_log_streams_paging():
     client = boto3.client("logs", "us-east-1")
