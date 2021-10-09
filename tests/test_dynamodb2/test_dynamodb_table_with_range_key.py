@@ -14,6 +14,7 @@ import pytest
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 try:
     from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey, AllIndex
@@ -2283,3 +2284,48 @@ def test_scan_by_index():
     assert last_eval_key["id"]["S"] == "1"
     assert last_eval_key["range_key"]["S"] == "1"
     assert last_eval_key["lsi_range_key"]["S"] == "1"
+
+
+@mock_dynamodb2
+@pytest.mark.parametrize("create_item_first", [False, True])
+@pytest.mark.parametrize(
+    "expression", ["set h=:New", "set r=:New", "set x=:New, r=:New"]
+)
+def test_update_item_throws_exception_when_updating_hash_or_range_key(
+    create_item_first, expression
+):
+    client = boto3.client("dynamodb", region_name="ap-northeast-3")
+    table_name = "testtable_3877"
+
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "h", "KeyType": "HASH"},
+            {"AttributeName": "r", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "h", "AttributeType": "S"},
+            {"AttributeName": "r", "AttributeType": "S"},
+        ],
+    )
+
+    initial_val = str(uuid4())
+
+    if create_item_first:
+        client.put_item(
+            TableName=table_name, Item={"h": {"S": initial_val}, "r": {"S": "1"}},
+        )
+
+    # Updating the HASH key should fail
+    with pytest.raises(ClientError) as ex:
+        client.update_item(
+            TableName=table_name,
+            Key={"h": {"S": initial_val}, "r": {"S": "1"}},
+            UpdateExpression=expression,
+            ExpressionAttributeValues={":New": {"S": "2"}},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.match(
+        r"One or more parameter values were invalid: Cannot update attribute (r|h). This attribute is part of the key"
+    )
