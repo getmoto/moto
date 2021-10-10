@@ -1229,6 +1229,11 @@ def test_list_users():
     assert err["Code"].should.equal("InvalidParameterException")
     assert err["Message"].should.equal("Error while parsing filter")
 
+    # checking Filter with prefix operator
+    result = conn.list_users(UserPoolId=user_pool_id, Filter='phone_number ^= "+336"')
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(username_bis)
+
 
 @mock_cognitoidp
 def test_list_users_inherent_attributes():
