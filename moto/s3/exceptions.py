@@ -567,4 +567,4 @@ class ObjectLockConfigurationNotFoundError(S3ClientError):
         super(ObjectLockConfigurationNotFoundError, self).__init__(
             "ObjectLockConfigurationNotFoundError",
             "Object Lock configuration does not exist for this bucket",
-        ) 
+        )
