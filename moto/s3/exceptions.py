@@ -558,3 +558,13 @@ class InvalidFilterRuleName(InvalidArgumentError):
             *args,
             **kwargs
         )
+
+
+class ObjectLockConfigurationNotFoundError(S3ClientError):
+    code = 404
+
+    def __init__(self):
+        super(ObjectLockConfigurationNotFoundError, self).__init__(
+            "ObjectLockConfigurationNotFoundError",
+            "Object Lock configuration does not exist for this bucket",
+        ) 
