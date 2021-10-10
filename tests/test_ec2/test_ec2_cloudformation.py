@@ -239,8 +239,9 @@ def test_attach_internet_gateway():
         },
     }
     template_json = json.dumps(volume_template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_resources = cf.list_stack_resources(StackName="test_stack")[
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=template_json)
+    stack_resources = cf.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
     ]
 
@@ -288,8 +289,9 @@ def test_attach_vpn_gateway():
         },
     }
     template_json = json.dumps(vpn_gateway_template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_resources = cf.list_stack_resources(StackName="test_stack")[
+    stack_name = str(uuid4())[0:6]
+    cf.create_stack(StackName=stack_name, TemplateBody=template_json)
+    stack_resources = cf.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
     ]
 
