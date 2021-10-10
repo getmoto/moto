@@ -1209,17 +1209,25 @@ def test_list_users():
         UserAttributes=[{"Name": "phone_number", "Value": "+33666666666"}],
     )
     result = conn.list_users(
-        UserPoolId=user_pool_id, Filter='phone_number="+33666666666'
+        UserPoolId=user_pool_id, Filter='phone_number="+33666666666"'
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
     # checking Filter with space
     result = conn.list_users(
-        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666'
+        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666"'
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
+
+    # checking Filter without double quotes
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter="phone_number = +33666666666")
+
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("InvalidParameterException")
+    assert err["Message"].should.equal("Error while parsing filter")
 
 
 @mock_cognitoidp
