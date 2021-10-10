@@ -1,6 +1,34 @@
 Moto Changelog
 ===================
 
+
+2.2.9
+-----
+    General:
+        * Moto is now compatible with Sure 2.x
+
+    New Methods:
+        * Kinesis
+            * list_shards()
+        * RDS:
+            * create_db_cluster()
+            * delete_db_cluster()
+            * describe_db_clusters()
+            * restore_db_instance_from_db_snapshot()
+            * start_db_cluster()
+            * stop_db_cluster()
+        * S3:
+            * get_object_legal_hold()
+
+    Miscellaneous:
+        * CF: Now supports creation of AWS::EC2::VPNGateway
+        * CF: Now supports deletion of AWS::Events::Rule
+        * EC2: create_volume() now supports the VolumeType-parameter
+        * EC2: describe_customer_gateways() now supports the CustomerGatewayIds-parameter
+        * EC2: describe_security_groups() now has improved support for the Filters-parameter
+        * EC2: describe_spot_instance_requests() now supports the SpotInstanceRequestIds-parameter
+        * EC2: describe_transit_gateways() now supports the TransitGatewayIds-parameter
+
 2.2.8
 -----
     New Services:

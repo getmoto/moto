@@ -2564,7 +2564,7 @@
 
 ## kinesis
 <details>
-<summary>57% implemented</summary>
+<summary>60% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -2580,7 +2580,7 @@
 - [X] get_records
 - [X] get_shard_iterator
 - [X] increase_stream_retention_period
-- [ ] list_shards
+- [X] list_shards
 - [ ] list_stream_consumers
 - [X] list_streams
 - [X] list_tags_for_stream
@@ -3172,7 +3172,7 @@
 
 ## rds
 <details>
-<summary>10% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -3188,7 +3188,7 @@
 - [ ] copy_db_snapshot
 - [ ] copy_option_group
 - [ ] create_custom_availability_zone
-- [ ] create_db_cluster
+- [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
 - [ ] create_db_cluster_snapshot
@@ -3204,7 +3204,7 @@
 - [ ] create_global_cluster
 - [X] create_option_group
 - [ ] delete_custom_availability_zone
-- [ ] delete_db_cluster
+- [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
 - [ ] delete_db_cluster_snapshot
@@ -3230,7 +3230,7 @@
 - [ ] describe_db_cluster_parameters
 - [ ] describe_db_cluster_snapshot_attributes
 - [ ] describe_db_cluster_snapshots
-- [ ] describe_db_clusters
+- [X] describe_db_clusters
 - [ ] describe_db_engine_versions
 - [ ] describe_db_instance_automated_backups
 - [ ] describe_db_instances
@@ -3298,17 +3298,17 @@
 - [ ] restore_db_cluster_from_s3
 - [ ] restore_db_cluster_from_snapshot
 - [ ] restore_db_cluster_to_point_in_time
-- [ ] restore_db_instance_from_db_snapshot
+- [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
 - [ ] restore_db_instance_to_point_in_time
 - [ ] revoke_db_security_group_ingress
 - [ ] start_activity_stream
-- [ ] start_db_cluster
+- [X] start_db_cluster
 - [ ] start_db_instance
 - [ ] start_db_instance_automated_backups_replication
 - [ ] start_export_task
 - [ ] stop_activity_stream
-- [ ] stop_db_cluster
+- [X] stop_db_cluster
 - [ ] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
 </details>
@@ -3543,7 +3543,7 @@
 
 ## s3
 <details>
-<summary>55% implemented</summary>
+<summary>56% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -3591,7 +3591,7 @@
 - [ ] get_bucket_website
 - [X] get_object
 - [X] get_object_acl
-- [ ] get_object_legal_hold
+- [X] get_object_legal_hold
 - [X] get_object_lock_configuration
 - [ ] get_object_retention
 - [X] get_object_tagging
