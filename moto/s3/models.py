@@ -1157,7 +1157,7 @@ class FakeBucket(CloudFormationModel):
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
             s3_backend.put_bucket_encryption(
-                bucket_name=resource_name, encryption=[bucket_encryption]
+                bucket_name=resource_name, encryption=bucket_encryption
             )
 
         return bucket
@@ -1187,7 +1187,7 @@ class FakeBucket(CloudFormationModel):
                     properties["BucketEncryption"]
                 )
                 s3_backend.put_bucket_encryption(
-                    bucket_name=original_resource.name, encryption=[bucket_encryption]
+                    bucket_name=original_resource.name, encryption=bucket_encryption
                 )
             return original_resource
 
@@ -1518,6 +1518,23 @@ class S3Backend(BaseBackend):
             raise InvalidStorageClass(storage=storage)
 
         bucket = self.get_bucket(bucket_name)
+
+        # getting default config from bucket if not included in put request
+        bucket_key_enabled = (
+            bucket_key_enabled or bucket.encryption["Rule"]["BucketKeyEnabled"]
+        )
+        kms_key_id = (
+            kms_key_id
+            or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
+                "KMSMasterKeyID"
+            ]
+        )
+        encryption = (
+            encryption
+            or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
+                "SSEAlgorithm"
+            ]
+        )
 
         new_key = FakeKey(
             name=key_name,
