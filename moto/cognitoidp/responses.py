@@ -57,7 +57,7 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_user_pools(self):
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         user_pools, next_token = cognitoidp_backends[self.region].list_user_pools(
             max_results=max_results, next_token=next_token
         )
@@ -128,7 +128,7 @@ class CognitoIdpResponse(BaseResponse):
     def list_user_pool_clients(self):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         user_pool_clients, next_token = cognitoidp_backends[
             self.region
         ].list_user_pool_clients(
@@ -181,7 +181,7 @@ class CognitoIdpResponse(BaseResponse):
     def list_identity_providers(self):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         identity_providers, next_token = cognitoidp_backends[
             self.region
         ].list_identity_providers(

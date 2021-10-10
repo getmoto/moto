@@ -11,10 +11,10 @@ protocol is `query`, `json` or `rest-json`.  Even if aws adds new
 services, this script will work as long as the protocol is known.
 
 TODO:
-  - This scripts don't generates functions in `responses.py` for
-  `rest-json`, because I don't know the rule of it. want someone fix this.
-  - In some services's operations, this scripts might crash. Make new
-  issue on github then.
+  - This script doesn't generates functions in `responses.py` for
+    `rest-json`.  Someone will need to add this logic.
+  - In some services's operations, this script might crash. Create an
+    issue on github for the problem.
 """
 import os
 import re
@@ -128,35 +128,13 @@ def append_mock_to_init_py(service):
     filtered_lines = [_ for _ in lines if re.match("^mock_.*lazy_load(.*)$", _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    new_line = 'mock_{} = lazy_load(".{}", "mock_{}")'.format(
+    new_line = 'mock_{} = lazy_load(".{}", "mock_{}", boto3_name="{}")'.format(
         get_escaped_service(service),
         get_escaped_service(service),
         get_escaped_service(service),
+        service,
     )
     lines.insert(last_import_line_index + 1, new_line)
-
-    body = "\n".join(lines) + "\n"
-    with open(path, "w") as fhandle:
-        fhandle.write(body)
-
-
-def append_mock_dict_to_backends_py(service):
-    path = os.path.join(os.path.dirname(__file__), "..", "moto", "backends.py")
-    with open(path) as fhandle:
-        lines = [_.replace("\n", "") for _ in fhandle.readlines()]
-
-    if any(_ for _ in lines if re.match(f'.*"{service}": {service}_backends.*', _)):
-        return
-    filtered_lines = [_ for _ in lines if re.match('.*".*":.*_backends.*', _)]
-    last_elem_line_index = lines.index(filtered_lines[-1])
-
-    new_line = '    "{}": ("{}", "{}_backends"),'.format(
-        service, get_escaped_service(service), get_escaped_service(service)
-    )
-    prev_line = lines[last_elem_line_index]
-    if not prev_line.endswith("{") and not prev_line.endswith(","):
-        lines[last_elem_line_index] += ","
-    lines.insert(last_elem_line_index + 1, new_line)
 
     body = "\n".join(lines) + "\n"
     with open(path, "w") as fhandle:
@@ -207,10 +185,8 @@ def initialize_service(service, api_protocol):
             else None
         )
         render_template(tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename)
-
-    # append mock to init files
+    # append mock to initi files
     append_mock_to_init_py(service)
-    append_mock_dict_to_backends_py(service)
 
 
 def to_upper_camel_case(string):
@@ -261,11 +237,11 @@ def get_function_in_responses(service, operation, protocol):
     for input_name, input_type in inputs.items():
         type_name = input_type.type_name
         if type_name == "integer":
-            arg_line_tmpl = '    {} = self._get_int_param("{}")\n'
+            arg_line_tmpl = '    {}=self._get_int_param("{}")\n'
         elif type_name == "list":
-            arg_line_tmpl = '    {} = self._get_list_prefix("{}.member")\n'
+            arg_line_tmpl = '    {}=self._get_list_prefix("{}.member")\n'
         else:
-            arg_line_tmpl = '    {} = self._get_param("{}")\n'
+            arg_line_tmpl = '    {}=self._get_param("{}")\n'
         body += arg_line_tmpl.format(to_snake_case(input_name), input_name)
     if output_names:
         body += "    {} = self.{}_backend.{}(\n".format(
@@ -532,8 +508,10 @@ def main():
         )
 
     click.echo(
-        'You will still need to add the mock into "docs/index.rst" and '
-        '"IMPLEMENTATION_COVERAGE.md"'
+        'Remaining setup:\n'
+        '- Add the mock into "docs/index.rst",\n'
+        '- Add the mock into "IMPLEMENTATION_COVERAGE.md",\n'
+        '- Run scripts/update_backend_index.py.'
     )
 
 

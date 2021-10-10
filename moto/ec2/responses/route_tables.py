@@ -18,6 +18,7 @@ class RouteTables(BaseResponse):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        destination_prefix_list_id = self._get_param("DestinationPrefixListId")
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
         nat_gateway_id = self._get_param("NatGatewayId")
@@ -25,11 +26,13 @@ class RouteTables(BaseResponse):
         transit_gateway_id = self._get_param("TransitGatewayId")
         interface_id = self._get_param("NetworkInterfaceId")
         pcx_id = self._get_param("VpcPeeringConnectionId")
+        carrier_gateway_id = self._get_param("CarrierGatewayId")
 
         self.ec2_backend.create_route(
             route_table_id,
             destination_cidr_block,
             destination_ipv6_cidr_block,
+            destination_prefix_list_id,
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,
@@ -37,6 +40,7 @@ class RouteTables(BaseResponse):
             transit_gateway_id=transit_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
+            carrier_gateway_id=carrier_gateway_id,
         )
 
         template = self.response_template(CREATE_ROUTE_RESPONSE)
@@ -55,8 +59,12 @@ class RouteTables(BaseResponse):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        destination_prefix_list_id = self._get_param("DestinationPrefixListId")
         self.ec2_backend.delete_route(
-            route_table_id, destination_cidr_block, destination_ipv6_cidr_block
+            route_table_id,
+            destination_cidr_block,
+            destination_ipv6_cidr_block,
+            destination_prefix_list_id,
         )
         template = self.response_template(DELETE_ROUTE_RESPONSE)
         return template.render()
@@ -83,14 +91,24 @@ class RouteTables(BaseResponse):
     def replace_route(self):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
+        destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
+        destination_prefix_list_id = self._get_param("DestinationPrefixListId")
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
         interface_id = self._get_param("NetworkInterfaceId")
         pcx_id = self._get_param("VpcPeeringConnectionId")
+        nat_gateway_id = self._get_param("NatGatewayId")
+        egress_only_igw_id = self._get_param("EgressOnlyInternetGatewayId")
+        transit_gateway_id = self._get_param("TransitGatewayId")
 
         self.ec2_backend.replace_route(
             route_table_id,
             destination_cidr_block,
+            destination_ipv6_cidr_block,
+            destination_prefix_list_id,
+            nat_gateway_id,
+            egress_only_igw_id,
+            transit_gateway_id,
             gateway_id=gateway_id,
             instance_id=instance_id,
             interface_id=interface_id,
@@ -137,8 +155,12 @@ CREATE_ROUTE_TABLE_RESPONSE = """
            <item>
               {% if route.destination_ipv6_cidr_block %}
               <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
-              {% else %}
+              {% endif %}
+              {% if route.destination_cidr_block %}
               <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+              {% endif %}
+              {% if route.destination_prefix_list_id %}
+                <destinationPrefixListId>{{ route.destination_prefix_list_id }}</destinationPrefixListId>
               {% endif %}
              <gatewayId>local</gatewayId>
              <state>active</state>
@@ -175,8 +197,12 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
               <item>
                 {% if route.destination_ipv6_cidr_block %}
                 <destinationIpv6CidrBlock>{{ route.destination_ipv6_cidr_block }}</destinationIpv6CidrBlock>
-                {% else %}
+                {% endif %}
+                {% if route.destination_cidr_block %}
                 <destinationCidrBlock>{{ route.destination_cidr_block }}</destinationCidrBlock>
+                {% endif %}
+                {% if route.destination_prefix_list %}
+                  <destinationPrefixListId>{{ route.destination_prefix_list.id }}</destinationPrefixListId>
                 {% endif %}
                 {% if route.local %}
                   <gatewayId>local</gatewayId>
@@ -196,22 +222,31 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 {% if route.vpc_pcx %}
                   <vpcPeeringConnectionId>{{ route.vpc_pcx.id }}</vpcPeeringConnectionId>
                   <origin>CreateRoute</origin>
-                  <state>blackhole</state>
+                  <state>active</state>
+                {% endif %}
+                {% if route.carrier_gateway %}
+                  <carrierGatewayId>{{ route.carrier_gateway.id }}</carrierGatewayId>
+                  <origin>CreateRoute</origin>
+                  <state>active</state>
                 {% endif %}
                 {% if route.nat_gateway %}
                   <natGatewayId>{{ route.nat_gateway.id }}</natGatewayId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.egress_only_igw %}
                   <egressOnlyInternetGatewayId>{{ route.egress_only_igw.id }}</egressOnlyInternetGatewayId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.transit_gateway %}
                   <transitGatewayId>{{ route.transit_gateway.id }}</transitGatewayId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
                 {% if route.interface %}
                   <networkInterfaceId>{{ route.interface.id }}</networkInterfaceId>
+                  <origin>CreateRoute</origin>
                   <state>active</state>
                 {% endif %}
               </item>
@@ -223,7 +258,12 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                 <routeTableAssociationId>{{ association_id }}</routeTableAssociationId>
                 <routeTableId>{{ route_table.id }}</routeTableId>
                 <main>true</main>
+                {% if subnet_id.startswith("igw") %}
+                <gatewayId>{{ subnet_id }}</gatewayId>
+                {% endif %}
+                {% if subnet_id.startswith("subnet") %}
                 <subnetId>{{ subnet_id }}</subnetId>
+                {% endif %}
                 <associationState>
                   <state>associated</state>
                 </associationState>

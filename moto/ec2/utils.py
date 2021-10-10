@@ -52,6 +52,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "vpn-connection": "vpn",
     "vpn-gateway": "vgw",
     "iam-instance-profile-association": "iip-assoc",
+    "carrier-gateway": "cagw",
 }
 
 
@@ -81,7 +82,7 @@ def random_reservation_id():
 
 
 def random_security_group_id():
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"])
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"], size=17)
 
 
 def random_security_group_rule_id():
@@ -220,6 +221,10 @@ def random_iam_instance_profile_association_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"])
 
 
+def random_carrier_gateway_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"], size=17)
+
+
 def random_public_ip():
     return "54.214.{0}.{1}".format(random.choice(range(255)), random.choice(range(255)))
 
@@ -236,6 +241,14 @@ def random_ip():
     )
 
 
+def random_mac_address():
+    return "02:00:00:%02x:%02x:%02x" % (
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255),
+    )
+
+
 def randor_ipv4_cidr():
     return "10.0.{}.{}/16".format(random.randint(0, 255), random.randint(0, 255))
 
@@ -244,9 +257,13 @@ def random_ipv6_cidr():
     return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
 
 
-def generate_route_id(route_table_id, cidr_block, ipv6_cidr_block=None):
+def generate_route_id(
+    route_table_id, cidr_block, ipv6_cidr_block=None, prefix_list=None
+):
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
+    if prefix_list and not cidr_block:
+        cidr_block = prefix_list
     return "%s~%s" % (route_table_id, cidr_block)
 
 
@@ -521,6 +538,10 @@ def is_filter_matching(obj, filter, filter_value):
         if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
             return True
         return False
+
+    if isinstance(value, type({}.keys())):
+        if isinstance(filter_value, str) and filter_value in value:
+            return True
 
     try:
         value = set(value)

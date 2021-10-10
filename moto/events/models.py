@@ -271,6 +271,13 @@ class Rule(CloudFormationModel):
             new_resource_name, cloudformation_json, region_name
         )
 
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        event_backend = events_backends[region_name]
+        event_backend.delete_rule(resource_name)
+
     def describe(self):
         attributes = {
             "Arn": self.arn,
@@ -914,6 +921,13 @@ class EventsBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "events"
+        )
 
     def _add_default_event_bus(self):
         self.event_buses["default"] = EventBus(self.region_name, "default")

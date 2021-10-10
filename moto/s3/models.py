@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import json
 import os
 import base64
 import datetime
-import pytz
 import hashlib
 import copy
 import itertools
@@ -18,8 +15,9 @@ import sys
 import time
 import uuid
 
-
 from bisect import insort
+import pytz
+
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
@@ -1301,6 +1299,38 @@ class S3Backend(BaseBackend):
         self.account_public_access_block = None
         self.tagger = TaggingService()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """List of dicts representing default VPC endpoints for this service."""
+        accesspoint = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"accesspoint.s3-global.{service_region}.vpce.amazonaws.com",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": "*.accesspoint.s3-global.amazonaws.com",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": "*.accesspoint.s3-global.amazonaws.com"}
+            ],
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": "com.amazonaws.s3-global.accesspoint",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return (
+            BaseBackend.default_vpc_endpoint_service_factory(
+                service_region, zones, "s3", "Interface"
+            )
+            + BaseBackend.default_vpc_endpoint_service_factory(
+                service_region, zones, "s3", "Gateway"
+            )
+            + [accesspoint]
+        )
+
         # TODO: This is broken! DO NOT IMPORT MUTABLE DATA TYPES FROM OTHER AREAS -- THIS BREAKS UNMOCKING!
         # WRAP WITH A GETTER/SETTER FUNCTION
         # Register this class as a CloudWatch Metric Provider
@@ -1568,6 +1598,9 @@ class S3Backend(BaseBackend):
     def get_object_acl(self, key):
         return key.acl
 
+    def get_object_legal_hold(self, key):
+        return key.lock_legal_status
+
     def get_object_lock_configuration(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return (
@@ -1601,7 +1634,7 @@ class S3Backend(BaseBackend):
         )
 
     def put_object_lock_configuration(
-        self, bucket_name, lock_enabled, mode, days, years
+        self, bucket_name, lock_enabled, mode=None, days=None, years=None
     ):
         bucket = self.get_bucket(bucket_name)
 
@@ -1831,7 +1864,7 @@ class S3Backend(BaseBackend):
         key = self.get_object(bucket_name, key_name, version_id=version_id)
         self.tagger.delete_all_tags_for_resource(key.arn)
 
-    def delete_object(self, bucket_name, key_name, version_id=None):
+    def delete_object(self, bucket_name, key_name, version_id=None, bypass=False):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
@@ -1852,7 +1885,11 @@ class S3Backend(BaseBackend):
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
 
-                            if hasattr(key, "is_locked") and key.is_locked:
+                            if (
+                                hasattr(key, "is_locked")
+                                and key.is_locked
+                                and not bypass
+                            ):
                                 raise AccessDeniedByLock
 
                             if type(key) is FakeDeleteMarker:

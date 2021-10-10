@@ -120,3 +120,16 @@ class InvalidParameterCombination(RDSClientError):
         super(InvalidParameterCombination, self).__init__(
             "InvalidParameterCombination", message
         )
+
+
+class InvalidDBClusterStateFault(RDSClientError):
+    def __init__(self, message):
+        super().__init__("InvalidDBClusterStateFault", message)
+
+
+class DBClusterNotFoundError(RDSClientError):
+    def __init__(self, cluster_identifier):
+        super(DBClusterNotFoundError, self).__init__(
+            "DBClusterNotFoundFault",
+            "DBCluster {} not found.".format(cluster_identifier),
+        )

@@ -7,6 +7,7 @@ import sure  # noqa
 from moto import mock_ec2, mock_ec2_deprecated
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_describe_regions():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -16,6 +17,7 @@ def test_describe_regions():
         region.endpoint.should.contain(region.name)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_availability_zones():
     conn = boto.connect_ec2("the_key", "the_secret")

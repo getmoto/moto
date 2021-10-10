@@ -422,3 +422,15 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
             dict1[key] = dict2[key]
             if dict1[key] is None and remove_nulls:
                 dict1.pop(key)
+
+
+def glob_matches(pattern, string):
+    """AWS API-style globbing regexes"""
+    pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
+    pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+
+    pattern = ".*" + pattern + ".*"
+
+    if re.match(pattern, str(string)):
+        return True
+    return False

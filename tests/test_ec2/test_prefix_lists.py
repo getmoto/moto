@@ -1,7 +1,7 @@
 import boto3
 import sure  # noqa
 
-from moto import mock_ec2
+from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
 
 
@@ -47,15 +47,13 @@ def test_create_with_tags():
 def test_describe_managed_prefix_lists():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
-    default_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
-    set([l["OwnerId"] for l in default_lists]).should.equal({"aws"})
-
-    ec2.create_managed_prefix_list(
+    prefix_list = ec2.create_managed_prefix_list(
         PrefixListName="examplelist", MaxEntries=2, AddressFamily="?"
     )
+    pl_id = prefix_list["PrefixList"]["PrefixListId"]
 
     all_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
-    all_lists.should.have.length_of(len(default_lists) + 1)
+    [pl["PrefixListId"] for pl in all_lists].should.contain(pl_id)
     set([l["OwnerId"] for l in all_lists]).should.equal({"aws", ACCOUNT_ID})
 
 
@@ -64,7 +62,9 @@ def test_describe_managed_prefix_lists_with_prefix():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     default_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
-    set([l["OwnerId"] for l in default_lists]).should.equal({"aws"})
+    if not settings.TEST_SERVER_MODE:
+        # ServerMode is not guaranteed to only have AWS prefix lists
+        set([l["OwnerId"] for l in default_lists]).should.equal({"aws"})
 
     random_list_id = default_lists[0]["PrefixListId"]
 
@@ -72,7 +72,8 @@ def test_describe_managed_prefix_lists_with_prefix():
         "PrefixLists"
     ]
     lists_by_id.should.have.length_of(1)
-    lists_by_id[0]["OwnerId"].should.equal("aws")
+    if not settings.TEST_SERVER_MODE:
+        lists_by_id[0]["OwnerId"].should.equal("aws")
 
 
 @mock_ec2

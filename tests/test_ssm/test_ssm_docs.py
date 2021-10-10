@@ -10,6 +10,9 @@ import yaml
 import hashlib
 import copy
 import pkgutil
+import pytest
+
+from botocore.exceptions import ClientError
 
 from moto.core import ACCOUNT_ID
 
@@ -767,3 +770,32 @@ def test_list_documents():
         Filters=[{"Key": "TargetType", "Values": ["/AWS::EC2::Instance"]}]
     )
     len(response["DocumentIdentifiers"]).should.equal(1)
+
+
+@mock_ssm
+def test_tags_in_list_tags_from_resource_document():
+    template_file = _get_yaml_template()
+    json_doc = yaml.safe_load(template_file)
+
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.create_document(
+        Content=json.dumps(json_doc),
+        Name="TestDocument",
+        DocumentType="Command",
+        DocumentFormat="JSON",
+        Tags=[{"Key": "spam", "Value": "ham"}],
+    )
+
+    tags = client.list_tags_for_resource(
+        ResourceId="TestDocument", ResourceType="Document"
+    )
+    assert tags.get("TagList") == [{"Key": "spam", "Value": "ham"}]
+
+    client.delete_document(Name="TestDocument")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(
+            ResourceType="Document", ResourceId="TestDocument"
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceId"

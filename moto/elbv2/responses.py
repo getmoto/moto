@@ -125,6 +125,16 @@ SSL_POLICIES = [
             {"name": "DES-CBC3-SHA", "priority": 19},
         ],
     },
+    {
+        "name": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+        "ssl_protocols": ["TLSv1.2"],
+        "ciphers": [
+            {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
+            {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
+            {"name": "ECDHE-ECDSA-AES256-GCM-SHA384", "priority": 3},
+            {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 4},
+        ],
+    },
 ]
 
 
@@ -872,7 +882,9 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
           {% endfor %}
         </Certificates>
         {% endif %}
+        {% if listener.port %}
         <Port>{{ listener.port }}</Port>
+        {% endif %}
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
         <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
@@ -1115,7 +1127,7 @@ DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<DescribeTargetGroupAttributesRes
   </ResponseMetadata>
 </DescribeTargetGroupAttributesResponse>"""
 
-DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+DESCRIBE_LISTENERS_TEMPLATE = """<DescribeListenersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeListenersResult>
     <Listeners>
       {% for listener in listeners %}
@@ -1146,7 +1158,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
   <ResponseMetadata>
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
-</DescribeLoadBalancersResponse>"""
+</DescribeListenersResponse>"""
 
 CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ConfigureHealthCheckResult>

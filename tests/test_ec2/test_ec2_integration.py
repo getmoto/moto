@@ -33,9 +33,14 @@ def test_run_instance_with_encrypted_ebs():
             }
         ],
     }
-    ec2.run_instances(**kwargs)
+    instance = ec2.run_instances(**kwargs)
+    instance_id = instance["Instances"][0]["InstanceId"]
 
-    instances = ec2.describe_instances().get("Reservations")[0].get("Instances")
+    instances = (
+        ec2.describe_instances(InstanceIds=[instance_id])
+        .get("Reservations")[0]
+        .get("Instances")
+    )
     volume = instances[0]["BlockDeviceMappings"][0]["Ebs"]
 
     volumes = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])

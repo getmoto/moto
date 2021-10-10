@@ -60,11 +60,13 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId")
         secret_string = self._get_param("SecretString")
         secret_binary = self._get_param("SecretBinary")
+        client_request_token = self._get_param("ClientRequestToken")
         kms_key_id = self._get_param("KmsKeyId", if_none=None)
         return secretsmanager_backends[self.region].update_secret(
             secret_id=secret_id,
             secret_string=secret_string,
             secret_binary=secret_binary,
+            client_request_token=client_request_token,
             kms_key_id=kms_key_id,
         )
 

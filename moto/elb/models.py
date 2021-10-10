@@ -75,7 +75,7 @@ class FakeLoadBalancer(CloudFormationModel):
         name,
         zones,
         ports,
-        scheme="internet-facing",
+        scheme=None,
         vpc_id=None,
         subnets=None,
         security_groups=None,
@@ -88,7 +88,7 @@ class FakeLoadBalancer(CloudFormationModel):
         self.listeners = []
         self.backends = []
         self.created_time = datetime.datetime.now(pytz.utc)
-        self.scheme = scheme
+        self.scheme = scheme or "internet-facing"
         self.attributes = FakeLoadBalancer.get_default_attributes()
         self.policies = Policies()
         self.policies.other_policies = []
@@ -398,7 +398,7 @@ class ELBBackend(BaseBackend):
         load_balancer.health_check = check
         return check
 
-    def set_load_balancer_listener_sslcertificate(
+    def set_load_balancer_listener_ssl_certificate(
         self, name, lb_port, ssl_certificate_id
     ):
         balancer = self.load_balancers.get(name, None)

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
+from collections import OrderedDict
 import datetime
-import time
 import re
 import itertools
 
@@ -10,10 +10,10 @@ from hashlib import md5
 
 from boto3 import Session
 
-from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
+from moto.utilities.paginator import paginate
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,
@@ -25,6 +25,7 @@ from .utils import (
     compose_shard_iterator,
     compose_new_shard_iterator,
     decompose_shard_iterator,
+    PAGINATION_MODEL,
 )
 
 
@@ -322,128 +323,16 @@ class Stream(CloudFormationModel):
         return self.stream_name
 
 
-class FirehoseRecord(BaseModel):
-    def __init__(self, record_data):
-        self.record_id = 12345678
-        self.record_data = record_data
-
-
-class DeliveryStream(BaseModel):
-    def __init__(self, stream_name, **stream_kwargs):
-        self.name = stream_name
-        self.redshift_username = stream_kwargs.get("redshift_username")
-        self.redshift_password = stream_kwargs.get("redshift_password")
-        self.redshift_jdbc_url = stream_kwargs.get("redshift_jdbc_url")
-        self.redshift_role_arn = stream_kwargs.get("redshift_role_arn")
-        self.redshift_copy_command = stream_kwargs.get("redshift_copy_command")
-
-        self.s3_config = stream_kwargs.get("s3_config")
-        self.extended_s3_config = stream_kwargs.get("extended_s3_config")
-
-        self.redshift_s3_role_arn = stream_kwargs.get("redshift_s3_role_arn")
-        self.redshift_s3_bucket_arn = stream_kwargs.get("redshift_s3_bucket_arn")
-        self.redshift_s3_prefix = stream_kwargs.get("redshift_s3_prefix")
-        self.redshift_s3_compression_format = stream_kwargs.get(
-            "redshift_s3_compression_format", "UNCOMPRESSED"
-        )
-        self.redshift_s3_buffering_hints = stream_kwargs.get(
-            "redshift_s3_buffering_hints"
-        )
-
-        self.elasticsearch_config = stream_kwargs.get("elasticsearch_config")
-
-        self.records = []
-        self.status = "ACTIVE"
-        self.created_at = datetime.datetime.utcnow()
-        self.last_updated = datetime.datetime.utcnow()
-
-    @property
-    def arn(self):
-        return "arn:aws:firehose:us-east-1:{1}:deliverystream/{0}".format(
-            self.name, ACCOUNT_ID
-        )
-
-    def destinations_to_dict(self):
-        if self.s3_config:
-            return [
-                {"DestinationId": "string", "S3DestinationDescription": self.s3_config}
-            ]
-        elif self.extended_s3_config:
-            return [
-                {
-                    "DestinationId": "string",
-                    "ExtendedS3DestinationDescription": self.extended_s3_config,
-                }
-            ]
-        elif self.elasticsearch_config:
-            return [
-                {
-                    "DestinationId": "string",
-                    "ElasticsearchDestinationDescription": {
-                        "RoleARN": self.elasticsearch_config.get("RoleARN"),
-                        "DomainARN": self.elasticsearch_config.get("DomainARN"),
-                        "ClusterEndpoint": self.elasticsearch_config.get(
-                            "ClusterEndpoint"
-                        ),
-                        "IndexName": self.elasticsearch_config.get("IndexName"),
-                        "TypeName": self.elasticsearch_config.get("TypeName"),
-                        "IndexRotationPeriod": self.elasticsearch_config.get(
-                            "IndexRotationPeriod"
-                        ),
-                        "BufferingHints": self.elasticsearch_config.get(
-                            "BufferingHints"
-                        ),
-                        "RetryOptions": self.elasticsearch_config.get("RetryOptions"),
-                        "S3DestinationDescription": self.elasticsearch_config.get(
-                            "S3Configuration"
-                        ),
-                    },
-                }
-            ]
-        else:
-            return [
-                {
-                    "DestinationId": "string",
-                    "RedshiftDestinationDescription": {
-                        "ClusterJDBCURL": self.redshift_jdbc_url,
-                        "CopyCommand": self.redshift_copy_command,
-                        "RoleARN": self.redshift_role_arn,
-                        "S3DestinationDescription": {
-                            "BucketARN": self.redshift_s3_bucket_arn,
-                            "BufferingHints": self.redshift_s3_buffering_hints,
-                            "CompressionFormat": self.redshift_s3_compression_format,
-                            "Prefix": self.redshift_s3_prefix,
-                            "RoleARN": self.redshift_s3_role_arn,
-                        },
-                        "Username": self.redshift_username,
-                    },
-                }
-            ]
-
-    def to_dict(self):
-        return {
-            "DeliveryStreamDescription": {
-                "CreateTimestamp": time.mktime(self.created_at.timetuple()),
-                "DeliveryStreamARN": self.arn,
-                "DeliveryStreamName": self.name,
-                "DeliveryStreamStatus": self.status,
-                "Destinations": self.destinations_to_dict(),
-                "HasMoreDestinations": False,
-                "LastUpdateTimestamp": time.mktime(self.last_updated.timetuple()),
-                "VersionId": "string",
-            }
-        }
-
-    def put_record(self, record_data):
-        record = FirehoseRecord(record_data)
-        self.records.append(record)
-        return record
-
-
 class KinesisBackend(BaseBackend):
     def __init__(self):
         self.streams = OrderedDict()
-        self.delivery_streams = {}
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "kinesis", special_service_name="kinesis-streams"
+        )
 
     def create_stream(
         self, stream_name, shard_count, retention_period_hours, region_name
@@ -602,6 +491,12 @@ class KinesisBackend(BaseBackend):
                 record.partition_key, record.data, record.explicit_hash_key
             )
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_shards(self, stream_name, limit=None, next_token=None):
+        stream = self.describe_stream(stream_name)
+        shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
+        return [shard.to_json() for shard in shards]
+
     def increase_stream_retention_period(self, stream_name, retention_period_hours):
         stream = self.describe_stream(stream_name)
         if (
@@ -621,30 +516,6 @@ class KinesisBackend(BaseBackend):
         ):
             raise InvalidArgumentError(retention_period_hours)
         stream.retention_period_hours = retention_period_hours
-
-    """ Firehose """
-
-    def create_delivery_stream(self, stream_name, **stream_kwargs):
-        stream = DeliveryStream(stream_name, **stream_kwargs)
-        self.delivery_streams[stream_name] = stream
-        return stream
-
-    def get_delivery_stream(self, stream_name):
-        if stream_name in self.delivery_streams:
-            return self.delivery_streams[stream_name]
-        else:
-            raise StreamNotFoundError(stream_name)
-
-    def list_delivery_streams(self):
-        return self.delivery_streams.values()
-
-    def delete_delivery_stream(self, stream_name):
-        self.delivery_streams.pop(stream_name)
-
-    def put_firehose_record(self, stream_name, record_data):
-        stream = self.get_delivery_stream(stream_name)
-        record = stream.put_record(record_data)
-        return record
 
     def list_tags_for_stream(
         self, stream_name, exclusive_start_tag_key=None, limit=None

@@ -9,6 +9,7 @@ import sure  # noqa
 from moto import mock_ses_deprecated
 
 
+# Has boto3 equivalent
 @mock_ses_deprecated
 def test_verify_email_identity():
     conn = boto.connect_ses("the_key", "the_secret")
@@ -21,6 +22,7 @@ def test_verify_email_identity():
     address.should.equal("test@example.com")
 
 
+# Has boto3 equivalent
 @mock_ses_deprecated
 def test_domain_verify():
     conn = boto.connect_ses("the_key", "the_secret")
@@ -35,6 +37,7 @@ def test_domain_verify():
     domains.should.equal(["domain1.com", "domain2.com"])
 
 
+# Has boto3 equivalent
 @mock_ses_deprecated
 def test_delete_identity():
     conn = boto.connect_ses("the_key", "the_secret")
@@ -49,6 +52,7 @@ def test_delete_identity():
     ].should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_ses_deprecated
 def test_send_email():
     conn = boto.connect_ses("the_key", "the_secret")
@@ -69,6 +73,7 @@ def test_send_email():
     sent_count.should.equal(1)
 
 
+# Has boto3 equivalent
 @mock_ses_deprecated
 def test_send_html_email():
     conn = boto.connect_ses("the_key", "the_secret")
@@ -97,6 +102,7 @@ def test_send_html_email():
     sent_count.should.equal(1)
 
 
+# Has boto3 equivalent
 @mock_ses_deprecated
 def test_send_raw_email():
     conn = boto.connect_ses("the_key", "the_secret")
@@ -129,6 +135,7 @@ def test_send_raw_email():
     sent_count.should.equal(1)
 
 
+# Has boto3 equivalent
 @mock_ses_deprecated
 def test_get_send_statistics():
     conn = boto.connect_ses("the_key", "the_secret")

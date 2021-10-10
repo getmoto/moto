@@ -335,6 +335,30 @@ class ECRBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        docker_endpoint = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [f"dkr.ecr.{service_region}.vpce.amazonaws.com"],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": f"*.dkr.ecr.{service_region}.amazonaws.com",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.dkr.ecr.{service_region}.amazonaws.com"}
+            ],
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": f"com.amazonaws.{service_region}.ecr.dkr",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "api.ecr", special_service_name="ecr.api",
+        ) + [docker_endpoint]
+
     def _get_repository(self, name, registry_id=None) -> Repository:
         repo = self.repositories.get(name)
         reg_id = registry_id or DEFAULT_REGISTRY_ID

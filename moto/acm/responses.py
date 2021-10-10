@@ -264,3 +264,32 @@ class AWSCertificateManagerResponse(BaseResponse):
             return err.response()
 
         return ""
+
+    def export_certificate(self):
+        certificate_arn = self._get_param("CertificateArn")
+        passphrase = self._get_param("Passphrase")
+
+        if certificate_arn is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
+
+        try:
+            (
+                certificate,
+                certificate_chain,
+                private_key,
+            ) = self.acm_backend.export_certificate(
+                certificate_arn=certificate_arn, passphrase=passphrase,
+            )
+            return json.dumps(
+                dict(
+                    Certificate=certificate,
+                    CertificateChain=certificate_chain,
+                    PrivateKey=private_key,
+                )
+            )
+        except AWSError as err:
+            return err.response()
