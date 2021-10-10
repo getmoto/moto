@@ -10,7 +10,7 @@ from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
-from .utils import decrypt, encrypt, generate_key_id, generate_master_key
+from .utils import RESERVED_ALIASES, decrypt, encrypt, generate_key_id, generate_master_key
 
 
 class Key(CloudFormationModel):
@@ -157,12 +157,20 @@ class KmsBackend(BaseBackend):
         self.key_to_aliases = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
 
+        self._generate_default_keys()
+
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "kms"
         )
+
+    def _generate_default_keys(self):
+        """Creates default kms keys """
+        for alias in RESERVED_ALIASES:
+            key = self.create_key(None, "ENCRYPT_DECRYPT", "SYMMETRIC_DEFAULT", "Default key", None, None)
+            self.add_alias(key.id, alias)
 
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region

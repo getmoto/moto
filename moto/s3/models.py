@@ -44,7 +44,11 @@ from moto.s3.exceptions import (
     InvalidPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
+<<<<<<< HEAD
     InvalidTagError,
+=======
+    ObjectLockConfigurationNotFoundError,
+>>>>>>> fixed default kms keys;fixed object locking exception
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
@@ -1642,6 +1646,8 @@ class S3Backend(BaseBackend):
 
     def get_object_lock_configuration(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
+        if not bucket.object_lock_enabled:
+            raise ObjectLockConfigurationNotFoundError
         return (
             bucket.object_lock_enabled,
             bucket.default_lock_mode,
