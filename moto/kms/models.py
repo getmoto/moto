@@ -10,7 +10,13 @@ from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
-from .utils import RESERVED_ALIASES, decrypt, encrypt, generate_key_id, generate_master_key
+from .utils import (
+    RESERVED_ALIASES,
+    decrypt,
+    encrypt,
+    generate_key_id,
+    generate_master_key,
+)
 
 
 class Key(CloudFormationModel):
@@ -169,7 +175,9 @@ class KmsBackend(BaseBackend):
     def _generate_default_keys(self):
         """Creates default kms keys """
         for alias in RESERVED_ALIASES:
-            key = self.create_key(None, "ENCRYPT_DECRYPT", "SYMMETRIC_DEFAULT", "Default key", None, None)
+            key = self.create_key(
+                None, "ENCRYPT_DECRYPT", "SYMMETRIC_DEFAULT", "Default key", None, None
+            )
             self.add_alias(key.id, alias)
 
     def create_key(

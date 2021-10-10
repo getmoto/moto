@@ -39,7 +39,7 @@ RESERVED_ALIASES = [
     "alias/aws/s3",
     "alias/aws/secretsmanager",
     "alias/aws/ssm",
-    "alias/aws/xray"
+    "alias/aws/xray",
 ]
 
 
