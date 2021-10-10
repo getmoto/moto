@@ -1769,7 +1769,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         ):
             raise MalformedXML()
 
-        return [parsed_xml["ServerSideEncryptionConfiguration"]]
+        return parsed_xml["ServerSideEncryptionConfiguration"]
 
     def _logging_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
@@ -2567,17 +2567,17 @@ S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 <ServerSideEncryptionConfiguration xmlns="http://doc.s3.amazonaws.com/2006-03-01">
-    {% for entry in encryption %}
+    {% if encryption %}
         <Rule>
             <ApplyServerSideEncryptionByDefault>
-                <SSEAlgorithm>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
-                {% if entry["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
-                <KMSMasterKeyID>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
+                <SSEAlgorithm>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
+                {% if encryption["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
+                <KMSMasterKeyID>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
                 {% endif %}
             </ApplyServerSideEncryptionByDefault>
-            <BucketKeyEnabled>{{ 'true' if entry["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
+            <BucketKeyEnabled>{{ 'true' if encryption["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
         </Rule>
-    {% endfor %}
+    {% endif %}
 </ServerSideEncryptionConfiguration>
 """
 
