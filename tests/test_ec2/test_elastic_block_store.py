@@ -1543,3 +1543,26 @@ def test_kms_key_id_property_hidden_when_volume_not_encrypted():
     )
     volume.encrypted.should.be.false
     volume.kms_key_id.should.be.none
+
+
+@mock_ec2
+def test_create_volume_with_standard_type():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    volume = ec2.create_volume(AvailabilityZone="us-east-1a", Size=100, Iops=1000)
+    volume["VolumeType"].should.equal("gp2")
+
+    volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
+    volume["VolumeType"].should.equal("gp2")
+
+
+@pytest.mark.parametrize("volume_type", ["gp2", "gp3", "io1", "io2", "standard"])
+@mock_ec2
+def test_create_volume_with_non_standard_type(volume_type):
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    volume = ec2.create_volume(
+        AvailabilityZone="us-east-1a", Size=100, Iops=1000, VolumeType=volume_type
+    )
+    volume["VolumeType"].should.equal(volume_type)
+
+    volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
+    volume["VolumeType"].should.equal(volume_type)

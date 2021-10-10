@@ -44,13 +44,19 @@ class ElasticBlockStore(BaseResponse):
         size = self._get_param("Size")
         zone = self._get_param("AvailabilityZone")
         snapshot_id = self._get_param("SnapshotId")
+        volume_type = self._get_param("VolumeType")
         tags = self._parse_tag_specification("TagSpecification")
         volume_tags = tags.get("volume", {})
         encrypted = self._get_bool_param("Encrypted", if_none=False)
         kms_key_id = self._get_param("KmsKeyId")
         if self.is_not_dryrun("CreateVolume"):
             volume = self.ec2_backend.create_volume(
-                size, zone, snapshot_id, encrypted, kms_key_id
+                size=size,
+                zone_name=zone,
+                snapshot_id=snapshot_id,
+                encrypted=encrypted,
+                kms_key_id=kms_key_id,
+                volume_type=volume_type,
             )
             volume.add_tags(volume_tags)
             template = self.response_template(CREATE_VOLUME_RESPONSE)
@@ -183,7 +189,7 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
       {% endfor %}
     </tagSet>
   {% endif %}
-  <volumeType>standard</volumeType>
+  <volumeType>{{ volume.volume_type }}</volumeType>
 </CreateVolumeResponse>"""
 
 DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -229,7 +235,7 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                  {% endfor %}
                </tagSet>
              {% endif %}
-             <volumeType>standard</volumeType>
+             <volumeType>{{ volume.volume_type }}</volumeType>
           </item>
       {% endfor %}
    </volumeSet>

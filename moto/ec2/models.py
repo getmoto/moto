@@ -685,7 +685,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         kms_key_id=None,
     ):
         volume = self.ec2_backend.create_volume(
-            size, self.region_name, snapshot_id, encrypted, kms_key_id
+            size=size,
+            zone_name=self.region_name,
+            snapshot_id=snapshot_id,
+            encrypted=encrypted,
+            kms_key_id=kms_key_id,
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination
@@ -694,7 +698,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
-        volume = self.ec2_backend.create_volume(8, "us-east-1a")
+        volume = self.ec2_backend.create_volume(size=8, zone_name="us-east-1a")
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1", True)
 
     def teardown_defaults(self):
@@ -1572,7 +1576,7 @@ class Ami(TaggedEC2Resource):
             self.launch_permission_groups.add("all")
 
         # AWS auto-creates these, we should reflect the same.
-        volume = self.ec2_backend.create_volume(15, region_name)
+        volume = self.ec2_backend.create_volume(size=15, zone_name=region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id
         )
@@ -3209,8 +3213,10 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         snapshot_id=None,
         encrypted=False,
         kms_key_id=None,
+        volume_type=None,
     ):
         self.id = volume_id
+        self.volume_type = volume_type or "gp2"
         self.size = size
         self.zone = zone
         self.create_time = utc_date_and_time()
@@ -3331,7 +3337,13 @@ class EBSBackend(object):
         super().__init__()
 
     def create_volume(
-        self, size, zone_name, snapshot_id=None, encrypted=False, kms_key_id=None
+        self,
+        size,
+        zone_name,
+        snapshot_id=None,
+        encrypted=False,
+        kms_key_id=None,
+        volume_type=None,
     ):
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -3345,7 +3357,16 @@ class EBSBackend(object):
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
-        volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted, kms_key_id)
+        volume = Volume(
+            self,
+            volume_id=volume_id,
+            size=size,
+            zone=zone,
+            snapshot_id=snapshot_id,
+            encrypted=encrypted,
+            kms_key_id=kms_key_id,
+            volume_type=volume_type,
+        )
         self.volumes[volume_id] = volume
         return volume
 
