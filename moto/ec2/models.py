@@ -5750,7 +5750,7 @@ class InternetGatewayBackend(object):
             raise ResourceAlreadyAssociatedError(internet_gateway_id)
         vpc = self.get_vpc(vpc_id)
         igw.vpc = vpc
-        return True
+        return VPCGatewayAttachment(gateway_id=internet_gateway_id, vpc_id=vpc_id)
 
     def get_internet_gateway(self, internet_gateway_id):
         igw_ids = [internet_gateway_id]
@@ -5890,12 +5890,16 @@ class VPCGatewayAttachment(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         ec2_backend = ec2_backends[region_name]
-        attachment = ec2_backend.create_vpc_gateway_attachment(
-            gateway_id=properties["InternetGatewayId"], vpc_id=properties["VpcId"]
-        )
-        ec2_backend.attach_internet_gateway(
-            properties["InternetGatewayId"], properties["VpcId"]
-        )
+        vpn_gateway_id = properties.get("VpnGatewayId", None)
+        internet_gateway_id = properties.get("InternetGatewayId", None)
+        if vpn_gateway_id:
+            attachment = ec2_backend.attach_vpn_gateway(
+                vpc_id=properties["VpcId"], vpn_gateway_id=vpn_gateway_id
+            )
+        elif internet_gateway_id:
+            attachment = ec2_backend.attach_internet_gateway(
+                internet_gateway_id=internet_gateway_id, vpc_id=properties["VpcId"]
+            )
         return attachment
 
     @property
@@ -7106,7 +7110,7 @@ class NetworkAclEntry(TaggedEC2Resource):
         self.port_range_to = port_range_to
 
 
-class VpnGateway(TaggedEC2Resource):
+class VpnGateway(CloudFormationModel, TaggedEC2Resource):
     def __init__(
         self,
         ec2_backend,
@@ -7126,6 +7130,30 @@ class VpnGateway(TaggedEC2Resource):
         self.add_tags(tags or {})
         self.attachments = {}
         super().__init__()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcgatewayattachment.html
+        return "AWS::EC2::VPNGateway"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        _type = properties["Type"]
+        asn = properties.get("AmazonSideAsn", None)
+        ec2_backend = ec2_backends[region_name]
+
+        return ec2_backend.create_vpn_gateway(type=_type, amazon_side_asn=asn)
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     def get_filter_value(self, filter_name):
         if filter_name == "attachment.vpc-id":
@@ -8444,7 +8472,6 @@ class EC2Backend(
     RouteBackend,
     InternetGatewayBackend,
     EgressOnlyInternetGatewayBackend,
-    VPCGatewayAttachmentBackend,
     SpotFleetBackend,
     SpotRequestBackend,
     SpotPriceBackend,
