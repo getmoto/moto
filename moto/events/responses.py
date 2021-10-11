@@ -126,25 +126,26 @@ class EventsHandler(BaseResponse):
         if not target_arn:
             return self.error("ValidationException", "Parameter TargetArn is required.")
 
-        rule_names = self.events_backend.list_rule_names_by_target(
-            target_arn, next_token, limit
+        rules, token = self.events_backend.list_rule_names_by_target(
+            target_arn=target_arn, next_token=next_token, limit=limit
         )
 
-        return json.dumps(rule_names), self.response_headers
+        res = {"RuleNames": [rule.name for rule in rules], "NextToken": token}
+
+        return json.dumps(res), self.response_headers
 
     def list_rules(self):
         prefix = self._get_param("NamePrefix")
         next_token = self._get_param("NextToken")
         limit = self._get_param("Limit")
 
-        rules = self.events_backend.list_rules(prefix, next_token, limit)
-        rules_obj = {"Rules": []}
-
-        for rule in rules["Rules"]:
-            rules_obj["Rules"].append(rule.describe())
-
-        if rules.get("NextToken"):
-            rules_obj["NextToken"] = rules["NextToken"]
+        rules, token = self.events_backend.list_rules(
+            prefix=prefix, next_token=next_token, limit=limit
+        )
+        rules_obj = {
+            "Rules": [rule.describe() for rule in rules],
+            "NextToken": token,
+        }
 
         return json.dumps(rules_obj), self.response_headers
 
