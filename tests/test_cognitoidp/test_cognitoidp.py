@@ -1221,18 +1221,31 @@ def test_list_users():
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
-    # checking Filter without double quotes
-    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
-        conn.list_users(UserPoolId=user_pool_id, Filter="phone_number = +33666666666")
-
-    err = exc.value.response["Error"]
-    assert err["Code"].should.equal("InvalidParameterException")
-    assert err["Message"].should.equal("Error while parsing filter")
-
     # checking Filter with prefix operator
     result = conn.list_users(UserPoolId=user_pool_id, Filter='phone_number ^= "+336"')
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
+
+
+@mock_cognitoidp
+def test_list_users_incorrect_filter():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter="username = foo")
+    _assert_filter_parsing_error(exc)
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter="username=")
+    _assert_filter_parsing_error(exc)
+
+
+def _assert_filter_parsing_error(exc):
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("InvalidParameterException")
+    assert err["Message"].should.equal("Error while parsing filter")
 
 
 @mock_cognitoidp
