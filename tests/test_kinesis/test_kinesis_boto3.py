@@ -6,6 +6,36 @@ import sure  # noqa
 
 
 @mock_kinesis
+def test_describe_stream_limit_parameter():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+
+    client.create_stream(StreamName=stream_name, ShardCount=5)
+
+    without_filter = client.describe_stream(StreamName=stream_name)["StreamDescription"]
+    without_filter["Shards"].should.have.length_of(5)
+    without_filter["HasMoreShards"].should.equal(False)
+
+    with_filter = client.describe_stream(StreamName=stream_name, Limit=2)[
+        "StreamDescription"
+    ]
+    with_filter["Shards"].should.have.length_of(2)
+    with_filter["HasMoreShards"].should.equal(True)
+
+    with_filter = client.describe_stream(StreamName=stream_name, Limit=5)[
+        "StreamDescription"
+    ]
+    with_filter["Shards"].should.have.length_of(5)
+    with_filter["HasMoreShards"].should.equal(False)
+
+    with_filter = client.describe_stream(StreamName=stream_name, Limit=6)[
+        "StreamDescription"
+    ]
+    with_filter["Shards"].should.have.length_of(5)
+    with_filter["HasMoreShards"].should.equal(False)
+
+
+@mock_kinesis
 def test_split_shard():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"

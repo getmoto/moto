@@ -26,8 +26,9 @@ class KinesisResponse(BaseResponse):
 
     def describe_stream(self):
         stream_name = self.parameters.get("StreamName")
+        limit = self.parameters.get("Limit")
         stream = self.kinesis_backend.describe_stream(stream_name)
-        return json.dumps(stream.to_json())
+        return json.dumps(stream.to_json(shard_limit=limit))
 
     def describe_stream_summary(self):
         stream_name = self.parameters.get("StreamName")
