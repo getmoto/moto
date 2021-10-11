@@ -56,7 +56,6 @@ from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
     fn_join,
-    rds_mysql_with_db_parameter_group,
     rds_mysql_with_read_replica,
     redshift,
     route53_ec2_instance_with_public_ip,
