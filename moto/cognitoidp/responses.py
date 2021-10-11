@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import json
 import os
+import re
 
 from moto.core.responses import BaseResponse
 from .models import cognitoidp_backends, find_region_by_value, UserStatus
@@ -332,18 +333,25 @@ class CognitoIdpResponse(BaseResponse):
                 "status": lambda u: "Enabled" if u.enabled else "Disabled",
                 "username": lambda u: u.username,
             }
-            name, value = filt.replace('"', "").replace(" ", "").split("=")
+            comparisons = {"=": lambda x, y: x == y, "^=": lambda x, y: x.startswith(y)}
+
+            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
+            if match:
+                name, op, value = match.groups()
+            else:
+                raise InvalidParameterException("Error while parsing filter")
+            compare = comparisons[op]
             users = [
                 user
                 for user in users
                 if [
                     attr
                     for attr in user.attributes
-                    if attr["Name"] == name and attr["Value"] == value
+                    if attr["Name"] == name and compare(attr["Value"], value)
                 ]
                 or (
                     name in inherent_attributes
-                    and inherent_attributes[name](user) == value
+                    and compare(inherent_attributes[name](user), value)
                 )
             ]
         response = {"Users": [user.to_json(extended=True) for user in users]}

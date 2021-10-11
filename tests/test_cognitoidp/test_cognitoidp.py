@@ -1209,17 +1209,54 @@ def test_list_users():
         UserAttributes=[{"Name": "phone_number", "Value": "+33666666666"}],
     )
     result = conn.list_users(
-        UserPoolId=user_pool_id, Filter='phone_number="+33666666666'
+        UserPoolId=user_pool_id, Filter='phone_number="+33666666666"'
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
     # checking Filter with space
     result = conn.list_users(
-        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666'
+        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666"'
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
+
+    user0_username = "user0@example.com"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=user0_username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+48555555555"}],
+    )
+
+    # checking Filter with prefix operator
+    result = conn.list_users(UserPoolId=user_pool_id, Filter='phone_number ^= "+48"')
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(user0_username)
+
+    # empty value Filter should also be supported
+    result = conn.list_users(UserPoolId=user_pool_id, Filter='family_name=""')
+    result["Users"].should.have.length_of(0)
+
+
+@mock_cognitoidp
+def test_list_users_incorrect_filter():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter="username = foo")
+    _assert_filter_parsing_error(exc)
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter="username=")
+    _assert_filter_parsing_error(exc)
+
+
+def _assert_filter_parsing_error(exc):
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("InvalidParameterException")
+    assert err["Message"].should.equal("Error while parsing filter")
 
 
 @mock_cognitoidp
