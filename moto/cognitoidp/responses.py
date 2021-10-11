@@ -335,7 +335,7 @@ class CognitoIdpResponse(BaseResponse):
             }
             comparisons = {"=": lambda x, y: x == y, "^=": lambda x, y: x.startswith(y)}
 
-            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.+)\"", filt)
+            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
             if match:
                 name, op, value = match.groups()
             else:

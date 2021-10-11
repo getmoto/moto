@@ -1233,6 +1233,10 @@ def test_list_users():
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(user0_username)
 
+    # empty value Filter should also be supported
+    result = conn.list_users(UserPoolId=user_pool_id, Filter='family_name=""')
+    result["Users"].should.have.length_of(0)
+
 
 @mock_cognitoidp
 def test_list_users_incorrect_filter():
