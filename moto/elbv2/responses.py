@@ -165,12 +165,11 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def create_rule(self):
         params = self._get_params()
-        actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.create_rule(
             listener_arn=params["ListenerArn"],
             conditions=params["Conditions"],
             priority=params["Priority"],
-            actions=actions,
+            actions=params["Actions"],
         )
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
@@ -214,6 +213,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_listener(self):
+        params = self._get_params()
         load_balancer_arn = self._get_param("LoadBalancerArn")
         protocol = self._get_param("Protocol")
         port = self._get_param("Port")
@@ -223,7 +223,7 @@ class ELBV2Response(BaseResponse):
             certificate = certificates[0].get("certificate_arn")
         else:
             certificate = None
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = params.get("DefaultActions", [])
 
         listener = self.elbv2_backend.create_listener(
             load_balancer_arn=load_balancer_arn,
@@ -357,7 +357,7 @@ class ELBV2Response(BaseResponse):
         rule_arn = self._get_param("RuleArn")
         params = self._get_params()
         conditions = params["Conditions"]
-        actions = self._get_list_prefix("Actions.member")
+        actions = params.get("Actions", [])
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
         )
