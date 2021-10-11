@@ -110,3 +110,4 @@ TestAccDataSourceAwsNetworkInterface_
 TestAccAWSNatGateway
 TestAccAWSRouteTable_
 TestAccAWSRouteTableAssociation_
+TestAccAWSS3Bucket_forceDestroyWithObjectLockEnabled

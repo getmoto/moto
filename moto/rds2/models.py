@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import copy
 import datetime
 import os
+import random
+import string
 
 from collections import defaultdict
 from boto3 import Session
@@ -15,6 +17,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (
     RDSClientError,
+    DBClusterNotFoundError,
     DBInstanceNotFoundError,
     DBSnapshotNotFoundError,
     DBSecurityGroupNotFoundError,
@@ -27,8 +30,120 @@ from .exceptions import (
     DBSnapshotAlreadyExistsError,
     InvalidParameterValue,
     InvalidParameterCombination,
+    InvalidDBClusterStateFault,
 )
 from .utils import FilterDef, apply_filter, merge_filters, validate_filters
+
+
+class Cluster:
+    def __init__(self, **kwargs):
+        self.db_name = kwargs.get("db_name")
+        self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
+        self.engine = kwargs.get("engine")
+        self.engine_version = kwargs.get("engine_version")
+        if not self.engine_version:
+            # Set default
+            self.engine_version = "5.6.mysql_aurora.1.22.5"  # TODO: depends on engine
+        self.engine_mode = kwargs.get("engine_mode") or "provisioned"
+        self.status = "active"
+        self.region = kwargs.get("region")
+        self.cluster_create_time = iso_8601_datetime_with_milliseconds(
+            datetime.datetime.now()
+        )
+        self.master_username = kwargs.get("master_username")
+        if not self.master_username:
+            raise InvalidParameterValue(
+                "The parameter MasterUsername must be provided and must not be blank."
+            )
+        self.master_user_password = kwargs.get("master_user_password")
+        if not self.master_user_password:
+            raise InvalidParameterValue(
+                "The parameter MasterUserPassword must be provided and must not be blank."
+            )
+        if len(self.master_user_password) < 8:
+            raise InvalidParameterValue(
+                "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
+            )
+        self.availability_zones = kwargs.get("availability_zones")
+        if not self.availability_zones:
+            self.availability_zones = [
+                f"{self.region}a",
+                f"{self.region}b",
+                f"{self.region}c",
+            ]
+        self.parameter_group = kwargs.get("parameter_group") or "default.aurora5.6"
+        self.subnet_group = "default"
+        self.status = "creating"
+        self.url_identifier = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
+        self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+        self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+        self.port = kwargs.get("port") or 3306
+        self.preferred_backup_window = "01:37-02:07"
+        self.preferred_maintenance_window = "wed:02:40-wed:03:10"
+        # This should default to the default security group
+        self.vpc_security_groups = []
+        self.hosted_zone_id = "".join(
+            random.choice(string.ascii_uppercase + string.digits) for _ in range(14)
+        )
+        self.resource_id = "cluster-" + "".join(
+            random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
+        )
+        self.arn = f"arn:aws:rds:{self.region}:{ACCOUNT_ID}:cluster:{self.db_cluster_identifier}"
+
+    def to_xml(self):
+        template = Template(
+            """<DBCluster>
+              <AllocatedStorage>1</AllocatedStorage>
+              <AvailabilityZones>
+              {% for zone in cluster.availability_zones %}
+                  <AvailabilityZone>{{ zone }}</AvailabilityZone>
+              {% endfor %}
+              </AvailabilityZones>
+              <BackupRetentionPeriod>1</BackupRetentionPeriod>
+              <DBInstanceStatus>{{ cluster.status }}</DBInstanceStatus>
+              {% if cluster.db_name %}<DatabaseName>{{ cluster.db_name }}</DatabaseName>{% endif %}
+              <DBClusterIdentifier>{{ cluster.db_cluster_identifier }}</DBClusterIdentifier>
+              <DBClusterParameterGroup>{{ cluster.parameter_group }}</DBClusterParameterGroup>
+              <DBSubnetGroup>{{ cluster.subnet_group }}</DBSubnetGroup>
+              <ClusterCreateTime>{{ cluster.cluster_create_time }}</ClusterCreateTime>
+              <Engine>{{ cluster.engine }}</Engine>
+              <Status>{{ cluster.status }}</Status>
+              <Endpoint>{{ cluster.endpoint }}</Endpoint>
+              <ReaderEndpoint>{{ cluster.reader_endpoint }}</ReaderEndpoint>
+              <MultiAZ>false</MultiAZ>
+              <EngineVersion>{{ cluster.engine_version }}</EngineVersion>
+              <Port>{{ cluster.port }}</Port>
+              <MasterUsername>{{ cluster.master_username }}</MasterUsername>
+              <PreferredBackupWindow>{{ cluster.preferred_backup_window }}</PreferredBackupWindow>
+              <PreferredMaintenanceWindow>{{ cluster.preferred_maintenance_window }}</PreferredMaintenanceWindow>
+              <ReadReplicaIdentifiers></ReadReplicaIdentifiers>
+              <DBClusterMembers></DBClusterMembers>
+              <VpcSecurityGroups>
+              {% for id in cluster.vpc_security_groups %}
+                  <VpcSecurityGroup>
+                      <VpcSecurityGroupId>{{ id }}</VpcSecurityGroupId>
+                      <Status>active</Status>
+                  </VpcSecurityGroup>
+              {% endfor %}
+              </VpcSecurityGroups>
+              <HostedZoneId>{{ cluster.hosted_zone_id }}</HostedZoneId>
+              <StorageEncrypted>false</StorageEncrypted>
+              <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
+              <DBClusterArn>{{ cluster.arn }}</DBClusterArn>
+              <AssociatedRoles></AssociatedRoles>
+              <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
+              <EngineMode>{{ cluster.engine_mode }}</EngineMode>
+              <DeletionProtection>false</DeletionProtection>
+              <HttpEndpointEnabled>false</HttpEndpointEnabled>
+              <CopyTagsToSnapshot>false</CopyTagsToSnapshot>
+              <CrossAccountClone>false</CrossAccountClone>
+              <DomainMemberships></DomainMemberships>
+              <TagList></TagList>
+            </DBCluster>"""
+        )
+        return template.render(cluster=self)
 
 
 class Database(CloudFormationModel):
@@ -132,6 +247,7 @@ class Database(CloudFormationModel):
         )
         self.license_model = kwargs.get("license_model", "general-public-license")
         self.option_group_name = kwargs.get("option_group_name", None)
+        self.option_group_supplied = self.option_group_name is not None
         if (
             self.option_group_name
             and self.option_group_name not in rds2_backends[self.region].option_groups
@@ -834,6 +950,7 @@ class RDS2Backend(BaseBackend):
         self.arn_regex = re_compile(
             r"^arn:aws:rds:.*:[0-9]*:(db|es|og|pg|ri|secgrp|snapshot|subgrp):.*$"
         )
+        self.clusters = OrderedDict()
         self.databases = OrderedDict()
         self.snapshots = OrderedDict()
         self.db_parameter_groups = {}
@@ -945,6 +1062,23 @@ class RDS2Backend(BaseBackend):
     def reboot_db_instance(self, db_instance_identifier):
         database = self.describe_databases(db_instance_identifier)[0]
         return database
+
+    def restore_db_instance_from_db_snapshot(self, from_snapshot_id, overrides):
+        snapshot = self.describe_snapshots(
+            db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
+        )[0]
+        original_database = snapshot.database
+        new_instance_props = copy.deepcopy(original_database.__dict__)
+        if not original_database.option_group_supplied:
+            # If the option group is not supplied originally, the 'option_group_name' will receive a default value
+            # Force this reconstruction, and prevent any validation on the default value
+            del new_instance_props["option_group_name"]
+
+        for key, value in overrides.items():
+            if value:
+                new_instance_props[key] = value
+
+        return self.create_database(new_instance_props)
 
     def stop_database(self, db_instance_identifier, db_snapshot_identifier=None):
         database = self.describe_databases(db_instance_identifier)[0]
@@ -1282,6 +1416,47 @@ class RDS2Backend(BaseBackend):
         db_parameter_group.update_parameters(db_parameter_group_parameters)
 
         return db_parameter_group
+
+    def create_db_cluster(self, kwargs):
+        cluster_id = kwargs["db_cluster_identifier"]
+        cluster = Cluster(**kwargs)
+        self.clusters[cluster_id] = cluster
+        initial_state = copy.deepcopy(cluster)  # Return status=creating
+        cluster.status = "available"  # Already set the final status in the background
+        return initial_state
+
+    def describe_db_clusters(self, cluster_identifier):
+        if cluster_identifier:
+            return [self.clusters[cluster_identifier]]
+        return self.clusters.values()
+
+    def delete_db_cluster(self, cluster_identifier):
+        return self.clusters.pop(cluster_identifier)
+
+    def start_db_cluster(self, cluster_identifier):
+        if cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        if cluster.status != "stopped":
+            raise InvalidDBClusterStateFault(
+                "DbCluster cluster-id is not in stopped state."
+            )
+        temp_state = copy.deepcopy(cluster)
+        temp_state.status = "started"
+        cluster.status = "available"  # This is the final status - already setting it in the background
+        return temp_state
+
+    def stop_db_cluster(self, cluster_identifier):
+        if cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        if cluster.status not in ["available"]:
+            raise InvalidDBClusterStateFault(
+                "DbCluster cluster-id is not in available state."
+            )
+        previous_state = copy.deepcopy(cluster)
+        cluster.status = "stopped"
+        return previous_state
 
     def list_tags_for_resource(self, arn):
         if self.arn_regex.match(arn):

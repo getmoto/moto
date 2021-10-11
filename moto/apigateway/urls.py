@@ -3,7 +3,7 @@ from .responses import APIGatewayResponse
 
 response = APIGatewayResponse()
 
-url_bases = ["https?://apigateway.(.+).amazonaws.com"]
+url_bases = [r"https?://apigateway\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/restapis$": response.restapis,

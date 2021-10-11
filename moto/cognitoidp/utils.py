@@ -6,6 +6,34 @@ import hmac
 import base64
 
 
+PAGINATION_MODEL = {
+    "list_user_pools": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 60,
+        "page_ending_range_keys": ["arn"],
+    },
+    "list_user_pool_clients": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 60,
+        "page_ending_range_keys": ["id"],
+    },
+    "list_identity_providers": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 60,
+        "page_ending_range_keys": ["name"],
+    },
+    "list_users": {
+        "input_token": "pagination_token",
+        "limit_key": "limit",
+        "limit_default": 60,
+        "page_ending_range_keys": ["id"],
+    },
+}
+
+
 def create_id():
     size = 26
     chars = list(range(10)) + list(string.ascii_lowercase)

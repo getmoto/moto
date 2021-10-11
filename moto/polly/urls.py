@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from .responses import PollyResponse
 
-url_bases = ["https?://polly.(.+).amazonaws.com"]
+url_bases = [r"https?://polly\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/v1/voices": PollyResponse.dispatch,

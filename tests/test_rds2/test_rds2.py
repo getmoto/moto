@@ -604,6 +604,88 @@ def test_delete_db_snapshot():
 
 
 @mock_rds2
+def test_restore_db_instance_from_db_snapshot():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        DBSecurityGroups=["my_sg"],
+    )
+    conn.describe_db_instances()["DBInstances"].should.have.length_of(1)
+
+    conn.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    )
+
+    # restore
+    new_instance = conn.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot-1"
+    )["DBInstance"]
+    new_instance["DBInstanceIdentifier"].should.equal("db-restore-1")
+    new_instance["DBInstanceClass"].should.equal("db.m1.small")
+    new_instance["StorageType"].should.equal("gp2")
+    new_instance["Engine"].should.equal("postgres")
+    new_instance["DBName"].should.equal("staging-postgres")
+    new_instance["DBParameterGroups"][0]["DBParameterGroupName"].should.equal(
+        "default.postgres9.3"
+    )
+    new_instance["DBSecurityGroups"].should.equal(
+        [{"DBSecurityGroupName": "my_sg", "Status": "active"}]
+    )
+    new_instance["Endpoint"]["Port"].should.equal(5432)
+
+    # Verify it exists
+    conn.describe_db_instances()["DBInstances"].should.have.length_of(2)
+    conn.describe_db_instances(DBInstanceIdentifier="db-restore-1")[
+        "DBInstances"
+    ].should.have.length_of(1)
+
+
+@mock_rds2
+def test_restore_db_instance_from_db_snapshot_and_override_params():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    conn.describe_db_instances()["DBInstances"].should.have.length_of(1)
+    conn.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    )
+
+    # restore with some updated attributes
+    new_instance = conn.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="db-restore-1",
+        DBSnapshotIdentifier="snapshot-1",
+        Port=10000,
+        VpcSecurityGroupIds=["new_vpc"],
+    )["DBInstance"]
+    new_instance["DBInstanceIdentifier"].should.equal("db-restore-1")
+    new_instance["DBParameterGroups"][0]["DBParameterGroupName"].should.equal(
+        "default.postgres9.3"
+    )
+    new_instance["DBSecurityGroups"].should.equal(
+        [{"DBSecurityGroupName": "my_sg", "Status": "active"}]
+    )
+    new_instance["VpcSecurityGroups"].should.equal(
+        [{"VpcSecurityGroupId": "new_vpc", "Status": "active"}]
+    )
+    new_instance["Endpoint"]["Port"].should.equal(10000)
+
+
+@mock_rds2
 def test_create_option_group():
     conn = boto3.client("rds", region_name="us-west-2")
     option_group = conn.create_option_group(

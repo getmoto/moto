@@ -685,7 +685,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         kms_key_id=None,
     ):
         volume = self.ec2_backend.create_volume(
-            size, self.region_name, snapshot_id, encrypted, kms_key_id
+            size=size,
+            zone_name=self.region_name,
+            snapshot_id=snapshot_id,
+            encrypted=encrypted,
+            kms_key_id=kms_key_id,
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination
@@ -694,7 +698,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
-        volume = self.ec2_backend.create_volume(8, "us-east-1a")
+        volume = self.ec2_backend.create_volume(size=8, zone_name="us-east-1a")
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1", True)
 
     def teardown_defaults(self):
@@ -1572,7 +1576,7 @@ class Ami(TaggedEC2Resource):
             self.launch_permission_groups.add("all")
 
         # AWS auto-creates these, we should reflect the same.
-        volume = self.ec2_backend.create_volume(15, region_name)
+        volume = self.ec2_backend.create_volume(size=15, zone_name=region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id
         )
@@ -3209,8 +3213,10 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         snapshot_id=None,
         encrypted=False,
         kms_key_id=None,
+        volume_type=None,
     ):
         self.id = volume_id
+        self.volume_type = volume_type or "gp2"
         self.size = size
         self.zone = zone
         self.create_time = utc_date_and_time()
@@ -3331,7 +3337,13 @@ class EBSBackend(object):
         super().__init__()
 
     def create_volume(
-        self, size, zone_name, snapshot_id=None, encrypted=False, kms_key_id=None
+        self,
+        size,
+        zone_name,
+        snapshot_id=None,
+        encrypted=False,
+        kms_key_id=None,
+        volume_type=None,
     ):
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -3345,7 +3357,16 @@ class EBSBackend(object):
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
-        volume = Volume(self, volume_id, size, zone, snapshot_id, encrypted, kms_key_id)
+        volume = Volume(
+            self,
+            volume_id=volume_id,
+            size=size,
+            zone=zone,
+            snapshot_id=snapshot_id,
+            encrypted=encrypted,
+            kms_key_id=kms_key_id,
+            volume_type=volume_type,
+        )
         self.volumes[volume_id] = volume
         return volume
 
@@ -5729,7 +5750,7 @@ class InternetGatewayBackend(object):
             raise ResourceAlreadyAssociatedError(internet_gateway_id)
         vpc = self.get_vpc(vpc_id)
         igw.vpc = vpc
-        return True
+        return VPCGatewayAttachment(gateway_id=internet_gateway_id, vpc_id=vpc_id)
 
     def get_internet_gateway(self, internet_gateway_id):
         igw_ids = [internet_gateway_id]
@@ -5869,12 +5890,16 @@ class VPCGatewayAttachment(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         ec2_backend = ec2_backends[region_name]
-        attachment = ec2_backend.create_vpc_gateway_attachment(
-            gateway_id=properties["InternetGatewayId"], vpc_id=properties["VpcId"]
-        )
-        ec2_backend.attach_internet_gateway(
-            properties["InternetGatewayId"], properties["VpcId"]
-        )
+        vpn_gateway_id = properties.get("VpnGatewayId", None)
+        internet_gateway_id = properties.get("InternetGatewayId", None)
+        if vpn_gateway_id:
+            attachment = ec2_backend.attach_vpn_gateway(
+                vpc_id=properties["VpcId"], vpn_gateway_id=vpn_gateway_id
+            )
+        elif internet_gateway_id:
+            attachment = ec2_backend.attach_internet_gateway(
+                internet_gateway_id=internet_gateway_id, vpc_id=properties["VpcId"]
+            )
         return attachment
 
     @property
@@ -7085,7 +7110,7 @@ class NetworkAclEntry(TaggedEC2Resource):
         self.port_range_to = port_range_to
 
 
-class VpnGateway(TaggedEC2Resource):
+class VpnGateway(CloudFormationModel, TaggedEC2Resource):
     def __init__(
         self,
         ec2_backend,
@@ -7105,6 +7130,30 @@ class VpnGateway(TaggedEC2Resource):
         self.add_tags(tags or {})
         self.attachments = {}
         super().__init__()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcgatewayattachment.html
+        return "AWS::EC2::VPNGateway"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        _type = properties["Type"]
+        asn = properties.get("AmazonSideAsn", None)
+        ec2_backend = ec2_backends[region_name]
+
+        return ec2_backend.create_vpn_gateway(type=_type, amazon_side_asn=asn)
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     def get_filter_value(self, filter_name):
         if filter_name == "attachment.vpc-id":
@@ -8423,7 +8472,6 @@ class EC2Backend(
     RouteBackend,
     InternetGatewayBackend,
     EgressOnlyInternetGatewayBackend,
-    VPCGatewayAttachmentBackend,
     SpotFleetBackend,
     SpotRequestBackend,
     SpotPriceBackend,

@@ -5,6 +5,7 @@ from boto3 import Session
 from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time_millis
+from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
     ResourceNotFoundException,
@@ -12,6 +13,7 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
+from .utils import PAGINATION_MODEL
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
 
@@ -306,11 +308,11 @@ class LogGroup(BaseModel):
     def describe_log_streams(
         self,
         descending,
-        limit,
         log_group_name,
         log_stream_name_prefix,
-        next_token,
         order_by,
+        next_token=None,
+        limit=None,
     ):
         # responses only log_stream_name, creation_time, arn, stored_bytes when no events are stored.
 
@@ -323,7 +325,7 @@ class LogGroup(BaseModel):
         def sorter(item):
             return (
                 item[0]
-                if order_by == "logStreamName"
+                if order_by == "LogStreamName"
                 else item[1].get("lastEventTimestamp", 0)
             )
 
@@ -582,13 +584,8 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         del self.groups[log_group_name]
 
-    def describe_log_groups(self, limit, log_group_name_prefix, next_token):
-        if limit > 50:
-            raise InvalidParameterException(
-                constraint="Member must have value less than or equal to 50",
-                parameter="limit",
-                value=limit,
-            )
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_log_groups(self, log_group_name_prefix, limit=None, next_token=None):
         if log_group_name_prefix is None:
             log_group_name_prefix = ""
 
@@ -599,33 +596,7 @@ class LogsBackend(BaseBackend):
         ]
         groups = sorted(groups, key=lambda x: x["logGroupName"])
 
-        index_start = 0
-        if next_token:
-            try:
-                index_start = (
-                    next(
-                        index
-                        for (index, d) in enumerate(groups)
-                        if d["logGroupName"] == next_token
-                    )
-                    + 1
-                )
-            except StopIteration:
-                index_start = 0
-                # AWS returns an empty list if it receives an invalid token.
-                groups = []
-
-        index_end = index_start + limit
-        if index_end > len(groups):
-            index_end = len(groups)
-
-        groups_page = groups[index_start:index_end]
-
-        next_token = None
-        if groups_page and index_end < len(groups):
-            next_token = groups_page[-1]["logGroupName"]
-
-        return groups_page, next_token
+        return groups
 
     def create_log_stream(self, log_group_name, log_stream_name):
         if log_group_name not in self.groups:
@@ -668,12 +639,12 @@ class LogsBackend(BaseBackend):
             )
         log_group = self.groups[log_group_name]
         return log_group.describe_log_streams(
-            descending,
-            limit,
-            log_group_name,
-            log_stream_name_prefix,
-            next_token,
-            order_by,
+            descending=descending,
+            limit=limit,
+            log_group_name=log_group_name,
+            log_stream_name_prefix=log_stream_name_prefix,
+            next_token=next_token,
+            order_by=order_by,
         )
 
     def put_log_events(

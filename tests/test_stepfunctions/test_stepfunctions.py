@@ -226,6 +226,7 @@ def test_state_machine_list_returns_created_state_machines():
 
 
 @mock_stepfunctions
+@mock_sts
 def test_state_machine_list_pagination():
     client = boto3.client("stepfunctions", region_name=region)
     for i in range(25):

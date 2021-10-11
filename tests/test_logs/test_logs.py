@@ -368,8 +368,6 @@ def test_exceptions():
     with pytest.raises(ClientError):
         conn.create_log_group(logGroupName=log_group_name)
 
-    # descrine_log_groups is not implemented yet
-
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
     with pytest.raises(ClientError):
         conn.create_log_stream(
@@ -995,11 +993,11 @@ def test_describe_log_groups_paging():
 
     resp = client.describe_log_groups(limit=2)
     resp["logGroups"].should.have.length_of(2)
-    resp["nextToken"].should.equal("/aws/lambda/FileMonitoring")
+    resp.should.have.key("nextToken")
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"], limit=1)
     resp["logGroups"].should.have.length_of(1)
-    resp["nextToken"].should.equal("/aws/lambda/fileAvailable")
+    resp.should.have.key("nextToken")
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"])
     resp["logGroups"].should.have.length_of(1)
@@ -1008,6 +1006,51 @@ def test_describe_log_groups_paging():
 
     resp = client.describe_log_groups(nextToken="invalid-token")
     resp["logGroups"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
+
+
+@mock_logs
+def test_describe_log_streams_simple_paging():
+    client = boto3.client("logs", "us-east-1")
+
+    group_name = "/aws/lambda/lowercase-dev"
+
+    client.create_log_group(logGroupName=group_name)
+    stream_names = ["stream" + str(i) for i in range(0, 10)]
+    for name in stream_names:
+        client.create_log_stream(logGroupName=group_name, logStreamName=name)
+
+    # Get stream 1-10
+    resp = client.describe_log_streams(logGroupName=group_name)
+    resp["logStreams"].should.have.length_of(10)
+    resp.should_not.have.key("nextToken")
+
+    # Get stream 1-4
+    resp = client.describe_log_streams(logGroupName=group_name, limit=4)
+    resp["logStreams"].should.have.length_of(4)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream0", "stream1", "stream2", "stream3"]
+    )
+    resp.should.have.key("nextToken")
+
+    # Get stream 4-8
+    resp = client.describe_log_streams(
+        logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
+    )
+    resp["logStreams"].should.have.length_of(4)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream4", "stream5", "stream6", "stream7"]
+    )
+    resp.should.have.key("nextToken")
+
+    # Get stream 8-10
+    resp = client.describe_log_streams(
+        logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
+    )
+    resp["logStreams"].should.have.length_of(2)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream8", "stream9"]
+    )
     resp.should_not.have.key("nextToken")
 
 
