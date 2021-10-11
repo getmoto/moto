@@ -1,5 +1,6 @@
 import boto3
 import json
+import sure  # noqa
 
 from moto import mock_elbv2, mock_ec2, mock_cloudformation
 from moto.core import ACCOUNT_ID
