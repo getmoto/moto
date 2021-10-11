@@ -1221,10 +1221,17 @@ def test_list_users():
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
+    user0_username = "user0@example.com"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=user0_username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+48555555555"}],
+    )
+
     # checking Filter with prefix operator
-    result = conn.list_users(UserPoolId=user_pool_id, Filter='phone_number ^= "+336"')
+    result = conn.list_users(UserPoolId=user_pool_id, Filter='phone_number ^= "+48"')
     result["Users"].should.have.length_of(1)
-    result["Users"][0]["Username"].should.equal(username_bis)
+    result["Users"][0]["Username"].should.equal(user0_username)
 
 
 @mock_cognitoidp
