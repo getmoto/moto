@@ -434,6 +434,83 @@ def test_create_target_group_without_non_required_parameters():
     target_group.should_not.be.none
 
 
+@mock_ec2
+@mock_elbv2
+def test_create_rule_forward_config_as_second_arg():
+    # https://github.com/spulec/moto/issues/4123
+    # Necessary because there was some convoluted way of parsing arguments
+    # Actions with type=forward had to be the first action specified
+    response, vpc, security_group, subnet1, subnet2, elbv2 = create_load_balancer()
+
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    response = elbv2.create_listener(
+        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[],
+    )
+    http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
+
+    priority = 100
+
+    response = elbv2.create_target_group(
+        Name="a-target",
+        Protocol="HTTP",
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol="HTTP",
+        HealthCheckPort="8080",
+        HealthCheckPath="/",
+        Matcher={"HttpCode": "200"},
+    )
+    target_group = response.get("TargetGroups")[0]
+
+    # No targets registered yet
+    target_group_arn = target_group.get("TargetGroupArn")
+    elbv2.create_rule(
+        ListenerArn=http_listener_arn,
+        Conditions=[
+            {"Field": "path-pattern", "PathPatternConfig": {"Values": [f"/sth*",]},},
+        ],
+        Priority=priority,
+        Actions=[
+            {
+                "Type": "authenticate-cognito",
+                "Order": 1,
+                "AuthenticateCognitoConfig": {
+                    "UserPoolArn": "?1",
+                    "UserPoolClientId": "?2",
+                    "UserPoolDomain": "?2",
+                    "SessionCookieName": "AWSELBAuthSessionCookie",
+                    "Scope": "openid",
+                    "SessionTimeout": 604800,
+                    "OnUnauthenticatedRequest": "authenticate",
+                },
+            },
+            {
+                "Type": "forward",
+                "Order": 2,
+                "ForwardConfig": {
+                    "TargetGroups": [
+                        {"TargetGroupArn": target_group_arn, "Weight": 1},
+                    ],
+                    "TargetGroupStickinessConfig": {"Enabled": False,},
+                },
+            },
+        ],
+    )
+    all_rules = elbv2.describe_rules(ListenerArn=http_listener_arn)["Rules"]
+    our_rule = all_rules[0]
+    actions = our_rule["Actions"]
+    forward_action = [a for a in actions if "ForwardConfig" in a.keys()][0]
+    forward_action.should.equal(
+        {
+            "ForwardConfig": {
+                "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 1}]
+            },
+            "Type": "forward",
+        }
+    )
+
+
 @mock_elbv2
 @mock_ec2
 def test_create_invalid_target_group():

@@ -209,15 +209,17 @@ class Stream(CloudFormationModel):
         sequence_number = shard.put_record(partition_key, data, explicit_hash_key)
         return sequence_number, shard.shard_id
 
-    def to_json(self):
+    def to_json(self, shard_limit=None):
+        all_shards = list(self.shards.values())
+        requested_shards = all_shards[0 : shard_limit or len(all_shards)]
         return {
             "StreamDescription": {
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
-                "HasMoreShards": False,
+                "HasMoreShards": len(requested_shards) != len(all_shards),
                 "RetentionPeriodHours": self.retention_period_hours,
-                "Shards": [shard.to_json() for shard in self.shards.values()],
+                "Shards": [shard.to_json() for shard in requested_shards],
             }
         }
 

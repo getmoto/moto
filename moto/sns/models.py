@@ -110,6 +110,33 @@ class Topic(CloudFormationModel):
             )
         return topic
 
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sns_backend = sns_backends[region_name]
+        properties = cloudformation_json["Properties"]
+
+        topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
+        topic_arn = make_arn_for_topic(
+            DEFAULT_ACCOUNT_ID, topic_name, sns_backend.region_name
+        )
+        subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
+        for subscription in subscriptions:
+            sns_backend.unsubscribe(subscription.arn)
+        sns_backend.delete_topic(topic_arn)
+
     def _create_default_topic_policy(self, region_name, account_id, name):
         return {
             "Version": "2008-10-17",

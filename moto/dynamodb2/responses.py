@@ -410,8 +410,19 @@ class DynamoHandler(BaseResponse):
             )
         key = self.body["Key"]
         projection_expression = self.body.get("ProjectionExpression")
-        expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
+        expression_attribute_names = self.body.get("ExpressionAttributeNames")
+        if expression_attribute_names == {}:
+            if projection_expression is None:
+                er = "ValidationException"
+                return self.error(
+                    er,
+                    "ExpressionAttributeNames can only be specified when using expressions",
+                )
+            else:
+                er = "ValidationException"
+                return self.error(er, "ExpressionAttributeNames must not be empty")
 
+        expression_attribute_names = expression_attribute_names or {}
         projection_expression = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
