@@ -5961,17 +5961,3 @@ def test_batch_write_item():
         table = conn.Table(f"table-{idx}")
         scan = table.scan()
         assert scan["Count"].should.equal(0)
-
-
-@mock_dynamodb2
-def test_batch_write_item_non_existing_table():
-    client = boto3.client("dynamodb", region_name="us-west-2")
-
-    with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
-        # Table my-table does not exist
-        client.batch_write_item(
-            RequestItems={"my-table": [{"PutRequest": {"Item": {}}}]}
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"].should.equal("ResourceNotFoundException")
-    assert err["Message"].should.equal("Requested resource not found")
