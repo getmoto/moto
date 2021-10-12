@@ -44,7 +44,7 @@ class Route53(BaseResponse):
             return 201, headers, template.render(zone=new_zone)
 
         elif request.method == "GET":
-            all_zones = route53_backend.get_all_hosted_zones()
+            all_zones = route53_backend.list_hosted_zones()
             template = Template(LIST_HOSTED_ZONES_RESPONSE)
             return 200, headers, template.render(zones=all_zones)
 
@@ -54,27 +54,7 @@ class Route53(BaseResponse):
         query_params = parse_qs(parsed_url.query)
         dnsname = query_params.get("dnsname")
 
-        if dnsname:
-            dnsname = dnsname[0]
-            if dnsname[-1] != ".":
-                dnsname += "."
-            zones = [
-                zone
-                for zone in route53_backend.get_all_hosted_zones()
-                if zone.name == dnsname
-            ]
-        else:
-            # sort by names, but with domain components reversed
-            # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
-
-            def sort_key(zone):
-                domains = zone.name.split(".")
-                if domains[-1] == "":
-                    domains = domains[-1:] + domains[:-1]
-                return ".".join(reversed(domains))
-
-            zones = route53_backend.get_all_hosted_zones()
-            zones = sorted(zones, key=sort_key)
+        dnsname, zones = route53_backend.list_hosted_zones_by_name(dnsname)
 
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
         return 200, headers, template.render(zones=zones, dnsname=dnsname)
@@ -119,47 +99,11 @@ class Route53(BaseResponse):
                     ]["Change"]
                 ]
 
-            for value in change_list:
-                action = value["Action"]
-                record_set = value["ResourceRecordSet"]
-
-                cleaned_record_name = record_set["Name"].strip(".")
-                cleaned_hosted_zone_name = the_zone.name.strip(".")
-
-                if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
-                    error_msg = """
-                    An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
-                    RRSet with DNS name %s is not permitted in zone %s
-                    """ % (
-                        record_set["Name"],
-                        the_zone.name,
-                    )
-                    return 400, headers, error_msg
-
-                if not record_set["Name"].endswith("."):
-                    record_set["Name"] += "."
-
-                if action in ("CREATE", "UPSERT"):
-                    if "ResourceRecords" in record_set:
-                        resource_records = list(record_set["ResourceRecords"].values())[
-                            0
-                        ]
-                        if not isinstance(resource_records, list):
-                            # Depending on how many records there are, this may
-                            # or may not be a list
-                            resource_records = [resource_records]
-                        record_set["ResourceRecords"] = [
-                            x["Value"] for x in resource_records
-                        ]
-                    if action == "CREATE":
-                        the_zone.add_rrset(record_set)
-                    else:
-                        the_zone.upsert_rrset(record_set)
-                elif action == "DELETE":
-                    if "SetIdentifier" in record_set:
-                        the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
-                    else:
-                        the_zone.delete_rrset(record_set)
+            error_msg = route53_backend.change_resource_record_sets(
+                the_zone, change_list
+            )
+            if error_msg:
+                return 400, headers, error_msg
 
             return 200, headers, CHANGE_RRSET_RESPONSE
 
@@ -212,7 +156,7 @@ class Route53(BaseResponse):
             return 200, headers, DELETE_HEALTH_CHECK_RESPONSE
         elif method == "GET":
             template = Template(LIST_HEALTH_CHECKS_RESPONSE)
-            health_checks = route53_backend.get_health_checks()
+            health_checks = route53_backend.list_health_checks()
             return 200, headers, template.render(health_checks=health_checks)
 
     def not_implemented_response(self, request, full_url, headers):
