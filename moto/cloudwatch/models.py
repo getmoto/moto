@@ -438,6 +438,12 @@ class CloudWatchBackend(BaseBackend):
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(self, namespace, metric_data):
+        for i, metric in enumerate(metric_data):
+            if metric.get("Value") == "NaN":
+                raise InvalidParameterValue(
+                    f"The value NaN for parameter MetricData.member.{i + 1}.Value is invalid."
+                )
+
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
