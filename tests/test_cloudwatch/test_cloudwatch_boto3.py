@@ -379,6 +379,25 @@ def test_list_metrics_paginated():
     )
 
 
+@mock_cloudwatch
+def test_list_metrics_without_value():
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    # Create some metrics to filter on
+    create_metrics_with_dimensions(cloudwatch, namespace="MyNamespace", data_points=3)
+    # Verify we can filter by namespace/metric name
+    res = cloudwatch.list_metrics(Namespace="MyNamespace")["Metrics"]
+    res.should.have.length_of(3)
+    # Verify we can filter by Dimension without value
+    results = cloudwatch.list_metrics(
+        Namespace="MyNamespace", MetricName="MyMetric", Dimensions=[{"Name": "D1"}]
+    )["Metrics"]
+
+    results.should.have.length_of(1)
+    results[0]["Namespace"].should.equals("MyNamespace")
+    results[0]["MetricName"].should.equal("MyMetric")
+    results[0]["Dimensions"].should.equal([{"Name": "D1", "Value": "V1"}])
+
+
 def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):
     for i in range(0, metrics):
         metric_name = "metric" + str(i)
@@ -387,6 +406,20 @@ def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):
                 Namespace=namespace,
                 MetricData=[{"MetricName": metric_name, "Value": j, "Unit": "Seconds"}],
             )
+
+
+def create_metrics_with_dimensions(cloudwatch, namespace, data_points=5):
+    for j in range(0, data_points):
+        cloudwatch.put_metric_data(
+            Namespace=namespace,
+            MetricData=[
+                {
+                    "MetricName": "MyMetric",
+                    "Dimensions": [{"Name": f"D{j}", "Value": f"V{j}"}],
+                    "Unit": "Seconds",
+                }
+            ],
+        )
 
 
 @mock_cloudwatch
