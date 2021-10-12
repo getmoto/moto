@@ -147,3 +147,25 @@ def test_empty_expressionattributenames_with_projection():
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.equal("ExpressionAttributeNames must not be empty")
+
+
+@mock_dynamodb2
+def test_update_item_range_key_set():
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    table = ddb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"partitionKey": "the-key"},
+            UpdateExpression="ADD x :one SET a = :a ADD y :one",
+            ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
+    )
