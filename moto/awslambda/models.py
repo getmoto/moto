@@ -588,6 +588,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         environment=env_vars,
                         detach=True,
                         log_config=log_config,
+                        extra_hosts={"host.docker.internal": "host-gateway"},
                         **run_kwargs
                     )
                 finally:
