@@ -2852,6 +2852,17 @@ def test_delimiter_optional_in_response():
 
 
 @mock_s3
+def test_list_objects_with_pagesize_0():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+    resp = s3.list_objects(Bucket="mybucket", MaxKeys=0)
+    resp["Name"].should.equal("mybucket")
+    resp["MaxKeys"].should.equal(0)
+    resp["IsTruncated"].should.equal(False)
+    resp.shouldnt.have.key("Contents")
+
+
+@mock_s3
 def test_boto3_list_objects_truncated_response():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
