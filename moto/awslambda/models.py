@@ -581,7 +581,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
                     #   for communication with other mock AWS services running on localhost
                     if platform == "linux" or platform == "linux2":
-                        run_kwargs["extra_hosts"] = {"host.docker.internal": "host-gateway"}
+                        run_kwargs["extra_hosts"] = {
+                            "host.docker.internal": "host-gateway"
+                        }
 
                     image_ref = "lambci/lambda:{}".format(self.run_time)
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
@@ -633,8 +635,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def save_logs(self, output):
         # Send output to "logs" backend
         invoke_id = uuid.uuid4().hex
-        log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
-            date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id,
+        log_stream_name = (
+            "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+                date=datetime.datetime.utcnow(),
+                version=self.version,
+                invoke_id=invoke_id,
+            )
         )
         self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
         log_events = [
