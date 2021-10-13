@@ -410,7 +410,10 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.check_auto_public_ip()
 
     def check_auto_public_ip(self):
-        if self.public_ip_auto_assign:
+        if (
+            self.public_ip_auto_assign
+            and str(self.public_ip_auto_assign).lower() == "true"
+        ):
             self.public_ip = random_public_ip()
 
     @property

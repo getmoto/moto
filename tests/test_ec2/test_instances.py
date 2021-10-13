@@ -3044,6 +3044,58 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
     assert len(captured_warnings) == 0
 
 
+@mock_ec2
+def test_run_instance_and_associate_public_ip():
+    ec2 = boto3.resource("ec2", "us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    # Do not pass AssociatePublicIpAddress-argument
+    instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        NetworkInterfaces=[{"DeviceIndex": 0}],
+        SubnetId=subnet.id,
+    )[0]
+    interfaces = instance.network_interfaces_attribute
+    addresses = interfaces[0]["PrivateIpAddresses"][0]
+    addresses.should.have.key("Primary").equal(True)
+    addresses.should.have.key("PrivateIpAddress")
+    addresses.shouldnt.have.key("Association")
+
+    # Pass AssociatePublicIpAddress=False
+    instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        NetworkInterfaces=[{"DeviceIndex": 0, "AssociatePublicIpAddress": False}],
+        SubnetId=subnet.id,
+    )[0]
+    interfaces = instance.network_interfaces_attribute
+    addresses = interfaces[0]["PrivateIpAddresses"][0]
+    addresses.should.have.key("Primary").equal(True)
+    addresses.should.have.key("PrivateIpAddress")
+    addresses.shouldnt.have.key("Association")
+
+    # Pass AssociatePublicIpAddress=True
+    instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        NetworkInterfaces=[{"DeviceIndex": 0, "AssociatePublicIpAddress": True}],
+        SubnetId=subnet.id,
+    )[0]
+    interfaces = instance.network_interfaces_attribute
+    addresses = interfaces[0]["PrivateIpAddresses"][0]
+    addresses.should.have.key("Primary").equal(True)
+    addresses.should.have.key("PrivateIpAddress")
+    addresses.should.have.key("Association")
+    # Only now should we have a PublicIp
+    addresses["Association"].should.have.key("IpOwnerId").equal(ACCOUNT_ID)
+    addresses["Association"].should.have.key("PublicIp")
+
+
 def retrieve_all_reservations(client, filters=[]):
     resp = client.describe_instances(Filters=filters)
     all_reservations = resp["Reservations"]
