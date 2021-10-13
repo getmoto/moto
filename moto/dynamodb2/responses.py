@@ -486,9 +486,15 @@ class DynamoHandler(BaseResponse):
 
             results["Responses"][table_name] = []
             for key in keys:
-                item = self.dynamodb_backend.get_item(
-                    table_name, key, projection_expression
-                )
+                try:
+                    item = self.dynamodb_backend.get_item(
+                        table_name, key, projection_expression
+                    )
+                except ValueError:
+                    return self.error(
+                        "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException",
+                        "Requested resource not found",
+                    )
                 if item:
                     item_describe = item.describe_attrs(attributes_to_get)
                     results["Responses"][table_name].append(item_describe["Item"])

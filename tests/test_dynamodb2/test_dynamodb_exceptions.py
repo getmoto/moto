@@ -172,6 +172,18 @@ def test_update_item_range_key_set():
 
 
 @mock_dynamodb2
+def test_batch_get_item_non_existing_table():
+
+    client = boto3.client("dynamodb", region_name="us-west-2")
+
+    with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+        client.batch_get_item(RequestItems={"my-table": {"Keys": [{"id": {"N": "0"}}]}})
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Message"].should.equal("Requested resource not found")
+
+
+@mock_dynamodb2
 def test_batch_write_item_non_existing_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
 
