@@ -5920,3 +5920,44 @@ def test_update_non_existing_item_raises_error_and_does_not_contain_item_afterwa
     err.value.response["Error"]["Code"].should.equal("ValidationException")
 
     conn.scan(TableName=name)["Items"].should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_batch_write_item():
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    tables = [f"table-{i}" for i in range(3)]
+    for name in tables:
+        conn.create_table(
+            TableName=name,
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+
+    conn.batch_write_item(
+        RequestItems={
+            tables[0]: [{"PutRequest": {"Item": {"id": "0"}}}],
+            tables[1]: [{"PutRequest": {"Item": {"id": "1"}}}],
+            tables[2]: [{"PutRequest": {"Item": {"id": "2"}}}],
+        }
+    )
+
+    for idx, name in enumerate(tables):
+        table = conn.Table(f"table-{idx}")
+        res = table.get_item(Key={"id": str(idx)})
+        assert res["Item"].should.equal({"id": str(idx)})
+        scan = table.scan()
+        assert scan["Count"].should.equal(1)
+
+    conn.batch_write_item(
+        RequestItems={
+            tables[0]: [{"DeleteRequest": {"Key": {"id": "0"}}}],
+            tables[1]: [{"DeleteRequest": {"Key": {"id": "1"}}}],
+            tables[2]: [{"DeleteRequest": {"Key": {"id": "2"}}}],
+        }
+    )
+
+    for idx, name in enumerate(tables):
+        table = conn.Table(f"table-{idx}")
+        scan = table.scan()
+        assert scan["Count"].should.equal(0)
