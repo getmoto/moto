@@ -6724,15 +6724,6 @@ class DHCPOptionsSetBackend(object):
         self.dhcp_options_sets[options.id] = options
         return options
 
-    def describe_dhcp_options(self, options_ids=None):
-        options_sets = []
-        for option_id in options_ids or []:
-            if option_id in self.dhcp_options_sets:
-                options_sets.append(self.dhcp_options_sets[option_id])
-            else:
-                raise InvalidDHCPOptionsIdError(option_id)
-        return options_sets or self.dhcp_options_sets.copy().values()
-
     def delete_dhcp_options_set(self, options_id):
         if not (options_id and options_id.startswith("dopt-")):
             raise MalformedDHCPOptionsIdError(options_id)
@@ -6745,8 +6736,8 @@ class DHCPOptionsSetBackend(object):
             raise InvalidDHCPOptionsIdError(options_id)
         return True
 
-    def get_all_dhcp_options(self, dhcp_options_ids=None, filters=None):
-        dhcp_options_sets = self.dhcp_options_sets.values()
+    def describe_dhcp_options(self, dhcp_options_ids=None, filters=None):
+        dhcp_options_sets = self.dhcp_options_sets.copy().values()
 
         if dhcp_options_ids:
             dhcp_options_sets = [
@@ -8550,7 +8541,7 @@ class EC2Backend(
             if resource_prefix == EC2_RESOURCE_TO_PREFIX["customer-gateway"]:
                 self.get_customer_gateway(customer_gateway_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["dhcp-options"]:
-                self.describe_dhcp_options(options_ids=[resource_id])
+                self.describe_dhcp_options(dhcp_options_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["image"]:
                 self.describe_images(ami_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["instance"]:
