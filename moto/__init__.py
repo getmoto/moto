@@ -34,6 +34,7 @@ mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudformation_deprecated = lazy_load(
     ".cloudformation", "mock_cloudformation_deprecated"
 )
+mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_cloudwatch_deprecated = lazy_load(".cloudwatch", "mock_cloudwatch_deprecated")
 mock_codecommit = lazy_load(".codecommit", "mock_codecommit")
