@@ -3473,11 +3473,11 @@
 
 ## route53
 <details>
-<summary>10% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
-- [ ] change_resource_record_sets
+- [X] change_resource_record_sets
 - [X] change_tags_for_resource
 - [X] create_health_check
 - [X] create_hosted_zone
@@ -3519,9 +3519,9 @@
 - [ ] get_traffic_policy_instance
 - [ ] get_traffic_policy_instance_count
 - [ ] list_geo_locations
-- [ ] list_health_checks
-- [ ] list_hosted_zones
-- [ ] list_hosted_zones_by_name
+- [X] list_health_checks
+- [X] list_hosted_zones
+- [X] list_hosted_zones_by_name
 - [ ] list_hosted_zones_by_vpc
 - [ ] list_query_logging_configs
 - [ ] list_resource_record_sets

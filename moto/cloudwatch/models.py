@@ -35,7 +35,9 @@ class Dimension(object):
 
     def __eq__(self, item):
         if isinstance(item, Dimension):
-            return self.name == item.name and self.value == item.value
+            return self.name == item.name and (
+                self.value is None or item.value is None or self.value == item.value
+            )
         return False
 
     def __ne__(self, item):  # Only needed on Py2; Py3 defines it implicitly
@@ -222,7 +224,8 @@ class MetricDatum(BaseModel):
                 return False
 
         if dimensions and any(
-            Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
+            Dimension(d["Name"], d.get("Value")) not in self.dimensions
+            for d in dimensions
         ):
             return False
         return True
