@@ -635,12 +635,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def save_logs(self, output):
         # Send output to "logs" backend
         invoke_id = uuid.uuid4().hex
-        log_stream_name = (
-            "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
-                date=datetime.datetime.utcnow(),
-                version=self.version,
-                invoke_id=invoke_id,
-            )
+        log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+            date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id,
         )
         self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
         log_events = [
