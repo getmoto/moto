@@ -334,12 +334,26 @@ class CognitoIdpResponse(BaseResponse):
                 "username": lambda u: u.username,
             }
             comparisons = {"=": lambda x, y: x == y, "^=": lambda x, y: x.startswith(y)}
+            allowed_attributes = [
+                "username",
+                "email",
+                "phone_number",
+                "name",
+                "given_name",
+                "family_name",
+                "preferred_username",
+                "cognito:user_status",
+                "status",
+                "sub",
+            ]
 
             match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
             if match:
                 name, op, value = match.groups()
             else:
                 raise InvalidParameterException("Error while parsing filter")
+            if name not in allowed_attributes:
+                raise InvalidParameterException(f"Invalid search attribute: {name}")
             compare = comparisons[op]
             users = [
                 user

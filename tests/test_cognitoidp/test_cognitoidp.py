@@ -1260,6 +1260,19 @@ def _assert_filter_parsing_error(exc):
 
 
 @mock_cognitoidp
+def test_list_users_invalid_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter='custom:foo = "bar"')
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("InvalidParameterException")
+    assert err["Message"].should.equal("Invalid search attribute: custom:foo")
+
+
+@mock_cognitoidp
 def test_list_users_inherent_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
