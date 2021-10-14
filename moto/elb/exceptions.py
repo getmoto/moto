@@ -13,6 +13,13 @@ class DuplicateTagKeysError(ELBClientError):
         )
 
 
+class CertificateNotFoundException(ELBClientError):
+    def __init__(self):
+        super(CertificateNotFoundException, self).__init__(
+            "CertificateNotFoundException", "Supplied certificate was not found"
+        )
+
+
 class LoadBalancerNotFoundError(ELBClientError):
     def __init__(self, cidr):
         super(LoadBalancerNotFoundError, self).__init__(

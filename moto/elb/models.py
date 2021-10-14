@@ -15,7 +15,6 @@ from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2.models import ec2_backends
-from moto.acm.models import acm_backends
 from .exceptions import (
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
@@ -24,7 +23,9 @@ from .exceptions import (
     InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
     TooManyTagsError,
+    CertificateNotFoundException,
 )
+
 
 class FakeHealthCheck(BaseModel):
     def __init__(
@@ -79,6 +80,7 @@ class FakeLoadBalancer(CloudFormationModel):
         vpc_id=None,
         subnets=None,
         security_groups=None,
+        elb_backend=None,
     ):
         self.name = name
         self.health_check = None
@@ -112,7 +114,10 @@ class FakeLoadBalancer(CloudFormationModel):
                 ),
             )
             if listener.ssl_certificate_id:
-                acm_backend.set_certificate_in_use_by(listener.ssl_certificate_id, self.dns_name)
+                elb_backend._register_certificate(
+                    listener.ssl_certificate_id, self.dns_name
+                )
+
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
@@ -312,6 +317,7 @@ class ELBBackend(BaseBackend):
             subnets=subnets,
             security_groups=security_groups,
             vpc_id=vpc_id,
+            elb_backend=self,
         )
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
@@ -335,9 +341,14 @@ class ELBBackend(BaseBackend):
                         break
                 else:
                     if ssl_certificate_id:
-                        acm_backend.set_certificate_in_use_by(ssl_certificate_id, balancer.dns_name)
-                    balancer.listeners.append(FakeListener(
-                        lb_port, instance_port, protocol, ssl_certificate_id))
+                        self._register_certificate(
+                            ssl_certificate_id, balancer.dns_name
+                        )
+                    balancer.listeners.append(
+                        FakeListener(
+                            lb_port, instance_port, protocol, ssl_certificate_id
+                        )
+                    )
 
         return balancer
 
@@ -408,7 +419,9 @@ class ELBBackend(BaseBackend):
                 if lb_port == listener.load_balancer_port:
                     balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
                     if ssl_certificate_id:
-                        acm_backend.set_certificate_in_use_by(ssl_certificate_id, balancer.dns_name)
+                        self._register_certificate(
+                            ssl_certificate_id, balancer.dns_name
+                        )
         return balancer
 
     def register_instances(
@@ -511,7 +524,15 @@ class ELBBackend(BaseBackend):
         load_balancer.listeners[listener_idx] = listener
         return load_balancer
 
-acm_backend = acm_backends['us-west-2']
+    def _register_certificate(self, ssl_certificate_id, dns_name):
+        from moto.acm.models import acm_backends, AWSResourceNotFoundException
+
+        acm_backend = acm_backends[self.region_name]
+        try:
+            acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
+        except AWSResourceNotFoundException:
+            raise CertificateNotFoundException()
+
 
 elb_backends = {}
 for region in ec2_backends.keys():
