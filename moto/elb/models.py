@@ -23,6 +23,7 @@ from .exceptions import (
     InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
     TooManyTagsError,
+    CertificateNotFoundException,
 )
 
 
@@ -79,6 +80,7 @@ class FakeLoadBalancer(CloudFormationModel):
         vpc_id=None,
         subnets=None,
         security_groups=None,
+        elb_backend=None,
     ):
         self.name = name
         self.health_check = None
@@ -111,6 +113,11 @@ class FakeLoadBalancer(CloudFormationModel):
                     "ssl_certificate_id", port.get("SSLCertificateId")
                 ),
             )
+            if listener.ssl_certificate_id:
+                elb_backend._register_certificate(
+                    listener.ssl_certificate_id, self.dns_name
+                )
+
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
@@ -310,6 +317,7 @@ class ELBBackend(BaseBackend):
             subnets=subnets,
             security_groups=security_groups,
             vpc_id=vpc_id,
+            elb_backend=self,
         )
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
@@ -332,6 +340,10 @@ class ELBBackend(BaseBackend):
                             raise DuplicateListenerError(name, lb_port)
                         break
                 else:
+                    if ssl_certificate_id:
+                        self._register_certificate(
+                            ssl_certificate_id, balancer.dns_name
+                        )
                     balancer.listeners.append(
                         FakeListener(
                             lb_port, instance_port, protocol, ssl_certificate_id
@@ -406,7 +418,10 @@ class ELBBackend(BaseBackend):
             for idx, listener in enumerate(balancer.listeners):
                 if lb_port == listener.load_balancer_port:
                     balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
-
+                    if ssl_certificate_id:
+                        self._register_certificate(
+                            ssl_certificate_id, balancer.dns_name
+                        )
         return balancer
 
     def register_instances(
@@ -508,6 +523,15 @@ class ELBBackend(BaseBackend):
         listener.policy_names = policies
         load_balancer.listeners[listener_idx] = listener
         return load_balancer
+
+    def _register_certificate(self, ssl_certificate_id, dns_name):
+        from moto.acm.models import acm_backends, AWSResourceNotFoundException
+
+        acm_backend = acm_backends[self.region_name]
+        try:
+            acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
+        except AWSResourceNotFoundException:
+            raise CertificateNotFoundException()
 
 
 elb_backends = {}

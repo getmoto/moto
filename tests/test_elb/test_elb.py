@@ -14,7 +14,7 @@ from boto.exception import BotoServerError
 import pytest
 import sure  # noqa
 
-from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
+from moto import mock_acm, mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
@@ -201,42 +201,21 @@ def test_create_elb_in_multiple_region_boto3():
     west_names.shouldnt.contain(name_east)
 
 
-# Has boto3 equivalent
-@mock_elb_deprecated
-def test_create_load_balancer_with_certificate():
-    conn = boto.connect_elb()
-
-    zones = ["us-east-1a"]
-    ports = [
-        (
-            443,
-            8443,
-            "https",
-            "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID),
-        )
-    ]
-    conn.create_load_balancer("my-lb", zones, ports)
-
-    balancers = conn.get_all_load_balancers()
-    balancer = balancers[0]
-    balancer.name.should.equal("my-lb")
-    balancer.scheme.should.equal("internet-facing")
-    set(balancer.availability_zones).should.equal(set(["us-east-1a"]))
-    listener = balancer.listeners[0]
-    listener.load_balancer_port.should.equal(443)
-    listener.instance_port.should.equal(8443)
-    listener.protocol.should.equal("HTTPS")
-    listener.ssl_certificate_id.should.equal(
-        "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID)
-    )
-
-
+@mock_acm
 @mock_elb
 def test_create_load_balancer_with_certificate_boto3():
+    acm_client = boto3.client("acm", region_name="us-east-2")
+    acm_request_response = acm_client.request_certificate(
+        DomainName="fake.domain.com",
+        DomainValidationOptions=[
+            {"DomainName": "fake.domain.com", "ValidationDomain": "domain.com"},
+        ],
+    )
+    certificate_arn = acm_request_response["CertificateArn"]
+
     client = boto3.client("elb", region_name="us-east-2")
 
     name = str(uuid4())[0:6]
-    cert_id = "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID)
 
     client.create_load_balancer(
         LoadBalancerName=name,
@@ -245,7 +224,7 @@ def test_create_load_balancer_with_certificate_boto3():
                 "Protocol": "https",
                 "LoadBalancerPort": 8443,
                 "InstancePort": 443,
-                "SSLCertificateId": cert_id,
+                "SSLCertificateId": certificate_arn,
             }
         ],
         AvailabilityZones=["us-east-1a"],
@@ -257,7 +236,30 @@ def test_create_load_balancer_with_certificate_boto3():
 
     listener = describe["ListenerDescriptions"][0]["Listener"]
     listener.should.have.key("Protocol").equal("HTTPS")
-    listener.should.have.key("SSLCertificateId").equals(cert_id)
+    listener.should.have.key("SSLCertificateId").equals(certificate_arn)
+
+
+@mock_elb
+def test_create_load_balancer_with_invalid_certificate():
+    client = boto3.client("elb", region_name="us-east-2")
+
+    name = str(uuid4())[0:6]
+
+    with pytest.raises(ClientError) as exc:
+        client.create_load_balancer(
+            LoadBalancerName=name,
+            Listeners=[
+                {
+                    "Protocol": "https",
+                    "LoadBalancerPort": 8443,
+                    "InstancePort": 443,
+                    "SSLCertificateId": "invalid_arn",
+                }
+            ],
+            AvailabilityZones=["us-east-1a"],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("CertificateNotFoundException")
 
 
 @mock_elb
@@ -433,26 +435,87 @@ def test_create_and_delete_listener_boto3_support():
     list(balancer["ListenerDescriptions"]).should.have.length_of(1)
 
 
-# Has boto3 equivalent
-@mock_elb_deprecated
-def test_set_sslcertificate():
-    conn = boto.connect_elb()
+@mock_acm
+@mock_elb
+def test_create_lb_listener_with_ssl_certificate():
+    acm_client = boto3.client("acm", region_name="eu-west-1")
+    acm_request_response = acm_client.request_certificate(
+        DomainName="fake.domain.com",
+        DomainValidationOptions=[
+            {"DomainName": "fake.domain.com", "ValidationDomain": "domain.com"},
+        ],
+    )
+    certificate_arn = acm_request_response["CertificateArn"]
 
-    zones = ["us-east-1a", "us-east-1b"]
-    ports = [(443, 8443, "tcp")]
-    conn.create_load_balancer("my-lb", zones, ports)
-    conn.set_lb_listener_SSL_certificate("my-lb", "443", "arn:certificate")
-    balancers = conn.get_all_load_balancers()
-    balancer = balancers[0]
-    listener1 = balancer.listeners[0]
-    listener1.load_balancer_port.should.equal(443)
-    listener1.instance_port.should.equal(8443)
-    listener1.protocol.should.equal("TCP")
-    listener1.ssl_certificate_id.should.equal("arn:certificate")
+    client = boto3.client("elb", region_name="eu-west-1")
+
+    client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    client.create_load_balancer_listeners(
+        LoadBalancerName="my-lb",
+        Listeners=[
+            {
+                "Protocol": "tcp",
+                "LoadBalancerPort": 443,
+                "InstancePort": 8443,
+                "SSLCertificateId": certificate_arn,
+            }
+        ],
+    )
+    balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+    listeners = balancer["ListenerDescriptions"]
+    listeners.should.have.length_of(2)
+
+    listeners[0]["Listener"]["Protocol"].should.equal("HTTP")
+    listeners[0]["Listener"]["SSLCertificateId"].should.equal("None")
+
+    listeners[1]["Listener"]["Protocol"].should.equal("TCP")
+    listeners[1]["Listener"]["SSLCertificateId"].should.equal(certificate_arn)
 
 
+@mock_acm
+@mock_elb
+def test_create_lb_listener_with_invalid_ssl_certificate():
+    client = boto3.client("elb", region_name="eu-west-1")
+
+    client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_load_balancer_listeners(
+            LoadBalancerName="my-lb",
+            Listeners=[
+                {
+                    "Protocol": "tcp",
+                    "LoadBalancerPort": 443,
+                    "InstancePort": 8443,
+                    "SSLCertificateId": "unknownarn",
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("CertificateNotFoundException")
+
+
+@mock_acm
 @mock_elb
 def test_set_sslcertificate_boto3():
+    acm_client = boto3.client("acm", region_name="us-east-1")
+    acm_request_response = acm_client.request_certificate(
+        DomainName="fake.domain.com",
+        DomainValidationOptions=[
+            {"DomainName": "fake.domain.com", "ValidationDomain": "domain.com"},
+        ],
+    )
+    certificate_arn = acm_request_response["CertificateArn"]
+
     client = boto3.client("elb", region_name="us-east-1")
     lb_name = str(uuid4())[0:6]
 
@@ -466,9 +529,7 @@ def test_set_sslcertificate_boto3():
     )
 
     client.set_load_balancer_listener_ssl_certificate(
-        LoadBalancerName=lb_name,
-        LoadBalancerPort=81,
-        SSLCertificateId="arn:certificate",
+        LoadBalancerName=lb_name, LoadBalancerPort=81, SSLCertificateId=certificate_arn,
     )
 
     elb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
@@ -479,7 +540,7 @@ def test_set_sslcertificate_boto3():
 
     listener = elb["ListenerDescriptions"][1]["Listener"]
     listener.should.have.key("LoadBalancerPort").equals(81)
-    listener.should.have.key("SSLCertificateId").equals("arn:certificate")
+    listener.should.have.key("SSLCertificateId").equals(certificate_arn)
 
 
 # Has boto3 equivalent
