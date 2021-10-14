@@ -1562,21 +1562,22 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
 
         # getting default config from bucket if not included in put request
-        bucket_key_enabled = (
-            bucket_key_enabled or bucket.encryption["Rule"]["BucketKeyEnabled"]
-        )
-        kms_key_id = (
-            kms_key_id
-            or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
-                "KMSMasterKeyID"
-            ]
-        )
-        encryption = (
-            encryption
-            or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
-                "SSEAlgorithm"
-            ]
-        )
+        if bucket.encryption:
+            bucket_key_enabled = (
+                bucket_key_enabled or bucket.encryption["Rule"]["BucketKeyEnabled"]
+            )
+            kms_key_id = (
+                kms_key_id
+                or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
+                    "KMSMasterKeyID"
+                ]
+            )
+            encryption = (
+                encryption
+                or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
+                    "SSEAlgorithm"
+                ]
+            )
 
         new_key = FakeKey(
             name=key_name,
