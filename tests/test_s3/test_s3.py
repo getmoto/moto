@@ -36,6 +36,7 @@ from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
+from uuid import uuid4
 
 if settings.TEST_SERVER_MODE:
     REDUCED_PART_SIZE = S3_UPLOAD_PART_MIN_SIZE
@@ -4879,7 +4880,7 @@ def test_boto3_get_object_tagging():
 @mock_s3
 def test_boto3_list_object_versions():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
+    bucket_name = "000" + str(uuid4())
     key = "key-with-versions"
     s3.create_bucket(Bucket=bucket_name)
     s3.put_bucket_versioning(
@@ -4900,6 +4901,116 @@ def test_boto3_list_object_versions():
     # Test latest object version is returned
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response["Body"].read().should.equal(items[-1])
+
+
+@mock_s3
+def test_boto3_list_object_versions_with_delimiter():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "000" + str(uuid4())
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    for key_index in list(range(1, 5)) + list(range(10, 14)):
+        for version_index in range(1, 4):
+            body = f"data-{version_index}".encode("UTF-8")
+            s3.put_object(
+                Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
+            )
+            s3.put_object(
+                Bucket=bucket_name, Key=f"key{key_index}-without-data", Body=b""
+            )
+    response = s3.list_object_versions(Bucket=bucket_name)
+    # All object versions should be returned
+    len(response["Versions"]).should.equal(
+        48
+    )  # 8 keys * 2 (one with, one without) * 3 versions per key
+
+    # Use start of key as delimiter
+    response = s3.list_object_versions(Bucket=bucket_name, Delimiter="key1")
+    response.should.have.key("CommonPrefixes").equal([{"Prefix": "key1"}])
+    response.should.have.key("Delimiter").equal("key1")
+    # 3 keys that do not contain the phrase 'key1' (key2, key3, key4) * * 2 *  3
+    response.should.have.key("Versions").length_of(18)
+
+    # Use in-between key as delimiter
+    response = s3.list_object_versions(Bucket=bucket_name, Delimiter="-with-")
+    response.should.have.key("CommonPrefixes").equal(
+        [
+            {"Prefix": "key1-with-"},
+            {"Prefix": "key10-with-"},
+            {"Prefix": "key11-with-"},
+            {"Prefix": "key12-with-"},
+            {"Prefix": "key13-with-"},
+            {"Prefix": "key2-with-"},
+            {"Prefix": "key3-with-"},
+            {"Prefix": "key4-with-"},
+        ]
+    )
+    response.should.have.key("Delimiter").equal("-with-")
+    # key(1/10/11/12/13)-without, key(2/3/4)-without
+    response.should.have.key("Versions").length_of(8 * 1 * 3)
+
+    # Use in-between key as delimiter
+    response = s3.list_object_versions(Bucket=bucket_name, Delimiter="1-with-")
+    response.should.have.key("CommonPrefixes").equal(
+        [{"Prefix": "key1-with-"}, {"Prefix": "key11-with-"}]
+    )
+    response.should.have.key("Delimiter").equal("1-with-")
+    response.should.have.key("Versions").length_of(42)
+    all_keys = set([v["Key"] for v in response["Versions"]])
+    all_keys.should.contain("key1-without-data")
+    all_keys.shouldnt.contain("key1-with-data")
+    all_keys.should.contain("key4-with-data")
+    all_keys.should.contain("key4-without-data")
+
+    # Use in-between key as delimiter + prefix
+    response = s3.list_object_versions(
+        Bucket=bucket_name, Prefix="key1", Delimiter="with-"
+    )
+    response.should.have.key("CommonPrefixes").equal(
+        [
+            {"Prefix": "key1-with-"},
+            {"Prefix": "key10-with-"},
+            {"Prefix": "key11-with-"},
+            {"Prefix": "key12-with-"},
+            {"Prefix": "key13-with-"},
+        ]
+    )
+    response.should.have.key("Delimiter").equal("with-")
+    response.should.have.key("KeyMarker").equal("")
+    response.shouldnt.have.key("NextKeyMarker")
+    response.should.have.key("Versions").length_of(15)
+    all_keys = set([v["Key"] for v in response["Versions"]])
+    all_keys.should.equal(
+        {
+            "key1-without-data",
+            "key10-without-data",
+            "key11-without-data",
+            "key13-without-data",
+            "key12-without-data",
+        }
+    )
+
+    # Start at KeyMarker, and filter using Prefix+Delimiter for all subsequent keys
+    response = s3.list_object_versions(
+        Bucket=bucket_name, Prefix="key1", Delimiter="with-", KeyMarker="key11"
+    )
+    response.should.have.key("CommonPrefixes").equal(
+        [
+            {"Prefix": "key11-with-"},
+            {"Prefix": "key12-with-"},
+            {"Prefix": "key13-with-"},
+        ]
+    )
+    response.should.have.key("Delimiter").equal("with-")
+    response.should.have.key("KeyMarker").equal("key11")
+    response.shouldnt.have.key("NextKeyMarker")
+    response.should.have.key("Versions").length_of(9)
+    all_keys = set([v["Key"] for v in response["Versions"]])
+    all_keys.should.equal(
+        {"key11-without-data", "key12-without-data", "key13-without-data"}
+    )
 
 
 @mock_s3
