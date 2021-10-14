@@ -292,6 +292,14 @@ class CognitoIdpResponse(BaseResponse):
 
         return ""
 
+    def admin_reset_user_password(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_reset_user_password(
+            user_pool_id, username
+        )
+        return ""
+
     # User
     def admin_create_user(self):
         user_pool_id = self._get_param("UserPoolId")

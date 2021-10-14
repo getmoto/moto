@@ -27,6 +27,7 @@ UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
     "CONFIRMED": "CONFIRMED",
     "UNCONFIRMED": "UNCONFIRMED",
+    "RESET_REQUIRED": "RESET_REQUIRED",
 }
 
 
@@ -267,6 +268,7 @@ class CognitoIdpUser(BaseModel):
         self.status = status
         self.enabled = True
         self.attributes = attributes
+        self.attribute_lookup = self._flatten_attributes(attributes)
         self.create_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
         self.sms_mfa_enabled = False
@@ -306,15 +308,16 @@ class CognitoIdpUser(BaseModel):
 
         return user_json
 
-    def update_attributes(self, new_attributes):
-        def flatten_attrs(attrs):
-            return {attr["Name"]: attr["Value"] for attr in attrs}
+    def _flatten_attributes(self, attributes):
+        return {attr["Name"]: attr["Value"] for attr in attributes}
 
+    def update_attributes(self, new_attributes):
         def expand_attrs(attrs):
             return [{"Name": k, "Value": v} for k, v in attrs.items()]
 
-        flat_attributes = flatten_attrs(self.attributes)
-        flat_attributes.update(flatten_attrs(new_attributes))
+        flat_attributes = self._flatten_attributes(self.attributes)
+        flat_attributes.update(self._flatten_attributes(new_attributes))
+        self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
 
 
@@ -597,6 +600,25 @@ class CognitoIdpBackend(BaseBackend):
         group.users.discard(user)
         user.groups.discard(group)
 
+    def admin_reset_user_password(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        if not user.enabled:
+            raise NotAuthorizedError("User is disabled")
+        if user.status == UserStatus["RESET_REQUIRED"]:
+            return
+        if user.status != UserStatus["CONFIRMED"]:
+            raise NotAuthorizedError(
+                "User password cannot be reset in the current state."
+            )
+        if (
+            user.attribute_lookup.get("email_verified", "false") == "false"
+            and user.attribute_lookup.get("phone_number_verified", "false") == "false"
+        ):
+            raise InvalidParameterException(
+                "Cannot reset password for the user as there is no registered/verified email or phone_number"
+            )
+        user.status = UserStatus["RESET_REQUIRED"]
+
     # User
     def admin_create_user(
         self, user_pool_id, username, message_action, temporary_password, attributes
@@ -710,7 +732,10 @@ class CognitoIdpBackend(BaseBackend):
             if user.password != password:
                 raise NotAuthorizedError(username)
 
-            if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
+            if user.status in [
+                UserStatus["FORCE_CHANGE_PASSWORD"],
+                UserStatus["RESET_REQUIRED"],
+            ]:
                 session = str(uuid.uuid4())
                 self.sessions[session] = user_pool
 
@@ -844,7 +869,10 @@ class CognitoIdpBackend(BaseBackend):
                     raise NotAuthorizedError(username)
 
                 user.password = proposed_password
-                if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
+                if user.status in [
+                    UserStatus["FORCE_CHANGE_PASSWORD"],
+                    UserStatus["RESET_REQUIRED"],
+                ]:
                     user.status = UserStatus["CONFIRMED"]
 
                 break
