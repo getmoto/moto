@@ -628,7 +628,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return result_keys[continuation_index:]
 
     def _truncate_result(self, result_keys, max_keys):
-        if len(result_keys) > max_keys:
+        if max_keys == 0:
+            result_keys = []
+            is_truncated = True
+            next_continuation_token = None
+        elif len(result_keys) > max_keys:
             is_truncated = "true"
             result_keys = result_keys[:max_keys]
             item = result_keys[-1]
