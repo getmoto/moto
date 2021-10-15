@@ -3096,6 +3096,19 @@ def test_run_instance_and_associate_public_ip():
     addresses["Association"].should.have.key("PublicIp")
 
 
+@mock_ec2
+def test_describe_instances_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_instances(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeInstances operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
 def retrieve_all_reservations(client, filters=[]):
     resp = client.describe_instances(Filters=filters)
     all_reservations = resp["Reservations"]

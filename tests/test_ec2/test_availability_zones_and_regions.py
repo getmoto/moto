@@ -2,8 +2,10 @@ from __future__ import unicode_literals
 import boto
 import boto.ec2
 import boto3
+import pytest
 import sure  # noqa
 
+from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_ec2_deprecated
 
 
@@ -63,6 +65,19 @@ def test_boto3_availability_zones():
         resp = conn.describe_availability_zones()
         for rec in resp["AvailabilityZones"]:
             rec["ZoneName"].should.contain(region)
+
+
+@mock_ec2
+def test_describe_availability_zones_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_availability_zones(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeAvailabilityZones operation: Request would have succeeded, but DryRun flag is set"
+    )
 
 
 @mock_ec2
