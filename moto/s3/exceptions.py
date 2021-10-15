@@ -73,7 +73,7 @@ class BucketAlreadyExists(BucketError):
                 "select a different name and try again"
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -139,7 +139,7 @@ class InvalidPartOrder(S3ClientError):
                 "list must be specified in order by part number."
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -155,7 +155,7 @@ class InvalidPart(S3ClientError):
                 "entity tag might not have matched the part's entity tag."
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -167,7 +167,7 @@ class EntityTooSmall(S3ClientError):
             "EntityTooSmall",
             "Your proposed upload is smaller than the minimum allowed object size.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -181,7 +181,7 @@ class InvalidRequest(S3ClientError):
                 method
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -193,7 +193,7 @@ class IllegalLocationConstraintException(S3ClientError):
             "IllegalLocationConstraintException",
             "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -205,7 +205,7 @@ class MalformedXML(S3ClientError):
             "MalformedXML",
             "The XML you provided was not well-formed or did not validate against our published schema",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -217,7 +217,7 @@ class MalformedACLError(S3ClientError):
             "MalformedACLError",
             "The XML you provided was not well-formed or did not validate against our published schema",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -266,7 +266,7 @@ class InvalidNotificationDestination(S3ClientError):
             "InvalidArgument",
             "The notification destination service region is not valid for the bucket location constraint",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -278,7 +278,7 @@ class InvalidNotificationEvent(S3ClientError):
             "InvalidArgument",
             "The event is not supported for notifications",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -290,7 +290,7 @@ class InvalidStorageClass(S3ClientError):
             "InvalidStorageClass",
             "The storage class you specified is not valid",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -311,7 +311,7 @@ class DuplicateTagKeys(S3ClientError):
             "InvalidTag",
             "Cannot provide multiple Tags with the same key",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -341,7 +341,7 @@ class S3InvalidTokenError(S3ClientError):
             "InvalidToken",
             "The provided token is malformed or otherwise invalid.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -353,7 +353,7 @@ class BucketInvalidTokenError(BucketError):
             "InvalidToken",
             "The provided token is malformed or otherwise invalid.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -365,7 +365,7 @@ class S3InvalidAccessKeyIdError(S3ClientError):
             "InvalidAccessKeyId",
             "The AWS Access Key Id you provided does not exist in our records.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -377,7 +377,7 @@ class BucketInvalidAccessKeyIdError(S3ClientError):
             "InvalidAccessKeyId",
             "The AWS Access Key Id you provided does not exist in our records.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -389,7 +389,7 @@ class S3SignatureDoesNotMatchError(S3ClientError):
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -401,7 +401,7 @@ class BucketSignatureDoesNotMatchError(S3ClientError):
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -413,7 +413,7 @@ class NoSuchPublicAccessBlockConfiguration(S3ClientError):
             "NoSuchPublicAccessBlockConfiguration",
             "The public access block configuration was not found",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -425,7 +425,7 @@ class InvalidPublicAccessBlockConfiguration(S3ClientError):
             "InvalidRequest",
             "Must specify at least one configuration.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -458,7 +458,7 @@ class NoSuchUpload(S3ClientError):
             "NoSuchUpload",
             "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -472,7 +472,7 @@ class PreconditionFailed(S3ClientError):
             "PreconditionFailed",
             "At least one of the pre-conditions you specified did not hold",
             condition=failed_condition,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -487,7 +487,7 @@ class InvalidRange(S3ClientError):
             "The requested range is not satisfiable",
             range_requested=range_requested,
             actual_size=actual_size,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -499,7 +499,7 @@ class InvalidContinuationToken(S3ClientError):
             "InvalidArgument",
             "The continuation token provided is incorrect",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -556,5 +556,14 @@ class InvalidFilterRuleName(InvalidArgumentError):
             "FilterRule.Name",
             value,
             *args,
-            **kwargs
+            **kwargs,
+        )
+
+
+class InvalidTagError(S3ClientError):
+    code = 400
+
+    def __init__(self, value, *args, **kwargs):
+        super(InvalidTagError, self).__init__(
+            "InvalidTag", value, *args, **kwargs,
         )

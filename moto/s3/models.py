@@ -22,7 +22,7 @@ from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
-from .exceptions import (
+from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
@@ -41,6 +41,7 @@ from .exceptions import (
     InvalidPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
+    InvalidTagError,
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
@@ -1616,9 +1617,13 @@ class S3Backend(BaseBackend):
     def set_key_tags(self, key, tags, key_name=None):
         if key is None:
             raise MissingKey(key_name)
+        boto_tags_dict = self.tagger.convert_dict_to_tags_input(tags)
+        errmsg = self.tagger.validate_tags(boto_tags_dict)
+        if errmsg:
+            raise InvalidTagError(errmsg)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(
-            key.arn, [{"Key": k, "Value": v} for (k, v) in tags.items()],
+            key.arn, boto_tags_dict,
         )
         return key
 
