@@ -34,6 +34,7 @@ import sure  # noqa
 
 from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
+from moto.s3.exceptions import InvalidTagError
 from moto.core.exceptions import InvalidNextTokenException
 from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 from uuid import uuid4
@@ -3412,6 +3413,19 @@ def test_boto3_copy_object_with_replacement_tagging():
         Bucket="mybucket", Key="original", Body=b"test", Tagging="tag=old"
     )
 
+    # using system tags will fail
+    with pytest.raises(ClientError) as err:
+        client.copy_object(
+            CopySource={"Bucket": "mybucket", "Key": "original"},
+            Bucket="mybucket",
+            Key="copy1",
+            TaggingDirective="REPLACE",
+            Tagging="aws:tag=invalid_key",
+        )
+
+    e = err.value
+    e.response["Error"]["Code"].should.equal("InvalidTag")
+
     client.copy_object(
         CopySource={"Bucket": "mybucket", "Key": "original"},
         Bucket="mybucket",
@@ -3936,6 +3950,13 @@ def test_boto3_put_object_with_tagging():
     bucket_name = "mybucket"
     key = "key-with-tags"
     s3.create_bucket(Bucket=bucket_name)
+
+    # using system tags will fail
+    with pytest.raises(ClientError) as err:
+        s3.put_object(Bucket=bucket_name, Key=key, Body="test", Tagging="aws:foo=bar")
+
+    e = err.value
+    e.response["Error"]["Code"].should.equal("InvalidTag")
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test", Tagging="foo=bar")
 
@@ -4665,6 +4686,17 @@ def test_boto3_put_object_tagging():
     )
 
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    # using system tags will fail
+    with pytest.raises(ClientError) as err:
+        s3.put_object_tagging(
+            Bucket=bucket_name,
+            Key=key,
+            Tagging={"TagSet": [{"Key": "aws:item1", "Value": "foo"},]},
+        )
+
+    e = err.value
+    e.response["Error"]["Code"].should.equal("InvalidTag")
 
     resp = s3.put_object_tagging(
         Bucket=bucket_name,
