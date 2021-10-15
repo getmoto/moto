@@ -107,6 +107,19 @@ def test_eip_allocate_vpc():
 
 
 @mock_ec2
+def test_describe_addresses_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_addresses(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeAddresses operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
+@mock_ec2
 def test_eip_allocate_vpc_boto3():
     """Allocate/release VPC EIP"""
     client = boto3.client("ec2", region_name="us-east-1")

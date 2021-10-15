@@ -1026,3 +1026,16 @@ def test_disassociate_subnet_cidr_block():
     association_set = subnets[0]["Ipv6CidrBlockAssociationSet"]
     association_set.should.have.length_of(1)
     association_set[0]["Ipv6CidrBlock"].should.equal("1080::1:200C:417A/111")
+
+
+@mock_ec2
+def test_describe_subnets_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_subnets(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeSubnets operation: Request would have succeeded, but DryRun flag is set"
+    )

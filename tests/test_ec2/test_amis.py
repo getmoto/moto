@@ -1761,3 +1761,16 @@ def test_ami_filter_by_unknown_ownerid():
         Filters=[{"Name": "owner-alias", "Values": ["unknown",]},]
     )["Images"]
     images.should.have.length_of(0)
+
+
+@mock_ec2
+def test_describe_images_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_images(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeImages operation: Request would have succeeded, but DryRun flag is set"
+    )

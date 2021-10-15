@@ -39,6 +39,7 @@ class Subnets(BaseResponse):
         return template.render(subnet=subnet)
 
     def describe_subnets(self):
+        self.error_on_dryrun()
         subnet_ids = self._get_multi_param("SubnetId")
         filters = filters_from_querystring(self.querystring)
         subnets = self.ec2_backend.get_all_subnets(subnet_ids, filters)
