@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError
 import sure  # noqa
 import unittest
 
 import pytest
 
-from moto import mock_ec2_deprecated, mock_s3_deprecated
+from moto import mock_ec2_deprecated, mock_s3_deprecated, mock_s3
 
 """
 Test the different ways that the decorator can be used
@@ -95,3 +97,100 @@ class TesterWithStaticmethod(object):
 
     def test_no_instance_sent_to_staticmethod(self):
         self.static()
+
+
+@mock_s3
+class TestWithSetup(unittest.TestCase):
+    def setUp(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="mybucket")
+
+    def test_should_find_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        self.assertIsNotNone(s3.head_bucket(Bucket="mybucket"))
+
+    def test_should_not_find_unknown_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        with pytest.raises(ClientError):
+            s3.head_bucket(Bucket="unknown_bucket")
+
+
+@mock_s3
+class TestWithPublicMethod(unittest.TestCase):
+    def ensure_bucket_exists(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="mybucket")
+
+    def test_should_find_bucket(self):
+        self.ensure_bucket_exists()
+
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.head_bucket(Bucket="mybucket").shouldnt.equal(None)
+
+    def test_should_not_find_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        with pytest.raises(ClientError):
+            s3.head_bucket(Bucket="mybucket")
+
+
+@mock_s3
+class TestWithPseudoPrivateMethod(unittest.TestCase):
+    def _ensure_bucket_exists(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="mybucket")
+
+    def test_should_find_bucket(self):
+        self._ensure_bucket_exists()
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.head_bucket(Bucket="mybucket").shouldnt.equal(None)
+
+    def test_should_not_find_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        with pytest.raises(ClientError):
+            s3.head_bucket(Bucket="mybucket")
+
+
+@mock_s3
+class TestWithNestedClasses:
+    class NestedClass(unittest.TestCase):
+        def _ensure_bucket_exists(self):
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.create_bucket(Bucket="bucketclass1")
+
+        def test_should_find_bucket(self):
+            self._ensure_bucket_exists()
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.head_bucket(Bucket="bucketclass1")
+
+    class NestedClass2(unittest.TestCase):
+        def _ensure_bucket_exists(self):
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.create_bucket(Bucket="bucketclass2")
+
+        def test_should_find_bucket(self):
+            self._ensure_bucket_exists()
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.head_bucket(Bucket="bucketclass2")
+
+        def test_should_not_find_bucket_from_different_class(self):
+            s3 = boto3.client("s3", region_name="us-east-1")
+            with pytest.raises(ClientError):
+                s3.head_bucket(Bucket="bucketclass1")
+
+    class TestWithSetup(unittest.TestCase):
+        def setUp(self):
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.create_bucket(Bucket="mybucket")
+
+        def test_should_find_bucket(self):
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.head_bucket(Bucket="mybucket")
+
+            s3.create_bucket(Bucket="bucketinsidetest")
+
+        def test_should_not_find_bucket_from_test_method(self):
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.head_bucket(Bucket="mybucket")
+
+            with pytest.raises(ClientError):
+                s3.head_bucket(Bucket="bucketinsidetest")

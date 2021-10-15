@@ -1,6 +1,8 @@
-import unittest
-
 import boto3
+import pytest
+import sure  # noqa
+import unittest
+from botocore.exceptions import ClientError
 from moto import mock_s3
 
 
