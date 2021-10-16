@@ -1477,6 +1477,28 @@ class S3Backend(BaseBackend):
     def delete_bucket_encryption(self, bucket_name):
         self.get_bucket(bucket_name).encryption = None
 
+    def get_bucket_replication(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return getattr(bucket, "replication", None)
+
+    def put_bucket_replication(self, bucket_name, replication):
+        if isinstance(replication["Rule"], dict):
+            replication["Rule"] = [replication["Rule"]]
+        for rule in replication["Rule"]:
+            if "Priority" not in rule:
+                rule["Priority"] = 1
+            if "ID" not in rule:
+                rule["ID"] = "".join(
+                    random.choice(string.ascii_letters + string.digits)
+                    for _ in range(30)
+                )
+        bucket = self.get_bucket(bucket_name)
+        bucket.replication = replication
+
+    def delete_bucket_replication(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.replication = None
+
     def put_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
