@@ -1,6 +1,35 @@
 Moto Changelog
 ===================
 
+2.2.10
+------
+    New Services:
+        * CloudTrail:
+            * create_trail()
+            * delete_trail()
+            * describe_trails()
+            * get_trail()
+            * get_trail_status()
+            * list_trails()
+            * start_logging()
+            * stop_logging()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_reset_user_password()
+        * S3:
+            * delete_bucket_replication()
+            * get_bucket_replication()
+            * put_bucket_replication()
+
+    Miscellaneous:
+        * ACM: describe_certificate(): the InUseBy-attribute will now show the appropriate Elastic Load Balancers 
+        * AWSLambda: If you're running Linux, 'host.docker.internal' is now added as an extra host in the Docker container used to invoke the function.
+                     This makes it easier for Lambda-functions to communicate with other servers running on the host-system.
+        * CloudFormation: Now supports update/deletion of type AWS::SNS::Topic
+        * CognitoIdentityProvider: list_users() now has improved support for the Filter-parameter
+        * Kinesis: describe_stream() now supports the Filter-parameter
+        * S3: list_object_versions() now supports the Delimiter and KeyMarker-parameter
 
 2.2.9
 -----
@@ -8,7 +37,7 @@ Moto Changelog
         * Moto is now compatible with Sure 2.x
 
     New Methods:
-        * Kinesis
+        * Kinesis:
             * list_shards()
         * RDS:
             * create_db_cluster()
