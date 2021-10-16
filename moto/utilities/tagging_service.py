@@ -156,3 +156,8 @@ class TaggingService:
             if errors
             else ""
         )
+
+    @staticmethod
+    def convert_dict_to_tags_input(tags):
+        """ Given a dictionary, return generic boto params for tags """
+        return [{"Key": k, "Value": v} for (k, v) in tags.items()]

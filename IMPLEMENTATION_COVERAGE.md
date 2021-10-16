@@ -365,6 +365,30 @@
 - [X] validate_template
 </details>
 
+## cloudtrail
+<details>
+<summary>44% implemented</summary>
+
+- [ ] add_tags
+- [X] create_trail
+- [X] delete_trail
+- [X] describe_trails
+- [ ] get_event_selectors
+- [ ] get_insight_selectors
+- [X] get_trail
+- [X] get_trail_status
+- [ ] list_public_keys
+- [ ] list_tags
+- [X] list_trails
+- [ ] lookup_events
+- [ ] put_event_selectors
+- [ ] put_insight_selectors
+- [ ] remove_tags
+- [X] start_logging
+- [X] stop_logging
+- [ ] update_trail
+</details>
+
 ## cloudwatch
 <details>
 <summary>38% implemented</summary>
@@ -566,7 +590,7 @@
 
 ## cognito-idp
 <details>
-<summary>48% implemented</summary>
+<summary>49% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -586,7 +610,7 @@
 - [X] admin_list_groups_for_user
 - [ ] admin_list_user_auth_events
 - [X] admin_remove_user_from_group
-- [ ] admin_reset_user_password
+- [X] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
 - [ ] admin_set_user_mfa_preference
 - [X] admin_set_user_password
@@ -3473,11 +3497,11 @@
 
 ## route53
 <details>
-<summary>10% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
-- [ ] change_resource_record_sets
+- [X] change_resource_record_sets
 - [X] change_tags_for_resource
 - [X] create_health_check
 - [X] create_hosted_zone
@@ -3519,9 +3543,9 @@
 - [ ] get_traffic_policy_instance
 - [ ] get_traffic_policy_instance_count
 - [ ] list_geo_locations
-- [ ] list_health_checks
-- [ ] list_hosted_zones
-- [ ] list_hosted_zones_by_name
+- [X] list_health_checks
+- [X] list_hosted_zones
+- [X] list_hosted_zones_by_name
 - [ ] list_hosted_zones_by_vpc
 - [ ] list_query_logging_configs
 - [ ] list_resource_record_sets
@@ -3543,7 +3567,7 @@
 
 ## s3
 <details>
-<summary>56% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -3560,7 +3584,7 @@
 - [ ] delete_bucket_metrics_configuration
 - [ ] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
-- [ ] delete_bucket_replication
+- [X] delete_bucket_replication
 - [X] delete_bucket_tagging
 - [X] delete_bucket_website
 - [X] delete_object
@@ -3584,7 +3608,7 @@
 - [ ] get_bucket_ownership_controls
 - [X] get_bucket_policy
 - [ ] get_bucket_policy_status
-- [ ] get_bucket_replication
+- [X] get_bucket_replication
 - [ ] get_bucket_request_payment
 - [X] get_bucket_tagging
 - [X] get_bucket_versioning
@@ -3624,7 +3648,7 @@
 - [X] put_bucket_notification_configuration
 - [ ] put_bucket_ownership_controls
 - [X] put_bucket_policy
-- [ ] put_bucket_replication
+- [X] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
 - [ ] put_bucket_versioning
@@ -4444,7 +4468,6 @@
 - cloudhsmv2
 - cloudsearch
 - cloudsearchdomain
-- cloudtrail
 - codeartifact
 - codebuild
 - codedeploy

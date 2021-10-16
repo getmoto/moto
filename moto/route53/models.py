@@ -407,14 +407,76 @@ class Route53Backend(BaseBackend):
             return self.resource_tags[resource_id]
         return {}
 
-    def get_all_hosted_zones(self):
+    def change_resource_record_sets(self, the_zone, change_list):
+        for value in change_list:
+            action = value["Action"]
+            record_set = value["ResourceRecordSet"]
+
+            cleaned_record_name = record_set["Name"].strip(".")
+            cleaned_hosted_zone_name = the_zone.name.strip(".")
+
+            if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
+                error_msg = """
+                An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
+                RRSet with DNS name %s is not permitted in zone %s
+                """ % (
+                    record_set["Name"],
+                    the_zone.name,
+                )
+                return error_msg
+
+            if not record_set["Name"].endswith("."):
+                record_set["Name"] += "."
+
+            if action in ("CREATE", "UPSERT"):
+                if "ResourceRecords" in record_set:
+                    resource_records = list(record_set["ResourceRecords"].values())[0]
+                    if not isinstance(resource_records, list):
+                        # Depending on how many records there are, this may
+                        # or may not be a list
+                        resource_records = [resource_records]
+                    record_set["ResourceRecords"] = [
+                        x["Value"] for x in resource_records
+                    ]
+                if action == "CREATE":
+                    the_zone.add_rrset(record_set)
+                else:
+                    the_zone.upsert_rrset(record_set)
+            elif action == "DELETE":
+                if "SetIdentifier" in record_set:
+                    the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
+                else:
+                    the_zone.delete_rrset(record_set)
+        return None
+
+    def list_hosted_zones(self):
         return self.zones.values()
+
+    def list_hosted_zones_by_name(self, dnsname):
+        if dnsname:
+            dnsname = dnsname[0]
+            if dnsname[-1] != ".":
+                dnsname += "."
+            zones = [zone for zone in self.list_hosted_zones() if zone.name == dnsname]
+        else:
+            # sort by names, but with domain components reversed
+            # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
+
+            def sort_key(zone):
+                domains = zone.name.split(".")
+                if domains[-1] == "":
+                    domains = domains[-1:] + domains[:-1]
+                return ".".join(reversed(domains))
+
+            zones = self.list_hosted_zones()
+            zones = sorted(zones, key=sort_key)
+        return dnsname, zones
 
     def get_hosted_zone(self, id_):
         return self.zones.get(id_.replace("/hostedzone/", ""))
 
     def get_hosted_zone_by_name(self, name):
-        for zone in self.get_all_hosted_zones():
+        for zone in self.list_hosted_zones():
             if zone.name == name:
                 return zone
 
@@ -427,7 +489,7 @@ class Route53Backend(BaseBackend):
         self.health_checks[health_check_id] = health_check
         return health_check
 
-    def get_health_checks(self):
+    def list_health_checks(self):
         return self.health_checks.values()
 
     def delete_health_check(self, health_check_id):

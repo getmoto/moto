@@ -1,6 +1,8 @@
 import boto3
+import pytest
 import sure  # noqa
 
+from botocore.exceptions import ClientError
 from moto import mock_autoscaling, mock_ec2, mock_elb
 
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
@@ -121,3 +123,16 @@ def test_create_autoscaling_group_boto3():
         group["LoadBalancerNames"].should.equal([lb_name])
         group["PlacementGroup"].should.equal("us_test_placement")
         group["TerminationPolicies"].should.equal(["OldestInstance", "NewestInstance"])
+
+
+@mock_ec2
+def test_describe_regions_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_regions(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeRegions operation: Request would have succeeded, but DryRun flag is set"
+    )

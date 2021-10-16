@@ -33,8 +33,8 @@ mock_lambda = lazy_load(
     ".awslambda", "mock_lambda", boto3_name="lambda", backend="lambda_backends"
 )
 mock_batch = lazy_load(".batch", "mock_batch")
-mock_batch = lazy_load(".batch", "mock_batch")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
+mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_codecommit = lazy_load(".codecommit", "mock_codecommit")
 mock_codepipeline = lazy_load(".codepipeline", "mock_codepipeline")
@@ -124,7 +124,7 @@ mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.10.dev"
+__version__ = "2.2.11.dev"
 
 
 try:

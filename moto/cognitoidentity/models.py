@@ -2,19 +2,24 @@ from __future__ import unicode_literals
 
 import datetime
 import json
+import re
 
 from boto3 import Session
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from .exceptions import ResourceNotFoundError
+from .exceptions import InvalidNameException, ResourceNotFoundError
 from .utils import get_random_identity_id
 
 
 class CognitoIdentity(BaseModel):
     def __init__(self, region, identity_pool_name, **kwargs):
         self.identity_pool_name = identity_pool_name
+
+        if not re.fullmatch(r"[\w\s+=,.@-]+", identity_pool_name):
+            raise InvalidNameException(identity_pool_name)
+
         self.allow_unauthenticated_identities = kwargs.get(
             "allow_unauthenticated_identities", ""
         )

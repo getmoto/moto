@@ -1209,17 +1209,67 @@ def test_list_users():
         UserAttributes=[{"Name": "phone_number", "Value": "+33666666666"}],
     )
     result = conn.list_users(
-        UserPoolId=user_pool_id, Filter='phone_number="+33666666666'
+        UserPoolId=user_pool_id, Filter='phone_number="+33666666666"'
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
     # checking Filter with space
     result = conn.list_users(
-        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666'
+        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666"'
     )
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
+
+    user0_username = "user0@example.com"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=user0_username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+48555555555"}],
+    )
+
+    # checking Filter with prefix operator
+    result = conn.list_users(UserPoolId=user_pool_id, Filter='phone_number ^= "+48"')
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(user0_username)
+
+    # empty value Filter should also be supported
+    result = conn.list_users(UserPoolId=user_pool_id, Filter='family_name=""')
+    result["Users"].should.have.length_of(0)
+
+
+@mock_cognitoidp
+def test_list_users_incorrect_filter():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter="username = foo")
+    _assert_filter_parsing_error(exc)
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter="username=")
+    _assert_filter_parsing_error(exc)
+
+
+def _assert_filter_parsing_error(exc):
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("InvalidParameterException")
+    assert err["Message"].should.equal("Error while parsing filter")
+
+
+@mock_cognitoidp
+def test_list_users_invalid_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    with pytest.raises(conn.exceptions.InvalidParameterException) as exc:
+        conn.list_users(UserPoolId=user_pool_id, Filter='custom:foo = "bar"')
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("InvalidParameterException")
+    assert err["Message"].should.equal("Invalid search attribute: custom:foo")
 
 
 @mock_cognitoidp
@@ -2201,6 +2251,156 @@ def test_confirm_forgot_password_with_non_existent_client_id_raises_error():
             Password=str(uuid.uuid4()),
         )
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_cognitoidp
+def test_admin_reset_password_and_change_password():
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    temporary_pass = str(uuid.uuid4())
+    # Create pool and client
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    # Create CONFIRMED user with verified email
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=temporary_pass
+    )
+    client.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
+    )
+    client.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "email_verified", "Value": "true"}],
+    )
+
+    # User should be in RESET_REQUIRED state after reset
+    client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
+    result = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserStatus"].should.equal("RESET_REQUIRED")
+
+    # Return to CONFIRMED status after NEW_PASSWORD_REQUIRED auth challenge
+    auth_result = client.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_pass},
+    )
+    password = "Admin123!"
+    auth_result = client.respond_to_auth_challenge(
+        Session=auth_result["Session"],
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": password},
+    )
+    result = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserStatus"].should.equal("CONFIRMED")
+
+    # Return to CONFIRMED after user-initated password change
+    client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
+    client.change_password(
+        AccessToken=auth_result["AuthenticationResult"]["AccessToken"],
+        PreviousPassword=password,
+        ProposedPassword="Admin1234!",
+    )
+    result = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserStatus"].should.equal("CONFIRMED")
+
+
+@mock_cognitoidp
+def test_admin_reset_password_disabled_user():
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    # Create pool
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    # Create disabled user
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
+    )
+    client.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+
+    with pytest.raises(ClientError) as ex:
+        client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("User is disabled")
+
+
+@mock_cognitoidp
+def test_admin_reset_password_unconfirmed_user():
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    # Create pool
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    # Create user in status FORCE_CHANGE_PASSWORD
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("User password cannot be reset in the current state.")
+
+
+@mock_cognitoidp
+def test_admin_reset_password_no_verified_notification_channel():
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    # Create pool and client
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    # Create CONFIRMED user without verified email or phone
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
+    )
+    client.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "Cannot reset password for the user as there is no registered/verified email or phone_number"
+    )
+
+
+@mock_cognitoidp
+def test_admin_reset_password_multiple_invocations():
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    # Create pool and client
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    # Create CONFIRMED user with verified email
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
+    )
+    client.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
+    )
+    client.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "email_verified", "Value": "true"}],
+    )
+
+    for _ in range(3):
+        try:
+            client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
+            user = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
+            user["UserStatus"].should.equal("RESET_REQUIRED")
+        except ClientError:
+            pytest.fail("Shouldn't throw error on consecutive invocations")
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,

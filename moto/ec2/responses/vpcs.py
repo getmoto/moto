@@ -40,6 +40,7 @@ class VPCs(BaseResponse):
         return template.render(vpc=vpc)
 
     def describe_vpcs(self):
+        self.error_on_dryrun()
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
