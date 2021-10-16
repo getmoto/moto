@@ -590,7 +590,7 @@
 
 ## cognito-idp
 <details>
-<summary>48% implemented</summary>
+<summary>49% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -610,7 +610,7 @@
 - [X] admin_list_groups_for_user
 - [ ] admin_list_user_auth_events
 - [X] admin_remove_user_from_group
-- [ ] admin_reset_user_password
+- [X] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
 - [ ] admin_set_user_mfa_preference
 - [X] admin_set_user_password
@@ -3567,7 +3567,7 @@
 
 ## s3
 <details>
-<summary>56% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -3584,7 +3584,7 @@
 - [ ] delete_bucket_metrics_configuration
 - [ ] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
-- [ ] delete_bucket_replication
+- [X] delete_bucket_replication
 - [X] delete_bucket_tagging
 - [X] delete_bucket_website
 - [X] delete_object
@@ -3608,7 +3608,7 @@
 - [ ] get_bucket_ownership_controls
 - [X] get_bucket_policy
 - [ ] get_bucket_policy_status
-- [ ] get_bucket_replication
+- [X] get_bucket_replication
 - [ ] get_bucket_request_payment
 - [X] get_bucket_tagging
 - [X] get_bucket_versioning
@@ -3648,7 +3648,7 @@
 - [X] put_bucket_notification_configuration
 - [ ] put_bucket_ownership_controls
 - [X] put_bucket_policy
-- [ ] put_bucket_replication
+- [X] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
 - [ ] put_bucket_versioning
