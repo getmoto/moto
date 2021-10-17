@@ -1183,14 +1183,38 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = (
 """
 )
 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_GetTemplateSummary.html
+# TODO:implement fields: ResourceIdentifierSummaries, Capabilities, CapabilitiesReason
 GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <GetTemplateSummaryResult>
     <Description>{{ template_summary.Description }}</Description>
     {% for resource in template_summary.resourceTypes %}
       <ResourceTypes>
-        <ResourceType>{{ resource }}</ResourceType>
+        <member>{{ resource }}</member>
       </ResourceTypes>
     {% endfor %}
+    <Parameters>
+        {% for k,p in template_summary.get('Parameters',{}).items() %}
+        <member>
+            <ParameterKey>{{ k }}</ParameterKey> ,
+            <Description>{{ p.get('Description', '') }}</Description>,
+            {% if p.Default %}
+            <DefaultValue>{{ p.Default }}</DefaultValue>
+            {% endif %}
+            <NoEcho>{{ p.get('NoEcho', False) }}</NoEcho>
+            <ParameterType>{{ p.get('Type', 'String') }}</ParameterType>
+            <ParameterConstraints>
+              {% if p.AllowedValues %}
+              <AllowedValues>
+                {% for v in p.AllowedValues %}
+                <member>{{ v }}</member>
+                {% endfor %}
+              </AllowedValues>
+              {% endif %}
+            </ParameterConstraints>
+        </member>
+        {% endfor %}
+    </Parameters>
     <Version>{{ template_summary.AWSTemplateFormatVersion }}</Version>
   </GetTemplateSummaryResult>
   <ResponseMetadata>
