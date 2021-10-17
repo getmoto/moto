@@ -1394,7 +1394,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         lock_mode = request.headers.get("x-amz-object-lock-mode", None)
         lock_until = request.headers.get("x-amz-object-lock-retain-until-date", None)
-        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
+        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", None)
 
         if lock_mode or lock_until or legal_hold == "ON":
             if not request.headers.get("Content-Md5"):
@@ -1747,8 +1747,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _mode_until_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
         return (
-            parsed_xml["Retention"]["Mode"],
-            parsed_xml["Retention"]["RetainUntilDate"],
+            parsed_xml.get("Retention", None).get("Mode", None),
+            parsed_xml.get("Retention", None).get("RetainUntilDate", None),
         )
 
     def _legal_hold_status_from_xml(self, xml):

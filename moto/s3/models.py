@@ -109,7 +109,7 @@ class FakeKey(BaseModel):
         kms_key_id=None,
         bucket_key_enabled=None,
         lock_mode=None,
-        lock_legal_status="OFF",
+        lock_legal_status=None,
         lock_until=None,
     ):
         self.name = name
@@ -270,6 +270,12 @@ class FakeKey(BaseModel):
 
         if self.website_redirect_location:
             res["x-amz-website-redirect-location"] = self.website_redirect_location
+        if self.lock_legal_status:
+            res["x-amz-object-lock-legal-hold"] = self.lock_legal_status
+        if self.lock_until:
+            res["x-amz-object-lock-retain-until-date"] = self.lock_until
+        if self.lock_mode:
+            res["x-amz-object-lock-mode"] = self.lock_mode
 
         return res
 
@@ -1552,7 +1558,7 @@ class S3Backend(BaseBackend):
         kms_key_id=None,
         bucket_key_enabled=None,
         lock_mode=None,
-        lock_legal_status="OFF",
+        lock_legal_status=None,
         lock_until=None,
     ):
         key_name = clean_key_name(key_name)
