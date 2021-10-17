@@ -195,3 +195,136 @@ def test_batch_write_item_non_existing_table():
     err = exc.value.response["Error"]
     assert err["Code"].should.equal("ResourceNotFoundException")
     assert err["Message"].should.equal("Requested resource not found")
+
+
+@mock_dynamodb2
+def test_create_table_with_redundant_attributes():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+                {"AttributeName": "created_at", "AttributeType": "N"},
+            ],
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Number of attributes in KeySchema does not exactly match number of attributes defined in AttributeDefinitions"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+                {"AttributeName": "user", "AttributeType": "S"},
+                {"AttributeName": "created_at", "AttributeType": "N"},
+            ],
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "gsi_user-items",
+                    "KeySchema": [{"AttributeName": "user", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Some AttributeDefinitions are not used. AttributeDefinitions: [created_at, id, user], keys used: [id, user]"
+    )
+
+
+@mock_dynamodb2
+def test_create_table_with_missing_attributes():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"},],
+            KeySchema=[
+                {"AttributeName": "id", "KeyType": "HASH"},
+                {"AttributeName": "created_at", "KeyType": "RANGE"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Invalid KeySchema: Some index key attribute have no definition"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"},],
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "gsi_user-items",
+                    "KeySchema": [{"AttributeName": "user", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [user], AttributeDefinitions: [id]"
+    )
+
+
+@mock_dynamodb2
+def test_create_table_with_redundant_and_missing_attributes():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            AttributeDefinitions=[
+                {"AttributeName": "created_at", "AttributeType": "N"}
+            ],
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [id], AttributeDefinitions: [created_at]"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+                {"AttributeName": "created_at", "AttributeType": "N"},
+            ],
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "gsi_user-items",
+                    "KeySchema": [{"AttributeName": "user", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [user], AttributeDefinitions: [created_at, id]"
+    )
