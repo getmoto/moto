@@ -938,7 +938,7 @@ def test_create_invalid_cluster_subnet_group_boto3():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidSubnet")
-    err["Message"].should.match("Subnet \[[a-z0-9-']+\] not found.")
+    err["Message"].should.match(r"Subnet \[[a-z0-9-']+\] not found.")
 
 
 # Has boto3 equivalent
