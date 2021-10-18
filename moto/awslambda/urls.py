@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from .responses import LambdaResponse
 
-url_bases = [r"https?://lambda\.(.+)\.amazonaws\.com(|.cn)"]
+url_bases = [r"https?://lambda\.(.+)\.amazonaws\.com"]
 
 response = LambdaResponse()
 

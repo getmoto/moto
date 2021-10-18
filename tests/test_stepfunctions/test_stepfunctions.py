@@ -924,6 +924,14 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
     execution_history["events"].should.equal(expected_events)
 
 
+@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
+@mock_stepfunctions
+def test_stepfunction_regions(region):
+    client = boto3.client("stepfunctions", region_name=region)
+    resp = client.list_state_machines()
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
 @mock_stepfunctions
 @mock_sts
 @mock.patch.dict(os.environ, {"SF_EXECUTION_HISTORY_TYPE": "FAILURE"})
