@@ -4,6 +4,7 @@ from boto3 import Session
 
 from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
+from moto.core.models import CloudFormationModel
 from moto.core.utils import unix_time_millis
 from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters
@@ -540,6 +541,72 @@ class LogGroup(BaseModel):
         self.subscription_filters = []
 
 
+class LogResourcePolicy(CloudFormationModel):
+    def __init__(self, policy_name, policy_document):
+        self.policy_name = policy_name
+        self.policy_document = policy_document
+        self.last_updated_time = int(unix_time_millis())
+
+    def update(self, policy_document):
+        self.policy_document = policy_document
+        self.last_updated_time = int(unix_time_millis())
+
+    def describe(self):
+        return {
+            "policyName": self.policy_name,
+            "policyDocument": self.policy_document,
+            "lastUpdatedTime": self.last_updated_time,
+        }
+
+    @property
+    def physical_resource_id(self):
+        return self.policy_name
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "PolicyName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-resourcepolicy.html
+        return "AWS::Logs::ResourcePolicy"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        policy_name = properties["PolicyName"]
+        policy_document = properties["PolicyDocument"]
+        return logs_backends[region_name].put_resource_policy(
+            policy_name, policy_document
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        policy_name = properties["PolicyName"]
+        policy_document = properties["PolicyDocument"]
+
+        updated = logs_backends[region_name].put_resource_policy(
+            policy_name, policy_document
+        )
+        # TODO: move `update by replacement logic` to cloudformation. this is required for implementing rollbacks
+        if original_resource.policy_name != policy_name:
+            logs_backends[region_name].delete_resource_policy(
+                original_resource.policy_name
+            )
+        return updated
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        return logs_backends[region_name].delete_resource_policy(resource_name)
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
@@ -741,29 +808,19 @@ class LogsBackend(BaseBackend):
         """
         limit = limit or MAX_RESOURCE_POLICIES_PER_REGION
 
-        policies = []
-        for policy_name, policy_info in self.resource_policies.items():
-            policies.append(
-                {
-                    "policyName": policy_name,
-                    "policyDocument": policy_info["policyDocument"],
-                    "lastUpdatedTime": policy_info["lastUpdatedTime"],
-                }
-            )
-        return policies
+        return list(self.resource_policies.values())
 
     def put_resource_policy(self, policy_name, policy_doc):
-        """Create resource policy and return dict of policy name and doc."""
+        """Creates/updates resource policy and return policy object"""
+        if policy_name in self.resource_policies:
+            policy = self.resource_policies[policy_name]
+            policy.update(policy_doc)
+            return policy
         if len(self.resource_policies) == MAX_RESOURCE_POLICIES_PER_REGION:
             raise LimitExceededException()
-
-        policy = {
-            "policyName": policy_name,
-            "policyDocument": policy_doc,
-            "lastUpdatedTime": int(unix_time_millis()),
-        }
+        policy = LogResourcePolicy(policy_name, policy_doc)
         self.resource_policies[policy_name] = policy
-        return {"resourcePolicy": policy}
+        return policy
 
     def delete_resource_policy(self, policy_name):
         """Remove resource policy with a policy name matching given name."""

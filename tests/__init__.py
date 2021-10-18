@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import logging
 
+from . import helpers  # noqa
+
 # Disable extra logging for tests
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
