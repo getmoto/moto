@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import boto
 from unittest import SkipTest
-from collections import Iterable
+from collections.abc import Iterable
 from sure import assertion
 
 
