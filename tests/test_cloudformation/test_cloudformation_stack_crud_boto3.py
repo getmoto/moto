@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -8,6 +6,7 @@ import pytz
 
 import boto3
 from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 
 import pytest
 from unittest import SkipTest
@@ -1765,7 +1764,6 @@ def test_cloudformation_params_conditions_and_resources_are_distinct():
         TemplateBody=template_with_conditions,
         Parameters=[{"ParameterKey": "FooEnabled", "ParameterValue": "true"}],
     )
-    stack = cf.describe_stacks(StackName="test_stack1")["Stacks"][0]
     resources = cf.list_stack_resources(StackName="test_stack1")[
         "StackResourceSummaries"
     ]

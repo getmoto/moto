@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import json
 from datetime import datetime
 from dateutil.tz import tzutc
@@ -9,8 +6,8 @@ import os
 
 import boto3
 import botocore.exceptions
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
-import sure  # noqa
 from freezegun import freeze_time
 import pytest
 
@@ -849,7 +846,7 @@ def test_put_key_policy(id_or_arn):
     key = client.create_key(Description="key1", Policy="initial policy")
     key_id = key["KeyMetadata"][id_or_arn]
 
-    r = client.put_key_policy(KeyId=key_id, PolicyName="default", Policy="policy 2.0")
+    client.put_key_policy(KeyId=key_id, PolicyName="default", Policy="policy 2.0")
 
     response = client.get_key_policy(KeyId=key_id, PolicyName="default")
     response["Policy"].should.equal("policy 2.0")

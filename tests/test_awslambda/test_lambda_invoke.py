@@ -4,7 +4,7 @@ import boto3
 import io
 import json
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import zipfile
 
 from moto import (

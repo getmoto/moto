@@ -1,9 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import json
-import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_xray
 

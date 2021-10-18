@@ -1,6 +1,6 @@
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from decimal import Decimal
 from moto import mock_dynamodb2

@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 import pytest
 
 import boto
 import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from tests import EXAMPLE_AMI_ID
@@ -274,8 +272,8 @@ def test_route_tables_filters_associations():
     route_table2 = conn.create_route_table(vpc.id)
 
     association_id1 = conn.associate_route_table(route_table1.id, subnet1.id)
-    association_id2 = conn.associate_route_table(route_table1.id, subnet2.id)
-    association_id3 = conn.associate_route_table(route_table2.id, subnet3.id)
+    conn.associate_route_table(route_table1.id, subnet2.id)
+    conn.associate_route_table(route_table2.id, subnet3.id)
 
     all_route_tables = conn.get_all_route_tables()
     all_route_tables.should.have.length_of(4)
@@ -708,7 +706,7 @@ def test_routes_additional():
     conn = boto.connect_vpc("the_key", "the_secret")
     vpc = conn.create_vpc("10.0.0.0/16")
     main_route_table = conn.get_all_route_tables(filters={"vpc-id": vpc.id})[0]
-    local_route = main_route_table.routes[0]
+
     igw = conn.create_internet_gateway()
     ROUTE_CIDR = "10.0.0.4/24"
 
@@ -814,7 +812,7 @@ def test_routes_replace():
     main_route_table = conn.get_all_route_tables(
         filters={"association.main": "true", "vpc-id": vpc.id}
     )[0]
-    local_route = main_route_table.routes[0]
+
     ROUTE_CIDR = "10.0.0.4/24"
 
     # Various route targets
@@ -936,10 +934,10 @@ def test_routes_replace_boto3():
 @mock_ec2_deprecated
 def test_routes_not_supported():
     conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
+    conn.create_vpc("10.0.0.0/16")
     main_route_table = conn.get_all_route_tables()[0]
-    local_route = main_route_table.routes[0]
-    igw = conn.create_internet_gateway()
+
+    conn.create_internet_gateway()
     ROUTE_CIDR = "10.0.0.4/24"
 
     # Create
@@ -1005,7 +1003,7 @@ def test_routes_vpc_peering_connection():
     main_route_table = conn.get_all_route_tables(
         filters={"association.main": "true", "vpc-id": vpc.id}
     )[0]
-    local_route = main_route_table.routes[0]
+
     ROUTE_CIDR = "10.0.0.4/24"
 
     peer_vpc = conn.create_vpc("11.0.0.0/16")
@@ -1391,7 +1389,7 @@ def test_create_route_with_unknown_egress_only_igw():
     ec2_client = boto3.client("ec2", region_name="eu-central-1")
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
+    ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
     )
 

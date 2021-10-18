@@ -2,7 +2,7 @@ import boto3
 
 from moto import mock_kinesis
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_kinesis

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import io
 import zipfile
@@ -20,7 +19,7 @@ import boto.sns
 import boto.sqs
 import boto.vpc
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 from copy import deepcopy
 from string import Template
@@ -41,7 +40,6 @@ from moto import (
     mock_lambda,
     mock_logs,
     mock_rds_deprecated,
-    mock_rds2,
     mock_redshift_deprecated,
     mock_route53_deprecated,
     mock_s3,
@@ -2848,6 +2846,15 @@ def test_create_log_group_using_fntransform():
             }
         },
     }
+
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+    cf_conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(template),
+    )
+
+    logs_conn = boto3.client("logs", region_name="us-west-2")
+    log_group = logs_conn.describe_log_groups()["logGroups"][0]
+    log_group["logGroupName"].should.equal("some-log-group")
 
 
 @mock_cloudformation

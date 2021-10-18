@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.utilities.utils import merge_multiple_dicts

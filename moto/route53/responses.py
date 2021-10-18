@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from jinja2 import Template
 from urllib.parse import parse_qs, urlparse
 

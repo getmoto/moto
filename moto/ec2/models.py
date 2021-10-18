@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import copy
 from datetime import datetime
 import itertools

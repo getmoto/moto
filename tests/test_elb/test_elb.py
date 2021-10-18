@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import boto3
 import botocore
 import boto
@@ -12,10 +11,9 @@ from boto.ec2.elb.attributes import (
 from botocore.exceptions import ClientError
 from boto.exception import BotoServerError
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_acm, mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
-from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 

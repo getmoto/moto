@@ -4,8 +4,8 @@ from boto.swf.exceptions import SWFResponseError
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from moto import mock_swf_deprecated, mock_swf
 from moto.core.utils import unix_time

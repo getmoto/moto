@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import copy
 
 from .fixtures.datacatalog import TABLE_INPUT, PARTITION_INPUT, DATABASE_INPUT
@@ -24,11 +22,11 @@ def get_database(client, database_name):
     return client.get_database(Name=database_name)
 
 
-def create_table_input(database_name, table_name, columns=[], partition_keys=[]):
+def create_table_input(database_name, table_name, columns=None, partition_keys=None):
     table_input = copy.deepcopy(TABLE_INPUT)
     table_input["Name"] = table_name
-    table_input["PartitionKeys"] = partition_keys
-    table_input["StorageDescriptor"]["Columns"] = columns
+    table_input["PartitionKeys"] = partition_keys or []
+    table_input["StorageDescriptor"]["Columns"] = columns or []
     table_input["StorageDescriptor"][
         "Location"
     ] = "s3://my-bucket/{database_name}/{table_name}".format(
@@ -69,14 +67,14 @@ def get_table_version(client, database_name, table_name, version_id):
     )
 
 
-def create_partition_input(database_name, table_name, values=[], columns=[]):
+def create_partition_input(database_name, table_name, values=None, columns=None):
     root_path = "s3://my-bucket/{database_name}/{table_name}".format(
         database_name=database_name, table_name=table_name
     )
 
     part_input = copy.deepcopy(PARTITION_INPUT)
-    part_input["Values"] = values
-    part_input["StorageDescriptor"]["Columns"] = columns
+    part_input["Values"] = values or []
+    part_input["StorageDescriptor"]["Columns"] = columns or []
     part_input["StorageDescriptor"]["SerdeInfo"]["Parameters"]["path"] = root_path
     return part_input
 
@@ -90,7 +88,7 @@ def create_partition(client, database_name, table_name, partiton_input=None, **k
 
 
 def update_partition(
-    client, database_name, table_name, old_values=[], partiton_input=None, **kwargs
+    client, database_name, table_name, old_values=None, partiton_input=None, **kwargs
 ):
     if partiton_input is None:
         partiton_input = create_partition_input(database_name, table_name, **kwargs)
@@ -98,7 +96,7 @@ def update_partition(
         DatabaseName=database_name,
         TableName=table_name,
         PartitionInput=partiton_input,
-        PartitionValueList=old_values,
+        PartitionValueList=old_values or [],
     )
 
 

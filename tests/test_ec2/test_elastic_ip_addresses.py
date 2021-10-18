@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import pytest
 
 import boto
@@ -8,7 +6,7 @@ from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 from uuid import uuid4
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated
 from tests import EXAMPLE_AMI_ID
@@ -156,7 +154,6 @@ def test_eip_allocate_vpc_boto3():
 @mock_ec2
 def test_specific_eip_allocate_vpc():
     """Allocate VPC EIP with specific address"""
-    service = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
     vpc = client.allocate_address(Domain="vpc", Address="127.38.43.222")
@@ -653,7 +650,7 @@ def test_eip_associate_invalid_args():
     reservation = conn.run_instances(EXAMPLE_AMI_ID)
     instance = reservation.instances[0]
 
-    eip = conn.allocate_address()
+    conn.allocate_address()
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.associate_address(instance_id=instance.id)
@@ -1010,7 +1007,7 @@ def test_eip_tags():
     # Allocate one address and add tags
     alloc_tags = client.allocate_address(Domain="vpc")
     managed_by = str(uuid4())
-    with_tags = client.create_tags(
+    client.create_tags(
         Resources=[alloc_tags["AllocationId"]],
         Tags=[{"Key": "ManagedBy", "Value": managed_by}],
     )

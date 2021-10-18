@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
 from unittest import SkipTest
@@ -190,7 +190,7 @@ def create_peering_attachment(ec2, gateway_id1, gateway_id2):
     )["TransitGatewayPeeringAttachment"]["TransitGatewayAttachmentId"]
 
 
-def retrieve_all_attachments(client, filters=[]):
+def retrieve_all_attachments(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_transit_gateway_peering_attachments(Filters=filters)
     attmnts = resp["TransitGatewayPeeringAttachments"]
     token = resp.get("NextToken")

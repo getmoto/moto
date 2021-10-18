@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import time
 import datetime
 
@@ -14,7 +12,7 @@ from boto.redshift.exceptions import (
 )
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 from moto import mock_ec2_deprecated

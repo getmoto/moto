@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 import boto3
 import json
@@ -15,9 +13,9 @@ import uuid
 
 
 # noinspection PyUnresolvedReferences
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
-from jose import jws, jwk, jwt
+from jose import jws, jwt
 from unittest import SkipTest
 import pytest
 
@@ -158,7 +156,7 @@ def test_list_user_pools_returns_max_items():
 
     # Given 10 user pools
     pool_count = 10
-    for i in range(pool_count):
+    for _ in range(pool_count):
         conn.create_user_pool(PoolName=str(uuid.uuid4()))
 
     max_results = 5
@@ -173,7 +171,7 @@ def test_list_user_pools_returns_next_tokens():
 
     # Given 10 user pool clients
     pool_count = 10
-    for i in range(pool_count):
+    for _ in range(pool_count):
         conn.create_user_pool(PoolName=str(uuid.uuid4()))
 
     max_results = 5
@@ -193,7 +191,7 @@ def test_list_user_pools_when_max_items_more_than_total_items():
 
     # Given 10 user pool clients
     pool_count = 10
-    for i in range(pool_count):
+    for _ in range(pool_count):
         conn.create_user_pool(PoolName=str(uuid.uuid4()))
 
     max_results = pool_count + 5
@@ -364,7 +362,7 @@ def test_list_user_pool_clients_returns_max_items():
 
     # Given 10 user pool clients
     client_count = 10
-    for i in range(client_count):
+    for _ in range(client_count):
         client_name = str(uuid.uuid4())
         conn.create_user_pool_client(UserPoolId=user_pool_id, ClientName=client_name)
     max_results = 5
@@ -382,7 +380,7 @@ def test_list_user_pool_clients_returns_next_tokens():
 
     # Given 10 user pool clients
     client_count = 10
-    for i in range(client_count):
+    for _ in range(client_count):
         client_name = str(uuid.uuid4())
         conn.create_user_pool_client(UserPoolId=user_pool_id, ClientName=client_name)
     max_results = 5
@@ -407,7 +405,7 @@ def test_list_user_pool_clients_when_max_items_more_than_total_items():
 
     # Given 10 user pool clients
     client_count = 10
-    for i in range(client_count):
+    for _ in range(client_count):
         client_name = str(uuid.uuid4())
         conn.create_user_pool_client(UserPoolId=user_pool_id, ClientName=client_name)
     max_results = client_count + 5
@@ -568,7 +566,7 @@ def test_list_identity_providers_returns_max_items():
 
     # Given 10 identity providers linked to a user pool
     identity_provider_count = 10
-    for i in range(identity_provider_count):
+    for _ in range(identity_provider_count):
         provider_name = str(uuid.uuid4())
         provider_type = "Facebook"
         conn.create_identity_provider(
@@ -593,7 +591,7 @@ def test_list_identity_providers_returns_next_tokens():
 
     # Given 10 identity providers linked to a user pool
     identity_provider_count = 10
-    for i in range(identity_provider_count):
+    for _ in range(identity_provider_count):
         provider_name = str(uuid.uuid4())
         provider_type = "Facebook"
         conn.create_identity_provider(
@@ -625,7 +623,7 @@ def test_list_identity_providers_when_max_items_more_than_total_items():
 
     # Given 10 identity providers linked to a user pool
     identity_provider_count = 10
-    for i in range(identity_provider_count):
+    for _ in range(identity_provider_count):
         provider_name = str(uuid.uuid4())
         provider_type = "Facebook"
         conn.create_identity_provider(
@@ -716,9 +714,6 @@ def test_update_identity_provider_no_user_pool():
 def test_update_identity_provider_no_identity_provider():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    provider_name = str(uuid.uuid4())
-    provider_type = "Facebook"
-    value = str(uuid.uuid4())
     new_value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
@@ -1301,9 +1296,9 @@ def test_list_users_inherent_attributes():
         ("cognito:user_status", "CONFIRMED", "UserStatus", "CONFIRMED"),
     ]
 
-    for filter, filter_value, response_field, response_field_expected_value in filters:
+    for name, filter_value, response_field, response_field_expected_value in filters:
         result = conn.list_users(
-            UserPoolId=user_pool_id, Filter='{}="{}"'.format(filter, filter_value)
+            UserPoolId=user_pool_id, Filter='{}="{}"'.format(name, filter_value)
         )
         result["Users"].should.have.length_of(1)
         result["Users"][0][response_field].should.equal(response_field_expected_value)
@@ -1334,7 +1329,7 @@ def test_list_users_returns_limit_items():
 
     # Given 10 users
     user_count = 10
-    for i in range(user_count):
+    for _ in range(user_count):
         conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
     max_results = 5
     result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
@@ -1349,7 +1344,7 @@ def test_list_users_returns_pagination_tokens():
 
     # Given 10 users
     user_count = 10
-    for i in range(user_count):
+    for _ in range(user_count):
         conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
 
     max_results = 5
@@ -1372,7 +1367,7 @@ def test_list_users_when_limit_more_than_total_items():
 
     # Given 10 users
     user_count = 10
-    for i in range(user_count):
+    for _ in range(user_count):
         conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
 
     max_results = user_count + 5
@@ -1836,7 +1831,6 @@ def test_resource_server():
 
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
-    value = str(uuid.uuid4())
     res = client.create_user_pool(PoolName=name)
 
     user_pool_id = res["UserPool"]["Id"]
@@ -2061,7 +2055,7 @@ def test_initiate_auth_for_unconfirmed_user():
 
     caught = False
     try:
-        result = conn.initiate_auth(
+        conn.initiate_auth(
             ClientId=client_id,
             AuthFlow="USER_SRP_AUTH",
             AuthParameters={
@@ -2086,9 +2080,7 @@ def test_initiate_auth_with_invalid_secret_hash():
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
-    client_secret = conn.describe_user_pool_client(
-        UserPoolId=user_pool_id, ClientId=client_id,
-    )["UserPoolClient"]["ClientSecret"]
+    conn.describe_user_pool_client(UserPoolId=user_pool_id, ClientId=client_id)
     conn.confirm_sign_up(
         ClientId=client_id, Username=username, ConfirmationCode="123456",
     )
@@ -2097,7 +2089,7 @@ def test_initiate_auth_with_invalid_secret_hash():
 
     caught = False
     try:
-        result = conn.initiate_auth(
+        conn.initiate_auth(
             ClientId=client_id,
             AuthFlow="USER_SRP_AUTH",
             AuthParameters={

@@ -1,4 +1,4 @@
-from __future__ import unicode_literals, print_function
+from __future__ import print_function
 
 import uuid
 from datetime import datetime
@@ -8,7 +8,7 @@ import boto
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 import re
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
@@ -189,9 +189,6 @@ def test_list_table_tags_empty():
     )
     table_description = conn.describe_table(TableName=name)
     arn = table_description["Table"]["TableArn"]
-    tags = [{"Key": "TestTag", "Value": "TestValue"}]
-    # conn.tag_resource(ResourceArn=arn,
-    #                   Tags=tags)
     resp = conn.list_tags_of_resource(ResourceArn=arn)
     assert resp["Tags"] == []
 
@@ -2064,6 +2061,9 @@ def test_delete_item():
         table.delete_item(
             Key={"client": "client1", "app": "app1"}, ReturnValues="ALL_NEW"
         )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Return values set to invalid value")
 
     # Test deletion and returning old value
     response = table.delete_item(
@@ -2514,7 +2514,10 @@ def test_update_return_attributes():
     assert r["Attributes"] == {}
 
     with pytest.raises(ClientError) as ex:
-        r = update("col1", "val6", "WRONG")
+        update("col1", "val6", "WRONG")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Return values set to invalid value")
 
 
 # https://github.com/spulec/moto/issues/3448
@@ -2552,7 +2555,10 @@ def test_update_return_updated_new_attributes_when_same():
     assert r["Attributes"] == {"listValuedAttribute1": {1, 2}}
 
     with pytest.raises(ClientError) as ex:
-        r = update("a", ["a", "c"], "WRONG")
+        update("a", ["a", "c"], "WRONG")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Return values set to invalid value")
 
 
 @mock_dynamodb2
@@ -3212,9 +3218,7 @@ def test_update_list_index__set_index_of_a_string():
             UpdateExpression="set itemstr[1]=:Item",
             ExpressionAttributeValues={":Item": {"S": "string_update"}},
         )
-        result = client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})[
-            "Item"
-        ]
+        client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})["Item"]
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["Error"]["Message"].should.equal(
@@ -5618,7 +5622,7 @@ def test_create_multiple_backups_with_same_name():
     )
     backup_name = "backup-test-table"
     backup_arns = []
-    for i in range(4):
+    for _ in range(4):
         backup = client.create_backup(TableName=table_name, BackupName=backup_name).get(
             "BackupDetails"
         )
@@ -5832,7 +5836,7 @@ def test_source_and_restored_table_items_are_not_linked():
 
     def add_guids_to_table(table, num_items):
         guids = []
-        for i in range(num_items):
+        for _ in range(num_items):
             guid = str(uuid.uuid4())
             client.put_item(TableName=table, Item={"id": {"S": guid}})
             guids.append(guid)

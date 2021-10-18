@@ -1,7 +1,7 @@
 from datetime import datetime
 from freezegun import freeze_time
+import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
-import sure  # noqa
 
 from moto import mock_swf_deprecated, mock_swf, settings
 

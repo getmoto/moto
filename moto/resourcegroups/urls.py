@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import ResourceGroupsResponse
 
 url_bases = [r"https?://resource-groups(-fips)?\.(.+)\.amazonaws.com"]

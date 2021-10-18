@@ -1,6 +1,6 @@
 from . import _get_clients, _setup
 import random
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs
 from uuid import uuid4
 
@@ -10,7 +10,7 @@ from uuid import uuid4
 @mock_iam
 @mock_batch
 def test_register_task_definition():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     resp = register_job_def(batch_client)
@@ -29,7 +29,7 @@ def test_register_task_definition():
 @mock_iam
 @mock_batch
 def test_register_task_definition_with_tags():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     resp = register_job_def_with_tags(batch_client)
@@ -49,7 +49,7 @@ def test_register_task_definition_with_tags():
 @mock_batch
 def test_reregister_task_definition():
     # Reregistering task with the same name bumps the revision number
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     job_def_name = str(uuid4())[0:6]
@@ -88,7 +88,7 @@ def test_reregister_task_definition():
 @mock_iam
 @mock_batch
 def test_delete_task_definition():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     resp = register_job_def(batch_client, definition_name=str(uuid4()))
@@ -105,7 +105,7 @@ def test_delete_task_definition():
 @mock_iam
 @mock_batch
 def test_delete_task_definition_by_name():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     resp = register_job_def(batch_client, definition_name=str(uuid4()))
@@ -122,7 +122,7 @@ def test_delete_task_definition_by_name():
 @mock_iam
 @mock_batch
 def test_describe_task_definition():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     sleep_def_name = f"sleep10_{str(uuid4())[0:6]}"

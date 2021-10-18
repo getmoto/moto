@@ -1,11 +1,8 @@
-from __future__ import unicode_literals
-
 import boto3
 import json
-import time
 
 from boto.glacier.layer1 import Layer1
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import time
 
 from moto import mock_glacier_deprecated, mock_glacier

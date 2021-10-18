@@ -1,12 +1,5 @@
-from __future__ import unicode_literals
-import json
-import pytest
+import sure  # noqa # pylint: disable=unused-import
 
-import sure  # noqa
-
-import boto3
-import botocore
-from botocore.exceptions import ClientError
 import moto.server as server
 from moto import mock_wafv2
 from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY

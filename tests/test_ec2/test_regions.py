@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from boto3 import Session
 
 from botocore.exceptions import ClientError
@@ -32,7 +31,7 @@ def test_use_boto_regions():
 
 def add_servers_to_region(ami_id, count, region):
     conn = boto.ec2.connect_to_region(region)
-    for index in range(count):
+    for _ in range(count):
         conn.run_instances(ami_id)
 
 
@@ -135,7 +134,7 @@ def test_create_autoscaling_group():
     config = boto.ec2.autoscale.LaunchConfiguration(
         name="us_tester", image_id=EXAMPLE_AMI_ID, instance_type="m1.small"
     )
-    x = us_conn.create_launch_configuration(config)
+    us_conn.create_launch_configuration(config)
 
     us_subnet_id = list(ec2_backends["us-east-1"].subnets["us-east-1c"].keys())[0]
     ap_subnet_id = list(

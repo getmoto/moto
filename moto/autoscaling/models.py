@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import random
 
 from moto.packages.boto.ec2.blockdevicemapping import (

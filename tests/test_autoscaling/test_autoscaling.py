@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import boto
 import boto3
 import boto.ec2.autoscale
@@ -6,7 +5,7 @@ from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale import Tag
 import boto.ec2.elb
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -17,7 +16,6 @@ from moto import (
     mock_elb,
     mock_autoscaling_deprecated,
     mock_ec2,
-    mock_cloudformation,
 )
 from tests.helpers import requires_boto_gte
 
@@ -684,7 +682,7 @@ def test_autoscaling_group_with_elb():
     elb_conn = boto.connect_elb()
     zones = ["us-east-1a", "us-east-1b"]
     ports = [(80, 8080, "http"), (443, 8443, "tcp")]
-    lb = elb_conn.create_load_balancer("my-lb", zones, ports)
+    elb_conn.create_load_balancer("my-lb", zones, ports)
     instances_health = elb_conn.describe_instance_health("my-lb")
     instances_health.should.be.empty
 
@@ -725,11 +723,6 @@ def test_autoscaling_group_with_elb():
     conn.get_all_groups().should.have.length_of(0)
     elb = elb_conn.get_all_load_balancers()[0]
     elb.instances.should.have.length_of(0)
-
-
-"""
-Boto3
-"""
 
 
 @mock_autoscaling
@@ -1800,7 +1793,6 @@ def test_standby_one_instance_decrement():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
-    instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
 
@@ -1875,7 +1867,6 @@ def test_standby_one_instance():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
-    instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
 
@@ -3034,13 +3025,13 @@ def test_attach_instances():
         ],
     }
     fake_instance = ec2_client.run_instances(**kwargs)["Instances"][0]
-    fake_lc = asg_client.create_launch_configuration(
+    asg_client.create_launch_configuration(
         LaunchConfigurationName="test_launch_configuration",
         ImageId="ami-pytest",
         InstanceType="t3.micro",
         KeyName="foobar",
     )
-    fake_asg = asg_client.create_auto_scaling_group(
+    asg_client.create_auto_scaling_group(
         AutoScalingGroupName="test_asg",
         LaunchConfigurationName="test_launch_configuration",
         MinSize=0,
@@ -3062,20 +3053,20 @@ def test_attach_instances():
 def test_autoscaling_lifecyclehook():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
-    fake_lc = client.create_launch_configuration(
+    client.create_launch_configuration(
         LaunchConfigurationName="test_launch_configuration",
         ImageId="ami-pytest",
         InstanceType="t3.micro",
         KeyName="foobar",
     )
-    fake_asg = client.create_auto_scaling_group(
+    client.create_auto_scaling_group(
         AutoScalingGroupName="test_asg",
         LaunchConfigurationName="test_launch_configuration",
         MinSize=0,
         MaxSize=1,
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
-    fake_lfh = client.put_lifecycle_hook(
+    client.put_lifecycle_hook(
         LifecycleHookName="test-lifecyclehook",
         AutoScalingGroupName="test_asg",
         LifecycleTransition="autoscaling:EC2_INSTANCE_TERMINATING",

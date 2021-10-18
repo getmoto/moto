@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import pytest
 from botocore.client import ClientError
@@ -410,7 +410,7 @@ def test_create_launch_template_with_tag_spec():
     )
 
 
-def retrieve_all_templates(client, filters=[]):
+def retrieve_all_templates(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_launch_templates(Filters=filters)
     all_templates = resp["LaunchTemplates"]
     next_token = resp.get("NextToken")

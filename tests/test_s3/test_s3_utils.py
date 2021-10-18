@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import pytest
 from sure import expect
 from moto.s3.utils import (

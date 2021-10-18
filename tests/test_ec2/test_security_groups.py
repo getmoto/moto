@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import copy
 import json
 import unittest
@@ -11,7 +9,7 @@ import boto
 import boto.ec2
 from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2 import ec2_backend
@@ -1487,7 +1485,7 @@ def test_security_group_filter_ip_permission():
     describe[0]["GroupName"].should.equal(sg_name)
 
 
-def retrieve_all_sgs(conn, filters=[]):
+def retrieve_all_sgs(conn, filters=[]):  # pylint: disable=W0102
     res = conn.describe_security_groups(Filters=filters)
     all_groups = res["SecurityGroups"]
     next_token = res.get("NextToken")
@@ -1915,7 +1913,7 @@ def test_filter_description():
     sg1 = vpc.create_security_group(
         Description=(f"A {unique} Description"), GroupName="test-1"
     )
-    sg2 = vpc.create_security_group(
+    vpc.create_security_group(
         Description="Another Description That Awes The Human Mind", GroupName="test-2"
     )
 

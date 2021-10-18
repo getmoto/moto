@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 import boto3
 import json
 import os
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from datetime import datetime
 from dateutil.tz import tzutc
 from botocore.exceptions import ClientError
@@ -189,8 +187,8 @@ def test_update_state_machine():
 def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    list = client.list_state_machines()
-    list["stateMachines"].should.be.empty
+    sm_list = client.list_state_machines()
+    sm_list["stateMachines"].should.be.empty
 
 
 @mock_stepfunctions
@@ -207,20 +205,20 @@ def test_state_machine_list_returns_created_state_machines():
     machine2 = client.create_state_machine(
         name="name2", definition=str(simple_definition), roleArn=_get_default_role()
     )
-    list = client.list_state_machines()
+    sm_list = client.list_state_machines()
     #
-    list["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    list["stateMachines"].should.have.length_of(2)
-    list["stateMachines"][0]["creationDate"].should.be.a(datetime)
-    list["stateMachines"][0]["creationDate"].should.equal(machine1["creationDate"])
-    list["stateMachines"][0]["name"].should.equal("name1")
-    list["stateMachines"][0]["stateMachineArn"].should.equal(
+    sm_list["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    sm_list["stateMachines"].should.have.length_of(2)
+    sm_list["stateMachines"][0]["creationDate"].should.be.a(datetime)
+    sm_list["stateMachines"][0]["creationDate"].should.equal(machine1["creationDate"])
+    sm_list["stateMachines"][0]["name"].should.equal("name1")
+    sm_list["stateMachines"][0]["stateMachineArn"].should.equal(
         machine1["stateMachineArn"]
     )
-    list["stateMachines"][1]["creationDate"].should.be.a(datetime)
-    list["stateMachines"][1]["creationDate"].should.equal(machine2["creationDate"])
-    list["stateMachines"][1]["name"].should.equal("name2")
-    list["stateMachines"][1]["stateMachineArn"].should.equal(
+    sm_list["stateMachines"][1]["creationDate"].should.be.a(datetime)
+    sm_list["stateMachines"][1]["creationDate"].should.equal(machine2["creationDate"])
+    sm_list["stateMachines"][1]["name"].should.equal("name2")
+    sm_list["stateMachines"][1]["stateMachineArn"].should.equal(
         machine2["stateMachineArn"]
     )
 

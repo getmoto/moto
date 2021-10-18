@@ -1,7 +1,7 @@
 import json
 import os
 import time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
 from datetime import timedelta
 

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import XRayResponse
 
 url_bases = [r"https?://xray\.(.+)\.amazonaws.com"]

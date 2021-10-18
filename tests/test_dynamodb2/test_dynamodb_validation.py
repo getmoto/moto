@@ -7,7 +7,6 @@ from moto.dynamodb2.exceptions import (
     ExpressionAttributeNameNotDefined,
     IncorrectOperandType,
     InvalidUpdateExpressionInvalidDocumentPath,
-    EmptyKeyAttributeException,
 )
 from moto.dynamodb2.models import Item, DynamoType
 from moto.dynamodb2.parsing.ast_nodes import (

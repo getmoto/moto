@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto.datapipeline
+import sure  # noqa # pylint: disable=unused-import
 import boto3
-import sure  # noqa
 
 from moto import mock_datapipeline
 from moto import mock_datapipeline_deprecated

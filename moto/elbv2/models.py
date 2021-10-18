@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import re
 from jinja2 import Template

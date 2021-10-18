@@ -1,13 +1,10 @@
-from __future__ import unicode_literals
-
 import pytest
-from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
 
 import boto3
 import boto
 from boto.exception import EC2ResponseError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated
 from tests.helpers import requires_boto_gte
@@ -314,7 +311,7 @@ def test_modify_vpc_peering_connections_unknown_vpc():
     ec2_apn1 = boto3.resource("ec2", region_name="ap-northeast-1")
     vpc_apn1 = ec2_apn1.create_vpc(CidrBlock="10.20.0.0/16")
     # create peering
-    vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
+    ec2_usw1.create_vpc_peering_connection(
         VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1"
     )
     #
