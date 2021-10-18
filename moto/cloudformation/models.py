@@ -745,24 +745,25 @@ class CloudFormationBackend(BaseBackend):
         if change_set is None:
             raise ValidationError(stack_name)
 
+        stack = self.stacks[change_set.stack_id]
+        # TODO: handle execution errors and implement rollback
         if change_set.change_set_type == "CREATE":
-            change_set.stack._add_stack_event(
+            stack._add_stack_event(
                 "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
             )
             change_set.apply()
-            change_set.stack._add_stack_event("CREATE_COMPLETE")
+            stack._add_stack_event("CREATE_COMPLETE")
         else:
-            change_set.stack._add_stack_event("UPDATE_IN_PROGRESS")
+            stack._add_stack_event("UPDATE_IN_PROGRESS")
             change_set.apply()
-            change_set.stack._add_stack_event("UPDATE_COMPLETE")
+            stack._add_stack_event("UPDATE_COMPLETE")
 
         # set the execution status of the changeset
         change_set.execution_status = "EXECUTE_COMPLETE"
 
         # set the status of the stack
-        self.stacks[
-            change_set.stack_id
-        ].status = f"{change_set.change_set_type}_COMPLETE"
+        stack.status = f"{change_set.change_set_type}_COMPLETE"
+        stack.template = change_set.template
         return True
 
     def describe_stacks(self, name_or_stack_id):
