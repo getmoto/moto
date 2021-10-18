@@ -4664,7 +4664,9 @@ class SubnetBackend(object):
 
     def get_all_subnets(self, subnet_ids=None, filters=None):
         # Extract a list of all subnets
-        matches = itertools.chain(*[x.values() for x in self.subnets.values()])
+        matches = itertools.chain(
+            *[x.copy().values() for x in self.subnets.copy().values()]
+        )
         if subnet_ids:
             matches = [sn for sn in matches if sn.id in subnet_ids]
             if len(subnet_ids) > len(matches):
