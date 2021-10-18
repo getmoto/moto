@@ -876,25 +876,6 @@ def test_get_template_summary():
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack 3")
 
-    # stack created from changeset
-    conn = boto3.client("cloudformation", region_name="us-east-1")
-    conn.create_change_set(
-        StackName="stack_from_changeset",
-        TemplateBody=json.dumps(dummy_template3),
-        ChangeSetName="test_changeset",
-        ChangeSetType="CREATE",
-    )
-    with pytest.raises(
-        ClientError,
-        match="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks",
-    ):
-        conn.get_template_summary(StackName="stack_from_changeset")
-    conn.execute_change_set(ChangeSetName="test_changeset")
-    result = conn.get_template_summary(StackName="stack_from_changeset")
-    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
-    result["Version"].should.equal("2010-09-09")
-    result["Description"].should.equal("Stack 3")
-
     # json template from s3
     s3_conn.create_bucket(Bucket="foobar")
     s3_conn.Object("foobar", "template-key").put(Body=json.dumps(dummy_template3))
@@ -913,6 +894,27 @@ def test_get_template_summary():
     result["ResourceTypes"].should.equal(["AWS::EC2::Instance"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack1 with yaml template")
+
+
+@mock_cloudformation
+def test_get_template_summary_for_stack_createed_by_changeset_execution():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    conn.create_change_set(
+        StackName="stack_from_changeset",
+        TemplateBody=json.dumps(dummy_template3),
+        ChangeSetName="test_changeset",
+        ChangeSetType="CREATE",
+    )
+    with pytest.raises(
+        ClientError,
+        match="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks",
+    ):
+        conn.get_template_summary(StackName="stack_from_changeset")
+    conn.execute_change_set(ChangeSetName="test_changeset")
+    result = conn.get_template_summary(StackName="stack_from_changeset")
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
 
 
 @mock_cloudformation

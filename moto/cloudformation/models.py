@@ -746,8 +746,6 @@ class CloudFormationBackend(BaseBackend):
             raise ValidationError(stack_name)
 
         stack = self.stacks[change_set.stack_id]
-        assert stack is change_set.stack
-
         # TODO: handle execution errors and implement rollback
         if change_set.change_set_type == "CREATE":
             stack._add_stack_event(
