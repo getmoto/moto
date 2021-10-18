@@ -40,7 +40,7 @@ def test_create_and_get_rest_api():
 
 
 @mock_apigateway
-def test_upate_rest_api():
+def test_update_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
@@ -84,7 +84,7 @@ def test_upate_rest_api():
 
 
 @mock_apigateway
-def test_upate_rest_api_invalid_api_id():
+def test_update_rest_api_invalid_api_id():
     client = boto3.client("apigateway", region_name="us-west-2")
     patchOperations = [
         {"op": "replace", "path": "/apiKeySource", "value": "AUTHORIZER"}
@@ -92,6 +92,27 @@ def test_upate_rest_api_invalid_api_id():
     with pytest.raises(ClientError) as ex:
         client.update_rest_api(restApiId="api_id", patchOperations=patchOperations)
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_update_rest_api_operation_add_remove():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    patchOperations = [
+        {"op": "add", "path": "/binaryMediaTypes", "value": "image/png"},
+        {"op": "add", "path": "/binaryMediaTypes", "value": "image/jpeg"},
+    ]
+    response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
+    response["binaryMediaTypes"].should.equal(["image/png", "image/jpeg"])
+    response["description"].should.equal("this is my api")
+    patchOperations = [
+        {"op": "remove", "path": "/binaryMediaTypes", "value": "image/png"},
+        {"op": "remove", "path": "/description"},
+    ]
+    response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
+    response["binaryMediaTypes"].should.equal(["image/jpeg"])
+    response["description"].should.equal("")
 
 
 @mock_apigateway
@@ -437,6 +458,32 @@ def test_create_method_response():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 200}})
+
+
+@mock_apigateway
+def test_delete_method():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
+    )
+
+    client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    client.delete_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid Method identifier specified")
 
 
 @mock_apigateway

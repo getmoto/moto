@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 import boto3
 
 from moto import mock_secretsmanager, mock_lambda, settings
 from moto.core import ACCOUNT_ID
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 import string
 import pytz
 from datetime import datetime
 import sure  # noqa # pylint: disable=unused-import
+from uuid import uuid4
 import pytest
 
 DEFAULT_SECRET_NAME = "test-secret"
@@ -636,7 +636,7 @@ def test_rotate_secret_rotation_period_too_long():
 
 
 def get_rotation_zip_file():
-    from tests.test_awslambda.test_lambda import _process_lambda
+    from tests.test_awslambda.utilities import _process_lambda
 
     func_str = """
 import boto3
@@ -711,7 +711,7 @@ if settings.TEST_SERVER_MODE:
     @mock_lambda
     @mock_secretsmanager
     def test_rotate_secret_using_lambda():
-        from tests.test_awslambda.test_lambda import get_role_name
+        from tests.test_awslambda.utilities import get_role_name
 
         # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
         lambda_conn = boto3.client(
@@ -941,7 +941,8 @@ def test_can_list_secret_version_ids():
 
 
 @mock_secretsmanager
-def test_update_secret():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_update_secret(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
@@ -950,18 +951,18 @@ def test_update_secret():
     assert created_secret["Name"] == "test-secret"
     assert created_secret["VersionId"] != ""
 
-    secret = conn.get_secret_value(SecretId="test-secret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
+
+    secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "foosecret"
 
-    updated_secret = conn.update_secret(
-        SecretId="test-secret", SecretString="barsecret"
-    )
+    updated_secret = conn.update_secret(SecretId=secret_id, SecretString="barsecret")
 
     assert updated_secret["ARN"]
     assert updated_secret["Name"] == "test-secret"
     assert updated_secret["VersionId"] != ""
 
-    secret = conn.get_secret_value(SecretId="test-secret")
+    secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "barsecret"
     assert created_secret["VersionId"] != updated_secret["VersionId"]
 
@@ -1083,15 +1084,17 @@ def test_update_secret_marked_as_deleted_after_restoring():
 
 
 @mock_secretsmanager
-def test_tag_resource():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_tag_resource(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
     )
 
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
+        SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
     )
 
     secrets = conn.list_secrets()
@@ -1113,18 +1116,20 @@ def test_tag_resource():
 
 
 @mock_secretsmanager
-def test_untag_resource():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_untag_resource(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
     conn.tag_resource(
-        SecretId="test-secret",
+        SecretId=secret_id,
         Tags=[
             {"Key": "FirstTag", "Value": "SomeValue"},
             {"Key": "SecondTag", "Value": "SomeValue"},
         ],
     )
 
-    conn.untag_resource(SecretId="test-secret", TagKeys=["FirstTag"])
+    conn.untag_resource(SecretId=secret_id, TagKeys=["FirstTag"])
     secrets = conn.list_secrets()
     assert secrets["SecretList"][0].get("Tags") == [
         {"Key": "SecondTag", "Value": "SomeValue"},
@@ -1168,3 +1173,33 @@ def test_secret_versions_to_stages_attribute_discrepancy():
     assert list_vtos[previous_version_id] == ["AWSPREVIOUS"]
 
     assert describe_vtos == list_vtos
+
+
+@mock_secretsmanager
+def test_update_secret_with_client_request_token():
+    client = boto3.client("secretsmanager", region_name="us-west-2")
+    secret_name = "test-secret"
+    client_request_token = str(uuid4())
+
+    client.create_secret(Name=secret_name, SecretString="first-secret")
+    updated_secret = client.update_secret(
+        SecretId=secret_name,
+        SecretString="second-secret",
+        ClientRequestToken=client_request_token,
+    )
+    assert client_request_token == updated_secret["VersionId"]
+    updated_secret = client.update_secret(
+        SecretId=secret_name, SecretString="third-secret",
+    )
+    assert client_request_token != updated_secret["VersionId"]
+    invalid_request_token = "test-token"
+    with pytest.raises(ParamValidationError) as pve:
+        client.update_secret(
+            SecretId=secret_name,
+            SecretString="fourth-secret",
+            ClientRequestToken=invalid_request_token,
+        )
+        pve.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+        pve.value.response["Error"]["Message"].should.equal(
+            "ClientRequestToken must be 32-64 characters long."
+        )

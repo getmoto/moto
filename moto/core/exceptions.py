@@ -29,7 +29,7 @@ ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <Errors>
       <Error>
         <Code>{{error_type}}</Code>
-        <Message>{{message}}</Message>
+        <Message><![CDATA[{{message}}]]></Message>
         {% block extra %}{% endblock %}
       </Error>
     </Errors>
@@ -81,7 +81,7 @@ class RESTError(HTTPException):
 
 
 class DryRunClientError(RESTError):
-    code = 400
+    code = 412
 
 
 class JsonRESTError(RESTError):
@@ -160,3 +160,11 @@ class InvalidNextTokenException(JsonRESTError):
         super(InvalidNextTokenException, self).__init__(
             "InvalidNextTokenException", "The nextToken provided is invalid"
         )
+
+
+class InvalidToken(AWSError):
+    TYPE = "InvalidToken"
+    STATUS = 400
+
+    def __init__(self, message="Invalid token"):
+        super(InvalidToken, self).__init__("Invalid Token: {}".format(message))

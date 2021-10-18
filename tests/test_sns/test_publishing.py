@@ -15,6 +15,7 @@ MESSAGE_FROM_SQS_TEMPLATE = (
 )
 
 
+# Has boto3 equivalent
 @mock_sqs_deprecated
 @mock_sns_deprecated
 def test_publish_to_sqs():
@@ -59,6 +60,7 @@ def test_publish_to_sqs():
     acquired_message.should.equal(expected)
 
 
+# Has boto3 equivalent
 @mock_sqs_deprecated
 @mock_sns_deprecated
 def test_publish_to_sqs_in_different_region():

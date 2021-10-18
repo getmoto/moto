@@ -710,7 +710,7 @@ class Table(CloudFormationModel):
         projection_expression,
         index_name=None,
         filter_expression=None,
-        **filter_kwargs
+        **filter_kwargs,
     ):
         results = []
 
@@ -756,6 +756,7 @@ class Table(CloudFormationModel):
                 for item in list(self.all_items())
                 if isinstance(item, Item) and item.hash_key == hash_key
             ]
+
         if range_comparison:
             if index_name and not index_range_key:
                 raise ValueError(
@@ -1074,6 +1075,19 @@ class DynamoDBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        # No 'vpce' in the base endpoint DNS name
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "dynamodb",
+            "Gateway",
+            private_dns_names=False,
+            base_endpoint_dns_names=[f"dynamodb.{service_region}.amazonaws.com"],
+        )
+
     def create_table(self, name, **params):
         if name in self.tables:
             return None
@@ -1287,7 +1301,7 @@ class DynamoDBBackend(BaseBackend):
         expr_names=None,
         expr_values=None,
         filter_expression=None,
-        **filter_kwargs
+        **filter_kwargs,
     ):
         table = self.tables.get(table_name)
         if not table:
@@ -1310,7 +1324,7 @@ class DynamoDBBackend(BaseBackend):
             projection_expression,
             index_name,
             filter_expression,
-            **filter_kwargs
+            **filter_kwargs,
         )
 
     def scan(
@@ -1373,6 +1387,7 @@ class DynamoDBBackend(BaseBackend):
             # Parse expression to get validation errors
             update_expression_ast = UpdateExpressionParser.make(update_expression)
             update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
+            update_expression_ast.validate()
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
             # Covers cases where table has hash and range keys, ``key`` param

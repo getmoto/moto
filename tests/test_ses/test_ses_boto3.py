@@ -113,6 +113,32 @@ def test_send_email_when_verify_source():
 
 
 @mock_ses
+def test_send_unverified_email_with_chevrons():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    # Sending an email to an unverified source should fail
+    with pytest.raises(ClientError) as ex:
+        conn.send_email(
+            Source=f"John Smith <foobar@example.com>",  # << Unverified source address
+            Destination={
+                "ToAddresses": ["blah@example.com"],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            },
+            Message={
+                "Subject": {"Data": "Hello!"},
+                "Body": {"Html": {"Data": "<html>Hi</html>"}},
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("MessageRejected")
+    # The source should be returned exactly as provided - without XML encoding issues
+    err["Message"].should.equal(
+        "Email address not verified John Smith <foobar@example.com>"
+    )
+
+
+@mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -612,3 +638,44 @@ def test_domains_are_case_insensitive():
         identities = client.list_identities(IdentityType="Domain")["Identities"]
         identities.should.have.length_of(1)
         identities[0].should.equal("example.com")
+
+
+@mock_ses
+def test_get_send_statistics():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Source="test@example.com",
+        Destination={"ToAddresses": ["test_to@example.com"],},
+        Message={
+            "Subject": {"Data": "test subject"},
+            "Body": {"Html": {"Data": "<span>test body</span>"}},
+        },
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.send_email(**kwargs)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("MessageRejected")
+    err["Message"].should.equal("Email address not verified test@example.com")
+
+    # tests to verify rejects in get_send_statistics
+    stats = conn.get_send_statistics()["SendDataPoints"]
+
+    stats[0]["Rejects"].should.equal(1)
+    stats[0]["DeliveryAttempts"].should.equal(0)
+
+    conn.verify_email_identity(EmailAddress="test@example.com")
+    conn.send_email(
+        Source="test@example.com",
+        Message={
+            "Subject": {"Data": "test subject"},
+            "Body": {"Text": {"Data": "test body"}},
+        },
+        Destination={"ToAddresses": ["test_to@example.com"],},
+    )
+
+    # tests to delivery attempts in get_send_statistics
+    stats = conn.get_send_statistics()["SendDataPoints"]
+
+    stats[0]["Rejects"].should.equal(1)
+    stats[0]["DeliveryAttempts"].should.equal(1)

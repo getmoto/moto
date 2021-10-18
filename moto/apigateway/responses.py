@@ -109,8 +109,8 @@ class APIGatewayResponse(BaseResponse):
     def __validte_rest_patch_operations(self, patch_operations):
         for op in patch_operations:
             path = op["path"]
-            value = op["value"]
             if "apiKeySource" in path:
+                value = op["value"]
                 return self.__validate_api_key_source(value)
 
     def restapis_individual(self, request, full_url, headers):
@@ -178,8 +178,11 @@ class APIGatewayResponse(BaseResponse):
         method_type = url_path_parts[6]
 
         if self.method == "GET":
-            method = self.backend.get_method(function_id, resource_id, method_type)
-            return 200, {}, json.dumps(method)
+            try:
+                method = self.backend.get_method(function_id, resource_id, method_type)
+                return 200, {}, json.dumps(method)
+            except NotFoundException as nfe:
+                return self.error("NotFoundException", nfe.message)
         elif self.method == "PUT":
             authorization_type = self._get_param("authorizationType")
             api_key_required = self._get_param("apiKeyRequired")
@@ -300,6 +303,54 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps({"item": authorizers})
 
         return 200, {}, json.dumps(authorizer_response)
+
+    def request_validators(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+        try:
+
+            if self.method == "GET":
+                validators = self.backend.get_request_validators(restapi_id)
+                res = json.dumps(
+                    {"item": [validator.to_dict() for validator in validators]}
+                )
+                return 200, {}, res
+            if self.method == "POST":
+                name = self._get_param("name")
+                body = self._get_bool_param("validateRequestBody")
+                params = self._get_bool_param("validateRequestParameters")
+                validator = self.backend.create_request_validator(
+                    restapi_id, name, body, params
+                )
+                return 200, {}, json.dumps(validator)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except CrossAccountNotAllowed as e:
+            return self.error("AccessDeniedException", e.message)
+
+    def request_validator_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+        validator_id = url_path_parts[4]
+        try:
+            if self.method == "GET":
+                validator = self.backend.get_request_validator(restapi_id, validator_id)
+                return 200, {}, json.dumps(validator)
+            if self.method == "DELETE":
+                self.backend.delete_request_validator(restapi_id, validator_id)
+                return 202, {}, ""
+            if self.method == "PATCH":
+                patch_operations = self._get_param("patchOperations")
+                validator = self.backend.update_request_validator(
+                    restapi_id, validator_id, patch_operations
+                )
+                return 200, {}, json.dumps(validator)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except CrossAccountNotAllowed as e:
+            return self.error("AccessDeniedException", e.message)
 
     def authorizers(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

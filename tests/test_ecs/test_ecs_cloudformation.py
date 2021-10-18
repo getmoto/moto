@@ -95,6 +95,51 @@ def test_create_service_through_cloudformation():
 
 @mock_ecs
 @mock_cloudformation
+def test_create_service_through_cloudformation_without_desiredcount():
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testCluster": {
+                "Type": "AWS::ECS::Cluster",
+                "Properties": {"ClusterName": "testcluster"},
+            },
+            "testTaskDefinition": {
+                "Type": "AWS::ECS::TaskDefinition",
+                "Properties": {
+                    "ContainerDefinitions": [
+                        {
+                            "Name": "ecs-sample",
+                            "Image": "amazon/amazon-ecs-sample",
+                            "Cpu": "200",
+                            "Memory": "500",
+                            "Essential": "true",
+                        }
+                    ],
+                    "Volumes": [],
+                },
+            },
+            "testService": {
+                "Type": "AWS::ECS::Service",
+                "Properties": {
+                    "Cluster": {"Ref": "testCluster"},
+                    "SchedulingStrategy": "DAEMON",
+                    "TaskDefinition": {"Ref": "testTaskDefinition"},
+                },
+            },
+        },
+    }
+    template_json = json.dumps(template)
+    cfn_conn = boto3.client("cloudformation", region_name="us-west-1")
+    cfn_conn.create_stack(StackName="test_stack", TemplateBody=template_json)
+
+    ecs_conn = boto3.client("ecs", region_name="us-west-1")
+    resp = ecs_conn.list_services(cluster="testcluster")
+    len(resp["serviceArns"]).should.equal(1)
+
+
+@mock_ecs
+@mock_cloudformation
 def test_update_service_through_cloudformation_should_trigger_replacement():
     template1 = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -134,6 +179,56 @@ def test_update_service_through_cloudformation_should_trigger_replacement():
     cfn_conn.create_stack(StackName="test_stack", TemplateBody=template_json1)
     template2 = deepcopy(template1)
     template2["Resources"]["testService"]["Properties"]["DesiredCount"] = 5
+    template2_json = json.dumps(template2)
+    cfn_conn.update_stack(StackName="test_stack", TemplateBody=template2_json)
+
+    ecs_conn = boto3.client("ecs", region_name="us-west-1")
+    resp = ecs_conn.list_services(cluster="testcluster")
+    len(resp["serviceArns"]).should.equal(1)
+
+
+@mock_ecs
+@mock_cloudformation
+def test_update_service_through_cloudformation_without_desiredcount():
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testCluster": {
+                "Type": "AWS::ECS::Cluster",
+                "Properties": {"ClusterName": "testcluster"},
+            },
+            "testTaskDefinition": {
+                "Type": "AWS::ECS::TaskDefinition",
+                "Properties": {
+                    "ContainerDefinitions": [
+                        {
+                            "Name": "ecs-sample",
+                            "Image": "amazon/amazon-ecs-sample",
+                            "Cpu": "200",
+                            "Memory": "500",
+                            "Essential": "true",
+                        }
+                    ],
+                    "Volumes": [],
+                },
+            },
+            "testService": {
+                "Type": "AWS::ECS::Service",
+                "Properties": {
+                    "Cluster": {"Ref": "testCluster"},
+                    "TaskDefinition": {"Ref": "testTaskDefinition"},
+                },
+            },
+        },
+    }
+    template_json1 = json.dumps(template1)
+    cfn_conn = boto3.client("cloudformation", region_name="us-west-1")
+    cfn_conn.create_stack(StackName="test_stack", TemplateBody=template_json1)
+    template2 = deepcopy(template1)
+    template2["Resources"]["testTaskDefinition"]["Properties"]["ContainerDefinitions"][
+        0
+    ]["Cpu"] = "300"
     template2_json = json.dumps(template2)
     cfn_conn.update_stack(StackName="test_stack", TemplateBody=template2_json)
 

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 from moto.core.responses import BaseResponse
 from .models import cognitoidp_backends, find_region_by_value, UserStatus
@@ -55,7 +56,7 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_user_pools(self):
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         user_pools, next_token = cognitoidp_backends[self.region].list_user_pools(
             max_results=max_results, next_token=next_token
         )
@@ -126,7 +127,7 @@ class CognitoIdpResponse(BaseResponse):
     def list_user_pool_clients(self):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         user_pool_clients, next_token = cognitoidp_backends[
             self.region
         ].list_user_pool_clients(
@@ -179,7 +180,7 @@ class CognitoIdpResponse(BaseResponse):
     def list_identity_providers(self):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         identity_providers, next_token = cognitoidp_backends[
             self.region
         ].list_identity_providers(
@@ -289,6 +290,14 @@ class CognitoIdpResponse(BaseResponse):
 
         return ""
 
+    def admin_reset_user_password(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_reset_user_password(
+            user_pool_id, username
+        )
+        return ""
+
     # User
     def admin_create_user(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -330,18 +339,39 @@ class CognitoIdpResponse(BaseResponse):
                 "status": lambda u: "Enabled" if u.enabled else "Disabled",
                 "username": lambda u: u.username,
             }
-            name, value = filt.replace('"', "").replace(" ", "").split("=")
+            comparisons = {"=": lambda x, y: x == y, "^=": lambda x, y: x.startswith(y)}
+            allowed_attributes = [
+                "username",
+                "email",
+                "phone_number",
+                "name",
+                "given_name",
+                "family_name",
+                "preferred_username",
+                "cognito:user_status",
+                "status",
+                "sub",
+            ]
+
+            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
+            if match:
+                name, op, value = match.groups()
+            else:
+                raise InvalidParameterException("Error while parsing filter")
+            if name not in allowed_attributes:
+                raise InvalidParameterException(f"Invalid search attribute: {name}")
+            compare = comparisons[op]
             users = [
                 user
                 for user in users
                 if [
                     attr
                     for attr in user.attributes
-                    if attr["Name"] == name and attr["Value"] == value
+                    if attr["Name"] == name and compare(attr["Value"], value)
                 ]
                 or (
                     name in inherent_attributes
-                    and inherent_attributes[name](user) == value
+                    and compare(inherent_attributes[name](user), value)
                 )
             ]
         response = {"Users": [user.to_json(extended=True) for user in users]}

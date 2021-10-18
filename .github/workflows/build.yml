@@ -143,7 +143,7 @@ jobs:
         pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
-        make test-coverage
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -192,13 +192,28 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        make test-coverage
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: false
         flags: servertests
+    - name: "Stop MotoServer"
+      if: always()
+      run: |
+        mkdir serverlogs
+        pwd
+        ls -la
+        cp server_output.log serverlogs/server_output.log
+        docker stop motoserver
+    - name: Archive TF logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: motoserver-${{ matrix.python-version }}
+        path: |
+          serverlogs/*
 
   test_responses:
     name: Test Responses==0.12.0
@@ -283,11 +298,14 @@ jobs:
     # So we simply split the list of tests, and ask our CI for separate VM's to run them in parallel
     - name: Get list of tests
       run: |
-        split -n l/3 tests/terraform-tests.success.txt tf-split-
+        cd moto-terraform-tests
+        bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
+        split -n l/3 tftestlist.txt tf-split-
+        cd ..
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i ../tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
+        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
         cd ..
     - name: "Create report"
       run: |

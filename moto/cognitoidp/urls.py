@@ -1,6 +1,6 @@
 from .responses import CognitoIdpResponse, CognitoIdpJsonWebKeyResponse
 
-url_bases = ["https?://cognito-idp.(.+).amazonaws.com"]
+url_bases = [r"https?://cognito-idp\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/$": CognitoIdpResponse.dispatch,

@@ -1,7 +1,7 @@
 from .responses import ElasticTranscoderResponse
 
 url_bases = [
-    "https?://elastictranscoder.(.+).amazonaws.com",
+    r"https?://elastictranscoder\.(.+)\.amazonaws.com",
 ]
 
 

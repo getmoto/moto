@@ -1,7 +1,5 @@
 import datetime
-import functools
 import hashlib
-import itertools
 import json
 import os
 import time
@@ -20,50 +18,15 @@ from .exceptions import (
     UserNotConfirmedException,
     InvalidParameterException,
 )
-from .utils import create_id, check_secret_hash
+from .utils import create_id, check_secret_hash, PAGINATION_MODEL
+from moto.utilities.paginator import paginate
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
     "CONFIRMED": "CONFIRMED",
     "UNCONFIRMED": "UNCONFIRMED",
+    "RESET_REQUIRED": "RESET_REQUIRED",
 }
-
-
-def paginate(limit, start_arg="next_token", limit_arg="max_results"):
-    """Returns a limited result list, and an offset into list of remaining items
-
-    Takes the next_token, and max_results kwargs given to a function and handles
-    the slicing of the results. The kwarg `next_token` is the offset into the
-    list to begin slicing from. `max_results` is the size of the result required
-
-    If the max_results is not supplied then the `limit` parameter is used as a
-    default
-
-    :param limit_arg: the name of argument in the decorated function that
-    controls amount of items returned
-    :param start_arg: the name of the argument in the decorated that provides
-    the starting offset
-    :param limit: A default maximum items to return
-    :return: a tuple containing a list of items, and the offset into the list
-    """
-    default_start = 0
-
-    def outer_wrapper(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            start = int(
-                default_start if kwargs.get(start_arg) is None else kwargs[start_arg]
-            )
-            lim = int(limit if kwargs.get(limit_arg) is None else kwargs[limit_arg])
-            stop = start + lim
-            result = func(*args, **kwargs)
-            limited_results = list(itertools.islice(result, start, stop))
-            next_token = stop if stop < len(result) else None
-            return limited_results, next_token
-
-        return wrapper
-
-    return outer_wrapper
 
 
 class CognitoIdpUserPool(BaseModel):
@@ -303,6 +266,7 @@ class CognitoIdpUser(BaseModel):
         self.status = status
         self.enabled = True
         self.attributes = attributes
+        self.attribute_lookup = self._flatten_attributes(attributes)
         self.create_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
         self.sms_mfa_enabled = False
@@ -342,15 +306,16 @@ class CognitoIdpUser(BaseModel):
 
         return user_json
 
-    def update_attributes(self, new_attributes):
-        def flatten_attrs(attrs):
-            return {attr["Name"]: attr["Value"] for attr in attrs}
+    def _flatten_attributes(self, attributes):
+        return {attr["Name"]: attr["Value"] for attr in attributes}
 
+    def update_attributes(self, new_attributes):
         def expand_attrs(attrs):
             return [{"Name": k, "Value": v} for k, v in attrs.items()]
 
-        flat_attributes = flatten_attrs(self.attributes)
-        flat_attributes.update(flatten_attrs(new_attributes))
+        flat_attributes = self._flatten_attributes(self.attributes)
+        flat_attributes.update(self._flatten_attributes(new_attributes))
+        self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
 
 
@@ -412,9 +377,9 @@ class CognitoIdpBackend(BaseBackend):
             "MfaConfiguration": user_pool.mfa_config,
         }
 
-    @paginate(60)
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_user_pools(self, max_results=None, next_token=None):
-        return self.user_pools.values()
+        return list(self.user_pools.values())
 
     def describe_user_pool(self, user_pool_id):
         user_pool = self.user_pools.get(user_pool_id)
@@ -472,13 +437,13 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.clients[user_pool_client.id] = user_pool_client
         return user_pool_client
 
-    @paginate(60)
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_user_pool_clients(self, user_pool_id, max_results=None, next_token=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        return user_pool.clients.values()
+        return list(user_pool.clients.values())
 
     def describe_user_pool_client(self, user_pool_id, client_id):
         user_pool = self.user_pools.get(user_pool_id)
@@ -523,13 +488,13 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.identity_providers[name] = identity_provider
         return identity_provider
 
-    @paginate(60)
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_identity_providers(self, user_pool_id, max_results=None, next_token=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        return user_pool.identity_providers.values()
+        return list(user_pool.identity_providers.values())
 
     def describe_identity_provider(self, user_pool_id, name):
         user_pool = self.user_pools.get(user_pool_id)
@@ -633,6 +598,25 @@ class CognitoIdpBackend(BaseBackend):
         group.users.discard(user)
         user.groups.discard(group)
 
+    def admin_reset_user_password(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        if not user.enabled:
+            raise NotAuthorizedError("User is disabled")
+        if user.status == UserStatus["RESET_REQUIRED"]:
+            return
+        if user.status != UserStatus["CONFIRMED"]:
+            raise NotAuthorizedError(
+                "User password cannot be reset in the current state."
+            )
+        if (
+            user.attribute_lookup.get("email_verified", "false") == "false"
+            and user.attribute_lookup.get("phone_number_verified", "false") == "false"
+        ):
+            raise InvalidParameterException(
+                "Cannot reset password for the user as there is no registered/verified email or phone_number"
+            )
+        user.status = UserStatus["RESET_REQUIRED"]
+
     # User
     def admin_create_user(
         self, user_pool_id, username, message_action, temporary_password, attributes
@@ -682,13 +666,13 @@ class CognitoIdpBackend(BaseBackend):
                 return user
         raise NotAuthorizedError("Invalid token")
 
-    @paginate(60, "pagination_token", "limit")
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(self, user_pool_id, pagination_token=None, limit=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        return user_pool.users.values()
+        return list(user_pool.users.values())
 
     def admin_disable_user(self, user_pool_id, username):
         user = self.admin_get_user(user_pool_id, username)
@@ -746,7 +730,10 @@ class CognitoIdpBackend(BaseBackend):
             if user.password != password:
                 raise NotAuthorizedError(username)
 
-            if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
+            if user.status in [
+                UserStatus["FORCE_CHANGE_PASSWORD"],
+                UserStatus["RESET_REQUIRED"],
+            ]:
                 session = str(uuid.uuid4())
                 self.sessions[session] = user_pool
 
@@ -880,7 +867,10 @@ class CognitoIdpBackend(BaseBackend):
                     raise NotAuthorizedError(username)
 
                 user.password = proposed_password
-                if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
+                if user.status in [
+                    UserStatus["FORCE_CHANGE_PASSWORD"],
+                    UserStatus["RESET_REQUIRED"],
+                ]:
                     user.status = UserStatus["CONFIRMED"]
 
                 break

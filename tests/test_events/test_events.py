@@ -134,9 +134,46 @@ def test_put_rule_error_schedule_expression_custom_event_bus():
 def test_list_rules():
     client = generate_environment()
     response = client.list_rules()
+    rules = response["Rules"]
+    rules.should.have.length_of(len(RULES))
 
-    assert response is not None
-    assert len(response["Rules"]) > 0
+
+@mock_events
+def test_list_rules_with_token():
+    client = generate_environment()
+    response = client.list_rules()
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(len(RULES))
+    #
+    response = client.list_rules(Limit=1)
+    response.should.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(1)
+    #
+    response = client.list_rules(NextToken=response["NextToken"])
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(2)
+
+
+@mock_events
+def test_list_rules_with_prefix_and_token():
+    client = generate_environment()
+    response = client.list_rules(NamePrefix="test")
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(len(RULES))
+    #
+    response = client.list_rules(NamePrefix="test", Limit=1)
+    response.should.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(1)
+    #
+    response = client.list_rules(NamePrefix="test", NextToken=response["NextToken"])
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(2)
 
 
 @mock_events
@@ -240,6 +277,23 @@ def test_list_rule_names_by_target():
     assert len(rules["RuleNames"]) == len(test_2_target["Rules"])
     for rule in rules["RuleNames"]:
         assert rule in test_2_target["Rules"]
+
+
+@mock_events
+def test_list_rule_names_by_target_using_limit():
+    test_1_target = TARGETS["test-target-1"]
+    client = generate_environment()
+
+    response = client.list_rule_names_by_target(TargetArn=test_1_target["Arn"], Limit=1)
+    print(response)
+    response.should.have.key("NextToken")
+    response["RuleNames"].should.have.length_of(1)
+    #
+    response = client.list_rule_names_by_target(
+        TargetArn=test_1_target["Arn"], NextToken=response["NextToken"]
+    )
+    response.shouldnt.have.key("NextToken")
+    response["RuleNames"].should.have.length_of(1)
 
 
 @mock_events

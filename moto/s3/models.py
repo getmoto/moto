@@ -2,7 +2,6 @@ import json
 import os
 import base64
 import datetime
-import pytz
 import hashlib
 import copy
 import itertools
@@ -15,13 +14,18 @@ import sys
 import time
 import uuid
 
-
 from bisect import insort
+import pytz
+
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
+from moto.core.utils import (
+    iso_8601_datetime_without_milliseconds_s3,
+    rfc_1123_datetime,
+    unix_time_millis,
+)
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
-from .exceptions import (
+from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
@@ -40,6 +44,7 @@ from .exceptions import (
     InvalidPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
+    InvalidTagError,
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
@@ -1298,6 +1303,38 @@ class S3Backend(BaseBackend):
         self.account_public_access_block = None
         self.tagger = TaggingService()
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """List of dicts representing default VPC endpoints for this service."""
+        accesspoint = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"accesspoint.s3-global.{service_region}.vpce.amazonaws.com",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": "*.accesspoint.s3-global.amazonaws.com",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": "*.accesspoint.s3-global.amazonaws.com"}
+            ],
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": "com.amazonaws.s3-global.accesspoint",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return (
+            BaseBackend.default_vpc_endpoint_service_factory(
+                service_region, zones, "s3", "Interface"
+            )
+            + BaseBackend.default_vpc_endpoint_service_factory(
+                service_region, zones, "s3", "Gateway"
+            )
+            + [accesspoint]
+        )
+
         # TODO: This is broken! DO NOT IMPORT MUTABLE DATA TYPES FROM OTHER AREAS -- THIS BREAKS UNMOCKING!
         # WRAP WITH A GETTER/SETTER FUNCTION
         # Register this class as a CloudWatch Metric Provider
@@ -1372,23 +1409,6 @@ class S3Backend(BaseBackend):
     def get_bucket_encryption(self, bucket_name):
         return self.get_bucket(bucket_name).encryption
 
-    def get_bucket_latest_versions(self, bucket_name):
-        versions = self.list_object_versions(bucket_name)
-        latest_modified_per_key = {}
-        latest_versions = {}
-
-        for version in versions:
-            name = version.name
-            last_modified = version.last_modified
-            version_id = version.version_id
-            latest_modified_per_key[name] = max(
-                last_modified, latest_modified_per_key.get(name, datetime.datetime.min)
-            )
-            if last_modified == latest_modified_per_key[name]:
-                latest_versions[name] = version_id
-
-        return latest_versions
-
     def list_object_versions(
         self,
         bucket_name,
@@ -1401,14 +1421,44 @@ class S3Backend(BaseBackend):
     ):
         bucket = self.get_bucket(bucket_name)
 
-        if any((delimiter, key_marker, version_id_marker)):
-            raise NotImplementedError(
-                "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker"
-            )
-
-        return itertools.chain(
-            *(l for key, l in bucket.keys.iterlists() if key.startswith(prefix))
+        common_prefixes = []
+        requested_versions = []
+        delete_markers = []
+        all_versions = itertools.chain(
+            *(copy.deepcopy(l) for key, l in bucket.keys.iterlists())
         )
+        all_versions = list(all_versions)
+        # sort by name, revert last-modified-date
+        all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
+        last_name = None
+        for version in all_versions:
+            name = version.name
+            # guaranteed to be sorted - so the first key with this name will be the latest
+            version.is_latest = name != last_name
+            if version.is_latest:
+                last_name = name
+            # Differentiate between FakeKey and FakeDeleteMarkers
+            if not isinstance(version, FakeKey):
+                delete_markers.append(version)
+                continue
+            # skip all keys that alphabetically come before keymarker
+            if key_marker and name < key_marker:
+                continue
+            # Filter for keys that start with prefix
+            if not name.startswith(prefix):
+                continue
+            # separate out all keys that contain delimiter
+            if delimiter and delimiter in name:
+                index = name.index(delimiter) + len(delimiter)
+                prefix_including_delimiter = name[0:index]
+                common_prefixes.append(prefix_including_delimiter)
+                continue
+
+            requested_versions.append(version)
+
+        common_prefixes = sorted(set(common_prefixes))
+
+        return requested_versions, common_prefixes, delete_markers
 
     def get_bucket_policy(self, bucket_name):
         return self.get_bucket(bucket_name).policy
@@ -1425,6 +1475,28 @@ class S3Backend(BaseBackend):
 
     def delete_bucket_encryption(self, bucket_name):
         self.get_bucket(bucket_name).encryption = None
+
+    def get_bucket_replication(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return getattr(bucket, "replication", None)
+
+    def put_bucket_replication(self, bucket_name, replication):
+        if isinstance(replication["Rule"], dict):
+            replication["Rule"] = [replication["Rule"]]
+        for rule in replication["Rule"]:
+            if "Priority" not in rule:
+                rule["Priority"] = 1
+            if "ID" not in rule:
+                rule["ID"] = "".join(
+                    random.choice(string.ascii_letters + string.digits)
+                    for _ in range(30)
+                )
+        bucket = self.get_bucket(bucket_name)
+        bucket.replication = replication
+
+    def delete_bucket_replication(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.replication = None
 
     def put_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)
@@ -1565,6 +1637,9 @@ class S3Backend(BaseBackend):
     def get_object_acl(self, key):
         return key.acl
 
+    def get_object_legal_hold(self, key):
+        return key.lock_legal_status
+
     def get_object_lock_configuration(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return (
@@ -1580,9 +1655,13 @@ class S3Backend(BaseBackend):
     def set_key_tags(self, key, tags, key_name=None):
         if key is None:
             raise MissingKey(key_name)
+        boto_tags_dict = self.tagger.convert_dict_to_tags_input(tags)
+        errmsg = self.tagger.validate_tags(boto_tags_dict)
+        if errmsg:
+            raise InvalidTagError(errmsg)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(
-            key.arn, [{"Key": k, "Value": v} for (k, v) in tags.items()],
+            key.arn, boto_tags_dict,
         )
         return key
 
@@ -1598,7 +1677,7 @@ class S3Backend(BaseBackend):
         )
 
     def put_object_lock_configuration(
-        self, bucket_name, lock_enabled, mode, days, years
+        self, bucket_name, lock_enabled, mode=None, days=None, years=None
     ):
         bucket = self.get_bucket(bucket_name)
 
@@ -1828,7 +1907,7 @@ class S3Backend(BaseBackend):
         key = self.get_object(bucket_name, key_name, version_id=version_id)
         self.tagger.delete_all_tags_for_resource(key.arn)
 
-    def delete_object(self, bucket_name, key_name, version_id=None):
+    def delete_object(self, bucket_name, key_name, version_id=None, bypass=False):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
@@ -1849,7 +1928,11 @@ class S3Backend(BaseBackend):
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
 
-                            if hasattr(key, "is_locked") and key.is_locked:
+                            if (
+                                hasattr(key, "is_locked")
+                                and key.is_locked
+                                and not bypass
+                            ):
                                 raise AccessDeniedByLock
 
                             if type(key) is FakeDeleteMarker:

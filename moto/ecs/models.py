@@ -400,7 +400,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
         # TODO: LoadBalancers
         # TODO: Role
 
@@ -422,7 +422,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
 
         ecs_backend = ecs_backends[region_name]
         service_name = original_resource.name
@@ -672,6 +672,13 @@ class EC2ContainerServiceBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ecs"
+        )
 
     def _get_cluster(self, name):
         # short name or full ARN of the cluster

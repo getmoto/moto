@@ -48,7 +48,7 @@ def test_describe_all():
     gateways = client.describe_egress_only_internet_gateways()[
         "EgressOnlyInternetGateways"
     ]
-    gateways.should.have.length_of(2)
+    assert len(gateways) >= 2, "Should have two recently created gateways"
     gateways.should.contain(gw1)
     gateways.should.contain(gw2)
 
@@ -90,12 +90,12 @@ def test_create_and_delete():
     ]
     gw1_id = gw1["EgressOnlyInternetGatewayId"]
 
-    client.describe_egress_only_internet_gateways()[
-        "EgressOnlyInternetGateways"
-    ].should.have.length_of(1)
+    client.describe_egress_only_internet_gateways(
+        EgressOnlyInternetGatewayIds=[gw1_id]
+    )["EgressOnlyInternetGateways"].should.have.length_of(1)
 
     client.delete_egress_only_internet_gateway(EgressOnlyInternetGatewayId=gw1_id)
 
-    client.describe_egress_only_internet_gateways()[
-        "EgressOnlyInternetGateways"
-    ].should.have.length_of(0)
+    client.describe_egress_only_internet_gateways(
+        EgressOnlyInternetGatewayIds=[gw1_id]
+    )["EgressOnlyInternetGateways"].should.have.length_of(0)

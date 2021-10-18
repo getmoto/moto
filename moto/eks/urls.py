@@ -1,7 +1,7 @@
 from .responses import EKSResponse
 
 url_bases = [
-    "https?://eks.(.+).amazonaws.com",
+    r"https?://eks\.(.+)\.amazonaws.com",
 ]
 
 

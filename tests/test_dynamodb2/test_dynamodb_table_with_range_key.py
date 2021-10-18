@@ -5,12 +5,14 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 import sure  # noqa # pylint: disable=unused-import
+from datetime import datetime
 from freezegun import freeze_time
 import pytest
 
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 try:
     from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey, AllIndex
@@ -55,6 +57,7 @@ def iterate_results(res):
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
 def test_create_table():
@@ -87,7 +90,52 @@ def test_create_table():
     table.describe().should.equal(expected)
 
 
+@mock_dynamodb2
+def test_create_table_boto3():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="messages",
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
+    )
+    actual = client.describe_table(TableName="messages")["Table"]
+
+    actual.should.have.key("AttributeDefinitions").equal(
+        [
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ]
+    )
+    actual.should.have.key("CreationDateTime").be.a(datetime)
+    actual.should.have.key("GlobalSecondaryIndexes").equal([])
+    actual.should.have.key("LocalSecondaryIndexes").equal([])
+    actual.should.have.key("ProvisionedThroughput").equal(
+        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 1, "WriteCapacityUnits": 5}
+    )
+    actual.should.have.key("TableSizeBytes").equal(0)
+    actual.should.have.key("TableName").equal("messages")
+    actual.should.have.key("TableStatus").equal("ACTIVE")
+    actual.should.have.key("TableArn").equal(
+        "arn:aws:dynamodb:us-east-1:123456789011:table/messages"
+    )
+    actual.should.have.key("KeySchema").equal(
+        [
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ]
+    )
+    actual.should.have.key("ItemCount").equal(0)
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
 def test_create_table_with_local_index():
@@ -130,7 +178,75 @@ def test_create_table_with_local_index():
     table.describe().should.equal(expected)
 
 
+@mock_dynamodb2
+def test_create_table_with_local_index_boto3():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="messages",
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+            {"AttributeName": "threads", "AttributeType": "S"},
+        ],
+        LocalSecondaryIndexes=[
+            {
+                "IndexName": "threads_index",
+                "KeySchema": [
+                    {"AttributeName": "id", "KeyType": "HASH"},
+                    {"AttributeName": "threads", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
+    )
+    actual = client.describe_table(TableName="messages")["Table"]
+
+    actual.should.have.key("AttributeDefinitions").equal(
+        [
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+            {"AttributeName": "threads", "AttributeType": "S"},
+        ]
+    )
+    actual.should.have.key("CreationDateTime").be.a(datetime)
+    actual.should.have.key("GlobalSecondaryIndexes").equal([])
+    actual.should.have.key("LocalSecondaryIndexes").equal(
+        [
+            {
+                "IndexName": "threads_index",
+                "KeySchema": [
+                    {"AttributeName": "id", "KeyType": "HASH"},
+                    {"AttributeName": "threads", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ]
+    )
+    actual.should.have.key("ProvisionedThroughput").equal(
+        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 1, "WriteCapacityUnits": 5}
+    )
+    actual.should.have.key("TableSizeBytes").equal(0)
+    actual.should.have.key("TableName").equal("messages")
+    actual.should.have.key("TableStatus").equal("ACTIVE")
+    actual.should.have.key("TableArn").equal(
+        "arn:aws:dynamodb:us-east-1:123456789011:table/messages"
+    )
+    actual.should.have.key("KeySchema").equal(
+        [
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ]
+    )
+    actual.should.have.key("ItemCount").equal(0)
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_delete_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -143,6 +259,7 @@ def test_delete_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_update_table_throughput():
     table = create_table()
@@ -162,6 +279,7 @@ def test_update_table_throughput():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_item_add_and_describe_and_update():
     table = create_table()
@@ -207,6 +325,7 @@ def test_item_add_and_describe_and_update():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_item_partial_save():
     table = create_table()
@@ -236,6 +355,7 @@ def test_item_partial_save():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_item_put_without_table():
     table = Table("undeclared-table")
@@ -250,6 +370,7 @@ def test_item_put_without_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_missing_item():
     table = create_table()
@@ -260,6 +381,7 @@ def test_get_missing_item():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_item_with_undeclared_table():
     table = Table("undeclared-table")
@@ -269,6 +391,7 @@ def test_get_item_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_item_without_range_key():
     table = Table.create(
@@ -285,7 +408,35 @@ def test_get_item_without_range_key():
     )
 
 
+@mock_dynamodb2
+def test_get_item_without_range_key_boto3():
+    client = boto3.resource("dynamodb", region_name="us-east-1")
+    table = client.create_table(
+        TableName="messages",
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
+    )
+
+    hash_key = 3241526475
+    range_key = 1234567890987
+    table.put_item(Item={"id": hash_key, "subject": range_key})
+
+    with pytest.raises(ClientError) as ex:
+        table.get_item(Key={"id": hash_key})
+
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal("Validation Exception")
+
+
 @requires_boto_gte("2.30.0")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_delete_item():
     table = create_table()
@@ -309,6 +460,7 @@ def test_delete_item():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_delete_item_with_undeclared_table():
     table = Table("undeclared-table")
@@ -323,6 +475,7 @@ def test_delete_item_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query():
     table = create_table()
@@ -382,6 +535,7 @@ def test_query():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_with_undeclared_table():
     table = Table("undeclared")
@@ -392,6 +546,7 @@ def test_query_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_scan():
     table = create_table()
@@ -447,6 +602,7 @@ def test_scan():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_scan_with_undeclared_table():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
@@ -462,6 +618,7 @@ def test_scan_with_undeclared_table():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_write_batch():
     table = create_table()
@@ -493,6 +650,7 @@ def test_write_batch():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_batch_read():
     table = create_table()
@@ -537,6 +695,7 @@ def test_batch_read():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_get_key_fields():
     table = create_table()
@@ -545,6 +704,7 @@ def test_get_key_fields():
 
 
 @mock_dynamodb2_deprecated
+# Has boto3 equivalent
 def test_create_with_global_indexes():
     conn = boto.dynamodb2.layer1.DynamoDBConnection()
 
@@ -580,6 +740,7 @@ def test_create_with_global_indexes():
     )
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_with_global_indexes():
     table = Table.create(
@@ -615,6 +776,7 @@ def test_query_with_global_indexes():
     list(results).should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_with_local_indexes():
     table = create_table_with_local_indexes()
@@ -637,6 +799,7 @@ def test_query_with_local_indexes():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_filter_eq():
     table = create_table_with_local_indexes()
@@ -670,6 +833,7 @@ def test_query_filter_eq():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_filter_lt():
     table = create_table_with_local_indexes()
@@ -705,6 +869,7 @@ def test_query_filter_lt():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_filter_gt():
     table = create_table_with_local_indexes()
@@ -739,6 +904,7 @@ def test_query_filter_gt():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_filter_lte():
     table = create_table_with_local_indexes()
@@ -773,6 +939,7 @@ def test_query_filter_lte():
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_filter_gte():
     table = create_table_with_local_indexes()
@@ -806,7 +973,51 @@ def test_query_filter_gte():
     list(results).should.have.length_of(2)
 
 
+@mock_dynamodb2
+def test_query_filter_boto3():
+    table_schema = {
+        "KeySchema": [
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+    }
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+
+    for i in range(0, 3):
+        table.put_item(
+            Item={"pk": "pk".format(i), "sk": "sk-{}".format(i),}
+        )
+
+    res = table.query(KeyConditionExpression=Key("pk").eq("pk"))
+    res["Items"].should.have.length_of(3)
+
+    res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").lt("sk-1"))
+    res["Items"].should.have.length_of(1)
+    res["Items"].should.equal([{"pk": "pk", "sk": "sk-0"}])
+
+    res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").lte("sk-1"))
+    res["Items"].should.have.length_of(2)
+    res["Items"].should.equal([{"pk": "pk", "sk": "sk-0"}, {"pk": "pk", "sk": "sk-1"}])
+
+    res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").gt("sk-1"))
+    res["Items"].should.have.length_of(1)
+    res["Items"].should.equal([{"pk": "pk", "sk": "sk-2"}])
+
+    res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").gte("sk-1"))
+    res["Items"].should.have.length_of(2)
+    res["Items"].should.equal([{"pk": "pk", "sk": "sk-1"}, {"pk": "pk", "sk": "sk-2"}])
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_query_non_hash_range_key():
     table = create_table_with_local_indexes()
@@ -843,6 +1054,7 @@ def test_query_non_hash_range_key():
     results.should.have.length_of(2)
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_reverse_query():
     boto.dynamodb2.layer1.DynamoDBConnection()
@@ -860,6 +1072,7 @@ def test_reverse_query():
     [r["created_at"] for r in results].should.equal(expected)
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_lookup():
     table = Table.create(
@@ -877,6 +1090,7 @@ def test_lookup():
     message.get("test_range").should.equal(Decimal(range_key))
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_failed_overwrite():
     table = Table.create(
@@ -906,6 +1120,7 @@ def test_failed_overwrite():
     dict(returned_item).should.equal(data4)
 
 
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_conflicting_writes():
     table = Table.create("messages", schema=[HashKey("id"), RangeKey("range")])
@@ -2065,3 +2280,48 @@ def test_scan_by_index():
     assert last_eval_key["id"]["S"] == "1"
     assert last_eval_key["range_key"]["S"] == "1"
     assert last_eval_key["lsi_range_key"]["S"] == "1"
+
+
+@mock_dynamodb2
+@pytest.mark.parametrize("create_item_first", [False, True])
+@pytest.mark.parametrize(
+    "expression", ["set h=:New", "set r=:New", "set x=:New, r=:New"]
+)
+def test_update_item_throws_exception_when_updating_hash_or_range_key(
+    create_item_first, expression
+):
+    client = boto3.client("dynamodb", region_name="ap-northeast-3")
+    table_name = "testtable_3877"
+
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "h", "KeyType": "HASH"},
+            {"AttributeName": "r", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "h", "AttributeType": "S"},
+            {"AttributeName": "r", "AttributeType": "S"},
+        ],
+    )
+
+    initial_val = str(uuid4())
+
+    if create_item_first:
+        client.put_item(
+            TableName=table_name, Item={"h": {"S": initial_val}, "r": {"S": "1"}},
+        )
+
+    # Updating the HASH key should fail
+    with pytest.raises(ClientError) as ex:
+        client.update_item(
+            TableName=table_name,
+            Key={"h": {"S": initial_val}, "r": {"S": "1"}},
+            UpdateExpression=expression,
+            ExpressionAttributeValues={":New": {"S": "2"}},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.match(
+        r"One or more parameter values were invalid: Cannot update attribute (r|h). This attribute is part of the key"
+    )

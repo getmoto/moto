@@ -1,7 +1,7 @@
 from .responses import MediaConnectResponse
 
 url_bases = [
-    "https?://mediaconnect.(.+).amazonaws.com",
+    r"https?://mediaconnect\.(.+)\.amazonaws.com",
 ]
 
 

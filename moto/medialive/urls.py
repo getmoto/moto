@@ -1,7 +1,7 @@
 from .responses import MediaLiveResponse
 
 url_bases = [
-    "https?://medialive.(.+).amazonaws.com",
+    r"https?://medialive\.(.+)\.amazonaws.com",
 ]
 
 

@@ -14,6 +14,30 @@ from tests import EXAMPLE_AMI_ID
 @mock_elbv2
 @mock_ec2
 def test_create_load_balancer():
+    response, _, security_group, subnet1, subnet2, conn = create_load_balancer()
+
+    lb = response.get("LoadBalancers")[0]
+    lb.get("DNSName").should.equal("my-lb-1.us-east-1.elb.amazonaws.com")
+    lb.get("LoadBalancerArn").should.equal(
+        "arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/my-lb/50dc6c495c0c9188"
+    )
+    lb.get("SecurityGroups").should.equal([security_group.id])
+    lb.get("AvailabilityZones").should.equal(
+        [
+            {"SubnetId": subnet1.id, "ZoneName": "us-east-1a"},
+            {"SubnetId": subnet2.id, "ZoneName": "us-east-1b"},
+        ]
+    )
+    lb.get("CreatedTime").tzinfo.should_not.be.none
+    lb.get("State").get("Code").should.equal("provisioning")
+
+    # Ensure the tags persisted
+    response = conn.describe_tags(ResourceArns=[lb.get("LoadBalancerArn")])
+    tags = {d["Key"]: d["Value"] for d in response["TagDescriptions"][0]["Tags"]}
+    tags.should.equal({"key_name": "a_value"})
+
+
+def create_load_balancer():
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -35,53 +59,13 @@ def test_create_load_balancer():
         Scheme="internal",
         Tags=[{"Key": "key_name", "Value": "a_value"}],
     )
-
-    lb = response.get("LoadBalancers")[0]
-
-    lb.get("DNSName").should.equal("my-lb-1.us-east-1.elb.amazonaws.com")
-    lb.get("LoadBalancerArn").should.equal(
-        "arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/my-lb/50dc6c495c0c9188"
-    )
-    lb.get("SecurityGroups").should.equal([security_group.id])
-    lb.get("AvailabilityZones").should.equal(
-        [
-            {"SubnetId": subnet1.id, "ZoneName": "us-east-1a"},
-            {"SubnetId": subnet2.id, "ZoneName": "us-east-1b"},
-        ]
-    )
-    lb.get("CreatedTime").tzinfo.should_not.be.none
-    lb.get("State").get("Code").should.equal("provisioning")
-
-    # Ensure the tags persisted
-    response = conn.describe_tags(ResourceArns=[lb.get("LoadBalancerArn")])
-    tags = {d["Key"]: d["Value"] for d in response["TagDescriptions"][0]["Tags"]}
-    tags.should.equal({"key_name": "a_value"})
+    return response, vpc, security_group, subnet1, subnet2, conn
 
 
 @mock_elbv2
 @mock_ec2
 def test_describe_load_balancers():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, conn = create_load_balancer()
 
     response = conn.describe_load_balancers()
 
@@ -107,28 +91,7 @@ def test_describe_load_balancers():
 @mock_elbv2
 @mock_ec2
 def test_add_remove_tags():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1b"
-    )
-
-    conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    _, _, _, _, _, conn = create_load_balancer()
 
     lbs = conn.describe_load_balancers()["LoadBalancers"]
     lbs.should.have.length_of(1)
@@ -250,28 +213,43 @@ def test_create_elb_in_multiple_region():
 
 @mock_elbv2
 @mock_ec2
+def test_create_listeners_without_port():
+    response, vpc, _, _, _, conn = create_load_balancer()
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+    response = conn.create_target_group(
+        Name="a-target",
+        Protocol="HTTP",
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol="HTTP",
+        HealthCheckPort="8080",
+        HealthCheckPath="/",
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={"HttpCode": "200"},
+    )
+    target_group = response.get("TargetGroups")[0]
+    target_group_arn = target_group["TargetGroupArn"]
+    response = conn.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTP",
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+    )
+
+    listener = response.get("Listeners")[0]
+    listener.get("Port").should.equal(None)
+    listener.get("Protocol").should.equal("HTTP")
+    listener.get("DefaultActions").should.equal(
+        [{"TargetGroupArn": target_group_arn, "Type": "forward"}]
+    )
+
+
+@mock_elbv2
+@mock_ec2
 def test_create_target_group_and_listeners():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, vpc, _, _, _, conn = create_load_balancer()
 
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
@@ -437,27 +415,7 @@ def test_create_target_group_and_listeners():
 @mock_elbv2
 @mock_ec2
 def test_create_target_group_without_non_required_parameters():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, vpc, _, _, _, conn = create_load_balancer()
 
     # request without HealthCheckIntervalSeconds parameter
     # which is default to 30 seconds
@@ -471,6 +429,83 @@ def test_create_target_group_without_non_required_parameters():
     )
     target_group = response.get("TargetGroups")[0]
     target_group.should_not.be.none
+
+
+@mock_ec2
+@mock_elbv2
+def test_create_rule_forward_config_as_second_arg():
+    # https://github.com/spulec/moto/issues/4123
+    # Necessary because there was some convoluted way of parsing arguments
+    # Actions with type=forward had to be the first action specified
+    response, vpc, _, _, _, elbv2 = create_load_balancer()
+
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    response = elbv2.create_listener(
+        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[],
+    )
+    http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
+
+    priority = 100
+
+    response = elbv2.create_target_group(
+        Name="a-target",
+        Protocol="HTTP",
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol="HTTP",
+        HealthCheckPort="8080",
+        HealthCheckPath="/",
+        Matcher={"HttpCode": "200"},
+    )
+    target_group = response.get("TargetGroups")[0]
+
+    # No targets registered yet
+    target_group_arn = target_group.get("TargetGroupArn")
+    elbv2.create_rule(
+        ListenerArn=http_listener_arn,
+        Conditions=[
+            {"Field": "path-pattern", "PathPatternConfig": {"Values": [f"/sth*",]},},
+        ],
+        Priority=priority,
+        Actions=[
+            {
+                "Type": "authenticate-cognito",
+                "Order": 1,
+                "AuthenticateCognitoConfig": {
+                    "UserPoolArn": "?1",
+                    "UserPoolClientId": "?2",
+                    "UserPoolDomain": "?2",
+                    "SessionCookieName": "AWSELBAuthSessionCookie",
+                    "Scope": "openid",
+                    "SessionTimeout": 604800,
+                    "OnUnauthenticatedRequest": "authenticate",
+                },
+            },
+            {
+                "Type": "forward",
+                "Order": 2,
+                "ForwardConfig": {
+                    "TargetGroups": [
+                        {"TargetGroupArn": target_group_arn, "Weight": 1},
+                    ],
+                    "TargetGroupStickinessConfig": {"Enabled": False,},
+                },
+            },
+        ],
+    )
+    all_rules = elbv2.describe_rules(ListenerArn=http_listener_arn)["Rules"]
+    our_rule = all_rules[0]
+    actions = our_rule["Actions"]
+    forward_action = [a for a in actions if "ForwardConfig" in a.keys()][0]
+    forward_action.should.equal(
+        {
+            "ForwardConfig": {
+                "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 1}]
+            },
+            "Type": "forward",
+        }
+    )
 
 
 @mock_elbv2
@@ -572,27 +607,7 @@ def test_describe_paginated_balancers():
 @mock_elbv2
 @mock_ec2
 def test_delete_load_balancer():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, conn = create_load_balancer()
 
     response.get("LoadBalancers").should.have.length_of(1)
     lb = response.get("LoadBalancers")[0]
@@ -840,27 +855,7 @@ def test_terminated_instance_target():
 @mock_ec2
 @mock_elbv2
 def test_target_group_attributes():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, vpc, _, _, _, conn = create_load_balancer()
 
     response = conn.create_target_group(
         Name="a-target",
@@ -953,27 +948,7 @@ def test_create_target_group_invalid_protocol():
 @mock_elbv2
 @mock_ec2
 def test_create_rule_priority_in_use():
-    elbv2 = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = elbv2.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, elbv2 = create_load_balancer()
 
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
@@ -1000,27 +975,7 @@ def test_create_rule_priority_in_use():
 @mock_elbv2
 @mock_ec2
 def test_handle_listener_rules():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, vpc, _, _, _, conn = create_load_balancer()
 
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
@@ -1367,27 +1322,7 @@ def test_handle_listener_rules():
 @mock_elbv2
 @mock_ec2
 def test_describe_invalid_target_group():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, vpc, _, _, _, conn = create_load_balancer()
 
     response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
@@ -1414,27 +1349,7 @@ def test_describe_invalid_target_group():
 @mock_elbv2
 @mock_ec2
 def test_describe_target_groups_no_arguments():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, vpc, _, _, _, conn = create_load_balancer()
 
     response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
@@ -1470,10 +1385,19 @@ def test_describe_ssl_policies():
     client = boto3.client("elbv2", region_name="eu-central-1")
 
     resp = client.describe_ssl_policies()
-    len(resp["SslPolicies"]).should.equal(5)
+    len(resp["SslPolicies"]).should.equal(6)
 
     resp = client.describe_ssl_policies(
-        Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08"]
+        Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08",]
+    )
+    len(resp["SslPolicies"]).should.equal(2)
+
+    resp = client.describe_ssl_policies(
+        Names=[
+            "ELBSecurityPolicy-TLS-1-2-2017-01",
+            "ELBSecurityPolicy-2016-08",
+            "ELBSecurityPolicy-2016-08",
+        ]
     )
     len(resp["SslPolicies"]).should.equal(2)
 
@@ -1481,27 +1405,7 @@ def test_describe_ssl_policies():
 @mock_elbv2
 @mock_ec2
 def test_set_ip_address_type():
-    client = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = client.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, security_group, subnet1, subnet2, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
     # Internal LBs cant be dualstack yet
@@ -1615,27 +1519,7 @@ def test_set_subnets_errors():
 @mock_elbv2
 @mock_ec2
 def test_modify_load_balancer_attributes_idle_timeout():
-    client = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = client.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
     client.modify_load_balancer_attributes(
@@ -1821,28 +1705,7 @@ def test_modify_listener_http_to_https():
 @mock_elbv2
 @mock_ec2
 def test_redirect_action_listener_rule():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.128/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
-
+    response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     action = {
@@ -1900,27 +1763,7 @@ def test_redirect_action_listener_rule():
 @mock_elbv2
 @mock_ec2
 def test_cognito_action_listener_rule():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.128/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     action = {
@@ -1963,27 +1806,7 @@ def test_cognito_action_listener_rule():
 @mock_elbv2
 @mock_ec2
 def test_fixed_response_action_listener_rule():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.128/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     action = {
@@ -2024,27 +1847,7 @@ def test_fixed_response_action_listener_rule():
 @mock_elbv2
 @mock_ec2
 def test_fixed_response_action_listener_rule_validates_status_code():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.128/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     invalid_status_code_action = {
@@ -2072,27 +1875,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
 @mock_elbv2
 @mock_ec2
 def test_fixed_response_action_listener_rule_validates_content_type():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-
-    security_group = ec2.create_security_group(
-        GroupName="a-security-group", Description="First One"
-    )
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-    subnet1 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
-    )
-    subnet2 = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="172.28.7.128/26", AvailabilityZone="us-east-1b"
-    )
-
-    response = conn.create_load_balancer(
-        Name="my-lb",
-        Subnets=[subnet1.id, subnet2.id],
-        SecurityGroups=[security_group.id],
-        Scheme="internal",
-        Tags=[{"Key": "key_name", "Value": "a_value"}],
-    )
+    response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     invalid_content_type_action = {

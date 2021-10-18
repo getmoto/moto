@@ -26,6 +26,7 @@ def alarm_fixture(name="tester", action=None):
     )
 
 
+# Has boto3 equivalent
 @mock_cloudwatch_deprecated
 def test_create_alarm():
     conn = boto.connect_cloudwatch()
@@ -53,6 +54,7 @@ def test_create_alarm():
     assert "tester" in alarm.alarm_arn
 
 
+# Has boto3 equivalent
 @mock_cloudwatch_deprecated
 def test_delete_alarm():
     conn = boto.connect_cloudwatch()
@@ -72,6 +74,7 @@ def test_delete_alarm():
     alarms.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_cloudwatch_deprecated
 def test_put_metric_data():
     conn = boto.connect_cloudwatch()
@@ -92,6 +95,7 @@ def test_put_metric_data():
     dict(metric.dimensions).should.equal({"InstanceId": ["i-0123456,i-0123457"]})
 
 
+# Has boto3 equivalent
 @mock_cloudwatch_deprecated
 def test_describe_alarms():
     conn = boto.connect_cloudwatch()
@@ -127,6 +131,7 @@ def test_describe_alarms():
     alarms.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_cloudwatch_deprecated
 def test_describe_alarms_for_metric():
     conn = boto.connect_cloudwatch()
@@ -143,6 +148,7 @@ def test_describe_alarms_for_metric():
     alarms.should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_cloudwatch_deprecated
 def test_get_metric_statistics():
     conn = boto.connect_cloudwatch()

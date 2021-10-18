@@ -33,6 +33,7 @@ input_instance_groups = [
 ]
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_describe_cluster():
     conn = boto.connect_emr()
@@ -106,6 +107,7 @@ def test_describe_cluster():
     cluster.visibletoallusers.should.equal("true")
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_describe_jobflows():
     conn = boto.connect_emr()
@@ -158,6 +160,7 @@ def test_describe_jobflows():
     resp.should.have.length_of(2)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_describe_jobflow():
     conn = boto.connect_emr()
@@ -240,6 +243,7 @@ def test_describe_jobflow():
     jf.visibletoallusers.should.equal("true")
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_list_clusters():
     conn = boto.connect_emr()
@@ -308,6 +312,7 @@ def test_list_clusters():
     resp.clusters.should.have.length_of(30)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_run_jobflow():
     conn = boto.connect_emr()
@@ -325,6 +330,7 @@ def test_run_jobflow():
     job_flow.steps.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_run_jobflow_in_multiple_regions():
     regions = {}
@@ -341,6 +347,7 @@ def test_run_jobflow_in_multiple_regions():
         jf.name.should.equal(region)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_run_jobflow_with_new_params():
@@ -349,6 +356,7 @@ def test_run_jobflow_with_new_params():
     conn.run_jobflow(**run_jobflow_args)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_run_jobflow_with_visible_to_all_users():
@@ -359,6 +367,7 @@ def test_run_jobflow_with_visible_to_all_users():
         job_flow.visibletoallusers.should.equal(str(expected).lower())
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_run_jobflow_with_instance_groups():
@@ -380,6 +389,7 @@ def test_run_jobflow_with_instance_groups():
             instance_group.bidprice.should.equal(expected.bidprice)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_set_termination_protection():
@@ -397,6 +407,7 @@ def test_set_termination_protection():
     job_flow.terminationprotected.should.equal("false")
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_set_visible_to_all_users():
@@ -416,6 +427,7 @@ def test_set_visible_to_all_users():
     job_flow.visibletoallusers.should.equal("false")
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_terminate_jobflow():
     conn = boto.connect_emr()
@@ -431,6 +443,7 @@ def test_terminate_jobflow():
 # testing multiple end points for each feature
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_bootstrap_actions():
     bootstrap_actions = [
@@ -463,6 +476,7 @@ def test_bootstrap_actions():
         list(arg.value for arg in x.args).should.equal(y.args())
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_instance_groups():
     input_groups = dict((g.name, g) for g in input_instance_groups)
@@ -535,6 +549,7 @@ def test_instance_groups():
     int(igs["task-2"].instancerunningcount).should.equal(3)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_steps():
     input_steps = [
@@ -645,6 +660,7 @@ def test_steps():
     test_list_steps_with_states()
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_tags():
     input_tags = {"tag1": "val1", "tag2": "val2"}

@@ -1,7 +1,7 @@
 from .responses import MediaPackageResponse
 
 url_bases = [
-    "https?://mediapackage.(.+).amazonaws.com",
+    r"https?://mediapackage\.(.+)\.amazonaws.com",
 ]
 
 
