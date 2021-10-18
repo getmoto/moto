@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
+"""{{ escaped_service }} module initialization; sets value for base decorator."""
 from .models import {{ escaped_service }}_backends
 from ..core.models import base_decorator
 
-{{ escaped_service }}_backend = {{ escaped_service }}_backends['us-east-1']
 mock_{{ escaped_service }} = base_decorator({{ escaped_service }}_backends)
-

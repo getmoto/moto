@@ -11,7 +11,7 @@ class UnformattedGetAttTemplateException(Exception):
 
 
 class ValidationError(BadRequest):
-    def __init__(self, name_or_id, message=None):
+    def __init__(self, name_or_id=None, message=None):
         if message is None:
             message = "Stack with id {0} does not exist".format(name_or_id)
 

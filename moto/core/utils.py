@@ -6,10 +6,9 @@ import datetime
 import inspect
 import random
 import re
-import six
 import string
 from botocore.exceptions import ClientError
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
@@ -62,21 +61,19 @@ def pascal_to_camelcase(argument):
     return argument[0].lower() + argument[1:]
 
 
+def camelcase_to_pascal(argument):
+    """Converts a camelCase param to the PascalCase equivalent"""
+    return argument[0].upper() + argument[1:]
+
+
 def method_names_from_class(clazz):
-    # On Python 2, methods are different from functions, and the `inspect`
-    # predicates distinguish between them. On Python 3, methods are just
-    # regular functions, and `inspect.ismethod` doesn't work, so we have to
-    # use `inspect.isfunction` instead
-    if six.PY2:
-        predicate = inspect.ismethod
-    else:
-        predicate = inspect.isfunction
+    predicate = inspect.isfunction
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
 
 def get_random_hex(length=8):
     chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    return "".join(six.text_type(random.choice(chars)) for x in range(length))
+    return "".join(str(random.choice(chars)) for x in range(length))
 
 
 def get_random_message_id():
@@ -179,7 +176,7 @@ class convert_flask_to_responses_response(object):
 
     def __call__(self, request, *args, **kwargs):
         for key, val in request.headers.items():
-            if isinstance(val, six.binary_type):
+            if isinstance(val, bytes):
                 request.headers[key] = val.decode("utf-8")
 
         result = self.callback(request, request.url, request.headers)
@@ -191,14 +188,17 @@ def iso_8601_datetime_with_milliseconds(datetime):
     return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
+# Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
+def iso_8601_datetime_with_nanoseconds(datetime):
+    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+
+
 def iso_8601_datetime_without_milliseconds(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def iso_8601_datetime_without_milliseconds_s3(datetime):
-    return (
-        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000") + "Z"
-    )
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
@@ -225,12 +225,12 @@ def unix_time_millis(dt=None):
 
 def gen_amz_crc32(response, headerdict=None):
     if not isinstance(response, bytes):
-        response = response.encode()
+        response = response.encode("utf-8")
 
-    crc = str(binascii.crc32(response))
+    crc = binascii.crc32(response)
 
     if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({"x-amz-crc32": crc})
+        headerdict.update({"x-amz-crc32": str(crc)})
 
     return crc
 
@@ -252,7 +252,7 @@ def amz_crc32(f):
         headers = {}
         status = 200
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             body = response
         else:
             if len(response) == 2:
@@ -284,7 +284,7 @@ def amzn_request_id(f):
         headers = {}
         status = 200
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             body = response
         else:
             if len(response) == 2:
@@ -396,6 +396,41 @@ def remap_nested_keys(root, key_transform):
     if isinstance(root, dict):
         return {
             key_transform(k): remap_nested_keys(v, key_transform)
-            for k, v in six.iteritems(root)
+            for k, v in root.items()
         }
     return root
+
+
+def merge_dicts(dict1, dict2, remove_nulls=False):
+    """Given two arbitrarily nested dictionaries, merge the second dict into the first.
+
+    :param dict dict1: the dictionary to be updated.
+    :param dict dict2: a dictionary of keys/values to be merged into dict1.
+
+    :param bool remove_nulls: If true, updated values equal to None or an empty dictionary
+        will be removed from dict1.
+    """
+    for key in dict2:
+        if isinstance(dict2[key], dict):
+            if key in dict1 and key in dict2:
+                merge_dicts(dict1[key], dict2[key], remove_nulls)
+            else:
+                dict1[key] = dict2[key]
+            if dict1[key] == {} and remove_nulls:
+                dict1.pop(key)
+        else:
+            dict1[key] = dict2[key]
+            if dict1[key] is None and remove_nulls:
+                dict1.pop(key)
+
+
+def glob_matches(pattern, string):
+    """AWS API-style globbing regexes"""
+    pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
+    pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+
+    pattern = ".*" + pattern + ".*"
+
+    if re.match(pattern, str(string)):
+        return True
+    return False

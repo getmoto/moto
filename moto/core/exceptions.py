@@ -4,26 +4,38 @@ from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 import json
 
+# TODO: add "<Type>Sender</Type>" to error responses below?
+
 
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
     <Code>{{error_type}}</Code>
     <Message>{{message}}</Message>
     {% block extra %}{% endblock %}
-    <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
+    <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
 </Error>
 """
+
+WRAPPED_SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ErrorResponse{% if xmlns is defined %} xmlns="{{xmlns}}"{% endif %}>
+    <Error>
+        <Code>{{error_type}}</Code>
+        <Message>{{message}}</Message>
+        {% block extra %}{% endblock %}
+        <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
+    </Error>
+</ErrorResponse>"""
 
 ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <ErrorResponse>
     <Errors>
       <Error>
         <Code>{{error_type}}</Code>
-        <Message>{{message}}</Message>
+        <Message><![CDATA[{{message}}]]></Message>
         {% block extra %}{% endblock %}
       </Error>
     </Errors>
-  <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
+  <{{request_id_tag}}>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</{{request_id_tag}}>
 </ErrorResponse>
 """
 
@@ -36,9 +48,12 @@ ERROR_JSON_RESPONSE = """{
 
 class RESTError(HTTPException):
     code = 400
+    # most APIs use <RequestId>, but some APIs (including EC2, S3) use <RequestID>
+    request_id_tag_name = "RequestId"
 
     templates = {
         "single_error": SINGLE_ERROR_RESPONSE,
+        "wrapped_single_error": WRAPPED_SINGLE_ERROR_RESPONSE,
         "error": ERROR_RESPONSE,
         "error_json": ERROR_JSON_RESPONSE,
     }
@@ -49,20 +64,32 @@ class RESTError(HTTPException):
         self.error_type = error_type
         self.message = message
         self.description = env.get_template(template).render(
-            error_type=error_type, message=message, **kwargs
+            error_type=error_type,
+            message=message,
+            request_id_tag=self.request_id_tag_name,
+            **kwargs
         )
+
+        self.content_type = "application/xml"
+
+    def get_headers(self, *args, **kwargs):
+        return [
+            ("X-Amzn-ErrorType", self.error_type or "UnknownError"),
+            ("Content-Type", self.content_type),
+        ]
+
+    def get_body(self, *args, **kwargs):
+        return self.description
 
 
 class DryRunClientError(RESTError):
-    code = 400
+    code = 412
 
 
 class JsonRESTError(RESTError):
     def __init__(self, error_type, message, template="error_json", **kwargs):
         super(JsonRESTError, self).__init__(error_type, message, template, **kwargs)
-
-    def get_headers(self, *args, **kwargs):
-        return [("Content-Type", "application/json")]
+        self.content_type = "application/json"
 
     def get_body(self, *args, **kwargs):
         return self.description
@@ -135,3 +162,11 @@ class InvalidNextTokenException(JsonRESTError):
         super(InvalidNextTokenException, self).__init__(
             "InvalidNextTokenException", "The nextToken provided is invalid"
         )
+
+
+class InvalidToken(AWSError):
+    TYPE = "InvalidToken"
+    STATUS = 400
+
+    def __init__(self, message="Invalid token"):
+        super(InvalidToken, self).__init__("Invalid Token: {}".format(message))

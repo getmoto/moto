@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import re
 from itertools import cycle
-import six
 import datetime
 import time
 import uuid
@@ -17,7 +16,7 @@ from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 from moto.logs import logs_backends
 
-from .exceptions import InvalidParameterValueException, InternalFailure, ClientException
+from .exceptions import InvalidParameterValueException, ClientException, ValidationError
 from .utils import (
     make_arn_for_compute_env,
     make_arn_for_job_queue,
@@ -28,7 +27,8 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.docker_utilities import DockerModel, parse_image_ref
+from ..utilities.tagging_service import TaggingService
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -188,6 +188,7 @@ class JobDefinition(CloudFormationModel):
         _type,
         container_properties,
         region_name,
+        tags={},
         revision=0,
         retry_strategy=0,
     ):
@@ -199,13 +200,24 @@ class JobDefinition(CloudFormationModel):
         self.container_properties = container_properties
         self.arn = None
         self.status = "ACTIVE"
-
+        self.tagger = TaggingService()
         if parameters is None:
             parameters = {}
         self.parameters = parameters
 
         self._validate()
         self._update_arn()
+
+        tags = self._format_tags(tags)
+        # Validate the tags before proceeding.
+        errmsg = self.tagger.validate_tags(tags or [])
+        if errmsg:
+            raise ValidationError(errmsg)
+
+        self.tagger.tag_resource(self.arn, tags or [])
+
+    def _format_tags(self, tags):
+        return [{"Key": k, "Value": v} for k, v in tags.items()]
 
     def _update_arn(self):
         self.revision += 1
@@ -268,6 +280,7 @@ class JobDefinition(CloudFormationModel):
             "revision": self.revision,
             "status": self.status,
             "type": self.type,
+            "tags": self.tagger.get_tag_dict_for_resource(self.arn),
         }
         if self.container_properties is not None:
             result["containerProperties"] = self.container_properties
@@ -295,22 +308,30 @@ class JobDefinition(CloudFormationModel):
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
-
         res = backend.register_job_definition(
             def_name=resource_name,
             parameters=lowercase_first_key(properties.get("Parameters", {})),
             _type="container",
+            tags=lowercase_first_key(properties.get("Tags", {})),
             retry_strategy=lowercase_first_key(properties["RetryStrategy"]),
             container_properties=lowercase_first_key(properties["ContainerProperties"]),
         )
-
         arn = res[1]
 
         return backend.get_job_definition_by_arn(arn)
 
 
 class Job(threading.Thread, BaseModel, DockerModel):
-    def __init__(self, name, job_def, job_queue, log_backend, container_overrides):
+    def __init__(
+        self,
+        name,
+        job_def,
+        job_queue,
+        log_backend,
+        container_overrides,
+        depends_on,
+        all_jobs,
+    ):
         """
         Docker Job
 
@@ -335,6 +356,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
         self.job_stopped_reason = None
+        self.depends_on = depends_on
+        self.all_jobs = all_jobs
 
         self.stop = False
 
@@ -351,27 +374,48 @@ class Job(threading.Thread, BaseModel, DockerModel):
             "jobName": self.job_name,
             "jobQueue": self.job_queue.arn,
             "status": self.job_state,
-            "dependsOn": [],
+            "dependsOn": self.depends_on if self.depends_on else [],
         }
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
             result["startedAt"] = datetime2int(self.job_started_at)
         if self.job_stopped:
             result["stoppedAt"] = datetime2int(self.job_stopped_at)
             result["container"] = {}
-            result["container"]["command"] = [
-                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"'
-            ]
-            result["container"]["privileged"] = False
-            result["container"]["readonlyRootFilesystem"] = False
-            result["container"]["ulimits"] = {}
-            result["container"]["vcpus"] = 1
-            result["container"]["volumes"] = ""
+            result["container"]["command"] = self._get_container_property("command", [])
+            result["container"]["privileged"] = self._get_container_property(
+                "privileged", False
+            )
+            result["container"][
+                "readonlyRootFilesystem"
+            ] = self._get_container_property("readonlyRootFilesystem", False)
+            result["container"]["ulimits"] = self._get_container_property("ulimits", {})
+            result["container"]["vcpus"] = self._get_container_property("vcpus", 1)
+            result["container"]["memory"] = self._get_container_property("memory", 512)
+            result["container"]["volumes"] = self._get_container_property("volumes", [])
+            result["container"]["environment"] = self._get_container_property(
+                "environment", []
+            )
             result["container"]["logStreamName"] = self.log_stream_name
         if self.job_stopped_reason is not None:
             result["statusReason"] = self.job_stopped_reason
         return result
 
     def _get_container_property(self, p, default):
+        if p == "environment":
+            job_env = self.container_overrides.get(p, default)
+            jd_env = self.job_definition.container_properties.get(p, default)
+
+            job_env_dict = {_env["name"]: _env["value"] for _env in job_env}
+            jd_env_dict = {_env["name"]: _env["value"] for _env in jd_env}
+
+            for key in jd_env_dict.keys():
+                if key not in job_env_dict.keys():
+                    job_env.append({"name": key, "value": jd_env_dict[key]})
+
+            job_env.append({"name": "AWS_BATCH_JOB_ID", "value": self.job_id})
+
+            return job_env
+
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
         )
@@ -392,6 +436,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
         """
         try:
             self.job_state = "PENDING"
+
+            if self.depends_on and not self._wait_for_dependencies():
+                return
 
             image = self.job_definition.container_properties.get(
                 "image", "alpine:latest"
@@ -426,8 +473,12 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
-            self.job_state = "STARTING"
+
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
+            image_repository, image_tag = parse_image_ref(image)
+            # avoid explicit pulling here, to allow using cached images
+            # self.docker_client.images.pull(image_repository, image_tag)
+            self.job_state = "STARTING"
             container = self.docker_client.containers.run(
                 image,
                 cmd,
@@ -443,6 +494,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 container.reload()
                 while container.status == "running" and not self.stop:
                     container.reload()
+                    time.sleep(0.5)
 
                 # Container should be stopped by this point... unless asked to stop
                 if container.status == "running":
@@ -495,7 +547,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
 
-                self.job_state = "SUCCEEDED" if not self.stop else "FAILED"
+                result = container.wait() or {}
+                job_failed = self.stop or result.get("StatusCode", 0) > 0
+                self._mark_stopped(success=not job_failed)
 
             except Exception as err:
                 logger.error(
@@ -503,7 +557,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                         self.name, err
                     )
                 )
-                self.job_state = "FAILED"
+                self._mark_stopped(success=False)
                 container.kill()
             finally:
                 container.remove()
@@ -513,15 +567,41 @@ class Job(threading.Thread, BaseModel, DockerModel):
                     self.name, err
                 )
             )
-            self.job_state = "FAILED"
+            self._mark_stopped(success=False)
 
+    def _mark_stopped(self, success=True):
+        # Ensure that job_stopped/job_stopped_at-attributes are set first
+        # The describe-method needs them immediately when job_state is set
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
+        self.job_state = "SUCCEEDED" if success else "FAILED"
 
     def terminate(self, reason):
         if not self.stop:
             self.stop = True
             self.job_stopped_reason = reason
+
+    def _wait_for_dependencies(self):
+        dependent_ids = [dependency["jobId"] for dependency in self.depends_on]
+        successful_dependencies = set()
+        while len(successful_dependencies) != len(dependent_ids):
+            for dependent_id in dependent_ids:
+                if dependent_id in self.all_jobs:
+                    dependent_job = self.all_jobs[dependent_id]
+                    if dependent_job.job_state == "SUCCEEDED":
+                        successful_dependencies.add(dependent_id)
+                    if dependent_job.job_state == "FAILED":
+                        logger.error(
+                            "Terminating job {0} due to failed dependency {1}".format(
+                                self.name, dependent_job.name
+                            )
+                        )
+                        self._mark_stopped(success=False)
+                        return False
+
+            time.sleep(1)
+
+        return True
 
 
 class BatchBackend(BaseBackend):
@@ -638,7 +718,7 @@ class BatchBackend(BaseBackend):
 
     def get_job_definition_by_name_revision(self, name, revision):
         for job_def in self._job_definitions.values():
-            if job_def.name == name and job_def.revision == revision:
+            if job_def.name == name and job_def.revision == int(revision):
                 return job_def
         return None
 
@@ -716,6 +796,7 @@ class BatchBackend(BaseBackend):
                 "state": environment.state,
                 "type": environment.env_type,
                 "status": "VALID",
+                "statusReason": "Compute environment is available",
             }
             if environment.env_type == "MANAGED":
                 json_part["computeResources"] = environment.compute_resources
@@ -760,7 +841,7 @@ class BatchBackend(BaseBackend):
 
         if compute_resources is None and _type == "MANAGED":
             raise InvalidParameterValueException(
-                "computeResources must be specified when creating a MANAGED environment".format(
+                "computeResources must be specified when creating a {0} environment".format(
                     state
                 )
             )
@@ -800,7 +881,7 @@ class BatchBackend(BaseBackend):
                     security_group_names=[],
                     instance_type=instance_type,
                     region_name=self.region_name,
-                    subnet_id=six.next(subnet_cycle),
+                    subnet_id=next(subnet_cycle),
                     key_name=compute_resources.get("ec2KeyPair", "AWS_OWNED"),
                     security_group_ids=compute_resources["securityGroupIds"],
                 )
@@ -832,9 +913,10 @@ class BatchBackend(BaseBackend):
             "type",
         ):
             if param not in cr:
-                raise InvalidParameterValueException(
-                    "computeResources must contain {0}".format(param)
-                )
+                pass  # commenting out invalid check below - values may be missing (tf-compat)
+                # raise InvalidParameterValueException(
+                #     "computeResources must contain {0}".format(param)
+                # )
         for profile in self.iam_backend.get_instance_profiles():
             if profile.arn == cr["instanceRole"]:
                 break
@@ -843,11 +925,11 @@ class BatchBackend(BaseBackend):
                 "could not find instanceRole {0}".format(cr["instanceRole"])
             )
 
-        if cr["maxvCpus"] < 0:
+        if int(cr["maxvCpus"]) < 0:
             raise InvalidParameterValueException("maxVCpus must be positive")
-        if cr["minvCpus"] < 0:
+        if int(cr["minvCpus"]) < 0:
             raise InvalidParameterValueException("minVCpus must be positive")
-        if cr["maxvCpus"] < cr["minvCpus"]:
+        if int(cr["maxvCpus"]) < int(cr["minvCpus"]):
             raise InvalidParameterValueException(
                 "maxVCpus must be greater than minvCpus"
             )
@@ -889,9 +971,6 @@ class BatchBackend(BaseBackend):
                 "computeResources.type must be either EC2 | SPOT"
             )
 
-        if cr["type"] == "SPOT":
-            raise InternalFailure("SPOT NOT SUPPORTED YET")
-
     @staticmethod
     def find_min_instances_to_meet_vcpus(instance_types, target):
         """
@@ -913,7 +992,10 @@ class BatchBackend(BaseBackend):
                 instance_type = "m4.4xlarge"
 
             instance_vcpus.append(
-                (EC2_INSTANCE_TYPES[instance_type]["vcpus"], instance_type)
+                (
+                    EC2_INSTANCE_TYPES[instance_type]["VCpuInfo"]["DefaultVCpus"],
+                    instance_type,
+                )
             )
 
         instance_vcpus = sorted(instance_vcpus, key=lambda item: item[0], reverse=True)
@@ -958,7 +1040,8 @@ class BatchBackend(BaseBackend):
             if compute_env.env_type == "MANAGED":
                 # Delete compute environment
                 instance_ids = [instance.id for instance in compute_env.instances]
-                self.ec2_backend.terminate_instances(instance_ids)
+                if instance_ids:
+                    self.ec2_backend.terminate_instances(instance_ids)
 
     def update_compute_environment(
         self, compute_environment_name, state, compute_resources, service_role
@@ -1139,7 +1222,7 @@ class BatchBackend(BaseBackend):
             del self._job_queues[job_queue.arn]
 
     def register_job_definition(
-        self, def_name, parameters, _type, retry_strategy, container_properties
+        self, def_name, parameters, _type, tags, retry_strategy, container_properties
     ):
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
@@ -1150,13 +1233,15 @@ class BatchBackend(BaseBackend):
                 retry_strategy = retry_strategy["attempts"]
             except Exception:
                 raise ClientException("retryStrategy is malformed")
-
         if job_def is None:
+            if not tags:
+                tags = {}
             job_def = JobDefinition(
                 def_name,
                 parameters,
                 _type,
                 container_properties,
+                tags=tags,
                 region_name=self.region_name,
                 retry_strategy=retry_strategy,
             )
@@ -1205,6 +1290,8 @@ class BatchBackend(BaseBackend):
         # Got all the job defs were after, filter then by status
         if status is not None:
             return [job for job in jobs if job.status == status]
+        for job in jobs:
+            job.describe()
         return jobs
 
     def submit_job(
@@ -1236,6 +1323,8 @@ class BatchBackend(BaseBackend):
             queue,
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
+            depends_on=depends_on,
+            all_jobs=self._jobs,
         )
         self._jobs[job.job_id] = job
 
@@ -1285,6 +1374,12 @@ class BatchBackend(BaseBackend):
             jobs.append(job)
 
         return jobs
+
+    def cancel_job(self, job_id, reason):
+        job = self.get_job_by_id(job_id)
+        if job.job_state in ["SUBMITTED", "PENDING", "RUNNABLE"]:
+            job.terminate(reason)
+        # No-Op for jobs that have already started - user has to explicitly terminate those
 
     def terminate_job(self, job_id, reason):
         if job_id is None:

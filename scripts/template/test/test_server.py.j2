@@ -1,13 +1,9 @@
-from __future__ import unicode_literals
-
+"""Test different server responses."""
 import sure  # noqa
 
 import moto.server as server
 from moto import mock_{{ escaped_service }}
 
-'''
-Test the different server responses
-'''
 
 @mock_{{ escaped_service }}
 def test_{{ escaped_service }}_list():

@@ -5,7 +5,6 @@ import json
 import xmltodict
 
 from jinja2 import Template
-from six import iteritems
 
 from moto.core.responses import BaseResponse
 from .models import redshift_backends
@@ -147,6 +146,7 @@ class RedshiftResponse(BaseResponse):
             "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
             "iam_roles_arn": self._get_iam_roles(),
             "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting"),
+            "kms_key_id": self._get_param("KmsKeyId"),
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster["ClusterStatus"] = "creating"
@@ -249,7 +249,7 @@ class RedshiftResponse(BaseResponse):
         cluster_kwargs = {}
         # We only want parameters that were actually passed in, otherwise
         # we'll stomp all over our cluster metadata with None values.
-        for (key, value) in iteritems(request_kwargs):
+        for (key, value) in request_kwargs.items():
             if value is not None and value != []:
                 cluster_kwargs[key] = value
 
@@ -406,6 +406,34 @@ class RedshiftResponse(BaseResponse):
                 "DeleteClusterSecurityGroupResponse": {
                     "ResponseMetadata": {
                         "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    }
+                }
+            }
+        )
+
+    def authorize_cluster_security_group_ingress(self):
+        cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
+        cidr_ip = self._get_param("CIDRIP")
+
+        security_group = self.redshift_backend.authorize_cluster_security_group_ingress(
+            cluster_security_group_name, cidr_ip
+        )
+
+        return self.get_response(
+            {
+                "AuthorizeClusterSecurityGroupIngressResponse": {
+                    "AuthorizeClusterSecurityGroupIngressResult": {
+                        "ClusterSecurityGroup": {
+                            "ClusterSecurityGroupName": cluster_security_group_name,
+                            "Description": security_group.description,
+                            "IPRanges": [
+                                {
+                                    "Status": "authorized",
+                                    "CIDRIP": cidr_ip,
+                                    "Tags": security_group.tags,
+                                },
+                            ],
+                        }
                     }
                 }
             }

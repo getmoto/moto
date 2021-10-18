@@ -2,8 +2,9 @@ import weakref
 
 from boto3 import Session
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from .exceptions import InvalidParameterValueError, ResourceNotFoundException
+from .utils import make_arn
 
 
 class FakeEnvironment(BaseModel):
@@ -23,15 +24,8 @@ class FakeEnvironment(BaseModel):
 
     @property
     def environment_arn(self):
-        return (
-            "arn:aws:elasticbeanstalk:{region}:{account_id}:"
-            "environment/{application_name}/{environment_name}".format(
-                region=self.region,
-                account_id="123456789012",
-                application_name=self.application_name,
-                environment_name=self.environment_name,
-            )
-        )
+        resource_path = "%s/%s" % (self.application_name, self.environment_name)
+        return make_arn(self.region, ACCOUNT_ID, "environment", resource_path)
 
     @property
     def platform_arn(self):
@@ -68,6 +62,10 @@ class FakeApplication(BaseModel):
     def region(self):
         return self.backend.region
 
+    @property
+    def arn(self):
+        return make_arn(self.region, ACCOUNT_ID, "application", self.application_name)
+
 
 class EBBackend(BaseBackend):
     def __init__(self, region):
@@ -80,6 +78,15 @@ class EBBackend(BaseBackend):
         self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk-health"
+        )
 
     def create_application(self, application_name):
         if application_name in self.applications:

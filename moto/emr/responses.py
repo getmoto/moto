@@ -6,7 +6,7 @@ from functools import wraps
 
 import pytz
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
@@ -185,8 +185,20 @@ class ElasticMapReduceResponse(BaseResponse):
         template = self.response_template(LIST_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups, marker=marker)
 
+    @generate_boto3_response("ListInstances")
     def list_instances(self):
-        raise NotImplementedError
+        cluster_id = self._get_param("ClusterId")
+        marker = self._get_param("Marker")
+        instance_group_id = self._get_param("InstanceGroupId")
+        instance_group_types = self._get_param("InstanceGroupTypes")
+        instances, marker = self.backend.list_instances(
+            cluster_id,
+            marker=marker,
+            instance_group_id=instance_group_id,
+            instance_group_types=instance_group_types,
+        )
+        template = self.response_template(LIST_INSTANCES_TEMPLATE)
+        return template.render(instances=instances, marker=marker)
 
     @generate_boto3_response("ListSteps")
     def list_steps(self):
@@ -395,7 +407,13 @@ class ElasticMapReduceResponse(BaseResponse):
                 self._parse_ebs_configuration(ig)
                 # Adding support for auto_scaling_policy
                 Unflattener.unflatten_complex_params(ig, "auto_scaling_policy")
-            self.backend.add_instance_groups(cluster.id, instance_groups)
+            instance_group_result = self.backend.add_instance_groups(
+                cluster.id, instance_groups
+            )
+            for i in range(0, len(instance_group_result)):
+                self.backend.add_instances(
+                    cluster.id, instance_groups[i], instance_group_result[i]
+                )
 
         tags = self._get_list_prefix("Tags.member")
         if tags:
@@ -487,7 +505,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @generate_boto3_response("SetTerminationProtection")
     def set_termination_protection(self):
-        termination_protection = self._get_param("TerminationProtected")
+        termination_protection = self._get_bool_param("TerminationProtected")
         job_ids = self._get_multi_param("JobFlowIds.member")
         self.backend.set_termination_protection(job_ids, termination_protection)
         template = self.response_template(SET_TERMINATION_PROTECTION_TEMPLATE)
@@ -511,13 +529,16 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("PutAutoScalingPolicy")
     def put_auto_scaling_policy(self):
         cluster_id = self._get_param("ClusterId")
+        cluster = self.backend.get_cluster(cluster_id)
         instance_group_id = self._get_param("InstanceGroupId")
         auto_scaling_policy = self._get_param("AutoScalingPolicy")
         instance_group = self.backend.put_auto_scaling_policy(
             instance_group_id, auto_scaling_policy
         )
         template = self.response_template(PUT_AUTO_SCALING_POLICY)
-        return template.render(cluster_id=cluster_id, instance_group=instance_group)
+        return template.render(
+            cluster_id=cluster_id, cluster=cluster, instance_group=instance_group
+        )
 
     @generate_boto3_response("RemoveAutoScalingPolicy")
     def remove_auto_scaling_policy(self):
@@ -673,6 +694,7 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       <TerminationProtected>{{ cluster.termination_protected|lower }}</TerminationProtected>
       <VisibleToAllUsers>{{ cluster.visible_to_all_users|lower }}</VisibleToAllUsers>
       <StepConcurrencyLevel>{{ cluster.step_concurrency_level }}</StepConcurrencyLevel>
+      <ClusterArn>{{ cluster.arn }}</ClusterArn>
     </Cluster>
   </DescribeClusterResult>
   <ResponseMetadata>
@@ -922,6 +944,7 @@ LIST_CLUSTERS_TEMPLATE = """<ListClustersResponse xmlns="http://elasticmapreduce
             {% endif %}
           </Timeline>
         </Status>
+        <ClusterArn>{{ cluster.arn }}</ClusterArn>
       </member>
       {% endfor %}
     </Clusters>
@@ -1100,6 +1123,55 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
   </ResponseMetadata>
 </ListInstanceGroupsResponse>"""
 
+LIST_INSTANCES_TEMPLATE = """<ListInstancesResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ListInstancesResult>
+    <Instances>
+     {% for instance in instances %}
+      <member>
+        <Id>{{ instance.id }}</Id>
+        <Ec2InstanceId>{{ instance.ec2_instance_id }}</Ec2InstanceId>
+        <PublicDnsName>{{ instance.details.public_dns }}</PublicDnsName>
+        <PublicIpAddress>{{ instance.details.public_ip }}</PublicIpAddress>
+        <PrivateDnsName>{{ instance.details.private_dns }}</PrivateDnsName>
+        <PrivateIpAddress>{{ instance.details.private_ip }}</PrivateIpAddress>
+        <InstanceGroupId>{{ instance.instance_group.id }}</InstanceGroupId>
+        <InstanceFleetId>{{ instance.instance_fleet_id }}</InstanceFleetId>
+        <Market>{{ instance.instance_group.market }}</Market>
+        <InstanceType>{{ instance.details.instance_type }}</InstanceType>
+         <EbsVolumes>
+              {% for volume in instance.details.block_device_mapping %}
+          <member>
+              <Device>{{ volume }}</Device>
+              <VolumeId>{{ instance.details.block_device_mapping[volume].volume_id }}</VolumeId>
+          </member>
+              {% endfor %}
+        </EbsVolumes>
+       <Status>
+          <State>{{ instance.instance_group.state }}</State>
+          <StateChangeReason>
+            {% if instance.state_change_reason is not none %}
+            <Message>{{ instance.state_change_reason }}</Message>
+            {% endif %}
+          </StateChangeReason>
+          <Timeline>
+            <CreationDateTime>{{ instance.instance_group.creation_datetime.isoformat() }}</CreationDateTime>
+            {% if instance.instance_group.end_datetime is not none %}
+            <EndDateTime>{{ instance.instance_group.end_datetime.isoformat() }}</EndDateTime>
+            {% endif %}
+            {% if instance.instance_group.ready_datetime is not none %}
+            <ReadyDateTime>{{ instance.instance_group.ready_datetime.isoformat() }}</ReadyDateTime>
+            {% endif %}
+          </Timeline>
+        </Status>
+      </member>
+    {% endfor %}
+    </Instances>
+ </ListInstancesResult>
+ <ResponseMetadata>
+    <RequestId>4248c46c-71c0-4772-b155-0e992dc30027</RequestId>
+  </ResponseMetadata>
+</ListInstancesResponse>"""
+
 LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <ListStepsResult>
     <Steps>
@@ -1182,6 +1254,7 @@ REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticmapreduce.ama
 RUN_JOB_FLOW_TEMPLATE = """<RunJobFlowResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <RunJobFlowResult>
     <JobFlowId>{{ cluster.id }}</JobFlowId>
+    <ClusterArn>{{ cluster.arn }}</ClusterArn>
   </RunJobFlowResult>
   <ResponseMetadata>
     <RequestId>8296d8b8-ed85-11dd-9877-6fad448a8419</RequestId>
@@ -1311,6 +1384,7 @@ PUT_AUTO_SCALING_POLICY = """<PutAutoScalingPolicyResponse xmlns="http://elastic
         {% endif %}
     </AutoScalingPolicy>
     {% endif %}
+    <ClusterArn>{{ cluster.arn }}</ClusterArn>
   </PutAutoScalingPolicyResult>
   <ResponseMetadata>
     <RequestId>d47379d9-b505-49af-9335-a68950d82535</RequestId>

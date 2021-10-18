@@ -67,6 +67,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         requires_compatibilities = self._get_param("requiresCompatibilities")
         cpu = self._get_param("cpu")
         memory = self._get_param("memory")
+        task_role_arn = self._get_param("taskRoleArn")
+        execution_role_arn = self._get_param("executionRoleArn")
+
         task_definition = self.ecs_backend.register_task_definition(
             family,
             container_definitions,
@@ -77,6 +80,8 @@ class EC2ContainerServiceResponse(BaseResponse):
             requires_compatibilities=requires_compatibilities,
             cpu=cpu,
             memory=memory,
+            task_role_arn=task_role_arn,
+            execution_role_arn=execution_role_arn,
         )
         return json.dumps({"taskDefinition": task_definition.response_object})
 
@@ -111,8 +116,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition_str = self._get_param("taskDefinition")
         count = self._get_int_param("count")
         started_by = self._get_param("startedBy")
+        tags = self._get_param("tags")
         tasks = self.ecs_backend.run_task(
-            cluster_str, task_definition_str, count, overrides, started_by
+            cluster_str, task_definition_str, count, overrides, started_by, tags
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}
@@ -170,6 +176,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         desired_count = self._get_int_param("desiredCount")
         load_balancers = self._get_param("loadBalancers")
         scheduling_strategy = self._get_param("schedulingStrategy")
+        service_registries = self._get_param("serviceRegistries")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
@@ -183,6 +190,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
+            service_registries=service_registries,
         )
         return json.dumps({"service": service.response_object})
 

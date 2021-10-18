@@ -282,30 +282,52 @@ def test_execution_of_remove_in_list(table):
     assert expected_item == item
 
 
-def test_execution_of_delete_element_from_set(table):
-    update_expression = "delete s :value"
+@pytest.mark.parametrize("attr_name", ["s", "#placeholder"])
+def test_execution_of_delete_element_from_set(table, attr_name):
+    expression_attribute_names = {"#placeholder": "s"}
+    update_expression = "delete {} :value".format(attr_name)
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
-        attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]},},
+        attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]}},
     )
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,
-        expression_attribute_names=None,
+        expression_attribute_names=expression_attribute_names,
         expression_attribute_values={":value": {"SS": ["value2", "value5"]}},
         item=item,
         table=table,
     ).validate()
-    UpdateExpressionExecutor(validated_ast, item, None).execute()
+    UpdateExpressionExecutor(validated_ast, item, expression_attribute_names).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
         hash_key_type="TYPE",
         range_key=None,
         range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value3"]},},
+    )
+    assert expected_item == item
+
+    # delete last elements
+    update_expression = "delete {} :value".format(attr_name)
+    update_expression_ast = UpdateExpressionParser.make(update_expression)
+    validated_ast = UpdateExpressionValidator(
+        update_expression_ast,
+        expression_attribute_names=expression_attribute_names,
+        expression_attribute_values={":value": {"SS": ["value1", "value3"]}},
+        item=item,
+        table=table,
+    ).validate()
+    UpdateExpressionExecutor(validated_ast, item, expression_attribute_names).execute()
+    expected_item = Item(
+        hash_key=DynamoType({"S": "id"}),
+        hash_key_type="TYPE",
+        range_key=None,
+        range_key_type=None,
+        attrs={"id": {"S": "foo2"}},
     )
     assert expected_item == item
 

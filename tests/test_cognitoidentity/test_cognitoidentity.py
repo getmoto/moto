@@ -12,6 +12,32 @@ from uuid import UUID
 
 
 @mock_cognitoidentity
+@pytest.mark.parametrize("name", ["pool#name", "with!excl", "with?quest"])
+def test_create_identity_pool_invalid_name(name):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    with pytest.raises(ClientError) as exc:
+        conn.create_identity_pool(
+            IdentityPoolName=name, AllowUnauthenticatedIdentities=False
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"1 validation error detected: Value '{name}' at 'identityPoolName' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w\\s+=,.@-]+"
+    )
+
+
+@mock_cognitoidentity
+@pytest.mark.parametrize("name", ["x", "pool-", "pool_name", "with space"])
+def test_create_identity_pool_valid_name(name):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    conn.create_identity_pool(
+        IdentityPoolName=name, AllowUnauthenticatedIdentities=False
+    )
+
+
+@mock_cognitoidentity
 def test_create_identity_pool():
     conn = boto3.client("cognito-identity", "us-west-2")
 
@@ -69,6 +95,43 @@ def test_describe_identity_pool():
     assert result["OpenIdConnectProviderARNs"] == res["OpenIdConnectProviderARNs"]
     assert result["CognitoIdentityProviders"] == res["CognitoIdentityProviders"]
     assert result["SamlProviderARNs"] == res["SamlProviderARNs"]
+
+
+@pytest.mark.parametrize(
+    "key,initial_value,updated_value",
+    [
+        (
+            "SupportedLoginProviders",
+            {"graph.facebook.com": "123456789012345"},
+            {"graph.facebook.com": "123456789012345", "graph.google.com": "00000000"},
+        ),
+        ("SupportedLoginProviders", {"graph.facebook.com": "123456789012345"}, {}),
+        ("DeveloperProviderName", "dev1", "dev2"),
+    ],
+)
+@mock_cognitoidentity
+def test_update_identity_pool(key, initial_value, updated_value):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    res = conn.create_identity_pool(
+        IdentityPoolName="TestPool",
+        AllowUnauthenticatedIdentities=False,
+        **dict({key: initial_value}),
+    )
+
+    first = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])
+    first[key].should.equal(initial_value)
+
+    response = conn.update_identity_pool(
+        IdentityPoolId=res["IdentityPoolId"],
+        IdentityPoolName="TestPool",
+        AllowUnauthenticatedIdentities=False,
+        **dict({key: updated_value}),
+    )
+    response[key].should.equal(updated_value)
+
+    second = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])
+    second[key].should.equal(response[key])
 
 
 @mock_cognitoidentity

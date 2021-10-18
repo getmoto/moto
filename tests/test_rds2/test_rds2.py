@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from botocore.exceptions import ClientError
 import boto3
+import pytest
 import sure  # noqa
 from moto import mock_ec2, mock_kms, mock_rds2
 from moto.core import ACCOUNT_ID
@@ -30,7 +31,7 @@ def test_create_database():
     db_instance["MasterUsername"].should.equal("root")
     db_instance["DBSecurityGroups"][0]["DBSecurityGroupName"].should.equal("my_sg")
     db_instance["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
     db_instance["DBInstanceStatus"].should.equal("available")
     db_instance["DBName"].should.equal("staging-postgres")
@@ -311,7 +312,7 @@ def test_get_databases():
     list(instances["DBInstances"]).should.have.length_of(1)
     instances["DBInstances"][0]["DBInstanceIdentifier"].should.equal("db-master-1")
     instances["DBInstances"][0]["DBInstanceArn"].should.equal(
-        "arn:aws:rds:us-west-2:1234567890:db:db-master-1"
+        "arn:aws:rds:us-west-2:{}:db:db-master-1".format(ACCOUNT_ID)
     )
 
 
@@ -472,14 +473,6 @@ def test_delete_database():
 
 
 @mock_rds2
-def test_delete_non_existent_database():
-    conn = boto3.client("rds2", region_name="us-west-2")
-    conn.delete_db_instance.when.called_with(
-        DBInstanceIdentifier="not-a-db"
-    ).should.throw(ClientError)
-
-
-@mock_rds2
 def test_create_db_snapshots():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_snapshot.when.called_with(
@@ -608,6 +601,88 @@ def test_delete_db_snapshot():
     conn.describe_db_snapshots.when.called_with(
         DBSnapshotIdentifier="snapshot-1"
     ).should.throw(ClientError)
+
+
+@mock_rds2
+def test_restore_db_instance_from_db_snapshot():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        DBSecurityGroups=["my_sg"],
+    )
+    conn.describe_db_instances()["DBInstances"].should.have.length_of(1)
+
+    conn.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    )
+
+    # restore
+    new_instance = conn.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot-1"
+    )["DBInstance"]
+    new_instance["DBInstanceIdentifier"].should.equal("db-restore-1")
+    new_instance["DBInstanceClass"].should.equal("db.m1.small")
+    new_instance["StorageType"].should.equal("gp2")
+    new_instance["Engine"].should.equal("postgres")
+    new_instance["DBName"].should.equal("staging-postgres")
+    new_instance["DBParameterGroups"][0]["DBParameterGroupName"].should.equal(
+        "default.postgres9.3"
+    )
+    new_instance["DBSecurityGroups"].should.equal(
+        [{"DBSecurityGroupName": "my_sg", "Status": "active"}]
+    )
+    new_instance["Endpoint"]["Port"].should.equal(5432)
+
+    # Verify it exists
+    conn.describe_db_instances()["DBInstances"].should.have.length_of(2)
+    conn.describe_db_instances(DBInstanceIdentifier="db-restore-1")[
+        "DBInstances"
+    ].should.have.length_of(1)
+
+
+@mock_rds2
+def test_restore_db_instance_from_db_snapshot_and_override_params():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    conn.describe_db_instances()["DBInstances"].should.have.length_of(1)
+    conn.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    )
+
+    # restore with some updated attributes
+    new_instance = conn.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="db-restore-1",
+        DBSnapshotIdentifier="snapshot-1",
+        Port=10000,
+        VpcSecurityGroupIds=["new_vpc"],
+    )["DBInstance"]
+    new_instance["DBInstanceIdentifier"].should.equal("db-restore-1")
+    new_instance["DBParameterGroups"][0]["DBParameterGroupName"].should.equal(
+        "default.postgres9.3"
+    )
+    new_instance["DBSecurityGroups"].should.equal(
+        [{"DBSecurityGroupName": "my_sg", "Status": "active"}]
+    )
+    new_instance["VpcSecurityGroups"].should.equal(
+        [{"VpcSecurityGroupId": "new_vpc", "Status": "active"}]
+    )
+    new_instance["Endpoint"]["Port"].should.equal(10000)
 
 
 @mock_rds2
@@ -793,9 +868,12 @@ def test_modify_non_existent_option_group():
 @mock_rds2
 def test_delete_non_existent_database():
     conn = boto3.client("rds", region_name="us-west-2")
-    conn.delete_db_instance.when.called_with(
-        DBInstanceIdentifier="not-a-db"
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.delete_db_instance(DBInstanceIdentifier="non-existent")
+    ex.value.response["Error"]["Code"].should.equal("DBInstanceNotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "DBInstance non-existent not found."
+    )
 
 
 @mock_rds2
@@ -1245,6 +1323,36 @@ def test_create_database_subnet_group():
     subnets = result["DBSubnetGroup"]["Subnets"]
     subnet_group_ids = [subnets[0]["SubnetIdentifier"], subnets[1]["SubnetIdentifier"]]
     list(subnet_group_ids).should.equal(subnet_ids)
+
+
+@mock_ec2
+@mock_rds2
+def test_modify_database_subnet_group():
+    vpc_conn = boto3.client("ec2", "us-west-2")
+    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet1 = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
+        "Subnet"
+    ]
+    subnet2 = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.2.0/24")[
+        "Subnet"
+    ]
+
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_subnet_group(
+        DBSubnetGroupName="db_subnet",
+        DBSubnetGroupDescription="my db subnet",
+        SubnetIds=[subnet1["SubnetId"]],
+    )
+
+    conn.modify_db_subnet_group(
+        DBSubnetGroupName="db_subnet",
+        DBSubnetGroupDescription="my updated desc",
+        SubnetIds=[subnet1["SubnetId"], subnet2["SubnetId"]],
+    )
+
+    groups = conn.describe_db_subnet_groups()["DBSubnetGroups"]
+    # FIXME: Group is deleted atm
+    # TODO: we should check whether all attrs are persisted
 
 
 @mock_ec2

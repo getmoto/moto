@@ -6,6 +6,7 @@ from collections import defaultdict
 import copy
 import datetime
 from gzip import GzipFile
+from sys import platform
 
 import docker
 import docker.errors
@@ -51,7 +52,7 @@ from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,9 @@ class _DockerDataVolumeContext:
                 volumes = {self.name: {"bind": "/tmp/data", "mode": "rw"}}
             else:
                 volumes = {self.name: "/tmp/data"}
+            self._lambda_func.docker_client.images.pull(
+                ":".join(parse_image_ref("alpine"))
+            )
             container = self._lambda_func.docker_client.containers.run(
                 "alpine", "sleep 100", volumes=volumes, detach=True
             )
@@ -183,6 +187,29 @@ def _validate_s3_bucket_and_key(data):
                 "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.",
             )
     return key
+
+
+class Permission(CloudFormationModel):
+    def __init__(self, region):
+        self.region = region
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Permission"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::Lambda::Permission"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        backend = lambda_backends[region_name]
+        fn = backend.get_function(properties["FunctionName"])
+        fn.policy.add_statement(raw=json.dumps(properties))
+        return Permission(region=region_name)
 
 
 class LayerVersion(CloudFormationModel):
@@ -316,7 +343,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.layers = self._get_layers_data(spec.get("Layers", []))
 
         self.logs_group_name = "/aws/lambda/{}".format(self.function_name)
-        self.logs_backend.ensure_log_group(self.logs_group_name, [])
 
         # this isn't finished yet. it needs to find out the VpcId value
         self._vpc_config = spec.get(
@@ -341,6 +367,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+            else:
+                self.code_bytes = ""
+                self.code_size = 0
+                self.code_sha_256 = ""
 
         self.function_arn = make_function_arn(
             self.region, ACCOUNT_ID, self.function_name
@@ -510,6 +540,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return s
 
     def _invoke_lambda(self, code, event=None, context=None):
+        # Create the LogGroup if necessary, to write the result to
+        self.logs_backend.ensure_log_group(self.logs_group_name, [])
         # TODO: context not yet implemented
         if event is None:
             event = dict()
@@ -538,16 +570,25 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
+
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
-                    self.docker_client.ping()  # Verify Docker is running
                     run_kwargs = (
                         dict(links={"motoserver": "motoserver"})
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
+                    # add host.docker.internal host on linux to emulate Mac + Windows behavior
+                    #   for communication with other mock AWS services running on localhost
+                    if platform == "linux" or platform == "linux2":
+                        run_kwargs["extra_hosts"] = {
+                            "host.docker.internal": "host-gateway"
+                        }
+
+                    image_ref = "lambci/lambda:{}".format(self.run_time)
+                    self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(
-                        "lambci/lambda:{}".format(self.run_time),
+                        image_ref,
                         [self.handler, json.dumps(event)],
                         remove=False,
                         mem_limit="{}m".format(self.memory_size),
@@ -575,26 +616,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
             output = output.decode("utf-8")
 
-            # Send output to "logs" backend
-            invoke_id = uuid.uuid4().hex
-            log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
-                date=datetime.datetime.utcnow(),
-                version=self.version,
-                invoke_id=invoke_id,
-            )
-
-            self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
-
-            log_events = [
-                {"timestamp": unix_time_millis(), "message": line}
-                for line in output.splitlines()
-            ]
-            self.logs_backend.put_log_events(
-                self.logs_group_name, log_stream_name, log_events, None
-            )
-
-            if exit_code != 0:
-                raise Exception("lambda invoke failed output: {}".format(output))
+            self.save_logs(output)
 
             # We only care about the response from the lambda
             # Which is the last line of the output, according to https://github.com/lambci/docker-lambda/issues/25
@@ -602,15 +624,28 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             logs = os.linesep.join(
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
-            return resp, False, logs
+            invocation_error = exit_code != 0
+            return resp, invocation_error, logs
         except docker.errors.DockerException as e:
             # Docker itself is probably not running - there will be no Lambda-logs to handle
-            return "error running docker: {}".format(e), True, ""
-        except BaseException as e:
-            logs = os.linesep.join(
-                [line for line in self.convert(output).splitlines()[:-1]]
-            )
-            return "error running lambda: {}".format(e), True, logs
+            msg = "error running docker: {}".format(e)
+            self.save_logs(msg)
+            return msg, True, ""
+
+    def save_logs(self, output):
+        # Send output to "logs" backend
+        invoke_id = uuid.uuid4().hex
+        log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+            date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id,
+        )
+        self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
+        log_events = [
+            {"timestamp": unix_time_millis(), "message": line}
+            for line in output.splitlines()
+        ]
+        self.logs_backend.put_log_events(
+            self.logs_group_name, log_stream_name, log_events, None
+        )
 
     def invoke(self, body, request_headers, response_headers):
 
@@ -937,7 +972,9 @@ class LambdaStorage(object):
         fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
-    def publish_function(self, name):
+    def publish_function(self, name_or_arn, description=""):
+        function = self.get_function_by_name_or_arn(name_or_arn)
+        name = function.function_name
         if name not in self._functions:
             return None
         if not self._functions[name]["latest"]:
@@ -946,6 +983,8 @@ class LambdaStorage(object):
         new_version = len(self._functions[name]["versions"]) + 1
         fn = copy.copy(self._functions[name]["latest"])
         fn.set_version(new_version)
+        if description:
+            fn.description = description
 
         self._functions[name]["versions"].append(fn)
         self._arns[fn.function_arn] = fn
@@ -999,10 +1038,23 @@ class LambdaStorage(object):
         result = []
 
         for function_group in self._functions.values():
-            if function_group["latest"] is not None:
-                result.append(function_group["latest"])
+            latest = copy.deepcopy(function_group["latest"])
+            latest.function_arn = "{}:$LATEST".format(latest.function_arn)
+            result.append(latest)
 
             result.extend(function_group["versions"])
+
+        return result
+
+    def latest(self):
+        """
+        Return the list of functions with version @LATEST
+        :return:
+        """
+        result = []
+        for function_group in self._functions.values():
+            if function_group["latest"] is not None:
+                result.append(function_group["latest"])
 
         return result
 
@@ -1051,6 +1103,13 @@ class LambdaBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "lambda"
+        )
+
     def create_function(self, spec):
         function_name = spec.get("FunctionName", None)
         if function_name is None:
@@ -1062,6 +1121,9 @@ class LambdaBackend(BaseBackend):
 
         if spec.get("Publish"):
             ver = self.publish_function(function_name)
+            fn = copy.deepcopy(
+                fn
+            )  # We don't want to change the actual version - just the return value
             fn.version = ver.version
         return fn
 
@@ -1133,8 +1195,8 @@ class LambdaBackend(BaseBackend):
     def layers_versions_by_arn(self, layer_version_arn):
         return self._layers.get_layer_version_by_arn(layer_version_arn)
 
-    def publish_function(self, function_name):
-        return self._lambdas.publish_function(function_name)
+    def publish_function(self, function_name, description=""):
+        return self._lambdas.publish_function(function_name, description)
 
     def get_function(self, function_name_or_arn, qualifier=None):
         return self._lambdas.get_function_by_name_or_arn(
@@ -1181,8 +1243,10 @@ class LambdaBackend(BaseBackend):
     def delete_function(self, function_name, qualifier=None):
         return self._lambdas.del_function(function_name, qualifier)
 
-    def list_functions(self):
-        return self._lambdas.all()
+    def list_functions(self, func_version=None):
+        if func_version == "ALL":
+            return self._lambdas.all()
+        return self._lambdas.latest()
 
     def send_sqs_batch(self, function_arn, messages, queue_arn):
         success = True

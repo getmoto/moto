@@ -3,14 +3,15 @@ from __future__ import unicode_literals
 
 import boto3
 
-from moto import mock_secretsmanager
-from botocore.exceptions import ClientError
+from moto import mock_secretsmanager, mock_lambda, settings
+from moto.core import ACCOUNT_ID
+from botocore.exceptions import ClientError, ParamValidationError
 import string
 import pytz
 from datetime import datetime
+from uuid import uuid4
 import sure  # noqa
 import pytest
-from six import b
 
 DEFAULT_SECRET_NAME = "test-secret"
 
@@ -30,11 +31,15 @@ def test_get_secret_value():
 def test_get_secret_value_by_arn():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
+    name = "java-util-test-password"
     secret_value = "test_get_secret_value_by_arn"
-    result = conn.create_secret(
-        Name="java-util-test-password", SecretString=secret_value
+    result = conn.create_secret(Name=name, SecretString=secret_value)
+    arn = result["ARN"]
+    arn.should.match(
+        "^arn:aws:secretsmanager:us-west-2:{}:secret:{}".format(ACCOUNT_ID, name)
     )
-    result = conn.get_secret_value(SecretId=result["ARN"])
+
+    result = conn.get_secret_value(SecretId=arn)
     assert result["SecretString"] == secret_value
 
 
@@ -43,10 +48,10 @@ def test_get_secret_value_binary():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     create_secret = conn.create_secret(
-        Name="java-util-test-password", SecretBinary=b("foosecret")
+        Name="java-util-test-password", SecretBinary=b"foosecret"
     )
     result = conn.get_secret_value(SecretId="java-util-test-password")
-    assert result["SecretBinary"] == b("foosecret")
+    assert result["SecretBinary"] == b"foosecret"
 
 
 @mock_secretsmanager
@@ -452,6 +457,21 @@ def test_describe_secret_with_arn():
 
 
 @mock_secretsmanager
+def test_describe_secret_with_KmsKeyId():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    results = conn.create_secret(
+        Name="test-secret", SecretString="foosecret", KmsKeyId="dummy_arn"
+    )
+
+    secret_description = conn.describe_secret(SecretId=results["ARN"])
+
+    secret_description["KmsKeyId"].should.equal("dummy_arn")
+    conn.list_secrets()["SecretList"][0]["KmsKeyId"].should.equal(
+        secret_description["KmsKeyId"]
+    )
+
+
+@mock_secretsmanager
 def test_describe_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -628,6 +648,131 @@ def test_rotate_secret_rotation_period_too_long():
         )
 
 
+def get_rotation_zip_file():
+    from tests.test_awslambda.utilities import _process_lambda
+
+    func_str = """
+import boto3
+import json
+
+def lambda_handler(event, context):
+    arn = event['SecretId']
+    token = event['ClientRequestToken']
+    step = event['Step']
+
+    client = boto3.client("secretsmanager", region_name="us-west-2", endpoint_url="http://motoserver:5000")
+    metadata = client.describe_secret(SecretId=arn)
+    value = client.get_secret_value(SecretId=arn, VersionId=token, VersionStage="AWSPENDING")
+
+    if not metadata['RotationEnabled']:
+        print("Secret %s is not enabled for rotation." % arn)
+        raise ValueError("Secret %s is not enabled for rotation." % arn)
+    versions = metadata['VersionIdsToStages']
+    if token not in versions:
+        print("Secret version %s has no stage for rotation of secret %s." % (token, arn))
+        raise ValueError("Secret version %s has no stage for rotation of secret %s." % (token, arn))
+    if "AWSCURRENT" in versions[token]:
+        print("Secret version %s already set as AWSCURRENT for secret %s." % (token, arn))
+        return
+    elif "AWSPENDING" not in versions[token]:
+        print("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
+        raise ValueError("Secret version %s not set as AWSPENDING for rotation of secret %s." % (token, arn))
+
+    if step == 'createSecret':
+        try:
+            client.get_secret_value(SecretId=arn, VersionId=token, VersionStage='AWSPENDING')
+        except client.exceptions.ResourceNotFoundException:
+            client.put_secret_value(
+                SecretId=arn,
+                ClientRequestToken=token,
+                SecretString=json.dumps({'create': True}),
+                VersionStages=['AWSPENDING']
+            )
+
+    if step == 'setSecret':
+        client.put_secret_value(
+            SecretId=arn,
+            ClientRequestToken=token,
+            SecretString='UpdatedValue',
+            VersionStages=["AWSPENDING"],
+        )
+
+    elif step == 'finishSecret':
+        current_version = next(
+            version
+            for version, stages in metadata['VersionIdsToStages'].items()
+            if 'AWSCURRENT' in stages
+        )
+        print("current: %s new: %s" % (current_version, token))
+        client.update_secret_version_stage(
+            SecretId=arn,
+            VersionStage='AWSCURRENT',
+            MoveToVersionId=token,
+            RemoveFromVersionId=current_version,
+        )
+        client.update_secret_version_stage(
+            SecretId=arn,
+            VersionStage='AWSPENDING',
+            RemoveFromVersionId=token,
+        )
+    """
+    return _process_lambda(func_str)
+
+
+if settings.TEST_SERVER_MODE:
+
+    @mock_lambda
+    @mock_secretsmanager
+    def test_rotate_secret_using_lambda():
+        from tests.test_awslambda.utilities import get_role_name
+
+        # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
+        lambda_conn = boto3.client(
+            "lambda", region_name="us-west-2", endpoint_url="http://localhost:5000",
+        )
+        func = lambda_conn.create_function(
+            FunctionName="testFunction",
+            Runtime="python3.8",
+            Role=get_role_name(),
+            Handler="lambda_function.lambda_handler",
+            Code={"ZipFile": get_rotation_zip_file()},
+            Description="Secret rotator",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
+
+        secrets_conn = boto3.client(
+            "secretsmanager",
+            region_name="us-west-2",
+            endpoint_url="http://localhost:5000",
+        )
+        secret = secrets_conn.create_secret(
+            Name=DEFAULT_SECRET_NAME, SecretString="InitialValue",
+        )
+        initial_version = secret["VersionId"]
+
+        rotated_secret = secrets_conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME,
+            RotationLambdaARN=func["FunctionArn"],
+            RotationRules=dict(AutomaticallyAfterDays=30,),
+        )
+
+        # Ensure we received an updated VersionId from `rotate_secret`
+        assert rotated_secret["VersionId"] != initial_version
+
+        updated_secret = secrets_conn.get_secret_value(
+            SecretId=DEFAULT_SECRET_NAME, VersionStage="AWSCURRENT",
+        )
+        rotated_version = updated_secret["VersionId"]
+
+        assert initial_version != rotated_version
+        metadata = secrets_conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
+        assert metadata["VersionIdsToStages"][initial_version] == ["AWSPREVIOUS"]
+        assert metadata["VersionIdsToStages"][rotated_version] == ["AWSCURRENT"]
+        assert updated_secret["SecretString"] == "UpdatedValue"
+
+
 @mock_secretsmanager
 def test_put_secret_value_on_non_existing_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
@@ -646,7 +791,7 @@ def test_put_secret_value_on_non_existing_secret():
 @mock_secretsmanager
 def test_put_secret_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="foosecret",
@@ -665,10 +810,10 @@ def test_put_secret_value_puts_new_secret():
 @mock_secretsmanager
 def test_put_secret_binary_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
-        SecretBinary=b("foosecret"),
+        SecretBinary=b"foosecret",
         VersionStages=["AWSCURRENT"],
     )
     version_id = put_secret_value_dict["VersionId"]
@@ -678,21 +823,21 @@ def test_put_secret_binary_value_puts_new_secret():
     )
 
     assert get_secret_value_dict
-    assert get_secret_value_dict["SecretBinary"] == b("foosecret")
+    assert get_secret_value_dict["SecretBinary"] == b"foosecret"
 
 
 @mock_secretsmanager
 def test_create_and_put_secret_binary_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     conn.put_secret_value(
-        SecretId=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret_update")
+        SecretId=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret_update"
     )
 
     latest_secret = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME)
 
     assert latest_secret
-    assert latest_secret["SecretBinary"] == b("foosecret_update")
+    assert latest_secret["SecretBinary"] == b"foosecret_update"
 
 
 @mock_secretsmanager
@@ -710,7 +855,7 @@ def test_put_secret_binary_requires_either_string_or_binary():
 @mock_secretsmanager
 def test_put_secret_value_can_get_first_version_if_put_twice():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b"foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="first_secret",
@@ -809,7 +954,8 @@ def test_can_list_secret_version_ids():
 
 
 @mock_secretsmanager
-def test_update_secret():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_update_secret(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
@@ -818,18 +964,18 @@ def test_update_secret():
     assert created_secret["Name"] == "test-secret"
     assert created_secret["VersionId"] != ""
 
-    secret = conn.get_secret_value(SecretId="test-secret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
+
+    secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "foosecret"
 
-    updated_secret = conn.update_secret(
-        SecretId="test-secret", SecretString="barsecret"
-    )
+    updated_secret = conn.update_secret(SecretId=secret_id, SecretString="barsecret")
 
     assert updated_secret["ARN"]
     assert updated_secret["Name"] == "test-secret"
     assert updated_secret["VersionId"] != ""
 
-    secret = conn.get_secret_value(SecretId="test-secret")
+    secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "barsecret"
     assert created_secret["VersionId"] != updated_secret["VersionId"]
 
@@ -869,6 +1015,40 @@ def test_update_secret_with_tags_and_description():
         {"Key": "Mykey", "Value": "Myvalue"},
     ]
     assert secret_details["Description"] == "desc"
+
+
+@mock_secretsmanager
+def test_update_secret_with_KmsKeyId():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    created_secret = conn.create_secret(
+        Name="test-secret", SecretString="foosecret", KmsKeyId="foo_arn"
+    )
+
+    assert created_secret["ARN"]
+    assert created_secret["Name"] == "test-secret"
+    assert created_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "foosecret"
+
+    secret_details = conn.describe_secret(SecretId="test-secret")
+    secret_details["KmsKeyId"].should.equal("foo_arn")
+
+    updated_secret = conn.update_secret(
+        SecretId="test-secret", SecretString="barsecret", KmsKeyId="bar_arn"
+    )
+
+    assert updated_secret["ARN"]
+    assert updated_secret["Name"] == "test-secret"
+    assert updated_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "barsecret"
+    assert created_secret["VersionId"] != updated_secret["VersionId"]
+
+    secret_details = conn.describe_secret(SecretId="test-secret")
+    secret_details["KmsKeyId"].should.equal("bar_arn")
 
 
 @mock_secretsmanager
@@ -921,15 +1101,17 @@ def test_update_secret_marked_as_deleted_after_restoring():
 
 
 @mock_secretsmanager
-def test_tag_resource():
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_tag_resource(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
     )
 
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
+        SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
     )
 
     secrets = conn.list_secrets()
@@ -942,6 +1124,37 @@ def test_tag_resource():
         conn.tag_resource(
             SecretId="dummy-test-secret",
             Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
+        )
+
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
+
+
+@mock_secretsmanager
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_untag_resource(pass_arn):
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
+    conn.tag_resource(
+        SecretId=secret_id,
+        Tags=[
+            {"Key": "FirstTag", "Value": "SomeValue"},
+            {"Key": "SecondTag", "Value": "SomeValue"},
+        ],
+    )
+
+    conn.untag_resource(SecretId=secret_id, TagKeys=["FirstTag"])
+    secrets = conn.list_secrets()
+    assert secrets["SecretList"][0].get("Tags") == [
+        {"Key": "SecondTag", "Value": "SomeValue"},
+    ]
+
+    with pytest.raises(ClientError) as cm:
+        conn.untag_resource(
+            SecretId="dummy-test-secret", TagKeys=["FirstTag"],
         )
 
     assert (
@@ -977,3 +1190,33 @@ def test_secret_versions_to_stages_attribute_discrepancy():
     assert list_vtos[previous_version_id] == ["AWSPREVIOUS"]
 
     assert describe_vtos == list_vtos
+
+
+@mock_secretsmanager
+def test_update_secret_with_client_request_token():
+    client = boto3.client("secretsmanager", region_name="us-west-2")
+    secret_name = "test-secret"
+    client_request_token = str(uuid4())
+
+    client.create_secret(Name=secret_name, SecretString="first-secret")
+    updated_secret = client.update_secret(
+        SecretId=secret_name,
+        SecretString="second-secret",
+        ClientRequestToken=client_request_token,
+    )
+    assert client_request_token == updated_secret["VersionId"]
+    updated_secret = client.update_secret(
+        SecretId=secret_name, SecretString="third-secret",
+    )
+    assert client_request_token != updated_secret["VersionId"]
+    invalid_request_token = "test-token"
+    with pytest.raises(ParamValidationError) as pve:
+        client.update_secret(
+            SecretId=secret_name,
+            SecretString="fourth-secret",
+            ClientRequestToken=invalid_request_token,
+        )
+        pve.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+        pve.value.response["Error"]["Message"].should.equal(
+            "ClientRequestToken must be 32-64 characters long."
+        )

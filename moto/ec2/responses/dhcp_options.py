@@ -47,7 +47,7 @@ class DHCPOptions(BaseResponse):
     def describe_dhcp_options(self):
         dhcp_opt_ids = self._get_multi_param("DhcpOptionsId")
         filters = filters_from_querystring(self.querystring)
-        dhcp_opts = self.ec2_backend.get_all_dhcp_options(dhcp_opt_ids, filters)
+        dhcp_opts = self.ec2_backend.describe_dhcp_options(dhcp_opt_ids, filters)
         template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)
         return template.render(dhcp_options=dhcp_opts)
 

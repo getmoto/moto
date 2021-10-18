@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 from jinja2 import Template
-from six.moves.urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from moto.core.responses import BaseResponse
 from .models import route53_backend
 import xmltodict
+
+XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
 class Route53(BaseResponse):
@@ -42,7 +44,7 @@ class Route53(BaseResponse):
             return 201, headers, template.render(zone=new_zone)
 
         elif request.method == "GET":
-            all_zones = route53_backend.get_all_hosted_zones()
+            all_zones = route53_backend.list_hosted_zones()
             template = Template(LIST_HOSTED_ZONES_RESPONSE)
             return 200, headers, template.render(zones=all_zones)
 
@@ -52,31 +54,10 @@ class Route53(BaseResponse):
         query_params = parse_qs(parsed_url.query)
         dnsname = query_params.get("dnsname")
 
-        if dnsname:
-            dnsname = dnsname[
-                0
-            ]  # parse_qs gives us a list, but this parameter doesn't repeat
-            # return all zones with that name (there can be more than one)
-            zones = [
-                zone
-                for zone in route53_backend.get_all_hosted_zones()
-                if zone.name == dnsname
-            ]
-        else:
-            # sort by names, but with domain components reversed
-            # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
-
-            def sort_key(zone):
-                domains = zone.name.split(".")
-                if domains[-1] == "":
-                    domains = domains[-1:] + domains[:-1]
-                return ".".join(reversed(domains))
-
-            zones = route53_backend.get_all_hosted_zones()
-            zones = sorted(zones, key=sort_key)
+        dnsname, zones = route53_backend.list_hosted_zones_by_name(dnsname)
 
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
-        return 200, headers, template.render(zones=zones)
+        return 200, headers, template.render(zones=zones, dnsname=dnsname)
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -84,7 +65,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return 404, headers, "Zone %s not Found" % zoneid
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if request.method == "GET":
             template = Template(GET_HOSTED_ZONE_RESPONSE)
@@ -103,7 +84,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return 404, headers, "Zone %s Not Found" % zoneid
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if method == "POST":
             elements = xmltodict.parse(self.body)
@@ -118,47 +99,11 @@ class Route53(BaseResponse):
                     ]["Change"]
                 ]
 
-            for value in change_list:
-                action = value["Action"]
-                record_set = value["ResourceRecordSet"]
-
-                cleaned_record_name = record_set["Name"].strip(".")
-                cleaned_hosted_zone_name = the_zone.name.strip(".")
-
-                if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
-                    error_msg = """
-                    An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
-                    RRSet with DNS name %s is not permitted in zone %s
-                    """ % (
-                        record_set["Name"],
-                        the_zone.name,
-                    )
-                    return 400, headers, error_msg
-
-                if not record_set["Name"].endswith("."):
-                    record_set["Name"] += "."
-
-                if action in ("CREATE", "UPSERT"):
-                    if "ResourceRecords" in record_set:
-                        resource_records = list(record_set["ResourceRecords"].values())[
-                            0
-                        ]
-                        if not isinstance(resource_records, list):
-                            # Depending on how many records there are, this may
-                            # or may not be a list
-                            resource_records = [resource_records]
-                        record_set["ResourceRecords"] = [
-                            x["Value"] for x in resource_records
-                        ]
-                    if action == "CREATE":
-                        the_zone.add_rrset(record_set)
-                    else:
-                        the_zone.upsert_rrset(record_set)
-                elif action == "DELETE":
-                    if "SetIdentifier" in record_set:
-                        the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
-                    else:
-                        the_zone.delete_rrset(record_set)
+            error_msg = route53_backend.change_resource_record_sets(
+                the_zone, change_list
+            )
+            if error_msg:
+                return 400, headers, error_msg
 
             return 200, headers, CHANGE_RRSET_RESPONSE
 
@@ -167,6 +112,10 @@ class Route53(BaseResponse):
             template = Template(LIST_RRSET_RESPONSE)
             start_type = querystring.get("type", [None])[0]
             start_name = querystring.get("name", [None])[0]
+
+            if start_type and not start_name:
+                return 400, headers, "The input is not valid"
+
             record_sets = the_zone.get_record_sets(start_type, start_name)
             return 200, headers, template.render(record_sets=record_sets)
 
@@ -177,20 +126,28 @@ class Route53(BaseResponse):
         method = request.method
 
         if method == "POST":
-            properties = xmltodict.parse(self.body)["CreateHealthCheckRequest"][
-                "HealthCheckConfig"
-            ]
+            json_body = xmltodict.parse(self.body)["CreateHealthCheckRequest"]
+            caller_reference = json_body["CallerReference"]
+            config = json_body["HealthCheckConfig"]
             health_check_args = {
-                "ip_address": properties.get("IPAddress"),
-                "port": properties.get("Port"),
-                "type": properties["Type"],
-                "resource_path": properties.get("ResourcePath"),
-                "fqdn": properties.get("FullyQualifiedDomainName"),
-                "search_string": properties.get("SearchString"),
-                "request_interval": properties.get("RequestInterval"),
-                "failure_threshold": properties.get("FailureThreshold"),
+                "ip_address": config.get("IPAddress"),
+                "port": config.get("Port"),
+                "type": config["Type"],
+                "resource_path": config.get("ResourcePath"),
+                "fqdn": config.get("FullyQualifiedDomainName"),
+                "search_string": config.get("SearchString"),
+                "request_interval": config.get("RequestInterval"),
+                "failure_threshold": config.get("FailureThreshold"),
+                "health_threshold": config.get("HealthThreshold"),
+                "measure_latency": config.get("MeasureLatency"),
+                "inverted": config.get("Inverted"),
+                "disabled": config.get("Disabled"),
+                "enable_sni": config.get("EnableSNI"),
+                "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
             }
-            health_check = route53_backend.create_health_check(health_check_args)
+            health_check = route53_backend.create_health_check(
+                caller_reference, health_check_args
+            )
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check)
         elif method == "DELETE":
@@ -199,7 +156,7 @@ class Route53(BaseResponse):
             return 200, headers, DELETE_HEALTH_CHECK_RESPONSE
         elif method == "GET":
             template = Template(LIST_HEALTH_CHECKS_RESPONSE)
-            health_checks = route53_backend.get_health_checks()
+            health_checks = route53_backend.list_health_checks()
             return 200, headers, template.render(health_checks=health_checks)
 
     def not_implemented_response(self, request, full_url, headers):
@@ -251,6 +208,20 @@ class Route53(BaseResponse):
             change_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id)
+
+
+def no_such_hosted_zone_error(zoneid, headers={}):
+    headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
+    headers["Content-Type"] = "text/xml"
+    message = "Zone %s Not Found" % zoneid
+    error_response = (
+        "<Error><Code>NoSuchHostedZone</Code><Message>%s</Message></Error>" % message
+    )
+    error_response = '<ErrorResponse xmlns="%s">%s</ErrorResponse>' % (
+        XMLNS,
+        error_response,
+    )
+    return 404, headers, error_response
 
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
@@ -354,6 +325,9 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
 </ListHostedZonesResponse>"""
 
 LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+  {% if dnsname %}
+  <DNSName>{{ dnsname }}</DNSName>
+  {% endif %}
   <HostedZones>
       {% for zone in zones %}
       <HostedZone>

@@ -64,10 +64,17 @@ def test_get_group():
 def test_get_group_query():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    test_create_group()
+    get_response = test_get_group()
 
     response = resource_groups.get_group_query(GroupName="test_resource_group")
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+
+    response_get = resource_groups.get_group_query(
+        Group=get_response.get("Group").get("GroupArn")
+    )
+    response_get["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
+        "TAG_FILTERS_1_0"
+    )
 
 
 @mock_resourcegroups
@@ -136,7 +143,7 @@ def test_untag():
 def test_update_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    test_get_group()
+    get_response = test_get_group()
 
     response = resource_groups.update_group(
         GroupName="test_resource_group", Description="description_2"
@@ -148,10 +155,79 @@ def test_update_group():
 
 
 @mock_resourcegroups
+def test_get_group_configuration():
+    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+
+    group = test_get_group()
+
+    configuration = [
+        {
+            "Type": "AWS::ResourceGroups::Generic",
+            "Parameters": [
+                {"Name": "allowed-resource-types", "Values": ["AWS::EC2::Host"]},
+                {"Name": "deletion-protection", "Values": ["UNLESS_EMPTY"]},
+            ],
+        }
+    ]
+
+    resource_groups.put_group_configuration(
+        Group=group["Group"]["Name"], Configuration=configuration
+    )
+
+    configuration_resp = resource_groups.get_group_configuration(
+        Group=group["Group"]["Name"]
+    )
+
+    assert (
+        configuration_resp.get("GroupConfiguration").get("Configuration")
+        == configuration
+    )
+
+
+@mock_resourcegroups
+def test_create_group_with_configuration():
+    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+
+    configuration = [
+        {
+            "Type": "AWS::ResourceGroups::Generic",
+            "Parameters": [
+                {"Name": "allowed-resource-types", "Values": ["AWS::EC2::Host"]},
+                {"Name": "deletion-protection", "Values": ["UNLESS_EMPTY"]},
+            ],
+        }
+    ]
+    response = resource_groups.create_group(
+        Name="test_resource_group_new",
+        Description="description",
+        ResourceQuery={
+            "Type": "TAG_FILTERS_1_0",
+            "Query": json.dumps(
+                {
+                    "ResourceTypeFilters": ["AWS::AllSupported"],
+                    "TagFilters": [
+                        {"Key": "resources_tag_key", "Values": ["resources_tag_value"]}
+                    ],
+                }
+            ),
+        },
+        Configuration=configuration,
+        Tags={"resource_group_tag_key": "resource_group_tag_value"},
+    )
+
+    response["Group"]["Name"].should.contain("test_resource_group_new")
+
+    assert response["GroupConfiguration"]["Configuration"] == configuration
+    response["Tags"]["resource_group_tag_key"].should.contain(
+        "resource_group_tag_value"
+    )
+
+
+@mock_resourcegroups
 def test_update_group_query():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    test_create_group()
+    group_response = test_get_group()
 
     response = resource_groups.update_group_query(
         GroupName="test_resource_group",
@@ -176,3 +252,25 @@ def test_update_group_query():
     response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
         "CLOUDFORMATION_STACK_1_0"
     )
+
+    response = resource_groups.update_group_query(
+        Group=group_response.get("Group").get("GroupArn"),
+        ResourceQuery={
+            "Type": "TAG_FILTERS_1_0",
+            "Query": json.dumps(
+                {
+                    "ResourceTypeFilters": ["AWS::AllSupported"],
+                    "TagFilters": [
+                        {"Key": "resources_tag_key", "Values": ["resources_tag_value"]}
+                    ],
+                }
+            ),
+        },
+    )
+
+    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+
+    response = resource_groups.get_group_query(
+        Group=group_response.get("Group").get("GroupArn")
+    )
+    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")

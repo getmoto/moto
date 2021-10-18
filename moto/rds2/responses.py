@@ -5,6 +5,7 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds2_backends
 from .exceptions import DBParameterGroupNotFoundError
+from .utils import filters_from_querystring
 
 
 class RDS2Response(BaseResponse):
@@ -86,6 +87,23 @@ class RDS2Response(BaseResponse):
             "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
         }
 
+    def _get_db_cluster_kwargs(self):
+        return {
+            "availability_zones": self._get_multi_param(
+                "AvailabilityZones.AvailabilityZone"
+            ),
+            "db_name": self._get_param("DatabaseName"),
+            "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
+            "engine": self._get_param("Engine"),
+            "engine_version": self._get_param("EngineVersion"),
+            "engine_mode": self._get_param("EngineMode"),
+            "master_username": self._get_param("MasterUsername"),
+            "master_user_password": self._get_param("MasterUserPassword"),
+            "port": self._get_param("Port"),
+            "parameter_group": self._get_param("DBClusterParameterGroup"),
+            "region": self.region,
+        }
+
     def unpack_complex_list_params(self, label, names):
         unpacked_list = list()
         count = 1
@@ -122,7 +140,10 @@ class RDS2Response(BaseResponse):
 
     def describe_db_instances(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
-        all_instances = list(self.backend.describe_databases(db_instance_identifier))
+        filters = filters_from_querystring(self.querystring)
+        all_instances = list(
+            self.backend.describe_databases(db_instance_identifier, filters=filters)
+        )
         marker = self._get_param("Marker")
         all_ids = [instance.db_instance_identifier for instance in all_instances]
         if marker:
@@ -178,8 +199,9 @@ class RDS2Response(BaseResponse):
     def describe_db_snapshots(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
+        filters = filters_from_querystring(self.querystring)
         snapshots = self.backend.describe_snapshots(
-            db_instance_identifier, db_snapshot_identifier
+            db_instance_identifier, db_snapshot_identifier, filters
         )
         template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)
         return template.render(snapshots=snapshots)
@@ -189,6 +211,15 @@ class RDS2Response(BaseResponse):
         snapshot = self.backend.delete_snapshot(db_snapshot_identifier)
         template = self.response_template(DELETE_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
+
+    def restore_db_instance_from_db_snapshot(self):
+        db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
+        db_kwargs = self._get_db_kwargs()
+        new_instance = self.backend.restore_db_instance_from_db_snapshot(
+            db_snapshot_identifier, db_kwargs
+        )
+        template = self.response_template(RESTORE_INSTANCE_FROM_SNAPSHOT_TEMPLATE)
+        return template.render(database=new_instance)
 
     def list_tags_for_resource(self):
         arn = self._get_param("ResourceName")
@@ -275,6 +306,19 @@ class RDS2Response(BaseResponse):
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
+
+    def modify_db_subnet_group(self):
+        subnet_name = self._get_param("DBSubnetGroupName")
+        description = self._get_param("DBSubnetGroupDescription")
+        subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
+        subnets = [
+            ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids
+        ]
+        subnet_group = self.backend.modify_db_subnet_group(
+            subnet_name, description, subnets
+        )
+        template = self.response_template(MODIFY_SUBNET_GROUPS_TEMPLATE)
+        return template.render(subnet_group=subnet_group)
 
     def delete_db_subnet_group(self):
         subnet_name = self._get_param("DBSubnetGroupName")
@@ -408,6 +452,36 @@ class RDS2Response(BaseResponse):
         template = self.response_template(DELETE_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 
+    def create_db_cluster(self):
+        kwargs = self._get_db_cluster_kwargs()
+        cluster = self.backend.create_db_cluster(kwargs)
+        template = self.response_template(CREATE_DB_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
+    def describe_db_clusters(self):
+        _id = self._get_param("DBClusterIdentifier")
+        clusters = self.backend.describe_db_clusters(cluster_identifier=_id)
+        template = self.response_template(DESCRIBE_CLUSTERS_TEMPLATE)
+        return template.render(clusters=clusters)
+
+    def delete_db_cluster(self):
+        _id = self._get_param("DBClusterIdentifier")
+        cluster = self.backend.delete_db_cluster(cluster_identifier=_id)
+        template = self.response_template(DELETE_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
+    def start_db_cluster(self):
+        _id = self._get_param("DBClusterIdentifier")
+        cluster = self.backend.start_db_cluster(cluster_identifier=_id)
+        template = self.response_template(START_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
+    def stop_db_cluster(self):
+        _id = self._get_param("DBClusterIdentifier")
+        cluster = self.backend.stop_db_cluster(cluster_identifier=_id)
+        template = self.response_template(STOP_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -487,6 +561,24 @@ DELETE_DATABASE_TEMPLATE = """<DeleteDBInstanceResponse xmlns="http://rds.amazon
     <RequestId>7369556f-b70d-11c3-faca-6ba18376ea1b</RequestId>
   </ResponseMetadata>
 </DeleteDBInstanceResponse>"""
+
+DELETE_CLUSTER_TEMPLATE = """<DeleteDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DeleteDBClusterResult>
+    {{ cluster.to_xml() }}
+  </DeleteDBClusterResult>
+  <ResponseMetadata>
+    <RequestId>7369556f-b70d-11c3-faca-6ba18376ea1b</RequestId>
+  </ResponseMetadata>
+</DeleteDBClusterResponse>"""
+
+RESTORE_INSTANCE_FROM_SNAPSHOT_TEMPLATE = """<RestoreDBInstanceFromDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <RestoreDBInstanceFromDBSnapshotResult>
+  {{ database.to_xml() }}
+  </RestoreDBInstanceFromDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</RestoreDBInstanceFromDBSnapshotResponse>"""
 
 CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSnapshotResult>
@@ -582,6 +674,15 @@ DESCRIBE_SUBNET_GROUPS_TEMPLATE = """<DescribeDBSubnetGroupsResponse xmlns="http
     <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
   </ResponseMetadata>
 </DescribeDBSubnetGroupsResponse>"""
+
+MODIFY_SUBNET_GROUPS_TEMPLATE = """<ModifyDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <ModifyDBSubnetGroupResult>
+    {{ subnet_group.to_xml() }}
+  </ModifyDBSubnetGroupResult>
+  <ResponseMetadata>
+    <RequestId>b783db3b-b98c-11d3-fbc7-5c0aad74da7c</RequestId>
+  </ResponseMetadata>
+</ModifyDBSubnetGroupResponse>"""
 
 DELETE_SUBNET_GROUP_TEMPLATE = """<DeleteDBSubnetGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <ResponseMetadata>
@@ -721,3 +822,47 @@ REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = """<RemoveTagsFromResourceResponse xmlns="h
     <RequestId>b194d9ca-a664-11e4-b688-194eaf8658fa</RequestId>
   </ResponseMetadata>
 </RemoveTagsFromResourceResponse>"""
+
+
+CREATE_DB_CLUSTER_TEMPLATE = """<CreateDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateDBClusterResult>
+  {{ cluster.to_xml() }}
+  </CreateDBClusterResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CreateDBClusterResponse>"""
+
+DESCRIBE_CLUSTERS_TEMPLATE = """<DescribeDBClustersResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBClustersResult>
+    <DBClusters>
+    {%- for cluster in clusters -%}
+      {{ cluster.to_xml() }}
+    {%- endfor -%}
+    </DBClusters>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+  </DescribeDBClustersResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DescribeDBClustersResponse>"""
+
+START_CLUSTER_TEMPLATE = """<StartDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <StartDBClusterResult>
+  {{ cluster.to_xml() }}
+  </StartDBClusterResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab9</RequestId>
+  </ResponseMetadata>
+</StartDBClusterResponse>"""
+
+STOP_CLUSTER_TEMPLATE = """<StopDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <StopDBClusterResult>
+  {{ cluster.to_xml() }}
+  </StopDBClusterResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab8</RequestId>
+  </ResponseMetadata>
+</StopDBClusterResponse>"""

@@ -129,6 +129,8 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         requires_compatibilities=None,
         cpu=None,
         memory=None,
+        task_role_arn=None,
+        execution_role_arn=None,
     ):
         self.family = family
         self.revision = revision
@@ -169,6 +171,11 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         else:
             self.network_mode = network_mode
 
+        if task_role_arn is not None:
+            self.task_role_arn = task_role_arn
+        if execution_role_arn is not None:
+            self.execution_role_arn = execution_role_arn
+
         self.placement_constraints = (
             placement_constraints if placement_constraints is not None else []
         )
@@ -177,6 +184,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
 
         self.cpu = cpu
         self.memory = memory
+        self.status = "ACTIVE"
 
     @property
     def response_object(self):
@@ -264,6 +272,7 @@ class Task(BaseObject):
         resource_requirements,
         overrides={},
         started_by="",
+        tags=[],
     ):
         self.cluster_arn = cluster.arn
         self.task_arn = "arn:aws:ecs:{0}:{1}:task/{2}".format(
@@ -276,6 +285,7 @@ class Task(BaseObject):
         self.overrides = overrides
         self.containers = []
         self.started_by = started_by
+        self.tags = tags
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
 
@@ -297,6 +307,7 @@ class Service(BaseObject, CloudFormationModel):
         tags=None,
         deployment_controller=None,
         launch_type=None,
+        service_registries=None,
     ):
         self.cluster_arn = cluster.arn
         self.arn = "arn:aws:ecs:{0}:{1}:service/{2}".format(
@@ -314,6 +325,7 @@ class Service(BaseObject, CloudFormationModel):
         self.deployment_controller = deployment_controller or {"type": "ECS"}
         self.events = []
         self.launch_type = launch_type
+        self.service_registries = service_registries or []
         if self.deployment_controller["type"] == "ECS":
             self.deployments = [
                 {
@@ -390,7 +402,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
         # TODO: LoadBalancers
         # TODO: Role
 
@@ -412,7 +424,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        desired_count = properties["DesiredCount"]
+        desired_count = properties.get("DesiredCount", None)
 
         ecs_backend = ecs_backends[region_name]
         service_name = original_resource.name
@@ -663,6 +675,13 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ecs"
+        )
+
     def _get_cluster(self, name):
         # short name or full ARN of the cluster
         cluster_name = name.split("/")[-1]
@@ -734,6 +753,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         requires_compatibilities=None,
         cpu=None,
         memory=None,
+        task_role_arn=None,
+        execution_role_arn=None,
     ):
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
@@ -753,6 +774,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             requires_compatibilities=requires_compatibilities,
             cpu=cpu,
             memory=memory,
+            task_role_arn=task_role_arn,
+            execution_role_arn=execution_role_arn,
         )
         self.task_definitions[family][revision] = task_definition
 
@@ -786,11 +809,15 @@ class EC2ContainerServiceBackend(BaseBackend):
             family in self.task_definitions
             and revision in self.task_definitions[family]
         ):
-            return self.task_definitions[family].pop(revision)
+            task_definition = self.task_definitions[family].pop(revision)
+            task_definition.status = "INACTIVE"
+            return task_definition
         else:
             raise TaskDefinitionNotFoundException
 
-    def run_task(self, cluster_str, task_definition_str, count, overrides, started_by):
+    def run_task(
+        self, cluster_str, task_definition_str, count, overrides, started_by, tags
+    ):
         cluster = self._get_cluster(cluster_str)
 
         task_definition = self.describe_task_definition(task_definition_str)
@@ -830,6 +857,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         resource_requirements,
                         overrides or {},
                         started_by or "",
+                        tags or [],
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
@@ -1057,6 +1085,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         tags=None,
         deployment_controller=None,
         launch_type=None,
+        service_registries=None,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -1082,6 +1111,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             tags,
             deployment_controller,
             launch_type,
+            service_registries=service_registries,
         )
         cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
         self.services[cluster_service_pair] = service
@@ -1627,7 +1657,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_set_obj
 
     def update_service_primary_task_set(self, cluster, service, primary_task_set):
-        """ Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets """
+        """Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets"""
         cluster_name = cluster.split("/")[-1]
         service_name = service.split("/")[-1]
         task_set_obj = self.describe_task_sets(

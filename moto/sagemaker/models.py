@@ -2,13 +2,11 @@ from __future__ import unicode_literals
 
 import os
 from boto3 import Session
-from copy import deepcopy
 from datetime import datetime
-
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
-from .exceptions import MissingModel, ValidationError
+from .exceptions import MissingModel, ValidationError, AWSValidationException
 
 
 class BaseObject(BaseModel):
@@ -141,7 +139,7 @@ class FakeTrainingJob(BaseObject):
         )
 
 
-class FakeEndpoint(BaseObject):
+class FakeEndpoint(BaseObject, CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -185,8 +183,70 @@ class FakeEndpoint(BaseObject):
             + endpoint_name
         )
 
+    @property
+    def physical_resource_id(self):
+        return self.endpoint_arn
 
-class FakeEndpointConfig(BaseObject):
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html#aws-resource-sagemaker-endpoint-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "EndpointName":
+            return self.endpoint_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html
+        return "AWS::SageMaker::Endpoint"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sagemaker_backend = sagemaker_backends[region_name]
+
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        endpoint_config_name = properties["EndpointConfigName"]
+
+        endpoint = sagemaker_backend.create_endpoint(
+            endpoint_name=resource_name,
+            endpoint_config_name=endpoint_config_name,
+            tags=properties.get("Tags", []),
+        )
+        return endpoint
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Changes to the Endpoint will not change resource name
+        cls.delete_from_cloudformation_json(
+            original_resource.endpoint_arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            original_resource.endpoint_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        endpoint_name = resource_name.split("/")[-1]
+
+        sagemaker_backends[region_name].delete_endpoint(endpoint_name)
+
+
+class FakeEndpointConfig(BaseObject, CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -309,8 +369,72 @@ class FakeEndpointConfig(BaseObject):
             + model_name
         )
 
+    @property
+    def physical_resource_id(self):
+        return self.endpoint_config_arn
 
-class Model(BaseObject):
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpointconfig.html#aws-resource-sagemaker-endpointconfig-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "EndpointConfigName":
+            return self.endpoint_config_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpointconfig.html
+        return "AWS::SageMaker::EndpointConfig"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sagemaker_backend = sagemaker_backends[region_name]
+
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        production_variants = properties["ProductionVariants"]
+
+        endpoint_config = sagemaker_backend.create_endpoint_config(
+            endpoint_config_name=resource_name,
+            production_variants=production_variants,
+            data_capture_config=properties.get("DataCaptureConfig", {}),
+            kms_key_id=properties.get("KmsKeyId"),
+            tags=properties.get("Tags", []),
+        )
+        return endpoint_config
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Most changes to the endpoint config will change resource name for EndpointConfigs
+        cls.delete_from_cloudformation_json(
+            original_resource.endpoint_config_arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        endpoint_config_name = resource_name.split("/")[-1]
+
+        sagemaker_backends[region_name].delete_endpoint_config(endpoint_config_name)
+
+
+class Model(BaseObject, CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -353,6 +477,72 @@ class Model(BaseObject):
             + model_name
         )
 
+    @property
+    def physical_resource_id(self):
+        return self.model_arn
+
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html#aws-resource-sagemaker-model-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "ModelName":
+            return self.model_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html
+        return "AWS::SageMaker::Model"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sagemaker_backend = sagemaker_backends[region_name]
+
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        execution_role_arn = properties["ExecutionRoleArn"]
+        primary_container = properties["PrimaryContainer"]
+
+        model = sagemaker_backend.create_model(
+            ModelName=resource_name,
+            ExecutionRoleArn=execution_role_arn,
+            PrimaryContainer=primary_container,
+            VpcConfig=properties.get("VpcConfig", {}),
+            Containers=properties.get("Containers", []),
+            Tags=properties.get("Tags", []),
+        )
+        return model
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Most changes to the model will change resource name for Models
+        cls.delete_from_cloudformation_json(
+            original_resource.model_arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        model_name = resource_name.split("/")[-1]
+
+        sagemaker_backends[region_name].delete_model(model_name)
+
 
 class VpcConfig(BaseObject):
     def __init__(self, security_group_ids, subnets):
@@ -383,7 +573,7 @@ class Container(BaseObject):
         }
 
 
-class FakeSagemakerNotebookInstance:
+class FakeSagemakerNotebookInstance(CloudFormationModel):
     def __init__(
         self,
         region_name,
@@ -503,8 +693,71 @@ class FakeSagemakerNotebookInstance:
     def stop(self):
         self.status = "Stopped"
 
+    @property
+    def physical_resource_id(self):
+        return self.arn
 
-class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject):
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html#aws-resource-sagemaker-notebookinstance-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "NotebookInstanceName":
+            return self.notebook_instance_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html
+        return "AWS::SageMaker::NotebookInstance"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get required properties from provided CloudFormation template
+        properties = cloudformation_json["Properties"]
+        instance_type = properties["InstanceType"]
+        role_arn = properties["RoleArn"]
+
+        notebook = sagemaker_backends[region_name].create_notebook_instance(
+            notebook_instance_name=resource_name,
+            instance_type=instance_type,
+            role_arn=role_arn,
+        )
+        return notebook
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Operations keep same resource name so delete old and create new to mimic update
+        cls.delete_from_cloudformation_json(
+            original_resource.arn, cloudformation_json, region_name
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            original_resource.notebook_instance_name, cloudformation_json, region_name
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        notebook_instance_name = resource_name.split("/")[-1]
+
+        backend = sagemaker_backends[region_name]
+        backend.stop_notebook_instance(notebook_instance_name)
+        backend.delete_notebook_instance(notebook_instance_name)
+
+
+class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationModel):
     def __init__(
         self, region_name, notebook_instance_lifecycle_config_name, on_create, on_start
     ):
@@ -543,6 +796,71 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject):
     def response_create(self):
         return {"TrainingJobArn": self.training_job_arn}
 
+    @property
+    def physical_resource_id(self):
+        return self.notebook_instance_lifecycle_config_arn
+
+    def get_cfn_attribute(self, attribute_name):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstancelifecycleconfig.html#aws-resource-sagemaker-notebookinstancelifecycleconfig-return-values
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "NotebookInstanceLifecycleConfigName":
+            return self.notebook_instance_lifecycle_config_name
+        raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstancelifecycleconfig.html
+        return "AWS::SageMaker::NotebookInstanceLifecycleConfig"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+
+        config = sagemaker_backends[
+            region_name
+        ].create_notebook_instance_lifecycle_config(
+            notebook_instance_lifecycle_config_name=resource_name,
+            on_create=properties.get("OnCreate"),
+            on_start=properties.get("OnStart"),
+        )
+        return config
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        # Operations keep same resource name so delete old and create new to mimic update
+        cls.delete_from_cloudformation_json(
+            original_resource.notebook_instance_lifecycle_config_arn,
+            cloudformation_json,
+            region_name,
+        )
+        new_resource = cls.create_from_cloudformation_json(
+            original_resource.notebook_instance_lifecycle_config_name,
+            cloudformation_json,
+            region_name,
+        )
+        return new_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        # Get actual name because resource_name actually provides the ARN
+        # since the Physical Resource ID is the ARN despite SageMaker
+        # using the name for most of its operations.
+        config_name = resource_name.split("/")[-1]
+
+        backend = sagemaker_backends[region_name]
+        backend.delete_notebook_instance_lifecycle_config(config_name)
+
 
 class SageMakerModelBackend(BaseBackend):
     def __init__(self, region_name=None):
@@ -559,6 +877,58 @@ class SageMakerModelBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        api_service = BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "api.sagemaker", special_service_name="sagemaker.api"
+        )
+
+        notebook_service_id = f"vpce-svc-{BaseBackend.vpce_random_number()}"
+        studio_service_id = f"vpce-svc-{BaseBackend.vpce_random_number()}"
+
+        notebook_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"{notebook_service_id}.{service_region}.vpce.amazonaws.com",
+                f"notebook.{service_region}.vpce.sagemaker.aws",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": f"*.notebook.{service_region}.sagemaker.aws",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.notebook.{service_region}.sagemaker.aws"}
+            ],
+            "ServiceId": notebook_service_id,
+            "ServiceName": f"aws.sagemaker.{service_region}.notebook",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        studio_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"{studio_service_id}.{service_region}.vpce.amazonaws.com",
+                f"studio.{service_region}.vpce.sagemaker.aws",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": f"*.studio.{service_region}.sagemaker.aws",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.studio.{service_region}.sagemaker.aws"}
+            ],
+            "ServiceId": studio_service_id,
+            "ServiceName": f"aws.sagemaker.{service_region}.studio",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return api_service + [notebook_service, studio_service]
+
     def create_model(self, **kwargs):
         model_obj = Model(
             region_name=self.region_name,
@@ -571,25 +941,19 @@ class SageMakerModelBackend(BaseBackend):
         )
 
         self._models[kwargs.get("ModelName")] = model_obj
-        return model_obj.response_create
+        return model_obj
 
     def describe_model(self, model_name=None):
         model = self._models.get(model_name)
         if model:
-            return model.response_object
+            return model
         message = "Could not find model '{}'.".format(
             Model.arn_for_model_name(model_name, self.region_name)
         )
-        raise RESTError(
-            error_type="ValidationException", message=message, template="error_json",
-        )
+        raise ValidationError(message=message)
 
     def list_models(self):
-        models = []
-        for model in self._models.values():
-            model_response = deepcopy(model.response_object)
-            models.append(model_response)
-        return {"Models": models}
+        return self._models.values()
 
     def delete_model(self, model_name=None):
         for model in self._models.values():
@@ -929,6 +1293,90 @@ class SageMakerModelBackend(BaseBackend):
             return training_job.tags or []
         except RESTError:
             return []
+
+    def list_training_jobs(
+        self,
+        next_token,
+        max_results,
+        creation_time_after,
+        creation_time_before,
+        last_modified_time_after,
+        last_modified_time_before,
+        name_contains,
+        status_equals,
+        sort_by,
+        sort_order,
+    ):
+        if next_token:
+            try:
+                starting_index = int(next_token)
+                if starting_index > len(self.training_jobs):
+                    raise ValueError  # invalid next_token
+            except ValueError:
+                raise AWSValidationException('Invalid pagination token because "{0}".')
+        else:
+            starting_index = 0
+
+        if max_results:
+            end_index = max_results + starting_index
+            training_jobs_fetched = list(self.training_jobs.values())[
+                starting_index:end_index
+            ]
+            if end_index >= len(self.training_jobs):
+                next_index = None
+            else:
+                next_index = end_index
+        else:
+            training_jobs_fetched = list(self.training_jobs.values())
+            next_index = None
+
+        if name_contains is not None:
+            training_jobs_fetched = filter(
+                lambda x: name_contains in x.training_job_name, training_jobs_fetched
+            )
+
+        if creation_time_after is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.creation_time > creation_time_after, training_jobs_fetched
+            )
+
+        if creation_time_before is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.creation_time < creation_time_before, training_jobs_fetched
+            )
+
+        if last_modified_time_after is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.last_modified_time > last_modified_time_after,
+                training_jobs_fetched,
+            )
+
+        if last_modified_time_before is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.last_modified_time < last_modified_time_before,
+                training_jobs_fetched,
+            )
+        if status_equals is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.training_job_status == status_equals, training_jobs_fetched
+            )
+
+        training_job_summaries = [
+            {
+                "TrainingJobName": training_job_data.training_job_name,
+                "TrainingJobArn": training_job_data.training_job_arn,
+                "CreationTime": training_job_data.creation_time,
+                "TrainingEndTime": training_job_data.training_end_time,
+                "LastModifiedTime": training_job_data.last_modified_time,
+                "TrainingJobStatus": training_job_data.training_job_status,
+            }
+            for training_job_data in training_jobs_fetched
+        ]
+
+        return {
+            "TrainingJobSummaries": training_job_summaries,
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
 
 
 sagemaker_backends = {}

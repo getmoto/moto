@@ -36,6 +36,7 @@ class AutoScalingResponse(BaseResponse):
             ebs_optimized=self._get_param("EbsOptimized"),
             associate_public_ip_address=self._get_param("AssociatePublicIpAddress"),
             block_device_mappings=self._get_list_prefix("BlockDeviceMappings.member"),
+            instance_id=self._get_param("InstanceId"),
         )
         template = self.response_template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
@@ -232,12 +233,45 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
+    def delete_tags(self):
+        tags = self._get_list_prefix("Tags.member")
+
+        self.autoscaling_backend.delete_tags(tags)
+        template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
+        return template.render()
+
     def describe_auto_scaling_instances(self):
         instance_states = self.autoscaling_backend.describe_auto_scaling_instances(
             instance_ids=self._get_multi_param("InstanceIds.member")
         )
         template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instance_states=instance_states)
+
+    def put_lifecycle_hook(self):
+        lifecycle_hook = self.autoscaling_backend.create_lifecycle_hook(
+            name=self._get_param("LifecycleHookName"),
+            as_name=self._get_param("AutoScalingGroupName"),
+            transition=self._get_param("LifecycleTransition"),
+            timeout=self._get_int_param("HeartbeatTimeout"),
+            result=self._get_param("DefaultResult"),
+        )
+        template = self.response_template(CREATE_LIFECYLE_HOOK_TEMPLATE)
+        return template.render(lifecycle_hook=lifecycle_hook)
+
+    def describe_lifecycle_hooks(self):
+        lifecycle_hooks = self.autoscaling_backend.describe_lifecycle_hooks(
+            as_name=self._get_param("AutoScalingGroupName"),
+            lifecycle_hook_names=self._get_multi_param("LifecycleHookNames.member"),
+        )
+        template = self.response_template(DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE)
+        return template.render(lifecycle_hooks=lifecycle_hooks)
+
+    def delete_lifecycle_hook(self):
+        as_name = self._get_param("AutoScalingGroupName")
+        name = self._get_param("LifecycleHookName")
+        self.autoscaling_backend.delete_lifecycle_hook(as_name, name)
+        template = self.response_template(DELETE_LIFECYCLE_HOOK_TEMPLATE)
+        return template.render()
 
     def put_scaling_policy(self):
         policy = self.autoscaling_backend.create_autoscaling_policy(
@@ -349,6 +383,15 @@ class AutoScalingResponse(BaseResponse):
             autoscaling_group_name, scaling_processes
         )
         template = self.response_template(SUSPEND_PROCESSES_TEMPLATE)
+        return template.render()
+
+    def resume_processes(self):
+        autoscaling_group_name = self._get_param("AutoScalingGroupName")
+        scaling_processes = self._get_multi_param("ScalingProcesses.member")
+        self.autoscaling_backend.resume_processes(
+            autoscaling_group_name, scaling_processes
+        )
+        template = self.response_template(RESUME_PROCESSES_TEMPLATE)
         return template.render()
 
     def set_instance_protection(self):
@@ -706,6 +749,43 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
   </ResponseMetadata>
 </DescribeAutoScalingInstancesResponse>"""
 
+CREATE_LIFECYLE_HOOK_TEMPLATE = """<PutLifecycleHookResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <PutLifecycleHookResult/>
+  <ResponseMetadata>
+    <RequestId>3cfc6fef-c08b-11e2-a697-2922EXAMPLE</RequestId>
+  </ResponseMetadata>
+</PutLifecycleHookResponse>"""
+
+DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <DescribeLifecycleHooksResult>
+    <LifecycleHooks>
+      {% for lifecycle_hook in lifecycle_hooks %}
+        <member>
+          <AutoScalingGroupName>{{ lifecycle_hook.as_name }}</AutoScalingGroupName>
+          <RoleARN>arn:aws:iam::1234567890:role/my-auto-scaling-role</RoleARN>
+          <LifecycleTransition>{{ lifecycle_hook.transition }}</LifecycleTransition>
+          <GlobalTimeout>172800</GlobalTimeout>
+          <LifecycleHookName>{{ lifecycle_hook.name }}</LifecycleHookName>
+          <HeartbeatTimeout>{{ lifecycle_hook.timeout }}</HeartbeatTimeout>
+          <DefaultResult>{{ lifecycle_hook.result }}</DefaultResult>
+          <NotificationTargetARN>arn:aws:sqs:us-east-1:123456789012:my-queue</NotificationTargetARN>
+        </member>
+      {% endfor %}
+    </LifecycleHooks>
+  </DescribeLifecycleHooksResult>
+  <ResponseMetadata>
+    <RequestId>ec3bffad-b739-11e2-b38d-15fbEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DescribeLifecycleHooksResponse>"""
+
+DELETE_LIFECYCLE_HOOK_TEMPLATE = """<DeleteLifecycleHookResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <DeleteLifecycleHookResult>
+  </DeleteLifecycleHookResult>
+  <ResponseMetadata>
+    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteLifecycleHookResponse>"""
+
 CREATE_SCALING_POLICY_TEMPLATE = """<PutScalingPolicyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <PutScalingPolicyResult>
     <PolicyARN>arn:aws:autoscaling:us-east-1:803981987763:scalingPolicy:b0dcf5e8
@@ -793,6 +873,12 @@ SUSPEND_PROCESSES_TEMPLATE = """<SuspendProcessesResponse xmlns="http://autoscal
    <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
 </ResponseMetadata>
 </SuspendProcessesResponse>"""
+
+RESUME_PROCESSES_TEMPLATE = """<ResumeProcessesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+   <RequestId></RequestId>
+</ResponseMetadata>
+</ResumeProcessesResponse>"""
 
 SET_INSTANCE_HEALTH_TEMPLATE = """<SetInstanceHealthResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <SetInstanceHealthResponse></SetInstanceHealthResponse>
