@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import random
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores

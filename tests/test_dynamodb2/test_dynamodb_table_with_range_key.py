@@ -1,48 +1,14 @@
-from __future__ import unicode_literals
-
 from decimal import Decimal
 
 import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 from datetime import datetime
-import sure  # noqa
 import pytest
 
 from moto import mock_dynamodb2
 from uuid import uuid4
-
-
-def create_table():
-    table = Table.create(
-        "messages",
-        schema=[HashKey("forum_name"), RangeKey("subject")],
-        throughput={"read": 10, "write": 10},
-    )
-    return table
-
-
-def create_table_with_local_indexes():
-    table = Table.create(
-        "messages",
-        schema=[HashKey("forum_name"), RangeKey("subject")],
-        throughput={"read": 10, "write": 10},
-        indexes=[
-            AllIndex(
-                "threads_index",
-                parts=[
-                    HashKey("forum_name", data_type=STRING),
-                    RangeKey("threads", data_type=NUMBER),
-                ],
-            )
-        ],
-    )
-    return table
-
-
-def iterate_results(res):
-    for i in res:
-        pass
 
 
 @mock_dynamodb2
@@ -486,7 +452,7 @@ def _create_table_with_range_key():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},

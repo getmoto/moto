@@ -1,6 +1,6 @@
 import boto3
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from copy import deepcopy
 from moto import mock_cloudformation, mock_ec2, mock_route53

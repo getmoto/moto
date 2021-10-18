@@ -1,7 +1,7 @@
 import boto3
 import json
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_s3, settings

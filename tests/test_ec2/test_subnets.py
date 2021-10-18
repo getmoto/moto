@@ -3,7 +3,7 @@ import random
 import boto3
 
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2, settings
 from tests import EXAMPLE_AMI_ID
@@ -171,7 +171,7 @@ def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
 
     # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
     subnet.reload()
-    subnets = client.describe_subnets()
+    client.describe_subnets()
 
     # For non default subnet, attribute value should be 'False'
     subnet.assign_ipv6_address_on_creation.shouldnt.be.ok
@@ -191,10 +191,10 @@ def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
 
 @mock_ec2
 def test_modify_subnet_attribute_validation():
+    # TODO: implement some actual logic
     ec2 = boto3.resource("ec2", region_name="us-west-1")
-    client = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
+    ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
     )
 
@@ -211,7 +211,7 @@ def test_subnet_get_by_id_boto3():
     subnetB1 = ec2.create_subnet(
         VpcId=vpcB.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
     )
-    subnetB2 = ec2.create_subnet(
+    ec2.create_subnet(
         VpcId=vpcB.id, CidrBlock="10.0.1.0/24", AvailabilityZone="us-west-1b"
     )
 
@@ -409,7 +409,7 @@ def test_create_subnet_with_invalid_availability_zone():
 
     subnet_availability_zone = "asfasfas"
     with pytest.raises(ClientError) as ex:
-        subnet = client.create_subnet(
+        client.create_subnet(
             VpcId=vpc.id,
             CidrBlock="10.0.0.0/24",
             AvailabilityZone=subnet_availability_zone,
@@ -432,7 +432,7 @@ def test_create_subnet_with_invalid_cidr_range():
 
     subnet_cidr_block = "10.1.0.0/20"
     with pytest.raises(ClientError) as ex:
-        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+        ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
         "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
@@ -450,7 +450,7 @@ def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
 
     subnet_cidr_block = "10.2.0.0/20"
     with pytest.raises(ClientError) as ex:
-        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+        ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
         "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block)
@@ -467,7 +467,7 @@ def test_create_subnet_with_invalid_cidr_block_parameter():
 
     subnet_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
-        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+        ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
         "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
@@ -526,8 +526,8 @@ def test_create_subnets_with_overlapping_cidr_blocks():
 
     subnet_cidr_block = "10.0.0.0/24"
     with pytest.raises(ClientError) as ex:
-        subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
-        subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+        ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+        ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidSubnet.Conflict) when calling the CreateSubnet "
         "operation: The CIDR '{}' conflicts with another subnet".format(
@@ -634,7 +634,7 @@ def validate_subnet_details_after_creating_eni(
     nr_of_eni_to_create = random.randint(0, 5)
     ip_addresses_assigned = 0
     enis_created = []
-    for i in range(0, nr_of_eni_to_create):
+    for _ in range(0, nr_of_eni_to_create):
         # Create a random number of IP addresses per ENI
         nr_of_ip_addresses = random.randint(1, 5)
         if nr_of_ip_addresses == 1:

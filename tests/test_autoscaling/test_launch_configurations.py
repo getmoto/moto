@@ -3,7 +3,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_autoscaling
 from moto.core import ACCOUNT_ID

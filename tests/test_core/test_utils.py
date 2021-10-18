@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
 
 from moto.core.utils import (
@@ -14,7 +12,7 @@ from moto.core.utils import (
 
 
 @pytest.mark.parametrize(
-    "input,expected",
+    "_input,expected",
     [
         ("theNewAttribute", "the_new_attribute"),
         ("attri bute With Space", "attribute_with_space"),
@@ -22,32 +20,32 @@ from moto.core.utils import (
         ("ListMFADevices", "list_mfa_devices"),
     ],
 )
-def test_camelcase_to_underscores(input, expected):
-    camelcase_to_underscores(input).should.equal(expected)
+def test_camelcase_to_underscores(_input, expected):
+    camelcase_to_underscores(_input).should.equal(expected)
 
 
 @pytest.mark.parametrize(
-    "input,expected",
+    "_input,expected",
     [("the_new_attribute", "theNewAttribute"), ("attribute", "attribute"),],
 )
-def test_underscores_to_camelcase(input, expected):
-    underscores_to_camelcase(input).should.equal(expected)
+def test_underscores_to_camelcase(_input, expected):
+    underscores_to_camelcase(_input).should.equal(expected)
 
 
 @pytest.mark.parametrize(
-    "input,expected",
+    "_input,expected",
     [("TheNewAttribute", "theNewAttribute"), ("Attribute", "attribute"),],
 )
-def test_pascal_to_camelcase(input, expected):
-    pascal_to_camelcase(input).should.equal(expected)
+def test_pascal_to_camelcase(_input, expected):
+    pascal_to_camelcase(_input).should.equal(expected)
 
 
 @pytest.mark.parametrize(
-    "input,expected",
+    "_input,expected",
     [("theNewAttribute", "TheNewAttribute"), ("attribute", "Attribute"),],
 )
-def test_camelcase_to_pascal(input, expected):
-    camelcase_to_pascal(input).should.equal(expected)
+def test_camelcase_to_pascal(_input, expected):
+    camelcase_to_pascal(_input).should.equal(expected)
 
 
 @freeze_time("2015-01-01 12:00:00")

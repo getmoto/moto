@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-import json
 import pytest
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import boto3
 from botocore.exceptions import ClientError
 from moto import mock_wafv2

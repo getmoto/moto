@@ -1,11 +1,10 @@
 import boto3
+import sure  # noqa # pylint: disable=unused-import
 import json
-import sure  # noqa
 from moto import mock_cloudformation, mock_ec2
 from tests import EXAMPLE_AMI_ID
 from string import Template
 from uuid import uuid4
-from .test_instances import retrieve_all_instances
 
 
 SEC_GROUP_INGRESS = Template(

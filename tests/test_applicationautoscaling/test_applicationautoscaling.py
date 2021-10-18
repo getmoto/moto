@@ -1,9 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
-import botocore
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_applicationautoscaling, mock_ecs
 
 DEFAULT_REGION = "us-east-1"

@@ -1,7 +1,7 @@
 """Unit tests for cloudtrail-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from datetime import datetime
@@ -201,7 +201,7 @@ def test_get_trail_unknown():
 def test_get_trail():
     test_create_trail_simple()
     client = boto3.client("cloudtrail", region_name="us-east-1")
-    _, trail1, name = create_trail_simple()
+    _, _, name = create_trail_simple()
     trail = client.get_trail(Name=name)["Trail"]
     trail.should.have.key("Name").equal(name)
     trail.should.have.key("IncludeGlobalServiceEvents").equal(True)
@@ -392,9 +392,9 @@ def test_describe_trails_without_shadowtrails():
 def test_describe_trails_with_shadowtrails_true():
     # Same behaviour as if shadowtrails-parameter was not supplied
     client = boto3.client("cloudtrail", region_name="us-east-1")
-    _, trail1, _ = create_trail_simple()
-    _, trail2, _, _ = create_trail_advanced()
-    _, trail3, _ = create_trail_simple(region_name="eu-west-1")
+    create_trail_simple()
+    create_trail_advanced()
+    create_trail_simple(region_name="eu-west-1")
 
     trails = client.describe_trails(includeShadowTrails=True)["trailList"]
     trails.should.have.length_of(3)

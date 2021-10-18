@@ -1,7 +1,7 @@
 import json
 import boto3
 import botocore
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudformation, mock_s3
 from tests import EXAMPLE_AMI_ID

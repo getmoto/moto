@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import ManagedBlockchainResponse
 
 url_bases = [r"https?://managedblockchain\.(.+)\.amazonaws.com"]

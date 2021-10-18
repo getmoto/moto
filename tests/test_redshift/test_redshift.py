@@ -4,7 +4,7 @@ import datetime
 import boto3
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 from moto import mock_redshift

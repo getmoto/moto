@@ -9,8 +9,8 @@ from tests.test_cloudformation.fixtures import vpc_single_instance_in_subnet
 from uuid import uuid4
 import boto3
 import json
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 
 template_vpc = {

@@ -2,7 +2,7 @@ import boto3
 import botocore
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_acm, mock_elb, mock_ec2
 from tests import EXAMPLE_AMI_ID

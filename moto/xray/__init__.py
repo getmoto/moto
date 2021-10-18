@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .models import xray_backends
 from ..core.models import base_decorator
 from .mock_client import mock_xray_client, XRaySegment  # noqa

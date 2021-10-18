@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 import yaml
 from urllib.parse import urlparse
@@ -324,7 +322,12 @@ class CloudFormationResponse(BaseResponse):
         stack_body = self._get_param("TemplateBody")
 
         if stack_name:
-            stack_body = self.cloudformation_backend.get_stack(stack_name).template
+            stack = self.cloudformation_backend.get_stack(stack_name)
+            if stack.status == "REVIEW_IN_PROGRESS":
+                raise ValidationError(
+                    message="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks.",
+                )
+            stack_body = stack.template
         elif template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
 

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .models import iam_backend
 
 iam_backends = {"global": iam_backend}

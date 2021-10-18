@@ -1,8 +1,8 @@
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
+import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
 import pytest
-import sure  # noqa
 
 from moto import mock_swf
 from moto import settings

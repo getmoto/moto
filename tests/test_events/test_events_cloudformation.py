@@ -6,7 +6,7 @@ import boto3
 import json
 from botocore.exceptions import ClientError
 from moto import mock_cloudformation, mock_events
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.core import ACCOUNT_ID
 
@@ -183,6 +183,8 @@ def test_delete_rule():
     # then
     events_client = boto3.client("events", region_name="eu-central-1")
 
-    with pytest.raises(ClientError, match="does not exist") as e:
-
+    with pytest.raises(ClientError) as exc:
         events_client.describe_rule(Name=name)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("Rule test-rule does not exist.")

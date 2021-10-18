@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import Route53
 
 url_bases = [r"https?://route53(.*)\.amazonaws.com"]

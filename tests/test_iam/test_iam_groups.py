@@ -1,8 +1,8 @@
 from datetime import datetime
 
 import boto3
+import sure  # noqa  # pylint: disable=unused-import
 import json
-import sure  # noqa
 
 import pytest
 from botocore.exceptions import ClientError

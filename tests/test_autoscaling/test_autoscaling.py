@@ -1,6 +1,5 @@
-from __future__ import unicode_literals
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -1325,7 +1324,6 @@ def test_standby_one_instance_decrement():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
-    instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
 
@@ -1400,7 +1398,6 @@ def test_standby_one_instance():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
-    instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
 
@@ -2559,13 +2556,13 @@ def test_attach_instances():
         ],
     }
     fake_instance = ec2_client.run_instances(**kwargs)["Instances"][0]
-    fake_lc = asg_client.create_launch_configuration(
+    asg_client.create_launch_configuration(
         LaunchConfigurationName="test_launch_configuration",
         ImageId="ami-pytest",
         InstanceType="t3.micro",
         KeyName="foobar",
     )
-    fake_asg = asg_client.create_auto_scaling_group(
+    asg_client.create_auto_scaling_group(
         AutoScalingGroupName="test_asg",
         LaunchConfigurationName="test_launch_configuration",
         MinSize=0,
@@ -2587,20 +2584,20 @@ def test_attach_instances():
 def test_autoscaling_lifecyclehook():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
-    fake_lc = client.create_launch_configuration(
+    client.create_launch_configuration(
         LaunchConfigurationName="test_launch_configuration",
         ImageId="ami-pytest",
         InstanceType="t3.micro",
         KeyName="foobar",
     )
-    fake_asg = client.create_auto_scaling_group(
+    client.create_auto_scaling_group(
         AutoScalingGroupName="test_asg",
         LaunchConfigurationName="test_launch_configuration",
         MinSize=0,
         MaxSize=1,
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
-    fake_lfh = client.put_lifecycle_hook(
+    client.put_lifecycle_hook(
         LifecycleHookName="test-lifecyclehook",
         AutoScalingGroupName="test_asg",
         LifecycleTransition="autoscaling:EC2_INSTANCE_TERMINATING",

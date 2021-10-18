@@ -1,7 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from moto import mock_swf
 

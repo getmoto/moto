@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 import boto3
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, settings
 from unittest import SkipTest
 
@@ -260,7 +259,7 @@ def test_describe_nat_gateway_filter_vpc_id():
     ].should.equal(allocation_id_1)
 
 
-def retrieve_all_gateways(client, filters=[]):
+def retrieve_all_gateways(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_nat_gateways(Filters=filters)
     all_gws = resp["NatGateways"]
     token = resp.get("NextToken")

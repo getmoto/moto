@@ -1,6 +1,6 @@
 import requests
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import boto3
 from moto import mock_s3, mock_sts, mock_sqs, settings

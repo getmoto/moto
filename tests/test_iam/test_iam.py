@@ -2,7 +2,7 @@ import json
 
 import boto3
 import csv
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_config, mock_iam, settings
@@ -171,7 +171,7 @@ def test_delete_instance_profile():
     )
     conn.delete_instance_profile(InstanceProfileName="my-profile")
     with pytest.raises(conn.exceptions.NoSuchEntityException):
-        profile = conn.get_instance_profile(InstanceProfileName="my-profile")
+        conn.get_instance_profile(InstanceProfileName="my-profile")
 
 
 @mock_iam()
@@ -401,13 +401,9 @@ def test_create_policy():
 @mock_iam
 def test_create_policy_already_exists():
     conn = boto3.client("iam", region_name="us-east-1")
-    response = conn.create_policy(
-        PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
-    )
+    conn.create_policy(PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY)
     with pytest.raises(conn.exceptions.EntityAlreadyExistsException) as ex:
-        response = conn.create_policy(
-            PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
-        )
+        conn.create_policy(PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY)
     ex.value.response["Error"]["Code"].should.equal("EntityAlreadyExists")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
     ex.value.response["Error"]["Message"].should.contain("TestCreatePolicy")
@@ -548,7 +544,7 @@ def test_set_default_policy_version():
         VersionId="wrong_version_id",
     ).should.throw(
         ClientError,
-        "Value 'wrong_version_id' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?",
+        r"Value 'wrong_version_id' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?",
     )
 
     # Set default version for non-existing version
@@ -568,9 +564,7 @@ def test_set_default_policy_version():
 @mock_iam
 def test_get_policy():
     conn = boto3.client("iam", region_name="us-east-1")
-    response = conn.create_policy(
-        PolicyName="TestGetPolicy", PolicyDocument=MOCK_POLICY
-    )
+    conn.create_policy(PolicyName="TestGetPolicy", PolicyDocument=MOCK_POLICY)
     policy = conn.get_policy(
         PolicyArn="arn:aws:iam::{}:policy/TestGetPolicy".format(ACCOUNT_ID)
     )
@@ -2400,7 +2394,7 @@ def test_create_role_with_same_name_should_fail():
 def test_create_policy_with_same_name_should_fail():
     iam = boto3.client("iam", region_name="us-east-1")
     test_policy_name = str(uuid4())
-    policy = iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
     # Create the role again, and verify that it fails
     with pytest.raises(ClientError) as err:
         iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
@@ -2900,7 +2894,6 @@ def test_delete_account_password_policy_errors():
 @mock_iam
 def test_role_list_config_discovered_resources():
     from moto.iam.config import role_config_query
-    from moto.iam.utils import random_resource_id
 
     # Without any roles
     assert role_config_query.list_config_service_resources(None, None, 100, None) == (
@@ -3236,7 +3229,6 @@ def test_role_config_dict():
 @mock_iam
 @mock_config
 def test_role_config_client():
-    from moto.iam.models import ACCOUNT_ID
     from moto.iam.utils import random_resource_id
 
     CONFIG_REGIONS = boto3.Session().get_available_regions("config")
@@ -3476,7 +3468,6 @@ def test_role_config_client():
 @mock_iam
 def test_policy_list_config_discovered_resources():
     from moto.iam.config import policy_config_query
-    from moto.iam.utils import random_policy_id
 
     # Without any policies
     assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
@@ -3661,7 +3652,6 @@ def test_policy_config_dict():
 @mock_iam
 @mock_config
 def test_policy_config_client():
-    from moto.iam.models import ACCOUNT_ID
     from moto.iam.utils import random_policy_id
 
     CONFIG_REGIONS = boto3.Session().get_available_regions("config")

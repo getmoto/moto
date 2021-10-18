@@ -1,9 +1,8 @@
-from __future__ import unicode_literals
 from datetime import datetime
 
 from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import json
 
 from moto.core import ACCOUNT_ID
@@ -1177,17 +1176,20 @@ def test_deregister_container_instance():
         ],
     )
 
-    response = ecs_client.start_task(
+    ecs_client.start_task(
         cluster="test_ecs_cluster",
         taskDefinition="test_ecs_task",
         overrides={},
         containerInstances=[container_instance_id],
         startedBy="moto",
     )
-    with pytest.raises(Exception) as e:
+    with pytest.raises(Exception):
         ecs_client.deregister_container_instance(
             cluster=test_cluster_name, containerInstance=container_instance_id
-        ).should.have.raised(Exception)
+        )
+    # TODO: Return correct error format
+    # should.contain("Found running tasks on the instance")
+
     container_instances_response = ecs_client.list_container_instances(
         cluster=test_cluster_name
     )
@@ -1212,7 +1214,7 @@ def test_list_container_instances():
 
     instance_to_create = 3
     test_instance_arns = []
-    for i in range(0, instance_to_create):
+    for _ in range(0, instance_to_create):
         test_instance = ec2.create_instances(
             ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
@@ -1245,7 +1247,7 @@ def test_describe_container_instances():
 
     instance_to_create = 3
     test_instance_arns = []
-    for i in range(0, instance_to_create):
+    for _ in range(0, instance_to_create):
         test_instance = ec2.create_instances(
             ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
@@ -1280,6 +1282,9 @@ def test_describe_container_instances():
         ecs_client.describe_container_instances(
             cluster=test_cluster_name, containerInstances=[]
         )
+    err = e.value.response["Error"]
+    err["Code"].should.equal("ClientException")
+    err["Message"].should.equal("Container Instances cannot be empty.")
 
 
 @mock_ecs
@@ -1310,7 +1315,7 @@ def test_update_container_instances_state():
 
     instance_to_create = 3
     test_instance_arns = []
-    for i in range(0, instance_to_create):
+    for _ in range(0, instance_to_create):
         test_instance = ec2.create_instances(
             ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
@@ -1372,7 +1377,7 @@ def test_update_container_instances_state_by_arn():
 
     instance_to_create = 3
     test_instance_arns = []
-    for i in range(0, instance_to_create):
+    for _ in range(0, instance_to_create):
         test_instance = ec2.create_instances(
             ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
         )[0]
@@ -2371,8 +2376,6 @@ def test_default_container_instance_attributes():
     )
 
     response["containerInstance"]["ec2InstanceId"].should.equal(test_instance.id)
-    full_arn = response["containerInstance"]["containerInstanceArn"]
-    container_instance_id = full_arn.rsplit("/", 1)[-1]
 
     default_attributes = response["containerInstance"]["attributes"]
     assert len(default_attributes) == 4

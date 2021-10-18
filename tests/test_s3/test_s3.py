@@ -17,12 +17,11 @@ from botocore.handlers import disable_signing
 from freezegun import freeze_time
 import requests
 
-from moto.s3 import models
 from moto.s3.responses import DEFAULT_REGION_NAME
 from unittest import SkipTest
 import pytest
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import settings, mock_s3, mock_config
 import moto.s3.models as s3model
@@ -56,10 +55,10 @@ def reduced_min_part_size(f):
 
 
 class MyModel(object):
-    def __init__(self, name, value, metadata={}):
+    def __init__(self, name, value, metadata=None):
         self.name = name
         self.value = value
-        self.metadata = metadata
+        self.metadata = metadata or {}
 
     def save(self):
         s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -798,7 +797,6 @@ def test_post_with_metadata_to_bucket_boto3():
 @mock_s3
 def test_delete_missing_key_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
     bucket.create()
 
@@ -869,7 +867,6 @@ def test_key_with_special_characters_boto3(key):
 @mock_s3
 def test_bucket_key_listing_order_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test_bucket"
     bucket = s3.Bucket(bucket_name)
     bucket.create()
@@ -912,7 +909,6 @@ def test_bucket_key_listing_order_boto3():
 @mock_s3
 def test_key_with_reduced_redundancy_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test_bucket"
     bucket = s3.Bucket(bucket_name)
     bucket.create()
@@ -951,7 +947,6 @@ def test_copy_key_reduced_redundancy_boto3():
 @mock_s3
 def test_restore_key_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
     bucket.create()
 
@@ -978,7 +973,6 @@ def test_restore_key_boto3():
 @mock_s3
 def test_get_versioning_status_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
     bucket.create()
 
@@ -1224,12 +1218,12 @@ def test_default_key_buffer_size():
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
     assert get_s3_default_key_buffer_size() == 2
-    fk = models.FakeKey("a", os.urandom(1))  # 1 byte string
+    fk = s3model.FakeKey("a", os.urandom(1))  # 1 byte string
     assert fk._value_buffer._rolled == False
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
     assert get_s3_default_key_buffer_size() == 1
-    fk = models.FakeKey("a", os.urandom(3))  # 3 byte string
+    fk = s3model.FakeKey("a", os.urandom(3))  # 3 byte string
     assert fk._value_buffer._rolled == True
 
     # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the buffer size should be less than
@@ -1296,7 +1290,6 @@ def test_unicode_value_boto3():
 @mock_s3
 def test_setting_content_encoding_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("mybucket")
     bucket.create()
 
@@ -1320,7 +1313,7 @@ def test_bucket_location_nondefault():
     cli = boto3.client("s3", region_name="eu-central-1")
     bucket_name = "mybucket"
     # LocationConstraint set for non default regions
-    resp = cli.create_bucket(
+    cli.create_bucket(
         Bucket=bucket_name,
         CreateBucketConfiguration={"LocationConstraint": "eu-central-1"},
     )
@@ -2336,7 +2329,7 @@ def test_boto3_copy_object_with_versioning():
     client.put_object(Bucket="blah", Key="test1", Body=b"test1")
     client.put_object(Bucket="blah", Key="test2", Body=b"test2")
 
-    obj1_version = client.get_object(Bucket="blah", Key="test1")["VersionId"]
+    client.get_object(Bucket="blah", Key="test1")["VersionId"]
     obj2_version = client.get_object(Bucket="blah", Key="test2")["VersionId"]
 
     client.copy_object(
@@ -2533,7 +2526,7 @@ def test_boto3_delete_versioned_bucket_returns_meta():
         Bucket="blah", VersioningConfiguration={"Status": "Enabled"}
     )
 
-    put_resp = client.put_object(Bucket="blah", Key="test1", Body=b"test1")
+    client.put_object(Bucket="blah", Key="test1", Body=b"test1")
 
     # Delete the object
     del_resp = client.delete_object(Bucket="blah", Key="test1")
@@ -3442,7 +3435,7 @@ def test_put_bucket_notification_errors():
     s3.create_bucket(Bucket="bucket")
 
     # With incorrect ARNs:
-    for tech, arn in [("Queue", "sqs"), ("Topic", "sns"), ("LambdaFunction", "lambda")]:
+    for tech in ["Queue", "Topic", "LambdaFunction"]:
         with pytest.raises(ClientError) as err:
             s3.put_bucket_notification_configuration(
                 Bucket="bucket",
@@ -5174,7 +5167,7 @@ def test_encryption():
     conn = boto3.client("s3", region_name="us-east-1")
     conn.create_bucket(Bucket="mybucket")
 
-    with pytest.raises(ClientError) as exc:
+    with pytest.raises(ClientError):
         conn.get_bucket_encryption(Bucket="mybucket")
 
     sse_config = {
@@ -5201,6 +5194,12 @@ def test_encryption():
     conn.delete_bucket_encryption(Bucket="mybucket")
     with pytest.raises(ClientError) as exc:
         conn.get_bucket_encryption(Bucket="mybucket")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ServerSideEncryptionConfigurationNotFoundError")
+    err["Message"].should.equal(
+        "The server side encryption configuration was not found"
+    )
+    err["BucketName"].should.equal("mybucket")
 
 
 @mock_s3

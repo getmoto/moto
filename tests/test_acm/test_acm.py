@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.acm.models import AWS_ROOT_CA
 
 import os
@@ -6,10 +5,10 @@ import uuid
 
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives import serialization
 from freezegun import freeze_time
 from moto import mock_acm, mock_elb, settings
 from moto.core import ACCOUNT_ID

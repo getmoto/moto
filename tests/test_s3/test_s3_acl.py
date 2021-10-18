@@ -2,7 +2,7 @@ import boto3
 import os
 import pytest
 import requests
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from botocore.handlers import disable_signing

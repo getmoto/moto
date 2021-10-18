@@ -6,7 +6,7 @@ from datetime import datetime
 import boto3
 import pytest
 import pytz
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_logs

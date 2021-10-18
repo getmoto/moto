@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 from botocore.exceptions import ClientError
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, mock_kms, mock_rds2
 from moto.core import ACCOUNT_ID
 
@@ -61,7 +59,7 @@ def test_create_database_no_allocated_storage():
 @mock_rds2
 def test_create_database_non_existing_option_group():
     conn = boto3.client("rds", region_name="us-west-2")
-    database = conn.create_db_instance.when.called_with(
+    conn.create_db_instance.when.called_with(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         Engine="postgres",
@@ -245,7 +243,7 @@ def test_stop_multi_az_postgres():
 @mock_rds2
 def test_fail_to_stop_readreplica():
     conn = boto3.client("rds", region_name="us-west-2")
-    database = conn.create_db_instance(
+    conn.create_db_instance(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         Engine="postgres",
@@ -351,7 +349,7 @@ def test_describe_non_existent_database():
 @mock_rds2
 def test_modify_db_instance():
     conn = boto3.client("rds", region_name="us-west-2")
-    database = conn.create_db_instance(
+    conn.create_db_instance(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
@@ -379,7 +377,7 @@ def test_modify_db_instance():
 @mock_rds2
 def test_rename_db_instance():
     conn = boto3.client("rds", region_name="us-west-2")
-    database = conn.create_db_instance(
+    conn.create_db_instance(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
@@ -1010,7 +1008,7 @@ def test_add_tags_snapshot():
         Port=1234,
         DBSecurityGroups=["my_sg"],
     )
-    snapshot = conn.create_db_snapshot(
+    conn.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
         DBSnapshotIdentifier="snapshot-without-tags",
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
@@ -1043,7 +1041,7 @@ def test_remove_tags_snapshot():
         Port=1234,
         DBSecurityGroups=["my_sg"],
     )
-    snapshot = conn.create_db_snapshot(
+    conn.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
         DBSnapshotIdentifier="snapshot-with-tags",
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
@@ -1350,7 +1348,7 @@ def test_modify_database_subnet_group():
         SubnetIds=[subnet1["SubnetId"], subnet2["SubnetId"]],
     )
 
-    groups = conn.describe_db_subnet_groups()["DBSubnetGroups"]
+    conn.describe_db_subnet_groups()["DBSubnetGroups"]
     # FIXME: Group is deleted atm
     # TODO: we should check whether all attrs are persisted
 
@@ -1542,7 +1540,7 @@ def test_remove_tags_database_subnet_group():
 def test_create_database_replica():
     conn = boto3.client("rds", region_name="us-west-2")
 
-    database = conn.create_db_instance(
+    conn.create_db_instance(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         Engine="postgres",
@@ -1629,7 +1627,7 @@ def test_create_db_parameter_group():
 @mock_rds2
 def test_create_db_instance_with_parameter_group():
     conn = boto3.client("rds", region_name="us-west-2")
-    db_parameter_group = conn.create_db_parameter_group(
+    conn.create_db_parameter_group(
         DBParameterGroupName="test",
         DBParameterGroupFamily="mysql5.6",
         Description="test parameter group",
@@ -1691,7 +1689,7 @@ def test_modify_db_instance_with_parameter_group():
         "in-sync"
     )
 
-    db_parameter_group = conn.create_db_parameter_group(
+    conn.create_db_parameter_group(
         DBParameterGroupName="test",
         DBParameterGroupFamily="mysql5.6",
         Description="test parameter group",

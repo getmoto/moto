@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .models import s3_backend
 
 s3_backends = {"global": s3_backend}

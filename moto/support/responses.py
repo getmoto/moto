@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import support_backends
 import json

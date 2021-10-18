@@ -1,4 +1,4 @@
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import boto3
 import pytest
 

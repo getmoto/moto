@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_support
 
 
@@ -89,7 +87,7 @@ def test_refresh_trusted_advisor_check_cycles_to_new_status_on_each_call(
     check_name = "XXXIIIY"
     actual_statuses = []
 
-    for status in possible_statuses:
+    for _ in possible_statuses:
         response = client.refresh_trusted_advisor_check(checkId=check_name)
         actual_statuses.append(response["status"]["status"])
 
@@ -114,11 +112,11 @@ def test_refresh_trusted_advisor_check_cycles_to_new_status_on_with_two_checks()
         "abandoned",
     ]
 
-    for check in possible_statuses:
+    for _ in possible_statuses:
         response = client.refresh_trusted_advisor_check(checkId=check_1_name)
         check_1_statuses.append(response["status"]["status"])
 
-    for check in possible_statuses:
+    for _ in possible_statuses:
         response = client.refresh_trusted_advisor_check(checkId=check_2_name)
         check_2_statuses.append(response["status"]["status"])
 
@@ -143,7 +141,7 @@ def test_refresh_trusted_advisor_check_cycle_continues_on_full_cycle():
         "abandoned",
     ]
 
-    for status in possible_statuses:
+    for _ in possible_statuses:
         client.refresh_trusted_advisor_check(checkId=check_name)
 
     expected_none_response = client.refresh_trusted_advisor_check(checkId=check_name)

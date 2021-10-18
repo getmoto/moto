@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import pytest
 import random
 
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
 from uuid import uuid4

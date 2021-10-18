@@ -1,15 +1,10 @@
-from __future__ import unicode_literals
-
 import io
 import os
 import re
 
 from botocore.awsrequest import AWSPreparedRequest
 
-from moto.core.utils import (
-    amzn_request_id,
-    str_to_rfc_1123_datetime,
-)
+from moto.core.utils import amzn_request_id, str_to_rfc_1123_datetime
 from urllib.parse import (
     parse_qs,
     urlparse,

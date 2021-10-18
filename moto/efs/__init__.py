@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from ..core.models import base_decorator
 from .models import efs_backends
 

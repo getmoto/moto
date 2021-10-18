@@ -2,8 +2,8 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from moto import mock_swf
 from moto.core.utils import unix_time

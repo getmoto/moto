@@ -3,7 +3,7 @@ import pytest
 import boto3
 from botocore.exceptions import ClientError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import random
 import uuid
 

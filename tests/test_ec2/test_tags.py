@@ -1,9 +1,10 @@
 import boto3
-from botocore.exceptions import ClientError
-import sure  # noqa
-
-from moto import mock_ec2
+import sure  # noqa # pylint: disable=unused-import
 import pytest
+
+from botocore.exceptions import ClientError
+from moto import mock_ec2
+
 from tests import EXAMPLE_AMI_ID
 from .test_instances import retrieve_all_instances
 from uuid import uuid4
@@ -258,9 +259,9 @@ def test_get_all_tags_value_filter_boto3():
     filter_by_value("some*value", [instance_a.id, instance_b.id, image.id])
     filter_by_value("*some*value", [instance_a.id, instance_b.id, image.id])
     filter_by_value("*some*value*", [instance_a.id, instance_b.id, image.id])
-    filter_by_value("*value\\*", [instance_c.id])
-    filter_by_value("*value\\*\\*", [instance_d.id])
-    filter_by_value("*value\\*\\?", [instance_e.id])
+    filter_by_value(r"*value\*", [instance_c.id])
+    filter_by_value(r"*value\*\*", [instance_d.id])
+    filter_by_value(r"*value\*\?", [instance_e.id])
 
 
 @mock_ec2
@@ -461,7 +462,7 @@ def get_filter(tag_val):
     ]
 
 
-def retrieve_all_tagged(client, filters=[]):
+def retrieve_all_tagged(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_tags(Filters=filters)
     tags = resp["Tags"]
     token = resp.get("NextToken")

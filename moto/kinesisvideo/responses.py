@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import kinesisvideo_backends
 import json

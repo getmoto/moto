@@ -1,6 +1,7 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_kms
+
 
 PLAINTEXT_VECTORS = [
     b"some encodeable plaintext",

@@ -1,9 +1,8 @@
-from __future__ import unicode_literals
 import boto3
 import json
 import yaml
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from unittest.mock import patch
 
 from moto.cloudformation.exceptions import ValidationError

@@ -1,8 +1,8 @@
 import boto3
-import sure  # noqa
 import pytest
-from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 
+from botocore.exceptions import ClientError
 from moto import mock_ec2
 
 

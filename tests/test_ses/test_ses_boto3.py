@@ -6,8 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import pytest
 
-
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ses
 

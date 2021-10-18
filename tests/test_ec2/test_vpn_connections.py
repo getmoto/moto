@@ -1,6 +1,6 @@
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2
 
@@ -119,7 +119,7 @@ def test_describe_vpn_connections_unknown():
     err["Code"].should.equal("InvalidVpnConnectionID.NotFound")
 
 
-def retrieve_all_vpncs(client, filters=[]):
+def retrieve_all_vpncs(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_vpn_connections(Filters=filters)
     all_vpncs = resp["VpnConnections"]
     token = resp.get("NextToken")

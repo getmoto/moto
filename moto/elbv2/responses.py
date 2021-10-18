@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse

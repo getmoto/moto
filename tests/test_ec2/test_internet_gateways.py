@@ -4,7 +4,7 @@ import boto3
 
 from botocore.exceptions import ClientError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 from uuid import uuid4
@@ -253,7 +253,7 @@ def test_igw_filter_by_tags_boto3():
     client = boto3.client("ec2", "us-west-1")
 
     igw1 = ec2.create_internet_gateway()
-    igw2 = ec2.create_internet_gateway()
+    ec2.create_internet_gateway()
     tag_value = str(uuid4())
     igw1.create_tags(Tags=[{"Key": "tests", "Value": tag_value}])
 
@@ -269,7 +269,7 @@ def test_igw_filter_by_internet_gateway_id_boto3():
     client = boto3.client("ec2", "us-west-1")
 
     igw1 = ec2.create_internet_gateway()
-    igw2 = ec2.create_internet_gateway()
+    ec2.create_internet_gateway()
 
     result = client.describe_internet_gateways(
         Filters=[{"Name": "internet-gateway-id", "Values": [igw1.id]}]
@@ -311,7 +311,7 @@ def test_create_internet_gateway_with_tags():
     igw.tags.should.equal([{"Key": "test", "Value": "TestRouteTable"}])
 
 
-def retrieve_all(client, filters=[]):
+def retrieve_all(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_internet_gateways(Filters=filters)
     all_igws = resp["InternetGateways"]
     token = resp.get("NextToken")

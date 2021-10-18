@@ -1,7 +1,7 @@
 import boto3
 
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_ec2
 from moto.ec2.models import OWNER_ID
@@ -341,8 +341,6 @@ def test_create_snapshot_boto3():
     snapshots[0]["Encrypted"].should.be(False)
 
     # Create snapshot without description
-    num_snapshots = len(client.describe_snapshots()["Snapshots"])
-
     snapshot = volume.create_snapshot()
     current_snapshots = client.describe_snapshots()["Snapshots"]
     [s["SnapshotId"] for s in current_snapshots].should.contain(snapshot.id)
@@ -482,8 +480,6 @@ def test_snapshot_filters_boto3():
 
 @mock_ec2
 def test_modify_snapshot_attribute():
-    import copy
-
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     response = ec2_client.create_volume(Size=80, AvailabilityZone="us-east-1a")
     volume = boto3.resource("ec2", region_name="us-east-1").Volume(response["VolumeId"])
@@ -537,7 +533,7 @@ def test_modify_snapshot_attribute():
     ], "This snapshot should have public group permissions."
 
     # Remove 'all' group and confirm
-    with pytest.raises(ClientError) as ex:
+    with pytest.raises(ClientError):
         ec2_client.modify_snapshot_attribute(
             **dict(REMOVE_GROUP_ARGS, **{"DryRun": True})
         )
@@ -788,24 +784,24 @@ def test_copy_snapshot():
 
     # Copy from non-existent source ID.
     with pytest.raises(ClientError) as cm:
-        create_snapshot_error = ec2_client.create_snapshot(VolumeId="vol-abcd1234")
-        cm.value.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
-        cm.value.response["Error"]["Message"].should.equal(
-            "The volume 'vol-abcd1234' does not exist."
-        )
-        cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
-        cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ec2_client.create_snapshot(VolumeId="vol-abcd1234")
+    cm.value.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
+    cm.value.response["Error"]["Message"].should.equal(
+        "The volume 'vol-abcd1234' does not exist."
+    )
+    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Copy from non-existent source region.
     with pytest.raises(ClientError) as cm:
-        copy_snapshot_response = dest_ec2_client.copy_snapshot(
+        dest_ec2_client.copy_snapshot(
             SourceSnapshotId=create_snapshot_response["SnapshotId"],
             SourceRegion="eu-west-2",
         )
-        cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-        cm.value.response["Error"]["Message"].should.be.none
-        cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
-        cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+    cm.value.response["Error"]["Message"].should.be.none
+    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_ec2
@@ -815,7 +811,7 @@ def test_search_for_many_snapshots():
     volume_response = ec2_client.create_volume(AvailabilityZone="eu-west-1a", Size=10)
 
     snapshot_ids = []
-    for i in range(1, 20):
+    for _ in range(1, 20):
         create_snapshot_response = ec2_client.create_snapshot(
             VolumeId=volume_response["VolumeId"]
         )

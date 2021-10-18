@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -149,9 +147,9 @@ def test_describe_identity_pool_with_invalid_id_raises_error():
 # testing a helper function
 def test_get_random_identity_id():
     identity_id = get_random_identity_id("us-west-2")
-    region, id = identity_id.split(":")
+    region, identity_id = identity_id.split(":")
     region.should.equal("us-west-2")
-    UUID(id, version=4)  # Will throw an error if it's not a valid UUID
+    UUID(identity_id, version=4)  # Will throw an error if it's not a valid UUID
 
 
 @mock_cognitoidentity

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import json
 from datetime import datetime
@@ -10,7 +8,7 @@ import os
 from random import random
 
 import re
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import boto3
 from botocore.exceptions import ClientError
@@ -2263,11 +2261,11 @@ def test_start_image_scan_error_daily_limit():
     repo_name = "test-repo"
     client.create_repository(repositoryName=repo_name)
     image_tag = "latest"
-    image_digest = client.put_image(
+    client.put_image(
         repositoryName=repo_name,
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag="latest",
-    )["image"]["imageId"]["imageDigest"]
+    )
     client.start_image_scan(repositoryName=repo_name, imageId={"imageTag": image_tag})
 
     # when

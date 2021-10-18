@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import pytest
 
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
 from tests import EXAMPLE_AMI_ID
@@ -853,7 +851,7 @@ def test_create_route_with_unknown_egress_only_igw():
     ec2_client = boto3.client("ec2", region_name="eu-central-1")
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
+    ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
     )
 

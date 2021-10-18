@@ -1,7 +1,7 @@
 import boto3
 from boto3.dynamodb.conditions import Key
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 from datetime import datetime
 from botocore.exceptions import ClientError
 from moto import mock_dynamodb2
@@ -323,7 +323,7 @@ def test_boto3_create_table():
 def _create_user_table():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],

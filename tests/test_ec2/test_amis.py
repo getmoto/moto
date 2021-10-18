@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import boto3
 from botocore.exceptions import ClientError
 
 import pytest
+import sure  # noqa # pylint: disable=unused-import
 import random
-import sure  # noqa
 
 from moto import mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID
@@ -59,7 +57,6 @@ def test_ami_create_and_delete_boto3():
     set([i["ImageId"] for i in all_images]).should.contain(image_id)
 
     retrieved_image = [i for i in all_images if i["ImageId"] == image_id][0]
-    created_snapshot_id = retrieved_image["BlockDeviceMappings"][0]["Ebs"]["SnapshotId"]
 
     retrieved_image.should.have.key("ImageId").equal(image_id)
     retrieved_image.should.have.key("VirtualizationType").equal(

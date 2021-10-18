@@ -1,7 +1,7 @@
 import pytest
 
+import sure  # noqa # pylint: disable=unused-import
 import boto3
-import sure  # noqa
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2, settings
@@ -48,14 +48,12 @@ moto@github.com"""
 def test_key_pairs_empty_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
-    ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
     client.describe_key_pairs()["KeyPairs"].should.be.empty
 
 
 @mock_ec2
 def test_key_pairs_invalid_id_boto3():
-    ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -125,7 +123,6 @@ def test_key_pairs_delete_no_exist_boto3():
 
 @mock_ec2
 def test_key_pairs_delete_exist_boto3():
-    ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
     key_name = str(uuid4())[0:6]
     client.create_key_pair(KeyName=key_name)
@@ -146,7 +143,6 @@ def test_key_pairs_delete_exist_boto3():
 
 @mock_ec2
 def test_key_pairs_import_boto3():
-    ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
@@ -182,7 +178,6 @@ def test_key_pairs_import_boto3():
 
 @mock_ec2
 def test_key_pairs_import_exist_boto3():
-    ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
@@ -202,7 +197,6 @@ def test_key_pairs_import_exist_boto3():
 
 @mock_ec2
 def test_key_pairs_invalid_boto3():
-    ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:

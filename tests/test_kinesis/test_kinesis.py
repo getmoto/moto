@@ -10,7 +10,7 @@ from dateutil.tz import tzlocal
 from moto import mock_kinesis
 from moto.core import ACCOUNT_ID
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_kinesis

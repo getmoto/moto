@@ -2,8 +2,8 @@ import botocore.client
 import boto3
 import hashlib
 import json
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3
@@ -709,7 +709,7 @@ def test_get_function_created_with_zipfile():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     zip_content = get_test_zip_file1()
-    result = conn.create_function(
+    conn.create_function(
         FunctionName=function_name,
         Runtime="python2.7",
         Role=get_role_name(),
@@ -1092,7 +1092,7 @@ def test_update_function_s3():
     zip_content_two = get_test_zip_file2()
     s3_conn.put_object(Bucket=bucket_name, Key="test2.zip", Body=zip_content_two)
 
-    fxn_updated = conn.update_function_code(
+    conn.update_function_code(
         FunctionName=function_name,
         S3Bucket=bucket_name,
         S3Key="test2.zip",
