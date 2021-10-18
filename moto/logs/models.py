@@ -549,7 +549,7 @@ class LogResourcePolicy(CloudFormationModel):
 
     def update(self, policy_document):
         self.policy_document = policy_document
-        self.lastUpdatedTime = int(unix_time_millis())
+        self.last_updated_time = int(unix_time_millis())
 
     def describe(self):
         return {
@@ -811,7 +811,11 @@ class LogsBackend(BaseBackend):
         return list(self.resource_policies.values())
 
     def put_resource_policy(self, policy_name, policy_doc):
-        """Create resource policy and return dict of policy name and doc."""
+        """Creates/updates resource policy and return policy object"""
+        if policy_name in self.resource_policies:
+            policy = self.resource_policies[policy_name]
+            policy.update(policy_doc)
+            return policy
         if len(self.resource_policies) == MAX_RESOURCE_POLICIES_PER_REGION:
             raise LimitExceededException()
         policy = LogResourcePolicy(policy_name, policy_doc)

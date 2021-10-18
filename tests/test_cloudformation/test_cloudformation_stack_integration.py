@@ -2926,6 +2926,34 @@ def test_create_cloudwatch_logs_resource_policy():
 
 
 @mock_cloudformation
+@mock_logs
+def test_delete_stack_containing_cloudwatch_logs_resource_policy():
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "LogGroupPolicy1": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}',
+                    "PolicyName": "TestPolicyA",
+                },
+            }
+        },
+    }
+
+    cf_conn = boto3.client("cloudformation", "us-east-1")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
+
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(1)
+
+    cf_conn.delete_stack(StackName="test_stack")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(0)
+
+
+@mock_cloudformation
 @mock_events
 def test_stack_events_create_rule_integration():
     events_template = {

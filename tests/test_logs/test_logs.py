@@ -3,10 +3,12 @@ import os
 import time
 import sure  # noqa
 from unittest import SkipTest
+from datetime import timedelta
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_logs, settings
 from moto.core.utils import unix_time_millis
@@ -592,6 +594,17 @@ def test_put_resource_policy():
 
     client.delete_log_group(logGroupName=log_group_name)
 
+    # put_resource_policy with same policy name should update the resouce
+    created_time = response["resourcePolicy"]["lastUpdatedTime"]
+    with freeze_time(timedelta(minutes=1)):
+        new_document = '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}'
+        policy_info = client.put_resource_policy(
+            policyName=policy_name, policyDocument=new_document,
+        )["resourcePolicy"]
+        assert policy_info["policyName"] == policy_name
+        assert policy_info["policyDocument"] == new_document
+        assert created_time < policy_info["lastUpdatedTime"] <= int(unix_time_millis())
+
 
 @mock_logs
 def test_put_resource_policy_too_many(json_policy_doc):
@@ -614,6 +627,11 @@ def test_put_resource_policy_too_many(json_policy_doc):
     exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     exc_value.response["Error"]["Code"].should.equal("LimitExceededException")
     exc_value.response["Error"]["Message"].should.contain("Resource limit exceeded.")
+
+    # put_resource_policy on already created policy, shouldnt throw any error
+    client.put_resource_policy(
+        policyName="test_policy_1", policyDocument=json.dumps(json_policy_doc)
+    )
 
 
 @mock_logs
