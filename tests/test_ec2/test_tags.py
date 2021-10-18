@@ -561,9 +561,9 @@ def test_get_all_tags_value_filter_boto3():
     filter_by_value("some*value", [instance_a.id, instance_b.id, image.id])
     filter_by_value("*some*value", [instance_a.id, instance_b.id, image.id])
     filter_by_value("*some*value*", [instance_a.id, instance_b.id, image.id])
-    filter_by_value("*value\*", [instance_c.id])
-    filter_by_value("*value\*\*", [instance_d.id])
-    filter_by_value("*value\*\?", [instance_e.id])
+    filter_by_value(r"*value\*", [instance_c.id])
+    filter_by_value(r"*value\*\*", [instance_d.id])
+    filter_by_value(r"*value\*\?", [instance_e.id])
 
 
 # Has boto3 equivalent

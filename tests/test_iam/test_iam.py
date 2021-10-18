@@ -795,7 +795,7 @@ def test_set_default_policy_version():
         VersionId="wrong_version_id",
     ).should.throw(
         ClientError,
-        "Value 'wrong_version_id' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?",
+        r"Value 'wrong_version_id' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?",
     )
 
     # Set default version for non-existing version
