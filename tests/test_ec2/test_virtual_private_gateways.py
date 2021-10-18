@@ -88,15 +88,13 @@ def test_describe_vpn_connections_state_filter_attached():
 
     ec2.attach_vpn_gateway(VpcId=vpc_id, VpnGatewayId=gateway_id)
 
-    gateways = ec2.describe_vpn_gateways(
-        Filters=[{"Name": "attachment.state", "Values": ["attached"]}]
+    all_gateways = retrieve_all(
+        ec2, [{"Name": "attachment.state", "Values": ["attached"]}]
     )
 
-    gateways["VpnGateways"].should.have.length_of(1)
-    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
-    gateways["VpnGateways"][0]["VpcAttachments"].should.contain(
-        {"State": "attached", "VpcId": vpc_id}
-    )
+    [gw["VpnGatewayId"] for gw in all_gateways].should.contain(gateway_id)
+    my_gateway = [gw for gw in all_gateways if gw["VpnGatewayId"] == gateway_id][0]
+    my_gateway["VpcAttachments"].should.contain({"State": "attached", "VpcId": vpc_id})
 
 
 @mock_ec2
@@ -160,12 +158,9 @@ def test_describe_vpn_connections_type_filter_match():
     gateway = ec2.create_vpn_gateway(AvailabilityZone="us-east-1a", Type="ipsec.1")
     gateway_id = gateway["VpnGateway"]["VpnGatewayId"]
 
-    gateways = ec2.describe_vpn_gateways(
-        Filters=[{"Name": "type", "Values": ["ipsec.1"]}]
-    )
+    my_gateways = retrieve_all(ec2, [{"Name": "type", "Values": ["ipsec.1"]}])
 
-    gateways["VpnGateways"].should.have.length_of(1)
-    gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
+    [gw["VpnGatewayId"] for gw in my_gateways].should.contain(gateway_id)
 
 
 @mock_ec2
