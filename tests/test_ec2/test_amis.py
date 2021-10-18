@@ -29,9 +29,7 @@ def test_ami_create_and_delete():
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as ex:
-        conn.create_image(
-            instance.id, "test-ami", "this is a test ami", dry_run=True
-        )
+        conn.create_image(instance.id, "test-ami", "this is a test ami", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
     ex.value.status.should.equal(412)
     ex.value.message.should.equal(

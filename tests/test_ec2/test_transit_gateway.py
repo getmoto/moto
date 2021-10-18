@@ -125,9 +125,7 @@ def test_modify_transit_gateway():
     ][0]
     my_gateway["Description"].should.equal("my first gatway")
 
-    ec2.modify_transit_gateway(
-        TransitGatewayId=g_id, Description="my first gateway"
-    )
+    ec2.modify_transit_gateway(TransitGatewayId=g_id, Description="my first gateway")
 
     my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g_id])[
         "TransitGateways"
