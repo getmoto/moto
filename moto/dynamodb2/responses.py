@@ -203,15 +203,8 @@ class DynamoHandler(BaseResponse):
         actual_attrs = [item["AttributeName"] for item in attr]
         actual_attrs.sort()
         if actual_attrs != expected_attrs:
-            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(
-                er,
-                "One or more parameter values were invalid: "
-                "Some index key attributes are not defined in AttributeDefinitions. "
-                "Keys: "
-                + str(expected_attrs)
-                + ", AttributeDefinitions: "
-                + str(actual_attrs),
+            return self._throw_attr_error(
+                actual_attrs, expected_attrs, global_indexes or local_secondary_indexes
             )
         # get the stream specification
         streams = body.get("StreamSpecification")
@@ -230,6 +223,62 @@ class DynamoHandler(BaseResponse):
         else:
             er = "com.amazonaws.dynamodb.v20111205#ResourceInUseException"
             return self.error(er, "Resource in use")
+
+    def _throw_attr_error(self, actual_attrs, expected_attrs, indexes):
+        def dump_list(list_):
+            return str(list_).replace("'", "")
+
+        er = "com.amazonaws.dynamodb.v20111205#ValidationException"
+        err_head = "One or more parameter values were invalid: "
+        if len(actual_attrs) > len(expected_attrs):
+            if indexes:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some AttributeDefinitions are not used. AttributeDefinitions: "
+                    + dump_list(actual_attrs)
+                    + ", keys used: "
+                    + dump_list(expected_attrs),
+                )
+            else:
+                return self.error(
+                    er,
+                    err_head
+                    + "Number of attributes in KeySchema does not exactly match number of attributes defined in AttributeDefinitions",
+                )
+        elif len(actual_attrs) < len(expected_attrs):
+            if indexes:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some index key attributes are not defined in AttributeDefinitions. Keys: "
+                    + dump_list(list(set(expected_attrs) - set(actual_attrs)))
+                    + ", AttributeDefinitions: "
+                    + dump_list(actual_attrs),
+                )
+            else:
+                return self.error(
+                    er, "Invalid KeySchema: Some index key attribute have no definition"
+                )
+        else:
+            if indexes:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some index key attributes are not defined in AttributeDefinitions. Keys: "
+                    + dump_list(list(set(expected_attrs) - set(actual_attrs)))
+                    + ", AttributeDefinitions: "
+                    + dump_list(actual_attrs),
+                )
+            else:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some index key attributes are not defined in AttributeDefinitions. Keys: "
+                    + dump_list(expected_attrs)
+                    + ", AttributeDefinitions: "
+                    + dump_list(actual_attrs),
+                )
 
     def delete_table(self):
         name = self.body["TableName"]
