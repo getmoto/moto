@@ -1,15 +1,13 @@
-from __future__ import unicode_literals
-
 import os
 
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from unittest import SkipTest
 
-from moto import mock_managedblockchain, settings
+from moto import mock_managedblockchain
 from . import helpers
 
 
@@ -695,7 +693,6 @@ def test_list_proposal_votes_badproposal():
         MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
-    member_id = response["MemberId"]
 
     with pytest.raises(ClientError) as ex:
         conn.list_proposal_votes(

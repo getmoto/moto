@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 import base64
 import re
 
 import boto.kms
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 import pytest
@@ -552,7 +551,7 @@ def test__delete_alias():
 
     # added another alias here to make sure that the deletion of the alias can
     # be done when there are multiple existing aliases.
-    another_create_resp = kms.create_key()
+    kms.create_key()
     another_key_id = create_resp["KeyMetadata"]["KeyId"]
     another_alias = "alias/another-alias"
 

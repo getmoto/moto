@@ -1,6 +1,6 @@
 import boto3
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_cloudformation, mock_ec2, mock_rds2
 from tests.test_cloudformation.fixtures import rds_mysql_with_db_parameter_group
 from tests.test_cloudformation.fixtures import rds_mysql_with_read_replica

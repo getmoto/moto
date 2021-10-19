@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import importlib
 
 
@@ -34,6 +32,7 @@ mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudformation_deprecated = lazy_load(
     ".cloudformation", "mock_cloudformation_deprecated"
 )
+mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_cloudwatch_deprecated = lazy_load(".cloudwatch", "mock_cloudwatch_deprecated")
 mock_codecommit = lazy_load(".codecommit", "mock_codecommit")
@@ -154,7 +153,7 @@ mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.9.dev"
+__version__ = "2.2.11.dev"
 
 
 try:

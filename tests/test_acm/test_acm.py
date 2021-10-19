@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.acm.models import AWS_ROOT_CA
 
 import os
@@ -6,15 +5,15 @@ import uuid
 
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives import serialization
 from freezegun import freeze_time
-from moto import mock_acm, settings
+from moto import mock_acm, mock_elb, settings
 from moto.core import ACCOUNT_ID
-
 from unittest import SkipTest, mock
+
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 _GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
@@ -640,3 +639,38 @@ def test_request_certificate_with_mutiple_times():
         )
     arn = resp["CertificateArn"]
     arn.should_not.equal(original_arn)
+
+
+@mock_acm
+@mock_elb
+def test_elb_acm_in_use_by():
+    acm_client = boto3.client("acm", region_name="us-west-2")
+    elb_client = boto3.client("elb", region_name="us-west-2")
+
+    acm_request_response = acm_client.request_certificate(
+        DomainName="fake.domain.com",
+        DomainValidationOptions=[
+            {"DomainName": "fake.domain.com", "ValidationDomain": "domain.com"}
+        ],
+    )
+
+    certificate_arn = acm_request_response["CertificateArn"]
+
+    create_load_balancer_request = elb_client.create_load_balancer(
+        LoadBalancerName="test",
+        Listeners=[
+            {
+                "Protocol": "https",
+                "LoadBalancerPort": 443,
+                "InstanceProtocol": "http",
+                "InstancePort": 80,
+                "SSLCertificateId": certificate_arn,
+            }
+        ],
+    )
+
+    response = acm_client.describe_certificate(CertificateArn=certificate_arn)
+
+    response["Certificate"]["InUseBy"].should.equal(
+        [create_load_balancer_request["DNSName"]]
+    )

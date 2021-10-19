@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import pytest
 
 import boto3
@@ -7,7 +5,7 @@ import boto
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import random
 import uuid
 

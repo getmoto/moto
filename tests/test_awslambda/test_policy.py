@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import json
-import sure
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.awslambda.policy import Policy
 

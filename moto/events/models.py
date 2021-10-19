@@ -12,6 +12,7 @@ from operator import lt, le, eq, ge, gt
 
 from boto3 import Session
 
+from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
 from moto.core.utils import unix_time, iso_8601_datetime_without_milliseconds
@@ -22,9 +23,12 @@ from moto.events.exceptions import (
     InvalidEventPatternException,
     IllegalStatusException,
 )
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 from uuid import uuid4
+
+from .utils import PAGINATION_MODEL
 
 
 class Rule(CloudFormationModel):
@@ -901,10 +905,7 @@ class EventsBackend(BaseBackend):
     _RATE_REGEX = re.compile(r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)")
 
     def __init__(self, region_name):
-        self.rules = {}
-        # This array tracks the order in which the rules have been added, since
-        # 2.6 doesn't have OrderedDicts.
-        self.rules_order = []
+        self.rules = OrderedDict()
         self.next_tokens = {}
         self.region_name = region_name
         self.event_buses = {}
@@ -931,9 +932,6 @@ class EventsBackend(BaseBackend):
 
     def _add_default_event_bus(self):
         self.event_buses["default"] = EventBus(self.region_name, "default")
-
-    def _get_rule_by_index(self, i):
-        return self.rules.get(self.rules_order[i])
 
     def _gen_next_token(self, index):
         token = os.urandom(128).encode("base64")
@@ -1022,7 +1020,6 @@ class EventsBackend(BaseBackend):
             targets=targets,
         )
         self.rules[name] = rule
-        self.rules_order.append(name)
 
         if tags:
             self.tagger.tag_resource(rule.arn, tags)
@@ -1030,7 +1027,6 @@ class EventsBackend(BaseBackend):
         return rule
 
     def delete_rule(self, name):
-        self.rules_order.pop(self.rules_order.index(name))
         arn = self.rules.get(name).arn
         if self.tagger.has_tags(arn):
             self.tagger.delete_all_tags_for_resource(arn)
@@ -1056,26 +1052,18 @@ class EventsBackend(BaseBackend):
 
         return False
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_names_by_target(self, target_arn, next_token=None, limit=None):
         matching_rules = []
-        return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(self.rules), next_token, limit
-        )
-
-        for i in range(start_index, end_index):
-            rule = self._get_rule_by_index(i)
+        for _, rule in self.rules.items():
             for target in rule.targets:
                 if target["Arn"] == target_arn:
-                    matching_rules.append(rule.name)
+                    matching_rules.append(rule)
 
-        return_obj["RuleNames"] = matching_rules
-        if new_next_token is not None:
-            return_obj["NextToken"] = new_next_token
+        return matching_rules
 
-        return return_obj
-
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rules(self, prefix=None, next_token=None, limit=None):
         match_string = ".*"
         if prefix is not None:
@@ -1084,22 +1072,12 @@ class EventsBackend(BaseBackend):
         match_regex = re.compile(match_string)
 
         matching_rules = []
-        return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(self.rules), next_token, limit
-        )
-
-        for i in range(start_index, end_index):
-            rule = self._get_rule_by_index(i)
-            if match_regex.match(rule.name):
+        for name, rule in self.rules.items():
+            if match_regex.match(name):
                 matching_rules.append(rule)
 
-        return_obj["Rules"] = matching_rules
-        if new_next_token is not None:
-            return_obj["NextToken"] = new_next_token
-
-        return return_obj
+        return matching_rules
 
     def list_targets_by_rule(self, rule, next_token=None, limit=None):
         # We'll let a KeyError exception be thrown for response to handle if

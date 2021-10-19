@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 import json

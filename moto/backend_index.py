@@ -12,6 +12,7 @@ backend_url_patterns = [
     ("autoscaling", re.compile("https?://autoscaling\\.(.+)\\.amazonaws\\.com")),
     ("batch", re.compile("https?://batch\\.(.+)\\.amazonaws.com")),
     ("cloudformation", re.compile("https?://cloudformation\\.(.+)\\.amazonaws\\.com")),
+    ("cloudtrail", re.compile("https?://cloudtrail\\.(.+)\\.amazonaws\\.com")),
     ("cloudwatch", re.compile("https?://monitoring\\.(.+)\\.amazonaws.com")),
     ("codecommit", re.compile("https?://codecommit\\.(.+)\\.amazonaws\\.com")),
     ("codepipeline", re.compile("https?://codepipeline\\.(.+)\\.amazonaws\\.com")),

@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import boto
 import boto3
 from boto.exception import S3ResponseError
 from boto.s3.lifecycle import Lifecycle, Transition, Expiration, Rule
 
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from datetime import datetime
 import pytest

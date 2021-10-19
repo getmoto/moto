@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_medialive
 from uuid import uuid4
 
@@ -215,7 +213,7 @@ def test_stop_channel_succeeds():
     create_response = client.create_channel(**channel_config)
     channel_id = create_response["Channel"]["Id"]
     assert len(channel_id) > 1
-    start_response = client.start_channel(ChannelId=channel_id)
+    client.start_channel(ChannelId=channel_id)
     stop_response = client.stop_channel(ChannelId=channel_id)
     stop_response["Name"].should.equal(channel_name)
     stop_response["State"].should.equal("STOPPING")
@@ -297,9 +295,9 @@ def test_describe_input_succeeds():
 def test_list_inputs_succeeds():
     client = boto3.client("medialive", region_name=region)
     input_config1 = _create_input_config("Input One")
-    create_response = client.create_input(**input_config1)
+    client.create_input(**input_config1)
     input_config2 = _create_input_config("Input Two")
-    create_response = client.create_input(**input_config2)
+    client.create_input(**input_config2)
 
     response = client.list_inputs()
     len(response["Inputs"]).should.equal(2)

@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 import boto3
 import json
-from botocore.exceptions import ClientError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ses, mock_sns, mock_sqs
 from moto.ses.models import SESFeedback
 from moto.core import ACCOUNT_ID

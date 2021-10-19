@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -8,6 +6,7 @@ import pytz
 
 import boto3
 from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 
 import pytest
 from unittest import SkipTest
@@ -862,40 +861,59 @@ def test_get_template_summary():
     s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
 
+    # json template
     conn = boto3.client("cloudformation", region_name="us-east-1")
     result = conn.get_template_summary(TemplateBody=json.dumps(dummy_template3))
-
     result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack 3")
 
+    # existing stack
     conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template3))
-
     result = conn.get_template_summary(StackName="test_stack")
-
     result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack 3")
 
+    # json template from s3
     s3_conn.create_bucket(Bucket="foobar")
     s3_conn.Object("foobar", "template-key").put(Body=json.dumps(dummy_template3))
-
     key_url = s3.generate_presigned_url(
         ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
     )
-
     conn.create_stack(StackName="stack_from_url", TemplateURL=key_url)
     result = conn.get_template_summary(TemplateURL=key_url)
     result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack 3")
 
+    # yaml template
     conn = boto3.client("cloudformation", region_name="us-east-1")
     result = conn.get_template_summary(TemplateBody=dummy_template_yaml)
-
     result["ResourceTypes"].should.equal(["AWS::EC2::Instance"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack1 with yaml template")
+
+
+@mock_cloudformation
+def test_get_template_summary_for_stack_createed_by_changeset_execution():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    conn.create_change_set(
+        StackName="stack_from_changeset",
+        TemplateBody=json.dumps(dummy_template3),
+        ChangeSetName="test_changeset",
+        ChangeSetType="CREATE",
+    )
+    with pytest.raises(
+        ClientError,
+        match="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks",
+    ):
+        conn.get_template_summary(StackName="stack_from_changeset")
+    conn.execute_change_set(ChangeSetName="test_changeset")
+    result = conn.get_template_summary(StackName="stack_from_changeset")
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
 
 
 @mock_cloudformation
@@ -1746,7 +1764,6 @@ def test_cloudformation_params_conditions_and_resources_are_distinct():
         TemplateBody=template_with_conditions,
         Parameters=[{"ParameterKey": "FooEnabled", "ParameterValue": "true"}],
     )
-    stack = cf.describe_stacks(StackName="test_stack1")["Stacks"][0]
     resources = cf.list_stack_resources(StackName="test_stack1")[
         "StackResourceSummaries"
     ]

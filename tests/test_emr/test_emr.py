@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import time
 from datetime import datetime
 
@@ -8,7 +7,7 @@ from boto.emr.bootstrap_action import BootstrapAction
 from boto.emr.instance_group import InstanceGroup
 from boto.emr.step import StreamingStep
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_emr_deprecated
 from tests.helpers import requires_boto_gte
@@ -144,7 +143,7 @@ def test_describe_jobflows():
     jobs = conn.describe_jobflows()
     jobs.should.have.length_of(6)
 
-    for cluster_id, y in expected.items():
+    for cluster_id in expected:
         resp = conn.describe_jobflows(jobflow_ids=[cluster_id])
         resp.should.have.length_of(1)
         resp[0].jobflowid.should.equal(cluster_id)

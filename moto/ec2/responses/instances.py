@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -16,6 +14,7 @@ from copy import deepcopy
 
 class InstanceResponse(BaseResponse):
     def describe_instances(self):
+        self.error_on_dryrun()
         filter_dict = filters_from_querystring(self.querystring)
         instance_ids = self._get_multi_param("InstanceId")
         token = self._get_param("NextToken")

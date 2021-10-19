@@ -1,14 +1,10 @@
-from __future__ import unicode_literals
-
 import boto
 import boto3
 from boto.route53.healthcheck import HealthCheck
 from boto.route53.record import ResourceRecordSets
 from botocore.exceptions import ClientError
 
-import sure  # noqa
-
-import uuid
+import sure  # noqa # pylint: disable=unused-import
 
 import botocore
 import pytest

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import pytest
 import datetime
 
@@ -8,7 +7,7 @@ import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 import pytz
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2.models import ec2_backends
@@ -251,7 +250,6 @@ def test_request_spot_instances_fulfilled_boto3():
     """
     Test that moto correctly fullfills a spot instance request
     """
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
 
     request = client.request_spot_instances(
@@ -436,7 +434,7 @@ def test_request_spot_instances_instance_lifecycle():
         # And we can't just pick the first instance in ServerMode and expect it to be the right one
         raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", region_name="us-east-1")
-    request = client.request_spot_instances(SpotPrice="0.5")
+    client.request_spot_instances(SpotPrice="0.5")
 
     response = client.describe_instances()
 

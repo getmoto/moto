@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import io
 import zipfile
@@ -20,7 +19,7 @@ import boto.sns
 import boto.sqs
 import boto.vpc
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 from copy import deepcopy
 from string import Template
@@ -41,7 +40,6 @@ from moto import (
     mock_lambda,
     mock_logs,
     mock_rds_deprecated,
-    mock_rds2,
     mock_redshift_deprecated,
     mock_route53_deprecated,
     mock_s3,
@@ -56,7 +54,6 @@ from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
     fn_join,
-    rds_mysql_with_db_parameter_group,
     rds_mysql_with_read_replica,
     redshift,
     route53_ec2_instance_with_public_ip,
@@ -2851,12 +2848,116 @@ def test_create_log_group_using_fntransform():
     }
 
     cf_conn = boto3.client("cloudformation", "us-west-2")
-    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    cf_conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(template),
+    )
 
     logs_conn = boto3.client("logs", region_name="us-west-2")
     log_group = logs_conn.describe_log_groups()["logGroups"][0]
     log_group["logGroupName"].should.equal("some-log-group")
-    log_group["retentionInDays"].should.be.equal(90)
+
+
+@mock_cloudformation
+@mock_logs
+def test_create_cloudwatch_logs_resource_policy():
+    policy_document = json.dumps(
+        {
+            "Statement": [
+                {
+                    "Action": ["logs:CreateLogStream", "logs:PutLogEvents",],
+                    "Effect": "Allow",
+                    "Principal": {"Service": "es.amazonaws.com"},
+                    "Resource": "*",
+                }
+            ]
+        }
+    )
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "LogGroupPolicy1": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": policy_document,
+                    "PolicyName": "TestPolicyA",
+                },
+            }
+        },
+    }
+    template2 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "LogGroupPolicy1": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": policy_document,
+                    "PolicyName": "TestPolicyB",
+                },
+            },
+            "LogGroupPolicy2": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": policy_document,
+                    "PolicyName": "TestPolicyC",
+                },
+            },
+        },
+    }
+
+    cf_conn = boto3.client("cloudformation", "us-east-1")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
+
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(1)
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyA", policyDocument=policy_document
+    )
+
+    cf_conn.update_stack(StackName="test_stack", TemplateBody=json.dumps(template2))
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(2)
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyB", policyDocument=policy_document
+    )
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyC", policyDocument=policy_document
+    )
+
+    cf_conn.update_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(1)
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyA", policyDocument=policy_document
+    )
+
+
+@mock_cloudformation
+@mock_logs
+def test_delete_stack_containing_cloudwatch_logs_resource_policy():
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "LogGroupPolicy1": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}',
+                    "PolicyName": "TestPolicyA",
+                },
+            }
+        },
+    }
+
+    cf_conn = boto3.client("cloudformation", "us-east-1")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
+
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(1)
+
+    cf_conn.delete_stack(StackName="test_stack")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(0)
 
 
 @mock_cloudformation

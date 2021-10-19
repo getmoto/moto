@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import time
 import pytest
@@ -14,7 +12,7 @@ from dateutil.tz import tzlocal
 from moto import mock_kinesis, mock_kinesis_deprecated
 from moto.core import ACCOUNT_ID
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
 # Has boto3 equivalent

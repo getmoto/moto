@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from collections import defaultdict
 import copy
 import datetime
@@ -1388,6 +1387,7 @@ class DynamoDBBackend(BaseBackend):
             # Parse expression to get validation errors
             update_expression_ast = UpdateExpressionParser.make(update_expression)
             update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
+            update_expression_ast.validate()
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
             # Covers cases where table has hash and range keys, ``key`` param

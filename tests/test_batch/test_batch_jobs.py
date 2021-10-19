@@ -1,7 +1,7 @@
 from . import _get_clients, _setup
 
 import datetime
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
 import pytest
 import time
@@ -14,8 +14,8 @@ from uuid import uuid4
 @mock_iam
 @mock_batch
 def test_submit_job_by_name():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     resp = batch_client.create_compute_environment(
@@ -93,8 +93,8 @@ def test_submit_job_by_name():
 @mock_batch
 @pytest.mark.network
 def test_submit_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = str(uuid4())[0:6]
     commands = ["echo", "hello"]
@@ -126,8 +126,8 @@ def test_submit_job():
 @mock_batch
 @pytest.mark.network
 def test_list_jobs():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = "sleep5"
     commands = ["sleep", "5"]
@@ -161,8 +161,8 @@ def test_list_jobs():
 @mock_iam
 @mock_batch
 def test_terminate_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = f"echo-sleep-echo-{str(uuid4())[0:6]}"
     commands = ["sh", "-c", "echo start && sleep 30 && echo stop"]
@@ -201,8 +201,8 @@ def test_terminate_job():
 @mock_iam
 @mock_batch
 def test_cancel_pending_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     # We need to be able to cancel a job that has not been started yet
     # Locally, our jobs start so fast that we can't cancel them in time
@@ -241,8 +241,8 @@ def test_cancel_running_job():
     """
     Test verifies that the moment the job has started, we can't cancel anymore
     """
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = "echo-o-o"
     commands = ["echo", "start"]
@@ -285,8 +285,8 @@ def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
 @mock_iam
 @mock_batch
 def test_failed_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = "exit-1"
     commands = ["exit", "1"]
@@ -317,8 +317,8 @@ def test_failed_job():
 @mock_iam
 @mock_batch
 def test_dependencies():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_arn, queue_arn = prepare_job(
         batch_client,
@@ -403,8 +403,8 @@ def retrieve_all_streams(log_stream_name, logs_client):
 @mock_iam
 @mock_batch
 def test_failed_dependencies():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())[0:6]
     resp = batch_client.create_compute_environment(
@@ -503,8 +503,8 @@ def test_container_overrides():
 
     # Set up environment
 
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())[0:6]
     resp = batch_client.create_compute_environment(

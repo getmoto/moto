@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 

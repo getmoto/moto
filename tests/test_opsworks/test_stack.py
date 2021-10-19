@@ -1,6 +1,5 @@
-from __future__ import unicode_literals
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import re
 
 from moto import mock_opsworks

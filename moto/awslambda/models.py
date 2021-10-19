@@ -1,11 +1,10 @@
-from __future__ import unicode_literals
-
 import base64
 import time
 from collections import defaultdict
 import copy
 import datetime
 from gzip import GzipFile
+from sys import platform
 
 import docker
 import docker.errors
@@ -577,6 +576,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
+                    # add host.docker.internal host on linux to emulate Mac + Windows behavior
+                    #   for communication with other mock AWS services running on localhost
+                    if platform == "linux" or platform == "linux2":
+                        run_kwargs["extra_hosts"] = {
+                            "host.docker.internal": "host-gateway"
+                        }
+
                     image_ref = "lambci/lambda:{}".format(self.run_time)
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(

@@ -1,6 +1,4 @@
-from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
-from sure import expect
 
 from moto.swf.models import DecisionTask, Timeout
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError

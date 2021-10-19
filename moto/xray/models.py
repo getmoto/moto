@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import bisect
 from boto3 import Session
 import datetime

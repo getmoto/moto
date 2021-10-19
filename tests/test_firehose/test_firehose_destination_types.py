@@ -1,5 +1,6 @@
 """Unit tests verifying various delivery stream destination content."""
 import boto3
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_firehose
 from moto import settings

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import base64
 import json
 import time
@@ -10,7 +7,7 @@ import hashlib
 import boto
 import boto3
 import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
@@ -542,7 +539,7 @@ def test_send_message_with_message_group_id():
         QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
     )
 
-    sent = queue.send_message(
+    queue.send_message(
         MessageBody="mydata",
         MessageDeduplicationId="dedupe_id_1",
         MessageGroupId="group_id_1",
@@ -566,7 +563,7 @@ def test_send_message_with_unicode_characters():
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
-    msg = queue.send_message(MessageBody=body_one)
+    queue.send_message(MessageBody=body_one)
 
     messages = queue.receive_messages()
     message_body = messages[0].body
@@ -2014,7 +2011,7 @@ def test_purge_queue_before_delete_message():
         MessageDeduplicationId="first_message",
         MessageBody="first_message",
     )
-    receive_resp1 = client.receive_message(QueueUrl=queue_url)
+    client.receive_message(QueueUrl=queue_url)
 
     # purge before call delete_message
     client.purge_queue(QueueUrl=queue_url)
@@ -3272,9 +3269,10 @@ def test_receive_message_should_not_accept_invalid_urls():
     conn = boto3.client("sqs", region_name="us-east-1")
     name = str(uuid4())[0:6]
     q_response = conn.create_queue(QueueName=name)
-    working_url = q_response[
-        "QueueUrl"
-    ]  # https://queue.amazonaws.com/486285699788/test-queue
+    working_url = q_response["QueueUrl"]
+    # https://queue.amazonaws.com/012341234/test-queue
+    # http://localhost:5000/012341234/test-queue in ServerMode
+    working_url.should.match(f"/{ACCOUNT_ID}/{name}")
 
     queue = sqs.Queue(name)
     with pytest.raises(ClientError) as e:

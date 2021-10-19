@@ -1,12 +1,9 @@
 import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
-from boto.s3.key import Key
 from datetime import datetime
-import sure  # noqa
-from moto.cloudwatch.utils import make_arn_for_alarm
-from moto.core import ACCOUNT_ID
+import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_cloudwatch_deprecated, mock_s3_deprecated
+from moto import mock_cloudwatch_deprecated
 
 
 def alarm_fixture(name="tester", action=None):

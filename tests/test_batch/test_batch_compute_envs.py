@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 from . import _get_clients, _setup
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, settings
 from uuid import uuid4
 
@@ -12,8 +10,8 @@ from uuid import uuid4
 @mock_iam
 @mock_batch
 def test_create_managed_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     resp = batch_client.create_compute_environment(
@@ -61,8 +59,8 @@ def test_create_managed_compute_environment():
 @mock_iam
 @mock_batch
 def test_create_unmanaged_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     resp = batch_client.create_compute_environment(
@@ -99,8 +97,8 @@ def test_create_unmanaged_compute_environment():
 @mock_iam
 @mock_batch
 def test_describe_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     compute_arn = (
@@ -132,8 +130,8 @@ def test_describe_compute_environment():
 @mock_iam
 @mock_batch
 def test_delete_unmanaged_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     batch_client.create_compute_environment(
@@ -162,8 +160,8 @@ def test_delete_unmanaged_compute_environment():
 @mock_iam
 @mock_batch
 def test_delete_managed_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     batch_client.create_compute_environment(
@@ -215,8 +213,8 @@ def test_delete_managed_compute_environment():
 @mock_iam
 @mock_batch
 def test_update_unmanaged_compute_environment_state():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     batch_client.create_compute_environment(

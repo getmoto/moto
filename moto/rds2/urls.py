@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import RDS2Response
 
 url_bases = [r"https?://rds\.(.+)\.amazonaws\.com", r"https?://rds\.amazonaws\.com"]

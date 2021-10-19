@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import copy
 import json
 import re
@@ -203,15 +201,8 @@ class DynamoHandler(BaseResponse):
         actual_attrs = [item["AttributeName"] for item in attr]
         actual_attrs.sort()
         if actual_attrs != expected_attrs:
-            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(
-                er,
-                "One or more parameter values were invalid: "
-                "Some index key attributes are not defined in AttributeDefinitions. "
-                "Keys: "
-                + str(expected_attrs)
-                + ", AttributeDefinitions: "
-                + str(actual_attrs),
+            return self._throw_attr_error(
+                actual_attrs, expected_attrs, global_indexes or local_secondary_indexes
             )
         # get the stream specification
         streams = body.get("StreamSpecification")
@@ -230,6 +221,62 @@ class DynamoHandler(BaseResponse):
         else:
             er = "com.amazonaws.dynamodb.v20111205#ResourceInUseException"
             return self.error(er, "Resource in use")
+
+    def _throw_attr_error(self, actual_attrs, expected_attrs, indexes):
+        def dump_list(list_):
+            return str(list_).replace("'", "")
+
+        er = "com.amazonaws.dynamodb.v20111205#ValidationException"
+        err_head = "One or more parameter values were invalid: "
+        if len(actual_attrs) > len(expected_attrs):
+            if indexes:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some AttributeDefinitions are not used. AttributeDefinitions: "
+                    + dump_list(actual_attrs)
+                    + ", keys used: "
+                    + dump_list(expected_attrs),
+                )
+            else:
+                return self.error(
+                    er,
+                    err_head
+                    + "Number of attributes in KeySchema does not exactly match number of attributes defined in AttributeDefinitions",
+                )
+        elif len(actual_attrs) < len(expected_attrs):
+            if indexes:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some index key attributes are not defined in AttributeDefinitions. Keys: "
+                    + dump_list(list(set(expected_attrs) - set(actual_attrs)))
+                    + ", AttributeDefinitions: "
+                    + dump_list(actual_attrs),
+                )
+            else:
+                return self.error(
+                    er, "Invalid KeySchema: Some index key attribute have no definition"
+                )
+        else:
+            if indexes:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some index key attributes are not defined in AttributeDefinitions. Keys: "
+                    + dump_list(list(set(expected_attrs) - set(actual_attrs)))
+                    + ", AttributeDefinitions: "
+                    + dump_list(actual_attrs),
+                )
+            else:
+                return self.error(
+                    er,
+                    err_head
+                    + "Some index key attributes are not defined in AttributeDefinitions. Keys: "
+                    + dump_list(expected_attrs)
+                    + ", AttributeDefinitions: "
+                    + dump_list(actual_attrs),
+                )
 
     def delete_table(self):
         name = self.body["TableName"]
@@ -379,7 +426,12 @@ class DynamoHandler(BaseResponse):
                 request = list(table_request.values())[0]
                 if request_type == "PutRequest":
                     item = request["Item"]
-                    self.dynamodb_backend.put_item(table_name, item)
+                    res = self.dynamodb_backend.put_item(table_name, item)
+                    if not res:
+                        return self.error(
+                            "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException",
+                            "Requested resource not found",
+                        )
                 elif request_type == "DeleteRequest":
                     keys = request["Key"]
                     item = self.dynamodb_backend.delete_item(table_name, keys)
@@ -410,8 +462,19 @@ class DynamoHandler(BaseResponse):
             )
         key = self.body["Key"]
         projection_expression = self.body.get("ProjectionExpression")
-        expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
+        expression_attribute_names = self.body.get("ExpressionAttributeNames")
+        if expression_attribute_names == {}:
+            if projection_expression is None:
+                er = "ValidationException"
+                return self.error(
+                    er,
+                    "ExpressionAttributeNames can only be specified when using expressions",
+                )
+            else:
+                er = "ValidationException"
+                return self.error(er, "ExpressionAttributeNames must not be empty")
 
+        expression_attribute_names = expression_attribute_names or {}
         projection_expression = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
@@ -470,9 +533,15 @@ class DynamoHandler(BaseResponse):
 
             results["Responses"][table_name] = []
             for key in keys:
-                item = self.dynamodb_backend.get_item(
-                    table_name, key, projection_expression
-                )
+                try:
+                    item = self.dynamodb_backend.get_item(
+                        table_name, key, projection_expression
+                    )
+                except ValueError:
+                    return self.error(
+                        "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException",
+                        "Requested resource not found",
+                    )
                 if item:
                     item_describe = item.describe_attrs(attributes_to_get)
                     results["Responses"][table_name].append(item_describe["Item"])

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from boto3 import Session
 from jinja2 import Template
 

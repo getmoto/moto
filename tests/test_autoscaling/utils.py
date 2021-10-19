@@ -1,4 +1,3 @@
-import boto
 import boto3
 from boto import vpc as boto_vpc
 from moto import mock_ec2, mock_ec2_deprecated
