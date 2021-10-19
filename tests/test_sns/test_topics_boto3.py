@@ -605,3 +605,16 @@ def test_topic_get_attributes():
 
     attributes.should_not.have.key("FifoTopic")
     attributes.should_not.have.key("ContentBasedDeduplication")
+
+
+@mock_sns
+def test_topic_get_attributes_with_fifo_false():
+    client = boto3.client("sns", region_name="us-east-1")
+    resp = client.create_topic(
+        Name="test-topic-get-attr-with-fifo-false", Attributes={"FifoTopic": "false"}
+    )
+    topic_arn = resp["TopicArn"]
+    attributes = client.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
+
+    attributes.should_not.have.key("FifoTopic")
+    attributes.should_not.have.key("ContentBasedDeduplication")
