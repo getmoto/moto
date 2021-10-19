@@ -136,6 +136,9 @@ class FakeKey(BaseModel):
         self.lock_legal_status = lock_legal_status
         self.lock_until = lock_until
 
+        # Default metadata values
+        self._metadata["Content-Type"] = "binary/octet-stream"
+
     @property
     def version_id(self):
         return self._version_id

@@ -6468,3 +6468,21 @@ def test_delete_objects_with_empty_keyname():
 
     client.delete_object(Bucket=bucket_name, Key=key_name)
     client.list_objects(Bucket=bucket_name).shouldnt.have.key("Contents")
+
+
+@mock_s3
+def test_head_object_should_return_default_content_type():
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="testbucket")
+    s3.Bucket("testbucket").upload_fileobj(BytesIO(b"foobar"), Key="testobject")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    resp = s3_client.head_object(Bucket="testbucket", Key="testobject")
+
+    resp["ContentType"].should.equal("binary/octet-stream")
+    resp["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
+        "binary/octet-stream"
+    )
+
+    s3.Object("testbucket", "testobject").content_type.should.equal(
+        "binary/octet-stream"
+    )
