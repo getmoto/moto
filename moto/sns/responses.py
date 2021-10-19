@@ -170,6 +170,11 @@ class SNSResponse(BaseResponse):
             }
             if topic.kms_master_key_id:
                 attributes["KmsMasterKeyId"] = topic.kms_master_key_id
+            if topic.fifo_topic == "true":
+                attributes["FifoTopic"] = topic.fifo_topic
+                attributes[
+                    "ContentBasedDeduplication"
+                ] = topic.content_based_deduplication
             response = {
                 "GetTopicAttributesResponse": {
                     "GetTopicAttributesResult": {"Attributes": attributes},
@@ -834,6 +839,16 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
       <entry>
         <key>KmsMasterKeyId</key>
         <value>{{ topic.kms_master_key_id }}</value>
+      </entry>
+      {% endif %}
+      {% if topic.fifo_topic == 'true' %}
+      <entry>
+        <key>FifoTopic</key>
+        <value>{{ topic.fifo_topic }}</value>
+      </entry>
+      <entry>
+        <key>ContentBasedDeduplication</key>
+        <value>{{ topic.content_based_deduplication }}</value>
       </entry>
       {% endif %}
     </Attributes>
