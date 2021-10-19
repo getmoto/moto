@@ -43,6 +43,8 @@ class SESFeedback(BaseModel):
     FEEDBACK_BOUNCE_MSG = {"test": "bounce"}
     FEEDBACK_COMPLAINT_MSG = {"test": "complaint"}
 
+    FORWARDING_ENABLED = "feedback_forwarding_enabled"
+
     @staticmethod
     def generate_message(msg_type):
         msg = dict(COMMON_MAIL)
@@ -267,6 +269,17 @@ class SESBackend(BaseBackend):
 
     def get_send_quota(self):
         return SESQuota(self.sent_message_count)
+
+    def get_identity_notification_attributes(self, identities):
+        response = {}
+        for identity in identities:
+            response[identity] = self.sns_topics.get(identity, {})
+        return response
+
+    def set_identity_feedback_forwarding_enabled(self, identity, enabled):
+        identity_sns_topics = self.sns_topics.get(identity, {})
+        identity_sns_topics[SESFeedback.FORWARDING_ENABLED] = enabled
+        self.sns_topics[identity] = identity_sns_topics
 
     def set_identity_notification_topic(self, identity, notification_type, sns_topic):
         identity_sns_topics = self.sns_topics.get(identity, {})

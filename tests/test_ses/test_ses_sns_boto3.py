@@ -128,3 +128,60 @@ def test_sns_feedback_delivery_raw_email():
     __test_sns_feedback__(
         SESFeedback.SUCCESS_ADDR, SESFeedback.DELIVERY, raw_email=True
     )
+
+
+@mock_ses
+def test_get_identity_notification_attributes_default_values():
+    ses = boto3.client("ses", region_name="us-east-1")
+    ses.verify_domain_identity(Domain="example.com")
+    ses.verify_email_identity(EmailAddress="test@example.com")
+
+    resp = ses.get_identity_notification_attributes(
+        Identities=["test@example.com", "another@example.com"]
+    )["NotificationAttributes"]
+    resp.should.have.length_of(2)
+    resp.should.have.key("test@example.com")
+    resp.should.have.key("another@example.com")
+    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(True)
+    resp["test@example.com"].should.have.key(
+        "HeadersInBounceNotificationsEnabled"
+    ).equal(False)
+    resp["test@example.com"].should.have.key(
+        "HeadersInComplaintNotificationsEnabled"
+    ).equal(False)
+    resp["test@example.com"].should.have.key(
+        "HeadersInDeliveryNotificationsEnabled"
+    ).equal(False)
+    resp["test@example.com"].shouldnt.have.key("BounceTopic")
+    resp["test@example.com"].shouldnt.have.key("ComplaintTopic")
+    resp["test@example.com"].shouldnt.have.key("DeliveryTopic")
+
+
+@mock_ses
+def test_set_identity_feedback_forwarding_enabled():
+    ses = boto3.client("ses", region_name="us-east-1")
+    ses.verify_domain_identity(Domain="example.com")
+    ses.verify_email_identity(EmailAddress="test@example.com")
+
+    resp = ses.get_identity_notification_attributes(Identities=["test@example.com"])[
+        "NotificationAttributes"
+    ]
+    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(True)
+
+    ses.set_identity_feedback_forwarding_enabled(
+        Identity="test@example.com", ForwardingEnabled=False
+    )
+
+    resp = ses.get_identity_notification_attributes(Identities=["test@example.com"])[
+        "NotificationAttributes"
+    ]
+    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(False)
+
+    ses.set_identity_feedback_forwarding_enabled(
+        Identity="test@example.com", ForwardingEnabled=True
+    )
+
+    resp = ses.get_identity_notification_attributes(Identities=["test@example.com"])[
+        "NotificationAttributes"
+    ]
+    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(True)
