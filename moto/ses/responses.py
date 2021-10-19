@@ -118,6 +118,19 @@ class EmailResponse(BaseResponse):
         template = self.response_template(GET_SEND_QUOTA_RESPONSE)
         return template.render(quota=quota)
 
+    def get_identity_notification_attributes(self):
+        identities = self._get_params()["Identities"]
+        identities = ses_backend.get_identity_notification_attributes(identities)
+        template = self.response_template(GET_IDENTITY_NOTIFICATION_ATTRIBUTES)
+        return template.render(identities=identities)
+
+    def set_identity_feedback_forwarding_enabled(self):
+        identity = self._get_param("Identity")
+        enabled = self._get_bool_param("ForwardingEnabled")
+        ses_backend.set_identity_feedback_forwarding_enabled(identity, enabled)
+        template = self.response_template(SET_IDENTITY_FORWARDING_ENABLED_RESPONSE)
+        return template.render()
+
     def set_identity_notification_topic(self):
 
         identity = self.querystring.get("Identity")[0]
@@ -334,6 +347,38 @@ GET_SEND_QUOTA_RESPONSE = """<GetSendQuotaResponse xmlns="http://ses.amazonaws.c
     <RequestId>273021c6-c866-11e0-b926-699e21c3af9e</RequestId>
   </ResponseMetadata>
 </GetSendQuotaResponse>"""
+
+GET_IDENTITY_NOTIFICATION_ATTRIBUTES = """<GetIdentityNotificationAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <GetIdentityNotificationAttributesResult>
+    <NotificationAttributes>
+    {% for identity, config in identities.items() %}
+      <entry>
+        <key>{{ identity }}</key>
+        <value>
+          <HeadersInBounceNotificationsEnabled>false</HeadersInBounceNotificationsEnabled>
+          <HeadersInDeliveryNotificationsEnabled>false</HeadersInDeliveryNotificationsEnabled>
+          <HeadersInComplaintNotificationsEnabled>false</HeadersInComplaintNotificationsEnabled>
+          {% if config.get("feedback_forwarding_enabled", True) == False %}
+          <ForwardingEnabled>false</ForwardingEnabled>
+          {% else %}
+          <ForwardingEnabled>true</ForwardingEnabled>
+          {% endif %}
+        </value>
+      </entry>
+      {% endfor %}
+    </NotificationAttributes>
+  </GetIdentityNotificationAttributesResult>
+  <ResponseMetadata>
+    <RequestId>46c90cfc-9055-4b84-96e3-4d6a309a8b9b</RequestId>
+  </ResponseMetadata>
+</GetIdentityNotificationAttributesResponse>"""
+
+SET_IDENTITY_FORWARDING_ENABLED_RESPONSE = """<SetIdentityFeedbackForwardingEnabledResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <SetIdentityFeedbackForwardingEnabledResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</SetIdentityFeedbackForwardingEnabledResponse>"""
 
 SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE = """<SetIdentityNotificationTopicResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <SetIdentityNotificationTopicResult/>
