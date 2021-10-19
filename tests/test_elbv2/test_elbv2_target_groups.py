@@ -498,3 +498,26 @@ def test_modify_target_group():
     response["TargetGroups"][0]["HealthCheckTimeoutSeconds"].should.equal(10)
     response["TargetGroups"][0]["HealthyThresholdCount"].should.equal(10)
     response["TargetGroups"][0]["UnhealthyThresholdCount"].should.equal(4)
+
+
+@mock_elbv2
+@mock_ec2
+@pytest.mark.parametrize("target_type", ["instance", "ip", "lambda", "alb", "other"])
+def test_create_target_group_with_target_type(target_type):
+    response, _, _, _, _, conn = create_load_balancer()
+
+    response = conn.create_target_group(Name="a-target", TargetType=target_type)
+
+    group = response["TargetGroups"][0]
+    group.should.have.key("TargetGroupArn")
+    group.should.have.key("TargetGroupName").equal("a-target")
+    group.should.have.key("TargetType").equal(target_type)
+    group.shouldnt.have.key("Protocol")
+    group.shouldnt.have.key("VpcId")
+
+    group = conn.describe_target_groups()["TargetGroups"][0]
+    group.should.have.key("TargetGroupArn")
+    group.should.have.key("TargetGroupName").equal("a-target")
+    group.should.have.key("TargetType").equal(target_type)
+    group.shouldnt.have.key("Protocol")
+    group.shouldnt.have.key("VpcId")
