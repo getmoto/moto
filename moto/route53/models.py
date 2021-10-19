@@ -1,11 +1,18 @@
+"""Route53Backend class with methods for supported APIs."""
 import itertools
 from collections import defaultdict
+import re
 
 import string
 import random
 import uuid
 from jinja2 import Template
 
+from moto.route53.exceptions import (
+    InvalidInput,
+    NoSuchCloudWatchLogsLogGroup,
+    NoSuchHostedZone,
+)
 from moto.core import BaseBackend, CloudFormationModel
 
 
@@ -342,7 +349,7 @@ class RecordSetGroup(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return "arn:aws:route53:::hostedzone/{0}".format(self.hosted_zone_id)
+        return f"arn:aws:route53:::hostedzone/{self.hosted_zone_id}"
 
     @staticmethod
     def cloudformation_name_type():
@@ -372,11 +379,18 @@ class RecordSetGroup(CloudFormationModel):
         return record_set_group
 
 
+class QueryLoggingConfig(CloudFormationModel):
+    def __init__(self, hosted_zone_id, cloudwatch_logs_log_group_arn):
+        self.hosted_zone_id = hosted_zone_id
+        self.cloudwatch_logs_log_group_arn = cloudwatch_logs_log_group_arn
+
+
 class Route53Backend(BaseBackend):
     def __init__(self):
         self.zones = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
+        self.query_logging_configs = {}
 
     def create_hosted_zone(self, name, private_zone, comment=None):
         new_id = create_route53_zone_id()
@@ -414,13 +428,10 @@ class Route53Backend(BaseBackend):
             cleaned_hosted_zone_name = the_zone.name.strip(".")
 
             if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
-                error_msg = """
+                error_msg = f"""
                 An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
-                RRSet with DNS name %s is not permitted in zone %s
-                """ % (
-                    record_set["Name"],
-                    the_zone.name,
-                )
+                RRSet with DNS name {record_set["Name"]} is not permitted in zone {the_zone.name}
+                """
                 return error_msg
 
             if not record_set["Name"].endswith("."):
@@ -477,6 +488,7 @@ class Route53Backend(BaseBackend):
         for zone in self.list_hosted_zones():
             if zone.name == name:
                 return zone
+        return None
 
     def delete_hosted_zone(self, id_):
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
@@ -492,6 +504,55 @@ class Route53Backend(BaseBackend):
 
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
+
+    def _validate_arn(self, region, arn):
+        match = re.match(fr"arn:aws:logs:{region}:\d{{12}}):log-group:.+", arn)
+        if not arn or not match:
+            raise InvalidInput()
+
+    def create_query_logging_config(self, region, hosted_zone_id, log_group_arn):
+        # Does the hosted_zone_id exist?
+        response = self.list_hosted_zones()
+        zones = response["HostedZones"] if response else []
+        for zone in zones:
+            if zone["Id"] == hosted_zone_id:
+                break
+        else:
+            raise NoSuchHostedZone(hosted_zone_id)
+
+        self._validate_arn(region, log_group_arn)
+
+        # Note:  boto3 checks the resource policy permissions before checking
+        # whether the log group exists.  moto doesn't have a way of checking
+        # the resource policy, so in some instances moto will complain
+        # about a log group that doesn't exist whereas boto3 will complain
+        # that "The resource policy that you're using for Route 53 query
+        # logging doesn't grant Route 53 sufficient permission to create
+        # a log stream in the specified log group."
+
+        from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
+
+        response = logs_backends[region].describe_log_groups()
+        for entry in response["logGroups"]:
+            if log_group_arn == entry["arn"]:
+                break
+        else:
+            # There is no CloudWatch Logs log group with the specified ARN.
+            raise NoSuchCloudWatchLogsLogGroup()
+
+        # TODO: QueryLoggingConfigAlreadyExists
+        # botocore.errorfactory.QueryLoggingConfigAlreadyExists: An error
+        # occurred (QueryLoggingConfigAlreadyExists) when calling the
+        # CreateQueryLoggingConfig operation: A query logging configuration
+        # already exists for this hosted zone.
+
+        # TODO:
+        # 'Location': 'https://route53.amazonaws.com/2013-04-01/queryloggingconfig/aa7c28f2-d834-4641-89fb-86c38bbb7416',
+        # 'QueryLoggingConfig': {
+        #    'Id': 'aa7c28f2-d834-4641-89fb-86c38bbb7416',
+        #    'HostedZoneId': 'Z10240433KZT8M28U2168',
+        #    'CloudWatchLogsLogGroupArn': 'arn:aws:logs:us-east-1:518294798677:log-group:/aws/route53/klb2.test:*'
+        # }}
 
 
 route53_backend = Route53Backend()

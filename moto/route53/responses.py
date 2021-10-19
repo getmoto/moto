@@ -1,14 +1,36 @@
-from jinja2 import Template
+"""Handles Route53 API requests, invokes method and returns response."""
 from urllib.parse import parse_qs, urlparse
 
-from moto.core.responses import BaseResponse
-from .models import route53_backend
+from jinja2 import Template
 import xmltodict
+
+from moto.core.responses import BaseResponse
+from moto.route53.exceptions import (
+    InvalidInput,
+    NoSuchCloudWatchLogsLogGroup,
+    NoSuchHostedZone,
+)
+from .models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
 class Route53(BaseResponse):
+    """Handler for Route53 requests and responses."""
+
+    def error(self, exception_info, status=400):
+        """Format a HTTP response for an exception/error."""
+        headers = self.response_headers or {}
+        headers["X-Amzn-ErrorType"] = exception_info.error_type
+        headers["Content-Type"] = "text/xml"
+        error_response = f"""<ErrorResponse xmlns="{XMLNS}">
+            <Error>
+                <Code>{exception_info.error_type}</Code>
+                <Message>{exception_info.message}</Message>
+            </Error>
+        </ErrorResponse>"""
+        return exception_info.code or status, headers, error_response
+
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -64,7 +86,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return no_such_hosted_zone_error(zoneid, headers)
+            raise NoSuchHostedZone(zoneid)
 
         if request.method == "GET":
             template = Template(GET_HOSTED_ZONE_RESPONSE)
@@ -83,7 +105,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            return no_such_hosted_zone_error(zoneid, headers)
+            raise NoSuchHostedZone(zoneid)
 
         if method == "POST":
             elements = xmltodict.parse(self.body)
@@ -167,7 +189,7 @@ class Route53(BaseResponse):
         elif "trafficpolicyinstances" in full_url:
             action = "policies"
         raise NotImplementedError(
-            "The action for {0} has not been implemented for route 53".format(action)
+            f"The action for {action} has not been implemented for route 53"
         )
 
     def list_or_change_tags_for_resource_request(self, request, full_url, headers):
@@ -196,7 +218,6 @@ class Route53(BaseResponse):
 
             route53_backend.change_tags_for_resource(id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
-
             return 200, headers, template.render()
 
     def get_change(self, request, full_url, headers):
@@ -208,19 +229,30 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id)
 
+    def query_logging_config(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
 
-def no_such_hosted_zone_error(zoneid, headers={}):
-    headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
-    headers["Content-Type"] = "text/xml"
-    message = "Zone %s Not Found" % zoneid
-    error_response = (
-        "<Error><Code>NoSuchHostedZone</Code><Message>%s</Message></Error>" % message
-    )
-    error_response = '<ErrorResponse xmlns="%s">%s</ErrorResponse>' % (
-        XMLNS,
-        error_response,
-    )
-    return 404, headers, error_response
+        if request.method == "POST":
+            json_body = xmltodict.parse(self.body)["CreateQueryLoggingConfigRequest"]
+            hosted_zone_id = json_body["HostedZoneId"]
+            log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
+            try:
+                query_logging_config = route53_backend.create_query_logging_config(
+                    self.region, hosted_zone_id, log_group_arn
+                )
+            except (
+                InvalidInput,
+                NoSuchCloudWatchLogsLogGroup,
+                NoSuchHostedZone,
+            ) as exc:
+                return self.error(exc)
+
+            template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
+            return (
+                201,
+                headers,
+                template.render(query_logging_config=query_logging_config),
+            )
 
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
@@ -373,3 +405,8 @@ GET_CHANGE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <Id>{{ change_id }}</Id>
    </ChangeInfo>
 </GetChangeResponse>"""
+
+CREATE_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateQueryLoggingConfigResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+  {{ query_logging_config.to_xml() }}
+</CreateQueryLoggingConfigResponse>"""
