@@ -3506,7 +3506,7 @@
 - [X] create_health_check
 - [X] create_hosted_zone
 - [ ] create_key_signing_key
-- [ ] create_query_logging_config
+- [X] create_query_logging_config
 - [ ] create_reusable_delegation_set
 - [ ] create_traffic_policy
 - [ ] create_traffic_policy_instance
@@ -3516,7 +3516,7 @@
 - [X] delete_health_check
 - [X] delete_hosted_zone
 - [ ] delete_key_signing_key
-- [ ] delete_query_logging_config
+- [X] delete_query_logging_config
 - [ ] delete_reusable_delegation_set
 - [ ] delete_traffic_policy
 - [ ] delete_traffic_policy_instance
@@ -3536,7 +3536,7 @@
 - [X] get_hosted_zone
 - [ ] get_hosted_zone_count
 - [ ] get_hosted_zone_limit
-- [ ] get_query_logging_config
+- [X] get_query_logging_config
 - [ ] get_reusable_delegation_set
 - [ ] get_reusable_delegation_set_limit
 - [ ] get_traffic_policy
@@ -3547,7 +3547,7 @@
 - [X] list_hosted_zones
 - [X] list_hosted_zones_by_name
 - [ ] list_hosted_zones_by_vpc
-- [ ] list_query_logging_configs
+- [X] list_query_logging_configs
 - [ ] list_resource_record_sets
 - [ ] list_reusable_delegation_sets
 - [X] list_tags_for_resource
