@@ -11,6 +11,7 @@ from .exceptions import (
     InvalidCiphertextException,
     AccessDeniedException,
     NotFoundException,
+    ValidationException,
 )
 
 
@@ -100,6 +101,11 @@ def encrypt(master_keys, key_id, plaintext, encryption_context):
             "{id_type} {key_id} is not found.".format(
                 id_type="Alias" if is_alias else "keyId", key_id=key_id
             )
+        )
+
+    if plaintext == b"":
+        raise ValidationException(
+            "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
         )
 
     iv = os.urandom(IV_LEN)
