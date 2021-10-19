@@ -1,8 +1,16 @@
 """Exceptions raised by the Route53 service."""
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import RESTError
 
 
-class InvalidInput(JsonRESTError):
+class Route53ClientError(RESTError):
+    """Base class for Route53 errors."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("template", "single_error")
+        super().__init__(*args, **kwargs)
+
+
+class InvalidInput(Route53ClientError):
     """Malformed ARN for the CloudWatch log group."""
 
     code = 400
@@ -12,7 +20,7 @@ class InvalidInput(JsonRESTError):
         super().__init__("InvalidInput", message)
 
 
-class NoSuchHostedZone(JsonRESTError):
+class NoSuchHostedZone(Route53ClientError):
     """HostedZone does not exist."""
 
     code = 400
@@ -22,7 +30,7 @@ class NoSuchHostedZone(JsonRESTError):
         super().__init__("NoSuchHostedZone", message)
 
 
-class NoSuchCloudWatchLogsLogGroup(JsonRESTError):
+class NoSuchCloudWatchLogsLogGroup(Route53ClientError):
     """CloudWatch LogGroup is in the permissions policy, but does not exist."""
 
     code = 400

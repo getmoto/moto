@@ -5,11 +5,7 @@ from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import (
-    InvalidInput,
-    NoSuchCloudWatchLogsLogGroup,
-    NoSuchHostedZone,
-)
+from moto.route53.exceptions import NoSuchHostedZone
 from .models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
@@ -17,19 +13,6 @@ XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 class Route53(BaseResponse):
     """Handler for Route53 requests and responses."""
-
-    def error(self, exception_info, status=400):
-        """Format a HTTP response for an exception/error."""
-        headers = self.response_headers or {}
-        headers["X-Amzn-ErrorType"] = exception_info.error_type
-        headers["Content-Type"] = "text/xml"
-        error_response = f"""<ErrorResponse xmlns="{XMLNS}">
-            <Error>
-                <Code>{exception_info.error_type}</Code>
-                <Message>{exception_info.message}</Message>
-            </Error>
-        </ErrorResponse>"""
-        return exception_info.code or status, headers, error_response
 
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -236,16 +219,9 @@ class Route53(BaseResponse):
             json_body = xmltodict.parse(self.body)["CreateQueryLoggingConfigRequest"]
             hosted_zone_id = json_body["HostedZoneId"]
             log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
-            try:
-                query_logging_config = route53_backend.create_query_logging_config(
-                    self.region, hosted_zone_id, log_group_arn
-                )
-            except (
-                InvalidInput,
-                NoSuchCloudWatchLogsLogGroup,
-                NoSuchHostedZone,
-            ) as exc:
-                return self.error(exc)
+            query_logging_config = route53_backend.create_query_logging_config(
+                self.region, hosted_zone_id, log_group_arn
+            )
 
             template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
             return (
