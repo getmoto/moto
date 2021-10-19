@@ -216,6 +216,43 @@ def test_describe_user_pool():
 
 
 @mock_cognitoidp
+def test_update_user_pool():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    name = str(uuid.uuid4())
+    user_pool_details = conn.create_user_pool(
+        PoolName=name,
+        Policies={
+            "PasswordPolicy": {
+                "MinimumLength": 12,
+                "RequireUppercase": False,
+                "RequireLowercase": False,
+                "RequireNumbers": False,
+                "RequireSymbols": False,
+            }
+        },
+    )
+
+    new_policies = {
+        "PasswordPolicy": {
+            "MinimumLength": 16,
+            "RequireUppercase": True,
+            "RequireLowercase": True,
+            "RequireNumbers": True,
+            "RequireSymbols": True,
+        }
+    }
+    conn.update_user_pool(
+        UserPoolId=user_pool_details["UserPool"]["Id"], Policies=new_policies
+    )
+
+    updated_user_pool_details = conn.describe_user_pool(
+        UserPoolId=user_pool_details["UserPool"]["Id"]
+    )
+    updated_user_pool_details["UserPool"]["Policies"].should.equal(new_policies)
+
+
+@mock_cognitoidp
 def test_delete_user_pool():
     conn = boto3.client("cognito-idp", "us-west-2")
 

@@ -70,6 +70,10 @@ class CognitoIdpResponse(BaseResponse):
         user_pool = cognitoidp_backends[self.region].describe_user_pool(user_pool_id)
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
 
+    def update_user_pool(self):
+        user_pool_id = self._get_param("UserPoolId")
+        cognitoidp_backends[self.region].update_user_pool(user_pool_id, self.parameters)
+
     def delete_user_pool(self):
         user_pool_id = self._get_param("UserPoolId")
         cognitoidp_backends[self.region].delete_user_pool(user_pool_id)
