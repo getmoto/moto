@@ -53,8 +53,7 @@ def test_create_query_logging_config_bad_args():
     # NoSuchHostedZone
     with pytest.raises(ClientError) as exc:
         client.create_query_logging_config(
-            HostedZoneId="foo",
-            CloudWatchLogsLogGroupArn=log_group_arn,
+            HostedZoneId="foo", CloudWatchLogsLogGroupArn=log_group_arn,
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchHostedZone"
