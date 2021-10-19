@@ -25,6 +25,7 @@ from moto.core.utils import (
 )
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import LowercaseDict
 from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
@@ -113,7 +114,7 @@ class FakeKey(BaseModel):
         self.acl = get_canned_acl("private")
         self.website_redirect_location = None
         self._storage_class = storage if storage else "STANDARD"
-        self._metadata = {}
+        self._metadata = LowercaseDict()
         self._expiry = None
         self._etag = etag
         self._version_id = version_id
@@ -135,6 +136,9 @@ class FakeKey(BaseModel):
         self.lock_mode = lock_mode
         self.lock_legal_status = lock_legal_status
         self.lock_until = lock_until
+
+        # Default metadata values
+        self._metadata["Content-Type"] = "binary/octet-stream"
 
     @property
     def version_id(self):
