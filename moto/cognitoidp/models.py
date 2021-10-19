@@ -384,7 +384,7 @@ class CognitoIdpBackend(BaseBackend):
     def describe_user_pool(self, user_pool_id):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+            raise ResourceNotFoundError(f"User pool {user_pool_id} does not exist.")
 
         return user_pool
 

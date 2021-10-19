@@ -216,6 +216,19 @@ def test_describe_user_pool():
 
 
 @mock_cognitoidp
+def test_describe_user_pool_resource_not_found():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    user_pool_id = "us-east-1_FooBar123"
+    with pytest.raises(ClientError) as exc:
+        conn.describe_user_pool(UserPoolId=user_pool_id)
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal(f"User pool {user_pool_id} does not exist.")
+
+
+@mock_cognitoidp
 def test_update_user_pool():
     conn = boto3.client("cognito-idp", "us-east-1")
 
