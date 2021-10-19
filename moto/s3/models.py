@@ -44,11 +44,8 @@ from moto.s3.exceptions import (
     InvalidPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
-<<<<<<< HEAD
     InvalidTagError,
-=======
     ObjectLockConfigurationNotFoundError,
->>>>>>> fixed default kms keys;fixed object locking exception
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
@@ -59,7 +56,7 @@ MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
 STORAGE_CLASS = [
     "STANDARD",
-    "REDUCED_REDUNDANCY",
+    "REDUCED_REDUNDWANCY",
     "STANDARD_IA",
     "ONEZONE_IA",
     "INTELLIGENT_TIERING",
@@ -109,7 +106,7 @@ class FakeKey(BaseModel):
         kms_key_id=None,
         bucket_key_enabled=None,
         lock_mode=None,
-        lock_legal_status=None,
+        lock_legal_status="OFF",
         lock_until=None,
     ):
         self.name = name
@@ -270,6 +267,7 @@ class FakeKey(BaseModel):
 
         if self.website_redirect_location:
             res["x-amz-website-redirect-location"] = self.website_redirect_location
+
         if self.lock_legal_status:
             res["x-amz-object-lock-legal-hold"] = self.lock_legal_status
         if self.lock_until:
@@ -1567,7 +1565,6 @@ class S3Backend(BaseBackend):
 
         bucket = self.get_bucket(bucket_name)
 
-        # getting default config from bucket if not included in put request
         if bucket.encryption:
             bucket_key_enabled = (
                 bucket_key_enabled or bucket.encryption["Rule"]["BucketKeyEnabled"]
