@@ -388,6 +388,10 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool
 
+    def update_user_pool(self, user_pool_id, extended_config):
+        user_pool = self.describe_user_pool(user_pool_id)
+        user_pool.extended_config = extended_config
+
     def delete_user_pool(self, user_pool_id):
         if user_pool_id not in self.user_pools:
             raise ResourceNotFoundError(user_pool_id)
