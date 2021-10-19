@@ -5,8 +5,8 @@ from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import NoSuchHostedZone
-from .models import route53_backend
+from moto.route53.exceptions import Route53ClientError
+from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
@@ -69,7 +69,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            raise NoSuchHostedZone(zoneid)
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if request.method == "GET":
             template = Template(GET_HOSTED_ZONE_RESPONSE)
@@ -88,7 +88,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
-            raise NoSuchHostedZone(zoneid)
+            return no_such_hosted_zone_error(zoneid, headers)
 
         if method == "POST":
             elements = xmltodict.parse(self.body)
@@ -219,9 +219,12 @@ class Route53(BaseResponse):
             json_body = xmltodict.parse(self.body)["CreateQueryLoggingConfigRequest"]
             hosted_zone_id = json_body["HostedZoneId"]
             log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
-            query_logging_config = route53_backend.create_query_logging_config(
-                self.region, hosted_zone_id, log_group_arn
-            )
+            try:
+                query_logging_config = route53_backend.create_query_logging_config(
+                    self.region, hosted_zone_id, log_group_arn
+                )
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
 
             template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
             return (
@@ -229,6 +232,20 @@ class Route53(BaseResponse):
                 headers,
                 template.render(query_logging_config=query_logging_config),
             )
+
+
+def no_such_hosted_zone_error(zoneid, headers=None):
+    if not headers:
+        headers = {}
+    headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
+    headers["Content-Type"] = "text/xml"
+    error_response = f"""<ErrorResponse xmlns="{XMLNS}">
+        <Error>
+            <Code>NoSuchHostedZone</Code>
+            <Message>Zone {zoneid} Not Found</Message>
+        </Error>
+    </ErrorResponse>"""
+    return 404, headers, error_response
 
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
