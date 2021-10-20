@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import Ec2InstanceConnectResponse
 
 url_bases = [r"https?://ec2-instance-connect\.(.+)\.amazonaws\.com"]

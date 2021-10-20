@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import IamResponse
 
 url_bases = [r"https?://iam\.(.*\.)?amazonaws\.com"]

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import uuid
 import json
@@ -109,6 +107,33 @@ class Topic(CloudFormationModel):
                 topic.arn, subscription["Endpoint"], subscription["Protocol"]
             )
         return topic
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sns_backend = sns_backends[region_name]
+        properties = cloudformation_json["Properties"]
+
+        topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
+        topic_arn = make_arn_for_topic(
+            DEFAULT_ACCOUNT_ID, topic_name, sns_backend.region_name
+        )
+        subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
+        for subscription in subscriptions:
+            sns_backend.unsubscribe(subscription.arn)
+        sns_backend.delete_topic(topic_arn)
 
     def _create_default_topic_policy(self, region_name, account_id, name):
         return {
@@ -386,6 +411,13 @@ class SNSBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """List of dicts representing default VPC endpoints for this service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "sns"
+        )
 
     def update_sms_attributes(self, attrs):
         self.sms_attributes.update(attrs)

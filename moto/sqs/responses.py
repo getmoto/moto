@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from moto.core.exceptions import RESTError
@@ -648,7 +646,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
                 {% if 'Binary' in value.data_type %}
                 <BinaryValue>{{ value.binary_value }}</BinaryValue>
                 {% else %}
-                <StringValue>{{ value.string_value }}</StringValue>
+                <StringValue><![CDATA[{{ value.string_value }}]]></StringValue>
                 {% endif %}
               </Value>
             </MessageAttribute>

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import random
 import string
 import hashlib
@@ -9,6 +8,34 @@ import re
 FORMATS = {
     "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
     "phone_number": r"\+\d{,15}",
+}
+
+
+PAGINATION_MODEL = {
+    "list_user_pools": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 60,
+        "page_ending_range_keys": ["arn"],
+    },
+    "list_user_pool_clients": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 60,
+        "page_ending_range_keys": ["id"],
+    },
+    "list_identity_providers": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 60,
+        "page_ending_range_keys": ["name"],
+    },
+    "list_users": {
+        "input_token": "pagination_token",
+        "limit_key": "limit",
+        "limit_default": 60,
+        "page_ending_range_keys": ["id"],
+    },
 }
 
 

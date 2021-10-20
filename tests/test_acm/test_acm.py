@@ -1,17 +1,19 @@
-from __future__ import unicode_literals
+from moto.acm.models import AWS_ROOT_CA
 
 import os
 import uuid
 
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from freezegun import freeze_time
-from moto import mock_acm, settings
+from moto import mock_acm, mock_elb, settings
 from moto.core import ACCOUNT_ID
-
 from unittest import SkipTest, mock
+
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 _GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
@@ -168,12 +170,42 @@ def test_describe_certificate():
 def test_describe_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
 
-    try:
+    with pytest.raises(ClientError) as err:
         client.describe_certificate(CertificateArn=BAD_ARN)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    else:
-        raise RuntimeError("Should of raised ResourceNotFoundException")
+
+    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_acm
+def test_export_certificate():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    resp = client.export_certificate(CertificateArn=arn, Passphrase="pass")
+    resp["Certificate"].should.equal(SERVER_CRT.decode())
+    resp["CertificateChain"].should.equal(CA_CRT.decode() + "\n" + AWS_ROOT_CA.decode())
+    resp.should.have.key("PrivateKey")
+
+    key = serialization.load_pem_private_key(
+        bytes(resp["PrivateKey"], "utf-8"), password=b"pass", backend=default_backend()
+    )
+
+    private_key = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    private_key.should.equal(SERVER_KEY)
+
+
+@mock_acm
+def test_export_certificate_with_bad_arn():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    with pytest.raises(ClientError) as err:
+        client.export_certificate(CertificateArn=BAD_ARN, Passphrase="pass")
+
+    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 # Also tests ListTagsForCertificate
@@ -607,3 +639,38 @@ def test_request_certificate_with_mutiple_times():
         )
     arn = resp["CertificateArn"]
     arn.should_not.equal(original_arn)
+
+
+@mock_acm
+@mock_elb
+def test_elb_acm_in_use_by():
+    acm_client = boto3.client("acm", region_name="us-west-2")
+    elb_client = boto3.client("elb", region_name="us-west-2")
+
+    acm_request_response = acm_client.request_certificate(
+        DomainName="fake.domain.com",
+        DomainValidationOptions=[
+            {"DomainName": "fake.domain.com", "ValidationDomain": "domain.com"}
+        ],
+    )
+
+    certificate_arn = acm_request_response["CertificateArn"]
+
+    create_load_balancer_request = elb_client.create_load_balancer(
+        LoadBalancerName="test",
+        Listeners=[
+            {
+                "Protocol": "https",
+                "LoadBalancerPort": 443,
+                "InstanceProtocol": "http",
+                "InstancePort": 80,
+                "SSLCertificateId": certificate_arn,
+            }
+        ],
+    )
+
+    response = acm_client.describe_certificate(CertificateArn=certificate_arn)
+
+    response["Certificate"]["InUseBy"].should.equal(
+        [create_load_balancer_request["DNSName"]]
+    )

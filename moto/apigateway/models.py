@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import random
 import string
@@ -17,7 +16,7 @@ except ImportError:
     from urllib.parse import urlparse
 import responses
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
-from .utils import create_id
+from .utils import create_id, to_path
 from moto.core.utils import path_url
 from .exceptions import (
     ApiKeyNotFoundException,
@@ -41,6 +40,7 @@ from .exceptions import (
     InvalidRestApiId,
     InvalidModelName,
     RestAPINotFound,
+    RequestValidatorNotFound,
     ModelNotFound,
     ApiKeyValueMinLength,
 )
@@ -342,6 +342,9 @@ class Resource(CloudFormationModel):
         if not method:
             raise MethodNotFoundException()
         return method
+
+    def delete_method(self, method_type):
+        self.resource_methods.pop(method_type)
 
     def add_integration(
         self,
@@ -649,6 +652,52 @@ class UsagePlan(BaseModel, dict):
                     self["throttle"]["burstLimit"] = value
 
 
+class RequestValidator(BaseModel, dict):
+    PROP_ID = "id"
+    PROP_NAME = "name"
+    PROP_VALIDATE_REQUEST_BODY = "validateRequestBody"
+    PROP_VALIDATE_REQUEST_PARAMETERS = "validateRequestParameters"
+
+    # operations
+    OP_PATH = "path"
+    OP_VALUE = "value"
+    OP_REPLACE = "replace"
+    OP_OP = "op"
+
+    def __init__(self, id, name, validateRequestBody, validateRequestParameters):
+        super(RequestValidator, self).__init__()
+        self[RequestValidator.PROP_ID] = id
+        self[RequestValidator.PROP_NAME] = name
+        self[RequestValidator.PROP_VALIDATE_REQUEST_BODY] = validateRequestBody
+        self[
+            RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS
+        ] = validateRequestParameters
+
+    def apply_patch_operations(self, operations):
+        for operation in operations:
+            path = operation[RequestValidator.OP_PATH]
+            value = operation[RequestValidator.OP_VALUE]
+            if operation[RequestValidator.OP_OP] == RequestValidator.OP_REPLACE:
+                if to_path(RequestValidator.PROP_NAME) in path:
+                    self[RequestValidator.PROP_NAME] = value
+                if to_path(RequestValidator.PROP_VALIDATE_REQUEST_BODY) in path:
+                    self[
+                        RequestValidator.PROP_VALIDATE_REQUEST_BODY
+                    ] = value.lower() in ("true")
+                if to_path(RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS) in path:
+                    self[
+                        RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS
+                    ] = value.lower() in ("true")
+
+    def to_dict(self):
+        return {
+            "id": self["id"],
+            "name": self["name"],
+            "validateRequestBody": self["validateRequestBody"],
+            "validateRequestParameters": self["validateRequestParameters"],
+        }
+
+
 class UsagePlanKey(BaseModel, dict):
     def __init__(self, id, type, name, value):
         super(UsagePlanKey, self).__init__()
@@ -659,23 +708,45 @@ class UsagePlanKey(BaseModel, dict):
 
 
 class RestAPI(CloudFormationModel):
+
+    PROP_ID = "id"
+    PROP_NAME = "name"
+    PROP_DESCRIPTON = "description"
+    PROP_VERSION = "version"
+    PROP_BINARY_MEDIA_TYPES = "binaryMediaTypes"
+    PROP_CREATED_DATE = "createdDate"
+    PROP_API_KEY_SOURCE = "apiKeySource"
+    PROP_ENDPOINT_CONFIGURATION = "endpointConfiguration"
+    PROP_TAGS = "tags"
+    PROP_POLICY = "policy"
+    PROP_DISABLE_EXECUTE_API_ENDPOINT = "disableExecuteApiEndpoint"
+    PROP_MINIMUM_COMPRESSION_SIZE = "minimumCompressionSize"
+
+    # operations
+    OPERATION_ADD = "add"
+    OPERATION_REPLACE = "replace"
+    OPERATION_REMOVE = "remove"
+    OPERATION_PATH = "path"
+    OPERATION_VALUE = "value"
+    OPERATION_OP = "op"
+
     def __init__(self, id, region_name, name, description, **kwargs):
         super(RestAPI, self).__init__()
         self.id = id
         self.region_name = region_name
         self.name = name
         self.description = description
-        self.version = kwargs.get("version") or "V1"
-        self.binaryMediaTypes = kwargs.get("binaryMediaTypes") or []
+        self.version = kwargs.get(RestAPI.PROP_VERSION) or "V1"
+        self.binaryMediaTypes = kwargs.get(RestAPI.PROP_BINARY_MEDIA_TYPES) or []
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
-        self.policy = kwargs.get("policy") or None
+        self.policy = kwargs.get(RestAPI.PROP_POLICY) or None
         self.endpoint_configuration = kwargs.get("endpoint_configuration") or {
             "types": ["EDGE"]
         }
-        self.tags = kwargs.get("tags") or {}
+        self.tags = kwargs.get(RestAPI.PROP_TAGS) or {}
         self.disableExecuteApiEndpoint = (
-            kwargs.get("disableExecuteApiEndpoint") or False
+            kwargs.get(RestAPI.PROP_DISABLE_EXECUTE_API_ENDPOINT) or False
         )
         self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments = {}
@@ -683,6 +754,7 @@ class RestAPI(CloudFormationModel):
         self.stages = {}
         self.resources = {}
         self.models = {}
+        self.request_validators = {}
         self.add_child("/")  # Add default child
 
     def __repr__(self):
@@ -690,35 +762,49 @@ class RestAPI(CloudFormationModel):
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "version": self.version,
-            "binaryMediaTypes": self.binaryMediaTypes,
-            "createdDate": self.create_date,
-            "apiKeySource": self.api_key_source,
-            "endpointConfiguration": self.endpoint_configuration,
-            "tags": self.tags,
-            "policy": self.policy,
-            "disableExecuteApiEndpoint": self.disableExecuteApiEndpoint,
-            "minimumCompressionSize": self.minimum_compression_size,
+            self.PROP_ID: self.id,
+            self.PROP_NAME: self.name,
+            self.PROP_DESCRIPTON: self.description,
+            self.PROP_VERSION: self.version,
+            self.PROP_BINARY_MEDIA_TYPES: self.binaryMediaTypes,
+            self.PROP_CREATED_DATE: self.create_date,
+            self.PROP_API_KEY_SOURCE: self.api_key_source,
+            self.PROP_ENDPOINT_CONFIGURATION: self.endpoint_configuration,
+            self.PROP_TAGS: self.tags,
+            self.PROP_POLICY: self.policy,
+            self.PROP_DISABLE_EXECUTE_API_ENDPOINT: self.disableExecuteApiEndpoint,
+            self.PROP_MINIMUM_COMPRESSION_SIZE: self.minimum_compression_size,
         }
 
     def apply_patch_operations(self, patch_operations):
+        def to_path(prop):
+            return "/" + prop
+
         for op in patch_operations:
-            path = op["path"]
-            value = op["value"]
-            if op["op"] == "replace":
-                if "/name" in path:
+            path = op[self.OPERATION_PATH]
+            value = ""
+            if self.OPERATION_VALUE in op:
+                value = op[self.OPERATION_VALUE]
+            operaton = op[self.OPERATION_OP]
+            if operaton == self.OPERATION_REPLACE:
+                if to_path(self.PROP_NAME) in path:
                     self.name = value
-                if "/description" in path:
+                if to_path(self.PROP_DESCRIPTON) in path:
                     self.description = value
-                if "/apiKeySource" in path:
+                if to_path(self.PROP_API_KEY_SOURCE) in path:
                     self.api_key_source = value
-                if "/binaryMediaTypes" in path:
-                    self.binaryMediaTypes = value
-                if "/disableExecuteApiEndpoint" in path:
+                if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
+                    self.binaryMediaTypes = [value]
+                if to_path(self.PROP_DISABLE_EXECUTE_API_ENDPOINT) in path:
                     self.disableExecuteApiEndpoint = bool(value)
+            elif operaton == self.OPERATION_ADD:
+                if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
+                    self.binaryMediaTypes.append(value)
+            elif operaton == self.OPERATION_REMOVE:
+                if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
+                    self.binaryMediaTypes.remove(value)
+                if to_path(self.PROP_DESCRIPTON) in path:
+                    self.description = ""
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -909,6 +995,36 @@ class RestAPI(CloudFormationModel):
     def delete_deployment(self, deployment_id):
         return self.deployments.pop(deployment_id)
 
+    def create_request_validator(
+        self, name, validateRequestBody, validateRequestParameters
+    ):
+        validator_id = create_id()
+        request_validator = RequestValidator(
+            id=validator_id,
+            name=name,
+            validateRequestBody=validateRequestBody,
+            validateRequestParameters=validateRequestParameters,
+        )
+        self.request_validators[validator_id] = request_validator
+        return request_validator
+
+    def get_request_validators(self):
+        return list(self.request_validators.values())
+
+    def get_request_validator(self, validator_id):
+        reqeust_validator = self.request_validators.get(validator_id)
+        if reqeust_validator is None:
+            raise RequestValidatorNotFound()
+        return reqeust_validator
+
+    def delete_request_validator(self, validator_id):
+        reqeust_validator = self.request_validators.pop(validator_id)
+        return reqeust_validator
+
+    def update_request_validator(self, validator_id, patch_operations):
+        self.request_validators[validator_id].apply_patch_operations(patch_operations)
+        return self.request_validators[validator_id]
+
 
 class DomainName(BaseModel, dict):
     def __init__(self, domain_name, **kwargs):
@@ -1081,6 +1197,10 @@ class APIGatewayBackend(BaseBackend):
         resource = self.get_resource(function_id, resource_id)
         method = resource.get_method(method_type)
         return method.apply_operations(patch_operations)
+
+    def delete_method(self, function_id, resource_id, method_type):
+        resource = self.get_resource(function_id, resource_id)
+        resource.delete_method(method_type)
 
     def get_authorizer(self, restapi_id, authorizer_id):
         api = self.get_rest_api(restapi_id)
@@ -1562,6 +1682,28 @@ class APIGatewayBackend(BaseBackend):
             raise ModelNotFound
         else:
             return model
+
+    def get_request_validators(self, restapi_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validators()
+
+    def create_request_validator(self, restapi_id, name, body, params):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.create_request_validator(
+            name=name, validateRequestBody=body, validateRequestParameters=params,
+        )
+
+    def get_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validator(validator_id)
+
+    def delete_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        restApi.delete_request_validator(validator_id)
+
+    def update_request_validator(self, restapi_id, validator_id, patch_operations):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.update_request_validator(validator_id, patch_operations)
 
 
 apigateway_backends = {}

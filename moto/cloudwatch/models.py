@@ -35,7 +35,9 @@ class Dimension(object):
 
     def __eq__(self, item):
         if isinstance(item, Dimension):
-            return self.name == item.name and self.value == item.value
+            return self.name == item.name and (
+                self.value is None or item.value is None or self.value == item.value
+            )
         return False
 
     def __ne__(self, item):  # Only needed on Py2; Py3 defines it implicitly
@@ -222,7 +224,8 @@ class MetricDatum(BaseModel):
                 return False
 
         if dimensions and any(
-            Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
+            Dimension(d["Name"], d.get("Value")) not in self.dimensions
+            for d in dimensions
         ):
             return False
         return True
@@ -311,6 +314,13 @@ class CloudWatchBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "monitoring"
+        )
 
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
@@ -431,6 +441,12 @@ class CloudWatchBackend(BaseBackend):
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(self, namespace, metric_data):
+        for i, metric in enumerate(metric_data):
+            if metric.get("Value") == "NaN":
+                raise InvalidParameterValue(
+                    f"The value NaN for parameter MetricData.member.{i + 1}.Value is invalid."
+                )
+
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")

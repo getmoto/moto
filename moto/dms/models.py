@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from boto3 import Session
@@ -24,6 +22,13 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "dms"
+        )
 
     def create_replication_task(
         self,

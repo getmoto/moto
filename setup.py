@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import unicode_literals
 from io import open
 import os
 import re
@@ -49,10 +48,11 @@ _dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
 _dep_python_jose_ecdsa_pin = (
     "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
 )
+_dep_dataclasses = "dataclasses; python_version < '3.7'"
 _dep_docker = "docker>=2.5.1"
 _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
-_dep_idna = "idna<3,>=2.5"
+_dep_idna = "idna<4,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
 _setuptools = "setuptools"
@@ -87,7 +87,7 @@ extras_per_service.update(
     "ses": [],
     "sns": [],
     "sqs": [],
-    "ssm": [_dep_PyYAML],
+    "ssm": [_dep_PyYAML, _dep_dataclasses],
     # XRay module uses pkg_resources, but doesn't have an explicit dependency listed
     # This should be fixed in the next version: https://github.com/aws/aws-xray-sdk-python/issues/305
     "xray": [_dep_aws_xray_sdk, _setuptools],

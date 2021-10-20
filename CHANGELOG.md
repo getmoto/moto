@@ -1,8 +1,148 @@
 Moto Changelog
 ===================
 
-Unreleased
+2.2.10
+------
+    New Services:
+        * CloudTrail:
+            * create_trail()
+            * delete_trail()
+            * describe_trails()
+            * get_trail()
+            * get_trail_status()
+            * list_trails()
+            * start_logging()
+            * stop_logging()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_reset_user_password()
+        * S3:
+            * delete_bucket_replication()
+            * get_bucket_replication()
+            * put_bucket_replication()
+
+    Miscellaneous:
+        * ACM: describe_certificate(): the InUseBy-attribute will now show the appropriate Elastic Load Balancers 
+        * AWSLambda: If you're running Linux, 'host.docker.internal' is now added as an extra host in the Docker container used to invoke the function.
+                     This makes it easier for Lambda-functions to communicate with other servers running on the host-system.
+        * CloudFormation: Now supports update/deletion of type AWS::SNS::Topic
+        * CognitoIdentityProvider: list_users() now has improved support for the Filter-parameter
+        * Kinesis: describe_stream() now supports the Filter-parameter
+        * S3: list_object_versions() now supports the Delimiter and KeyMarker-parameter
+
+2.2.9
 -----
+    General:
+        * Moto is now compatible with Sure 2.x
+
+    New Methods:
+        * Kinesis:
+            * list_shards()
+        * RDS:
+            * create_db_cluster()
+            * delete_db_cluster()
+            * describe_db_clusters()
+            * restore_db_instance_from_db_snapshot()
+            * start_db_cluster()
+            * stop_db_cluster()
+        * S3:
+            * get_object_legal_hold()
+
+    Miscellaneous:
+        * CF: Now supports creation of AWS::EC2::VPNGateway
+        * CF: Now supports deletion of AWS::Events::Rule
+        * EC2: create_volume() now supports the VolumeType-parameter
+        * EC2: describe_customer_gateways() now supports the CustomerGatewayIds-parameter
+        * EC2: describe_security_groups() now has improved support for the Filters-parameter
+        * EC2: describe_spot_instance_requests() now supports the SpotInstanceRequestIds-parameter
+        * EC2: describe_transit_gateways() now supports the TransitGatewayIds-parameter
+
+2.2.8
+-----
+    New Services:
+        * ACM:
+            * export_certificate()
+        * APIGateway:
+            * create_request_validator()
+            * delete_request_validator()
+            * get_request_validators()
+            * update_request_validator()
+
+    Miscellaneous:
+        * APIGateway: update_rest_api() now has improved support for the patchOperations-parameter
+        * Batch: register_job_definition() now supports the tags-parameter
+        * CloudFormation: Stack Events are now propagated to SNS when the NotificationARNs-parameter is supplied.
+        * EC2: describe_vpc_endpoint_services() now returns the default endpoints for implemented services 
+        * IOT: list_job_executions_for_job() now supports the status-parameter
+        * IOT: list_job_executions_for_thing() now supports the status-parameter
+        * KMS: list_resource_tags() now supports an ARN as the KeyId-parameter
+        * KMS: tag_resource() now supports an ARN as the KeyId-parameter
+        * KMS: untag_resource() now supports an ARN as the KeyId-parameter
+        * SecretsManager: update_secret() now supports the ClientRequestToken-parameter
+
+2.2.7
+-----
+    General:
+        * Performance improvements when using Moto in Server Mode.
+          Only services that are actually used will now be loaded into memory, greatly reducing the waiting times when starting the server, making an initial request and calling the reset-api.
+
+    New Services:
+        * Firehose
+            * create_delivery_stream()
+            * delete_delivery_stream()
+            * describe_delivery_stream()
+            * list_delivery_streams()
+            * list_tags_for_delivery_stream()
+            * put_record()
+            * put_record_batch()
+            * tag_delivery_stream()
+            * untag_delivery_stream()
+            * update_destination()
+
+    New Methods:
+        * Autoscaling:
+            * delete_lifecycle_hook()
+            * describe_lifecycle_hooks()
+            * put_lifecycle_hook()
+        * EC2:
+            * associate_subnet_cidr_block()
+            * create_carrier_gateway()
+            * delete_carrier_gateway()
+            * describe_carrier_gateways()
+            * describe_spot_price_history()
+            * disassociate_subnet_cidr_block()
+            * update_security_group_rule_descriptions_egress()
+            * update_security_group_rule_descriptions_ingress()
+        * Logs:
+            * delete_metric_filter()
+            * describe_metric_filters()
+            * put_metric_filter()
+        * SageMaker:
+            * list_training_jobs()
+        * Transcribe
+            * create_vocabulary()
+            * delete_transcription_job()
+            * delete_vocabulary()
+            * get_transcription_job()
+            * get_vocabulary()
+            * list_transcription_jobs()
+            * start_transcription_job()
+
+    Miscellaneous:
+        * DynamoDB: Improved support for the ReturnConsumedCapacity-parameter across all methods
+        * EC2:create_route() now supports the parameters CarrierGatewayId, DestinationPrefixListId
+        * EC2:create_subnet() now supports the Ipv6CidrBlock-parameter
+        * EC2:describe_nat_gateways() now supports the NatGatewayIds-parameter
+        * EC2:describe_vpn_gateways() now supports the VpnGatewayIds-parameter
+        * EC2:modify_network_interface_attribute() now supports the SourceDestCheck-parameter
+        * EC2:replace_route() now supports the parameters DestinationIpv6CidrBlock, DestinationPrefixListId, NatGatewayId, EgressOnlyInternetGatewayId, TransitGatewayId
+        * EC2:run_instances() now supports the InstanceMarketOptions.MarketType-parameter
+        * Logs:put_log_events() now supports Firehose as a destination
+        * Logs:put_subscription_filter() now supports Firehose as a destination
+        * S3:create_bucket(): Improved error handling for duplicate buckets
+        * S3:head_object() now validates incoming calls when using the `set_initial_no_auth_action_count`-decorator
+        * SSM:put_parameter() now supports the DataType-parameter
 
 2.2.6
 -----

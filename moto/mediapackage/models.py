@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 
 from boto3 import Session
@@ -74,13 +72,13 @@ class MediaPackageBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaPackageBackend, self).__init__()
         self.region_name = region_name
+        self._channels = OrderedDict()
+        self._origin_endpoints = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
-        self._channels = OrderedDict()
-        self._origin_endpoints = OrderedDict()
 
     def create_channel(self, description, id, tags):
         arn = "arn:aws:mediapackage:channel:{}".format(id)

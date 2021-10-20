@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -42,14 +40,19 @@ def parse_sg_attributes_from_dict(sg_attributes):
         ip_ranges.append({"CidrIpv6": cidr_ipv6})
 
     source_groups = []
-    source_group_ids = []
     groups_tree = sg_attributes.get("Groups") or {}
     for group_idx in sorted(groups_tree.keys()):
         group_dict = groups_tree[group_idx]
+        source_group = {}
         if "GroupId" in group_dict:
-            source_group_ids.append(group_dict["GroupId"][0])
-        elif "GroupName" in group_dict:
-            source_groups.append(group_dict["GroupName"][0])
+            source_group["GroupId"] = group_dict["GroupId"][0]
+        if "GroupName" in group_dict:
+            source_group["GroupName"] = group_dict["GroupName"][0]
+        if "Description" in group_dict:
+            source_group["Description"] = group_dict["Description"][0]
+        if "OwnerId" in group_dict:
+            source_group["OwnerId"] = group_dict["OwnerId"][0]
+        source_groups.append(source_group)
 
     prefix_list_ids = []
     pl_tree = sg_attributes.get("PrefixListIds") or {}
@@ -68,7 +71,6 @@ def parse_sg_attributes_from_dict(sg_attributes):
         to_port,
         ip_ranges,
         source_groups,
-        source_group_ids,
         prefix_list_ids,
     )
 
@@ -97,7 +99,6 @@ class SecurityGroups(BaseResponse):
                 to_port,
                 ip_ranges,
                 source_groups,
-                source_group_ids,
                 prefix_list_ids,
             ) = parse_sg_attributes_from_dict(querytree)
 
@@ -108,7 +109,6 @@ class SecurityGroups(BaseResponse):
                 to_port,
                 ip_ranges,
                 source_groups,
-                source_group_ids,
                 prefix_list_ids,
             )
 
@@ -122,7 +122,6 @@ class SecurityGroups(BaseResponse):
                 to_port,
                 ip_ranges,
                 source_groups,
-                source_group_ids,
                 prefix_list_ids,
             ) = parse_sg_attributes_from_dict(ip_permission)
 
@@ -133,7 +132,6 @@ class SecurityGroups(BaseResponse):
                 to_port,
                 ip_ranges,
                 source_groups,
-                source_group_ids,
                 prefix_list_ids,
             )
 
@@ -218,11 +216,35 @@ class SecurityGroups(BaseResponse):
                 self.ec2_backend.revoke_security_group_ingress(*args)
             return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
 
+    def update_security_group_rule_descriptions_ingress(self):
+        for args in self._process_rules_from_querystring():
+            group = self.ec2_backend.update_security_group_rule_descriptions_ingress(
+                *args
+            )
+        self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+        return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS
+
+    def update_security_group_rule_descriptions_egress(self):
+        for args in self._process_rules_from_querystring():
+            group = self.ec2_backend.update_security_group_rule_descriptions_egress(
+                *args
+            )
+        self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+        return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_EGRESS
+
 
 CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
    <groupId>{{ group.id }}</groupId>
+   <tagSet>
+    {% for tag in group.get_tags() %}
+        <item>
+        <key>{{ tag.key }}</key>
+        <value>{{ tag.value }}</value>
+        </item>
+    {% endfor %}
+    </tagSet>
 </CreateSecurityGroupResponse>"""
 
 DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -255,9 +277,18 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>{{ source_group.owner_id }}</userId>
-                                 <groupId>{{ source_group.id }}</groupId>
-                                 <groupName>{{ source_group.name }}</groupName>
+                                 {% if source_group.OwnerId and source_group.OwnerId != "" %}
+                                 <userId>{{ source_group.OwnerId }}</userId>
+                                 {% endif %}
+                                 {% if source_group.GroupId and source_group.GroupId != "" %}
+                                 <groupId>{{ source_group.GroupId }}</groupId>
+                                 {% endif %}
+                                 {% if source_group.GroupName and source_group.GroupName != "" %}
+                                 <groupName>{{ source_group.GroupName }}</groupName>
+                                 {% endif %}
+                                 {% if source_group.Description and source_group.Description != "" %}
+                                 <description>{{ source_group.Description }}</description>
+                                 {% endif %}
                               </item>
                           {% endfor %}
                        </groups>
@@ -289,9 +320,11 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                             {% for prefix_list in rule.prefix_list_ids %}
                             <item>
                                 <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
+                                {% if prefix_list.Description %}
                                 <description>{{ prefix_list.Description }}</description>
+                                {% endif %}
                             </item>
-                        {% endfor %}
+                            {% endfor %}
                        </prefixListIds>
                     </item>
                 {% endfor %}
@@ -309,9 +342,18 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>{{ source_group.owner_id }}</userId>
-                                 <groupId>{{ source_group.id }}</groupId>
-                                 <groupName>{{ source_group.name }}</groupName>
+                                 {% if source_group.OwnerId and source_group.OwnerId != "" %}
+                                 <userId>{{ source_group.OwnerId }}</userId>
+                                 {% endif %}
+                                 {% if source_group.GroupId and source_group.GroupId != "" %}
+                                 <groupId>{{ source_group.GroupId }}</groupId>
+                                 {% endif %}
+                                 {% if source_group.GroupName and source_group.GroupName != "" %}
+                                 <groupName>{{ source_group.GroupName }}</groupName>
+                                 {% endif %}
+                                 {% if source_group.Description and source_group.Description != "" %}
+                                 <description>{{ source_group.Description }}</description>
+                                 {% endif %}
                               </item>
                           {% endfor %}
                        </groups>
@@ -340,14 +382,14 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                         {% endfor %}
                         </ipv6Ranges>
                         <prefixListIds>
-                            {% if rule.prefix_list_ids %}
                             {% for prefix_list in rule.prefix_list_ids %}
                             <item>
                                 <prefixListId>{{ prefix_list.PrefixListId }}</prefixListId>
+                                {% if prefix_list.Description %}
                                 <description>{{ prefix_list.Description }}</description>
+                                {% endif %}
                             </item>
                             {% endfor %}
-                            {% endif %}
                         </prefixListIds>
                     </item>
                {% endfor %}
@@ -408,6 +450,35 @@ AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE = """<AuthorizeSecurityGroupIngressRes
             {% endif %}
         </item>
     {% endfor %}
+    {% for item in rule.source_groups %}
+        <item>
+            {% if item.Description and item.Description != "" %}
+            <description>{{ item.Description }}</description>
+            {% endif %}
+            {% if rule.from_port is not none %}
+            <fromPort>{{ rule.from_port }}</fromPort>
+            {% endif %}
+            <groupId>{{ group.id }}</groupId>
+            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+            <isEgress>true</isEgress>
+            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+            {% if rule.to_port is not none %}
+            <toPort>{{ rule.to_port }}</toPort>
+            {% endif %}
+            <referencedGroupInfo>
+                {% if item.OwnerId and item.OwnerId != "" %}
+                <userId>{{ item.OwnerId }}</userId>
+                {% endif %}
+                {% if item.GroupId and item.GroupId != "" %}
+                <groupId>{{ item.GroupId }}</groupId>
+                {% endif %}
+                {% if item.VpcId and item.VpcId != "" %}
+                <vpcId>{{ item.VpcId }}</vpcId>
+                {% endif %}
+            </referencedGroupInfo>
+        </item>
+    {% endfor %}
     </securityGroupRuleSet>
 </AuthorizeSecurityGroupIngressResponse>"""
 
@@ -459,6 +530,35 @@ AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE = """<AuthorizeSecurityGroupEgressRespo
             {% endif %}
         </item>
     {% endfor %}
+    {% for item in rule.source_groups %}
+        <item>
+            {% if item.Description and item.Description != "" %}
+            <description>{{ item.Description }}</description>
+            {% endif %}
+            {% if rule.from_port is not none %}
+            <fromPort>{{ rule.from_port }}</fromPort>
+            {% endif %}
+            <groupId>{{ group.id }}</groupId>
+            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+            <isEgress>true</isEgress>
+            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+            {% if rule.to_port is not none %}
+            <toPort>{{ rule.to_port }}</toPort>
+            {% endif %}
+            <referencedGroupInfo>
+                {% if item.OwnerId and item.OwnerId != "" %}
+                <userId>{{ item.OwnerId }}</userId>
+                {% endif %}
+                {% if item.GroupId and item.GroupId != "" %}
+                <groupId>{{ item.GroupId }}</groupId>
+                {% endif %}
+                {% if item.VpcId and item.VpcId != "" %}
+                <vpcId>{{ item.VpcId }}</vpcId>
+                {% endif %}
+            </referencedGroupInfo>
+        </item>
+    {% endfor %}
     </securityGroupRuleSet>
 </AuthorizeSecurityGroupEgressResponse>"""
 
@@ -466,3 +566,13 @@ REVOKE_SECURITY_GROUP_EGRESS_RESPONSE = """<RevokeSecurityGroupEgressResponse xm
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </RevokeSecurityGroupEgressResponse>"""
+
+UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS = """<UpdateSecurityGroupRuleDescriptionsIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</UpdateSecurityGroupRuleDescriptionsIngressResponse>"""
+
+UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_EGRESS = """<UpdateSecurityGroupRuleDescriptionsEgressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</UpdateSecurityGroupRuleDescriptionsEgressResponse>"""

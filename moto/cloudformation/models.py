@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from datetime import datetime, timedelta
 import json
 import yaml
@@ -8,7 +7,12 @@ from boto3 import Session
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.models import ACCOUNT_ID
+from moto.core.utils import (
+    iso_8601_datetime_with_milliseconds,
+    iso_8601_datetime_without_milliseconds,
+)
+from moto.sns.models import sns_backends
 
 from .parsing import ResourceMap, OutputMap
 from .utils import (
@@ -261,18 +265,20 @@ class FakeStack(BaseModel):
     def _add_stack_event(
         self, resource_status, resource_status_reason=None, resource_properties=None
     ):
-        self.events.append(
-            FakeEvent(
-                stack_id=self.stack_id,
-                stack_name=self.name,
-                logical_resource_id=self.name,
-                physical_resource_id=self.stack_id,
-                resource_type="AWS::CloudFormation::Stack",
-                resource_status=resource_status,
-                resource_status_reason=resource_status_reason,
-                resource_properties=resource_properties,
-            )
+
+        event = FakeEvent(
+            stack_id=self.stack_id,
+            stack_name=self.name,
+            logical_resource_id=self.name,
+            physical_resource_id=self.stack_id,
+            resource_type="AWS::CloudFormation::Stack",
+            resource_status=resource_status,
+            resource_status_reason=resource_status_reason,
+            resource_properties=resource_properties,
         )
+
+        event.sendToSns(self.region_name, self.notification_arns)
+        self.events.append(event)
 
     def _add_resource_event(
         self,
@@ -431,6 +437,7 @@ class FakeEvent(BaseModel):
         resource_status,
         resource_status_reason=None,
         resource_properties=None,
+        client_request_token=None,
     ):
         self.stack_id = stack_id
         self.stack_name = stack_name
@@ -442,6 +449,35 @@ class FakeEvent(BaseModel):
         self.resource_properties = resource_properties
         self.timestamp = datetime.utcnow()
         self.event_id = uuid.uuid4()
+        self.client_request_token = client_request_token
+
+    def sendToSns(self, region, sns_topic_arns):
+        message = """StackId='{stack_id}'
+Timestamp='{timestamp}'
+EventId='{event_id}'
+LogicalResourceId='{logical_resource_id}'
+Namespace='{account_id}'
+ResourceProperties='{resource_properties}'
+ResourceStatus='{resource_status}'
+ResourceStatusReason='{resource_status_reason}'
+ResourceType='{resource_type}'
+StackName='{stack_name}'
+ClientRequestToken='{client_request_token}'""".format(
+            stack_id=self.stack_id,
+            timestamp=iso_8601_datetime_with_milliseconds(self.timestamp),
+            event_id=self.event_id,
+            logical_resource_id=self.logical_resource_id,
+            account_id=ACCOUNT_ID,
+            resource_properties=self.resource_properties,
+            resource_status=self.resource_status,
+            resource_status_reason=self.resource_status_reason,
+            resource_type=self.resource_type,
+            stack_name=self.stack_name,
+            client_request_token=self.client_request_token,
+        )
+
+        for sns_topic_arn in sns_topic_arns:
+            sns_backends[region].publish(message, arn=sns_topic_arn)
 
 
 def filter_stacks(all_stacks, status_filter):
@@ -461,6 +497,13 @@ class CloudFormationBackend(BaseBackend):
         self.deleted_stacks = {}
         self.exports = OrderedDict()
         self.change_sets = OrderedDict()
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "cloudformation", policy_supported=False
+        )
 
     def _resolve_update_parameters(self, instance, incoming_params):
         parameters = dict(
@@ -586,7 +629,7 @@ class CloudFormationBackend(BaseBackend):
         tags=None,
         role_arn=None,
     ):
-        stack_id = generate_stack_id(name)
+        stack_id = generate_stack_id(name, region_name)
         new_stack = FakeStack(
             stack_id=stack_id,
             name=name,
@@ -701,24 +744,25 @@ class CloudFormationBackend(BaseBackend):
         if change_set is None:
             raise ValidationError(stack_name)
 
+        stack = self.stacks[change_set.stack_id]
+        # TODO: handle execution errors and implement rollback
         if change_set.change_set_type == "CREATE":
-            change_set.stack._add_stack_event(
+            stack._add_stack_event(
                 "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
             )
             change_set.apply()
-            change_set.stack._add_stack_event("CREATE_COMPLETE")
+            stack._add_stack_event("CREATE_COMPLETE")
         else:
-            change_set.stack._add_stack_event("UPDATE_IN_PROGRESS")
+            stack._add_stack_event("UPDATE_IN_PROGRESS")
             change_set.apply()
-            change_set.stack._add_stack_event("UPDATE_COMPLETE")
+            stack._add_stack_event("UPDATE_COMPLETE")
 
         # set the execution status of the changeset
         change_set.execution_status = "EXECUTE_COMPLETE"
 
         # set the status of the stack
-        self.stacks[
-            change_set.stack_id
-        ].status = f"{change_set.change_set_type}_COMPLETE"
+        stack.status = f"{change_set.change_set_type}_COMPLETE"
+        stack.template = change_set.template
         return True
 
     def describe_stacks(self, name_or_stack_id):

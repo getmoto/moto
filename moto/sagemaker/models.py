@@ -1,13 +1,10 @@
-from __future__ import unicode_literals
-
 import os
 from boto3 import Session
 from datetime import datetime
-
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
-from .exceptions import MissingModel, ValidationError
+from .exceptions import MissingModel, ValidationError, AWSValidationException
 
 
 class BaseObject(BaseModel):
@@ -878,6 +875,58 @@ class SageMakerModelBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        api_service = BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "api.sagemaker", special_service_name="sagemaker.api"
+        )
+
+        notebook_service_id = f"vpce-svc-{BaseBackend.vpce_random_number()}"
+        studio_service_id = f"vpce-svc-{BaseBackend.vpce_random_number()}"
+
+        notebook_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"{notebook_service_id}.{service_region}.vpce.amazonaws.com",
+                f"notebook.{service_region}.vpce.sagemaker.aws",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": f"*.notebook.{service_region}.sagemaker.aws",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.notebook.{service_region}.sagemaker.aws"}
+            ],
+            "ServiceId": notebook_service_id,
+            "ServiceName": f"aws.sagemaker.{service_region}.notebook",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        studio_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [
+                f"{studio_service_id}.{service_region}.vpce.amazonaws.com",
+                f"studio.{service_region}.vpce.sagemaker.aws",
+            ],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": f"*.studio.{service_region}.sagemaker.aws",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.studio.{service_region}.sagemaker.aws"}
+            ],
+            "ServiceId": studio_service_id,
+            "ServiceName": f"aws.sagemaker.{service_region}.studio",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return api_service + [notebook_service, studio_service]
+
     def create_model(self, **kwargs):
         model_obj = Model(
             region_name=self.region_name,
@@ -1242,6 +1291,90 @@ class SageMakerModelBackend(BaseBackend):
             return training_job.tags or []
         except RESTError:
             return []
+
+    def list_training_jobs(
+        self,
+        next_token,
+        max_results,
+        creation_time_after,
+        creation_time_before,
+        last_modified_time_after,
+        last_modified_time_before,
+        name_contains,
+        status_equals,
+        sort_by,
+        sort_order,
+    ):
+        if next_token:
+            try:
+                starting_index = int(next_token)
+                if starting_index > len(self.training_jobs):
+                    raise ValueError  # invalid next_token
+            except ValueError:
+                raise AWSValidationException('Invalid pagination token because "{0}".')
+        else:
+            starting_index = 0
+
+        if max_results:
+            end_index = max_results + starting_index
+            training_jobs_fetched = list(self.training_jobs.values())[
+                starting_index:end_index
+            ]
+            if end_index >= len(self.training_jobs):
+                next_index = None
+            else:
+                next_index = end_index
+        else:
+            training_jobs_fetched = list(self.training_jobs.values())
+            next_index = None
+
+        if name_contains is not None:
+            training_jobs_fetched = filter(
+                lambda x: name_contains in x.training_job_name, training_jobs_fetched
+            )
+
+        if creation_time_after is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.creation_time > creation_time_after, training_jobs_fetched
+            )
+
+        if creation_time_before is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.creation_time < creation_time_before, training_jobs_fetched
+            )
+
+        if last_modified_time_after is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.last_modified_time > last_modified_time_after,
+                training_jobs_fetched,
+            )
+
+        if last_modified_time_before is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.last_modified_time < last_modified_time_before,
+                training_jobs_fetched,
+            )
+        if status_equals is not None:
+            training_jobs_fetched = filter(
+                lambda x: x.training_job_status == status_equals, training_jobs_fetched
+            )
+
+        training_job_summaries = [
+            {
+                "TrainingJobName": training_job_data.training_job_name,
+                "TrainingJobArn": training_job_data.training_job_arn,
+                "CreationTime": training_job_data.creation_time,
+                "TrainingEndTime": training_job_data.training_end_time,
+                "LastModifiedTime": training_job_data.last_modified_time,
+                "TrainingJobStatus": training_job_data.training_job_status,
+            }
+            for training_job_data in training_jobs_fetched
+        ]
+
+        return {
+            "TrainingJobSummaries": training_job_summaries,
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
 
 
 sagemaker_backends = {}

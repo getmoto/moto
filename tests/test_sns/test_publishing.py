@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 import boto
-import json
 import re
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sns_deprecated, mock_sqs_deprecated
 from moto.core import ACCOUNT_ID
@@ -18,6 +15,7 @@ MESSAGE_FROM_SQS_TEMPLATE = (
 )
 
 
+# Has boto3 equivalent
 @mock_sqs_deprecated
 @mock_sns_deprecated
 def test_publish_to_sqs():
@@ -62,6 +60,7 @@ def test_publish_to_sqs():
     acquired_message.should.equal(expected)
 
 
+# Has boto3 equivalent
 @mock_sqs_deprecated
 @mock_sns_deprecated
 def test_publish_to_sqs_in_different_region():

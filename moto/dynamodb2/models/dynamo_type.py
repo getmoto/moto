@@ -179,11 +179,7 @@ class DynamoType(object):
         Returns DynamoType or None.
         """
         if isinstance(key, str) and self.is_map():
-            if "." in key and key.split(".")[0] in self.value:
-                return self.value[key.split(".")[0]].child_attr(
-                    ".".join(key.split(".")[1:])
-                )
-            elif "." not in key and key in self.value:
+            if key in self.value:
                 return DynamoType(self.value[key])
 
         if isinstance(key, int) and self.is_list():

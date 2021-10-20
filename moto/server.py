@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 import argparse
 import io
 import json
 import os
-import re
 import signal
 import sys
 from threading import Lock
@@ -18,8 +15,8 @@ from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
 import moto.backends as backends
+import moto.backend_index as backend_index
 from moto.core.utils import convert_flask_to_httpretty_response
-
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
 
@@ -32,7 +29,10 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
-UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+UNSIGNED_ACTIONS = {
+    "AssumeRoleWithSAML": ("sts", "us-east-1"),
+    "AssumeRoleWithWebIdentity": ("sts", "us-east-1"),
+}
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
@@ -53,6 +53,7 @@ class DomainDispatcherApplication(object):
         self.lock = Lock()
         self.app_instances = {}
         self.service = service
+        self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host):
         if host == "moto_api":
@@ -64,12 +65,17 @@ class DomainDispatcherApplication(object):
         if host in backends.BACKENDS:
             return host
 
-        return backends.search_backend(
-            lambda backend: any(
-                re.match(url_base, "http://%s" % host)
-                for url_base in list(backend.values())[0].url_bases
+        for backend, pattern in self.backend_url_patterns:
+            if pattern.match("http://%s" % host):
+                return backend
+
+        if "amazonaws.com" in host:
+            print(
+                "Unable to find appropriate backend for {}."
+                "Remember to add the URL to urls.py, and run script/update_backend_index.py to index it.".format(
+                    host
+                )
             )
-        )
 
     def infer_service_region_host(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
