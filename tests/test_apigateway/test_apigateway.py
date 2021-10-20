@@ -1331,49 +1331,6 @@ def test_create_simple_deployment_with_post_method():
 
 
 @mock_apigateway
-# https://github.com/aws/aws-sdk-js/issues/2588
-def test_put_integration_response_requires_responseTemplate():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
-    )
-    client.put_method_response(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-    )
-    client.put_integration(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        type="HTTP",
-        uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="POST",
-    )
-
-    with pytest.raises(ClientError) as ex:
-        client.put_integration_response(
-            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-        )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid request input")
-
-    # Works fine if responseTemplate is defined
-    client.put_integration_response(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        statusCode="200",
-        responseTemplates={},
-    )
-
-
-@mock_apigateway
 def test_put_integration_response_with_response_template():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1397,14 +1354,6 @@ def test_put_integration_response_with_response_template():
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="POST",
     )
-
-    with pytest.raises(ClientError) as ex:
-        client.put_integration_response(
-            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid request input")
 
     client.put_integration_response(
         restApiId=api_id,
