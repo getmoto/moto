@@ -53,6 +53,8 @@ class Topic(CloudFormationModel):
             sns_backend.region_name, self.account_id, name
         )
         self._tags = {}
+        self.fifo_topic = "false"
+        self.content_based_deduplication = "false"
 
     def publish(self, message, subject=None, message_attributes=None):
         message_id = str(uuid.uuid4())

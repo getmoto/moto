@@ -570,3 +570,51 @@ def test_topic_kms_master_key_id_attribute():
     resp = client.get_topic_attributes(TopicArn=topic_arn)
     resp["Attributes"].should.have.key("KmsMasterKeyId")
     resp["Attributes"]["KmsMasterKeyId"].should.equal("key-id")
+
+
+@mock_sns
+def test_topic_fifo_get_attributes():
+    client = boto3.client("sns", region_name="us-east-1")
+    resp = client.create_topic(
+        Name="test-topic-fifo-get-attr.fifo", Attributes={"FifoTopic": "true"}
+    )
+    topic_arn = resp["TopicArn"]
+    attributes = client.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
+
+    attributes.should.have.key("FifoTopic")
+    attributes.should.have.key("ContentBasedDeduplication")
+
+    attributes["FifoTopic"].should.equal("true")
+    attributes["ContentBasedDeduplication"].should.equal("false")
+
+    client.set_topic_attributes(
+        TopicArn=topic_arn,
+        AttributeName="ContentBasedDeduplication",
+        AttributeValue="true",
+    )
+    attributes = client.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
+    attributes["ContentBasedDeduplication"].should.equal("true")
+
+
+@mock_sns
+def test_topic_get_attributes():
+    client = boto3.client("sns", region_name="us-east-1")
+    resp = client.create_topic(Name="test-topic-get-attr")
+    topic_arn = resp["TopicArn"]
+    attributes = client.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
+
+    attributes.should_not.have.key("FifoTopic")
+    attributes.should_not.have.key("ContentBasedDeduplication")
+
+
+@mock_sns
+def test_topic_get_attributes_with_fifo_false():
+    client = boto3.client("sns", region_name="us-east-1")
+    resp = client.create_topic(
+        Name="test-topic-get-attr-with-fifo-false", Attributes={"FifoTopic": "false"}
+    )
+    topic_arn = resp["TopicArn"]
+    attributes = client.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
+
+    attributes.should_not.have.key("FifoTopic")
+    attributes.should_not.have.key("ContentBasedDeduplication")
