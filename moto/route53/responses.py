@@ -232,6 +232,7 @@ class Route53(BaseResponse):
                 return r53error.code, {}, r53error.description
 
             template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
+            headers["Location"] = query_logging_config.location
             return (
                 201,
                 headers,

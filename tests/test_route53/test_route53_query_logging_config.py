@@ -49,8 +49,8 @@ def test_create_query_logging_config_bad_args():
     """Test bad arguments to create_query_logging_config()."""
     client = boto3.client("route53", region_name=TEST_REGION)
     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
-    log_group_arn = create_log_group_arn(hosted_zone_test_name)
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(hosted_zone_test_name)
 
     # Check exception:  NoSuchHostedZone
     with pytest.raises(ClientError) as exc:
@@ -96,32 +96,38 @@ def test_create_query_logging_config_bad_args():
     assert "The specified CloudWatch Logs log group doesn't exist" in err["Message"]
 
     # Check exception:  QueryLoggingConfigAlreadyExists
+    client.create_query_logging_config(
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+    )
+    with pytest.raises(ClientError) as exc:
+        client.create_query_logging_config(
+            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "QueryLoggingConfigAlreadyExists"
+    assert (
+        "A query logging configuration already exists for this hosted zone"
+        in err["Message"]
+    )
 
 
-#     client.create_query_logging_config(
-#         HostedZoneId=hosted_zone_id,
-#         CloudWatchLogsLogGroupArn=log_group_arn
-#     )
-#     with pytest.raises(ClientError) as exc:
-#         client.create_query_logging_config(
-#             HostedZoneId=hosted_zone_id,
-#             CloudWatchLogsLogGroupArn=log_group_arn
-#         )
-#     err = exc.value.response["Error"]
-#     assert err["Code"] == "QueryLoggingConfigAlreadyExists"
-#     assert "A query logging configuration already exists for this hosted zone" in err["Message"]
+@mock_route53
+def test_create_query_logging_config():
+    client = boto3.client("route53", region_name=TEST_REGION)
 
+    hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+    hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(hosted_zone_test_name)
 
-# @mock_route53
-# def test_create_query_logging_config():
-#     client = boto3.client("route53", region_name=TEST_REGION)
-#
-#     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
-#     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
-#     log_group_arn = create_log_group_arn(hosted_zone_test_name)
-#
-#     response = client.create_query_logging_config(
-#         HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
-#     )
-#     config = response["QueryLoggingConfig"]
-#     location = response["Location"]
+    response = client.create_query_logging_config(
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+    )
+    config = response["QueryLoggingConfig"]
+    assert config["HostedZoneId"] == hosted_zone_id.split("/")[-1]
+    assert config["CloudWatchLogsLogGroupArn"] == log_group_arn
+
+    location = response["Location"]
+    assert (
+        location
+        == f"https://route53.amazonaws.com/2013-04-01/queryloggingconfig/{config['Id']}"
+    )

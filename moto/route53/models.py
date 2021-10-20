@@ -12,9 +12,9 @@ from moto.route53.exceptions import (
     InvalidInput,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchHostedZone,
-    QueryLoggingConfigAlreadyExists
+    QueryLoggingConfigAlreadyExists,
 )
-from moto.core import BaseBackend, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
@@ -380,31 +380,28 @@ class RecordSetGroup(CloudFormationModel):
         return record_set_group
 
 
-class QueryLoggingConfig(CloudFormationModel):
+class QueryLoggingConfig(BaseModel):
+
+    """QueryLoggingConfig class; this object isn't part of Cloudformation."""
+
     def __init__(
         self, query_logging_config_id, hosted_zone_id, cloudwatch_logs_log_group_arn
     ):
         self.hosted_zone_id = hosted_zone_id
         self.cloudwatch_logs_log_group_arn = cloudwatch_logs_log_group_arn
         self.query_logging_config_id = query_logging_config_id
-        # self.location = f"https://route53.amazonaws.com/{schema}/queryloggingconfig/{self.query_id}"
-
-    @property
-    def physical_resource_id(self):
-        return self.query_logging_config_id
+        self.location = f"https://route53.amazonaws.com/2013-04-01/queryloggingconfig/{self.query_logging_config_id}"
 
     def to_xml(self):
-        # TODO:
         template = Template(
             """<QueryLoggingConfig>
-        </QueryLogginConfig>"""
+                <CloudWatchLogsLogGroupArn>{{ query_logging_config.cloudwatch_logs_log_group_arn }}</CloudWatchLogsLogGroupArn>
+                <HostedZoneId>{{ query_logging_config.hosted_zone_id }}</HostedZoneId>
+                <Id>{{ query_logging_config.query_logging_config_id }}</Id>
+            </QueryLoggingConfig>"""
         )
-        # 'Location': 'https://route53.amazonaws.com/2013-04-01/queryloggingconfig/aa7c28f2-d834-4641-89fb-86c38bbb7416',
-        # 'QueryLoggingConfig': {
-        #    'Id': 'aa7c28f2-d834-4641-89fb-86c38bbb7416',
-        #    'HostedZoneId': 'Z10240433KZT8M28U2168',
-        #    'CloudWatchLogsLogGroupArn': 'arn:aws:logs:us-east-1:518294798677:log-group:/aws/route53/klb2.test:*'
-        # }}
+        # The "Location" value must be put into the header; that's done in
+        # responses.py.
         return template.render(query_logging_config=self)
 
 
@@ -573,7 +570,7 @@ class Route53Backend(BaseBackend):
 
         # Verify there is no existing query log config using the same hosted
         # zone.
-        for query_log in self.query_logging_configs:
+        for query_log in self.query_logging_configs.values():
             if query_log.hosted_zone_id == hosted_zone_id:
                 raise QueryLoggingConfigAlreadyExists()
 
@@ -583,7 +580,6 @@ class Route53Backend(BaseBackend):
             query_logging_config_id, hosted_zone_id, log_group_arn
         )
         self.query_logging_configs[query_logging_config_id] = query_logging_config
-
         return query_logging_config
 
 
