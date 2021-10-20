@@ -3107,6 +3107,30 @@ def test_describe_instances_dryrun():
     )
 
 
+@mock_ec2
+def test_describe_instances_filter_vpcid_via_networkinterface():
+    vpc_cidr_block = "10.26.0.0/16"
+    subnet_cidr_block = "10.26.1.0/24"
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock=subnet_cidr_block, AvailabilityZone="eu-west-1a"
+    )
+    my_interface = {
+        "SubnetId": subnet.id,
+        "DeviceIndex": 0,
+        "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": "10.26.1.3"},],
+    }
+    instance = ec2.create_instances(
+        ImageId="myami", NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
+    )[0]
+
+    _filter = [{"Name": "vpc-id", "Values": [vpc.id,]}]
+    found = list(ec2.instances.filter(Filters=_filter))
+    found.should.have.length_of(1)
+    found.should.equal([instance])
+
+
 def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_instances(Filters=filters)
     all_reservations = resp["Reservations"]
