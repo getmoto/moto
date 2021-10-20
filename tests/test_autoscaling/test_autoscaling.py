@@ -17,6 +17,7 @@ from moto import (
     mock_autoscaling_deprecated,
     mock_ec2,
 )
+from moto.core import ACCOUNT_ID
 from tests.helpers import requires_boto_gte
 
 from .utils import (
@@ -1597,7 +1598,16 @@ def test_autoscaling_describe_policies_boto3():
         PolicyTypes=["SimpleScaling"],
     )
     response["ScalingPolicies"].should.have.length_of(1)
-    response["ScalingPolicies"][0]["PolicyName"].should.equal("test_policy_down")
+    policy = response["ScalingPolicies"][0]
+    policy["PolicyType"].should.equal("SimpleScaling")
+    policy["AdjustmentType"].should.equal("PercentChangeInCapacity")
+    policy["ScalingAdjustment"].should.equal(-10)
+    policy["Cooldown"].should.equal(60)
+    policy["PolicyARN"].should.equal(
+        f"arn:aws:autoscaling:us-east-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/test_asg:policyName/test_policy_down"
+    )
+    policy["PolicyName"].should.equal("test_policy_down")
+    policy.shouldnt.have.key("TargetTrackingConfiguration")
 
 
 @mock_elb
@@ -1675,6 +1685,114 @@ def test_detach_one_instance_decrement():
     instance_to_detach.shouldnt.be.within(
         [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
     )
+
+
+@mock_autoscaling
+@mock_ec2
+def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
+    mocked_networking = setup_networking(region_name="us-west-1")
+    client = boto3.client("autoscaling", region_name="us-west-1")
+    configuration_name = "test"
+    asg_name = "asg_test"
+
+    client.create_launch_configuration(
+        LaunchConfigurationName=configuration_name,
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="m1.small",
+    )
+    client.create_auto_scaling_group(
+        LaunchConfigurationName=configuration_name,
+        AutoScalingGroupName=asg_name,
+        MinSize=1,
+        MaxSize=2,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    client.put_scaling_policy(
+        AutoScalingGroupName=asg_name,
+        PolicyName=configuration_name,
+        PolicyType="TargetTrackingScaling",
+        EstimatedInstanceWarmup=100,
+        TargetTrackingConfiguration={
+            "PredefinedMetricSpecification": {
+                "PredefinedMetricType": "ASGAverageNetworkIn",
+            },
+            "TargetValue": 1000000.0,
+        },
+    )
+
+    resp = client.describe_policies(AutoScalingGroupName=asg_name)
+    policy = resp["ScalingPolicies"][0]
+    policy.should.have.key("PolicyName").equals(configuration_name)
+    policy.should.have.key("PolicyARN").equals(
+        f"arn:aws:autoscaling:us-west-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{asg_name}:policyName/{configuration_name}"
+    )
+    policy.should.have.key("PolicyType").equals("TargetTrackingScaling")
+    policy.should.have.key("TargetTrackingConfiguration").should.equal(
+        {
+            "PredefinedMetricSpecification": {
+                "PredefinedMetricType": "ASGAverageNetworkIn",
+            },
+            "TargetValue": 1000000.0,
+        }
+    )
+    policy.shouldnt.have.key("ScalingAdjustment")
+    policy.shouldnt.have.key("Cooldown")
+
+
+@mock_autoscaling
+@mock_ec2
+def test_create_autoscaling_policy_with_policytype__stepscaling():
+    mocked_networking = setup_networking(region_name="eu-west-1")
+    client = boto3.client("autoscaling", region_name="eu-west-1")
+    launch_config_name = "lg_name"
+    asg_name = "asg_test"
+
+    client.create_launch_configuration(
+        LaunchConfigurationName=launch_config_name,
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="m1.small",
+    )
+    client.create_auto_scaling_group(
+        LaunchConfigurationName=launch_config_name,
+        AutoScalingGroupName=asg_name,
+        MinSize=1,
+        MaxSize=2,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    client.put_scaling_policy(
+        AutoScalingGroupName=asg_name,
+        PolicyName=launch_config_name,
+        PolicyType="StepScaling",
+        StepAdjustments=[
+            {
+                "MetricIntervalLowerBound": 2,
+                "MetricIntervalUpperBound": 8,
+                "ScalingAdjustment": 1,
+            }
+        ],
+    )
+
+    resp = client.describe_policies(AutoScalingGroupName=asg_name)
+    policy = resp["ScalingPolicies"][0]
+    policy.should.have.key("PolicyName").equals(launch_config_name)
+    policy.should.have.key("PolicyARN").equals(
+        f"arn:aws:autoscaling:eu-west-1:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{asg_name}:policyName/{launch_config_name}"
+    )
+    policy.should.have.key("PolicyType").equals("StepScaling")
+    policy.should.have.key("StepAdjustments").equal(
+        [
+            {
+                "MetricIntervalLowerBound": 2,
+                "MetricIntervalUpperBound": 8,
+                "ScalingAdjustment": 1,
+            }
+        ]
+    )
+    policy.shouldnt.have.key("TargetTrackingConfiguration")
+    policy.shouldnt.have.key("ScalingAdjustment")
+    policy.shouldnt.have.key("Cooldown")
 
 
 @mock_elb

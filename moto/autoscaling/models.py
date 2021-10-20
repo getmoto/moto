@@ -7,7 +7,7 @@ from moto.packages.boto.ec2.blockdevicemapping import (
 from moto.ec2.exceptions import InvalidInstanceIdError
 
 from collections import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
@@ -70,6 +70,8 @@ class FakeScalingPolicy(BaseModel):
         as_name,
         scaling_adjustment,
         cooldown,
+        target_tracking_config,
+        step_adjustments,
         autoscaling_backend,
     ):
         self.name = name
@@ -81,7 +83,13 @@ class FakeScalingPolicy(BaseModel):
             self.cooldown = cooldown
         else:
             self.cooldown = DEFAULT_COOLDOWN
+        self.target_tracking_config = target_tracking_config
+        self.step_adjustments = step_adjustments
         self.autoscaling_backend = autoscaling_backend
+
+    @property
+    def arn(self):
+        return f"arn:aws:autoscaling:{self.autoscaling_backend.region}:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
 
     def execute(self):
         if self.adjustment_type == "ExactCapacity":
@@ -612,6 +620,7 @@ class AutoScalingBackend(BaseBackend):
         self.ec2_backend = ec2_backend
         self.elb_backend = elb_backend
         self.elbv2_backend = elbv2_backend
+        self.region = self.elbv2_backend.region_name
 
     def reset(self):
         ec2_backend = self.ec2_backend
@@ -943,7 +952,15 @@ class AutoScalingBackend(BaseBackend):
         self.lifecycle_hooks.pop("%s_%s" % (as_name, name), None)
 
     def create_autoscaling_policy(
-        self, name, policy_type, adjustment_type, as_name, scaling_adjustment, cooldown
+        self,
+        name,
+        policy_type,
+        adjustment_type,
+        as_name,
+        scaling_adjustment,
+        cooldown,
+        target_tracking_config,
+        step_adjustments,
     ):
         policy = FakeScalingPolicy(
             name,
@@ -952,6 +969,8 @@ class AutoScalingBackend(BaseBackend):
             as_name,
             scaling_adjustment,
             cooldown,
+            target_tracking_config,
+            step_adjustments,
             self,
         )
 
