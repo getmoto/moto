@@ -23,7 +23,7 @@ class InvalidInput(Route53ClientError):
 class NoSuchCloudWatchLogsLogGroup(Route53ClientError):
     """CloudWatch LogGroup is in the permissions policy, but does not exist."""
 
-    code = 400
+    code = 404
 
     def __init__(self):
         message = "The specified CloudWatch Logs log group doesn't exist."
@@ -33,7 +33,7 @@ class NoSuchCloudWatchLogsLogGroup(Route53ClientError):
 class NoSuchHostedZone(Route53ClientError):
     """HostedZone does not exist."""
 
-    code = 400
+    code = 404
 
     def __init__(self, host_zone_id):
         message = f"No hosted zone found with ID: {host_zone_id}"
@@ -43,7 +43,7 @@ class NoSuchHostedZone(Route53ClientError):
 class QueryLoggingConfigAlreadyExists(Route53ClientError):
     """Query log config exists for log group and hosted zone combo."""
 
-    code = 400
+    code = 409
 
     def __init__(self):
         message = "A query logging configuration already exists for this hosted zone"
