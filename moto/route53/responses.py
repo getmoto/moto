@@ -217,7 +217,7 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
 
-    def query_logging_config(self, request, full_url, headers):
+    def query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         if request.method == "POST":
@@ -238,6 +238,32 @@ class Route53(BaseResponse):
                 headers,
                 template.render(query_logging_config=query_logging_config, xmlns=XMLNS),
             )
+
+    def get_or_delete_query_logging_config_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        query_logging_config_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+
+        if request.method == "GET":
+            try:
+                query_logging_config = route53_backend.get_query_logging_config(
+                    query_logging_config_id
+                )
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
+            template = Template(GET_QUERY_LOGGING_CONFIG_RESPONSE)
+            return (
+                200,
+                headers,
+                template.render(query_logging_config=query_logging_config, xmlns=XMLNS),
+            )
+
+        elif request.method == "DELETE":
+            try:
+                route53_backend.delete_query_logging_config(query_logging_config_id)
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
+            return 200, headers, ""
 
 
 def no_such_hosted_zone_error(zoneid, headers=None):
@@ -409,3 +435,8 @@ CREATE_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateQueryLoggingConfigResponse xmlns="{{ xmlns }}">
   {{ query_logging_config.to_xml() }}
 </CreateQueryLoggingConfigResponse>"""
+
+GET_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetQueryLoggingConfigResponse xmlns="{{ xmlns }}">
+  {{ query_logging_config.to_xml() }}
+</GetQueryLoggingConfigResponse>"""

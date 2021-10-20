@@ -113,6 +113,7 @@ def test_create_query_logging_config_bad_args():
 
 @mock_route53
 def test_create_query_logging_config():
+    """Test a valid create_logging_config() request."""
     client = boto3.client("route53", region_name=TEST_REGION)
 
     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
@@ -125,9 +126,69 @@ def test_create_query_logging_config():
     config = response["QueryLoggingConfig"]
     assert config["HostedZoneId"] == hosted_zone_id.split("/")[-1]
     assert config["CloudWatchLogsLogGroupArn"] == log_group_arn
+    assert config["Id"]
 
     location = response["Location"]
     assert (
         location
         == f"https://route53.amazonaws.com/2013-04-01/queryloggingconfig/{config['Id']}"
     )
+
+
+@mock_route53
+def test_delete_query_logging_config():
+    """Test valid and invalid delete_query_logging_config requests."""
+    client = boto3.client("route53", region_name=TEST_REGION)
+
+    # Create a query logging config that can then be deleted.
+    hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+    hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(hosted_zone_test_name)
+
+    query_response = client.create_query_logging_config(
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+    )
+
+    # Test the deletion.
+    query_id = query_response["QueryLoggingConfig"]["Id"]
+    response = client.delete_query_logging_config(Id=query_id)
+    # There is no response other than the usual ResponseMetadata.
+    assert list(response.keys()) == ["ResponseMetadata"]
+
+    # Test the deletion of a non-existent query logging config, i.e., the
+    # one that was just deleted.
+    with pytest.raises(ClientError) as exc:
+        client.delete_query_logging_config(Id=query_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchQueryLoggingConfig"
+    assert "The query logging configuration does not exist" in err["Message"]
+
+
+@mock_route53
+def test_get_query_logging_config():
+    """Test valid and invalid get_query_logging_config requests."""
+    client = boto3.client("route53", region_name=TEST_REGION)
+
+    # Create a query logging config that can then be retrieved.
+    hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+    hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(hosted_zone_test_name)
+
+    query_response = client.create_query_logging_config(
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+    )
+
+    # Test the retrieval.
+    query_id = query_response["QueryLoggingConfig"]["Id"]
+    response = client.get_query_logging_config(Id=query_id)
+    config = response["QueryLoggingConfig"]
+    assert config["HostedZoneId"] == hosted_zone_id.split("/")[-1]
+    assert config["CloudWatchLogsLogGroupArn"] == log_group_arn
+    assert config["Id"]
+
+    # Test the retrieval of a non-existent query logging config.
+    with pytest.raises(ClientError) as exc:
+        client.get_query_logging_config(Id="1234567890")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchQueryLoggingConfig"
+    assert "The query logging configuration does not exist" in err["Message"]

@@ -12,6 +12,7 @@ from moto.route53.exceptions import (
     InvalidInput,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchHostedZone,
+    NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
 )
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
@@ -581,6 +582,18 @@ class Route53Backend(BaseBackend):
         )
         self.query_logging_configs[query_logging_config_id] = query_logging_config
         return query_logging_config
+
+    def delete_query_logging_config(self, query_logging_config_id):
+        """Delete query logging config, if it exists."""
+        if query_logging_config_id not in self.query_logging_configs:
+            raise NoSuchQueryLoggingConfig()
+        self.query_logging_configs.pop(query_logging_config_id)
+
+    def get_query_logging_config(self, query_logging_config_id):
+        """Return query logging config, if it exists."""
+        if query_logging_config_id not in self.query_logging_configs:
+            raise NoSuchQueryLoggingConfig()
+        return self.query_logging_configs[query_logging_config_id]
 
 
 route53_backend = Route53Backend()
