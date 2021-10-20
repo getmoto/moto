@@ -22,6 +22,7 @@ def create_hosted_zone_id(route53_client, hosted_zone_test_name):
         Name=hosted_zone_test_name,
         CallerReference=f"test_caller_ref_{get_random_hex(6)}",
     )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
     assert "HostedZone" in response and response["HostedZone"]["Id"]
     return response["HostedZone"]["Id"]
 
@@ -49,8 +50,9 @@ def test_create_query_logging_config_bad_args():
     client = boto3.client("route53", region_name=TEST_REGION)
     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
     log_group_arn = create_log_group_arn(hosted_zone_test_name)
+    hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
 
-    # NoSuchHostedZone
+    # Check exception:  NoSuchHostedZone
     with pytest.raises(ClientError) as exc:
         client.create_query_logging_config(
             HostedZoneId="foo", CloudWatchLogsLogGroupArn=log_group_arn,
@@ -59,9 +61,55 @@ def test_create_query_logging_config_bad_args():
     assert err["Code"] == "NoSuchHostedZone"
     assert "No hosted zone found with ID: foo" in err["Message"]
 
-    # TODO: NoSuchCloudWatchLogsLogGroup
-    # TODO: InvalidInput
-    # TODO: QueryLoggingConfigAlreadyExists
+    # Check exception:  InvalidInput (bad CloudWatch Logs log ARN)
+    with pytest.raises(ClientError) as exc:
+        client.create_query_logging_config(
+            HostedZoneId=hosted_zone_id,
+            CloudWatchLogsLogGroupArn=f"arn:aws:logs:{TEST_REGION}:{ACCOUNT_ID}:foo-bar:foo",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+    assert "The ARN for the CloudWatch Logs log group is invalid" in err["Message"]
+
+    # Check exception:  InvalidInput (CloudWatch Logs log not in us-east-1)
+    with pytest.raises(ClientError) as exc:
+        client.create_query_logging_config(
+            HostedZoneId=hosted_zone_id,
+            CloudWatchLogsLogGroupArn=log_group_arn.replace(
+                LOG_TEST_REGION, "us-west-1"
+            ),
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+    assert "The ARN for the CloudWatch Logs log group is invalid" in err["Message"]
+
+    # Check exception:  NoSuchCloudWatchLogsLogGroup
+    with pytest.raises(ClientError) as exc:
+        client.create_query_logging_config(
+            HostedZoneId=hosted_zone_id,
+            CloudWatchLogsLogGroupArn=log_group_arn.replace(
+                hosted_zone_test_name, "foo"
+            ),
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchCloudWatchLogsLogGroup"
+    assert "The specified CloudWatch Logs log group doesn't exist" in err["Message"]
+
+    # Check exception:  QueryLoggingConfigAlreadyExists
+
+
+#     client.create_query_logging_config(
+#         HostedZoneId=hosted_zone_id,
+#         CloudWatchLogsLogGroupArn=log_group_arn
+#     )
+#     with pytest.raises(ClientError) as exc:
+#         client.create_query_logging_config(
+#             HostedZoneId=hosted_zone_id,
+#             CloudWatchLogsLogGroupArn=log_group_arn
+#         )
+#     err = exc.value.response["Error"]
+#     assert err["Code"] == "QueryLoggingConfigAlreadyExists"
+#     assert "A query logging configuration already exists for this hosted zone" in err["Message"]
 
 
 # @mock_route53

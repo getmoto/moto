@@ -12,6 +12,7 @@ from moto.route53.exceptions import (
     InvalidInput,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchHostedZone,
+    QueryLoggingConfigAlreadyExists
 )
 from moto.core import BaseBackend, CloudFormationModel
 
@@ -380,9 +381,31 @@ class RecordSetGroup(CloudFormationModel):
 
 
 class QueryLoggingConfig(CloudFormationModel):
-    def __init__(self, hosted_zone_id, cloudwatch_logs_log_group_arn):
+    def __init__(
+        self, query_logging_config_id, hosted_zone_id, cloudwatch_logs_log_group_arn
+    ):
         self.hosted_zone_id = hosted_zone_id
         self.cloudwatch_logs_log_group_arn = cloudwatch_logs_log_group_arn
+        self.query_logging_config_id = query_logging_config_id
+        # self.location = f"https://route53.amazonaws.com/{schema}/queryloggingconfig/{self.query_id}"
+
+    @property
+    def physical_resource_id(self):
+        return self.query_logging_config_id
+
+    def to_xml(self):
+        # TODO:
+        template = Template(
+            """<QueryLoggingConfig>
+        </QueryLogginConfig>"""
+        )
+        # 'Location': 'https://route53.amazonaws.com/2013-04-01/queryloggingconfig/aa7c28f2-d834-4641-89fb-86c38bbb7416',
+        # 'QueryLoggingConfig': {
+        #    'Id': 'aa7c28f2-d834-4641-89fb-86c38bbb7416',
+        #    'HostedZoneId': 'Z10240433KZT8M28U2168',
+        #    'CloudWatchLogsLogGroupArn': 'arn:aws:logs:us-east-1:518294798677:log-group:/aws/route53/klb2.test:*'
+        # }}
+        return template.render(query_logging_config=self)
 
 
 class Route53Backend(BaseBackend):
@@ -506,20 +529,27 @@ class Route53Backend(BaseBackend):
         return self.health_checks.pop(health_check_id, None)
 
     def _validate_arn(self, region, arn):
-        match = re.match(fr"arn:aws:logs:{region}:\d{{12}}):log-group:.+", arn)
+        match = re.match(fr"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
         if not arn or not match:
             raise InvalidInput()
 
+        # The CloudWatch Logs log group must be in the "us-east-1" region.
+        match = re.match(r"^(?:[^:]+:){3}(?P<region>[^:]+).*", arn)
+        if match.group("region") != "us-east-1":
+            raise InvalidInput()
+
     def create_query_logging_config(self, region, hosted_zone_id, log_group_arn):
+        """Process the create_query_logging_config request."""
         # Does the hosted_zone_id exist?
         response = self.list_hosted_zones()
-        zones = response["HostedZones"] if response else []
+        zones = list(response) if response else []
         for zone in zones:
-            if zone["Id"] == hosted_zone_id:
+            if zone.id == hosted_zone_id:
                 break
         else:
             raise NoSuchHostedZone(hosted_zone_id)
 
+        # Ensure CloudWatch Logs log ARN is valid, otherwise raise an error.
         self._validate_arn(region, log_group_arn)
 
         # Note:  boto3 checks the resource policy permissions before checking
@@ -533,26 +563,28 @@ class Route53Backend(BaseBackend):
         from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
 
         response = logs_backends[region].describe_log_groups()
-        for entry in response["logGroups"]:
+        log_groups = response[0] if response else []
+        for entry in log_groups:
             if log_group_arn == entry["arn"]:
                 break
         else:
             # There is no CloudWatch Logs log group with the specified ARN.
             raise NoSuchCloudWatchLogsLogGroup()
 
-        # TODO: QueryLoggingConfigAlreadyExists
-        # botocore.errorfactory.QueryLoggingConfigAlreadyExists: An error
-        # occurred (QueryLoggingConfigAlreadyExists) when calling the
-        # CreateQueryLoggingConfig operation: A query logging configuration
-        # already exists for this hosted zone.
+        # Verify there is no existing query log config using the same hosted
+        # zone.
+        for query_log in self.query_logging_configs:
+            if query_log.hosted_zone_id == hosted_zone_id:
+                raise QueryLoggingConfigAlreadyExists()
 
-        # TODO:
-        # 'Location': 'https://route53.amazonaws.com/2013-04-01/queryloggingconfig/aa7c28f2-d834-4641-89fb-86c38bbb7416',
-        # 'QueryLoggingConfig': {
-        #    'Id': 'aa7c28f2-d834-4641-89fb-86c38bbb7416',
-        #    'HostedZoneId': 'Z10240433KZT8M28U2168',
-        #    'CloudWatchLogsLogGroupArn': 'arn:aws:logs:us-east-1:518294798677:log-group:/aws/route53/klb2.test:*'
-        # }}
+        # Create an instance of the query logging config.
+        query_logging_config_id = str(uuid.uuid4())
+        query_logging_config = QueryLoggingConfig(
+            query_logging_config_id, hosted_zone_id, log_group_arn
+        )
+        self.query_logging_configs[query_logging_config_id] = query_logging_config
+
+        return query_logging_config
 
 
 route53_backend = Route53Backend()
