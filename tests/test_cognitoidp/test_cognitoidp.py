@@ -914,6 +914,25 @@ def test_admin_add_user_to_group():
 
 
 @mock_cognitoidp
+def test_admin_add_user_to_group_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = "test@example.com"
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+
+@mock_cognitoidp
 def test_admin_add_user_to_group_again_is_noop():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -930,6 +949,7 @@ def test_admin_add_user_to_group_again_is_noop():
     conn.admin_add_user_to_group(
         UserPoolId=user_pool_id, Username=username, GroupName=group_name
     )
+    # should there be an assertion here?
 
 
 @mock_cognitoidp
@@ -1002,6 +1022,29 @@ def test_admin_list_groups_for_user():
 
 
 @mock_cognitoidp
+def test_admin_list_groups_for_user_with_username_attribute():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = "test@example.com"
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+
+    result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
+
+    result["Groups"].should.have.length_of(1)
+    result["Groups"][0]["GroupName"].should.equal(group_name)
+
+
+@mock_cognitoidp
 def test_admin_list_groups_for_user_ignores_deleted_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1056,6 +1099,35 @@ def test_admin_remove_user_from_group():
 
 
 @mock_cognitoidp
+def test_admin_remove_user_from_group_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = "test@example.com"
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+
+    result = conn.admin_remove_user_from_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)[
+        "Users"
+    ].should.have.length_of(0)
+    conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)[
+        "Groups"
+    ].should.have.length_of(0)
+
+
+@mock_cognitoidp
 def test_admin_remove_user_from_group_again_is_noop():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1089,7 +1161,7 @@ def test_admin_create_user():
 
     result["User"]["Username"].should.equal(username)
     result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
-    result["User"]["Attributes"].should.have.length_of(1)
+    result["User"]["Attributes"].should.have.length_of(2)
 
     def _verify_attribute(name, v):
         attr = [a for a in result["User"]["Attributes"] if a["Name"] == name]
@@ -1098,6 +1170,84 @@ def test_admin_create_user():
 
     _verify_attribute("thing", value)
     result["User"]["Enabled"].should.equal(True)
+
+
+@mock_cognitoidp
+def test_admin_create_user_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    result = conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "thing", "Value": value}],
+    )
+
+    result["User"]["Username"].should_not.equal(username)
+    result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
+    result["User"]["Attributes"].should.have.length_of(3)
+
+    def _verify_attribute(name, v):
+        attr = [a for a in result["User"]["Attributes"] if a["Name"] == name]
+        attr.should.have.length_of(1)
+        attr[0]["Value"].should.equal(v)
+
+    _verify_attribute("thing", value)
+    _verify_attribute("email", username)
+    result["User"]["Enabled"].should.equal(True)
+
+
+@mock_cognitoidp
+def test_admin_create_user_with_incorrect_username_attribute_type_fails():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        username = str(uuid.uuid4())
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[{"Name": "thing", "Value": value}],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal("Username should be either an email or a phone number.")
+
+
+@mock_cognitoidp
+def test_admin_create_user_with_existing_username_attribute_fails():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+
+    username = "test@example.com"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "thing", "Value": value}],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        username = "test@example.com"
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[{"Name": "thing", "Value": value}],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UsernameExistsException")
+    err["Message"].should.equal("test@example.com")
 
 
 @mock_cognitoidp
@@ -1190,7 +1340,60 @@ def test_admin_get_user():
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(1)
+    result["UserAttributes"].should.have.length_of(2)
+
+
+@mock_cognitoidp
+def test_admin_get_user_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email", "phone_number"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {"Name": "thing", "Value": value},
+            {"Name": "phone_number", "Value": "+123456789"},
+        ],
+    )
+    # verify user can be queried by email
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["Username"].should_not.equal(username)
+    result["UserAttributes"].should.have.length_of(4)
+
+    def _verify_attribute(name, v):
+        attr = [a for a in result["UserAttributes"] if a["Name"] == name]
+        attr.should.have.length_of(1)
+        attr[0]["Value"].should.equal(v)
+
+    _verify_attribute("phone_number", "+123456789")
+    _verify_attribute("email", "test@example.com")
+
+    # verify user can be queried by phone number
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username="+123456789")
+
+    result["Username"].should_not.equal(username)
+    result["UserAttributes"].should.have.length_of(4)
+    _verify_attribute("phone_number", "+123456789")
+    _verify_attribute("email", "test@example.com")
+
+    # verify that the generate user sub is a valid UUID v4
+    [user_sub] = [
+        attr["Value"] for attr in result["UserAttributes"] if attr["Name"] == "sub"
+    ]
+    uuid.UUID(user_sub)
+
+    # verify user should be queried by user sub
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=user_sub)
+
+    result["Username"].should_not.equal(username)
+    result["UserAttributes"].should.have.length_of(4)
+    _verify_attribute("phone_number", "+123456789")
+    _verify_attribute("email", "test@example.com")
 
 
 @mock_cognitoidp
@@ -1210,12 +1413,28 @@ def test_admin_get_missing_user():
 
 
 @mock_cognitoidp
+def test_admin_get_missing_user_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+
+
+@mock_cognitoidp
 def test_get_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
     result = conn.get_user(AccessToken=outputs["access_token"])
     result["Username"].should.equal(outputs["username"])
-    result["UserAttributes"].should.have.length_of(1)
+    result["UserAttributes"].should.have.length_of(2)
 
     def _verify_attribute(name, v):
         attr = [a for a in result["UserAttributes"] if a["Name"] == name]
@@ -1315,6 +1534,50 @@ def test_list_users_invalid_attributes():
     err = exc.value.response["Error"]
     assert err["Code"].should.equal("InvalidParameterException")
     assert err["Message"].should.equal("Invalid search attribute: custom:foo")
+
+
+@mock_cognitoidp
+def test_list_users_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    result = conn.list_users(UserPoolId=user_pool_id)
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should_not.equal(username)
+
+    def _verify_attribute(name, v):
+        attr = [a for a in result["Users"][0]["Attributes"] if a["Name"] == name]
+        attr.should.have.length_of(1)
+        attr[0]["Value"].should.equal(v)
+
+    _verify_attribute("email", username)
+
+    username_bis = "test2@uexample.com"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username_bis,
+        UserAttributes=[{"Name": "phone_number", "Value": "+33666666666"}],
+    )
+    result = conn.list_users(
+        UserPoolId=user_pool_id, Filter='phone_number="+33666666666"'
+    )
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should_not.equal(username_bis)
+    uuid.UUID(result["Users"][0]["Username"])
+
+    _verify_attribute("email", username_bis)
+
+    # checking Filter with space
+    result = conn.list_users(
+        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666"'
+    )
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should_not.equal(username_bis)
+    _verify_attribute("email", username_bis)
 
 
 @mock_cognitoidp
@@ -1443,11 +1706,48 @@ def test_admin_disable_user():
 
 
 @mock_cognitoidp
+def test_admin_disable_user_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
+        "Enabled"
+    ].should.equal(False)
+
+
+@mock_cognitoidp
 def test_admin_enable_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     username = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_enable_user(UserPoolId=user_pool_id, Username=username)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
+        "Enabled"
+    ].should.equal(True)
+
+
+@mock_cognitoidp
+def test_admin_enable_user_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
     conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
 
@@ -1475,6 +1775,24 @@ def test_admin_delete_user():
         caught = True
 
     caught.should.be.true
+
+
+@mock_cognitoidp
+def test_admin_delete_user_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    conn.admin_delete_user(UserPoolId=user_pool_id, Username=username)
+
+    with pytest.raises(ClientError) as ex:
+        conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
 
 
 def authentication_flow(conn, auth_flow):
@@ -1928,6 +2246,34 @@ def test_sign_up():
 
 
 @mock_cognitoidp
+def test_sign_up_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email", "phone_number"]
+    )["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()),
+    )["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    with pytest.raises(ClientError) as err:
+        # Attempt to add user again
+        result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    err.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+
+    username = "test@example.com"
+    result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
+    result["UserConfirmed"].should.be.false
+    result["UserSub"].should_not.be.none
+    username = "+123456789"
+    result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
+    result["UserConfirmed"].should.be.false
+    result["UserSub"].should_not.be.none
+
+
+@mock_cognitoidp
 def test_sign_up_existing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1967,11 +2313,69 @@ def test_confirm_sign_up():
 
 
 @mock_cognitoidp
+def test_confirm_sign_up_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = "test@example.com"
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456",
+    )
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserStatus"].should.equal("CONFIRMED")
+
+
+@mock_cognitoidp
 def test_initiate_auth_USER_SRP_AUTH():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id,
+    )["UserPoolClient"]["ClientSecret"]
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456",
+    )
+
+    key = bytes(str(client_secret).encode("latin-1"))
+    msg = bytes(str(username + client_id).encode("latin-1"))
+    new_digest = hmac.new(key, msg, hashlib.sha256).digest()
+    secret_hash = base64.b64encode(new_digest).decode()
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": uuid.uuid4().hex,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    result["ChallengeName"].should.equal("PASSWORD_VERIFIER")
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_SRP_AUTH_with_username_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = "test@example.com"
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
     )["UserPoolClient"]["ClientId"]
@@ -2260,7 +2664,7 @@ def test_admin_set_user_password():
     )
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(1)
+    result["UserAttributes"].should.have.length_of(2)
 
     def _verify_attribute(name, v):
         attr = [a for a in result["UserAttributes"] if a["Name"] == name]
