@@ -7,6 +7,7 @@ from random import random, randint
 import pytz
 from boto3 import Session
 
+from moto import settings
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
@@ -272,10 +273,9 @@ class Task(BaseObject):
         started_by="",
         tags=[],
     ):
+        self.id = str(uuid.uuid4())
+        self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
-        self.task_arn = "arn:aws:ecs:{0}:{1}:task/{2}".format(
-            cluster.region_name, ACCOUNT_ID, str(uuid.uuid4())
-        )
         self.container_instance_arn = container_instance_arn
         self.last_status = "RUNNING"
         self.desired_status = "RUNNING"
@@ -286,10 +286,20 @@ class Task(BaseObject):
         self.tags = tags
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
+        self.region_name = cluster.region_name
+
+    @property
+    def task_arn(self):
+        if settings.ecs_new_arn_format():
+            return f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:task/{self.cluster_name}/{self.id}"
+        return "arn:aws:ecs:{0}:{1}:task/{2}".format(
+            self.region_name, ACCOUNT_ID, self.id
+        )
 
     @property
     def response_object(self):
         response_object = self.gen_response_object()
+        response_object["taskArn"] = self.task_arn
         return response_object
 
 
@@ -307,10 +317,8 @@ class Service(BaseObject, CloudFormationModel):
         launch_type=None,
         service_registries=None,
     ):
+        self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
-        self.arn = "arn:aws:ecs:{0}:{1}:service/{2}".format(
-            cluster.region_name, ACCOUNT_ID, service_name
-        )
         self.name = service_name
         self.status = "ACTIVE"
         self.running_count = 0
@@ -346,6 +354,15 @@ class Service(BaseObject, CloudFormationModel):
         )
         self.tags = tags if tags is not None else []
         self.pending_count = 0
+        self.region_name = cluster.region_name
+
+    @property
+    def arn(self):
+        if settings.ecs_new_arn_format():
+            return f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:service/{self.cluster_name}/{self.name}"
+        return "arn:aws:ecs:{0}:{1}:service/{2}".format(
+            self.region_name, ACCOUNT_ID, self.name
+        )
 
     @property
     def physical_resource_id(self):
@@ -354,7 +371,7 @@ class Service(BaseObject, CloudFormationModel):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
-        del response_object["name"], response_object["arn"], response_object["tags"]
+        del response_object["name"], response_object["tags"]
         response_object["serviceName"] = self.name
         response_object["serviceArn"] = self.arn
         response_object["schedulingStrategy"] = self.scheduling_strategy
@@ -450,7 +467,7 @@ class Service(BaseObject, CloudFormationModel):
 
 
 class ContainerInstance(BaseObject):
-    def __init__(self, ec2_instance_id, region_name):
+    def __init__(self, ec2_instance_id, region_name, cluster_name):
         self.ec2_instance_id = ec2_instance_id
         self.agent_connected = True
         self.status = "ACTIVE"
@@ -486,9 +503,6 @@ class ContainerInstance(BaseObject):
                 "type": "STRINGSET",
             },
         ]
-        self.container_instance_arn = "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
-            region_name, ACCOUNT_ID, str(uuid.uuid4())
-        )
         self.pending_tasks_count = 0
         self.remaining_resources = [
             {
@@ -539,10 +553,22 @@ class ContainerInstance(BaseObject):
             else "linux",  # options are windows and linux, linux is default
         }
         self.registered_at = datetime.now(pytz.utc)
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.cluster_name = cluster_name
+
+    @property
+    def container_instance_arn(self):
+        if settings.ecs_new_arn_format():
+            return f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:container-instance/{self.cluster_name}/{self.id}"
+        return (
+            f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:container-instance/{self.id}"
+        )
 
     @property
     def response_object(self):
         response_object = self.gen_response_object()
+        response_object["containerInstanceArn"] = self.container_instance_arn
         response_object["attributes"] = [
             self._format_attribute(name, value)
             for name, value in response_object["attributes"].items()
@@ -1198,7 +1224,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name = cluster_str.split("/")[-1]
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
-        container_instance = ContainerInstance(ec2_instance_id, self.region_name)
+        container_instance = ContainerInstance(
+            ec2_instance_id, self.region_name, cluster_name
+        )
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}
         container_instance_id = container_instance.container_instance_arn.split("/")[-1]
