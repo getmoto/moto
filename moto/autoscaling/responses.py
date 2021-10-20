@@ -273,13 +273,16 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def put_scaling_policy(self):
+        params = self._get_params()
         policy = self.autoscaling_backend.create_autoscaling_policy(
-            name=self._get_param("PolicyName"),
-            policy_type=self._get_param("PolicyType"),
-            adjustment_type=self._get_param("AdjustmentType"),
-            as_name=self._get_param("AutoScalingGroupName"),
+            name=params.get("PolicyName"),
+            policy_type=params.get("PolicyType", "SimpleScaling"),
+            adjustment_type=params.get("AdjustmentType"),
+            as_name=params.get("AutoScalingGroupName"),
             scaling_adjustment=self._get_int_param("ScalingAdjustment"),
             cooldown=self._get_int_param("Cooldown"),
+            target_tracking_config=params.get("TargetTrackingConfiguration", {}),
+            step_adjustments=params.get("StepAdjustments", []),
         )
         template = self.response_template(CREATE_SCALING_POLICY_TEMPLATE)
         return template.render(policy=policy)
@@ -801,14 +804,39 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
     <ScalingPolicies>
       {% for policy in policies %}
       <member>
-        <PolicyARN>arn:aws:autoscaling:us-east-1:803981987763:scalingPolicy:c322
-761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/my-test-asg:policyName/MyScaleDownPolicy</PolicyARN>
+        <PolicyARN>{{ policy.arn }}</PolicyARN>
         <AdjustmentType>{{ policy.adjustment_type }}</AdjustmentType>
+        {% if policy.scaling_adjustment %}
         <ScalingAdjustment>{{ policy.scaling_adjustment }}</ScalingAdjustment>
+        {% endif %}
         <PolicyName>{{ policy.name }}</PolicyName>
         <PolicyType>{{ policy.policy_type }}</PolicyType>
         <AutoScalingGroupName>{{ policy.as_name }}</AutoScalingGroupName>
+        {% if policy.policy_type == 'SimpleScaling' %}
         <Cooldown>{{ policy.cooldown }}</Cooldown>
+        {% endif %}
+        {% if policy.policy_type == 'TargetTrackingScaling' %}
+        <TargetTrackingConfiguration>
+            <PredefinedMetricSpecification>
+                <PredefinedMetricType>{{ policy.target_tracking_config.get("PredefinedMetricSpecification", {}).get("PredefinedMetricType", "") }}</PredefinedMetricType>
+                {% if policy.target_tracking_config.get("PredefinedMetricSpecification", {}).get("ResourceLabel") %}
+                <ResourceLabel>{{ policy.target_tracking_config.get("PredefinedMetricSpecification", {}).get("ResourceLabel") }}</ResourceLabel>
+                {% endif %}
+            </PredefinedMetricSpecification>
+            <TargetValue>{{ policy.target_tracking_config.get("TargetValue") }}</TargetValue>
+        </TargetTrackingConfiguration>
+        {% endif %}
+        {% if policy.policy_type == 'StepScaling' %}
+        <StepAdjustments>
+        {% for step in policy.step_adjustments %}
+        <entry>
+            <MetricIntervalLowerBound>{{ step.get("MetricIntervalLowerBound") }}</MetricIntervalLowerBound>
+            <MetricIntervalUpperBound>{{ step.get("MetricIntervalUpperBound") }}</MetricIntervalUpperBound>
+            <ScalingAdjustment>{{ step.get("ScalingAdjustment") }}</ScalingAdjustment>
+        </entry>
+        {% endfor %}
+        </StepAdjustments>
+        {% endif %}
         <Alarms/>
       </member>
       {% endfor %}
