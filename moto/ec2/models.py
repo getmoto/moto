@@ -602,7 +602,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.instance_type = kwargs.get("instance_type", "m1.small")
         self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
-        self.vpc_id = None
         self.subnet_id = kwargs.get("subnet_id")
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
@@ -646,7 +645,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         if self.subnet_id:
             subnet = ec2_backend.get_subnet(self.subnet_id)
-            self.vpc_id = subnet.vpc_id
             self._placement.zone = subnet.availability_zone
 
             if self.associate_public_ip is None:
@@ -665,6 +663,15 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             private_ip=kwargs.get("private_ip"),
             associate_public_ip=self.associate_public_ip,
         )
+
+    @property
+    def vpc_id(self):
+        if self.subnet_id:
+            subnet = self.ec2_backend.get_subnet(self.subnet_id)
+            return subnet.vpc_id
+        if self.nics and 0 in self.nics:
+            return self.nics[0].subnet.vpc_id
+        return None
 
     def __del__(self):
         try:
