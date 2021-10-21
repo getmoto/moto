@@ -11,11 +11,9 @@ from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 
 # The log group must be in the us-east-1 region.
-LOG_TEST_REGION = "us-east-1"
-TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
+TEST_REGION = "us-east-1"
 
 
-@mock_route53
 def create_hosted_zone_id(route53_client, hosted_zone_test_name):
     """Return ID of a newly created Route53 public hosted zone"""
     response = route53_client.create_hosted_zone(
@@ -27,10 +25,8 @@ def create_hosted_zone_id(route53_client, hosted_zone_test_name):
     return response["HostedZone"]["Id"]
 
 
-@mock_logs
-def create_log_group_arn(hosted_zone_test_name):
+def create_log_group_arn(logs_client, hosted_zone_test_name):
     """Return ARN of a newly created CloudWatch log group."""
-    logs_client = boto3.client("logs", region_name=LOG_TEST_REGION)
     log_group_name = f"/aws/route53/{hosted_zone_test_name}"
     response = logs_client.create_log_group(logGroupName=log_group_name)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -44,13 +40,16 @@ def create_log_group_arn(hosted_zone_test_name):
     return log_group_arn
 
 
+@mock_logs
 @mock_route53
 def test_create_query_logging_config_bad_args():
     """Test bad arguments to create_query_logging_config()."""
     client = boto3.client("route53", region_name=TEST_REGION)
+    logs_client = boto3.client("logs", region_name=TEST_REGION)
+
     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
-    log_group_arn = create_log_group_arn(hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
     # Check exception:  NoSuchHostedZone
     with pytest.raises(ClientError) as exc:
@@ -75,9 +74,7 @@ def test_create_query_logging_config_bad_args():
     with pytest.raises(ClientError) as exc:
         client.create_query_logging_config(
             HostedZoneId=hosted_zone_id,
-            CloudWatchLogsLogGroupArn=log_group_arn.replace(
-                LOG_TEST_REGION, "us-west-1"
-            ),
+            CloudWatchLogsLogGroupArn=log_group_arn.replace(TEST_REGION, "us-west-1"),
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidInput"
@@ -111,14 +108,16 @@ def test_create_query_logging_config_bad_args():
     )
 
 
+@mock_logs
 @mock_route53
-def test_create_query_logging_config():
+def test_create_query_logging_config_good_args():
     """Test a valid create_logging_config() request."""
     client = boto3.client("route53", region_name=TEST_REGION)
+    logs_client = boto3.client("logs", region_name=TEST_REGION)
 
     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
-    log_group_arn = create_log_group_arn(hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
     response = client.create_query_logging_config(
         HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
@@ -135,15 +134,17 @@ def test_create_query_logging_config():
     )
 
 
+@mock_logs
 @mock_route53
 def test_delete_query_logging_config():
     """Test valid and invalid delete_query_logging_config requests."""
     client = boto3.client("route53", region_name=TEST_REGION)
+    logs_client = boto3.client("logs", region_name=TEST_REGION)
 
     # Create a query logging config that can then be deleted.
     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
-    log_group_arn = create_log_group_arn(hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
     query_response = client.create_query_logging_config(
         HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
@@ -164,15 +165,17 @@ def test_delete_query_logging_config():
     assert "The query logging configuration does not exist" in err["Message"]
 
 
+@mock_logs
 @mock_route53
 def test_get_query_logging_config():
     """Test valid and invalid get_query_logging_config requests."""
     client = boto3.client("route53", region_name=TEST_REGION)
+    logs_client = boto3.client("logs", region_name=TEST_REGION)
 
     # Create a query logging config that can then be retrieved.
     hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
     hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
-    log_group_arn = create_log_group_arn(hosted_zone_test_name)
+    log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
     query_response = client.create_query_logging_config(
         HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
@@ -192,3 +195,78 @@ def test_get_query_logging_config():
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchQueryLoggingConfig"
     assert "The query logging configuration does not exist" in err["Message"]
+
+
+@mock_logs
+@mock_route53
+def test_list_query_logging_configs_bad_args():
+    """Test bad arguments to list_query_logging_configs()."""
+    client = boto3.client("route53", region_name=TEST_REGION)
+    logs_client = boto3.client("logs", region_name=TEST_REGION)
+
+    # Check exception:  NoSuchHostedZone
+    with pytest.raises(ClientError) as exc:
+        client.list_query_logging_configs(HostedZoneId="foo", MaxResults="10")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchHostedZone"
+    assert "No hosted zone found with ID: foo" in err["Message"]
+
+    # Create a couple of query logging configs to work with.
+    for _ in range(3):
+        hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+        hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
+        log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
+        client.create_query_logging_config(
+            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+        )
+
+    # Retrieve a query logging config, then request more with an invalid token.
+    client.list_query_logging_configs(MaxResults="1")
+    # TODO InvalidPaginationToken
+    # response = client.list_query_logging_configs(NextToken="foo")
+
+
+@mock_logs
+@mock_route53
+def test_list_query_logging_configs_good_args():
+    """Test valid arguments to list_query_logging_configs()."""
+    client = boto3.client("route53", region_name=TEST_REGION)
+    logs_client = boto3.client("logs", region_name=TEST_REGION)
+
+    # Test when there are no query logging configs.
+    response = client.list_query_logging_configs()
+    query_logging_configs = response["QueryLoggingConfigs"]
+    assert len(query_logging_configs) == 0
+
+    # Create a couple of query logging configs to work with.
+    zone_ids = []
+    for _ in range(10):
+        hosted_zone_test_name = f"route53_query_log_{get_random_hex(6)}.test"
+        hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
+        zone_ids.append(hosted_zone_id)
+
+        log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
+        client.create_query_logging_config(
+            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+        )
+
+    # Verify all 10 of the query logging configs can be retrieved in one go.
+    response = client.list_query_logging_configs()
+    query_logging_configs = response["QueryLoggingConfigs"]
+    assert len(query_logging_configs) == 10
+    for idx, query_logging_config in enumerate(query_logging_configs):
+        assert query_logging_config["HostedZoneId"] == zone_ids[idx].split("/")[-1]
+
+    # Request only two of the query logging configs and verify there's a
+    # next_token.
+    response = client.list_query_logging_configs(MaxResults="2")
+    assert len(response["QueryLoggingConfigs"]) == 2
+    assert response["NextToken"]
+
+    # Request the remaining 8 query logging configs and verify there is
+    # no next token.
+    response = client.list_query_logging_configs(
+        MaxResults="8", NextToken=response["NextToken"]
+    )
+    assert len(response["QueryLoggingConfigs"]) == 8
+    assert "NextToken" not in response

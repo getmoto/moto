@@ -16,7 +16,8 @@ from moto.route53.exceptions import (
     QueryLoggingConfigAlreadyExists,
 )
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-
+from moto.utilities.paginator import paginate
+from .utils import PAGINATION_MODEL
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 
@@ -526,7 +527,8 @@ class Route53Backend(BaseBackend):
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
 
-    def _validate_arn(self, region, arn):
+    @staticmethod
+    def _validate_arn(region, arn):
         match = re.match(fr"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
         if not arn or not match:
             raise InvalidInput()
@@ -594,6 +596,23 @@ class Route53Backend(BaseBackend):
         if query_logging_config_id not in self.query_logging_configs:
             raise NoSuchQueryLoggingConfig()
         return self.query_logging_configs[query_logging_config_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_query_logging_configs(
+        self, hosted_zone_id=None, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """Return a list of query logging configs."""
+        if hosted_zone_id:
+            # Does the hosted_zone_id exist?
+            response = self.list_hosted_zones()
+            zones = list(response) if response else []
+            for zone in zones:
+                if zone.id == hosted_zone_id:
+                    break
+            else:
+                raise NoSuchHostedZone(hosted_zone_id)
+
+        return list(self.query_logging_configs.values())
 
 
 route53_backend = Route53Backend()

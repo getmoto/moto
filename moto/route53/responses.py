@@ -217,7 +217,7 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
 
-    def query_logging_config_response(self, request, full_url, headers):
+    def list_or_create_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         if request.method == "POST":
@@ -237,6 +237,41 @@ class Route53(BaseResponse):
                 201,
                 headers,
                 template.render(query_logging_config=query_logging_config, xmlns=XMLNS),
+            )
+
+        elif request.method == "GET":
+            parsed_url = urlparse(full_url)
+            query_params = parse_qs(parsed_url.query)
+
+            # For some reason the params are returned as a list.
+            param_list = query_params.get("hostedzoneid")
+            hosted_zone_id = param_list[0] if param_list else None
+
+            param_list = query_params.get("nexttoken")
+            next_token = param_list[0] if param_list else None
+
+            param_list = query_params.get("maxresults")
+            max_results = int(param_list[0]) if param_list else None
+
+            try:
+                # The paginator picks up named arguments.
+                all_configs, next_token = route53_backend.list_query_logging_configs(
+                    hosted_zone_id=hosted_zone_id,
+                    next_token=next_token,
+                    max_results=max_results,
+                )
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
+
+            template = Template(LIST_QUERY_LOGGING_CONFIGS_RESPONSE)
+            return (
+                200,
+                headers,
+                template.render(
+                    query_logging_configs=all_configs,
+                    next_token=next_token,
+                    xmlns=XMLNS,
+                ),
             )
 
     def get_or_delete_query_logging_config_response(self, request, full_url, headers):
@@ -437,6 +472,18 @@ CREATE_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </CreateQueryLoggingConfigResponse>"""
 
 GET_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<GetQueryLoggingConfigResponse xmlns="{{ xmlns }}">
+<CreateQueryLoggingConfigResponse xmlns="{{ xmlns }}">
   {{ query_logging_config.to_xml() }}
-</GetQueryLoggingConfigResponse>"""
+</CreateQueryLoggingConfigResponse>"""
+
+LIST_QUERY_LOGGING_CONFIGS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListQueryLoggingConfigsResponse xmlns="{{ xmlns }}">
+   <QueryLoggingConfigs>
+      {% for query_logging_config in query_logging_configs %}
+         {{ query_logging_config.to_xml() }}
+      {% endfor %}
+   </QueryLoggingConfigs>
+   {% if next_token %}
+      <NextToken>{{ next_token }}</NextToken>
+   {% endif %}
+</ListQueryLoggingConfigsResponse>"""
