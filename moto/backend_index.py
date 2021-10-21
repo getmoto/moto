@@ -71,7 +71,7 @@ backend_url_patterns = [
         re.compile("https?://.*\\.kinesisvideo\\.(.+)\\.amazonaws.com"),
     ),
     ("kms", re.compile("https?://kms\\.(.+)\\.amazonaws\\.com")),
-    ("lambda", re.compile("https?://lambda\\.(.+)\\.amazonaws\\.com(|.cn)")),
+    ("lambda", re.compile("https?://lambda\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
     (
         "managedblockchain",
@@ -111,9 +111,17 @@ backend_url_patterns = [
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com")),
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com\\.cn")),
     ("stepfunctions", re.compile("https?://states\\.(.+)\\.amazonaws.com")),
-    ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com(|.cn)")),
+    ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
+    (
+        "timestream-write",
+        re.compile("https?://ingest\\.timestream\\.(.+)\\.amazonaws\\.com"),
+    ),
+    (
+        "timestream-write",
+        re.compile("https?://ingest\\.timestream\\.(.+)\\.amazonaws\\.com/"),
+    ),
     ("transcribe", re.compile("https?://transcribe\\.(.+)\\.amazonaws\\.com")),
     ("wafv2", re.compile("https?://wafv2\\.(.+)\\.amazonaws.com")),
     ("xray", re.compile("https?://xray\\.(.+)\\.amazonaws.com")),

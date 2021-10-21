@@ -127,6 +127,9 @@ mock_sts = lazy_load(".sts", "mock_sts")
 mock_sts_deprecated = lazy_load(".sts", "mock_sts_deprecated")
 mock_swf = lazy_load(".swf", "mock_swf")
 mock_swf_deprecated = lazy_load(".swf", "mock_swf_deprecated")
+mock_timestreamwrite = lazy_load(
+    ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
+)
 mock_transcribe = lazy_load(".transcribe", "mock_transcribe")
 XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
