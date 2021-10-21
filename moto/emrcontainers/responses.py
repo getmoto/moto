@@ -28,7 +28,7 @@ class EMRContainersResponse(BaseResponse):
             tags=tags,
         )
 
-        return 200, {}, json.dumps(virtual_cluster)
+        return  200, {}, json.dumps(dict(virtual_cluster))
 
 
 # add templates from here

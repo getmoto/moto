@@ -6,7 +6,6 @@ url_bases = [
 ]
 
 
-response = EMRContainersResponse()
-
-
-url_paths = {"{0}/$": response.dispatch}
+url_paths = {
+    "{0}/": EMRContainersResponse.dispatch,
+}
