@@ -592,7 +592,7 @@ def test_steps():
         step.name.should.be.a(str)
         # step.readydatetime.should.be.a(str)
         # step.startdatetime.should.be.a(str)
-        step.state.should.be.within(["STARTING", "PENDING"])
+        step.state.should.be.within(["RUNNING", "PENDING"])
 
     expected = dict((s.name, s) for s in input_steps)
 
@@ -617,7 +617,7 @@ def test_steps():
         # properties
         x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
-        x.status.state.should.be.within(["STARTING", "PENDING"])
+        x.status.state.should.be.within(["RUNNING", "PENDING"])
         # x.status.statechangereason
         x.status.timeline.creationdatetime.should.be.a(str)
         # x.status.timeline.enddatetime.should.be.a(str)
@@ -641,7 +641,7 @@ def test_steps():
         # properties
         x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
-        x.status.state.should.be.within(["STARTING", "PENDING"])
+        x.status.state.should.be.within(["RUNNING", "PENDING"])
         # x.status.statechangereason
         x.status.timeline.creationdatetime.should.be.a(str)
         # x.status.timeline.enddatetime.should.be.a(str)
@@ -653,7 +653,7 @@ def test_steps():
         # step_states argument.
         steps = conn.list_steps(cluster_id).steps
         step_id = steps[0].id
-        steps = conn.list_steps(cluster_id, step_states=["STARTING"]).steps
+        steps = conn.list_steps(cluster_id, step_states=["RUNNING"]).steps
         steps.should.have.length_of(1)
         steps[0].id.should.equal(step_id)
 

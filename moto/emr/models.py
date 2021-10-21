@@ -356,7 +356,7 @@ class FakeCluster(BaseModel):
                 # If we already have other steps, this one is pending
                 fake = FakeStep(state="PENDING", **step)
             else:
-                fake = FakeStep(state="STARTING", **step)
+                fake = FakeStep(state="RUNNING", **step)
             self.steps.append(fake)
             added_steps.append(fake)
         self.state = "RUNNING"
