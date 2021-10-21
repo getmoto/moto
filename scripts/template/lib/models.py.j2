@@ -21,12 +21,12 @@ class {{ service_class }}Backend(BaseBackend):
 
 {{ escaped_service }}_backends = {}
 for available_region in Session().get_available_regions("{{ service }}"):
-    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend()
+    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend(available_region)
 for available_region in Session().get_available_regions(
     "{{ service }}", partition_name="aws-us-gov"
 ):
-    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend()
+    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend(available_region)
 for available_region in Session().get_available_regions(
     "{{ service }}", partition_name="aws-cn"
 ):
-    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend()
+    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend(available_region)

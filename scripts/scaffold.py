@@ -34,7 +34,7 @@ import boto3
 from moto.core.responses import BaseResponse
 from moto.core import BaseBackend
 from inflection import singularize
-from .implementation_coverage import get_moto_implementation
+from implementation_coverage import get_moto_implementation
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "./template")
 
