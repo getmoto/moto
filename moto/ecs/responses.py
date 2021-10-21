@@ -449,3 +449,20 @@ class EC2ContainerServiceResponse(BaseResponse):
             cluster_str, service_str, primary_task_set
         )
         return json.dumps({"taskSet": task_set.response_object})
+
+    def put_account_setting(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_setting = self.ecs_backend.put_account_setting(name, value)
+        return json.dumps({"setting": account_setting.response_object})
+
+    def list_account_settings(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_settings = self.ecs_backend.list_account_settings(name, value)
+        return json.dumps({"settings": [s.response_object for s in account_settings]})
+
+    def delete_account_setting(self):
+        name = self._get_param("name")
+        self.ecs_backend.delete_account_setting(name)
+        return "{}"

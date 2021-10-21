@@ -48,10 +48,26 @@ class ClusterNotFoundException(JsonRESTError):
         )
 
 
+class EcsClientException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(EcsClientException, self).__init__(
+            error_type="ClientException", message=message,
+        )
+
+
 class InvalidParameterException(JsonRESTError):
     code = 400
 
     def __init__(self, message):
         super(InvalidParameterException, self).__init__(
-            error_type="ClientException", message=message,
+            error_type="InvalidParameterException", message=message,
+        )
+
+
+class UnknownAccountSettingException(InvalidParameterException):
+    def __init__(self):
+        super().__init__(
+            "unknown should be one of [serviceLongArnFormat,taskLongArnFormat,containerInstanceLongArnFormat,containerLongArnFormat,awsvpcTrunking,containerInsights,dualStackIPv6]"
         )
