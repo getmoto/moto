@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError
 
 from moto import mock_logs
 from moto import mock_route53
-from moto import settings
 from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 
