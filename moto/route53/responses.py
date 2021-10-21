@@ -5,7 +5,8 @@ from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import Route53ClientError
+from moto.core.exceptions import InvalidToken
+from moto.route53.exceptions import Route53ClientError, InvalidPaginationToken
 from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
@@ -254,12 +255,18 @@ class Route53(BaseResponse):
             max_results = int(param_list[0]) if param_list else None
 
             try:
-                # The paginator picks up named arguments.
-                all_configs, next_token = route53_backend.list_query_logging_configs(
-                    hosted_zone_id=hosted_zone_id,
-                    next_token=next_token,
-                    max_results=max_results,
-                )
+                try:
+                    # The paginator picks up named arguments.
+                    (
+                        all_configs,
+                        next_token,
+                    ) = route53_backend.list_query_logging_configs(
+                        hosted_zone_id=hosted_zone_id,
+                        next_token=next_token,
+                        max_results=max_results,
+                    )
+                except InvalidToken as exc:
+                    raise InvalidPaginationToken() from exc
             except Route53ClientError as r53error:
                 return r53error.code, {}, r53error.description
 

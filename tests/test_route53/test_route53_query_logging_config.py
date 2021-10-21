@@ -221,8 +221,14 @@ def test_list_query_logging_configs_bad_args():
 
     # Retrieve a query logging config, then request more with an invalid token.
     client.list_query_logging_configs(MaxResults="1")
-    # TODO InvalidPaginationToken
-    # response = client.list_query_logging_configs(NextToken="foo")
+    with pytest.raises(ClientError) as exc:
+        client.list_query_logging_configs(NextToken="foo")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidPaginationToken"
+    assert (
+        "Route 53 can't get the next page of query logging configurations "
+        "because the specified value for NextToken is invalid." in err["Message"]
+    )
 
 
 @mock_logs

@@ -20,6 +20,19 @@ class InvalidInput(Route53ClientError):
         super().__init__("InvalidInput", message)
 
 
+class InvalidPaginationToken(Route53ClientError):
+    """Bad NextToken specified when listing query logging configs."""
+
+    code = 400
+
+    def __init__(self):
+        message = (
+            "Route 53 can't get the next page of query logging configurations "
+            "because the specified value for NextToken is invalid."
+        )
+        super().__init__("InvalidPaginationToken", message)
+
+
 class NoSuchCloudWatchLogsLogGroup(Route53ClientError):
     """CloudWatch LogGroup has a permissions policy, but does not exist."""
 
