@@ -991,7 +991,7 @@ def test_steps():
         # x['ExecutionStatusDetail'].should.have.key('LastStateChangeReason')
         # x['ExecutionStatusDetail'].should.have.key('StartDateTime')
         x["ExecutionStatusDetail"]["State"].should.equal(
-            "STARTING" if idx == 0 else "PENDING"
+            "RUNNING" if idx == 0 else "PENDING"
         )
         x["StepConfig"]["ActionOnFailure"].should.equal("TERMINATE_CLUSTER")
         x["StepConfig"]["HadoopJarStep"]["Args"].should.equal(
@@ -1021,7 +1021,7 @@ def test_steps():
         # Properties
         x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
-        x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
+        x["Status"]["State"].should.be.within(["RUNNING", "PENDING"])
         # StateChangeReason
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
@@ -1037,7 +1037,7 @@ def test_steps():
         # Properties
         x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
-        x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
+        x["Status"]["State"].should.be.within(["RUNNING", "PENDING"])
         # StateChangeReason
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
@@ -1048,7 +1048,7 @@ def test_steps():
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)
 
-    steps = client.list_steps(ClusterId=cluster_id, StepStates=["STARTING"])["Steps"]
+    steps = client.list_steps(ClusterId=cluster_id, StepStates=["RUNNING"])["Steps"]
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)
 
