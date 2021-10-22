@@ -241,22 +241,13 @@ class Route53(BaseResponse):
             )
 
         elif request.method == "GET":
-            parsed_url = urlparse(full_url)
-            query_params = parse_qs(parsed_url.query)
-
-            # For some reason the params are returned as a list.
-            param_list = query_params.get("hostedzoneid")
-            hosted_zone_id = param_list[0] if param_list else None
-
-            param_list = query_params.get("nexttoken")
-            next_token = param_list[0] if param_list else None
-
-            param_list = query_params.get("maxresults")
-            max_results = int(param_list[0]) if param_list else None
-
+            hosted_zone_id = self._get_param("hostedzoneid")
+            next_token = self._get_param("nexttoken")
+            max_results = self._get_int_param("maxresults")
             try:
                 try:
-                    # The paginator picks up named arguments.
+                    # The paginator picks up named arguments, returns tuple.
+                    # pylint: disable=unbalanced-tuple-unpacking
                     (
                         all_configs,
                         next_token,
