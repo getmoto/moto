@@ -270,7 +270,7 @@ class TaggedEC2Resource(BaseModel):
 
         value = getattr(self, filter_name.lower().replace("-", "_"), None)
         if value is not None:
-            return [value]
+            return value
 
         raise FilterNotImplementedError(filter_name, method_name)
 
