@@ -1,14 +1,20 @@
-from jinja2 import Template
+"""Handles Route53 API requests, invokes method and returns response."""
 from urllib.parse import parse_qs, urlparse
 
-from moto.core.responses import BaseResponse
-from .models import route53_backend
+from jinja2 import Template
 import xmltodict
+
+from moto.core.responses import BaseResponse
+from moto.core.exceptions import InvalidToken
+from moto.route53.exceptions import Route53ClientError, InvalidPaginationToken
+from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
 class Route53(BaseResponse):
+    """Handler for Route53 requests and responses."""
+
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -56,7 +62,7 @@ class Route53(BaseResponse):
         dnsname, zones = route53_backend.list_hosted_zones_by_name(dnsname)
 
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
-        return 200, headers, template.render(zones=zones, dnsname=dnsname)
+        return 200, headers, template.render(zones=zones, dnsname=dnsname, xmlns=XMLNS)
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -148,15 +154,20 @@ class Route53(BaseResponse):
                 caller_reference, health_check_args
             )
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
-            return 201, headers, template.render(health_check=health_check)
+            return 201, headers, template.render(health_check=health_check, xmlns=XMLNS)
         elif method == "DELETE":
             health_check_id = parsed_url.path.split("/")[-1]
             route53_backend.delete_health_check(health_check_id)
-            return 200, headers, DELETE_HEALTH_CHECK_RESPONSE
+            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(xmlns=XMLNS)
         elif method == "GET":
             template = Template(LIST_HEALTH_CHECKS_RESPONSE)
             health_checks = route53_backend.list_health_checks()
-            return 200, headers, template.render(health_checks=health_checks)
+            return (
+                200,
+                headers,
+                template.render(health_checks=health_checks, xmlns=XMLNS),
+            )
 
     def not_implemented_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -167,7 +178,7 @@ class Route53(BaseResponse):
         elif "trafficpolicyinstances" in full_url:
             action = "policies"
         raise NotImplementedError(
-            "The action for {0} has not been implemented for route 53".format(action)
+            f"The action for {action} has not been implemented for route 53"
         )
 
     def list_or_change_tags_for_resource_request(self, request, full_url, headers):
@@ -196,7 +207,6 @@ class Route53(BaseResponse):
 
             route53_backend.change_tags_for_resource(id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
-
             return 200, headers, template.render()
 
     def get_change(self, request, full_url, headers):
@@ -206,20 +216,100 @@ class Route53(BaseResponse):
             parsed_url = urlparse(full_url)
             change_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
             template = Template(GET_CHANGE_RESPONSE)
-            return 200, headers, template.render(change_id=change_id)
+            return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
+
+    def list_or_create_query_logging_config_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if request.method == "POST":
+            json_body = xmltodict.parse(self.body)["CreateQueryLoggingConfigRequest"]
+            hosted_zone_id = json_body["HostedZoneId"]
+            log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
+            try:
+                query_logging_config = route53_backend.create_query_logging_config(
+                    self.region, hosted_zone_id, log_group_arn
+                )
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
+
+            template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
+            headers["Location"] = query_logging_config.location
+            return (
+                201,
+                headers,
+                template.render(query_logging_config=query_logging_config, xmlns=XMLNS),
+            )
+
+        elif request.method == "GET":
+            hosted_zone_id = self._get_param("hostedzoneid")
+            next_token = self._get_param("nexttoken")
+            max_results = self._get_int_param("maxresults")
+            try:
+                try:
+                    # The paginator picks up named arguments, returns tuple.
+                    # pylint: disable=unbalanced-tuple-unpacking
+                    (
+                        all_configs,
+                        next_token,
+                    ) = route53_backend.list_query_logging_configs(
+                        hosted_zone_id=hosted_zone_id,
+                        next_token=next_token,
+                        max_results=max_results,
+                    )
+                except InvalidToken as exc:
+                    raise InvalidPaginationToken() from exc
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
+
+            template = Template(LIST_QUERY_LOGGING_CONFIGS_RESPONSE)
+            return (
+                200,
+                headers,
+                template.render(
+                    query_logging_configs=all_configs,
+                    next_token=next_token,
+                    xmlns=XMLNS,
+                ),
+            )
+
+    def get_or_delete_query_logging_config_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        query_logging_config_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+
+        if request.method == "GET":
+            try:
+                query_logging_config = route53_backend.get_query_logging_config(
+                    query_logging_config_id
+                )
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
+            template = Template(GET_QUERY_LOGGING_CONFIG_RESPONSE)
+            return (
+                200,
+                headers,
+                template.render(query_logging_config=query_logging_config, xmlns=XMLNS),
+            )
+
+        elif request.method == "DELETE":
+            try:
+                route53_backend.delete_query_logging_config(query_logging_config_id)
+            except Route53ClientError as r53error:
+                return r53error.code, {}, r53error.description
+            return 200, headers, ""
 
 
-def no_such_hosted_zone_error(zoneid, headers={}):
+def no_such_hosted_zone_error(zoneid, headers=None):
+    if not headers:
+        headers = {}
     headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
     headers["Content-Type"] = "text/xml"
-    message = "Zone %s Not Found" % zoneid
-    error_response = (
-        "<Error><Code>NoSuchHostedZone</Code><Message>%s</Message></Error>" % message
-    )
-    error_response = '<ErrorResponse xmlns="%s">%s</ErrorResponse>' % (
-        XMLNS,
-        error_response,
-    )
+    error_response = f"""<ErrorResponse xmlns="{XMLNS}">
+        <Error>
+            <Code>NoSuchHostedZone</Code>
+            <Message>Zone {zoneid} Not Found</Message>
+        </Error>
+    </ErrorResponse>"""
     return 404, headers, error_response
 
 
@@ -323,7 +413,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
    <IsTruncated>false</IsTruncated>
 </ListHostedZonesResponse>"""
 
-LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{ xmlns }}">
   {% if dnsname %}
   <DNSName>{{ dnsname }}</DNSName>
   {% endif %}
@@ -346,12 +436,12 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="ht
 </ListHostedZonesByNameResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<CreateHealthCheckResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+<CreateHealthCheckResponse xmlns="{{ xmlns }}">
   {{ health_check.to_xml() }}
 </CreateHealthCheckResponse>"""
 
 LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<ListHealthChecksResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+<ListHealthChecksResponse xmlns="{{ xmlns }}">
    <HealthChecks>
    {% for health_check in health_checks %}
       {{ health_check.to_xml() }}
@@ -362,14 +452,36 @@ LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </ListHealthChecksResponse>"""
 
 DELETE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-    <DeleteHealthCheckResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+    <DeleteHealthCheckResponse xmlns="{{ xmlns }}">
 </DeleteHealthCheckResponse>"""
 
 GET_CHANGE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<GetChangeResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+<GetChangeResponse xmlns="{{ xmlns }}">
    <ChangeInfo>
       <Status>INSYNC</Status>
       <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
       <Id>{{ change_id }}</Id>
    </ChangeInfo>
 </GetChangeResponse>"""
+
+CREATE_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateQueryLoggingConfigResponse xmlns="{{ xmlns }}">
+  {{ query_logging_config.to_xml() }}
+</CreateQueryLoggingConfigResponse>"""
+
+GET_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateQueryLoggingConfigResponse xmlns="{{ xmlns }}">
+  {{ query_logging_config.to_xml() }}
+</CreateQueryLoggingConfigResponse>"""
+
+LIST_QUERY_LOGGING_CONFIGS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListQueryLoggingConfigsResponse xmlns="{{ xmlns }}">
+   <QueryLoggingConfigs>
+      {% for query_logging_config in query_logging_configs %}
+         {{ query_logging_config.to_xml() }}
+      {% endfor %}
+   </QueryLoggingConfigs>
+   {% if next_token %}
+      <NextToken>{{ next_token }}</NextToken>
+   {% endif %}
+</ListQueryLoggingConfigsResponse>"""

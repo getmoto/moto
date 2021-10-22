@@ -1,13 +1,23 @@
+"""Route53Backend class with methods for supported APIs."""
 import itertools
 from collections import defaultdict
+import re
 
 import string
 import random
 import uuid
 from jinja2 import Template
 
-from moto.core import BaseBackend, CloudFormationModel
-
+from moto.route53.exceptions import (
+    InvalidInput,
+    NoSuchCloudWatchLogsLogGroup,
+    NoSuchHostedZone,
+    NoSuchQueryLoggingConfig,
+    QueryLoggingConfigAlreadyExists,
+)
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.utilities.paginator import paginate
+from .utils import PAGINATION_MODEL
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 
@@ -342,7 +352,7 @@ class RecordSetGroup(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return "arn:aws:route53:::hostedzone/{0}".format(self.hosted_zone_id)
+        return f"arn:aws:route53:::hostedzone/{self.hosted_zone_id}"
 
     @staticmethod
     def cloudformation_name_type():
@@ -372,11 +382,37 @@ class RecordSetGroup(CloudFormationModel):
         return record_set_group
 
 
+class QueryLoggingConfig(BaseModel):
+
+    """QueryLoggingConfig class; this object isn't part of Cloudformation."""
+
+    def __init__(
+        self, query_logging_config_id, hosted_zone_id, cloudwatch_logs_log_group_arn
+    ):
+        self.hosted_zone_id = hosted_zone_id
+        self.cloudwatch_logs_log_group_arn = cloudwatch_logs_log_group_arn
+        self.query_logging_config_id = query_logging_config_id
+        self.location = f"https://route53.amazonaws.com/2013-04-01/queryloggingconfig/{self.query_logging_config_id}"
+
+    def to_xml(self):
+        template = Template(
+            """<QueryLoggingConfig>
+                <CloudWatchLogsLogGroupArn>{{ query_logging_config.cloudwatch_logs_log_group_arn }}</CloudWatchLogsLogGroupArn>
+                <HostedZoneId>{{ query_logging_config.hosted_zone_id }}</HostedZoneId>
+                <Id>{{ query_logging_config.query_logging_config_id }}</Id>
+            </QueryLoggingConfig>"""
+        )
+        # The "Location" value must be put into the header; that's done in
+        # responses.py.
+        return template.render(query_logging_config=self)
+
+
 class Route53Backend(BaseBackend):
     def __init__(self):
         self.zones = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
+        self.query_logging_configs = {}
 
     def create_hosted_zone(self, name, private_zone, comment=None):
         new_id = create_route53_zone_id()
@@ -414,13 +450,10 @@ class Route53Backend(BaseBackend):
             cleaned_hosted_zone_name = the_zone.name.strip(".")
 
             if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
-                error_msg = """
+                error_msg = f"""
                 An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
-                RRSet with DNS name %s is not permitted in zone %s
-                """ % (
-                    record_set["Name"],
-                    the_zone.name,
-                )
+                RRSet with DNS name {record_set["Name"]} is not permitted in zone {the_zone.name}
+                """
                 return error_msg
 
             if not record_set["Name"].endswith("."):
@@ -477,6 +510,7 @@ class Route53Backend(BaseBackend):
         for zone in self.list_hosted_zones():
             if zone.name == name:
                 return zone
+        return None
 
     def delete_hosted_zone(self, id_):
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
@@ -492,6 +526,93 @@ class Route53Backend(BaseBackend):
 
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
+
+    @staticmethod
+    def _validate_arn(region, arn):
+        match = re.match(fr"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
+        if not arn or not match:
+            raise InvalidInput()
+
+        # The CloudWatch Logs log group must be in the "us-east-1" region.
+        match = re.match(r"^(?:[^:]+:){3}(?P<region>[^:]+).*", arn)
+        if match.group("region") != "us-east-1":
+            raise InvalidInput()
+
+    def create_query_logging_config(self, region, hosted_zone_id, log_group_arn):
+        """Process the create_query_logging_config request."""
+        # Does the hosted_zone_id exist?
+        response = self.list_hosted_zones()
+        zones = list(response) if response else []
+        for zone in zones:
+            if zone.id == hosted_zone_id:
+                break
+        else:
+            raise NoSuchHostedZone(hosted_zone_id)
+
+        # Ensure CloudWatch Logs log ARN is valid, otherwise raise an error.
+        self._validate_arn(region, log_group_arn)
+
+        # Note:  boto3 checks the resource policy permissions before checking
+        # whether the log group exists.  moto doesn't have a way of checking
+        # the resource policy, so in some instances moto will complain
+        # about a log group that doesn't exist whereas boto3 will complain
+        # that "The resource policy that you're using for Route 53 query
+        # logging doesn't grant Route 53 sufficient permission to create
+        # a log stream in the specified log group."
+
+        from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
+
+        response = logs_backends[region].describe_log_groups()
+        log_groups = response[0] if response else []
+        for entry in log_groups:
+            if log_group_arn == entry["arn"]:
+                break
+        else:
+            # There is no CloudWatch Logs log group with the specified ARN.
+            raise NoSuchCloudWatchLogsLogGroup()
+
+        # Verify there is no existing query log config using the same hosted
+        # zone.
+        for query_log in self.query_logging_configs.values():
+            if query_log.hosted_zone_id == hosted_zone_id:
+                raise QueryLoggingConfigAlreadyExists()
+
+        # Create an instance of the query logging config.
+        query_logging_config_id = str(uuid.uuid4())
+        query_logging_config = QueryLoggingConfig(
+            query_logging_config_id, hosted_zone_id, log_group_arn
+        )
+        self.query_logging_configs[query_logging_config_id] = query_logging_config
+        return query_logging_config
+
+    def delete_query_logging_config(self, query_logging_config_id):
+        """Delete query logging config, if it exists."""
+        if query_logging_config_id not in self.query_logging_configs:
+            raise NoSuchQueryLoggingConfig()
+        self.query_logging_configs.pop(query_logging_config_id)
+
+    def get_query_logging_config(self, query_logging_config_id):
+        """Return query logging config, if it exists."""
+        if query_logging_config_id not in self.query_logging_configs:
+            raise NoSuchQueryLoggingConfig()
+        return self.query_logging_configs[query_logging_config_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_query_logging_configs(
+        self, hosted_zone_id=None, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """Return a list of query logging configs."""
+        if hosted_zone_id:
+            # Does the hosted_zone_id exist?
+            response = self.list_hosted_zones()
+            zones = list(response) if response else []
+            for zone in zones:
+                if zone.id == hosted_zone_id:
+                    break
+            else:
+                raise NoSuchHostedZone(hosted_zone_id)
+
+        return list(self.query_logging_configs.values())
 
 
 route53_backend = Route53Backend()
