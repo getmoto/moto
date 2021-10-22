@@ -318,6 +318,13 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps({"User": user.to_json(extended=True)})
 
+    def admin_confirm_sign_up(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        return cognitoidp_backends[self.region].admin_confirm_sign_up(
+            user_pool_id, username
+        )
+
     def admin_get_user(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
