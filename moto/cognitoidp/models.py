@@ -76,6 +76,7 @@ class CognitoIdpUserPool(BaseModel):
             "CreationDate": time.mktime(self.creation_date.timetuple()),
             "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
             "MfaConfiguration": self.mfa_config,
+            "EstimatedNumberOfUsers": len(self.users),
         }
 
     def to_json(self, extended=False):

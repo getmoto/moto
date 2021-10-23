@@ -216,6 +216,22 @@ def test_describe_user_pool():
 
 
 @mock_cognitoidp
+def test_describe_user_pool_estimated_number_of_users():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    result = conn.describe_user_pool(UserPoolId=user_pool_id)
+    result["UserPool"]["EstimatedNumberOfUsers"].should.equal(0)
+
+    users_count = random.randint(2, 6)
+    for _ in range(users_count):
+        conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
+
+    result = conn.describe_user_pool(UserPoolId=user_pool_id)
+    result["UserPool"]["EstimatedNumberOfUsers"].should.equal(users_count)
+
+
+@mock_cognitoidp
 def test_describe_user_pool_resource_not_found():
     conn = boto3.client("cognito-idp", "us-east-1")
 
