@@ -4,6 +4,7 @@ import json
 import os
 import time
 import uuid
+import enum
 from boto3 import Session
 from jose import jws
 from collections import OrderedDict
@@ -28,12 +29,12 @@ from .utils import (
 )
 from moto.utilities.paginator import paginate
 
-UserStatus = {
-    "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
-    "CONFIRMED": "CONFIRMED",
-    "UNCONFIRMED": "UNCONFIRMED",
-    "RESET_REQUIRED": "RESET_REQUIRED",
-}
+
+class UserStatus(str, enum.Enum):
+    FORCE_CHANGE_PASSWORD = "FORCE_CHANGE_PASSWORD"
+    CONFIRMED = "CONFIRMED"
+    UNCONFIRMED = "UNCONFIRMED"
+    RESET_REQUIRED = "RESET_REQUIRED"
 
 
 class CognitoIdpUserPool(BaseModel):
@@ -66,6 +67,19 @@ class CognitoIdpUserPool(BaseModel):
             os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
         ) as f:
             self.json_web_key = json.loads(f.read())
+
+    def _account_recovery_setting(self):
+        # AccountRecoverySetting is not present in DescribeUserPool response if the pool was created without
+        # specifying it, ForgotPassword works on default settings nonetheless
+        return self.extended_config.get(
+            "AccountRecoverySetting",
+            {
+                "RecoveryMechanisms": [
+                    {"Priority": 1, "Name": "verified_phone_number"},
+                    {"Priority": 2, "Name": "verified_email"},
+                ]
+            },
+        )
 
     def _base_json(self):
         return {
@@ -625,9 +639,9 @@ class CognitoIdpBackend(BaseBackend):
         user = self.admin_get_user(user_pool_id, username)
         if not user.enabled:
             raise NotAuthorizedError("User is disabled")
-        if user.status == UserStatus["RESET_REQUIRED"]:
+        if user.status is UserStatus.RESET_REQUIRED:
             return
-        if user.status != UserStatus["CONFIRMED"]:
+        if user.status is not UserStatus.CONFIRMED:
             raise NotAuthorizedError(
                 "User password cannot be reset in the current state."
             )
@@ -638,7 +652,7 @@ class CognitoIdpBackend(BaseBackend):
             raise InvalidParameterException(
                 "Cannot reset password for the user as there is no registered/verified email or phone_number"
             )
-        user.status = UserStatus["RESET_REQUIRED"]
+        user.status = UserStatus.RESET_REQUIRED
 
     # User
     def admin_create_user(
@@ -699,7 +713,7 @@ class CognitoIdpBackend(BaseBackend):
             user_pool_id,
             username,
             temporary_password,
-            UserStatus["FORCE_CHANGE_PASSWORD"],
+            UserStatus.FORCE_CHANGE_PASSWORD,
             attributes,
         )
 
@@ -736,7 +750,7 @@ class CognitoIdpBackend(BaseBackend):
                 if (
                     not user
                     or not user.enabled
-                    or user.status != UserStatus["CONFIRMED"]
+                    or user.status is not UserStatus.CONFIRMED
                 ):
                     raise NotAuthorizedError("username")
                 return user
@@ -808,8 +822,8 @@ class CognitoIdpBackend(BaseBackend):
                 raise NotAuthorizedError(username)
 
             if user.status in [
-                UserStatus["FORCE_CHANGE_PASSWORD"],
-                UserStatus["RESET_REQUIRED"],
+                UserStatus.FORCE_CHANGE_PASSWORD,
+                UserStatus.RESET_REQUIRED,
             ]:
                 session = str(uuid.uuid4())
                 self.sessions[session] = user_pool
@@ -861,7 +875,7 @@ class CognitoIdpBackend(BaseBackend):
                 raise UserNotFoundError(username)
 
             user.password = new_password
-            user.status = UserStatus["CONFIRMED"]
+            user.status = UserStatus.CONFIRMED
             del self.sessions[session]
 
             return self._log_user_in(user_pool, client, username)
@@ -932,6 +946,45 @@ class CognitoIdpBackend(BaseBackend):
         else:
             raise ResourceNotFoundError(client_id)
 
+    def forgot_password(self, client_id, username):
+        """The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
+            Otherwise you get semi-random garbage and HTTP 200 OK, for example:
+            - recovery for username which is not registered in any cognito pool
+            - recovery for username belonging to a different user pool than the client id is registered to
+            - phone-based recovery for a user without phone_number / phone_number_verified attributes
+            - same as above, but email / email_verified
+        """
+        for user_pool in self.user_pools.values():
+            if client_id in user_pool.clients:
+                recovery_settings = user_pool._account_recovery_setting()
+                user = user_pool._get_user(username)
+                break
+        else:
+            raise ResourceNotFoundError("Username/client id combination not found.")
+
+        code_delivery_details = {
+            "Destination": username + "@h***.com"
+            if not user
+            else user.attribute_lookup.get("email", username + "@h***.com"),
+            "DeliveryMedium": "EMAIL",
+            "AttributeName": "email",
+        }
+        selected_recovery = min(
+            recovery_settings["RecoveryMechanisms"],
+            key=lambda recovery_mechanism: recovery_mechanism["Priority"],
+        )
+        if selected_recovery["Name"] == "admin_only":
+            raise NotAuthorizedError("Contact administrator to reset password.")
+        if selected_recovery["Name"] == "verified_phone_number":
+            code_delivery_details = {
+                "Destination": "+*******9934"
+                if not user
+                else user.attribute_lookup.get("phone_number", "+*******9934"),
+                "DeliveryMedium": "SMS",
+                "AttributeName": "phone_number",
+            }
+        return {"CodeDeliveryDetails": code_delivery_details}
+
     def change_password(self, access_token, previous_password, proposed_password):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
@@ -945,10 +998,10 @@ class CognitoIdpBackend(BaseBackend):
 
                 user.password = proposed_password
                 if user.status in [
-                    UserStatus["FORCE_CHANGE_PASSWORD"],
-                    UserStatus["RESET_REQUIRED"],
+                    UserStatus.FORCE_CHANGE_PASSWORD,
+                    UserStatus.RESET_REQUIRED,
                 ]:
-                    user.status = UserStatus["CONFIRMED"]
+                    user.status = UserStatus.CONFIRMED
 
                 break
         else:
@@ -1049,7 +1102,7 @@ class CognitoIdpBackend(BaseBackend):
             username=username,
             password=password,
             attributes=attributes,
-            status=UserStatus["UNCONFIRMED"],
+            status=UserStatus.UNCONFIRMED,
         )
         user_pool.users[user.username] = user
         return user
@@ -1066,7 +1119,7 @@ class CognitoIdpBackend(BaseBackend):
         if not user:
             raise UserNotFoundError(username)
 
-        user.status = UserStatus["CONFIRMED"]
+        user.status = UserStatus.CONFIRMED
         return ""
 
     def initiate_auth(self, client_id, auth_flow, auth_parameters):
@@ -1095,7 +1148,7 @@ class CognitoIdpBackend(BaseBackend):
             if not user:
                 raise UserNotFoundError(username)
 
-            if user.status == UserStatus["UNCONFIRMED"]:
+            if user.status is UserStatus.UNCONFIRMED:
                 raise UserNotConfirmedException("User is not confirmed.")
 
             session = str(uuid.uuid4())
@@ -1124,7 +1177,7 @@ class CognitoIdpBackend(BaseBackend):
             if user.password != password:
                 raise NotAuthorizedError("Incorrect username or password.")
 
-            if user.status == UserStatus["UNCONFIRMED"]:
+            if user.status is UserStatus.UNCONFIRMED:
                 raise UserNotConfirmedException("User is not confirmed.")
 
             session = str(uuid.uuid4())
@@ -1235,9 +1288,9 @@ class CognitoIdpBackend(BaseBackend):
         user = self.admin_get_user(user_pool_id, username)
         user.password = password
         if permanent:
-            user.status = UserStatus["CONFIRMED"]
+            user.status = UserStatus.CONFIRMED
         else:
-            user.status = UserStatus["FORCE_CHANGE_PASSWORD"]
+            user.status = UserStatus.FORCE_CHANGE_PASSWORD
 
 
 cognitoidp_backends = {}
