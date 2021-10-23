@@ -478,6 +478,15 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
+    def admin_delete_user_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        attributes = self._get_param("UserAttributeNames")
+        cognitoidp_backends[self.region].admin_delete_user_attributes(
+            user_pool_id, username, attributes
+        )
+        return ""
+
     def admin_user_global_sign_out(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
