@@ -288,7 +288,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         group_ids=None,
         description=None,
         tags=None,
-        **kwargs
+        **kwargs,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
