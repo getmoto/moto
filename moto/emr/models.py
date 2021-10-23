@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from datetime import datetime
 from datetime import timedelta
 
@@ -357,7 +356,7 @@ class FakeCluster(BaseModel):
                 # If we already have other steps, this one is pending
                 fake = FakeStep(state="PENDING", **step)
             else:
-                fake = FakeStep(state="STARTING", **step)
+                fake = FakeStep(state="RUNNING", **step)
             self.steps.append(fake)
             added_steps.append(fake)
         self.state = "RUNNING"
@@ -396,6 +395,13 @@ class ElasticMapReduceBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticmapreduce"
+        )
 
     @property
     def ec2_backend(self):

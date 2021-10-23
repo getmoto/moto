@@ -4,8 +4,6 @@ See AWS docs for details:
 https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html
 """
 
-from __future__ import unicode_literals
-
 import json
 import time
 from copy import deepcopy

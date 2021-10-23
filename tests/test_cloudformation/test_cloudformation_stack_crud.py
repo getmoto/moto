@@ -1,21 +1,17 @@
-from __future__ import unicode_literals
-
 import os
 import json
 
 import boto
-import boto3
 import boto.dynamodb2
 import boto.iam
 import boto.s3
 import boto.s3.key
 import boto.cloudformation
 from boto.exception import BotoServerError
+import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
-import sure  # noqa
 
 import pytest
-from moto.core import ACCOUNT_ID
 
 from moto import (
     mock_cloudformation_deprecated,
@@ -79,6 +75,7 @@ dummy_template_json3 = json.dumps(dummy_template3)
 dummy_template_json4 = json.dumps(dummy_template4)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_create_stack():
     conn = boto.connect_cloudformation()
@@ -127,6 +124,7 @@ def test_create_stack_with_other_region():
     )
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_route53_deprecated
 def test_create_stack_hosted_zone_by_id():
@@ -168,6 +166,7 @@ def test_create_stack_hosted_zone_by_id():
     assert stack.list_resources()
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_creating_stacks_across_regions():
     west1_conn = boto.cloudformation.connect_to_region("us-west-1")
@@ -180,6 +179,7 @@ def test_creating_stacks_across_regions():
     list(west2_conn.describe_stacks()).should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_sns_deprecated
 @mock_sqs_deprecated
@@ -246,6 +246,7 @@ def test_create_stack_with_notification_arn():
     msg.should.have.key("UnsubscribeURL")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_s3_deprecated
 def test_create_stack_from_s3_url():
@@ -275,6 +276,7 @@ def test_create_stack_from_s3_url():
     )
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_describe_stack_by_name():
     conn = boto.connect_cloudformation()
@@ -284,6 +286,7 @@ def test_describe_stack_by_name():
     stack.stack_name.should.equal("test_stack")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_describe_stack_by_stack_id():
     conn = boto.connect_cloudformation()
@@ -296,6 +299,7 @@ def test_describe_stack_by_stack_id():
 
 
 @mock_dynamodb2_deprecated
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_delete_stack_dynamo_template():
     conn = boto.connect_cloudformation()
@@ -308,6 +312,7 @@ def test_delete_stack_dynamo_template():
     db_conn.list_tables()["TableNames"].should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_describe_deleted_stack():
     conn = boto.connect_cloudformation()
@@ -322,6 +327,7 @@ def test_describe_deleted_stack():
     stack_by_id.stack_status.should.equal("DELETE_COMPLETE")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_get_template_by_name():
     conn = boto.connect_cloudformation()
@@ -342,6 +348,7 @@ def test_get_template_by_name():
     )
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_list_stacks():
     conn = boto.connect_cloudformation()
@@ -353,6 +360,7 @@ def test_list_stacks():
     stacks[0].template_description.should.equal("Stack 1")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_list_stacks_with_filter():
     conn = boto.connect_cloudformation()
@@ -366,6 +374,7 @@ def test_list_stacks_with_filter():
     stacks.should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_delete_stack_by_name():
     conn = boto.connect_cloudformation()
@@ -376,6 +385,7 @@ def test_delete_stack_by_name():
     conn.describe_stacks().should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_delete_stack_by_id():
     conn = boto.connect_cloudformation()
@@ -390,6 +400,7 @@ def test_delete_stack_by_id():
     conn.describe_stacks(stack_id).should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_delete_stack_with_resource_missing_delete_attr():
     conn = boto.connect_cloudformation()
@@ -400,6 +411,7 @@ def test_delete_stack_with_resource_missing_delete_attr():
     conn.describe_stacks().should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_bad_describe_stack():
     conn = boto.connect_cloudformation()
@@ -407,6 +419,7 @@ def test_bad_describe_stack():
         conn.describe_stacks("bad_stack")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 def test_cloudformation_params():
     dummy_template = {
@@ -435,6 +448,7 @@ def test_cloudformation_params():
     param.value.should.equal("testing123")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_cloudformation_params_conditions_and_resources_are_distinct():
     dummy_template = {
@@ -471,6 +485,7 @@ def test_cloudformation_params_conditions_and_resources_are_distinct():
     ]
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_stack_tags():
     conn = boto.connect_cloudformation()
@@ -484,6 +499,7 @@ def test_stack_tags():
     dict(stack.tags).should.equal({"foo": "bar", "baz": "bleh"})
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_update_stack():
     conn = boto.connect_cloudformation()
@@ -507,6 +523,7 @@ def test_update_stack():
     )
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_update_stack_with_previous_template():
     conn = boto.connect_cloudformation()
@@ -529,6 +546,7 @@ def test_update_stack_with_previous_template():
     )
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_update_stack_with_parameters():
     dummy_template = {
@@ -559,6 +577,7 @@ def test_update_stack_with_parameters():
     assert stack.parameters[0].value == "192.168.0.1/16"
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_update_stack_replace_tags():
     conn = boto.connect_cloudformation()
@@ -575,6 +594,7 @@ def test_update_stack_replace_tags():
     dict(stack.tags).should.equal({"foo": "baz"})
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_update_stack_when_rolled_back():
     conn = boto.connect_cloudformation()
@@ -594,6 +614,7 @@ def test_update_stack_when_rolled_back():
     ex.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_describe_stack_events_shows_create_update_and_delete():
     conn = boto.connect_cloudformation()
@@ -647,6 +668,7 @@ def test_describe_stack_events_shows_create_update_and_delete():
     err.status.should.equal(400)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_create_stack_lambda_and_dynamodb():
     conn = boto.connect_cloudformation()
@@ -714,6 +736,7 @@ def test_create_stack_lambda_and_dynamodb():
     assert len(resources) == 4
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 def test_create_stack_kinesis():
     conn = boto.connect_cloudformation()

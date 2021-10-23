@@ -1,12 +1,14 @@
 import json
 import os
 import time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
+from datetime import timedelta
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_logs, settings
 from moto.core.utils import unix_time_millis
@@ -368,8 +370,6 @@ def test_exceptions():
     with pytest.raises(ClientError):
         conn.create_log_group(logGroupName=log_group_name)
 
-    # descrine_log_groups is not implemented yet
-
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
     with pytest.raises(ClientError):
         conn.create_log_stream(
@@ -594,6 +594,17 @@ def test_put_resource_policy():
 
     client.delete_log_group(logGroupName=log_group_name)
 
+    # put_resource_policy with same policy name should update the resouce
+    created_time = response["resourcePolicy"]["lastUpdatedTime"]
+    with freeze_time(timedelta(minutes=1)):
+        new_document = '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}'
+        policy_info = client.put_resource_policy(
+            policyName=policy_name, policyDocument=new_document,
+        )["resourcePolicy"]
+        assert policy_info["policyName"] == policy_name
+        assert policy_info["policyDocument"] == new_document
+        assert created_time < policy_info["lastUpdatedTime"] <= int(unix_time_millis())
+
 
 @mock_logs
 def test_put_resource_policy_too_many(json_policy_doc):
@@ -616,6 +627,11 @@ def test_put_resource_policy_too_many(json_policy_doc):
     exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     exc_value.response["Error"]["Code"].should.equal("LimitExceededException")
     exc_value.response["Error"]["Message"].should.contain("Resource limit exceeded.")
+
+    # put_resource_policy on already created policy, shouldnt throw any error
+    client.put_resource_policy(
+        policyName="test_policy_1", policyDocument=json.dumps(json_policy_doc)
+    )
 
 
 @mock_logs
@@ -995,11 +1011,11 @@ def test_describe_log_groups_paging():
 
     resp = client.describe_log_groups(limit=2)
     resp["logGroups"].should.have.length_of(2)
-    resp["nextToken"].should.equal("/aws/lambda/FileMonitoring")
+    resp.should.have.key("nextToken")
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"], limit=1)
     resp["logGroups"].should.have.length_of(1)
-    resp["nextToken"].should.equal("/aws/lambda/fileAvailable")
+    resp.should.have.key("nextToken")
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"])
     resp["logGroups"].should.have.length_of(1)
@@ -1008,6 +1024,51 @@ def test_describe_log_groups_paging():
 
     resp = client.describe_log_groups(nextToken="invalid-token")
     resp["logGroups"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
+
+
+@mock_logs
+def test_describe_log_streams_simple_paging():
+    client = boto3.client("logs", "us-east-1")
+
+    group_name = "/aws/lambda/lowercase-dev"
+
+    client.create_log_group(logGroupName=group_name)
+    stream_names = ["stream" + str(i) for i in range(0, 10)]
+    for name in stream_names:
+        client.create_log_stream(logGroupName=group_name, logStreamName=name)
+
+    # Get stream 1-10
+    resp = client.describe_log_streams(logGroupName=group_name)
+    resp["logStreams"].should.have.length_of(10)
+    resp.should_not.have.key("nextToken")
+
+    # Get stream 1-4
+    resp = client.describe_log_streams(logGroupName=group_name, limit=4)
+    resp["logStreams"].should.have.length_of(4)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream0", "stream1", "stream2", "stream3"]
+    )
+    resp.should.have.key("nextToken")
+
+    # Get stream 4-8
+    resp = client.describe_log_streams(
+        logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
+    )
+    resp["logStreams"].should.have.length_of(4)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream4", "stream5", "stream6", "stream7"]
+    )
+    resp.should.have.key("nextToken")
+
+    # Get stream 8-10
+    resp = client.describe_log_streams(
+        logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
+    )
+    resp["logStreams"].should.have.length_of(2)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream8", "stream9"]
+    )
     resp.should_not.have.key("nextToken")
 
 

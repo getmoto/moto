@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
@@ -189,6 +188,15 @@ class RestAPINotFound(NotFoundException):
     def __init__(self):
         super(RestAPINotFound, self).__init__(
             "NotFoundException", "Invalid Rest API Id specified"
+        )
+
+
+class RequestValidatorNotFound(BadRequestException):
+    code = 400
+
+    def __init__(self):
+        super(RequestValidatorNotFound, self).__init__(
+            "NotFoundException", "Invalid Request Validator Id specified"
         )
 
 

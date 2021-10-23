@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import importlib
 import moto
 import sys
@@ -24,6 +22,11 @@ def _import_backend(module_name, backends_name):
 
 def backends():
     for module_name, backends_name in BACKENDS.values():
+        yield _import_backend(module_name, backends_name)
+
+
+def unique_backends():
+    for module_name, backends_name in sorted(set(BACKENDS.values())):
         yield _import_backend(module_name, backends_name)
 
 

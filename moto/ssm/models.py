@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 from dataclasses import dataclass
 from typing import Dict
@@ -38,6 +36,8 @@ from .exceptions import (
     ParameterMaxVersionLimitExceeded,
     DocumentPermissionLimit,
     InvalidPermissionType,
+    InvalidResourceId,
+    InvalidResourceType,
 )
 
 
@@ -688,6 +688,15 @@ class SimpleSystemManagerBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ssm"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "ssmmessages"
+        )
+
     def _generate_document_information(self, ssm_document, document_format):
         content = self._get_document_content(document_format, ssm_document)
         base = {
@@ -826,6 +835,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             documents.delete(*keys_to_delete)
 
             if len(documents.versions) == 0:
+                self._resource_tags.get("Document", {}).pop(name, None)
                 del self._documents[name]
 
     def get_document(self, name, document_version, version_name, document_format):
@@ -1020,6 +1030,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         )
 
     def delete_parameter(self, name):
+        self._resource_tags.get("Parameter", {}).pop(name, None)
         return self._parameters.pop(name, None)
 
     def delete_parameters(self, names):
@@ -1028,6 +1039,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             try:
                 del self._parameters[name]
                 result.append(name)
+                self._resource_tags.get("Parameter", {}).pop(name, None)
             except KeyError:
                 pass
         return result
@@ -1538,6 +1550,12 @@ class SimpleSystemManagerBackend(BaseBackend):
                 "1 validation error detected: Value '' at 'value' failed to satisfy"
                 " constraint: Member must have length greater than or equal to 1."
             )
+        if overwrite and tags:
+            raise ValidationException(
+                "Invalid request: tags and overwrite can't be used together. To create a "
+                "parameter with tags, please remove overwrite flag. To update tags for an "
+                "existing parameter, please use AddTagsToResource or RemoveTagsFromResource."
+            )
         if name.lower().lstrip("/").startswith("aws") or name.lower().lstrip(
             "/"
         ).startswith("ssm"):
@@ -1602,17 +1620,43 @@ class SimpleSystemManagerBackend(BaseBackend):
         return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         for key, value in tags.items():
             self._resource_tags[resource_type][resource_id][key] = value
 
     def remove_tags_from_resource(self, resource_type, resource_id, keys):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         tags = self._resource_tags[resource_type][resource_id]
         for key in keys:
             if key in tags:
                 del tags[key]
 
     def list_tags_for_resource(self, resource_type, resource_id):
+        self._validate_resource_type_and_id(resource_type, resource_id)
         return self._resource_tags[resource_type][resource_id]
+
+    def _validate_resource_type_and_id(self, resource_type, resource_id):
+        if resource_type == "Parameter":
+            if resource_id not in self._parameters:
+                raise InvalidResourceId()
+            else:
+                return
+        elif resource_type == "Document":
+            if resource_id not in self._documents:
+                raise InvalidResourceId()
+            else:
+                return
+        elif resource_type not in (
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.remove_tags_from_resource
+            "ManagedInstance",
+            "MaintenanceWindow",
+            "PatchBaseline",
+            "OpsItem",
+            "OpsMetadata",
+        ):
+            raise InvalidResourceType()
+        else:
+            raise InvalidResourceId()
 
     def send_command(self, **kwargs):
         command = Command(

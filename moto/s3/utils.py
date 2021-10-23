@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import logging
 
 import re
@@ -11,7 +10,7 @@ from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 log = logging.getLogger(__name__)
 
 
-bucket_name_regex = re.compile("(.+).s3(.*).amazonaws.com")
+bucket_name_regex = re.compile(r"(.+)\.s3(.*)\.amazonaws.com")
 user_settable_fields = {
     "content-md5",
     "content-language",

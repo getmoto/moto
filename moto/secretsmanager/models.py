@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import time
 import json
 import uuid
@@ -182,6 +179,13 @@ class SecretsManagerBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint services."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "secretsmanager"
+        )
+
     def _is_valid_identifier(self, identifier):
         return identifier in self.secrets
 
@@ -263,7 +267,7 @@ class SecretsManagerBackend(BaseBackend):
     ):
 
         # error if secret does not exist
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         if self.secrets[secret_id].is_deleted():
@@ -694,7 +698,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def tag_resource(self, secret_id, tags):
 
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]
@@ -707,7 +711,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def untag_resource(self, secret_id, tag_keys):
 
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]
@@ -722,7 +726,7 @@ class SecretsManagerBackend(BaseBackend):
     def update_secret_version_stage(
         self, secret_id, version_stage, remove_from_version_id, move_to_version_id
     ):
-        if secret_id not in self.secrets.keys():
+        if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]

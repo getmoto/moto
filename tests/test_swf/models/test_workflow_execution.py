@@ -1,5 +1,5 @@
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.swf.models import ActivityType, Timeout, WorkflowType, WorkflowExecution
 from moto.swf.exceptions import SWFDefaultUndefinedFault

@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
 
 import random
 import string
@@ -17,7 +16,7 @@ except ImportError:
     from urllib.parse import urlparse
 import responses
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
-from .utils import create_id
+from .utils import create_id, to_path
 from moto.core.utils import path_url
 from .exceptions import (
     ApiKeyNotFoundException,
@@ -41,6 +40,7 @@ from .exceptions import (
     InvalidRestApiId,
     InvalidModelName,
     RestAPINotFound,
+    RequestValidatorNotFound,
     ModelNotFound,
     ApiKeyValueMinLength,
 )
@@ -652,6 +652,52 @@ class UsagePlan(BaseModel, dict):
                     self["throttle"]["burstLimit"] = value
 
 
+class RequestValidator(BaseModel, dict):
+    PROP_ID = "id"
+    PROP_NAME = "name"
+    PROP_VALIDATE_REQUEST_BODY = "validateRequestBody"
+    PROP_VALIDATE_REQUEST_PARAMETERS = "validateRequestParameters"
+
+    # operations
+    OP_PATH = "path"
+    OP_VALUE = "value"
+    OP_REPLACE = "replace"
+    OP_OP = "op"
+
+    def __init__(self, id, name, validateRequestBody, validateRequestParameters):
+        super(RequestValidator, self).__init__()
+        self[RequestValidator.PROP_ID] = id
+        self[RequestValidator.PROP_NAME] = name
+        self[RequestValidator.PROP_VALIDATE_REQUEST_BODY] = validateRequestBody
+        self[
+            RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS
+        ] = validateRequestParameters
+
+    def apply_patch_operations(self, operations):
+        for operation in operations:
+            path = operation[RequestValidator.OP_PATH]
+            value = operation[RequestValidator.OP_VALUE]
+            if operation[RequestValidator.OP_OP] == RequestValidator.OP_REPLACE:
+                if to_path(RequestValidator.PROP_NAME) in path:
+                    self[RequestValidator.PROP_NAME] = value
+                if to_path(RequestValidator.PROP_VALIDATE_REQUEST_BODY) in path:
+                    self[
+                        RequestValidator.PROP_VALIDATE_REQUEST_BODY
+                    ] = value.lower() in ("true")
+                if to_path(RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS) in path:
+                    self[
+                        RequestValidator.PROP_VALIDATE_REQUEST_PARAMETERS
+                    ] = value.lower() in ("true")
+
+    def to_dict(self):
+        return {
+            "id": self["id"],
+            "name": self["name"],
+            "validateRequestBody": self["validateRequestBody"],
+            "validateRequestParameters": self["validateRequestParameters"],
+        }
+
+
 class UsagePlanKey(BaseModel, dict):
     def __init__(self, id, type, name, value):
         super(UsagePlanKey, self).__init__()
@@ -708,6 +754,7 @@ class RestAPI(CloudFormationModel):
         self.stages = {}
         self.resources = {}
         self.models = {}
+        self.request_validators = {}
         self.add_child("/")  # Add default child
 
     def __repr__(self):
@@ -947,6 +994,36 @@ class RestAPI(CloudFormationModel):
 
     def delete_deployment(self, deployment_id):
         return self.deployments.pop(deployment_id)
+
+    def create_request_validator(
+        self, name, validateRequestBody, validateRequestParameters
+    ):
+        validator_id = create_id()
+        request_validator = RequestValidator(
+            id=validator_id,
+            name=name,
+            validateRequestBody=validateRequestBody,
+            validateRequestParameters=validateRequestParameters,
+        )
+        self.request_validators[validator_id] = request_validator
+        return request_validator
+
+    def get_request_validators(self):
+        return list(self.request_validators.values())
+
+    def get_request_validator(self, validator_id):
+        reqeust_validator = self.request_validators.get(validator_id)
+        if reqeust_validator is None:
+            raise RequestValidatorNotFound()
+        return reqeust_validator
+
+    def delete_request_validator(self, validator_id):
+        reqeust_validator = self.request_validators.pop(validator_id)
+        return reqeust_validator
+
+    def update_request_validator(self, validator_id, patch_operations):
+        self.request_validators[validator_id].apply_patch_operations(patch_operations)
+        return self.request_validators[validator_id]
 
 
 class DomainName(BaseModel, dict):
@@ -1605,6 +1682,28 @@ class APIGatewayBackend(BaseBackend):
             raise ModelNotFound
         else:
             return model
+
+    def get_request_validators(self, restapi_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validators()
+
+    def create_request_validator(self, restapi_id, name, body, params):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.create_request_validator(
+            name=name, validateRequestBody=body, validateRequestParameters=params,
+        )
+
+    def get_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.get_request_validator(validator_id)
+
+    def delete_request_validator(self, restapi_id, validator_id):
+        restApi = self.get_rest_api(restapi_id)
+        restApi.delete_request_validator(validator_id)
+
+    def update_request_validator(self, restapi_id, validator_id, patch_operations):
+        restApi = self.get_rest_api(restapi_id)
+        return restApi.update_request_validator(validator_id, patch_operations)
 
 
 apigateway_backends = {}

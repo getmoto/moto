@@ -1,8 +1,85 @@
 Moto Changelog
 ===================
 
-Unreleased
+2.2.10
+------
+    New Services:
+        * CloudTrail:
+            * create_trail()
+            * delete_trail()
+            * describe_trails()
+            * get_trail()
+            * get_trail_status()
+            * list_trails()
+            * start_logging()
+            * stop_logging()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_reset_user_password()
+        * S3:
+            * delete_bucket_replication()
+            * get_bucket_replication()
+            * put_bucket_replication()
+
+    Miscellaneous:
+        * ACM: describe_certificate(): the InUseBy-attribute will now show the appropriate Elastic Load Balancers 
+        * AWSLambda: If you're running Linux, 'host.docker.internal' is now added as an extra host in the Docker container used to invoke the function.
+                     This makes it easier for Lambda-functions to communicate with other servers running on the host-system.
+        * CloudFormation: Now supports update/deletion of type AWS::SNS::Topic
+        * CognitoIdentityProvider: list_users() now has improved support for the Filter-parameter
+        * Kinesis: describe_stream() now supports the Filter-parameter
+        * S3: list_object_versions() now supports the Delimiter and KeyMarker-parameter
+
+2.2.9
 -----
+    General:
+        * Moto is now compatible with Sure 2.x
+
+    New Methods:
+        * Kinesis:
+            * list_shards()
+        * RDS:
+            * create_db_cluster()
+            * delete_db_cluster()
+            * describe_db_clusters()
+            * restore_db_instance_from_db_snapshot()
+            * start_db_cluster()
+            * stop_db_cluster()
+        * S3:
+            * get_object_legal_hold()
+
+    Miscellaneous:
+        * CF: Now supports creation of AWS::EC2::VPNGateway
+        * CF: Now supports deletion of AWS::Events::Rule
+        * EC2: create_volume() now supports the VolumeType-parameter
+        * EC2: describe_customer_gateways() now supports the CustomerGatewayIds-parameter
+        * EC2: describe_security_groups() now has improved support for the Filters-parameter
+        * EC2: describe_spot_instance_requests() now supports the SpotInstanceRequestIds-parameter
+        * EC2: describe_transit_gateways() now supports the TransitGatewayIds-parameter
+
+2.2.8
+-----
+    New Services:
+        * ACM:
+            * export_certificate()
+        * APIGateway:
+            * create_request_validator()
+            * delete_request_validator()
+            * get_request_validators()
+            * update_request_validator()
+
+    Miscellaneous:
+        * APIGateway: update_rest_api() now has improved support for the patchOperations-parameter
+        * Batch: register_job_definition() now supports the tags-parameter
+        * CloudFormation: Stack Events are now propagated to SNS when the NotificationARNs-parameter is supplied.
+        * EC2: describe_vpc_endpoint_services() now returns the default endpoints for implemented services 
+        * IOT: list_job_executions_for_job() now supports the status-parameter
+        * IOT: list_job_executions_for_thing() now supports the status-parameter
+        * KMS: list_resource_tags() now supports an ARN as the KeyId-parameter
+        * KMS: tag_resource() now supports an ARN as the KeyId-parameter
+        * KMS: untag_resource() now supports an ARN as the KeyId-parameter
+        * SecretsManager: update_secret() now supports the ClientRequestToken-parameter
 
 2.2.7
 -----

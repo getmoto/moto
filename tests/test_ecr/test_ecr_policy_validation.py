@@ -1,7 +1,7 @@
 import json
 
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.ecr.exceptions import InvalidParameterException
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator

@@ -15,6 +15,7 @@ class TestSocketPair(unittest.TestCase):
 
         self.assertIsNotNone(asyncio.get_event_loop())
 
+    # Has boto3 equivalent
     @mock_dynamodb2_deprecated
     def test_socket_pair_deprecated(self):
 

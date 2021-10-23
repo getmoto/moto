@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 from moto.core import ACCOUNT_ID
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 

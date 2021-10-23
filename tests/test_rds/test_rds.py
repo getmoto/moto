@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import boto3
 import boto.rds
 import boto.vpc
 from boto.exception import BotoServerError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2_deprecated, mock_rds_deprecated, mock_rds
 

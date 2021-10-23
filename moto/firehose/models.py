@@ -16,7 +16,7 @@ Incomplete list of unfinished items:
   - put_record(), put_record_batch() always set "Encrypted" to False.
 """
 from base64 import b64decode, b64encode
-from datetime import datetime
+from datetime import datetime, timezone
 from gzip import GzipFile
 import io
 import json
@@ -77,11 +77,12 @@ def find_destination_config_in_args(api_args):
         if name in destination_names and arg_value:
             configs.append((DESTINATION_TYPES_TO_NAMES[name], arg_value))
 
-    # Only a single destination configuration is allowed.
-    if len(configs) > 1:
+    # One and only one destination configuration is allowed.
+    if len(configs) != 1:
         raise InvalidArgumentException(
             "Exactly one destination configuration is supported for a Firehose"
         )
+
     return configs[0]
 
 
@@ -153,11 +154,11 @@ class DeliveryStream(
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
 
-        self.create_timestamp = datetime.utcnow().isoformat()
+        self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
 
         # I believe boto3 only adds this field after an update ...
-        self.last_update_timestamp = datetime.utcnow().isoformat()
+        self.last_update_timestamp = datetime.now(timezone.utc).isoformat()
 
 
 class FirehoseBackend(BaseBackend):
@@ -173,6 +174,13 @@ class FirehoseBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "firehose", special_service_name="kinesis-firehose"
+        )
 
     def create_delivery_stream(
         self,
@@ -614,7 +622,7 @@ class FirehoseBackend(BaseBackend):
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
-        delivery_stream.last_update_timestamp = datetime.utcnow().isoformat()
+        delivery_stream.last_update_timestamp = datetime.now(timezone.utc).isoformat()
 
         # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
         # documentation:  "You can update a delivery stream to enable Amazon

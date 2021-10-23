@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.core.responses import BaseResponse
@@ -26,8 +24,9 @@ class KinesisResponse(BaseResponse):
 
     def describe_stream(self):
         stream_name = self.parameters.get("StreamName")
+        limit = self.parameters.get("Limit")
         stream = self.kinesis_backend.describe_stream(stream_name)
-        return json.dumps(stream.to_json())
+        return json.dumps(stream.to_json(shard_limit=limit))
 
     def describe_stream_summary(self):
         stream_name = self.parameters.get("StreamName")
@@ -137,6 +136,20 @@ class KinesisResponse(BaseResponse):
             stream_name, shard_to_merge, adjacent_shard_to_merge
         )
         return ""
+
+    def list_shards(self):
+        stream_name = self.parameters.get("StreamName")
+        next_token = self.parameters.get("NextToken")
+        start_id = self.parameters.get("ExclusiveStartShardId")  # noqa
+        max = self.parameters.get("MaxResults", 10000)
+        start_timestamp = self.parameters.get("StreamCreationTimestamp")  # noqa
+        shards, token = self.kinesis_backend.list_shards(
+            stream_name=stream_name, limit=max, next_token=next_token
+        )
+        res = {"Shards": shards}
+        if token:
+            res["NextToken"] = token
+        return json.dumps(res)
 
     def increase_stream_retention_period(self):
         stream_name = self.parameters.get("StreamName")

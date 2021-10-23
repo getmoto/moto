@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import argparse
 import io
 import json
@@ -31,7 +29,10 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
-UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+UNSIGNED_ACTIONS = {
+    "AssumeRoleWithSAML": ("sts", "us-east-1"),
+    "AssumeRoleWithWebIdentity": ("sts", "us-east-1"),
+}
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
@@ -55,6 +56,7 @@ class DomainDispatcherApplication(object):
         self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host):
+
         if host == "moto_api":
             return host
 
@@ -125,6 +127,10 @@ class DomainDispatcherApplication(object):
                     host = "dynamodb2"
         elif service == "sagemaker":
             host = "api.{service}.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
+        elif service == "timestream":
+            host = "ingest.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
         else:
@@ -246,13 +252,17 @@ def create_backend_app(service):
             endpoint = original_endpoint + str(index)
             index += 1
 
-        backend_app.add_url_rule(
-            url_path,
-            endpoint=endpoint,
-            methods=HTTP_METHODS,
-            view_func=view_func,
-            strict_slashes=False,
-        )
+        # Some services do not provide a URL path
+        # I.e., boto3 sends a request to 'https://ingest.timestream.amazonaws.com'
+        # Which means we have a empty url_path to catch this request - but Flask can't handle that
+        if url_path:
+            backend_app.add_url_rule(
+                url_path,
+                endpoint=endpoint,
+                methods=HTTP_METHODS,
+                view_func=view_func,
+                strict_slashes=False,
+            )
 
     backend_app.test_client_class = AWSTestHelper
     return backend_app

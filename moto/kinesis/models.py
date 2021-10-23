@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 import datetime
 import re
@@ -13,6 +11,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
+from moto.utilities.paginator import paginate
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,
@@ -24,6 +23,7 @@ from .utils import (
     compose_shard_iterator,
     compose_new_shard_iterator,
     decompose_shard_iterator,
+    PAGINATION_MODEL,
 )
 
 
@@ -207,15 +207,17 @@ class Stream(CloudFormationModel):
         sequence_number = shard.put_record(partition_key, data, explicit_hash_key)
         return sequence_number, shard.shard_id
 
-    def to_json(self):
+    def to_json(self, shard_limit=None):
+        all_shards = list(self.shards.values())
+        requested_shards = all_shards[0 : shard_limit or len(all_shards)]
         return {
             "StreamDescription": {
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
-                "HasMoreShards": False,
+                "HasMoreShards": len(requested_shards) != len(all_shards),
                 "RetentionPeriodHours": self.retention_period_hours,
-                "Shards": [shard.to_json() for shard in self.shards.values()],
+                "Shards": [shard.to_json() for shard in requested_shards],
             }
         }
 
@@ -324,6 +326,13 @@ class Stream(CloudFormationModel):
 class KinesisBackend(BaseBackend):
     def __init__(self):
         self.streams = OrderedDict()
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "kinesis", special_service_name="kinesis-streams"
+        )
 
     def create_stream(
         self, stream_name, shard_count, retention_period_hours, region_name
@@ -481,6 +490,12 @@ class KinesisBackend(BaseBackend):
             shard1.put_record(
                 record.partition_key, record.data, record.explicit_hash_key
             )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_shards(self, stream_name, limit=None, next_token=None):
+        stream = self.describe_stream(stream_name)
+        shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
+        return [shard.to_json() for shard in shards]
 
     def increase_stream_retention_period(self, stream_name, retention_period_hours):
         stream = self.describe_stream(stream_name)

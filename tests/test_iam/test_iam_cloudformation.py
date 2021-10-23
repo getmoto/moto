@@ -1,12 +1,14 @@
 import boto3
+import json
 import yaml
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, mock_cloudformation, mock_s3, mock_sts
 from moto.core import ACCOUNT_ID
+from moto import mock_autoscaling, mock_iam, mock_cloudformation, mock_s3, mock_sts
+from tests import EXAMPLE_AMI_ID
 
 
 TEMPLATE_MINIMAL_ROLE = """
@@ -59,6 +61,7 @@ Resources:
       Roles:
         - !Ref RootRole
 """
+
 
 # AWS::IAM::User Tests
 @mock_iam
@@ -254,12 +257,12 @@ Resources:
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
 
     cf_client.delete_stack(StackName=stack_name)
 
     with pytest.raises(ClientError) as e:
-        user = iam_client.get_user(UserName=user_name)
+        iam_client.get_user(UserName=user_name)
     e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
@@ -284,12 +287,12 @@ Resources:
     user_name = provisioned_resource["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
 
     cf_client.delete_stack(StackName=stack_name)
 
     with pytest.raises(ClientError) as e:
-        user = iam_client.get_user(UserName=user_name)
+        iam_client.get_user(UserName=user_name)
     e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
@@ -584,7 +587,7 @@ def test_iam_cloudformation_create_user_policy():
 
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
-    bucket = s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -723,7 +726,7 @@ def test_iam_cloudformation_delete_user_policy_having_generated_name():
 
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
-    bucket = s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -1353,7 +1356,7 @@ Resources:
     access_key_id = provisioned_access_key["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
     access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
 
@@ -1410,7 +1413,7 @@ Resources:
     access_key_id = provisioned_access_key["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
     access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
 
@@ -1453,7 +1456,6 @@ def test_iam_cloudformation_create_role():
     ]
     role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
     role["LogicalResourceId"].should.equal("RootRole")
-    role_name = role["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     iam_client.list_roles()["Roles"].should.have.length_of(1)
@@ -1495,3 +1497,165 @@ def test_iam_cloudformation_create_role_and_instance_profile():
     cf_client.delete_stack(StackName=stack_name)
 
     iam_client.list_roles()["Roles"].should.have.length_of(0)
+
+
+@mock_autoscaling
+@mock_iam
+@mock_cloudformation
+def test_iam_roles():
+    iam_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "my-launch-config": {
+                "Properties": {
+                    "IamInstanceProfile": {"Ref": "my-instance-profile-with-path"},
+                    "ImageId": EXAMPLE_AMI_ID,
+                    "InstanceType": "t2.medium",
+                },
+                "Type": "AWS::AutoScaling::LaunchConfiguration",
+            },
+            "my-instance-profile-with-path": {
+                "Properties": {
+                    "Path": "my-path",
+                    "Roles": [{"Ref": "my-role-with-path"}],
+                },
+                "Type": "AWS::IAM::InstanceProfile",
+            },
+            "my-instance-profile-no-path": {
+                "Properties": {"Roles": [{"Ref": "my-role-no-path"}]},
+                "Type": "AWS::IAM::InstanceProfile",
+            },
+            "my-role-with-path": {
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["sts:AssumeRole"],
+                                "Effect": "Allow",
+                                "Principal": {"Service": ["ec2.amazonaws.com"]},
+                            }
+                        ]
+                    },
+                    "Path": "/my-path/",
+                    "Policies": [
+                        {
+                            "PolicyDocument": {
+                                "Statement": [
+                                    {
+                                        "Action": [
+                                            "ec2:CreateTags",
+                                            "ec2:DescribeInstances",
+                                            "ec2:DescribeTags",
+                                        ],
+                                        "Effect": "Allow",
+                                        "Resource": ["*"],
+                                    }
+                                ],
+                                "Version": "2012-10-17",
+                            },
+                            "PolicyName": "EC2_Tags",
+                        },
+                        {
+                            "PolicyDocument": {
+                                "Statement": [
+                                    {
+                                        "Action": ["sqs:*"],
+                                        "Effect": "Allow",
+                                        "Resource": ["*"],
+                                    }
+                                ],
+                                "Version": "2012-10-17",
+                            },
+                            "PolicyName": "SQS",
+                        },
+                    ],
+                },
+                "Type": "AWS::IAM::Role",
+            },
+            "my-role-no-path": {
+                "Properties": {
+                    "RoleName": "my-role-no-path-name",
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["sts:AssumeRole"],
+                                "Effect": "Allow",
+                                "Principal": {"Service": ["ec2.amazonaws.com"]},
+                            }
+                        ]
+                    },
+                },
+                "Type": "AWS::IAM::Role",
+            },
+        },
+    }
+
+    iam_template_json = json.dumps(iam_template)
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(StackName="test_stack", TemplateBody=iam_template_json)
+
+    iam = boto3.client("iam", region_name="us-west-1")
+
+    role_results = iam.list_roles()["Roles"]
+    role_name_to_id = {}
+    role_names = []
+    for role_result in role_results:
+        role = iam.get_role(RoleName=role_result["RoleName"])["Role"]
+        role_names.append(role["RoleName"])
+        # Role name is not specified, so randomly generated - can't check exact name
+        if "with-path" in role["RoleName"]:
+            role_name_to_id["with-path"] = role["RoleId"]
+            role["Path"].should.equal("/my-path/")
+        else:
+            role_name_to_id["no-path"] = role["RoleId"]
+            role["RoleName"].should.equal("my-role-no-path-name")
+            role["Path"].should.equal("/")
+
+    instance_profile_responses = iam.list_instance_profiles()["InstanceProfiles"]
+    instance_profile_responses.should.have.length_of(2)
+    instance_profile_names = []
+
+    for instance_profile_response in instance_profile_responses:
+        instance_profile = iam.get_instance_profile(
+            InstanceProfileName=instance_profile_response["InstanceProfileName"]
+        )["InstanceProfile"]
+        instance_profile_names.append(instance_profile["InstanceProfileName"])
+        instance_profile["InstanceProfileName"].should.contain("my-instance-profile")
+        if "with-path" in instance_profile["InstanceProfileName"]:
+            instance_profile["Path"].should.equal("my-path")
+            instance_profile["Roles"][0]["RoleId"].should.equal(
+                role_name_to_id["with-path"]
+            )
+        else:
+            instance_profile["InstanceProfileName"].should.contain("no-path")
+            instance_profile["Roles"][0]["RoleId"].should.equal(
+                role_name_to_id["no-path"]
+            )
+            instance_profile["Path"].should.equal("/")
+
+    autoscale = boto3.client("autoscaling", region_name="us-west-1")
+    launch_config = autoscale.describe_launch_configurations()["LaunchConfigurations"][
+        0
+    ]
+    launch_config.should.have.key("IamInstanceProfile").should.contain(
+        "my-instance-profile-with-path"
+    )
+
+    resources = cf.list_stack_resources(StackName="test_stack")[
+        "StackResourceSummaries"
+    ]
+    instance_profile_resources = [
+        resource
+        for resource in resources
+        if resource["ResourceType"] == "AWS::IAM::InstanceProfile"
+    ]
+    {ip["PhysicalResourceId"] for ip in instance_profile_resources}.should.equal(
+        set(instance_profile_names)
+    )
+
+    role_resources = [
+        resource
+        for resource in resources
+        if resource["ResourceType"] == "AWS::IAM::Role"
+    ]
+    {r["PhysicalResourceId"] for r in role_resources}.should.equal(set(role_names))

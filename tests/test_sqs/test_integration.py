@@ -1,15 +1,9 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-import base64
 import json
 import time
 import uuid
-import hashlib
 
-import boto
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_sqs, mock_lambda, mock_logs
 
 from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name

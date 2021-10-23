@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from datetime import datetime
 
 from moto.organizations.exceptions import InvalidInputException, TargetNotFoundException
@@ -14,7 +12,7 @@ from moto.organizations.models import (
 
 import boto3
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -71,7 +69,7 @@ def test_describe_organization():
 def test_describe_organization_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
-        response = client.describe_organization()
+        client.describe_organization()
     ex = e.value
     ex.operation_name.should.equal("DescribeOrganization")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -118,9 +116,9 @@ def test_describe_organizational_unit():
 @mock_organizations
 def test_describe_organizational_unit_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     with pytest.raises(ClientError) as e:
-        response = client.describe_organizational_unit(
+        client.describe_organizational_unit(
             OrganizationalUnitId=utils.make_random_root_id()
         )
     ex = e.value
@@ -149,7 +147,7 @@ def test_list_organizational_units_for_parent():
 def test_list_organizational_units_for_parent_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
-        response = client.list_organizational_units_for_parent(
+        client.list_organizational_units_for_parent(
             ParentId=utils.make_random_root_id()
         )
     ex = e.value
@@ -203,7 +201,7 @@ def test_describe_account():
 def test_describe_account_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
-        response = client.describe_account(AccountId=utils.make_random_account_id())
+        client.describe_account(AccountId=utils.make_random_account_id())
     ex = e.value
     ex.operation_name.should.equal("DescribeAccount")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -234,7 +232,7 @@ def test_list_accounts():
 @mock_organizations
 def test_list_accounts_for_parent():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
@@ -246,7 +244,7 @@ def test_list_accounts_for_parent():
 @mock_organizations
 def test_move_account():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
@@ -263,7 +261,7 @@ def test_move_account():
 @mock_organizations
 def test_list_parents_for_ou():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou01 = client.create_organizational_unit(ParentId=root_id, Name="ou01")
     ou01_id = ou01["OrganizationalUnit"]["Id"]
@@ -282,7 +280,7 @@ def test_list_parents_for_ou():
 @mock_organizations
 def test_list_parents_for_accounts():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou01 = client.create_organizational_unit(ParentId=root_id, Name="ou01")
     ou01_id = ou01["OrganizationalUnit"]["Id"]
@@ -308,7 +306,7 @@ def test_list_parents_for_accounts():
 @mock_organizations
 def test_list_children():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou01 = client.create_organizational_unit(ParentId=root_id, Name="ou01")
     ou01_id = ou01["OrganizationalUnit"]["Id"]
@@ -342,18 +340,16 @@ def test_list_children():
 @mock_organizations
 def test_list_children_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     with pytest.raises(ClientError) as e:
-        response = client.list_children(
-            ParentId=utils.make_random_root_id(), ChildType="ACCOUNT"
-        )
+        client.list_children(ParentId=utils.make_random_root_id(), ChildType="ACCOUNT")
     ex = e.value
     ex.operation_name.should.equal("ListChildren")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("ParentNotFoundException")
     with pytest.raises(ClientError) as e:
-        response = client.list_children(ParentId=root_id, ChildType="BLEE")
+        client.list_children(ParentId=root_id, ChildType="BLEE")
     ex = e.value
     ex.operation_name.should.equal("ListChildren")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -370,9 +366,9 @@ def test_list_create_account_status():
     createAccountStatuses.should.have.length_of(1)
     validate_create_account_status(createAccountStatuses[0])
 
-    request_id = client.create_account(AccountName=mockname, Email=mockemail)[
-        "CreateAccountStatus"
-    ]["Id"]
+    client.create_account(AccountName=mockname, Email=mockemail)["CreateAccountStatus"][
+        "Id"
+    ]
     response = client.list_create_account_status()
     createAccountStatuses = response["CreateAccountStatuses"]
     createAccountStatuses.should.have.length_of(2)
@@ -405,8 +401,8 @@ def test_list_create_account_status_in_progress():
 def test_get_paginated_list_create_account_status():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
-    for i in range(5):
-        request_id = client.create_account(AccountName=mockname, Email=mockemail)[
+    for _ in range(5):
+        client.create_account(AccountName=mockname, Email=mockemail)[
             "CreateAccountStatus"
         ]["Id"]
     response = client.list_create_account_status(MaxResults=2)
@@ -500,13 +496,13 @@ def test_describe_policy_exception():
     client.create_organization(FeatureSet="ALL")["Organization"]
     policy_id = "p-47fhe9s3"
     with pytest.raises(ClientError) as e:
-        response = client.describe_policy(PolicyId=policy_id)
+        client.describe_policy(PolicyId=policy_id)
     ex = e.value
     ex.operation_name.should.equal("DescribePolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
     with pytest.raises(ClientError) as e:
-        response = client.describe_policy(PolicyId="meaninglessstring")
+        client.describe_policy(PolicyId="meaninglessstring")
     ex = e.value
     ex.operation_name.should.equal("DescribePolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -517,7 +513,7 @@ def test_describe_policy_exception():
 @mock_organizations
 def test_attach_policy():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
         "OrganizationalUnit"
@@ -542,7 +538,7 @@ def test_attach_policy():
 @mock_organizations
 def test_detach_policy():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
         "OrganizationalUnit"
@@ -585,9 +581,9 @@ def get_nonaws_policies(account_id, client):
 @mock_organizations
 def test_detach_policy_root_ou_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
-    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+    client.create_organizational_unit(ParentId=root_id, Name="ou01")[
         "OrganizationalUnit"
     ]["Id"]
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
@@ -602,7 +598,7 @@ def test_detach_policy_root_ou_not_found_exception():
     client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     with pytest.raises(ClientError) as e:
-        response = client.detach_policy(PolicyId=policy_id, TargetId="r-xy85")
+        client.detach_policy(PolicyId=policy_id, TargetId="r-xy85")
     ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
@@ -614,7 +610,7 @@ def test_detach_policy_root_ou_not_found_exception():
 @mock_organizations
 def test_detach_policy_ou_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
         "OrganizationalUnit"
@@ -627,9 +623,7 @@ def test_detach_policy_ou_not_found_exception():
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
     with pytest.raises(ClientError) as e:
-        response = client.detach_policy(
-            PolicyId=policy_id, TargetId="ou-zx86-z3x4yr2t7"
-        )
+        client.detach_policy(PolicyId=policy_id, TargetId="ou-zx86-z3x4yr2t7")
     ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
@@ -641,7 +635,7 @@ def test_detach_policy_ou_not_found_exception():
 @mock_organizations
 def test_detach_policy_account_id_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
@@ -653,7 +647,7 @@ def test_detach_policy_account_id_not_found_exception():
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     with pytest.raises(ClientError) as e:
-        response = client.detach_policy(PolicyId=policy_id, TargetId="111619863336")
+        client.detach_policy(PolicyId=policy_id, TargetId="111619863336")
     ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -666,7 +660,7 @@ def test_detach_policy_account_id_not_found_exception():
 @mock_organizations
 def test_detach_policy_invalid_target_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
         "OrganizationalUnit"
@@ -679,7 +673,7 @@ def test_detach_policy_invalid_target_exception():
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
     with pytest.raises(ClientError) as e:
-        response = client.detach_policy(PolicyId=policy_id, TargetId="invalidtargetid")
+        client.detach_policy(PolicyId=policy_id, TargetId="invalidtargetid")
     ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -690,7 +684,7 @@ def test_detach_policy_invalid_target_exception():
 @mock_organizations
 def test_delete_policy():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     base_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
     base_policies.should.have.length_of(1)
     policy_id = client.create_policy(
@@ -711,10 +705,10 @@ def test_delete_policy():
 @mock_organizations
 def test_delete_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     non_existent_policy_id = utils.make_random_policy_id()
     with pytest.raises(ClientError) as e:
-        response = client.delete_policy(PolicyId=non_existent_policy_id)
+        client.delete_policy(PolicyId=non_existent_policy_id)
     ex = e.value
     ex.operation_name.should.equal("DeletePolicy")
     ex.response["Error"]["Code"].should.equal("400")
@@ -730,7 +724,7 @@ def test_delete_policy_exception():
     root_id = client.list_roots()["Roots"][0]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     with pytest.raises(ClientError) as e:
-        response = client.delete_policy(PolicyId=policy_id)
+        client.delete_policy(PolicyId=policy_id)
     ex = e.value
     ex.operation_name.should.equal("DeletePolicy")
     ex.response["Error"]["Code"].should.equal("400")
@@ -751,7 +745,7 @@ def test_attach_policy_exception():
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
     with pytest.raises(ClientError) as e:
-        response = client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+        client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
@@ -759,7 +753,7 @@ def test_attach_policy_exception():
         "OrganizationalUnitNotFoundException"
     )
     with pytest.raises(ClientError) as e:
-        response = client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+        client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
     ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
@@ -767,7 +761,7 @@ def test_attach_policy_exception():
         "OrganizationalUnitNotFoundException"
     )
     with pytest.raises(ClientError) as e:
-        response = client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+        client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -776,9 +770,7 @@ def test_attach_policy_exception():
         "You specified an account that doesn't exist."
     )
     with pytest.raises(ClientError) as e:
-        response = client.attach_policy(
-            PolicyId=policy_id, TargetId="meaninglessstring"
-        )
+        client.attach_policy(PolicyId=policy_id, TargetId="meaninglessstring")
     ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -814,10 +806,10 @@ def test_update_policy():
 @mock_organizations
 def test_update_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     non_existent_policy_id = utils.make_random_policy_id()
     with pytest.raises(ClientError) as e:
-        response = client.update_policy(PolicyId=non_existent_policy_id)
+        client.update_policy(PolicyId=non_existent_policy_id)
     ex = e.value
     ex.operation_name.should.equal("UpdatePolicy")
     ex.response["Error"]["Code"].should.equal("400")
@@ -879,9 +871,7 @@ def test_list_policies_for_target_exception():
     ou_id = "ou-gi99-i7r8eh2i2"
     account_id = "126644886543"
     with pytest.raises(ClientError) as e:
-        response = client.list_policies_for_target(
-            TargetId=ou_id, Filter="SERVICE_CONTROL_POLICY"
-        )
+        client.list_policies_for_target(TargetId=ou_id, Filter="SERVICE_CONTROL_POLICY")
     ex = e.value
     ex.operation_name.should.equal("ListPoliciesForTarget")
     ex.response["Error"]["Code"].should.equal("400")
@@ -889,7 +879,7 @@ def test_list_policies_for_target_exception():
         "OrganizationalUnitNotFoundException"
     )
     with pytest.raises(ClientError) as e:
-        response = client.list_policies_for_target(
+        client.list_policies_for_target(
             TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
         )
     ex = e.value
@@ -900,7 +890,7 @@ def test_list_policies_for_target_exception():
         "You specified an account that doesn't exist."
     )
     with pytest.raises(ClientError) as e:
-        response = client.list_policies_for_target(
+        client.list_policies_for_target(
             TargetId="meaninglessstring", Filter="SERVICE_CONTROL_POLICY"
         )
     ex = e.value
@@ -941,7 +931,7 @@ def test_list_policies_for_target_exception():
 @mock_organizations
 def test_list_targets_for_policy():
     client = boto3.client("organizations", region_name="us-east-1")
-    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
     ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
         "OrganizationalUnit"
@@ -975,13 +965,13 @@ def test_list_targets_for_policy_exception():
     client.create_organization(FeatureSet="ALL")["Organization"]
     policy_id = "p-47fhe9s3"
     with pytest.raises(ClientError) as e:
-        response = client.list_targets_for_policy(PolicyId=policy_id)
+        client.list_targets_for_policy(PolicyId=policy_id)
     ex = e.value
     ex.operation_name.should.equal("ListTargetsForPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
     with pytest.raises(ClientError) as e:
-        response = client.list_targets_for_policy(PolicyId="meaninglessstring")
+        client.list_targets_for_policy(PolicyId="meaninglessstring")
     ex = e.value
     ex.operation_name.should.equal("ListTargetsForPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)

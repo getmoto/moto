@@ -162,8 +162,16 @@ class LogsResponse(BaseResponse):
         log_group_name_prefix = self._get_param("logGroupNamePrefix")
         next_token = self._get_param("nextToken")
         limit = self._get_param("limit", 50)
+        if limit > 50:
+            raise InvalidParameterException(
+                constraint="Member must have value less than or equal to 50",
+                parameter="limit",
+                value=limit,
+            )
         groups, next_token = self.logs_backend.describe_log_groups(
-            limit, log_group_name_prefix, next_token
+            limit=limit,
+            log_group_name_prefix=log_group_name_prefix,
+            next_token=next_token,
         )
         result = {"logGroups": groups}
         if next_token:
@@ -285,13 +293,13 @@ class LogsResponse(BaseResponse):
         next_token = self._get_param("nextToken")
         limit = self._get_param("limit")
         policies = self.logs_backend.describe_resource_policies(next_token, limit)
-        return json.dumps({"resourcePolicies": policies})
+        return json.dumps({"resourcePolicies": [p.describe() for p in policies]})
 
     def put_resource_policy(self):
         policy_name = self._get_param("policyName")
         policy_doc = self._get_param("policyDocument")
-        result = self.logs_backend.put_resource_policy(policy_name, policy_doc)
-        return json.dumps(result)
+        policy = self.logs_backend.put_resource_policy(policy_name, policy_doc)
+        return json.dumps({"resourcePolicy": policy.describe()})
 
     def delete_resource_policy(self):
         policy_name = self._get_param("policyName")

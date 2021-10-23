@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 
 from .models import iam_backend, User
@@ -1866,10 +1864,10 @@ LIST_USER_TAGS_TEMPLATE = """<ListUserTagsResponse>
    <ListUserTagsResult>
       <Tags>
         {% for tag in user_tags %}
-          <item>
+          <member>
             <Key>{{ tag.Key }}</Key>
             <Value>{{ tag.Value }}</Value>
-          </item>
+          </member>
         {% endfor %}
        </Tags>
       <IsTruncated>false</IsTruncated>
