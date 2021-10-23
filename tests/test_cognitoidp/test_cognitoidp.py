@@ -1277,6 +1277,59 @@ def test_admin_create_existing_user():
 
 
 @mock_cognitoidp
+def test_admin_confirm_sign_up():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    username = str(uuid.uuid4())
+    password = "Passw0rd!"
+    user_pool_id = conn.create_user_pool(
+        PoolName="us-east-1_aaaaaaaa", AutoVerifiedAttributes=["email"]
+    )["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=False
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+
+    user["UserStatus"].should.equal("UNCONFIRMED")
+
+    conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username,)
+
+    user["UserStatus"].should.equal("CONFIRMED")
+
+
+@mock_cognitoidp
+def test_admin_confirm_sign_up_non_existing_user():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName="us-east-1_aaaaaaaa", AutoVerifiedAttributes=["email"]
+    )["UserPool"]["Id"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+    err["Message"].should.equal(f"User does not exist.")
+
+
+@mock_cognitoidp
+def test_admin_confirm_sign_up_non_existing_pool():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    user_pool_id = "us-east-1_aaaaaaaa"
+    with pytest.raises(ClientError) as exc:
+        conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal(f"User pool {user_pool_id} does not exist.")
+
+
+@mock_cognitoidp
 def test_admin_resend_invitation_existing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 

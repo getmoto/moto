@@ -706,6 +706,18 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.users[user.username] = user
         return user
 
+    def admin_confirm_sign_up(self, user_pool_id, username):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(f"User pool {user_pool_id} does not exist.")
+
+        user = user_pool._get_user(username)
+        if not user:
+            raise UserNotFoundError(f"User does not exist.")
+
+        user.status = UserStatus["CONFIRMED"]
+        return ""
+
     def admin_get_user(self, user_pool_id, username):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
