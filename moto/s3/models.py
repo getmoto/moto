@@ -46,7 +46,6 @@ from moto.s3.exceptions import (
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
     InvalidTagError,
-    ObjectLockConfigurationNotFoundError,
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
