@@ -207,12 +207,21 @@ def test_describe_user_pool():
     name = str(uuid.uuid4())
     value = str(uuid.uuid4())
     user_pool_details = conn.create_user_pool(
-        PoolName=name, LambdaConfig={"PreSignUp": value}
+        PoolName=name,
+        LambdaConfig={"PreSignUp": value},
+        AccountRecoverySetting={
+            "RecoveryMechanisms": [{"Name": "verified_email", "Priority": 1}]
+        },
     )
-
     result = conn.describe_user_pool(UserPoolId=user_pool_details["UserPool"]["Id"])
     result["UserPool"]["Name"].should.equal(name)
     result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
+    result["UserPool"]["AccountRecoverySetting"]["RecoveryMechanisms"][0][
+        "Name"
+    ].should.equal("verified_email")
+    result["UserPool"]["AccountRecoverySetting"]["RecoveryMechanisms"][0][
+        "Priority"
+    ].should.equal(1)
 
 
 @mock_cognitoidp
@@ -2153,9 +2162,126 @@ def test_change_password__using_custom_user_agent_header():
 @mock_cognitoidp
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
 
-    result = conn.forgot_password(ClientId=create_id(), Username=str(uuid.uuid4()))
-    result["CodeDeliveryDetails"].should_not.be.none
+    result["CodeDeliveryDetails"]["Destination"].should.not_be.none
+    result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
+    result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
+
+
+@mock_cognitoidp
+def test_forgot_password_nonexistent_client_id():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.forgot_password(ClientId=create_id(), Username=str(uuid.uuid4()))
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("Username/client id combination not found.")
+
+
+@mock_cognitoidp
+def test_forgot_password_admin_only_recovery():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()),
+        AccountRecoverySetting={
+            "RecoveryMechanisms": [{"Name": "admin_only", "Priority": 1}]
+        },
+    )["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("Contact administrator to reset password.")
+
+
+@mock_cognitoidp
+def test_forgot_password_user_with_all_recovery_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()),
+        AccountRecoverySetting={
+            "RecoveryMechanisms": [{"Name": "verified_email", "Priority": 1}]
+        },
+    )["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {"Name": "email", "Value": "test@moto.com"},
+            {"Name": "phone_number", "Value": "555555555"},
+        ],
+    )
+
+    result = conn.forgot_password(ClientId=client_id, Username=username)
+
+    result["CodeDeliveryDetails"]["Destination"].should.equal("test@moto.com")
+    result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("EMAIL")
+    result["CodeDeliveryDetails"]["AttributeName"].should.equal("email")
+
+    conn.update_user_pool(
+        UserPoolId=user_pool_id,
+        AccountRecoverySetting={
+            "RecoveryMechanisms": [{"Name": "verified_phone_number", "Priority": 1}]
+        },
+    )
+
+    result = conn.forgot_password(ClientId=client_id, Username=username)
+
+    result["CodeDeliveryDetails"]["Destination"].should.equal("555555555")
+    result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
+    result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
+
+
+@mock_cognitoidp
+def test_forgot_password_nonexistent_user_or_user_without_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()),
+        AccountRecoverySetting={
+            "RecoveryMechanisms": [{"Name": "verified_email", "Priority": 1}]
+        },
+    )["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    user_without_attributes = str(uuid.uuid4())
+    nonexistent_user = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=user_without_attributes)
+    for user in user_without_attributes, nonexistent_user:
+        result = conn.forgot_password(ClientId=client_id, Username=user)
+
+        result["CodeDeliveryDetails"]["Destination"].should.equal(user + "@h***.com")
+        result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("EMAIL")
+        result["CodeDeliveryDetails"]["AttributeName"].should.equal("email")
+
+    conn.update_user_pool(
+        UserPoolId=user_pool_id,
+        AccountRecoverySetting={
+            "RecoveryMechanisms": [{"Name": "verified_phone_number", "Priority": 1}]
+        },
+    )
+
+    for user in user_without_attributes, nonexistent_user:
+        result = conn.forgot_password(ClientId=client_id, Username=user)
+
+        result["CodeDeliveryDetails"]["Destination"].should.equal("+*******9934")
+        result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
+        result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
 
 
 @mock_cognitoidp

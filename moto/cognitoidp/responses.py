@@ -432,9 +432,11 @@ class CognitoIdpResponse(BaseResponse):
         return json.dumps(auth_result)
 
     def forgot_password(self):
-        return json.dumps(
-            {"CodeDeliveryDetails": {"DeliveryMedium": "EMAIL", "Destination": "..."}}
-        )
+        client_id = self._get_param("ClientId")
+        username = self._get_param("Username")
+        region = find_region_by_value("client_id", client_id)
+        response = cognitoidp_backends[region].forgot_password(client_id, username)
+        return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening
     # on localhost (doesn't get a region in the host header), it doesn't know what
