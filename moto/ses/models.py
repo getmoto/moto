@@ -18,6 +18,7 @@ from .exceptions import (
     InvalidParameterValue,
     InvalidRenderingParameterException,
     TemplateDoesNotExist,
+    RuleDoesNotExist,
     RuleSetNameAlreadyExists,
     RuleSetDoesNotExist,
     RuleAlreadyExists,
@@ -413,7 +414,7 @@ class SESBackend(BaseBackend):
 
     def create_receipt_rule_set(self, rule_set_name):
         if self.receipt_rule_set.get(rule_set_name) is not None:
-            raise RuleSetNameAlreadyExists("Duplicate receipt rule set Name.")
+            raise RuleSetNameAlreadyExists("Duplicate Receipt Rule Set Name.")
         self.receipt_rule_set[rule_set_name] = []
 
     def create_receipt_rule(self, rule_set_name, rule):
@@ -424,6 +425,18 @@ class SESBackend(BaseBackend):
             raise RuleAlreadyExists("Duplicate Rule Name.")
         rule_set.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
+
+    def describe_receipt_rule(self, rule_set_name, rule_name):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist("Invalid Rule Set Name.")
+
+        for receipt_rule in rule_set:
+            if receipt_rule["name"] == rule_name:
+                return receipt_rule
+        else:
+            raise RuleDoesNotExist("Invalid Rule Name.")
 
 
 ses_backend = SESBackend()
