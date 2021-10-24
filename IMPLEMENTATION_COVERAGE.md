@@ -590,7 +590,7 @@
 
 ## cognito-idp
 <details>
-<summary>49% implemented</summary>
+<summary>50% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -688,7 +688,7 @@
 - [X] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
-- [ ] update_user_pool
+- [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
 - [X] verify_software_token
@@ -1340,8 +1340,6 @@
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
-- [ ] get_vpn_connection_device_sample_configuration
-- [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -1463,7 +1461,7 @@
 
 ## ecr
 <details>
-<summary>74% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -1474,7 +1472,6 @@
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
-- [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
 - [X] describe_registry
@@ -1504,13 +1501,13 @@
 
 ## ecs
 <details>
-<summary>67% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] create_capacity_provider
 - [X] create_cluster
 - [X] create_service
 - [X] create_task_set
-- [ ] delete_account_setting
+- [X] delete_account_setting
 - [X] delete_attributes
 - [ ] delete_capacity_provider
 - [X] delete_cluster
@@ -1527,7 +1524,7 @@
 - [X] describe_tasks
 - [ ] discover_poll_endpoint
 - [ ] execute_command
-- [ ] list_account_settings
+- [X] list_account_settings
 - [X] list_attributes
 - [X] list_clusters
 - [X] list_container_instances
@@ -1536,7 +1533,7 @@
 - [X] list_task_definition_families
 - [X] list_task_definitions
 - [X] list_tasks
-- [ ] put_account_setting
+- [X] put_account_setting
 - [ ] put_account_setting_default
 - [X] put_attributes
 - [ ] put_cluster_capacity_providers
@@ -1595,7 +1592,7 @@
 
 ## eks
 <details>
-<summary>35% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
@@ -1607,7 +1604,6 @@
 - [X] delete_cluster
 - [X] delete_fargate_profile
 - [X] delete_nodegroup
-- [ ] deregister_cluster
 - [ ] describe_addon
 - [ ] describe_addon_versions
 - [X] describe_cluster
@@ -1623,7 +1619,6 @@
 - [X] list_nodegroups
 - [ ] list_tags_for_resource
 - [ ] list_updates
-- [ ] register_cluster
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_addon
@@ -2521,7 +2516,6 @@
 - [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
-- [ ] put_verification_state_on_violation
 - [ ] register_ca_certificate
 - [X] register_certificate
 - [X] register_certificate_without_ca
@@ -3711,7 +3705,6 @@
 - [ ] create_presigned_notebook_instance_url
 - [ ] create_processing_job
 - [ ] create_project
-- [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_transform_job
 - [ ] create_trial
@@ -3750,7 +3743,6 @@
 - [X] delete_notebook_instance_lifecycle_config
 - [ ] delete_pipeline
 - [ ] delete_project
-- [ ] delete_studio_lifecycle_config
 - [ ] delete_tags
 - [ ] delete_trial
 - [ ] delete_trial_component
@@ -3796,7 +3788,6 @@
 - [ ] describe_pipeline_execution
 - [ ] describe_processing_job
 - [ ] describe_project
-- [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
 - [ ] describe_transform_job
@@ -3855,7 +3846,6 @@
 - [ ] list_pipelines
 - [ ] list_processing_jobs
 - [ ] list_projects
-- [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
 - [ ] list_tags
 - [X] list_training_jobs
@@ -3869,7 +3859,6 @@
 - [ ] put_model_package_group_policy
 - [ ] register_devices
 - [ ] render_ui_template
-- [ ] retry_pipeline_execution
 - [ ] search
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
@@ -3943,7 +3932,7 @@
 
 ## ses
 <details>
-<summary>25% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -3967,13 +3956,13 @@
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
 - [ ] describe_configuration_set
-- [ ] describe_receipt_rule
+- [X] describe_receipt_rule
 - [ ] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
 - [ ] get_identity_dkim_attributes
 - [ ] get_identity_mail_from_domain_attributes
-- [ ] get_identity_notification_attributes
+- [X] get_identity_notification_attributes
 - [ ] get_identity_policies
 - [ ] get_identity_verification_attributes
 - [X] get_send_quota
@@ -3998,7 +3987,7 @@
 - [X] send_templated_email
 - [ ] set_active_receipt_rule_set
 - [ ] set_identity_dkim_enabled
-- [ ] set_identity_feedback_forwarding_enabled
+- [X] set_identity_feedback_forwarding_enabled
 - [ ] set_identity_headers_in_notifications_enabled
 - [ ] set_identity_mail_from_domain
 - [X] set_identity_notification_topic
@@ -4336,6 +4325,27 @@
 - [ ] untag_resource
 </details>
 
+## timestream-write
+<details>
+<summary>80% implemented</summary>
+
+- [X] create_database
+- [X] create_table
+- [X] delete_database
+- [X] delete_table
+- [X] describe_database
+- [X] describe_endpoints
+- [X] describe_table
+- [X] list_databases
+- [X] list_tables
+- [ ] list_tags_for_resource
+- [ ] tag_resource
+- [ ] untag_resource
+- [X] update_database
+- [X] update_table
+- [X] write_records
+</details>
+
 ## transcribe
 <details>
 <summary>41% implemented</summary>
@@ -4536,7 +4546,6 @@
 - iotwireless
 - ivs
 - kafka
-- kafkaconnect
 - kendra
 - kinesis-video-media
 - kinesis-video-signaling
@@ -4575,7 +4584,6 @@
 - network-firewall
 - networkmanager
 - nimble
-- opensearch
 - opsworkscm
 - outposts
 - personalize
@@ -4630,7 +4638,6 @@
 - synthetics
 - textract
 - timestream-query
-- timestream-write
 - transfer
 - translate
 - waf
