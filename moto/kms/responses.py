@@ -262,6 +262,21 @@ class KmsResponse(BaseResponse):
                         "TargetKeyId": target_key_id,
                     }
                 )
+        for reserved_alias in RESERVED_ALIASES:
+            exsisting = [
+                a for a in response_aliases if a["AliasName"] == reserved_alias
+            ]
+            if not exsisting:
+                response_aliases.append(
+                    {
+                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
+                            region=region,
+                            account_id=ACCOUNT_ID,
+                            reserved_alias=reserved_alias,
+                        ),
+                        "AliasName": reserved_alias,
+                    }
+                )
 
         return json.dumps({"Truncated": False, "Aliases": response_aliases})
 

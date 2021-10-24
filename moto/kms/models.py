@@ -159,11 +159,10 @@ class Key(CloudFormationModel):
 
 class KmsBackend(BaseBackend):
     def __init__(self):
+        self.region = region
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
-
-        self._generate_default_keys()
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -172,13 +171,19 @@ class KmsBackend(BaseBackend):
             service_region, zones, "kms"
         )
 
-    def _generate_default_keys(self):
+    def _generate_default_keys(self, alias_name):
         """Creates default kms keys """
-        for alias in RESERVED_ALIASES:
+        if alias_name in RESERVED_ALIASES:
             key = self.create_key(
-                None, "ENCRYPT_DECRYPT", "SYMMETRIC_DEFAULT", "Default key", None, None
+                None,
+                "ENCRYPT_DECRYPT",
+                "SYMMETRIC_DEFAULT",
+                "Default key",
+                None,
+                self.region,
             )
-            self.add_alias(key.id, alias)
+            self.add_alias(key.id, alias_name)
+            return key.id
 
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region
@@ -206,7 +211,7 @@ class KmsBackend(BaseBackend):
         # describe key not just KeyId
         key_id = self.get_key_id(key_id)
         if r"alias/" in str(key_id).lower():
-            key_id = self.get_key_id_from_alias(key_id.split("alias/")[1])
+            key_id = self.get_key_id_from_alias(key_id)
         return self.keys[self.get_key_id(key_id)]
 
     def list_keys(self):
@@ -266,6 +271,9 @@ class KmsBackend(BaseBackend):
         for key_id, aliases in dict(self.key_to_aliases).items():
             if alias_name in ",".join(aliases):
                 return key_id
+        if alias_name in RESERVED_ALIASES:
+            key_id = self._generate_default_keys(alias_name)
+            return key_id
         return None
 
     def enable_key_rotation(self, key_id):
