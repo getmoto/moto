@@ -590,11 +590,11 @@
 
 ## cognito-idp
 <details>
-<summary>50% implemented</summary>
+<summary>52% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
-- [ ] admin_confirm_sign_up
+- [X] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
 - [ ] admin_delete_user_attributes
@@ -647,7 +647,7 @@
 - [X] describe_user_pool_client
 - [X] describe_user_pool_domain
 - [ ] forget_device
-- [ ] forgot_password
+- [X] forgot_password
 - [ ] get_csv_header
 - [ ] get_device
 - [X] get_group
@@ -1019,6 +1019,7 @@
 - [ ] bundle_instance
 - [ ] cancel_bundle_task
 - [ ] cancel_capacity_reservation
+- [ ] cancel_capacity_reservation_fleets
 - [ ] cancel_conversion_task
 - [ ] cancel_export_task
 - [ ] cancel_import_task
@@ -1030,6 +1031,7 @@
 - [X] copy_image
 - [X] copy_snapshot
 - [ ] create_capacity_reservation
+- [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
@@ -1161,6 +1163,7 @@
 - [X] describe_availability_zones
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
 - [ ] describe_classic_link_instances
@@ -1340,6 +1343,8 @@
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
+- [ ] get_vpn_connection_device_sample_configuration
+- [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -1349,6 +1354,7 @@
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
+- [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
 - [ ] modify_default_credit_specification
 - [ ] modify_ebs_default_kms_key_id
@@ -1461,7 +1467,7 @@
 
 ## ecr
 <details>
-<summary>76% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -1472,6 +1478,7 @@
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
+- [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
 - [X] describe_registry
@@ -1592,7 +1599,7 @@
 
 ## eks
 <details>
-<summary>37% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
@@ -1604,6 +1611,7 @@
 - [X] delete_cluster
 - [X] delete_fargate_profile
 - [X] delete_nodegroup
+- [ ] deregister_cluster
 - [ ] describe_addon
 - [ ] describe_addon_versions
 - [X] describe_cluster
@@ -1619,6 +1627,7 @@
 - [X] list_nodegroups
 - [ ] list_tags_for_resource
 - [ ] list_updates
+- [ ] register_cluster
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_addon
@@ -2516,6 +2525,7 @@
 - [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
+- [ ] put_verification_state_on_violation
 - [ ] register_ca_certificate
 - [X] register_certificate
 - [X] register_certificate_without_ca
@@ -2891,6 +2901,7 @@
 - [ ] batch_stop
 - [ ] batch_update_schedule
 - [ ] cancel_input_device_transfer
+- [ ] claim_device
 - [X] create_channel
 - [X] create_input
 - [ ] create_input_security_group
@@ -3491,7 +3502,7 @@
 
 ## route53
 <details>
-<summary>17% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
@@ -3705,6 +3716,7 @@
 - [ ] create_presigned_notebook_instance_url
 - [ ] create_processing_job
 - [ ] create_project
+- [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_transform_job
 - [ ] create_trial
@@ -3743,6 +3755,7 @@
 - [X] delete_notebook_instance_lifecycle_config
 - [ ] delete_pipeline
 - [ ] delete_project
+- [ ] delete_studio_lifecycle_config
 - [ ] delete_tags
 - [ ] delete_trial
 - [ ] delete_trial_component
@@ -3788,6 +3801,7 @@
 - [ ] describe_pipeline_execution
 - [ ] describe_processing_job
 - [ ] describe_project
+- [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
 - [ ] describe_transform_job
@@ -3846,6 +3860,7 @@
 - [ ] list_pipelines
 - [ ] list_processing_jobs
 - [ ] list_projects
+- [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
 - [ ] list_tags
 - [X] list_training_jobs
@@ -3859,6 +3874,7 @@
 - [ ] put_model_package_group_policy
 - [ ] register_devices
 - [ ] render_ui_template
+- [ ] retry_pipeline_execution
 - [ ] search
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
@@ -4446,6 +4462,7 @@
 <details>
 
 - accessanalyzer
+- account
 - acm-pca
 - alexaforbusiness
 - amp
@@ -4472,6 +4489,7 @@
 - chime-sdk-identity
 - chime-sdk-messaging
 - cloud9
+- cloudcontrol
 - clouddirectory
 - cloudfront
 - cloudhsm
@@ -4521,6 +4539,7 @@
 - fsx
 - gamelift
 - globalaccelerator
+- grafana
 - greengrass
 - greengrassv2
 - groundstation
@@ -4546,6 +4565,7 @@
 - iotwireless
 - ivs
 - kafka
+- kafkaconnect
 - kendra
 - kinesis-video-media
 - kinesis-video-signaling
@@ -4584,8 +4604,10 @@
 - network-firewall
 - networkmanager
 - nimble
+- opensearch
 - opsworkscm
 - outposts
+- panorama
 - personalize
 - personalize-events
 - personalize-runtime
@@ -4640,9 +4662,11 @@
 - timestream-query
 - transfer
 - translate
+- voice-id
 - waf
 - waf-regional
 - wellarchitected
+- wisdom
 - workdocs
 - worklink
 - workmail
