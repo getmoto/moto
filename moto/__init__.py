@@ -156,7 +156,7 @@ mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.11.dev"
+__version__ = "2.2.12.dev"
 
 
 try:
