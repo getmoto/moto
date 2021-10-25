@@ -424,13 +424,24 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
                 dict1.pop(key)
 
 
-def glob_matches(pattern, string):
-    """AWS API-style globbing regexes"""
-    pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
-    pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+def aws_api_matches(pattern, string, glob=False):
+    """
+        AWS API can match a value based on a glob, or an exact match
 
-    pattern = ".*" + pattern + ".*"
+        glob: boolean controlling if this is a glob match (True) or and exact match (False)
+    """
+    if glob:
+        pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
+        pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
 
-    if re.match(pattern, str(string)):
-        return True
-    return False
+        pattern = ".*" + pattern + ".*"
+
+        if re.match(pattern, str(string)):
+            return True
+        return False
+    else:
+        if pattern == str(string):
+            return  True
+        else:
+            print(f"NO MATCH: {pattern=} != {string=}")
+            return False
