@@ -2,21 +2,43 @@
 from datetime import datetime
 from boto3 import Session
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+
+from .utils import random_cluster_id, get_partition, paginated_list
+
+# String Templates
+VIRTUAL_CLUSTER_ARN_TEMPLATE = (
+    "arn:{partition}:emr-containers:{region}:"
+    + str(ACCOUNT_ID)
+    + ":/virtualclusters/{virtual_cluster_id}"
+)
+
+
+# Defaults used for creating a Virtual cluster
+ACTIVE_STATUS = "ACTIVE"
 
 
 class FakeCluster(BaseModel):
     def __init__(
-        self, name, container_provider, client_token, tags=None, virtual_cluster_id=None
+        self,
+        name,
+        container_provider,
+        client_token,
+        region_name,
+        aws_partition,
+        tags=None,
+        virtual_cluster_id=None,
     ):
 
-        self.id = virtual_cluster_id
+        self.id = virtual_cluster_id or random_cluster_id()
 
         self.name = name
         self.client_token = client_token
-        self.arn = None
-        self.state = None
+        self.arn = VIRTUAL_CLUSTER_ARN_TEMPLATE.format(
+            partition=aws_partition, region=region_name, virtual_cluster_id=self.id
+        )
+        self.state = ACTIVE_STATUS
         self.container_provider = container_provider
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.tags = tags
@@ -39,6 +61,7 @@ class EMRContainersBackend(BaseBackend):
         self.virtual_clusters = dict()
         self.virtual_cluster_count = 0
         self.region_name = region_name
+        self.partition = get_partition(region_name)
 
     def reset(self):
         """Re-initialize all attributes for this instance."""
@@ -52,11 +75,34 @@ class EMRContainersBackend(BaseBackend):
             container_provider=container_provider,
             client_token=client_token,
             tags=tags,
+            region_name=self.region_name,
+            aws_partition=self.partition,
         )
 
-        self.virtual_clusters[name] = virtual_cluster
+        self.virtual_clusters[virtual_cluster.id] = virtual_cluster
         self.virtual_cluster_count += 1
         return virtual_cluster
+
+    def describe_virtual_cluster(self, id):
+        result = self.virtual_clusters.pop(id)
+        self.virtual_clusters -= 1
+        return result
+
+    def list_virtual_clusters(
+        self,
+        container_provider_id,
+        container_provider_type,
+        created_after,
+        created_before,
+        states,
+        max_results,
+        next_token,
+    ):
+
+        print("x")
+
+        x = self.virtual_clusters.keys()
+        return paginated_list(self.virtual_clusters.keys(), max_results, next_token)
 
 
 emrcontainers_backends = {}
