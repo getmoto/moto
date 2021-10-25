@@ -35,6 +35,15 @@ COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
 )
 
 
+def datetime2int_milliseconds(date):
+    """
+    AWS returns timestamps in milliseconds
+    We don't use milliseconds timestamps internally,
+    this method should be used only in describe() method
+    """
+    return int(date.timestamp() * 1000)
+
+
 def datetime2int(date):
     return int(time.mktime(date.timetuple()))
 
@@ -376,9 +385,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
             "dependsOn": self.depends_on if self.depends_on else [],
         }
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
-            result["startedAt"] = datetime2int(self.job_started_at)
+            result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
         if self.job_stopped:
-            result["stoppedAt"] = datetime2int(self.job_stopped_at)
+            result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
             result["container"] = {}
             result["container"]["command"] = self._get_container_property("command", [])
             result["container"]["privileged"] = self._get_container_property(

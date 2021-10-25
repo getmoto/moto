@@ -95,6 +95,7 @@ def test_submit_job_by_name():
 def test_submit_job():
     ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
+    start_time_milliseconds = time.time() * 1000
 
     job_def_name = str(uuid4())[0:6]
     commands = ["echo", "hello"]
@@ -117,6 +118,15 @@ def test_submit_job():
         logGroupName="/aws/batch/job", logStreamName=ls_name
     )
     [event["message"] for event in resp["events"]].should.equal(["hello"])
+
+    # Test that describe_jobs() returns timestamps in milliseconds
+    # github.com/spulec/moto/issues/4364
+    resp = batch_client.describe_jobs(jobs=[job_id])
+    created_at = resp["jobs"][0]["startedAt"]
+    stopped_at = resp["jobs"][0]["stoppedAt"]
+
+    created_at.should.be.greater_than(start_time_milliseconds)
+    stopped_at.should.be.greater_than(start_time_milliseconds)
 
 
 @mock_logs
