@@ -859,7 +859,7 @@ class BatchBackend(BaseBackend):
         self._compute_environments[new_comp_env.arn] = new_comp_env
 
         # Ok by this point, everything is legit, so if its Managed then start some instances
-        if _type == "MANAGED":
+        if _type == "MANAGED" and "FARGATE" not in compute_resources["type"]:
             cpus = int(
                 compute_resources.get("desiredvCpus", compute_resources["minvCpus"])
             )
@@ -902,48 +902,37 @@ class BatchBackend(BaseBackend):
         :param cr: computeResources
         :type cr: dict
         """
-        for param in (
-            "instanceRole",
-            "maxvCpus",
-            "minvCpus",
-            "instanceTypes",
-            "securityGroupIds",
-            "subnets",
-            "type",
-        ):
-            if param not in cr:
-                pass  # commenting out invalid check below - values may be missing (tf-compat)
-                # raise InvalidParameterValueException(
-                #     "computeResources must contain {0}".format(param)
-                # )
-        for profile in self.iam_backend.get_instance_profiles():
-            if profile.arn == cr["instanceRole"]:
-                break
-        else:
-            raise InvalidParameterValueException(
-                "could not find instanceRole {0}".format(cr["instanceRole"])
-            )
-
         if int(cr["maxvCpus"]) < 0:
             raise InvalidParameterValueException("maxVCpus must be positive")
-        if int(cr["minvCpus"]) < 0:
-            raise InvalidParameterValueException("minVCpus must be positive")
-        if int(cr["maxvCpus"]) < int(cr["minvCpus"]):
-            raise InvalidParameterValueException(
-                "maxVCpus must be greater than minvCpus"
-            )
-
-        if len(cr["instanceTypes"]) == 0:
-            raise InvalidParameterValueException(
-                "At least 1 instance type must be provided"
-            )
-        for instance_type in cr["instanceTypes"]:
-            if instance_type == "optimal":
-                pass  # Optimal should pick from latest of current gen
-            elif instance_type not in EC2_INSTANCE_TYPES:
+        if "FARGATE" not in cr["type"]:
+            # Most parameters are not applicable to jobs that are running on Fargate resources:
+            # non exhaustive list: minvCpus, instanceTypes, imageId, ec2KeyPair, instanceRole, tags
+            for profile in self.iam_backend.get_instance_profiles():
+                if profile.arn == cr["instanceRole"]:
+                    break
+            else:
                 raise InvalidParameterValueException(
-                    "Instance type {0} does not exist".format(instance_type)
+                    "could not find instanceRole {0}".format(cr["instanceRole"])
                 )
+
+            if int(cr["minvCpus"]) < 0:
+                raise InvalidParameterValueException("minvCpus must be positive")
+            if int(cr["maxvCpus"]) < int(cr["minvCpus"]):
+                raise InvalidParameterValueException(
+                    "maxVCpus must be greater than minvCpus"
+                )
+
+            if len(cr["instanceTypes"]) == 0:
+                raise InvalidParameterValueException(
+                    "At least 1 instance type must be provided"
+                )
+            for instance_type in cr["instanceTypes"]:
+                if instance_type == "optimal":
+                    pass  # Optimal should pick from latest of current gen
+                elif instance_type not in EC2_INSTANCE_TYPES:
+                    raise InvalidParameterValueException(
+                        "Instance type {0} does not exist".format(instance_type)
+                    )
 
         for sec_id in cr["securityGroupIds"]:
             if self.ec2_backend.get_security_group_from_id(sec_id) is None:
@@ -965,9 +954,9 @@ class BatchBackend(BaseBackend):
         if len(cr["subnets"]) == 0:
             raise InvalidParameterValueException("At least 1 subnet must be provided")
 
-        if cr["type"] not in ("EC2", "SPOT"):
+        if cr["type"] not in {"EC2", "SPOT", "FARGATE", "FARGATE_SPOT"}:
             raise InvalidParameterValueException(
-                "computeResources.type must be either EC2 | SPOT"
+                "computeResources.type must be either EC2 | SPOT | FARGATE | FARGATE_SPOT"
             )
 
     @staticmethod
