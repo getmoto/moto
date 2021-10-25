@@ -225,3 +225,23 @@ class MethodNotFoundException(NotFoundException):
         super(MethodNotFoundException, self).__init__(
             "NotFoundException", "Invalid Method identifier specified"
         )
+
+
+class InvalidBasePathException(BadRequestException):
+    code = 400
+
+    def __init__(self):
+        super(InvalidBasePathException, self).__init__(
+            "BadRequestException",
+            "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
+            "To create a multi-level base path mapping, use API Gateway V2.",
+        )
+
+
+class InvalidRestApiIdForBasePathMappingException(BadRequestException):
+    code = 400
+
+    def __init__(self):
+        super(InvalidRestApiIdForBasePathMappingException, self).__init__(
+            "BadRequestException", "Invalid REST API identifier specified"
+        )
