@@ -1,6 +1,53 @@
 Moto Changelog
 ===================
 
+2.2.11
+-----
+    General:
+        * Support for AWS China regions
+        * ECS now has an option to enable long-format ARNs, by setting the environment variable MOTO_ECS_NEW_ARN=true
+          Alternatively, use the `put_account_setting` to enable long-format for the current user.
+
+    New Services:
+        * Timestream:
+            * create_database()
+            * create_table()
+            * delete_database()
+            * delete_table()
+            * describe_database()
+            * describe_endpoints()
+            * describe_table()
+            * list_databases()
+            * list_tables()
+            * update_database()
+            * update_table()
+            * write_records()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_confirm_sign_up()
+            * update_user_pool()
+        * ECS:
+            * delete_account_setting()
+            * list_account_settings()
+            * put_account_setting()
+        * Route53:
+            * create_query_logging_config()
+            * delete_query_logging_config()
+            * get_query_logging_config()
+            * list_query_logging_config()
+        * SES
+            * describe_receipt_rule()
+            * get_identity_notification_attributes()
+            * set_identity_feedback_forwarding_enabled()
+
+    Miscellaneous:
+        * CloudFormation: Support create/update/delete of resource AWS::Logs::ResourcePolicy
+        * CloudFormation:get_template_summary() now returns the Parameters-attribute
+        * CognitoIDP: Allow the UserAttributes email or phone_number to be used as username
+        * CognitoIDP: Improved behaviour for the ForgotPassword()-feature 
+
+
 2.2.10
 ------
     New Services:
