@@ -435,7 +435,12 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         region = find_region_by_value("client_id", client_id)
-        response = cognitoidp_backends[region].forgot_password(client_id, username)
+        confirmation_code, response = cognitoidp_backends[region].forgot_password(
+            client_id, username
+        )
+        self.response_headers[
+            "x-moto-forgot-password-confirmation-code"
+        ] = confirmation_code
         return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening
@@ -446,9 +451,10 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
+        confirmation_code = self._get_param("ConfirmationCode")
         region = find_region_by_value("client_id", client_id)
         cognitoidp_backends[region].confirm_forgot_password(
-            client_id, username, password
+            client_id, username, password, confirmation_code
         )
         return ""
 
