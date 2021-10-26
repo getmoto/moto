@@ -406,7 +406,12 @@ def aws_api_matches(pattern, string, glob=False):
         glob: boolean controlling if this is a glob match (True) or and exact match (False)
     """
     if glob:
+        #* in the AWS glob form becomes .* in regex
+        #also, don't substitute it if it is prefixed w/ a backslash
         pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
+
+        #? in the AWS glob form becomes .? in regex
+        #also, don't substitute it if it is prefixed w/ a backslash
         pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
 
         pattern = ".*" + pattern + ".*"
@@ -415,7 +420,8 @@ def aws_api_matches(pattern, string, glob=False):
             return True
         return False
     else:
-        if pattern == str(string):
+        pattern = f'^{pattern}$'
+        if re.match(pattern, str(string)):
             return True
         else:
             print(f"NO MATCH: {pattern=} != {string=}")
