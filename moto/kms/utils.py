@@ -26,6 +26,23 @@ CIPHERTEXT_HEADER_FORMAT = ">{key_id_len}s{iv_len}s{tag_len}s".format(
 )
 Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
 
+RESERVED_ALIASES = [
+    "alias/aws/acm",
+    "alias/aws/dynamodb",
+    "alias/aws/ebs",
+    "alias/aws/elasticfilesystem",
+    "alias/aws/es",
+    "alias/aws/glue",
+    "alias/aws/kinesisvideo",
+    "alias/aws/lambda",
+    "alias/aws/rds",
+    "alias/aws/redshift",
+    "alias/aws/s3",
+    "alias/aws/secretsmanager",
+    "alias/aws/ssm",
+    "alias/aws/xray",
+]
+
 
 def generate_key_id():
     return str(uuid.uuid4())
