@@ -365,6 +365,30 @@
 - [X] validate_template
 </details>
 
+## cloudtrail
+<details>
+<summary>44% implemented</summary>
+
+- [ ] add_tags
+- [X] create_trail
+- [X] delete_trail
+- [X] describe_trails
+- [ ] get_event_selectors
+- [ ] get_insight_selectors
+- [X] get_trail
+- [X] get_trail_status
+- [ ] list_public_keys
+- [ ] list_tags
+- [X] list_trails
+- [ ] lookup_events
+- [ ] put_event_selectors
+- [ ] put_insight_selectors
+- [ ] remove_tags
+- [X] start_logging
+- [X] stop_logging
+- [ ] update_trail
+</details>
+
 ## cloudwatch
 <details>
 <summary>38% implemented</summary>
@@ -566,11 +590,11 @@
 
 ## cognito-idp
 <details>
-<summary>48% implemented</summary>
+<summary>52% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
-- [ ] admin_confirm_sign_up
+- [X] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
 - [ ] admin_delete_user_attributes
@@ -586,7 +610,7 @@
 - [X] admin_list_groups_for_user
 - [ ] admin_list_user_auth_events
 - [X] admin_remove_user_from_group
-- [ ] admin_reset_user_password
+- [X] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
 - [ ] admin_set_user_mfa_preference
 - [X] admin_set_user_password
@@ -623,7 +647,7 @@
 - [X] describe_user_pool_client
 - [X] describe_user_pool_domain
 - [ ] forget_device
-- [ ] forgot_password
+- [X] forgot_password
 - [ ] get_csv_header
 - [ ] get_device
 - [X] get_group
@@ -664,7 +688,7 @@
 - [X] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
-- [ ] update_user_pool
+- [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
 - [X] verify_software_token
@@ -995,6 +1019,7 @@
 - [ ] bundle_instance
 - [ ] cancel_bundle_task
 - [ ] cancel_capacity_reservation
+- [ ] cancel_capacity_reservation_fleets
 - [ ] cancel_conversion_task
 - [ ] cancel_export_task
 - [ ] cancel_import_task
@@ -1006,6 +1031,7 @@
 - [X] copy_image
 - [X] copy_snapshot
 - [ ] create_capacity_reservation
+- [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
@@ -1137,6 +1163,7 @@
 - [X] describe_availability_zones
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
 - [ ] describe_classic_link_instances
@@ -1327,6 +1354,7 @@
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
+- [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
 - [ ] modify_default_credit_specification
 - [ ] modify_ebs_default_kms_key_id
@@ -1480,13 +1508,13 @@
 
 ## ecs
 <details>
-<summary>67% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] create_capacity_provider
 - [X] create_cluster
 - [X] create_service
 - [X] create_task_set
-- [ ] delete_account_setting
+- [X] delete_account_setting
 - [X] delete_attributes
 - [ ] delete_capacity_provider
 - [X] delete_cluster
@@ -1503,7 +1531,7 @@
 - [X] describe_tasks
 - [ ] discover_poll_endpoint
 - [ ] execute_command
-- [ ] list_account_settings
+- [X] list_account_settings
 - [X] list_attributes
 - [X] list_clusters
 - [X] list_container_instances
@@ -1512,7 +1540,7 @@
 - [X] list_task_definition_families
 - [X] list_task_definitions
 - [X] list_tasks
-- [ ] put_account_setting
+- [X] put_account_setting
 - [ ] put_account_setting_default
 - [X] put_attributes
 - [ ] put_cluster_capacity_providers
@@ -2873,6 +2901,7 @@
 - [ ] batch_stop
 - [ ] batch_update_schedule
 - [ ] cancel_input_device_transfer
+- [ ] claim_device
 - [X] create_channel
 - [X] create_input
 - [ ] create_input_security_group
@@ -3473,16 +3502,16 @@
 
 ## route53
 <details>
-<summary>10% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
-- [ ] change_resource_record_sets
+- [X] change_resource_record_sets
 - [X] change_tags_for_resource
 - [X] create_health_check
 - [X] create_hosted_zone
 - [ ] create_key_signing_key
-- [ ] create_query_logging_config
+- [X] create_query_logging_config
 - [ ] create_reusable_delegation_set
 - [ ] create_traffic_policy
 - [ ] create_traffic_policy_instance
@@ -3492,7 +3521,7 @@
 - [X] delete_health_check
 - [X] delete_hosted_zone
 - [ ] delete_key_signing_key
-- [ ] delete_query_logging_config
+- [X] delete_query_logging_config
 - [ ] delete_reusable_delegation_set
 - [ ] delete_traffic_policy
 - [ ] delete_traffic_policy_instance
@@ -3512,18 +3541,18 @@
 - [X] get_hosted_zone
 - [ ] get_hosted_zone_count
 - [ ] get_hosted_zone_limit
-- [ ] get_query_logging_config
+- [X] get_query_logging_config
 - [ ] get_reusable_delegation_set
 - [ ] get_reusable_delegation_set_limit
 - [ ] get_traffic_policy
 - [ ] get_traffic_policy_instance
 - [ ] get_traffic_policy_instance_count
 - [ ] list_geo_locations
-- [ ] list_health_checks
-- [ ] list_hosted_zones
-- [ ] list_hosted_zones_by_name
+- [X] list_health_checks
+- [X] list_hosted_zones
+- [X] list_hosted_zones_by_name
 - [ ] list_hosted_zones_by_vpc
-- [ ] list_query_logging_configs
+- [X] list_query_logging_configs
 - [ ] list_resource_record_sets
 - [ ] list_reusable_delegation_sets
 - [X] list_tags_for_resource
@@ -3543,7 +3572,7 @@
 
 ## s3
 <details>
-<summary>56% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -3560,7 +3589,7 @@
 - [ ] delete_bucket_metrics_configuration
 - [ ] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
-- [ ] delete_bucket_replication
+- [X] delete_bucket_replication
 - [X] delete_bucket_tagging
 - [X] delete_bucket_website
 - [X] delete_object
@@ -3584,7 +3613,7 @@
 - [ ] get_bucket_ownership_controls
 - [X] get_bucket_policy
 - [ ] get_bucket_policy_status
-- [ ] get_bucket_replication
+- [X] get_bucket_replication
 - [ ] get_bucket_request_payment
 - [X] get_bucket_tagging
 - [X] get_bucket_versioning
@@ -3624,7 +3653,7 @@
 - [X] put_bucket_notification_configuration
 - [ ] put_bucket_ownership_controls
 - [X] put_bucket_policy
-- [ ] put_bucket_replication
+- [X] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
 - [ ] put_bucket_versioning
@@ -3919,7 +3948,7 @@
 
 ## ses
 <details>
-<summary>25% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -3943,13 +3972,13 @@
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
 - [ ] describe_configuration_set
-- [ ] describe_receipt_rule
+- [X] describe_receipt_rule
 - [ ] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
 - [ ] get_identity_dkim_attributes
 - [ ] get_identity_mail_from_domain_attributes
-- [ ] get_identity_notification_attributes
+- [X] get_identity_notification_attributes
 - [ ] get_identity_policies
 - [ ] get_identity_verification_attributes
 - [X] get_send_quota
@@ -3974,7 +4003,7 @@
 - [X] send_templated_email
 - [ ] set_active_receipt_rule_set
 - [ ] set_identity_dkim_enabled
-- [ ] set_identity_feedback_forwarding_enabled
+- [X] set_identity_feedback_forwarding_enabled
 - [ ] set_identity_headers_in_notifications_enabled
 - [ ] set_identity_mail_from_domain
 - [X] set_identity_notification_topic
@@ -4312,6 +4341,27 @@
 - [ ] untag_resource
 </details>
 
+## timestream-write
+<details>
+<summary>80% implemented</summary>
+
+- [X] create_database
+- [X] create_table
+- [X] delete_database
+- [X] delete_table
+- [X] describe_database
+- [X] describe_endpoints
+- [X] describe_table
+- [X] list_databases
+- [X] list_tables
+- [ ] list_tags_for_resource
+- [ ] tag_resource
+- [ ] untag_resource
+- [X] update_database
+- [X] update_table
+- [X] write_records
+</details>
+
 ## transcribe
 <details>
 <summary>41% implemented</summary>
@@ -4412,6 +4462,7 @@
 <details>
 
 - accessanalyzer
+- account
 - acm-pca
 - alexaforbusiness
 - amp
@@ -4438,13 +4489,13 @@
 - chime-sdk-identity
 - chime-sdk-messaging
 - cloud9
+- cloudcontrol
 - clouddirectory
 - cloudfront
 - cloudhsm
 - cloudhsmv2
 - cloudsearch
 - cloudsearchdomain
-- cloudtrail
 - codeartifact
 - codebuild
 - codedeploy
@@ -4488,6 +4539,7 @@
 - fsx
 - gamelift
 - globalaccelerator
+- grafana
 - greengrass
 - greengrassv2
 - groundstation
@@ -4555,6 +4607,7 @@
 - opensearch
 - opsworkscm
 - outposts
+- panorama
 - personalize
 - personalize-events
 - personalize-runtime
@@ -4607,12 +4660,13 @@
 - synthetics
 - textract
 - timestream-query
-- timestream-write
 - transfer
 - translate
+- voice-id
 - waf
 - waf-regional
 - wellarchitected
+- wisdom
 - workdocs
 - worklink
 - workmail

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import time
 import datetime
 
@@ -14,7 +12,7 @@ from boto.redshift.exceptions import (
 )
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 from moto import mock_ec2_deprecated
@@ -938,7 +936,7 @@ def test_create_invalid_cluster_subnet_group_boto3():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidSubnet")
-    err["Message"].should.match("Subnet \[[a-z0-9-']+\] not found.")
+    err["Message"].should.match(r"Subnet \[[a-z0-9-']+\] not found.")
 
 
 # Has boto3 equivalent

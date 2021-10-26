@@ -212,7 +212,7 @@ class CloudWatchResponse(BaseResponse):
     def list_metrics(self):
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
-        dimensions = self._get_multi_param("Dimensions.member")
+        dimensions = self._get_params().get("Dimensions", [])
         next_token = self._get_param("NextToken")
         next_token, metrics = self.cloudwatch_backend.list_metrics(
             next_token, namespace, metric_name, dimensions

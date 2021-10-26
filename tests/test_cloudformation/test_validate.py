@@ -1,24 +1,9 @@
-from collections import OrderedDict
 import json
-import yaml
-import os
 import boto3
 import botocore
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
-
-from moto.cloudformation.exceptions import ValidationError
-from moto.cloudformation.models import FakeStack
-from moto.cloudformation.parsing import (
-    resource_class_from_type,
-    parse_condition,
-    Export,
-)
-from moto.sqs.models import Queue
-from moto.s3.models import FakeBucket
-from moto.cloudformation.utils import yaml_tag_constructor
-from boto.cloudformation.stack import Output
-from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
+from moto import mock_cloudformation, mock_s3
 from tests import EXAMPLE_AMI_ID
 
 json_template = {

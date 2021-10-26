@@ -18,6 +18,17 @@ PAGINATION_MODEL = {
 }
 
 
+PAGINATION_MODEL = {
+    "list_shards": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 10000,
+        "page_ending_range_keys": ["ShardId"],
+        "fail_on_invalid_token": False,
+    },
+}
+
+
 def compose_new_shard_iterator(
     stream_name, shard, shard_iterator_type, starting_sequence_number, at_timestamp
 ):

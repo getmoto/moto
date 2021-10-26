@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 import json
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from moto import mock_dynamodb
 import moto.server as server

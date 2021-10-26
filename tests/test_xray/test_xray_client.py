@@ -1,6 +1,5 @@
-from __future__ import unicode_literals
 from moto import mock_xray_client, XRaySegment, mock_dynamodb2
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import boto3
 
 from moto.xray.mock_client import MockEmitter

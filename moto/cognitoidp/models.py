@@ -1,11 +1,10 @@
-from __future__ import unicode_literals
-
 import datetime
 import hashlib
 import json
 import os
 import time
 import uuid
+import enum
 from boto3 import Session
 from jose import jws
 from collections import OrderedDict
@@ -20,14 +19,22 @@ from .exceptions import (
     UserNotConfirmedException,
     InvalidParameterException,
 )
-from .utils import create_id, check_secret_hash, PAGINATION_MODEL
+from .utils import (
+    create_id,
+    check_secret_hash,
+    validate_username_format,
+    flatten_attrs,
+    expand_attrs,
+    PAGINATION_MODEL,
+)
 from moto.utilities.paginator import paginate
 
-UserStatus = {
-    "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
-    "CONFIRMED": "CONFIRMED",
-    "UNCONFIRMED": "UNCONFIRMED",
-}
+
+class UserStatus(str, enum.Enum):
+    FORCE_CHANGE_PASSWORD = "FORCE_CHANGE_PASSWORD"
+    CONFIRMED = "CONFIRMED"
+    UNCONFIRMED = "UNCONFIRMED"
+    RESET_REQUIRED = "RESET_REQUIRED"
 
 
 class CognitoIdpUserPool(BaseModel):
@@ -61,6 +68,19 @@ class CognitoIdpUserPool(BaseModel):
         ) as f:
             self.json_web_key = json.loads(f.read())
 
+    def _account_recovery_setting(self):
+        # AccountRecoverySetting is not present in DescribeUserPool response if the pool was created without
+        # specifying it, ForgotPassword works on default settings nonetheless
+        return self.extended_config.get(
+            "AccountRecoverySetting",
+            {
+                "RecoveryMechanisms": [
+                    {"Priority": 1, "Name": "verified_phone_number"},
+                    {"Priority": 2, "Name": "verified_email"},
+                ]
+            },
+        )
+
     def _base_json(self):
         return {
             "Id": self.id,
@@ -70,6 +90,7 @@ class CognitoIdpUserPool(BaseModel):
             "CreationDate": time.mktime(self.creation_date.timetuple()),
             "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
             "MfaConfiguration": self.mfa_config,
+            "EstimatedNumberOfUsers": len(self.users),
         }
 
     def to_json(self, extended=False):
@@ -83,6 +104,20 @@ class CognitoIdpUserPool(BaseModel):
 
         return user_pool_json
 
+    def _get_user(self, username):
+        """Find a user within a user pool by Username or any UsernameAttributes
+        (`email` or `phone_number` or both)"""
+        if self.extended_config.get("UsernameAttributes"):
+            attribute_types = self.extended_config["UsernameAttributes"]
+            for user in self.users.values():
+                if username in [
+                    flatten_attrs(user.attributes).get(attribute_type)
+                    for attribute_type in attribute_types
+                ]:
+                    return user
+
+        return self.users.get(username)
+
     def create_jwt(
         self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
     ):
@@ -91,12 +126,12 @@ class CognitoIdpUserPool(BaseModel):
             "iss": "https://cognito-idp.{}.amazonaws.com/{}".format(
                 self.region, self.id
             ),
-            "sub": self.users[username].id,
+            "sub": self._get_user(username).id,
             "aud": client_id,
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
-            "email": self.users[username].username,
+            "email": flatten_attrs(self._get_user(username).attributes).get("email"),
         }
         payload.update(extra_data)
         headers = {"kid": "dummy"}  # KID as present in jwks-public.json
@@ -141,7 +176,7 @@ class CognitoIdpUserPool(BaseModel):
                 attribute = list(
                     filter(
                         lambda f: f["Name"] == readable_field,
-                        self.users.get(username).attributes,
+                        self._get_user(username).attributes,
                     )
                 )
                 if len(attribute) > 0:
@@ -262,11 +297,14 @@ class CognitoIdpUser(BaseModel):
     def __init__(self, user_pool_id, username, password, status, attributes):
         self.id = str(uuid.uuid4())
         self.user_pool_id = user_pool_id
-        self.username = username
+        # Username is None when users sign up with an email or phone_number,
+        # and should be given the value of the internal id generate (sub)
+        self.username = username if username else self.id
         self.password = password
         self.status = status
         self.enabled = True
         self.attributes = attributes
+        self.attribute_lookup = flatten_attrs(attributes)
         self.create_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
         self.sms_mfa_enabled = False
@@ -276,6 +314,8 @@ class CognitoIdpUser(BaseModel):
         # Groups this user is a member of.
         # Note that these links are bidirectional.
         self.groups = set()
+
+        self.update_attributes([{"Name": "sub", "Value": self.id}])
 
     def _base_json(self):
         return {
@@ -307,14 +347,9 @@ class CognitoIdpUser(BaseModel):
         return user_json
 
     def update_attributes(self, new_attributes):
-        def flatten_attrs(attrs):
-            return {attr["Name"]: attr["Value"] for attr in attrs}
-
-        def expand_attrs(attrs):
-            return [{"Name": k, "Value": v} for k, v in attrs.items()]
-
         flat_attributes = flatten_attrs(self.attributes)
         flat_attributes.update(flatten_attrs(new_attributes))
+        self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
 
 
@@ -383,9 +418,13 @@ class CognitoIdpBackend(BaseBackend):
     def describe_user_pool(self, user_pool_id):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+            raise ResourceNotFoundError(f"User pool {user_pool_id} does not exist.")
 
         return user_pool
+
+    def update_user_pool(self, user_pool_id, extended_config):
+        user_pool = self.describe_user_pool(user_pool_id)
+        user_pool.extended_config = extended_config
 
     def delete_user_pool(self, user_pool_id):
         if user_pool_id not in self.user_pools:
@@ -597,6 +636,25 @@ class CognitoIdpBackend(BaseBackend):
         group.users.discard(user)
         user.groups.discard(group)
 
+    def admin_reset_user_password(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        if not user.enabled:
+            raise NotAuthorizedError("User is disabled")
+        if user.status is UserStatus.RESET_REQUIRED:
+            return
+        if user.status is not UserStatus.CONFIRMED:
+            raise NotAuthorizedError(
+                "User password cannot be reset in the current state."
+            )
+        if (
+            user.attribute_lookup.get("email_verified", "false") == "false"
+            and user.attribute_lookup.get("phone_number_verified", "false") == "false"
+        ):
+            raise InvalidParameterException(
+                "Cannot reset password for the user as there is no registered/verified email or phone_number"
+            )
+        user.status = UserStatus.RESET_REQUIRED
+
     # User
     def admin_create_user(
         self, user_pool_id, username, message_action, temporary_password, attributes
@@ -606,41 +664,94 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(user_pool_id)
 
         if message_action and message_action == "RESEND":
-            if username not in user_pool.users:
+            if not user_pool._get_user(username):
                 raise UserNotFoundError(username)
-        elif username in user_pool.users:
+        elif user_pool._get_user(username):
             raise UsernameExistsException(username)
+
+        # UsernameAttributes are attributes (either `email` or `phone_number`
+        # or both) than can be used in the place of a unique username. If the
+        # user provides an email or phone number when signing up, the user pool
+        # performs the following steps:
+        # 1. populates the correct field (email, phone_number) with the value
+        #    supplied for Username
+        # 2. generates a persistent GUID for the user that will be returned as
+        #    the value of `Username` in the `get-user` and `list-users`
+        #    operations, as well as the value of `sub` in `IdToken` and
+        #    `AccessToken`
+        #
+        # ref: https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html#user-pool-settings-aliases-settings
+        if user_pool.extended_config.get("UsernameAttributes"):
+            username_attributes = user_pool.extended_config["UsernameAttributes"]
+            # attribute_type should be one of `email`, `phone_number` or both
+            for attribute_type in username_attributes:
+                # check if provided username matches one of the attribute types in
+                # `UsernameAttributes`
+                if attribute_type in username_attributes and validate_username_format(
+                    username, _format=attribute_type
+                ):
+                    # insert provided username into new user's attributes under the
+                    # correct key
+                    flattened_attrs = flatten_attrs(attributes or {})
+                    flattened_attrs.update({attribute_type: username})
+                    attributes = expand_attrs(flattened_attrs)
+                    # set username to None so that it will be default to the internal GUID
+                    # when them user gets created
+                    username = None
+                    # once the username has been validated against a username attribute
+                    # type, there is no need to attempt validation against the other
+                    # type(s)
+                    break
+
+            # The provided username has not matched the required format for any
+            # of the possible attributes
+            if username is not None:
+                raise InvalidParameterException(
+                    "Username should be either an email or a phone number."
+                )
 
         user = CognitoIdpUser(
             user_pool_id,
             username,
             temporary_password,
-            UserStatus["FORCE_CHANGE_PASSWORD"],
+            UserStatus.FORCE_CHANGE_PASSWORD,
             attributes,
         )
 
         user_pool.users[user.username] = user
         return user
 
+    def admin_confirm_sign_up(self, user_pool_id, username):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(f"User pool {user_pool_id} does not exist.")
+
+        user = user_pool._get_user(username)
+        if not user:
+            raise UserNotFoundError(f"User does not exist.")
+
+        user.status = UserStatus["CONFIRMED"]
+        return ""
+
     def admin_get_user(self, user_pool_id, username):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        if username not in user_pool.users:
+        user = user_pool._get_user(username)
+        if not user:
             raise UserNotFoundError(username)
-
-        return user_pool.users[username]
+        return user
 
     def get_user(self, access_token):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
-                user = user_pool.users.get(username)
+                user = user_pool._get_user(username)
                 if (
                     not user
                     or not user.enabled
-                    or user.status != UserStatus["CONFIRMED"]
+                    or user.status is not UserStatus.CONFIRMED
                 ):
                     raise NotAuthorizedError("username")
                 return user
@@ -667,14 +778,15 @@ class CognitoIdpBackend(BaseBackend):
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        if username not in user_pool.users:
+        user = user_pool._get_user(username)
+        if not user:
             raise UserNotFoundError(username)
 
-        user = user_pool.users[username]
         for group in user.groups:
             group.users.remove(user)
 
-        del user_pool.users[username]
+        # use internal username
+        del user_pool.users[user.username]
 
     def _log_user_in(self, user_pool, client, username):
         refresh_token = user_pool.create_refresh_token(client.id, username)
@@ -703,14 +815,17 @@ class CognitoIdpBackend(BaseBackend):
         if auth_flow in ("ADMIN_USER_PASSWORD_AUTH", "ADMIN_NO_SRP_AUTH"):
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
-            user = user_pool.users.get(username)
+            user = user_pool._get_user(username)
             if not user:
                 raise UserNotFoundError(username)
 
             if user.password != password:
                 raise NotAuthorizedError(username)
 
-            if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
+            if user.status in [
+                UserStatus.FORCE_CHANGE_PASSWORD,
+                UserStatus.RESET_REQUIRED,
+            ]:
                 session = str(uuid.uuid4())
                 self.sessions[session] = user_pool
 
@@ -756,18 +871,18 @@ class CognitoIdpBackend(BaseBackend):
         if challenge_name == "NEW_PASSWORD_REQUIRED":
             username = challenge_responses.get("USERNAME")
             new_password = challenge_responses.get("NEW_PASSWORD")
-            user = user_pool.users.get(username)
+            user = user_pool._get_user(username)
             if not user:
                 raise UserNotFoundError(username)
 
             user.password = new_password
-            user.status = UserStatus["CONFIRMED"]
+            user.status = UserStatus.CONFIRMED
             del self.sessions[session]
 
             return self._log_user_in(user_pool, client, username)
         elif challenge_name == "PASSWORD_VERIFIER":
             username = challenge_responses.get("USERNAME")
-            user = user_pool.users.get(username)
+            user = user_pool._get_user(username)
             if not user:
                 raise UserNotFoundError(username)
 
@@ -803,7 +918,7 @@ class CognitoIdpBackend(BaseBackend):
             return self._log_user_in(user_pool, client, username)
         elif challenge_name == "SOFTWARE_TOKEN_MFA":
             username = challenge_responses.get("USERNAME")
-            user = user_pool.users.get(username)
+            user = user_pool._get_user(username)
             if not user:
                 raise UserNotFoundError(username)
 
@@ -826,17 +941,56 @@ class CognitoIdpBackend(BaseBackend):
 
     def confirm_forgot_password(self, client_id, username, password):
         for user_pool in self.user_pools.values():
-            if client_id in user_pool.clients and username in user_pool.users:
-                user_pool.users[username].password = password
+            if client_id in user_pool.clients and user_pool._get_user(username):
+                user_pool._get_user(username).password = password
                 break
         else:
             raise ResourceNotFoundError(client_id)
+
+    def forgot_password(self, client_id, username):
+        """The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
+            Otherwise you get semi-random garbage and HTTP 200 OK, for example:
+            - recovery for username which is not registered in any cognito pool
+            - recovery for username belonging to a different user pool than the client id is registered to
+            - phone-based recovery for a user without phone_number / phone_number_verified attributes
+            - same as above, but email / email_verified
+        """
+        for user_pool in self.user_pools.values():
+            if client_id in user_pool.clients:
+                recovery_settings = user_pool._account_recovery_setting()
+                user = user_pool._get_user(username)
+                break
+        else:
+            raise ResourceNotFoundError("Username/client id combination not found.")
+
+        code_delivery_details = {
+            "Destination": username + "@h***.com"
+            if not user
+            else user.attribute_lookup.get("email", username + "@h***.com"),
+            "DeliveryMedium": "EMAIL",
+            "AttributeName": "email",
+        }
+        selected_recovery = min(
+            recovery_settings["RecoveryMechanisms"],
+            key=lambda recovery_mechanism: recovery_mechanism["Priority"],
+        )
+        if selected_recovery["Name"] == "admin_only":
+            raise NotAuthorizedError("Contact administrator to reset password.")
+        if selected_recovery["Name"] == "verified_phone_number":
+            code_delivery_details = {
+                "Destination": "+*******9934"
+                if not user
+                else user.attribute_lookup.get("phone_number", "+*******9934"),
+                "DeliveryMedium": "SMS",
+                "AttributeName": "phone_number",
+            }
+        return {"CodeDeliveryDetails": code_delivery_details}
 
     def change_password(self, access_token, previous_password, proposed_password):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
-                user = user_pool.users.get(username)
+                user = user_pool._get_user(username)
                 if not user:
                     raise UserNotFoundError(username)
 
@@ -844,8 +998,11 @@ class CognitoIdpBackend(BaseBackend):
                     raise NotAuthorizedError(username)
 
                 user.password = proposed_password
-                if user.status == UserStatus["FORCE_CHANGE_PASSWORD"]:
-                    user.status = UserStatus["CONFIRMED"]
+                if user.status in [
+                    UserStatus.FORCE_CHANGE_PASSWORD,
+                    UserStatus.RESET_REQUIRED,
+                ]:
+                    user.status = UserStatus.CONFIRMED
 
                 break
         else:
@@ -856,10 +1013,10 @@ class CognitoIdpBackend(BaseBackend):
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        if username not in user_pool.users:
+        user = user_pool._get_user(username)
+        if not user:
             raise UserNotFoundError(username)
 
-        user = user_pool.users[username]
         user.update_attributes(attributes)
 
     def admin_user_global_sign_out(self, user_pool_id, username):
@@ -867,7 +1024,8 @@ class CognitoIdpBackend(BaseBackend):
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        if username not in user_pool.users:
+        user = user_pool._get_user(username)
+        if not user:
             raise UserNotFoundError(username)
 
         for token, token_tuple in list(user_pool.refresh_tokens.items()):
@@ -896,15 +1054,56 @@ class CognitoIdpBackend(BaseBackend):
                 user_pool = p
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
-        elif username in user_pool.users:
+        elif user_pool._get_user(username):
             raise UsernameExistsException(username)
+
+        # UsernameAttributes are attributes (either `email` or `phone_number`
+        # or both) than can be used in the place of a unique username. If the
+        # user provides an email or phone number when signing up, the user pool
+        # performs the following steps:
+        # 1. populates the correct field (email, phone_number) with the value
+        #    supplied for Username
+        # 2. generates a persistent GUID for the user that will be returned as
+        #    the value of `Username` in the `get-user` and `list-users`
+        #    operations, as well as the value of `sub` in `IdToken` and
+        #    `AccessToken`
+        #
+        # ref: https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html#user-pool-settings-aliases-settings
+        if user_pool.extended_config.get("UsernameAttributes"):
+            username_attributes = user_pool.extended_config["UsernameAttributes"]
+            # attribute_type should be one of `email`, `phone_number` or both
+            for attribute_type in username_attributes:
+                # check if provided username matches one of the attribute types in
+                # `UsernameAttributes`
+                if attribute_type in username_attributes and validate_username_format(
+                    username, _format=attribute_type
+                ):
+                    # insert provided username into new user's attributes under the
+                    # correct key
+                    flattened_attrs = flatten_attrs(attributes or {})
+                    flattened_attrs.update({attribute_type: username})
+                    attributes = expand_attrs(flattened_attrs)
+                    # set username to None so that it will be default to the internal GUID
+                    # when them user gets created
+                    username = None
+                    # once the username has been validated against a username attribute
+                    # type, there is no need to attempt validation against the other
+                    # type(s)
+                    break
+
+            # The provided username has not matched the required format for any
+            # of the possible attributes
+            if username is not None:
+                raise InvalidParameterException(
+                    "Username should be either an email or a phone number."
+                )
 
         user = CognitoIdpUser(
             user_pool_id=user_pool.id,
             username=username,
             password=password,
             attributes=attributes,
-            status=UserStatus["UNCONFIRMED"],
+            status=UserStatus.UNCONFIRMED,
         )
         user_pool.users[user.username] = user
         return user
@@ -917,11 +1116,11 @@ class CognitoIdpBackend(BaseBackend):
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
 
-        if username not in user_pool.users:
+        user = user_pool._get_user(username)
+        if not user:
             raise UserNotFoundError(username)
 
-        user = user_pool.users[username]
-        user.status = UserStatus["CONFIRMED"]
+        user.status = UserStatus.CONFIRMED
         return ""
 
     def initiate_auth(self, client_id, auth_flow, auth_parameters):
@@ -946,11 +1145,11 @@ class CognitoIdpBackend(BaseBackend):
                 ):
                     raise NotAuthorizedError(secret_hash)
 
-            user = user_pool.users.get(username)
+            user = user_pool._get_user(username)
             if not user:
                 raise UserNotFoundError(username)
 
-            if user.status == UserStatus["UNCONFIRMED"]:
+            if user.status is UserStatus.UNCONFIRMED:
                 raise UserNotConfirmedException("User is not confirmed.")
 
             session = str(uuid.uuid4())
@@ -971,7 +1170,7 @@ class CognitoIdpBackend(BaseBackend):
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
 
-            user = user_pool.users.get(username)
+            user = user_pool._get_user(username)
 
             if not user:
                 raise UserNotFoundError(username)
@@ -979,7 +1178,7 @@ class CognitoIdpBackend(BaseBackend):
             if user.password != password:
                 raise NotAuthorizedError("Incorrect username or password.")
 
-            if user.status == UserStatus["UNCONFIRMED"]:
+            if user.status is UserStatus.UNCONFIRMED:
                 raise UserNotConfirmedException("User is not confirmed.")
 
             session = str(uuid.uuid4())
@@ -1039,7 +1238,7 @@ class CognitoIdpBackend(BaseBackend):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
-                user = user_pool.users.get(username)
+                user = user_pool._get_user(username)
                 if not user:
                     raise UserNotFoundError(username)
 
@@ -1051,7 +1250,7 @@ class CognitoIdpBackend(BaseBackend):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
-                user = user_pool.users.get(username)
+                user = user_pool._get_user(username)
                 if not user:
                     raise UserNotFoundError(username)
 
@@ -1067,7 +1266,7 @@ class CognitoIdpBackend(BaseBackend):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
-                user = user_pool.users.get(username)
+                user = user_pool._get_user(username)
                 if not user:
                     raise UserNotFoundError(username)
 
@@ -1090,9 +1289,9 @@ class CognitoIdpBackend(BaseBackend):
         user = self.admin_get_user(user_pool_id, username)
         user.password = password
         if permanent:
-            user.status = UserStatus["CONFIRMED"]
+            user.status = UserStatus.CONFIRMED
         else:
-            user.status = UserStatus["FORCE_CHANGE_PASSWORD"]
+            user.status = UserStatus.FORCE_CHANGE_PASSWORD
 
 
 cognitoidp_backends = {}

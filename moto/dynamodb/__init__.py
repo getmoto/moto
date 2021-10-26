@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .models import dynamodb_backend
 
 dynamodb_backends = {"global": dynamodb_backend}

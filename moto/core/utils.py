@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from functools import wraps
 
 import binascii
@@ -315,30 +314,6 @@ def path_url(url):
     if parsed_url.query:
         path = path + "?" + parsed_url.query
     return path
-
-
-def py2_strip_unicode_keys(blob):
-    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
-    if type(blob) == unicode:  # noqa
-        return str(blob)
-
-    elif type(blob) == dict:
-        for key in list(blob.keys()):
-            value = blob.pop(key)
-            blob[str(key)] = py2_strip_unicode_keys(value)
-
-    elif type(blob) == list:
-        for i in range(0, len(blob)):
-            blob[i] = py2_strip_unicode_keys(blob[i])
-
-    elif type(blob) == set:
-        new_set = set()
-        for value in blob:
-            new_set.add(py2_strip_unicode_keys(value))
-
-        blob = new_set
-
-    return blob
 
 
 def tags_from_query_string(

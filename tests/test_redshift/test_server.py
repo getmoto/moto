@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
+import sure  # noqa # pylint: disable=unused-import
 import json
 import pytest
-import sure  # noqa
 import xmltodict
 
 import moto.server as server

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from functools import wraps
 from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment

@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 default_frameworkconfiguration = {"Fabric": {"Edition": "STARTER"}}
 
 default_votingpolicy = {

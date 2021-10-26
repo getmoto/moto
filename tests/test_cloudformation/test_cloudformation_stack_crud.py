@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import os
 import json
 
@@ -10,8 +8,8 @@ import boto.s3
 import boto.s3.key
 import boto.cloudformation
 from boto.exception import BotoServerError
+import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
-import sure  # noqa
 
 import pytest
 

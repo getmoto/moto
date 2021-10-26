@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
-
 import json
 import os
+import re
 
 from moto.core.responses import BaseResponse
 from .models import cognitoidp_backends, find_region_by_value, UserStatus
@@ -70,6 +69,10 @@ class CognitoIdpResponse(BaseResponse):
         user_pool_id = self._get_param("UserPoolId")
         user_pool = cognitoidp_backends[self.region].describe_user_pool(user_pool_id)
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
+
+    def update_user_pool(self):
+        user_pool_id = self._get_param("UserPoolId")
+        cognitoidp_backends[self.region].update_user_pool(user_pool_id, self.parameters)
 
     def delete_user_pool(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -291,6 +294,14 @@ class CognitoIdpResponse(BaseResponse):
 
         return ""
 
+    def admin_reset_user_password(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_reset_user_password(
+            user_pool_id, username
+        )
+        return ""
+
     # User
     def admin_create_user(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -306,6 +317,13 @@ class CognitoIdpResponse(BaseResponse):
         )
 
         return json.dumps({"User": user.to_json(extended=True)})
+
+    def admin_confirm_sign_up(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        return cognitoidp_backends[self.region].admin_confirm_sign_up(
+            user_pool_id, username
+        )
 
     def admin_get_user(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -332,18 +350,39 @@ class CognitoIdpResponse(BaseResponse):
                 "status": lambda u: "Enabled" if u.enabled else "Disabled",
                 "username": lambda u: u.username,
             }
-            name, value = filt.replace('"', "").replace(" ", "").split("=")
+            comparisons = {"=": lambda x, y: x == y, "^=": lambda x, y: x.startswith(y)}
+            allowed_attributes = [
+                "username",
+                "email",
+                "phone_number",
+                "name",
+                "given_name",
+                "family_name",
+                "preferred_username",
+                "cognito:user_status",
+                "status",
+                "sub",
+            ]
+
+            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
+            if match:
+                name, op, value = match.groups()
+            else:
+                raise InvalidParameterException("Error while parsing filter")
+            if name not in allowed_attributes:
+                raise InvalidParameterException(f"Invalid search attribute: {name}")
+            compare = comparisons[op]
             users = [
                 user
                 for user in users
                 if [
                     attr
                     for attr in user.attributes
-                    if attr["Name"] == name and attr["Value"] == value
+                    if attr["Name"] == name and compare(attr["Value"], value)
                 ]
                 or (
                     name in inherent_attributes
-                    and inherent_attributes[name](user) == value
+                    and compare(inherent_attributes[name](user), value)
                 )
             ]
         response = {"Users": [user.to_json(extended=True) for user in users]}
@@ -393,9 +432,11 @@ class CognitoIdpResponse(BaseResponse):
         return json.dumps(auth_result)
 
     def forgot_password(self):
-        return json.dumps(
-            {"CodeDeliveryDetails": {"DeliveryMedium": "EMAIL", "Destination": "..."}}
-        )
+        client_id = self._get_param("ClientId")
+        username = self._get_param("Username")
+        region = find_region_by_value("client_id", client_id)
+        response = cognitoidp_backends[region].forgot_password(client_id, username)
+        return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening
     # on localhost (doesn't get a region in the host header), it doesn't know what

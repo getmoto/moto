@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import boto
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
 from moto.core import ACCOUNT_ID
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
 # Has boto3 equivalent

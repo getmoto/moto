@@ -1,6 +1,82 @@
 Moto Changelog
 ===================
 
+2.2.11
+-----
+    General:
+        * Support for AWS China regions
+        * ECS now has an option to enable long-format ARNs, by setting the environment variable MOTO_ECS_NEW_ARN=true
+          Alternatively, use the `put_account_setting` to enable long-format for the current user.
+
+    New Services:
+        * Timestream:
+            * create_database()
+            * create_table()
+            * delete_database()
+            * delete_table()
+            * describe_database()
+            * describe_endpoints()
+            * describe_table()
+            * list_databases()
+            * list_tables()
+            * update_database()
+            * update_table()
+            * write_records()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_confirm_sign_up()
+            * update_user_pool()
+        * ECS:
+            * delete_account_setting()
+            * list_account_settings()
+            * put_account_setting()
+        * Route53:
+            * create_query_logging_config()
+            * delete_query_logging_config()
+            * get_query_logging_config()
+            * list_query_logging_config()
+        * SES
+            * describe_receipt_rule()
+            * get_identity_notification_attributes()
+            * set_identity_feedback_forwarding_enabled()
+
+    Miscellaneous:
+        * CloudFormation: Support create/update/delete of resource AWS::Logs::ResourcePolicy
+        * CloudFormation:get_template_summary() now returns the Parameters-attribute
+        * CognitoIDP: Allow the UserAttributes email or phone_number to be used as username
+        * CognitoIDP: Improved behaviour for the ForgotPassword()-feature 
+
+
+2.2.10
+------
+    New Services:
+        * CloudTrail:
+            * create_trail()
+            * delete_trail()
+            * describe_trails()
+            * get_trail()
+            * get_trail_status()
+            * list_trails()
+            * start_logging()
+            * stop_logging()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_reset_user_password()
+        * S3:
+            * delete_bucket_replication()
+            * get_bucket_replication()
+            * put_bucket_replication()
+
+    Miscellaneous:
+        * ACM: describe_certificate(): the InUseBy-attribute will now show the appropriate Elastic Load Balancers 
+        * AWSLambda: If you're running Linux, 'host.docker.internal' is now added as an extra host in the Docker container used to invoke the function.
+                     This makes it easier for Lambda-functions to communicate with other servers running on the host-system.
+        * CloudFormation: Now supports update/deletion of type AWS::SNS::Topic
+        * CognitoIdentityProvider: list_users() now has improved support for the Filter-parameter
+        * Kinesis: describe_stream() now supports the Filter-parameter
+        * S3: list_object_versions() now supports the Delimiter and KeyMarker-parameter
 
 2.2.9
 -----
@@ -8,7 +84,7 @@ Moto Changelog
         * Moto is now compatible with Sure 2.x
 
     New Methods:
-        * Kinesis
+        * Kinesis:
             * list_shards()
         * RDS:
             * create_db_cluster()

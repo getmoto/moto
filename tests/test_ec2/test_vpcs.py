@@ -1,14 +1,11 @@
-from __future__ import unicode_literals
-
 import pytest
-from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
 
 import boto3
 import boto
 from boto.exception import EC2ResponseError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import random
 
 from moto import mock_ec2, mock_ec2_deprecated
@@ -186,7 +183,7 @@ def test_vpc_state_available_filter_boto3():
     [v["VpcId"] for v in available].should.contain(vpc2.id)
 
 
-def retrieve_all_vpcs(client, filters=[]):
+def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_vpcs(Filters=filters)
     all_vpcs = resp["Vpcs"]
     token = resp.get("NextToken")
@@ -1020,7 +1017,7 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
 
     vpc_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
-        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+        ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateVpc "
         "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
@@ -1035,7 +1032,7 @@ def test_create_vpc_with_invalid_cidr_range():
 
     vpc_cidr_block = "10.1.0.0/29"
     with pytest.raises(ClientError) as ex:
-        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+        ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
         "operation: The CIDR '{}' is invalid.".format(vpc_cidr_block)
@@ -1296,3 +1293,16 @@ def test_delete_vpc_end_points():
         "VpcEndpoints"
     ][0]
     ep2["State"].should.equal("available")
+
+
+@mock_ec2
+def test_describe_vpcs_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_vpcs(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
+    )

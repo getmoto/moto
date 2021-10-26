@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -9,6 +7,32 @@ from moto import mock_cognitoidentity
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import ACCOUNT_ID
 from uuid import UUID
+
+
+@mock_cognitoidentity
+@pytest.mark.parametrize("name", ["pool#name", "with!excl", "with?quest"])
+def test_create_identity_pool_invalid_name(name):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    with pytest.raises(ClientError) as exc:
+        conn.create_identity_pool(
+            IdentityPoolName=name, AllowUnauthenticatedIdentities=False
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"1 validation error detected: Value '{name}' at 'identityPoolName' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w\\s+=,.@-]+"
+    )
+
+
+@mock_cognitoidentity
+@pytest.mark.parametrize("name", ["x", "pool-", "pool_name", "with space"])
+def test_create_identity_pool_valid_name(name):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    conn.create_identity_pool(
+        IdentityPoolName=name, AllowUnauthenticatedIdentities=False
+    )
 
 
 @mock_cognitoidentity
@@ -123,9 +147,9 @@ def test_describe_identity_pool_with_invalid_id_raises_error():
 # testing a helper function
 def test_get_random_identity_id():
     identity_id = get_random_identity_id("us-west-2")
-    region, id = identity_id.split(":")
+    region, identity_id = identity_id.split(":")
     region.should.equal("us-west-2")
-    UUID(id, version=4)  # Will throw an error if it's not a valid UUID
+    UUID(identity_id, version=4)  # Will throw an error if it's not a valid UUID
 
 
 @mock_cognitoidentity

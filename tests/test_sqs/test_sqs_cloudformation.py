@@ -1,7 +1,7 @@
 import boto3
 
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_sqs, mock_cloudformation
 from moto.core import ACCOUNT_ID
 from string import Template

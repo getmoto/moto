@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from collections import defaultdict
 
 from moto.core import ACCOUNT_ID, BaseModel

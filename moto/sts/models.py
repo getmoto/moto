@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from base64 import b64decode
 import datetime
 import xmltodict

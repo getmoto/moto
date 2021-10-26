@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
 import email
 
 import boto
 from boto.exception import BotoServerError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ses_deprecated
 

@@ -1,9 +1,6 @@
-# coding=utf-8
-
-from __future__ import unicode_literals
 import io
 from urllib.parse import urlparse, parse_qs
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 from flask.testing import FlaskClient
 import moto.server as server

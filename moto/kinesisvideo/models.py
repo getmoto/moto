@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime

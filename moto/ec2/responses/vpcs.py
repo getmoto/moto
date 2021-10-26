@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -40,6 +39,7 @@ class VPCs(BaseResponse):
         return template.render(vpc=vpc)
 
     def describe_vpcs(self):
+        self.error_on_dryrun()
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)

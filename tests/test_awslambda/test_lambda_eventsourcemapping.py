@@ -3,7 +3,7 @@ import boto3
 import json
 import pytest
 import time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import uuid
 
 from moto import (

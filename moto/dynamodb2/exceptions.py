@@ -204,3 +204,10 @@ class UpdateHashRangeKeyException(MockValidationException):
 
     def __init__(self, key_name):
         super(UpdateHashRangeKeyException, self).__init__(self.msg.format(key_name))
+
+
+class TooManyAddClauses(InvalidUpdateExpression):
+    msg = 'The "ADD" section can only be used once in an update expression;'
+
+    def __init__(self):
+        super(TooManyAddClauses, self).__init__(self.msg)

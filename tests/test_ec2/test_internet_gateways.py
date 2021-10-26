@@ -1,8 +1,4 @@
-from __future__ import unicode_literals
-
 import pytest
-
-import re
 
 import boto
 import boto3
@@ -10,7 +6,7 @@ import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2_deprecated, mock_ec2
 from uuid import uuid4
@@ -325,7 +321,7 @@ def test_igw_detach_unattached_boto3():
 def test_igw_delete():
     """internet gateway delete"""
     conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc(VPC_CIDR)
+    conn.create_vpc(VPC_CIDR)
     conn.get_all_internet_gateways().should.have.length_of(0)
     igw = conn.create_internet_gateway()
     conn.get_all_internet_gateways().should.have.length_of(1)
@@ -448,7 +444,7 @@ def test_igw_filter_by_vpc_id():
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw1.id, vpc.id)
 
@@ -482,7 +478,7 @@ def test_igw_filter_by_tags():
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
     igw1.add_tag("tests", "yes")
 
     result = conn.get_all_internet_gateways(filters={"tag:tests": "yes"})
@@ -497,7 +493,7 @@ def test_igw_filter_by_tags_boto3():
     client = boto3.client("ec2", "us-west-1")
 
     igw1 = ec2.create_internet_gateway()
-    igw2 = ec2.create_internet_gateway()
+    ec2.create_internet_gateway()
     tag_value = str(uuid4())
     igw1.create_tags(Tags=[{"Key": "tests", "Value": tag_value}])
 
@@ -513,7 +509,7 @@ def test_igw_filter_by_internet_gateway_id():
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
 
     result = conn.get_all_internet_gateways(filters={"internet-gateway-id": igw1.id})
     result.should.have.length_of(1)
@@ -527,7 +523,7 @@ def test_igw_filter_by_internet_gateway_id_boto3():
     client = boto3.client("ec2", "us-west-1")
 
     igw1 = ec2.create_internet_gateway()
-    igw2 = ec2.create_internet_gateway()
+    ec2.create_internet_gateway()
 
     result = client.describe_internet_gateways(
         Filters=[{"Name": "internet-gateway-id", "Values": [igw1.id]}]
@@ -543,7 +539,7 @@ def test_igw_filter_by_attachment_state():
     conn = boto.connect_vpc("the_key", "the_secret")
 
     igw1 = conn.create_internet_gateway()
-    igw2 = conn.create_internet_gateway()
+    conn.create_internet_gateway()
     vpc = conn.create_vpc(VPC_CIDR)
     conn.attach_internet_gateway(igw1.id, vpc.id)
 
@@ -585,7 +581,7 @@ def test_create_internet_gateway_with_tags():
     igw.tags.should.equal([{"Key": "test", "Value": "TestRouteTable"}])
 
 
-def retrieve_all(client, filters=[]):
+def retrieve_all(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_internet_gateways(Filters=filters)
     all_igws = resp["InternetGateways"]
     token = resp.get("NextToken")

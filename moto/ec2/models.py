@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import copy
 from datetime import datetime
 import itertools
@@ -272,7 +270,7 @@ class TaggedEC2Resource(BaseModel):
 
         value = getattr(self, filter_name.lower().replace("-", "_"), None)
         if value is not None:
-            return [value]
+            return value
 
         raise FilterNotImplementedError(filter_name, method_name)
 
@@ -410,7 +408,10 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.check_auto_public_ip()
 
     def check_auto_public_ip(self):
-        if self.public_ip_auto_assign:
+        if (
+            self.public_ip_auto_assign
+            and str(self.public_ip_auto_assign).lower() == "true"
+        ):
             self.public_ip = random_public_ip()
 
     @property
@@ -601,7 +602,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.instance_type = kwargs.get("instance_type", "m1.small")
         self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
-        self.vpc_id = None
         self.subnet_id = kwargs.get("subnet_id")
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
@@ -645,7 +645,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         if self.subnet_id:
             subnet = ec2_backend.get_subnet(self.subnet_id)
-            self.vpc_id = subnet.vpc_id
             self._placement.zone = subnet.availability_zone
 
             if self.associate_public_ip is None:
@@ -664,6 +663,15 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             private_ip=kwargs.get("private_ip"),
             associate_public_ip=self.associate_public_ip,
         )
+
+    @property
+    def vpc_id(self):
+        if self.subnet_id:
+            subnet = self.ec2_backend.get_subnet(self.subnet_id)
+            return subnet.vpc_id
+        if self.nics and 0 in self.nics:
+            return self.nics[0].subnet.vpc_id
+        return None
 
     def __del__(self):
         try:
@@ -4661,7 +4669,9 @@ class SubnetBackend(object):
 
     def get_all_subnets(self, subnet_ids=None, filters=None):
         # Extract a list of all subnets
-        matches = itertools.chain(*[x.values() for x in self.subnets.values()])
+        matches = itertools.chain(
+            *[x.copy().values() for x in self.subnets.copy().values()]
+        )
         if subnet_ids:
             matches = [sn for sn in matches if sn.id in subnet_ids]
             if len(subnet_ids) > len(matches):
@@ -6721,15 +6731,6 @@ class DHCPOptionsSetBackend(object):
         self.dhcp_options_sets[options.id] = options
         return options
 
-    def describe_dhcp_options(self, options_ids=None):
-        options_sets = []
-        for option_id in options_ids or []:
-            if option_id in self.dhcp_options_sets:
-                options_sets.append(self.dhcp_options_sets[option_id])
-            else:
-                raise InvalidDHCPOptionsIdError(option_id)
-        return options_sets or self.dhcp_options_sets.copy().values()
-
     def delete_dhcp_options_set(self, options_id):
         if not (options_id and options_id.startswith("dopt-")):
             raise MalformedDHCPOptionsIdError(options_id)
@@ -6742,8 +6743,8 @@ class DHCPOptionsSetBackend(object):
             raise InvalidDHCPOptionsIdError(options_id)
         return True
 
-    def get_all_dhcp_options(self, dhcp_options_ids=None, filters=None):
-        dhcp_options_sets = self.dhcp_options_sets.values()
+    def describe_dhcp_options(self, dhcp_options_ids=None, filters=None):
+        dhcp_options_sets = self.dhcp_options_sets.copy().values()
 
         if dhcp_options_ids:
             dhcp_options_sets = [
@@ -8547,7 +8548,7 @@ class EC2Backend(
             if resource_prefix == EC2_RESOURCE_TO_PREFIX["customer-gateway"]:
                 self.get_customer_gateway(customer_gateway_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["dhcp-options"]:
-                self.describe_dhcp_options(options_ids=[resource_id])
+                self.describe_dhcp_options(dhcp_options_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["image"]:
                 self.describe_images(ami_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["instance"]:

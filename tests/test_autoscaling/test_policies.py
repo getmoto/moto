@@ -1,11 +1,10 @@
-from __future__ import unicode_literals
 import boto
 import boto3
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale.policy import ScalingPolicy
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from moto import mock_autoscaling_deprecated, mock_autoscaling
 

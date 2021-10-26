@@ -1,18 +1,10 @@
-from __future__ import unicode_literals
-
 import io
 import os
 import re
-import sys
 
 from botocore.awsrequest import AWSPreparedRequest
 
-from moto.core.utils import (
-    amzn_request_id,
-    str_to_rfc_1123_datetime,
-    py2_strip_unicode_keys,
-    unix_time_millis,
-)
+from moto.core.utils import amzn_request_id, str_to_rfc_1123_datetime
 from urllib.parse import (
     parse_qs,
     parse_qsl,
@@ -474,7 +466,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             version_id_marker = querystring.get("version-id-marker", [None])[0]
 
             bucket = self.backend.get_bucket(bucket_name)
-            versions = self.backend.list_object_versions(
+            (
+                versions,
+                common_prefixes,
+                delete_markers,
+            ) = self.backend.list_object_versions(
                 bucket_name,
                 delimiter=delimiter,
                 encoding_type=encoding_type,
@@ -483,30 +479,21 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 version_id_marker=version_id_marker,
                 prefix=prefix,
             )
-            latest_versions = self.backend.get_bucket_latest_versions(
-                bucket_name=bucket_name
-            )
-            key_list = []
-            delete_marker_list = []
-            for version in versions:
-                if isinstance(version, FakeKey):
-                    key_list.append(version)
-                else:
-                    delete_marker_list.append(version)
+            key_list = versions
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
 
-            key_list.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
             return (
                 200,
                 {},
                 template.render(
+                    common_prefixes=common_prefixes,
                     key_list=key_list,
-                    delete_marker_list=delete_marker_list,
-                    latest_versions=latest_versions,
+                    delete_marker_list=delete_markers,
                     bucket=bucket,
                     prefix=prefix,
                     max_keys=1000,
-                    delimiter="",
+                    delimiter=delimiter,
+                    key_marker=key_marker,
                     is_truncated="false",
                 ),
             )
@@ -519,6 +506,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 200, {}, template.render(encryption=encryption)
         elif querystring.get("list-type", [None])[0] == "2":
             return 200, {}, self._handle_list_objects_v2(bucket_name, querystring)
+        elif "replication" in querystring:
+            replication = self.backend.get_bucket_replication(bucket_name)
+            if not replication:
+                template = self.response_template(S3_NO_REPLICATION)
+                return 404, {}, template.render(bucket_name=bucket_name)
+            template = self.response_template(S3_REPLICATION_CONFIG)
+            return 200, {}, template.render(replication=replication)
 
         bucket = self.backend.get_bucket(bucket_name)
         prefix = querystring.get("prefix", [None])[0]
@@ -628,7 +622,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return result_keys[continuation_index:]
 
     def _truncate_result(self, result_keys, max_keys):
-        if len(result_keys) > max_keys:
+        if max_keys == 0:
+            result_keys = []
+            is_truncated = True
+            next_continuation_token = None
+        elif len(result_keys) > max_keys:
             is_truncated = "true"
             result_keys = result_keys[:max_keys]
             item = result_keys[-1]
@@ -663,14 +661,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _parse_pab_config(self, body):
         parsed_xml = xmltodict.parse(body)
         parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
-
-        # If Python 2, fix the unicode strings:
-        if sys.version_info[0] < 3:
-            parsed_xml = {
-                "PublicAccessBlockConfiguration": py2_strip_unicode_keys(
-                    dict(parsed_xml["PublicAccessBlockConfiguration"])
-                )
-            }
 
         return parsed_xml
 
@@ -783,6 +773,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 raise MalformedXML()
             except Exception as e:
                 raise e
+        elif "replication" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if not bucket.is_versioned:
+                template = self.response_template(S3_NO_VERSIONING_ENABLED)
+                return 400, {}, template.render(bucket_name=bucket_name)
+            replication_config = self._replication_config_from_xml(body)
+            self.backend.put_bucket_replication(bucket_name, replication_config)
+            return ""
         else:
             # us-east-1, the default AWS region behaves a bit differently
             # - you should not use it as a location constraint --> it fails
@@ -866,6 +864,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 204, {}, ""
         elif "encryption" in querystring:
             self.backend.delete_bucket_encryption(bucket_name)
+            return 204, {}, ""
+        elif "replication" in querystring:
+            self.backend.delete_bucket_replication(bucket_name)
             return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -1393,7 +1394,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         lock_mode = request.headers.get("x-amz-object-lock-mode", None)
         lock_until = request.headers.get("x-amz-object-lock-retain-until-date", None)
-        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
+        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", None)
 
         if lock_mode or lock_until or legal_hold == "ON":
             if not request.headers.get("Content-Md5"):
@@ -1746,8 +1747,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _mode_until_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
         return (
-            parsed_xml["Retention"]["Mode"],
-            parsed_xml["Retention"]["RetainUntilDate"],
+            parsed_xml.get("Retention", None).get("Mode", None),
+            parsed_xml.get("Retention", None).get("RetainUntilDate", None),
         )
 
     def _legal_hold_status_from_xml(self, xml):
@@ -1768,7 +1769,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         ):
             raise MalformedXML()
 
-        return [parsed_xml["ServerSideEncryptionConfiguration"]]
+        return parsed_xml["ServerSideEncryptionConfiguration"]
 
     def _logging_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
@@ -1894,6 +1895,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         parsed_xml = xmltodict.parse(xml)
         config = parsed_xml["AccelerateConfiguration"]
         return config["Status"]
+
+    def _replication_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml, dict_constructor=dict)
+        config = parsed_xml["ReplicationConfiguration"]
+        return config
 
     def _key_response_delete(self, headers, bucket_name, query, key_name):
         self._set_action("KEY", "DELETE", query)
@@ -2239,14 +2245,22 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% if prefix != None %}
     <Prefix>{{ prefix }}</Prefix>
     {% endif %}
-    <KeyMarker>{{ key_marker }}</KeyMarker>
+    {% if common_prefixes %}
+    {% for prefix in common_prefixes %}
+    <CommonPrefixes>
+        <Prefix>{{ prefix }}</Prefix>
+    </CommonPrefixes>
+    {% endfor %}
+    {% endif %}
+    <Delimiter>{{ delimiter }}</Delimiter>
+    <KeyMarker>{{ key_marker or "" }}</KeyMarker>
     <MaxKeys>{{ max_keys }}</MaxKeys>
     <IsTruncated>{{ is_truncated }}</IsTruncated>
     {% for key in key_list %}
     <Version>
         <Key>{{ key.name }}</Key>
         <VersionId>{% if key.version_id is none %}null{% else %}{{ key.version_id }}{% endif %}</VersionId>
-        <IsLatest>{% if latest_versions[key.name] == key.version_id %}true{% else %}false{% endif %}</IsLatest>
+        <IsLatest>{{ 'true' if key.is_latest else 'false' }}</IsLatest>
         <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
         <ETag>{{ key.etag }}</ETag>
         <Size>{{ key.size }}</Size>
@@ -2261,7 +2275,7 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     <DeleteMarker>
         <Key>{{ marker.name }}</Key>
         <VersionId>{{ marker.version_id }}</VersionId>
-        <IsLatest>{% if latest_versions[marker.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
+        <IsLatest>{{ 'true' if marker.is_latest else 'false' }}</IsLatest>
         <LastModified>{{ marker.last_modified_ISO8601 }}</LastModified>
         <Owner>
             <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
@@ -2553,17 +2567,17 @@ S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 <ServerSideEncryptionConfiguration xmlns="http://doc.s3.amazonaws.com/2006-03-01">
-    {% for entry in encryption %}
+    {% if encryption %}
         <Rule>
             <ApplyServerSideEncryptionByDefault>
-                <SSEAlgorithm>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
-                {% if entry["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
-                <KMSMasterKeyID>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
+                <SSEAlgorithm>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
+                {% if encryption["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
+                <KMSMasterKeyID>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
                 {% endif %}
             </ApplyServerSideEncryptionByDefault>
-            <BucketKeyEnabled>{{ 'true' if entry["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
+            <BucketKeyEnabled>{{ 'true' if encryption["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
         </Rule>
-    {% endfor %}
+    {% endif %}
 </ServerSideEncryptionConfiguration>
 """
 
@@ -2700,4 +2714,46 @@ S3_DUPLICATE_BUCKET_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
   <RequestId>44425877V1D0A2F9</RequestId>
   <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
 </Error>
+"""
+
+S3_NO_REPLICATION = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>ReplicationConfigurationNotFoundError</Code>
+  <Message>The replication configuration was not found</Message>
+  <BucketName>{{ bucket_name }}</BucketName>
+  <RequestId>ZM6MA8EGCZ1M9EW9</RequestId>
+  <HostId>SMUZFedx1CuwjSaZQnM2bEVpet8UgX9uD/L7e MlldClgtEICTTVFz3C66cz8Bssci2OsWCVlog=</HostId>
+</Error>
+"""
+
+S3_NO_VERSIONING_ENABLED = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>InvalidRequest</Code>
+  <Message>Versioning must be 'Enabled' on the bucket to apply a replication configuration</Message>
+  <BucketName>{{ bucket_name }}</BucketName>
+  <RequestId>ZM6MA8EGCZ1M9EW9</RequestId>
+  <HostId>SMUZFedx1CuwjSaZQnM2bEVpet8UgX9uD/L7e MlldClgtEICTTVFz3C66cz8Bssci2OsWCVlog=</HostId>
+</Error>
+"""
+
+S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<ReplicationConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+{% for rule in replication["Rule"] %}
+<Rule>
+  <ID>{{ rule["ID"] }}</ID>
+  <Priority>{{ rule["Priority"] }}</Priority>
+  <Status>{{ rule["Status"] }}</Status>
+  <DeleteMarkerReplication>
+    <Status>Disabled</Status>
+  </DeleteMarkerReplication>
+  <Filter>
+    <Prefix></Prefix>
+  </Filter>
+  <Destination>
+    <Bucket>{{ rule["Destination"]["Bucket"] }}</Bucket>
+  </Destination>
+</Rule>
+{% endfor %}
+<Role>{{ replication["Role"] }}</Role>
+</ReplicationConfiguration>
 """

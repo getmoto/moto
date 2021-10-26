@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 # TODO add tests for all of these
 COMPARISON_FUNCS = {
     "EQ": lambda item_value, test_value: item_value == test_value,

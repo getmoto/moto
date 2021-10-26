@@ -178,7 +178,6 @@ class Instance(TaggedEC2Object):
         self.spot_instance_request_id = None
         self.subnet_id = None
         self.lifecycle = None
-        self.vpc_id = None
         self.private_ip_address = None
         self.ip_address = None
         self.requester_id = None
