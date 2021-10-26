@@ -245,3 +245,12 @@ class InvalidRestApiIdForBasePathMappingException(BadRequestException):
         super(InvalidRestApiIdForBasePathMappingException, self).__init__(
             "BadRequestException", "Invalid REST API identifier specified"
         )
+
+
+class InvalidStageException(BadRequestException):
+    code = 400
+
+    def __init__(self):
+        super(InvalidStageException, self).__init__(
+            "BadRequestException", "Invalid stage identifier specified"
+        )

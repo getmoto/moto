@@ -45,6 +45,7 @@ from .exceptions import (
     ApiKeyValueMinLength,
     InvalidBasePathException,
     InvalidRestApiIdForBasePathMappingException,
+    InvalidStageException,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -1733,6 +1734,9 @@ class APIGatewayBackend(BaseBackend):
 
         if rest_api_id not in self.apis:
             raise InvalidRestApiIdForBasePathMappingException()
+
+        if stage and self.apis[rest_api_id].stages.get(stage) is None:
+            raise InvalidStageException()
 
         new_base_path_mapping = BasePathMapping(
             domain_name=domain_name,
