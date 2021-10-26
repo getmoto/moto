@@ -427,15 +427,13 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.extended_config = extended_config
 
     def delete_user_pool(self, user_pool_id):
-        if user_pool_id not in self.user_pools:
-            raise ResourceNotFoundError(user_pool_id)
+        self.describe_user_pool(user_pool_id)
 
         del self.user_pools[user_pool_id]
 
     # User pool domain
     def create_user_pool_domain(self, user_pool_id, domain, custom_domain_config=None):
-        if user_pool_id not in self.user_pools:
-            raise ResourceNotFoundError(user_pool_id)
+        self.describe_user_pool(user_pool_id)
 
         user_pool_domain = CognitoIdpUserPoolDomain(
             user_pool_id, domain, custom_domain_config=custom_domain_config
@@ -465,9 +463,7 @@ class CognitoIdpBackend(BaseBackend):
 
     # User pool client
     def create_user_pool_client(self, user_pool_id, generate_secret, extended_config):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         user_pool_client = CognitoIdpUserPoolClient(
             user_pool_id, generate_secret, extended_config
@@ -477,16 +473,12 @@ class CognitoIdpBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_user_pool_clients(self, user_pool_id, max_results=None, next_token=None):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.clients.values())
 
     def describe_user_pool_client(self, user_pool_id, client_id):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         client = user_pool.clients.get(client_id)
         if not client:
@@ -495,9 +487,7 @@ class CognitoIdpBackend(BaseBackend):
         return client
 
     def update_user_pool_client(self, user_pool_id, client_id, extended_config):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         client = user_pool.clients.get(client_id)
         if not client:
@@ -507,9 +497,7 @@ class CognitoIdpBackend(BaseBackend):
         return client
 
     def delete_user_pool_client(self, user_pool_id, client_id):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         if client_id not in user_pool.clients:
             raise ResourceNotFoundError(client_id)
@@ -518,9 +506,7 @@ class CognitoIdpBackend(BaseBackend):
 
     # Identity provider
     def create_identity_provider(self, user_pool_id, name, extended_config):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         identity_provider = CognitoIdpIdentityProvider(name, extended_config)
         user_pool.identity_providers[name] = identity_provider
@@ -528,16 +514,12 @@ class CognitoIdpBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_identity_providers(self, user_pool_id, max_results=None, next_token=None):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.identity_providers.values())
 
     def describe_identity_provider(self, user_pool_id, name):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         identity_provider = user_pool.identity_providers.get(name)
         if not identity_provider:
@@ -546,9 +528,7 @@ class CognitoIdpBackend(BaseBackend):
         return identity_provider
 
     def update_identity_provider(self, user_pool_id, name, extended_config):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         identity_provider = user_pool.identity_providers.get(name)
         if not identity_provider:
@@ -559,9 +539,7 @@ class CognitoIdpBackend(BaseBackend):
         return identity_provider
 
     def delete_identity_provider(self, user_pool_id, name):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         if name not in user_pool.identity_providers:
             raise ResourceNotFoundError(name)
@@ -570,9 +548,7 @@ class CognitoIdpBackend(BaseBackend):
 
     # Group
     def create_group(self, user_pool_id, group_name, description, role_arn, precedence):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         group = CognitoIdpGroup(
             user_pool_id, group_name, description, role_arn, precedence
@@ -584,9 +560,7 @@ class CognitoIdpBackend(BaseBackend):
         return group
 
     def get_group(self, user_pool_id, group_name):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         if group_name not in user_pool.groups:
             raise ResourceNotFoundError(group_name)
@@ -594,16 +568,12 @@ class CognitoIdpBackend(BaseBackend):
         return user_pool.groups[group_name]
 
     def list_groups(self, user_pool_id):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         return user_pool.groups.values()
 
     def delete_group(self, user_pool_id, group_name):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         if group_name not in user_pool.groups:
             raise ResourceNotFoundError(group_name)
@@ -659,9 +629,7 @@ class CognitoIdpBackend(BaseBackend):
     def admin_create_user(
         self, user_pool_id, username, message_action, temporary_password, attributes
     ):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         if message_action and message_action == "RESEND":
             if not user_pool._get_user(username):
@@ -722,9 +690,7 @@ class CognitoIdpBackend(BaseBackend):
         return user
 
     def admin_confirm_sign_up(self, user_pool_id, username):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(f"User pool {user_pool_id} does not exist.")
+        user_pool = self.describe_user_pool(user_pool_id)
 
         user = user_pool._get_user(username)
         if not user:
@@ -734,9 +700,7 @@ class CognitoIdpBackend(BaseBackend):
         return ""
 
     def admin_get_user(self, user_pool_id, username):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         user = user_pool._get_user(username)
         if not user:
@@ -759,9 +723,7 @@ class CognitoIdpBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(self, user_pool_id, pagination_token=None, limit=None):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.users.values())
 
@@ -774,9 +736,7 @@ class CognitoIdpBackend(BaseBackend):
         user.enabled = True
 
     def admin_delete_user(self, user_pool_id, username):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         user = user_pool._get_user(username)
         if not user:
@@ -804,9 +764,7 @@ class CognitoIdpBackend(BaseBackend):
         }
 
     def admin_initiate_auth(self, user_pool_id, client_id, auth_flow, auth_parameters):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         client = user_pool.clients.get(client_id)
         if not client:
@@ -1009,9 +967,7 @@ class CognitoIdpBackend(BaseBackend):
             raise NotAuthorizedError(access_token)
 
     def admin_update_user_attributes(self, user_pool_id, username, attributes):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         user = user_pool._get_user(username)
         if not user:
@@ -1020,9 +976,7 @@ class CognitoIdpBackend(BaseBackend):
         user.update_attributes(attributes)
 
     def admin_user_global_sign_out(self, user_pool_id, username):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         user = user_pool._get_user(username)
         if not user:
@@ -1034,9 +988,7 @@ class CognitoIdpBackend(BaseBackend):
                 user_pool.refresh_tokens[token] = None
 
     def create_resource_server(self, user_pool_id, identifier, name, scopes):
-        user_pool = self.user_pools.get(user_pool_id)
-        if not user_pool:
-            raise ResourceNotFoundError(user_pool_id)
+        user_pool = self.describe_user_pool(user_pool_id)
 
         if identifier in user_pool.resource_servers:
             raise InvalidParameterException(
