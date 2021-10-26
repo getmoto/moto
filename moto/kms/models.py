@@ -158,11 +158,17 @@ class Key(CloudFormationModel):
 
 
 class KmsBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region):
         self.region = region
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
+
+    def reset(self):
+        region = self.region
+        self._reset_model_refs()
+        self.__dict__ = {}
+        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -407,8 +413,8 @@ class KmsBackend(BaseBackend):
 
 kms_backends = {}
 for region in Session().get_available_regions("kms"):
-    kms_backends[region] = KmsBackend()
+    kms_backends[region] = KmsBackend(region)
 for region in Session().get_available_regions("kms", partition_name="aws-us-gov"):
-    kms_backends[region] = KmsBackend()
+    kms_backends[region] = KmsBackend(region)
 for region in Session().get_available_regions("kms", partition_name="aws-cn"):
-    kms_backends[region] = KmsBackend()
+    kms_backends[region] = KmsBackend(region)
