@@ -2428,7 +2428,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.ingress_rules:
                 for group in rule.source_groups:
-                    if api_api_matches(value, group.get("GroupName", None), glob=False):
+                    if aws_api_matches(value, group.get("GroupName", None), glob=False):
                         return True
         return False
 

@@ -416,7 +416,7 @@ def aws_api_matches(pattern, string, glob=False):
         return False
     else:
         if pattern == str(string):
-            return  True
+            return True
         else:
             print(f"NO MATCH: {pattern=} != {string=}")
             return False
