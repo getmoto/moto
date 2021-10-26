@@ -2335,14 +2335,16 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.egress_rules:
                 for cidr in rule.ip_ranges:
-                    if aws_api_matches(value, cidr.get('CidrIp', 'NONE')):
+                    if aws_api_matches(value, cidr.get("CidrIp", "NONE")):
                         return True
         return False
 
     def filter_egress__ip_permission__from_port(self, values):
         for value in values:
             for rule in self.egress_rules:
-                if rule.ip_protocol != -1 and aws_api_matches(value, str(rule.from_port)):
+                if rule.ip_protocol != -1 and aws_api_matches(
+                    value, str(rule.from_port)
+                ):
                     return True
         return False
 
@@ -2405,7 +2407,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.ingress_rules:
                 for cidr in rule.ip_ranges:
-                    if aws_api_matches(value, cidr.get('CidrIp', 'NONE')):
+                    if aws_api_matches(value, cidr.get("CidrIp", "NONE")):
                         return True
         return False
 

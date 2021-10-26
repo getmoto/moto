@@ -1919,7 +1919,7 @@ def test_filter_description():
 
     filter_to_match_group_1_description = {
         "Name": "description",
-        "Values": [f'*{unique}*'],
+        "Values": [f"*{unique}*"],
     }
 
     security_groups = ec2r.security_groups.filter(
@@ -1976,6 +1976,7 @@ def test_filter_ip_permission__cidr():
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
+
 
 @mock_ec2
 def test_filter_egress__ip_permission__cidr():
@@ -2378,6 +2379,7 @@ def test_get_groups_by_ippermissions_group_id_filter_across_vpcs():
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_id == sg1.group_id
+
 
 @mock_ec2
 def test_filter_group_name():
