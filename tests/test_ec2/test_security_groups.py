@@ -1919,7 +1919,7 @@ def test_filter_description():
 
     filter_to_match_group_1_description = {
         "Name": "description",
-        "Values": [unique],
+        "Values": [f'*{unique}*'],
     }
 
     security_groups = ec2r.security_groups.filter(
