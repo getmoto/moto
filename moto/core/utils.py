@@ -414,11 +414,7 @@ def aws_api_matches(pattern, string):
     # aws api seems to anchor
     anchored_pattern = f'^{pattern}$'
 
-    #pattern = ".*" + pattern + ".*"
-
-    print(f"aws_api_matches: testing: [{anchored_pattern=}]")
     if re.match(anchored_pattern, str(string)):
         return True
     else:
-        print(f"aws_api_matches: NO MATCH: [{anchored_pattern=}] != [{string=}]")
         return False
