@@ -2392,17 +2392,16 @@ def test_create_base_path_mapping():
     response["restApiId"].should.equal(api_id)
     response["stage"].should.equal(stage_name)
 
-    with pytest.raises(ClientError) as ex:
-        client.create_base_path_mapping(
-            domainName=domain_name, restApiId=api_id, basePath="/v1"
-        )
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
-        "To create a multi-level base path mapping, use API Gateway V2."
+@mock_apigateway
+def test_create_base_path_mapping_with_unknown_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
     )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     with pytest.raises(ClientError) as ex:
         client.create_base_path_mapping(
@@ -2411,6 +2410,37 @@ def test_create_base_path_mapping():
 
     ex.value.response["Error"]["Message"].should.equal(
         "Invalid REST API identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_invalid_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, basePath="/v1"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
+        "To create a multi-level base path mapping, use API Gateway V2."
     )
     ex.value.response["Error"]["Code"].should.equal("BadRequestException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
