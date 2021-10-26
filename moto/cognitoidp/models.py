@@ -39,6 +39,280 @@ class UserStatus(str, enum.Enum):
     RESET_REQUIRED = "RESET_REQUIRED"
 
 
+class CognitoIdpUserPoolAttribute(BaseModel):
+
+    STANDARD_SCHEMA = {
+        "sub": {
+            "AttributeDataType": "String",
+            "Mutable": False,
+            "Required": True,
+            "StringAttributeConstraints": {"MinLength": "1", "MaxLength": "2048"},
+        },
+        "name": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "given_name": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "family_name": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "middle_name": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "nickname": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "preferred_username": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "profile": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "picture": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "website": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "email": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "email_verified": {
+            "AttributeDataType": "Boolean",
+            "Mutable": True,
+            "Required": False,
+        },
+        "gender": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "birthdate": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "10", "MaxLength": "10"},
+        },
+        "zoneinfo": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "locale": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "phone_number": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "phone_number_verified": {
+            "AttributeDataType": "Boolean",
+            "Mutable": True,
+            "Required": False,
+        },
+        "address": {
+            "AttributeDataType": "String",
+            "Mutable": True,
+            "Required": False,
+            "StringAttributeConstraints": {"MinLength": "0", "MaxLength": "2048"},
+        },
+        "updated_at": {
+            "AttributeDataType": "Number",
+            "Mutable": True,
+            "Required": False,
+            "NumberAttributeConstraints": {"MinValue": "0"},
+        },
+    }
+
+    ATTRIBUTE_DATE_TYPES = {"Boolean", "DateTime", "String", "Number"}
+
+    def __init__(self, name, schema):
+        self.name = name
+        self.custom = self.name not in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA
+        attribute_data_type = schema.get("AttributeDataType", None)
+        if (
+            attribute_data_type
+            and attribute_data_type
+            not in CognitoIdpUserPoolAttribute.ATTRIBUTE_DATE_TYPES
+        ):
+            raise InvalidParameterException(
+                f"Validation error detected: Value '{attribute_data_type}' failed to satisfy constraint: Member must satisfy enum value set: [Boolean, Number, String, DateTime]"
+            )
+
+        if self.custom:
+            self._init_custom(schema)
+        else:
+            self._init_standard(schema)
+
+    def _init_custom(self, schema):
+        self.name = "custom:" + self.name
+        attribute_data_type = schema.get("AttributeDataType", None)
+        if not attribute_data_type:
+            raise InvalidParameterException(
+                "Invalid AttributeDataType input, consider using the provided AttributeDataType enum."
+            )
+        self.data_type = attribute_data_type
+        self.developer_only = schema.get("DeveloperOnlyAttribute", False)
+        if self.developer_only:
+            self.name = "dev:" + self.name
+        self.mutable = schema.get("Mutable", True)
+        if schema.get("Required", False):
+            raise InvalidParameterException(
+                "Required custom attributes are not supported currently."
+            )
+        self.required = False
+        self._init_constraints(schema, None)
+
+    def _init_standard(self, schema):
+        attribute_data_type = schema.get("AttributeDataType", None)
+        default_attribute_data_type = CognitoIdpUserPoolAttribute.STANDARD_SCHEMA[
+            self.name
+        ]["AttributeDataType"]
+        if attribute_data_type and attribute_data_type != default_attribute_data_type:
+            raise InvalidParameterException(
+                f"You can not change AttributeDataType or set developerOnlyAttribute for standard schema attribute {self.name}"
+            )
+        self.data_type = default_attribute_data_type
+        if schema.get("DeveloperOnlyAttribute", False):
+            raise InvalidParameterException(
+                f"You can not change AttributeDataType or set developerOnlyAttribute for standard schema attribute {self.name}"
+            )
+        else:
+            self.developer_only = False
+        self.mutable = schema.get(
+            "Mutable",
+            CognitoIdpUserPoolAttribute.STANDARD_SCHEMA[self.name]["Mutable"],
+        )
+        self.required = schema.get(
+            "Required",
+            CognitoIdpUserPoolAttribute.STANDARD_SCHEMA[self.name]["Required"],
+        )
+        constraints_key = None
+        if self.data_type == "Number":
+            constraints_key = "NumberAttributeConstraints"
+        elif self.data_type == "String":
+            constraints_key = "StringAttributeConstraints"
+        default_constraints = (
+            None
+            if not constraints_key
+            else CognitoIdpUserPoolAttribute.STANDARD_SCHEMA[self.name][constraints_key]
+        )
+        self._init_constraints(schema, default_constraints)
+
+    def _init_constraints(self, schema, default_constraints):
+        def numeric_limit(num, constraint_type):
+            if not num:
+                return
+            parsed = None
+            try:
+                parsed = int(num)
+            except ValueError:
+                pass
+            if parsed is None or parsed < 0:
+                raise InvalidParameterException(
+                    f"Invalid {constraint_type} for schema attribute {self.name}"
+                )
+            return parsed
+
+        self.string_constraints = None
+        self.number_constraints = None
+
+        if "AttributeDataType" in schema:
+            # Quirk - schema is set/validated only if AttributeDataType is specified
+            if self.data_type == "String":
+                string_constraints = schema.get(
+                    "StringAttributeConstraints", default_constraints
+                )
+                if not string_constraints:
+                    return
+                min_len = numeric_limit(
+                    string_constraints.get("MinLength", None),
+                    "StringAttributeConstraints",
+                )
+                max_len = numeric_limit(
+                    string_constraints.get("MaxLength", None),
+                    "StringAttributeConstraints",
+                )
+                if (min_len and min_len > 2048) or (max_len and max_len > 2048):
+                    raise InvalidParameterException(
+                        f"user.{self.name}: String attributes cannot have a length of more than 2048"
+                    )
+                if min_len and max_len and min_len > max_len:
+                    raise InvalidParameterException(
+                        f"user.{self.name}: Max length cannot be less than min length."
+                    )
+                self.string_constraints = string_constraints
+            elif self.data_type == "Number":
+                number_constraints = schema.get(
+                    "NumberAttributeConstraints", default_constraints
+                )
+                if not number_constraints:
+                    return
+                # No limits on either min or max value
+                min_val = numeric_limit(
+                    number_constraints.get("MinValue", None),
+                    "NumberAttributeConstraints",
+                )
+                max_val = numeric_limit(
+                    number_constraints.get("MaxValue", None),
+                    "NumberAttributeConstraints",
+                )
+                if min_val and max_val and min_val > max_val:
+                    raise InvalidParameterException(
+                        f"user.{self.name}: Max value cannot be less than min value."
+                    )
+                self.number_constraints = number_constraints
+
+    def to_json(self):
+        return {
+            "Name": self.name,
+            "AttributeDataType": self.data_type,
+            "DeveloperOnlyAttribute": self.developer_only,
+            "Mutable": self.mutable,
+            "Required": self.required,
+            "NumberAttributeConstraints": self.number_constraints,
+            "StringAttributeConstraints": self.string_constraints,
+        }
+
+
 class CognitoIdpUserPool(BaseModel):
     def __init__(self, region, name, extended_config):
         self.region = region
@@ -55,6 +329,21 @@ class CognitoIdpUserPool(BaseModel):
         self.mfa_config = "OFF"
         self.sms_mfa_config = None
         self.token_mfa_config = None
+
+        self.schema_attributes = {
+            schema["Name"]: CognitoIdpUserPoolAttribute(schema["Name"], schema)
+            for schema in extended_config.pop("Schema", {})
+        }
+        for (
+            standard_attribute_name,
+            standard_attribute_schema,
+        ) in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA.items():
+            if standard_attribute_name not in self.schema_attributes:
+                self.schema_attributes[
+                    standard_attribute_name
+                ] = CognitoIdpUserPoolAttribute(
+                    standard_attribute_name, standard_attribute_schema
+                )
 
         self.clients = OrderedDict()
         self.identity_providers = OrderedDict()
@@ -99,6 +388,13 @@ class CognitoIdpUserPool(BaseModel):
         user_pool_json = self._base_json()
         if extended:
             user_pool_json.update(self.extended_config)
+            user_pool_json.update(
+                {
+                    "SchemaAttributes": [
+                        att.to_json() for att in self.schema_attributes.values()
+                    ]
+                }
+            )
         else:
             user_pool_json["LambdaConfig"] = (
                 self.extended_config.get("LambdaConfig") or {}
