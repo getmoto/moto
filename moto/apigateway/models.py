@@ -46,6 +46,7 @@ from .exceptions import (
     InvalidBasePathException,
     InvalidRestApiIdForBasePathMappingException,
     InvalidStageException,
+    BasePathConflictException,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -1745,11 +1746,16 @@ class APIGatewayBackend(BaseBackend):
             stage=stage,
         )
 
+        new_base_path = new_base_path_mapping.get("basePath")
         if self.base_path_mappings.get(domain_name) is None:
             self.base_path_mappings[domain_name] = {}
-        self.base_path_mappings[domain_name][
-            new_base_path_mapping.get("basePath")
-        ] = new_base_path_mapping
+        else:
+            if (
+                self.base_path_mappings[domain_name].get(new_base_path)
+                and new_base_path != "(none)"
+            ):
+                raise BasePathConflictException()
+        self.base_path_mappings[domain_name][new_base_path] = new_base_path_mapping
         return new_base_path_mapping
 
 

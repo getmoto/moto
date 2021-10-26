@@ -2474,3 +2474,29 @@ def test_create_base_path_mapping_with_unknown_stage():
     )
     ex.value.response["Error"]["Code"].should.equal("BadRequestException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_duplicate_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(domainName=domain_name, restApiId=api_id, basePath=base_path)
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, basePath=base_path
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Base path already exists for this domain name"
+    )
+    ex.value.response["Error"]["Code"].should.equal("ConflictException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)

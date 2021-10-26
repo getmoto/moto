@@ -13,6 +13,10 @@ class AccessDeniedException(JsonRESTError):
     pass
 
 
+class ConflictException(JsonRESTError):
+    code = 409
+
+
 class AwsProxyNotAllowed(BadRequestException):
     def __init__(self):
         super(AwsProxyNotAllowed, self).__init__(
@@ -253,4 +257,11 @@ class InvalidStageException(BadRequestException):
     def __init__(self):
         super(InvalidStageException, self).__init__(
             "BadRequestException", "Invalid stage identifier specified"
+        )
+
+
+class BasePathConflictException(ConflictException):
+    def __init__(self):
+        super(BasePathConflictException, self).__init__(
+            "ConflictException", "Base path already exists for this domain name"
         )

@@ -22,6 +22,7 @@ from .exceptions import (
     NoIntegrationDefined,
     NoIntegrationResponseDefined,
     NotFoundException,
+    ConflictException,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -871,3 +872,5 @@ class APIGatewayResponse(BaseResponse):
                 return 201, {}, json.dumps(base_path_mapping_resp)
         except BadRequestException as e:
             return self.error("BadRequestException", e.message)
+        except ConflictException as e:
+            return self.error("ConflictException", e.message, 409)
