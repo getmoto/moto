@@ -2411,3 +2411,7 @@ def test_filter_group_name():
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_name == "test-1"
+    # not really needed, but linter will complain if we don't explicitly use these groups somehow
+    assert security_groups[0].group_name not in [
+        sg.group_name for sg in [sg2, sg3, sg4]
+    ]
