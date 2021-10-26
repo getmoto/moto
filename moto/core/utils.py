@@ -399,30 +399,26 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
                 dict1.pop(key)
 
 
-def aws_api_matches(pattern, string, glob=False):
+def aws_api_matches(pattern, string):
     """
         AWS API can match a value based on a glob, or an exact match
-
-        glob: boolean controlling if this is a glob match (True) or and exact match (False)
     """
-    if glob:
-        #* in the AWS glob form becomes .* in regex
-        #also, don't substitute it if it is prefixed w/ a backslash
-        pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
+    # use a negative lookback regex to match stars that are not prefixed with a backslash
+    #and replace all stars not prefixed w/ a backslash with '.*' to take this from "glob" to PCRE syntax
+    pattern, n = re.subn(r"(?<!\\)\*", r".*", pattern)
 
-        #? in the AWS glob form becomes .? in regex
-        #also, don't substitute it if it is prefixed w/ a backslash
-        pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+    #? in the AWS glob form becomes .? in regex
+    #also, don't substitute it if it is prefixed w/ a backslash
+    pattern, m = re.subn(r"(?<!\\)\?", r".?", pattern)
 
-        pattern = ".*" + pattern + ".*"
+    # aws api seems to anchor
+    anchored_pattern = f'^{pattern}$'
 
-        if re.match(pattern, str(string)):
-            return True
-        return False
+    #pattern = ".*" + pattern + ".*"
+
+    print(f"aws_api_matches: testing: [{anchored_pattern=}]")
+    if re.match(anchored_pattern, str(string)):
+        return True
     else:
-        pattern = f'^{pattern}$'
-        if re.match(pattern, str(string)):
-            return True
-        else:
-            print(f"NO MATCH: {pattern=} != {string=}")
-            return False
+        print(f"aws_api_matches: NO MATCH: [{anchored_pattern=}] != [{string=}]")
+        return False

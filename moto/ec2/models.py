@@ -2327,7 +2327,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     def filter_description(self, values):
         for value in values:
-            if aws_api_matches(value, self.description, glob=True):
+            if aws_api_matches(value, self.description):
                 return True
         return False
 
@@ -2335,14 +2335,14 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.egress_rules:
                 for cidr in rule.ip_ranges:
-                    if aws_api_matches(value, cidr.get('CidrIp', 'NONE'), glob=False):
+                    if aws_api_matches(value, cidr.get('CidrIp', 'NONE')):
                         return True
         return False
 
     def filter_egress__ip_permission__from_port(self, values):
         for value in values:
             for rule in self.egress_rules:
-                if rule.ip_protocol != -1 and aws_api_matches(value, str(rule.from_port), glob=False):
+                if rule.ip_protocol != -1 and aws_api_matches(value, str(rule.from_port)):
                     return True
         return False
 
@@ -2350,7 +2350,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.egress_rules:
                 for sg in rule.source_groups:
-                    if aws_api_matches(value, sg.get("GroupId", None), glob=False):
+                    if aws_api_matches(value, sg.get("GroupId", None)):
                         return True
         return False
 
@@ -2358,7 +2358,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.egress_rules:
                 for group in rule.source_groups:
-                    if aws_api_matches(value, group.get("GroupName", None), glob=False):
+                    if aws_api_matches(value, group.get("GroupName", None)):
                         return True
         return False
 
@@ -2371,33 +2371,33 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def filter_egress__ip_permission__protocol(self, values):
         for value in values:
             for rule in self.egress_rules:
-                if aws_api_matches(value, rule.ip_protocol, glob=False):
+                if aws_api_matches(value, rule.ip_protocol):
                     return True
         return False
 
     def filter_egress__ip_permission__to_port(self, values):
         for value in values:
             for rule in self.egress_rules:
-                if aws_api_matches(value, rule.to_port, glob=False):
+                if aws_api_matches(value, rule.to_port):
                     return True
         return False
 
     def filter_egress__ip_permission__user_id(self, values):
         for value in values:
             for rule in self.egress_rules:
-                if aws_api_matches(value, rule.owner_id, glob=False):
+                if aws_api_matches(value, rule.owner_id):
                     return True
         return False
 
     def filter_group_id(self, values):
         for value in values:
-            if aws_api_matches(value, self.id, glob=False):
+            if aws_api_matches(value, self.id):
                 return True
         return False
 
     def filter_group_name(self, values):
         for value in values:
-            if aws_api_matches(value, self.group_name, glob=False):
+            if aws_api_matches(value, self.group_name):
                 return True
         return False
 
@@ -2405,14 +2405,14 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.ingress_rules:
                 for cidr in rule.ip_ranges:
-                    if aws_api_matches(value, cidr.get('CidrIp', 'NONE'), glob=False):
+                    if aws_api_matches(value, cidr.get('CidrIp', 'NONE')):
                         return True
         return False
 
     def filter_ip_permission__from_port(self, values):
         for value in values:
             for rule in self.ingress_rules:
-                if aws_api_matches(value, rule.from_port, glob=False):
+                if aws_api_matches(value, rule.from_port):
                     return True
         return False
 
@@ -2420,7 +2420,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.ingress_rules:
                 for group in rule.source_groups:
-                    if aws_api_matches(value, group.get("GroupId", None), glob=False):
+                    if aws_api_matches(value, group.get("GroupId", None)):
                         return True
         return False
 
@@ -2428,7 +2428,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         for value in values:
             for rule in self.ingress_rules:
                 for group in rule.source_groups:
-                    if aws_api_matches(value, group.get("GroupName", None), glob=False):
+                    if aws_api_matches(value, group.get("GroupName", None)):
                         return True
         return False
 
@@ -2441,33 +2441,33 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def filter_ip_permission__protocol(self, values):
         for value in values:
             for rule in self.ingress_rules:
-                if aws_api_matches(value, rule.protocol, glob=False):
+                if aws_api_matches(value, rule.protocol):
                     return True
         return False
 
     def filter_ip_permission__to_port(self, values):
         for value in values:
             for rule in self.ingress_rules:
-                if aws_api_matches(rule.to_port, glob=False):
+                if aws_api_matches(value, rule.to_port):
                     return True
         return False
 
     def filter_ip_permission__user_id(self, values):
         for value in values:
             for rule in self.ingress_rules:
-                if aws_api_matches(value, rule.owner_id, glob=False):
+                if aws_api_matches(value, rule.owner_id):
                     return True
         return False
 
     def filter_owner_id(self, values):
         for value in values:
-            if aws_api_matches(value, self.owner_id, glob=False):
+            if aws_api_matches(value, self.owner_id):
                 return True
         return False
 
     def filter_vpc_id(self, values):
         for value in values:
-            if aws_api_matches(value, self.vpc_id, glob=False):
+            if aws_api_matches(value, self.vpc_id):
                 return True
         return False
 
