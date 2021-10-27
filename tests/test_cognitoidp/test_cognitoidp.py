@@ -2163,7 +2163,6 @@ def test_forgot_password():
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
     result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
-
     result["CodeDeliveryDetails"]["Destination"].should.not_be.none
     result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
     result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
@@ -2281,7 +2280,7 @@ def test_forgot_password_nonexistent_user_or_user_without_attributes():
 
 
 @mock_cognitoidp
-def test_confirm_forgot_password():
+def test_confirm_forgot_password_legacy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     username = str(uuid.uuid4())
@@ -2289,17 +2288,75 @@ def test_confirm_forgot_password():
     client_id = conn.create_user_pool_client(
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
-
     conn.admin_create_user(
         UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
     )
 
-    conn.confirm_forgot_password(
+    # Random confirmation code - opt out of verification
+    conn.forgot_password(ClientId=client_id, Username=username)
+    res = conn.confirm_forgot_password(
         ClientId=client_id,
         Username=username,
         ConfirmationCode=str(uuid.uuid4()),
         Password=str(uuid.uuid4()),
     )
+
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_cognitoidp
+def test_confirm_forgot_password_opt_in_verification():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
+    )
+
+    res = conn.forgot_password(ClientId=client_id, Username=username)
+
+    confirmation_code = res["ResponseMetadata"]["HTTPHeaders"][
+        "x-moto-forgot-password-confirmation-code"
+    ]
+    confirmation_code.should.match(r"moto-confirmation-code:[0-9]{6}", re.I)
+
+    res = conn.confirm_forgot_password(
+        ClientId=client_id,
+        Username=username,
+        ConfirmationCode=confirmation_code,
+        Password=str(uuid.uuid4()),
+    )
+
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_cognitoidp
+def test_confirm_forgot_password_opt_in_verification_invalid_confirmation_code():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]["ClientId"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.confirm_forgot_password(
+            ClientId=client_id,
+            Username=username,
+            ConfirmationCode="moto-confirmation-code:123invalid",
+            Password=str(uuid.uuid4()),
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ExpiredCodeException")
+    err["Message"].should.equal("Invalid code provided, please request a code again.")
 
 
 @mock_cognitoidp

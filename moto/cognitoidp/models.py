@@ -5,6 +5,7 @@ import os
 import time
 import uuid
 import enum
+import random
 from boto3 import Session
 from jose import jws
 from collections import OrderedDict
@@ -18,6 +19,7 @@ from .exceptions import (
     UsernameExistsException,
     UserNotConfirmedException,
     InvalidParameterException,
+    ExpiredCodeException,
 )
 from .utils import (
     create_id,
@@ -310,6 +312,7 @@ class CognitoIdpUser(BaseModel):
         self.sms_mfa_enabled = False
         self.software_token_mfa_enabled = False
         self.token_verified = False
+        self.confirmation_code = None
 
         # Groups this user is a member of.
         # Note that these links are bidirectional.
@@ -880,10 +883,19 @@ class CognitoIdpBackend(BaseBackend):
         else:
             return {}
 
-    def confirm_forgot_password(self, client_id, username, password):
+    def confirm_forgot_password(self, client_id, username, password, confirmation_code):
         for user_pool in self.user_pools.values():
             if client_id in user_pool.clients and user_pool._get_user(username):
-                user_pool._get_user(username).password = password
+                user = user_pool._get_user(username)
+                if (
+                    confirmation_code.startswith("moto-confirmation-code:")
+                    and user.confirmation_code != confirmation_code
+                ):
+                    raise ExpiredCodeException(
+                        "Invalid code provided, please request a code again."
+                    )
+                user.password = password
+                user.confirmation_code = None
                 break
         else:
             raise ResourceNotFoundError(client_id)
@@ -903,6 +915,17 @@ class CognitoIdpBackend(BaseBackend):
                 break
         else:
             raise ResourceNotFoundError("Username/client id combination not found.")
+
+        confirmation_code = None
+        if user:
+            # An unfortunate bit of magic - confirmation_code is opt-in, as it's returned
+            # via a "x-moto-forgot-password-confirmation-code" http header, which is not the AWS way (should be SES, SNS, Cognito built-in email)
+            # Verification of user.confirmation_code vs received code will be performed only for codes
+            # beginning with 'moto-confirmation-code' prefix. All other codes are considered VALID.
+            confirmation_code = (
+                f"moto-confirmation-code:{random.randint(100_000, 999_999)}"
+            )
+            user.confirmation_code = confirmation_code
 
         code_delivery_details = {
             "Destination": username + "@h***.com"
@@ -925,7 +948,7 @@ class CognitoIdpBackend(BaseBackend):
                 "DeliveryMedium": "SMS",
                 "AttributeName": "phone_number",
             }
-        return {"CodeDeliveryDetails": code_delivery_details}
+        return confirmation_code, {"CodeDeliveryDetails": code_delivery_details}
 
     def change_password(self, access_token, previous_password, proposed_password):
         for user_pool in self.user_pools.values():
