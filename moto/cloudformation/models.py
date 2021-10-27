@@ -477,7 +477,9 @@ ClientRequestToken='{client_request_token}'""".format(
         )
 
         for sns_topic_arn in sns_topic_arns:
-            sns_backends[region].publish(message, arn=sns_topic_arn)
+            sns_backends[region].publish(
+                message, subject="AWS CloudFormation Notification", arn=sns_topic_arn
+            )
 
 
 def filter_stacks(all_stacks, status_filter):
