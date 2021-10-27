@@ -34,6 +34,12 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"DirectoryId": directory_id})
 
+    def delete_directory(self):
+        """Delete a Directory Service directory."""
+        directory_id_arg = self._get_param("DirectoryId")
+        directory_id = self.ds_backend.delete_directory(directory_id_arg)
+        return json.dumps({"DirectoryId": directory_id})
+
     def get_directory_limits(self):
         """Return directory limit information for the current region."""
         limits = self.ds_backend.get_directory_limits()

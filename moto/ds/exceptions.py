@@ -48,6 +48,15 @@ class DirectoryLimitExceededException(JsonRESTError):
         super().__init__("DirectoryLimitExceededException", message)
 
 
+class EntityDoesNotExistException(JsonRESTError):
+    """The specified entity could not be found."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("EntityDoesNotExistException", message)
+
+
 class InvalidParameterException(JsonRESTError):
     """Invalid parameter."""
 

@@ -8,6 +8,7 @@ from moto.core.utils import get_random_hex
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
+    EntityDoesNotExistException,
     DsValidationException,
     InvalidParameterException,
 )
@@ -192,8 +193,27 @@ class DirectoryServiceBackend(BaseBackend):
 
     def delete_directory(self, directory_id):
         """Delete directory with the matching ID."""
-        # self.tagger.delete_all_tags_for_resource(directory.directory_id)
-        pass
+        # Validation of ID takes precedence over a check for its existence.
+        id_pattern = r"^d-[0-9a-f]{10}$"
+        if not re.match(id_pattern, directory_id):
+            raise DsValidationException(
+                [
+                    (
+                        "directoryId",
+                        directory_id,
+                        fr"satisfy regular expression pattern: {id_pattern}",
+                    )
+                ]
+            )
+
+        if directory_id not in self.directories:
+            raise EntityDoesNotExistException(
+                f"Directory {directory_id} does not exist"
+            )
+
+        self.tagger.delete_all_tags_for_resource(directory_id)
+        self.directories.pop(directory_id)
+        return directory_id
 
     def describe_directories(self, directory_ids, next_token, limit):
         """Return info on all directories or directories with matching IDs."""

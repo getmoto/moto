@@ -259,6 +259,55 @@ def test_ds_create_directory_good_args():
 
 @mock_ec2
 @mock_ds
+def test_delete_directory():
+    """Test good and bad invocations of delete_directory()."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+
+    # Delete a directory when there are none.
+    random_directory_id = f"d-{get_random_hex(10)}"
+    with pytest.raises(ClientError) as exc:
+        client.delete_directory(DirectoryId=random_directory_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityDoesNotExistException"
+    assert f"Directory {random_directory_id} does not exist" in err["Message"]
+
+    # Delete an existing directory.
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    good_vpc_id = create_vpc(ec2_client)
+    good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
+    result = client.create_directory(
+        Name=f"test-{get_random_hex(6)}.test",
+        Password="2TestDeletions",
+        Size="Large",
+        VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
+    )
+    directory_id = result["DirectoryId"]
+    result = client.delete_directory(DirectoryId=directory_id)
+    assert result["DirectoryId"] == directory_id
+
+    # Attempt to delete a non-existent directory.
+    nonexistent_id = f"d-{get_random_hex(10)}"
+    with pytest.raises(ClientError) as exc:
+        client.delete_directory(DirectoryId=nonexistent_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityDoesNotExistException"
+    assert f"Directory {nonexistent_id} does not exist" in err["Message"]
+
+    # Attempt to use an invalid directory ID.
+    bad_id = get_random_hex(3)
+    with pytest.raises(ClientError) as exc:
+        client.delete_directory(DirectoryId=bad_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        fr"Value '{bad_id}' at 'directoryId' failed to satisfy constraint: "
+        fr"Member must satisfy regular expression pattern: ^d-[0-9a-f]{10}$"
+    )
+
+
+@mock_ec2
+@mock_ds
 def test_ds_get_directory_limits():
     """Test return value for directory limits."""
     client = boto3.client("ds", region_name=TEST_REGION)

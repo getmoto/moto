@@ -16,8 +16,8 @@ will work if the protocol is known.
 TODO:
   - This script doesn't generate functions in `responses.py` for
     `rest-json`.  That logic needs to be added.
-  - Some services's operations might cause this script to crash. Create an
-    issue for the problem.
+  - Some services's operations might cause this script to crash. If that
+    should happen, please create an issue for the problem.
 """
 import os
 import re
