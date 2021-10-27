@@ -5965,3 +5965,63 @@ def test_batch_write_item():
         table = conn.Table(f"table-{idx}")
         scan = table.scan()
         assert scan["Count"].should.equal(0)
+
+
+@mock_dynamodb2
+def test_gsi_lastevaluatedkey():
+    # github.com/spulec/moto/issues/3968
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    name = "test-table"
+    table = conn.Table(name)
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "main_key", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "main_key", "AttributeType": "S"},
+            {"AttributeName": "index_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_index",
+                "KeySchema": [{"AttributeName": "index_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL",},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    table.put_item(
+        Item={
+            "main_key": "testkey1",
+            "extra_data": "testdata",
+            "index_key": "indexkey",
+        },
+    )
+    table.put_item(
+        Item={
+            "main_key": "testkey2",
+            "extra_data": "testdata",
+            "index_key": "indexkey",
+        },
+    )
+
+    response = table.query(
+        Limit=1,
+        KeyConditionExpression=Key("index_key").eq("indexkey"),
+        IndexName="test_index",
+    )
+
+    items = response["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal(
+        {"main_key": "testkey1", "extra_data": "testdata", "index_key": "indexkey"}
+    )
+
+    last_evaluated_key = response["LastEvaluatedKey"]
+    last_evaluated_key.should.have.length_of(2)
+    last_evaluated_key.should.equal({"main_key": "testkey1", "index_key": "indexkey"})
