@@ -1047,6 +1047,7 @@ def test_create_stack_with_notification_arn():
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
     msg = json.loads(messages[0].body)
+    msg["Subject"].should.equal("AWS CloudFormation Notification")
     msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
     msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
     msg["Message"].should.contain("ResourceStatus='CREATE_IN_PROGRESS'\n")
