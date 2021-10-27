@@ -25,7 +25,7 @@ class DsValidationException(JsonRESTError):
             value = "at" if arg_name == "password" else f"'{arg_value}' at"
             msgs.append(
                 f"Value {value} '{arg_name}' failed to satisfy constraint: "
-                f"Member must satisfy {constraint}"
+                f"Member must {constraint}"
             )
         super().__init__("ValidationException", msg_leader + "; ".join(msgs))
 

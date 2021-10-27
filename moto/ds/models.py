@@ -7,7 +7,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.ds.exceptions import (
     ClientException,
-    # DirectoryLimitExceededException,
+    DirectoryLimitExceededException,
     DsValidationException,
     InvalidParameterException,
 )
@@ -16,6 +16,11 @@ from moto.utilities.tagging_service import TaggingService
 
 class Directory(BaseModel):
     """Representation of a Simple AD Directory."""
+
+    # The assumption here is that the limits are the same for all regions.
+    CLOUDONLY_DIRECTORIES_LIMIT = 10
+    CLOUDONLY_MICROSOFT_AD_LIMIT = 20
+    CONNECTED_DIRECTORIES_LIMIT = 10
 
     def __init__(
         self, name, password, size, vpc_settings, short_name=None, description=None
@@ -51,7 +56,9 @@ class DirectoryServiceBackend(BaseBackend):
         )
 
     @staticmethod
-    def _validate_create_directory_args(name, passwd, size, vpc_settings):
+    def _validate_create_directory_args(
+        name, passwd, size, vpc_settings, description, short_name,
+    ):  # pylint: disable=too-many-arguments
         """Raise exception if create_directory() args don't meet constraints.
 
         The error messages are accumulated before the exception is raised.
@@ -67,16 +74,22 @@ class DirectoryServiceBackend(BaseBackend):
             # Can't have an odd number of backslashes in a literal.
             json_pattern = passwd_pattern.replace("\\", r"\\")
             error_tuples.append(
-                ("password", passwd, fr"regular expression pattern: {json_pattern}")
+                (
+                    "password",
+                    passwd,
+                    fr"satisfy regular expression pattern: {json_pattern}",
+                )
             )
 
         if size.lower() not in ["small", "large"]:
-            error_tuples.append(("size", size, "enum value set: [Small, Large]"))
+            error_tuples.append(
+                ("size", size, "satisfy enum value set: [Small, Large]")
+            )
 
         name_pattern = r"^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+$"
         if not re.match(name_pattern, name):
             error_tuples.append(
-                ("name", name, fr"regular expression pattern: {name_pattern}")
+                ("name", name, fr"satisfy regular expression pattern: {name_pattern}")
             )
 
         subnet_id_pattern = r"^(subnet-[0-9a-f]{8}|subnet-[0-9a-f]{17})$"
@@ -86,9 +99,25 @@ class DirectoryServiceBackend(BaseBackend):
                     (
                         "vpcSettings.subnetIds",
                         subnet,
-                        fr"regular expression pattern: {subnet_id_pattern}",
+                        fr"satisfy regular expression pattern: {subnet_id_pattern}",
                     )
                 )
+
+        if description and len(description) > 128:
+            error_tuples.append(
+                ("description", description, "have length less than or equal to 128")
+            )
+
+        short_name_pattern = r'^[^\/:*?"<>|.]+[^\/:*?"<>|]*$'
+        if short_name and not re.match(short_name_pattern, short_name):
+            json_pattern = short_name_pattern.replace("\\", r"\\").replace('"', r"\"")
+            error_tuples.append(
+                (
+                    "shortName",
+                    short_name,
+                    fr"satisfy regular expression pattern: {json_pattern}",
+                )
+            )
 
         if error_tuples:
             raise DsValidationException(error_tuples)
@@ -129,14 +158,20 @@ class DirectoryServiceBackend(BaseBackend):
         self, region, name, short_name, password, description, size, vpc_settings, tags
     ):  # pylint: disable=too-many-arguments
         """Create a fake Simple Ad Directory."""
+        if len(self.directories) > Directory.CLOUDONLY_DIRECTORIES_LIMIT:
+            raise DirectoryLimitExceededException(
+                f"Directory limit exceeded. A maximum of "
+                f"{Directory.CLOUDONLY_DIRECTORIES_LIMIT} directories may be created"
+            )
+
         # botocore doesn't look for missing vpc_settings, but boto3 does.
         if not vpc_settings:
             raise InvalidParameterException("VpcSettings must be specified.")
 
-        self._validate_create_directory_args(name, password, size, vpc_settings)
+        self._validate_create_directory_args(
+            name, password, size, vpc_settings, description, short_name,
+        )
         self._validate_vpc_setting_values(region, vpc_settings)
-
-        # TODO DirectoryLimitExceededException,
 
         directory = Directory(
             name,
@@ -165,11 +200,23 @@ class DirectoryServiceBackend(BaseBackend):
         pass
 
     def get_directory_limits(self):
-        """Return directory limit informatio for current region.
+        """Return hard-coded limits for the directories.
 
-        For moto, this is fixed data.
+        Not sure about the AD and Connected limits at this time.
         """
-        pass
+        current_count = len(self.directories)
+        return {
+            "CloudOnlyDirectoriesLimit": Directory.CLOUDONLY_DIRECTORIES_LIMIT,
+            "CloudOnlyDirectoriesCurrentCount": current_count,
+            "CloudOnlyDirectoriesLimitReached": current_count
+            == Directory.CLOUDONLY_DIRECTORIES_LIMIT,
+            "CloudOnlyMicrosoftADLimit": Directory.CLOUDONLY_MICROSOFT_AD_LIMIT,
+            "CloudOnlyMicrosoftADCurrentCount": 0,
+            "CloudOnlyMicrosoftADLimitReached": False,
+            "ConnectedDirectoriesLimit": Directory.CONNECTED_DIRECTORIES_LIMIT,
+            "ConnectedDirectoriesCurrentCount": 0,
+            "ConnectedDirectoriesLimitReached": False,
+        }
 
 
 ds_backends = {}

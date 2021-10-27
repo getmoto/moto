@@ -72,6 +72,34 @@ def test_ds_create_directory_validations():
         fr"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$" in err["Message"]
     )
 
+    too_long = (
+        "Test of directory service 0123456789 0123456789 0123456789 "
+        "0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 "
+        "0123456789 0123456789"
+    )
+    short_name = "a:b.c"
+    with pytest.raises(ClientError) as exc:
+        client.create_directory(
+            Name=f"test{random_num}.test",
+            Password="TESTfoobar1",
+            Size="Large",
+            VpcSettings=ok_vpc_settings,
+            Description=too_long,
+            ShortName=short_name,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "2 validation errors detected" in err["Message"]
+    assert (
+        f"Value '{too_long}' at 'description' failed to satisfy constraint: "
+        f"Member must have length less than or equal to 128" in err["Message"]
+    )
+    pattern = r'^[^\/:*?"<>|.]+[^\/:*?"<>|]*$'
+    assert (
+        f"Value '{short_name}' at 'shortName' failed to satisfy constraint: "
+        f"Member must satisfy regular expression pattern: " + pattern
+    ) in err["Message"]
+
     bad_vpc_settings = {"VpcId": f"vpc-{random_num}", "SubnetIds": ["foo"]}
     with pytest.raises(ClientError) as exc:
         client.create_directory(
@@ -203,3 +231,58 @@ def test_ds_create_directory_good_args():
         Description="This is a test of a good create_directory() call",
     )
     assert result["DirectoryId"].startswith("d-")
+
+    # Verify that too many directories can't be created.
+    limits = client.get_directory_limits()["DirectoryLimits"]
+    for _ in range(limits["CloudOnlyDirectoriesLimit"]):
+        client.create_directory(
+            Name=f"test-{get_random_hex(6)}.test",
+            Password="2ManyLimitsToday",
+            Size="Large",
+            VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
+        )
+    with pytest.raises(ClientError) as exc:
+        client.create_directory(
+            Name=f"test-{get_random_hex(6)}.test",
+            Password="2ManyLimitsToday",
+            Size="Large",
+            VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DirectoryLimitExceededException"
+    assert (
+        f"Directory limit exceeded. A maximum of "
+        f"{limits['CloudOnlyDirectoriesLimit']} "
+        f"directories may be created" in err["Message"]
+    )
+
+
+@mock_ec2
+@mock_ds
+def test_ds_get_directory_limits():
+    """Test return value for directory limits."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    limits = client.get_directory_limits()["DirectoryLimits"]
+    assert limits["CloudOnlyDirectoriesCurrentCount"] == 0
+    assert limits["CloudOnlyDirectoriesLimit"] > 0
+    assert not limits["CloudOnlyDirectoriesLimitReached"]
+
+    # Create a bunch of directories and verify the current count has been
+    # updated.
+    good_vpc_id = create_vpc(ec2_client)
+    good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
+    for _ in range(limits["CloudOnlyDirectoriesLimit"]):
+        client.create_directory(
+            Name=f"test-{get_random_hex(6)}.test",
+            Password="2ManyLimitsToday",
+            Size="Large",
+            VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
+        )
+    limits = client.get_directory_limits()["DirectoryLimits"]
+    assert (
+        limits["CloudOnlyDirectoriesLimit"]
+        == limits["CloudOnlyDirectoriesCurrentCount"]
+    )
+    assert limits["CloudOnlyDirectoriesLimitReached"]

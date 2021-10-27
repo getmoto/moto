@@ -33,3 +33,8 @@ class DirectoryServiceResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps({"DirectoryId": directory_id})
+
+    def get_directory_limits(self):
+        """Return directory limit information for the current region."""
+        limits = self.ds_backend.get_directory_limits()
+        return json.dumps({"DirectoryLimits": limits})
