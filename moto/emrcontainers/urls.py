@@ -7,5 +7,6 @@ url_bases = [
 
 
 url_paths = {
-    "{0}/": EMRContainersResponse.dispatch,
+    "{0}/virtualclusters$": EMRContainersResponse.dispatch,
+    "{0}/virtualclusters/(?P<virtualClusterId>[^/]+)/?$": EMRContainersResponse.dispatch,
 }

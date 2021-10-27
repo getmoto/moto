@@ -34,40 +34,34 @@ class EMRContainersResponse(BaseResponse):
 
         return 200, {}, json.dumps(dict(virtual_cluster))
 
-    def describe_job_run(self):
-        id = self._get_param("id")
-        id2 = self._get_param("virtualClusterId")
+    def delete_virtual_cluster(self):
+        id = self._get_param("virtualClusterId")
 
-        virtual_cluster = self.emrcontainers_backend.describe_virtual_cluster(id=id)
+        virtual_cluster = self.emrcontainers_backend.delete_virtual_cluster(id=id)
 
         return 200, {}, json.dumps(dict(virtual_cluster))
 
-    def list_virtual_clusters(self):
-        container_provider_id = self._get_param("containerProviderId")
-        container_provider_type = self._get_param(
-            "containerProviderType", DEFAULT_CONTAINER_PROVIDER_TYPE
-        )
-        created_after = self._get_param("createdAfter")
-        created_before = self._get_param("createdBefore")
-        states = self._get_param("states")
-        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
-        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
-
-        virtual_clusters, next_token = self.emrcontainers_backend.list_virtual_clusters(
-            container_provider_id=container_provider_id,
-            container_provider_type=container_provider_type,
-            created_after=created_after,
-            created_before=created_before,
-            states=states,
-            max_results=max_results,
-            next_token=next_token,
-        )
-
-        return (
-            200,
-            {},
-            json.dumps(dict(clusters=virtual_clusters, nextToken=next_token)),
-        )
-
-
-# add templates from here
+    # def list_virtual_clusters(self):
+    #     container_provider_id = self._get_param("containerProviderId")
+    #     container_provider_type = self._get_param(
+    #         "containerProviderType", DEFAULT_CONTAINER_PROVIDER_TYPE
+    #     )
+    #     created_after = self._get_param("createdAfter")
+    #     created_before = self._get_param("createdBefore")
+    #     states = self._get_param("states")
+    #     max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+    #     next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+    #
+    #     virtual_clusters, next_token = self.emrcontainers_backend.list_virtual_clusters(
+    #         container_provider_id=container_provider_id,
+    #         container_provider_type=container_provider_type,
+    #         created_after=created_after,
+    #         created_before=created_before,
+    #         states=states,
+    #         max_results=max_results,
+    #         next_token=next_token,
+    #     )
+    #
+    #     template = self.response_template(LIST_VIRTUAL_CLUSTERS_TEMPLATE)
+    #     return template.render(clusters=virtual_clusters, nextToken=next_token)
+    #

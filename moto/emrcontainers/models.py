@@ -83,26 +83,24 @@ class EMRContainersBackend(BaseBackend):
         self.virtual_cluster_count += 1
         return virtual_cluster
 
-    def describe_virtual_cluster(self, id):
+    def delete_virtual_cluster(self, id):
         result = self.virtual_clusters.pop(id)
-        self.virtual_clusters -= 1
+        self.virtual_cluster_count -= 1
         return result
 
-    def list_virtual_clusters(
-        self,
-        container_provider_id,
-        container_provider_type,
-        created_after,
-        created_before,
-        states,
-        max_results,
-        next_token,
-    ):
-
-        print("x")
-
-        x = self.virtual_clusters.keys()
-        return paginated_list(self.virtual_clusters.keys(), max_results, next_token)
+    # def list_virtual_clusters(
+    #     self,
+    #     container_provider_id,
+    #     container_provider_type,
+    #     created_after,
+    #     created_before,
+    #     states,
+    #     max_results,
+    #     next_token,
+    # ):
+    #
+    #     return self.virtual_clusters.values(), ""
+    #     return paginated_list(self.virtual_clusters.values(), max_results, next_token)
 
 
 emrcontainers_backends = {}
