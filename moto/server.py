@@ -18,7 +18,7 @@ import moto.backends as backends
 import moto.backend_index as backend_index
 from moto.core.utils import convert_flask_to_httpretty_response
 
-HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
+HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
 
 DEFAULT_SERVICE_REGION = ("s3", "us-east-1")

@@ -258,9 +258,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def bucket_response(self, request, full_url, headers):
         self.method = request.method
         self.path = self._get_path(request)
-        self.headers = request.headers
         if "host" not in self.headers:
             self.headers["host"] = urlparse(full_url).netloc
+
         try:
             response = self._bucket_response(request, full_url, headers)
         except S3ClientError as s3error:
@@ -315,6 +315,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._bucket_response_delete(body, bucket_name, querystring)
         elif method == "POST":
             return self._bucket_response_post(request, body, bucket_name)
+        elif method == "OPTIONS":
+            return self._bucket_response_options(bucket_name)
         else:
             raise NotImplementedError(
                 "Method {0} has not been implemented in the S3 backend yet".format(
@@ -341,6 +343,53 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # error response between real and mocked responses.
             return 404, {}, ""
         return 200, {}, ""
+
+    def _bucket_response_options(self, bucket_name):
+        # Return 200 with the headers from the bucket CORS configuration
+        self._authenticate_and_authorize_s3_action()
+        # Dict of CORS headers: key is their internal name in CorsRule
+        # and the value is the HTTP header name
+        headers_list = {
+            "allowed_methods": "Access-Control-Allow-Methods",
+            "allowed_origins": "Access-Control-Allow-Origin",
+            "allowed_headers": "Access-Control-Allow-Headers",
+            "exposed_headers": "Access-Control-Expose-Headers",
+            "max_age_seconds": "Access-Control-Max-Age",
+        }
+        try:
+            bucket = self.backend.head_bucket(bucket_name)
+        except MissingBucket:
+            return (
+                403,
+                {},
+                "",
+            )  # AWS S3 seems to return 403 on OPTIONS and 404 on GET/HEAD
+
+        """
+        TODO: there is a clever way of matching the right CORS rule:
+        See https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
+        
+        "When Amazon S3 receives a preflight request from a browser, it evaluates
+        the CORS configuration for the bucket and uses the first CORSRule rule
+        that matches the incoming browser request to enable a cross-origin request."
+        This here just uses all rules and the last rule will override the previous ones
+        if they are re-defining the same headers.
+        """
+        for cors_rule in bucket.cors:
+            if cors_rule.allowed_methods is not None:
+                self.headers["Access-Control-Allow-Methods"] = cors_rule.allowed_methods
+            if cors_rule.allowed_origins is not None:
+                self.headers["Access-Control-Allow-Origin"] = cors_rule.allowed_origins
+            if cors_rule.allowed_headers is not None:
+                self.headers["Access-Control-Allow-Headers"] = cors_rule.allowed_headers
+            if cors_rule.exposed_headers is not None:
+                self.headers[
+                    "Access-Control-Expose-Headers"
+                ] = cors_rule.exposed_headers
+            if cors_rule.max_age_seconds is not None:
+                self.headers["Access-Control-Max-Age"] = cors_rule.max_age_seconds
+
+        return 200, self.headers, ""
 
     def _bucket_response_get(self, bucket_name, querystring):
         self._set_action("BUCKET", "GET", querystring)
@@ -1034,7 +1083,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
-        self.headers = request.headers
         if "host" not in self.headers:
             self.headers["host"] = urlparse(full_url).netloc
         response_headers = {}
