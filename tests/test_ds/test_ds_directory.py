@@ -30,6 +30,26 @@ def create_subnets(
     return subnet_ids
 
 
+def create_test_directory(ds_client, ec2_client, vpc_settings=None, tags=None):
+    """Return ID of a newly created valid directory."""
+    if not vpc_settings:
+        good_vpc_id = create_vpc(ec2_client)
+        good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
+        vpc_settings = {"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids}
+
+    if not tags:
+        tags = []
+
+    result = ds_client.create_directory(
+        Name=f"test-{get_random_hex(6)}.test",
+        Password="Password4TheAges",
+        Size="Large",
+        VpcSettings=vpc_settings,
+        Tags=tags,
+    )
+    return result["DirectoryId"]
+
+
 @mock_ds
 def test_ds_create_directory_validations():
     """Test validation errs that aren't caught by botocore."""
@@ -124,28 +144,22 @@ def test_ds_create_directory_validations():
 def test_ds_create_directory_bad_vpc_settings():
     """Test validation of bad vpc that doesn't raise ValidationException."""
     client = boto3.client("ds", region_name=TEST_REGION)
-    random_num = get_random_hex(6)
-    good_name = f"test-{random_num}.test"
-    good_size = "Large"
-    good_passwd = "TESTfoobar1"
 
     # Error if no VpcSettings argument.
     with pytest.raises(ClientError) as exc:
-        client.create_directory(Name=good_name, Password=good_passwd, Size=good_size)
+        client.create_directory(
+            Name=f"test-{get_random_hex(6)}.test", Password="TESTfoobar1", Size="Small",
+        )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
     assert "VpcSettings must be specified" in err["Message"]
 
     # Error if VPC is bogus.
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    good_vpc_id = create_vpc(ec2_client)
-    good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
+    good_subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
     with pytest.raises(ClientError) as exc:
-        client.create_directory(
-            Name=good_name,
-            Password=good_passwd,
-            Size=good_size,
-            VpcSettings={"VpcId": "vpc-12345678", "SubnetIds": good_subnet_ids},
+        create_test_directory(
+            client, ec2_client, {"VpcId": "vpc-12345678", "SubnetIds": good_subnet_ids},
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ClientException"
@@ -157,22 +171,17 @@ def test_ds_create_directory_bad_vpc_settings():
 def test_ds_create_directory_bad_subnets():
     """Test validation of VPC subnets."""
     client = boto3.client("ds", region_name=TEST_REGION)
-    random_num = get_random_hex(6)
-    good_name = f"test-{random_num}.test"
-    good_size = "Large"
-    good_passwd = "TESTfoobar1"
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
     # Error if VPC subnets are bogus.
-    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
     good_vpc_id = create_vpc(ec2_client)
     # NOTE:  moto currently doesn't support EC2's describe_subnets(), so
     # the verification of subnets can't be performed.
     # with pytest.raises(ClientError) as exc:
-    #     client.create_directory(
-    #         Name=good_name,
-    #         Password=good_passwd,
-    #         Size=good_size,
-    #         VpcSettings={"VpcId": good_vpc_id, "SubnetIds": ["subnet-12345678"]},
+    #     create_test_directory(
+    #         client,
+    #         ec2_client,
+    #         {"VpcId": good_vpc_id, "SubnetIds": ["subnet-12345678"]},
     #     )
     # err = exc.value.response["Error"]
     # assert err["Code"] == "ClientException"
@@ -180,14 +189,13 @@ def test_ds_create_directory_bad_subnets():
 
     # Error if both VPC subnets are in the same region.
     # subnets_same_region = create_subnets(
-    #     ec2_client, vpc_id, region1=TEST_REGION+"a", region2=TEST_REGION+"a"
+    #     ec2_client, good_vpc_id, region1=TEST_REGION+"a", region2=TEST_REGION+"a"
     # )
     # with pytest.raises(ClientError) as exc:
-    #     client.create_directory(
-    #         Name=good_name,
-    #         Password=good_passwd,
-    #         Size=good_size,
-    #         VpcSettings={"VpcId": "vpc-12345678", "SubnetIds": subnets_same_region},
+    #     create_test_directory(
+    #         client,
+    #         ec2_client,
+    #         {"VpcId": "vpc-12345678", "SubnetIds": subnets_same_region},
     #     )
     # err = exc.value.response["Error"]
     # assert err["Code"] == "ClientException"
@@ -198,11 +206,10 @@ def test_ds_create_directory_bad_subnets():
     # Error if only one VPC subnet.
     good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
     with pytest.raises(ClientError) as exc:
-        client.create_directory(
-            Name=good_name,
-            Password=good_passwd,
-            Size=good_size,
-            VpcSettings={"VpcId": good_vpc_id, "SubnetIds": [good_subnet_ids[0]]},
+        create_test_directory(
+            client,
+            ec2_client,
+            {"VpcId": good_vpc_id, "SubnetIds": [good_subnet_ids[0]]},
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
@@ -214,40 +221,18 @@ def test_ds_create_directory_bad_subnets():
 def test_ds_create_directory_good_args():
     """Test creation of AD directory using good arguments."""
     client = boto3.client("ds", region_name=TEST_REGION)
-    good_name = f"test-{get_random_hex(6)}.test"
-    good_size = "Large"
-    good_passwd = "TESTfoobar1"
-
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    good_vpc_id = create_vpc(ec2_client)
-    good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
 
-    result = client.create_directory(
-        Name=good_name,
-        Password=good_passwd,
-        Size=good_size,
-        VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
-        ShortName="test",
-        Description="This is a test of a good create_directory() call",
-    )
-    assert result["DirectoryId"].startswith("d-")
+    # Verify a good call to create_directory()
+    directory_id = create_test_directory(client, ec2_client)
+    assert directory_id.startswith("d-")
 
     # Verify that too many directories can't be created.
     limits = client.get_directory_limits()["DirectoryLimits"]
     for _ in range(limits["CloudOnlyDirectoriesLimit"]):
-        client.create_directory(
-            Name=f"test-{get_random_hex(6)}.test",
-            Password="2ManyLimitsToday",
-            Size="Large",
-            VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
-        )
+        create_test_directory(client, ec2_client)
     with pytest.raises(ClientError) as exc:
-        client.create_directory(
-            Name=f"test-{get_random_hex(6)}.test",
-            Password="2ManyLimitsToday",
-            Size="Large",
-            VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
-        )
+        create_test_directory(client, ec2_client)
     err = exc.value.response["Error"]
     assert err["Code"] == "DirectoryLimitExceededException"
     assert (
@@ -273,15 +258,7 @@ def test_delete_directory():
 
     # Delete an existing directory.
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    good_vpc_id = create_vpc(ec2_client)
-    good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
-    result = client.create_directory(
-        Name=f"test-{get_random_hex(6)}.test",
-        Password="2TestDeletions",
-        Size="Large",
-        VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
-    )
-    directory_id = result["DirectoryId"]
+    directory_id = create_test_directory(client, ec2_client)
     result = client.delete_directory(DirectoryId=directory_id)
     assert result["DirectoryId"] == directory_id
 
@@ -320,15 +297,8 @@ def test_ds_get_directory_limits():
 
     # Create a bunch of directories and verify the current count has been
     # updated.
-    good_vpc_id = create_vpc(ec2_client)
-    good_subnet_ids = create_subnets(ec2_client, good_vpc_id)
     for _ in range(limits["CloudOnlyDirectoriesLimit"]):
-        client.create_directory(
-            Name=f"test-{get_random_hex(6)}.test",
-            Password="2ManyLimitsToday",
-            Size="Large",
-            VpcSettings={"VpcId": good_vpc_id, "SubnetIds": good_subnet_ids},
-        )
+        create_test_directory(client, ec2_client)
     limits = client.get_directory_limits()["DirectoryLimits"]
     assert (
         limits["CloudOnlyDirectoriesLimit"]
