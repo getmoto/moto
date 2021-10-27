@@ -1145,6 +1145,33 @@ def test_start_crawler_should_raise_exception_if_already_running():
 
 
 @mock_glue
+def test_stop_crawler():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+    client.start_crawler(Name=name)
+
+    client.stop_crawler(Name=name)
+
+    response = client.get_crawler(Name=name)
+    crawler = response["Crawler"]
+
+    crawler.get("State").should.equal("STOPPING")
+
+
+@mock_glue
+def test_stop_crawler_should_raise_exception_if_not_running():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    with pytest.raises(ClientError) as exc:
+        client.stop_crawler(Name=name)
+
+    exc.value.response["Error"]["Code"].should.equal("CrawlerNotRunningException")
+
+
+@mock_glue
 def test_delete_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
