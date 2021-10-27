@@ -1389,18 +1389,16 @@ def test_admin_resend_invitation_missing_user():
     value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.admin_create_user(
             UserPoolId=user_pool_id,
             Username=username,
             UserAttributes=[{"Name": "thing", "Value": value}],
             MessageAction="RESEND",
         )
-    except conn.exceptions.UserNotFoundException:
-        caught = True
-
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+    err["Message"].should.equal(f"User does not exist.")
 
 
 @mock_cognitoidp
@@ -1481,13 +1479,12 @@ def test_admin_get_missing_user():
     username = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    except conn.exceptions.UserNotFoundException:
-        caught = True
 
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+    err["Message"].should.equal(f"User does not exist.")
 
 
 @mock_cognitoidp
@@ -1499,11 +1496,12 @@ def test_admin_get_missing_user_with_username_attributes():
         PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
     )["UserPool"]["Id"]
 
-    with pytest.raises(ClientError) as ex:
+    with pytest.raises(ClientError) as exc:
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
-    err = ex.value.response["Error"]
+    err = exc.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
+    err["Message"].should.equal(f"User does not exist.")
 
 
 @mock_cognitoidp
@@ -1846,13 +1844,11 @@ def test_admin_delete_user():
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
     conn.admin_delete_user(UserPoolId=user_pool_id, Username=username)
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    except conn.exceptions.UserNotFoundException:
-        caught = True
 
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
 
 
 @mock_cognitoidp
@@ -2351,6 +2347,7 @@ def test_admin_user_global_sign_out_unknown_user():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
+    err["Message"].should.equal("User does not exist.")
 
 
 @mock_cognitoidp
