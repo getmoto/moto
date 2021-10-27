@@ -448,9 +448,9 @@ def insert_url(service, operation, api_protocol):
 
     # generate url pattern
     if api_protocol == "rest-json":
-        new_line = "    '{0}/.*$': response.dispatch,"
+        new_line = '    "{0}/.*$": response.dispatch,'
     else:
-        new_line = f"    '{{0}}{uri}$': {service_class}Response.dispatch,"
+        new_line = f'    "{{0}}{uri}$": {service_class}Response.dispatch,'
     if new_line in lines:
         return
     lines.insert(last_elem_line_index + 1, new_line)
