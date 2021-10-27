@@ -2489,7 +2489,9 @@ def test_create_base_path_mapping_with_duplicate_base_path():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
     base_path = "v1"
-    client.create_base_path_mapping(domainName=domain_name, restApiId=api_id, basePath=base_path)
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
     with pytest.raises(ClientError) as ex:
         client.create_base_path_mapping(
             domainName=domain_name, restApiId=api_id, basePath=base_path
