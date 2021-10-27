@@ -21,9 +21,9 @@ class EMRContainersResponse(BaseResponse):
 
     def create_virtual_cluster(self):
         name = self._get_param("name")
-        container_provider = self._get_dict_param("containerProvider")
+        container_provider = self._get_param("containerProvider")
         client_token = self._get_param("clientToken")
-        tags = self._get_dict_param("tags")
+        tags = self._get_param("tags")
 
         virtual_cluster = self.emrcontainers_backend.create_virtual_cluster(
             name=name,
@@ -31,15 +31,20 @@ class EMRContainersResponse(BaseResponse):
             client_token=client_token,
             tags=tags,
         )
-
         return 200, {}, json.dumps(dict(virtual_cluster))
 
     def delete_virtual_cluster(self):
         id = self._get_param("virtualClusterId")
 
         virtual_cluster = self.emrcontainers_backend.delete_virtual_cluster(id=id)
-
         return 200, {}, json.dumps(dict(virtual_cluster))
+
+    def describe_virtual_cluster(self):
+        id = self._get_param("virtualClusterId")
+
+        virtual_cluster = self.emrcontainers_backend.describe_virtual_cluster(id=id)
+        response = {"virtualCluster": virtual_cluster}
+        return 200, {}, json.dumps(response)
 
     # def list_virtual_clusters(self):
     #     container_provider_id = self._get_param("containerProviderId")

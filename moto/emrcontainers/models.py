@@ -5,7 +5,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
-from .utils import random_cluster_id, get_partition, paginated_list
+from .utils import random_cluster_id, get_partition  # paginated_list
 
 # String Templates
 VIRTUAL_CLUSTER_ARN_TEMPLATE = (
@@ -40,7 +40,9 @@ class FakeCluster(BaseModel):
         )
         self.state = ACTIVE_STATUS
         self.container_provider = container_provider
-        self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.creation_date = iso_8601_datetime_without_milliseconds(
+            datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        )
         self.tags = tags
 
     def __iter__(self):
@@ -51,6 +53,19 @@ class FakeCluster(BaseModel):
         yield "containerProvider", self.container_provider
         yield "createdAt", self.creation_date
         yield "tags", self.tags
+
+    def to_dict(self):
+        # Format for summary https://docs.aws.amazon.com/emr-on-eks/latest/APIReference/API_DescribeVirtualCluster.html
+        # (response syntax section)
+        return {
+            "arn": self.arn,
+            "containerProvider": self.container_provider,
+            "createdAt": self.creation_date,
+            "id": self.id,
+            "name": self.name,
+            "state": self.state,
+            "tags": self.tags,
+        }
 
 
 class EMRContainersBackend(BaseBackend):
@@ -87,6 +102,9 @@ class EMRContainersBackend(BaseBackend):
         result = self.virtual_clusters.pop(id)
         self.virtual_cluster_count -= 1
         return result
+
+    def describe_virtual_cluster(self, id):
+        return self.virtual_clusters[id].to_dict()
 
     # def list_virtual_clusters(
     #     self,

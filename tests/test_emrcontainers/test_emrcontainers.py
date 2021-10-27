@@ -1,20 +1,20 @@
 """Unit tests for emrcontainers-supported APIs."""
 import re
+from datetime import datetime, timezone
+
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_emrcontainers
 from unittest.mock import patch
-from boto3 import Session
-from moto.emrcontainers import REGION as DEFAULT_REGION
 
-REGION = Session().region_name or DEFAULT_REGION
+from moto.emrcontainers import REGION as DEFAULT_REGION
 
 
 @pytest.fixture(scope="function")
 def client():
     with mock_emrcontainers():
-        yield boto3.client("emr-containers", region_name=REGION)
+        yield boto3.client("emr-containers", region_name=DEFAULT_REGION)
 
 
 @pytest.fixture(scope="function")
@@ -39,7 +39,9 @@ def virtual_cluster_factory(client):
     yield cluster_list
 
 
-def test_create_virtual_cluster(client):
+@mock_emrcontainers
+def test_create_virtual_cluster():
+    client = boto3.client("emr-containers", region_name=DEFAULT_REGION)
     resp = client.create_virtual_cluster(
         name="test-emr-virtual-cluster",
         containerProvider={
@@ -64,6 +66,32 @@ def test_delete_virtual_cluster(client, virtual_cluster_factory):
     resp = client.delete_virtual_cluster(id=cluster_list[0])
 
     assert resp["id"] == cluster_list[0]
+
+
+def test_describe_virtual_cluster(client, virtual_cluster_factory):
+    cluster_list = virtual_cluster_factory
+    virtual_cluster_id = cluster_list[0]
+
+    resp = client.describe_virtual_cluster(id=virtual_cluster_id)
+
+    expected_resp = {
+        "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{virtual_cluster_id}",
+        "containerProvider": {
+            "id": "test-eks-cluster",
+            "info": {"eksInfo": {"namespace": "emr-container"}},
+            "type": "EKS",
+        },
+        "createdAt": (
+            datetime.today()
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .replace(tzinfo=timezone.utc)
+        ),
+        "id": virtual_cluster_id,
+        "name": "test-emr-virtual-cluster",
+        "state": "RUNNING",
+    }
+
+    assert resp["virtualCluster"] == expected_resp
 
 
 # def test_list_virtual_clusters(client, virtual_cluster_factory):
