@@ -106,6 +106,12 @@ def test_submit_job():
     )
     job_id = resp["jobId"]
 
+    # Test that describe_jobs() returns 'createdAt'
+    # github.com/spulec/moto/issues/4364
+    resp = batch_client.describe_jobs(jobs=[job_id])
+    created_at = resp["jobs"][0]["createdAt"]
+    created_at.should.be.greater_than(start_time_milliseconds)
+
     _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
     resp = logs_client.describe_log_streams(
@@ -122,10 +128,12 @@ def test_submit_job():
     # Test that describe_jobs() returns timestamps in milliseconds
     # github.com/spulec/moto/issues/4364
     resp = batch_client.describe_jobs(jobs=[job_id])
-    created_at = resp["jobs"][0]["startedAt"]
+    created_at = resp["jobs"][0]["createdAt"]
+    started_at = resp["jobs"][0]["startedAt"]
     stopped_at = resp["jobs"][0]["stoppedAt"]
 
     created_at.should.be.greater_than(start_time_milliseconds)
+    started_at.should.be.greater_than(start_time_milliseconds)
     stopped_at.should.be.greater_than(start_time_milliseconds)
 
 

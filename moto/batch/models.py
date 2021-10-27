@@ -360,6 +360,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_queue = job_queue
         self.job_state = "SUBMITTED"  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
         self.job_queue.jobs.append(self)
+        self.job_created_at = datetime.datetime.now()
         self.job_started_at = datetime.datetime(1970, 1, 1)
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
@@ -383,6 +384,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
             "jobQueue": self.job_queue.arn,
             "status": self.job_state,
             "dependsOn": self.depends_on if self.depends_on else [],
+            "createdAt": datetime2int_milliseconds(self.job_created_at),
         }
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
             result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
