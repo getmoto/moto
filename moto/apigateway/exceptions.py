@@ -13,6 +13,10 @@ class AccessDeniedException(JsonRESTError):
     pass
 
 
+class ConflictException(JsonRESTError):
+    code = 409
+
+
 class AwsProxyNotAllowed(BadRequestException):
     def __init__(self):
         super(AwsProxyNotAllowed, self).__init__(
@@ -224,4 +228,40 @@ class MethodNotFoundException(NotFoundException):
     def __init__(self):
         super(MethodNotFoundException, self).__init__(
             "NotFoundException", "Invalid Method identifier specified"
+        )
+
+
+class InvalidBasePathException(BadRequestException):
+    code = 400
+
+    def __init__(self):
+        super(InvalidBasePathException, self).__init__(
+            "BadRequestException",
+            "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
+            "To create a multi-level base path mapping, use API Gateway V2.",
+        )
+
+
+class InvalidRestApiIdForBasePathMappingException(BadRequestException):
+    code = 400
+
+    def __init__(self):
+        super(InvalidRestApiIdForBasePathMappingException, self).__init__(
+            "BadRequestException", "Invalid REST API identifier specified"
+        )
+
+
+class InvalidStageException(BadRequestException):
+    code = 400
+
+    def __init__(self):
+        super(InvalidStageException, self).__init__(
+            "BadRequestException", "Invalid stage identifier specified"
+        )
+
+
+class BasePathConflictException(ConflictException):
+    def __init__(self):
+        super(BasePathConflictException, self).__init__(
+            "ConflictException", "Base path already exists for this domain name"
         )

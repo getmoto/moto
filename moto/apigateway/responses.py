@@ -22,6 +22,7 @@ from .exceptions import (
     NoIntegrationDefined,
     NoIntegrationResponseDefined,
     NotFoundException,
+    ConflictException,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -849,3 +850,27 @@ class APIGatewayResponse(BaseResponse):
                     error.message, error.error_type
                 ),
             )
+
+    def base_path_mappings(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        domain_name = url_path_parts[2]
+
+        try:
+            if self.method == "GET":
+                # TODO implements
+                pass
+            elif self.method == "POST":
+                base_path = self._get_param("basePath")
+                rest_api_id = self._get_param("restApiId")
+                stage = self._get_param("stage")
+
+                base_path_mapping_resp = self.backend.create_base_path_mapping(
+                    domain_name, rest_api_id, base_path, stage,
+                )
+                return 201, {}, json.dumps(base_path_mapping_resp)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except ConflictException as e:
+            return self.error("ConflictException", e.message, 409)
