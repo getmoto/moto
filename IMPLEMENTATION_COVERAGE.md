@@ -2003,7 +2003,7 @@
 
 ## glue
 <details>
-<summary>6% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2138,7 +2138,7 @@
 - [ ] resume_workflow_run
 - [ ] search_tables
 - [ ] start_blueprint_run
-- [ ] start_crawler
+- [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
@@ -2147,7 +2147,7 @@
 - [ ] start_ml_labeling_set_generation_task_run
 - [ ] start_trigger
 - [ ] start_workflow_run
-- [ ] stop_crawler
+- [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [ ] stop_trigger
 - [ ] stop_workflow_run
@@ -2716,24 +2716,29 @@
 
 ## lambda
 <details>
-<summary>48% implemented</summary>
+<summary>41% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
 - [ ] create_alias
+- [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
 - [ ] delete_alias
+- [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
+- [ ] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [ ] delete_function_event_invoke_config
 - [ ] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
 - [ ] get_alias
+- [ ] get_code_signing_config
 - [X] get_event_source_mapping
 - [X] get_function
+- [ ] get_function_code_signing_config
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [ ] get_function_event_invoke_config
@@ -2745,9 +2750,11 @@
 - [X] invoke
 - [ ] invoke_async
 - [ ] list_aliases
+- [ ] list_code_signing_configs
 - [X] list_event_source_mappings
 - [ ] list_function_event_invoke_configs
 - [X] list_functions
+- [ ] list_functions_by_code_signing_config
 - [ ] list_layer_versions
 - [X] list_layers
 - [ ] list_provisioned_concurrency_configs
@@ -2755,6 +2762,7 @@
 - [X] list_versions_by_function
 - [X] publish_layer_version
 - [ ] publish_version
+- [ ] put_function_code_signing_config
 - [X] put_function_concurrency
 - [ ] put_function_event_invoke_config
 - [ ] put_provisioned_concurrency_config
@@ -2763,6 +2771,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_alias
+- [ ] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
@@ -3208,6 +3217,7 @@
 - [ ] copy_db_snapshot
 - [ ] copy_option_group
 - [ ] create_custom_availability_zone
+- [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
@@ -3224,6 +3234,7 @@
 - [ ] create_global_cluster
 - [X] create_option_group
 - [ ] delete_custom_availability_zone
+- [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
@@ -3288,6 +3299,7 @@
 - [X] list_tags_for_resource
 - [ ] modify_certificates
 - [ ] modify_current_db_cluster_capacity
+- [ ] modify_custom_db_engine_version
 - [ ] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
