@@ -112,11 +112,17 @@ class EMRContainersBackend(BaseBackend):
         return virtual_cluster
 
     def delete_virtual_cluster(self, id):
+        if id not in self.virtual_clusters:
+            raise ValidationException("VirtualCluster does not exist")
+
         result = self.virtual_clusters.pop(id)
         self.virtual_cluster_count -= 1
         return result
 
     def describe_virtual_cluster(self, id):
+        if id not in self.virtual_clusters:
+            raise ValidationException(f"Virtual cluster {id} doesn't exist.")
+
         return self.virtual_clusters[id].to_dict()
 
     # def list_virtual_clusters(

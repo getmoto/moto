@@ -31,7 +31,7 @@ def virtual_cluster_factory(client):
                 containerProvider={
                     "type": "EKS",
                     "id": "test-eks-cluster",
-                    "info": {"eksInfo": {"namespace": "emr-container"}},
+                    "info": {"eksInfo": {"namespace": f"emr-container-{i}"}},
                 },
             )
 
@@ -94,6 +94,13 @@ def test_delete_virtual_cluster(client, virtual_cluster_factory):
     assert resp["id"] == cluster_list[0]
 
 
+def test_delete_non_existing_virtual_cluster(client, virtual_cluster_factory):
+    with pytest.raises(
+        ClientError, match="VirtualCluster does not exist"
+    ):
+        client.delete_virtual_cluster(id="foobaa")
+
+
 def test_describe_virtual_cluster(client, virtual_cluster_factory):
     cluster_list = virtual_cluster_factory
     virtual_cluster_id = cluster_list[0]
@@ -104,7 +111,7 @@ def test_describe_virtual_cluster(client, virtual_cluster_factory):
         "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{virtual_cluster_id}",
         "containerProvider": {
             "id": "test-eks-cluster",
-            "info": {"eksInfo": {"namespace": "emr-container"}},
+            "info": {"eksInfo": {"namespace": "emr-container-0"}},
             "type": "EKS",
         },
         "createdAt": (
@@ -118,6 +125,14 @@ def test_describe_virtual_cluster(client, virtual_cluster_factory):
     }
 
     assert resp["virtualCluster"] == expected_resp
+
+
+def test_describe_non_existing_virtual_cluster(client, virtual_cluster_factory):
+    with pytest.raises(
+        ClientError, match="Virtual cluster foobaa doesn't exist."
+    ):
+        client.describe_virtual_cluster(id="foobaa")
+
 
 
 # def test_list_virtual_clusters(client, virtual_cluster_factory):
