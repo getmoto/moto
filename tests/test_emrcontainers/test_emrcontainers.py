@@ -1,13 +1,15 @@
 """Unit tests for emrcontainers-supported APIs."""
 import re
 from datetime import datetime, timezone, timedelta
+from unittest import SkipTest
 
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
-from moto import mock_emrcontainers
+from moto import mock_emrcontainers, settings
+from moto.core import ACCOUNT_ID
 from unittest.mock import patch
 
 from moto.emrcontainers import REGION as DEFAULT_REGION
@@ -21,6 +23,9 @@ def client():
 
 @pytest.fixture(scope="function")
 def virtual_cluster_factory(client):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
     cluster_state = ["RUNNING", "TERMINATING", "TERMINATED", "ARRESTED"]
 
     cluster_list = []
@@ -59,7 +64,7 @@ class TestCreateVirtualCluster:
         assert re.match(r"[a-z,0-9]{25}", resp["id"])
         assert (
             resp["arn"]
-            == f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{resp['id']}"
+            == f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{resp['id']}"
         )
         assert cluster_count == 1
 
@@ -75,17 +80,20 @@ class TestCreateVirtualCluster:
             },
         )
 
-        with pytest.raises(
-            ClientError, match="A virtual cluster already exists in the given namespace"
-        ):
+        with pytest.raises(ClientError) as exc:
             client.create_virtual_cluster(
                 name="test-emr-virtual-cluster",
                 containerProvider={
                     "type": "EKS",
-                    "id": "test-eks-cluster",
+                    "id":   "test-eks-cluster",
                     "info": {"eksInfo": {"namespace": "emr-container"}},
                 },
             )
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert err["Message"] == "A virtual cluster already exists in the given namespace"
 
 
 class TestDeleteVirtualCluster:
@@ -102,8 +110,13 @@ class TestDeleteVirtualCluster:
         assert cluster_count == 3
 
     def test_non_existing_virtual_cluster(self):
-        with pytest.raises(ClientError, match="VirtualCluster does not exist"):
+        with pytest.raises(ClientError) as exc:
             self.client.delete_virtual_cluster(id="foobaa")
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert err["Message"] == "VirtualCluster does not exist"
 
 
 class TestDescribeVirtualCluster:
@@ -116,7 +129,7 @@ class TestDescribeVirtualCluster:
         resp = self.client.describe_virtual_cluster(id=self.virtual_cluster_ids[0])
 
         expected_resp = {
-            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{self.virtual_cluster_ids[0]}",
+            "arn": f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{self.virtual_cluster_ids[0]}",
             "containerProvider": {
                 "id": "test-eks-cluster",
                 "info": {"eksInfo": {"namespace": "emr-container-0"}},
@@ -135,8 +148,14 @@ class TestDescribeVirtualCluster:
         assert resp["virtualCluster"] == expected_resp
 
     def test_non_existing_virtual_cluster(self):
-        with pytest.raises(ClientError, match="Virtual cluster foobaa doesn't exist."):
+        with pytest.raises(ClientError) as exc:
             self.client.describe_virtual_cluster(id="foobaa")
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert err["Message"] == "Virtual cluster foobaa doesn't exist."
+
 
 
 class TestListVirtualClusters:
@@ -176,6 +195,18 @@ class TestListVirtualClusters:
         resp = self.client.list_virtual_clusters(createdAfter=tomorrow)
         assert len(resp["virtualClusters"]) == 0
 
+    def test_created_after_yesterday_running_state(self):
+        today = datetime.now()
+        yesterday = today - timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdAfter=yesterday, states=["RUNNING"])
+        assert len(resp["virtualClusters"]) == 1
+
+    def test_created_after_tomorrow_running_state(self):
+        today = datetime.now()
+        tomorrow = today + timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdAfter=tomorrow, states=["RUNNING"])
+        assert len(resp["virtualClusters"]) == 0
+
     def test_created_before_yesterday(self):
         today = datetime.now()
         yesterday = today - timedelta(days=1)
@@ -187,6 +218,18 @@ class TestListVirtualClusters:
         tomorrow = today + timedelta(days=1)
         resp = self.client.list_virtual_clusters(createdBefore=tomorrow)
         assert len(resp["virtualClusters"]) == 4
+
+    def test_created_before_yesterday_running_state(self):
+        today = datetime.now()
+        yesterday = today - timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdBefore=yesterday, states=["RUNNING"])
+        assert len(resp["virtualClusters"]) == 0
+
+    def test_created_before_tomorrow_running_state(self):
+        today = datetime.now()
+        tomorrow = today + timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdBefore=tomorrow, states=["RUNNING"])
+        assert len(resp["virtualClusters"]) == 1
 
     def test_states_one_state(self):
         resp = self.client.list_virtual_clusters(states=["RUNNING"])
