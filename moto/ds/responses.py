@@ -23,7 +23,7 @@ class DirectoryServiceResponse(BaseResponse):
         description = self._get_param("Description")
         size = self._get_param("Size")
         vpc_settings = self._get_param("VpcSettings")
-        tags = self._get_list_prefix("Tags.member")
+        tags = self._get_param("Tags")
         directory_id = self.ds_backend.create_directory(
             region=self.region,
             name=name,
@@ -63,3 +63,36 @@ class DirectoryServiceResponse(BaseResponse):
         """Return directory limit information for the current region."""
         limits = self.ds_backend.get_directory_limits()
         return json.dumps({"DirectoryLimits": limits})
+
+    def add_tags_to_resource(self):
+        """Add or overwrite on or more tags for specified directory."""
+        resource_id = self._get_param("ResourceId")
+        tags = self._get_param("Tags")
+        self.ds_backend.add_tags_to_resource(resource_id=resource_id, tags=tags)
+        return ""
+
+    def remove_tags_from_resource(self):
+        """Removes tags from a directory."""
+        resource_id = self._get_param("ResourceId")
+        tag_keys = self._get_param("TagKeys")
+        self.ds_backend.remove_tags_from_resource(
+            resource_id=resource_id, tag_keys=tag_keys
+        )
+        return ""
+
+    def list_tags_for_resource(self):
+        """Lists all tags on a directory."""
+        resource_id = self._get_param("ResourceId")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        try:
+            (tags, next_token) = self.ds_backend.list_tags_for_resource(
+                resource_id=resource_id, next_token=next_token, limit=limit
+            )
+        except InvalidToken as exc:
+            raise InvalidNextTokenException() from exc
+
+        response = {"Tags": tags}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)

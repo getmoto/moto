@@ -88,15 +88,19 @@ def test_describe_directories():
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
-    directory_ids = []
+    expected_ids = set()
     limit = 10
     for _ in range(limit):
-        directory_ids.append(create_test_directory(client, ec2_client))
+        expected_ids.add(create_test_directory(client, ec2_client))
 
     # Test that if no directory IDs are specified, all are returned.
     result = client.describe_directories()
-    assert len(result["DirectoryDescriptions"]) == limit
-    for idx, dir_info in enumerate(result["DirectoryDescriptions"]):
+    directories = result["DirectoryDescriptions"]
+    directory_ids = [x["DirectoryId"] for x in directories]
+
+    assert len(directories) == limit
+    assert set(directory_ids) == expected_ids
+    for idx, dir_info in enumerate(directories):
         assert dir_info["DesiredNumberOfDomainControllers"] == 0
         assert not dir_info["SsoEnabled"]
         assert dir_info["DirectoryId"] == directory_ids[idx]

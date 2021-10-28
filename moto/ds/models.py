@@ -12,6 +12,8 @@ from moto.ds.exceptions import (
     EntityDoesNotExistException,
     DsValidationException,
     InvalidParameterException,
+    TagLimitExceededException,
+    ValidationException,
 )
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -25,6 +27,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
     CLOUDONLY_DIRECTORIES_LIMIT = 10
     CLOUDONLY_MICROSOFT_AD_LIMIT = 20
     CONNECTED_DIRECTORIES_LIMIT = 10
+
+    MAX_TAGS_PER_DIRECTORY = 50
 
     def __init__(
         self,
@@ -215,6 +219,13 @@ class DirectoryServiceBackend(BaseBackend):
         )
         self._validate_vpc_setting_values(region, vpc_settings)
 
+        errmsg = self.tagger.validate_tags(tags or [])
+        if errmsg:
+            raise ValidationException(errmsg)
+
+        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+            raise DirectoryLimitExceededException("Tag Limit is exceeding")
+
         directory = Directory(
             name,
             password,
@@ -225,12 +236,7 @@ class DirectoryServiceBackend(BaseBackend):
             description=description,
         )
         self.directories[directory.directory_id] = directory
-
-        errmsg = self.tagger.validate_tags(tags or [])
-        if errmsg:
-            raise DsValidationException(errmsg)
         self.tagger.tag_resource(directory.directory_id, tags or [])
-
         return directory.directory_id
 
     def _validate_directory_id(self, directory_id):
@@ -271,35 +277,59 @@ class DirectoryServiceBackend(BaseBackend):
         directories = list(self.directories.values())
         if directory_ids:
             directories = [x for x in directories if x.directory_id in directory_ids]
-        return directories
+        return sorted(directories, key=lambda x: x.launch_time)
 
     def get_directory_limits(self):
         """Return hard-coded limits for the directories.
 
         Not sure about the AD and Connected limits at this time.
         """
-        directory_types = [x.directory_type for x in self.directories.values()]
-
-        simple_ad_count = directory_types.count("SimpleAD")
-        microsoft_ad_count = directory_types.count(
-            "MicrosoftAD"
-        ) + directory_types.count("SharedMicrosoftAD")
-        connected_count = directory_types.count("ADConnector")
+        counts = {"SimpleAD": 0, "MicrosoftAD": 0, "ConnectedAD": 0}
+        for dir_type in self.directories.values():
+            if dir_type.directory_type == "SimpleAD":
+                counts["SimpleAD"] += 1
+            elif dir_type.directory_type in ["MicrosoftAD", "SharedMicrosoftAD"]:
+                counts["MicrosoftAD"] += 1
+            elif dir_type.directory_type == "ADConnector":
+                counts["ConnectedAD"] += 1
 
         return {
             "CloudOnlyDirectoriesLimit": Directory.CLOUDONLY_DIRECTORIES_LIMIT,
-            "CloudOnlyDirectoriesCurrentCount": simple_ad_count,
-            "CloudOnlyDirectoriesLimitReached": simple_ad_count
+            "CloudOnlyDirectoriesCurrentCount": counts["SimpleAD"],
+            "CloudOnlyDirectoriesLimitReached": counts["SimpleAD"]
             == Directory.CLOUDONLY_DIRECTORIES_LIMIT,
             "CloudOnlyMicrosoftADLimit": Directory.CLOUDONLY_MICROSOFT_AD_LIMIT,
-            "CloudOnlyMicrosoftADCurrentCount": microsoft_ad_count,
-            "CloudOnlyMicrosoftADLimitReached": microsoft_ad_count
+            "CloudOnlyMicrosoftADCurrentCount": counts["MicrosoftAD"],
+            "CloudOnlyMicrosoftADLimitReached": counts["MicrosoftAD"]
             == Directory.CLOUDONLY_MICROSOFT_AD_LIMIT,
             "ConnectedDirectoriesLimit": Directory.CONNECTED_DIRECTORIES_LIMIT,
-            "ConnectedDirectoriesCurrentCount": connected_count,
-            "ConnectedDirectoriesLimitReached": connected_count
+            "ConnectedDirectoriesCurrentCount": counts["ConnectedAD"],
+            "ConnectedDirectoriesLimitReached": counts["ConnectedAD"]
             == Directory.CONNECTED_DIRECTORIES_LIMIT,
         }
+
+    def add_tags_to_resource(self, resource_id, tags):
+        """Add or overwrite one or more tags for specified directory."""
+        self._validate_directory_id(resource_id)
+        errmsg = self.tagger.validate_tags(tags)
+        if errmsg:
+            raise ValidationException(errmsg)
+        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+            raise TagLimitExceededException("Tag limit exceeded")
+        self.tagger.tag_resource(resource_id, tags)
+
+    def remove_tags_from_resource(self, resource_id, tag_keys):
+        """Removes tags from a directory."""
+        self._validate_directory_id(resource_id)
+        self.tagger.untag_resource_using_names(resource_id, tag_keys)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(
+        self, resource_id, next_token=None, limit=None,
+    ):  # pylint: disable=unused-argument
+        """List all tags on a directory."""
+        self._validate_directory_id(resource_id)
+        return self.tagger.list_tags_for_resource(resource_id).get("Tags")
 
 
 ds_backends = {}

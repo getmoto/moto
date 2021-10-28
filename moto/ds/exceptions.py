@@ -76,3 +76,21 @@ class InvalidParameterException(JsonRESTError):
 
     def __init__(self, message):
         super().__init__("InvalidParameterException", message)
+
+
+class TagLimitExceededException(JsonRESTError):
+    """The maximum allowed number of tags was exceeded."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("TagLimitExceededException", message)
+
+
+class ValidationException(JsonRESTError):
+    """Tag validation failed."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ValidationException", message)
