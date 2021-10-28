@@ -85,7 +85,7 @@ class TestCreateVirtualCluster:
                 name="test-emr-virtual-cluster",
                 containerProvider={
                     "type": "EKS",
-                    "id":   "test-eks-cluster",
+                    "id": "test-eks-cluster",
                     "info": {"eksInfo": {"namespace": "emr-container"}},
                 },
             )
@@ -93,7 +93,9 @@ class TestCreateVirtualCluster:
         err = exc.value.response["Error"]
 
         assert err["Code"] == "ValidationException"
-        assert err["Message"] == "A virtual cluster already exists in the given namespace"
+        assert (
+            err["Message"] == "A virtual cluster already exists in the given namespace"
+        )
 
 
 class TestDeleteVirtualCluster:
@@ -157,7 +159,6 @@ class TestDescribeVirtualCluster:
         assert err["Message"] == "Virtual cluster foobaa doesn't exist."
 
 
-
 class TestListVirtualClusters:
     @pytest.fixture(autouse=True)
     def _setup_environment(self, client, virtual_cluster_factory):
@@ -198,13 +199,17 @@ class TestListVirtualClusters:
     def test_created_after_yesterday_running_state(self):
         today = datetime.now()
         yesterday = today - timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdAfter=yesterday, states=["RUNNING"])
+        resp = self.client.list_virtual_clusters(
+            createdAfter=yesterday, states=["RUNNING"]
+        )
         assert len(resp["virtualClusters"]) == 1
 
     def test_created_after_tomorrow_running_state(self):
         today = datetime.now()
         tomorrow = today + timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdAfter=tomorrow, states=["RUNNING"])
+        resp = self.client.list_virtual_clusters(
+            createdAfter=tomorrow, states=["RUNNING"]
+        )
         assert len(resp["virtualClusters"]) == 0
 
     def test_created_before_yesterday(self):
@@ -222,13 +227,17 @@ class TestListVirtualClusters:
     def test_created_before_yesterday_running_state(self):
         today = datetime.now()
         yesterday = today - timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdBefore=yesterday, states=["RUNNING"])
+        resp = self.client.list_virtual_clusters(
+            createdBefore=yesterday, states=["RUNNING"]
+        )
         assert len(resp["virtualClusters"]) == 0
 
     def test_created_before_tomorrow_running_state(self):
         today = datetime.now()
         tomorrow = today + timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdBefore=tomorrow, states=["RUNNING"])
+        resp = self.client.list_virtual_clusters(
+            createdBefore=tomorrow, states=["RUNNING"]
+        )
         assert len(resp["virtualClusters"]) == 1
 
     def test_states_one_state(self):
