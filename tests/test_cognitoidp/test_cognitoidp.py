@@ -2511,12 +2511,8 @@ def test_admin_delete_user_attributes_non_existing_attribute():
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidParameterException")
-    # Real AWS API error message ends with '\n' (newline) symbol.
-    # However, passing it to the InvalidParameterException constructor
-    # causes an error objet to be all embroiled.
-    # FIXME: append '\n' after debugging InvalidParameterException
     err["Message"].should.equal(
-        "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema."
+        "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\n"
     )
 
 
