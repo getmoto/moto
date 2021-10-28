@@ -9,4 +9,5 @@ from moto import mock_emrcontainers
 def test_emrcontainers_list():
     backend = server.create_backend_app("emr-containers")
     test_client = backend.test_client()
+    print(test_client)
     # do test
