@@ -132,12 +132,42 @@ class SageMakerResponse(BaseResponse):
                 tags = self.sagemaker_backend.get_endpoint_tags(arn)
             elif ":training-job/" in arn:
                 tags = self.sagemaker_backend.get_training_job_tags(arn)
+            elif ":experiment/" in arn:
+                tags = self.sagemaker_backend.get_experiment_tags(arn)
+            elif ":experiment-trial/" in arn:
+                tags = self.sagemaker_backend.get_trial_tags(arn)
+            elif ":experiment-trial-component/" in arn:
+                tags = self.sagemaker_backend.get_trial_component_tags(arn)
             else:
                 tags = []
         except AWSError:
             tags = []
         response = {"Tags": tags}
         return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def add_tags(self):
+        arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
+        if ":experiment/" in arn:
+            self.sagemaker_backend.add_tags_to_experiment(arn, tags)
+        elif ":experiment-trial/" in arn:
+            self.sagemaker_backend.add_tags_to_trial(arn, tags)
+        elif ":experiment-trial-component/" in arn:
+            self.sagemaker_backend.add_tags_to_trial_component(arn, tags)
+        return 200, {}, json.dumps({})
+
+    @amzn_request_id
+    def delete_tags(self):
+        arn = self._get_param("ResourceArn")
+        tag_keys = self._get_param("TagKeys")
+        if ":experiment/" in arn:
+            self.sagemaker_backend.delete_tags_from_experiment(arn, tag_keys)
+        elif ":experiment-trial/" in arn:
+            self.sagemaker_backend.delete_tags_from_trial(arn, tag_keys)
+        elif ":experiment-trial-component/" in arn:
+            self.sagemaker_backend.delete_tags_from_trial_component(arn, tag_keys)
+        return 200, {}, json.dumps({})
 
     @amzn_request_id
     def create_endpoint_config(self):
@@ -277,6 +307,117 @@ class SageMakerResponse(BaseResponse):
             )
         )
         return 200, {}, json.dumps("{}")
+
+    @amzn_request_id
+    def search(self):
+        response = self.sagemaker_backend.search(
+            resource=self._get_param("Resource"),
+            search_expression=self._get_param("SearchExpression"),
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def list_experiments(self):
+        response = self.sagemaker_backend.list_experiments()
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def delete_experiment(self):
+        self.sagemaker_backend.delete_experiment(
+            experiment_name=self._get_param("ExperimentName"),
+        )
+        return 200, {}, json.dumps({})
+
+    @amzn_request_id
+    def create_experiment(self, *args, **kwargs):
+        response = self.sagemaker_backend.create_experiment(
+            experiment_name=self._get_param("ExperimentName"),
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def describe_experiment(self, *args, **kwargs):
+        response = self.sagemaker_backend.describe_experiment(
+            experiment_name=self._get_param("ExperimentName"),
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def list_trials(self):
+        response = self.sagemaker_backend.list_trials(
+            experiment_name=self._get_param("ExperimentName"),
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def create_trial(self, *args, **kwargs):
+        try:
+            response = self.sagemaker_backend.create_trial(
+                trial_name=self._get_param("TrialName"),
+                experiment_name=self._get_param("ExperimentName"),
+            )
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
+    def list_trial_components(self):
+        response = self.sagemaker_backend.list_trial_components(
+            trial_name=self._get_param("TrialName"),
+        )
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def create_trial_component(self, *args, **kwargs):
+        try:
+            response = self.sagemaker_backend.create_trial_component(
+                trial_component_name=self._get_param("TrialComponentName"),
+                trial_name=self._get_param("TrialName"),
+            )
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
+    def describe_trial(self, *args, **kwargs):
+        trial_name = self._get_param("TrialName")
+        response = self.sagemaker_backend.describe_trial(trial_name)
+        return json.dumps(response)
+
+    @amzn_request_id
+    def delete_trial(self):
+        trial_name = self._get_param("TrialName")
+        self.sagemaker_backend.delete_trial(trial_name)
+        return 200, {}, json.dumps({})
+
+    @amzn_request_id
+    def delete_trial_component(self):
+        trial_component_name = self._get_param("TrialComponentName")
+        self.sagemaker_backend.delete_trial_component(trial_component_name)
+        return 200, {}, json.dumps({})
+
+    @amzn_request_id
+    def describe_trial_component(self, *args, **kwargs):
+        trial_component_name = self._get_param("TrialComponentName")
+        response = self.sagemaker_backend.describe_trial_component(trial_component_name)
+        return json.dumps(response)
+
+    @amzn_request_id
+    def associate_trial_component(self, *args, **kwargs):
+        self.sagemaker_backend.associate_trial_component(self.request_params)
+        response = {}
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def disassociate_trial_component(self, *args, **kwargs):
+        self.sagemaker_backend.disassociate_trial_component(self.request_params)
+        response = {}
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def list_associations(self, *args, **kwargs):
+        response = self.sagemaker_backend.list_associations(self.request_params)
+        return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def list_training_jobs(self):
