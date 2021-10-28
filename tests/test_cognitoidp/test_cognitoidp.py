@@ -2444,6 +2444,114 @@ def test_admin_update_user_attributes():
 
 
 @mock_cognitoidp
+def test_admin_delete_user_attributes():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()),
+        Schema=[
+            {
+                "Name": "foo",
+                "AttributeDataType": "String",
+                "Mutable": True,
+                "Required": False,
+            }
+        ],
+    )["UserPool"]["Id"]
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {"Name": "family_name", "Value": "Doe"},
+            {"Name": "given_name", "Value": "John"},
+            {"Name": "nickname", "Value": "Joe"},
+            {"Name": "custom:foo", "Value": "bar"},
+        ],
+    )
+
+    conn.admin_delete_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributeNames=["nickname", "custom:foo"],
+    )
+
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+
+    user["UserAttributes"].should.have.length_of(3)  # family_name, given_name and sub
+    user["UserAttributes"].should.contain({"Name": "family_name", "Value": "Doe"})
+    user["UserAttributes"].should.contain({"Name": "given_name", "Value": "John"})
+    user["UserAttributes"].should_not.contain({"Name": "nickname", "Value": "Joe"})
+    user["UserAttributes"].should_not.contain({"Name": "custom:foo", "Value": "bar"})
+
+
+@mock_cognitoidp
+def test_admin_delete_user_attributes_non_existing_attribute():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {"Name": "family_name", "Value": "Doe"},
+            {"Name": "given_name", "Value": "John"},
+            {"Name": "nickname", "Value": "Joe"},
+        ],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.admin_delete_user_attributes(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributeNames=["nickname", "custom:foo"],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\n"
+    )
+
+
+@mock_cognitoidp
+def test_admin_delete_user_attributes_non_existing_user():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.admin_delete_user_attributes(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributeNames=["nickname", "custom:foo"],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("UserNotFoundException")
+    err["Message"].should.equal("User does not exist.")
+
+
+@mock_cognitoidp
+def test_admin_delete_user_attributes_non_existing_pool():
+    conn = boto3.client("cognito-idp", "us-east-1")
+
+    user_pool_id = "us-east-1_aaaaaaaa"
+    with pytest.raises(ClientError) as exc:
+        conn.admin_delete_user_attributes(
+            UserPoolId=user_pool_id,
+            Username=str(uuid.uuid4()),
+            UserAttributeNames=["nickname"],
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal(f"User pool {user_pool_id} does not exist.")
+
+
+@mock_cognitoidp
 def test_resource_server():
 
     client = boto3.client("cognito-idp", "us-west-2")

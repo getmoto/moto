@@ -355,6 +355,28 @@ class CognitoIdpUser(BaseModel):
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
 
+    def delete_attributes(self, attrs_to_delete):
+        flat_attributes = flatten_attrs(self.attributes)
+        wrong_attrs = []
+        for attr in attrs_to_delete:
+            try:
+                flat_attributes.pop(attr)
+            except KeyError:
+                wrong_attrs.append(attr)
+        if wrong_attrs:
+            raise InvalidParameterException(
+                "Invalid user attributes: "
+                + "\n".join(
+                    [
+                        f"user.{w}: Attribute does not exist in the schema."
+                        for w in wrong_attrs
+                    ]
+                )
+                + "\\n"
+            )
+        self.attribute_lookup = flat_attributes
+        self.attributes = expand_attrs(flat_attributes)
+
 
 class CognitoResourceServer(BaseModel):
     def __init__(self, user_pool_id, identifier, name, scopes):
@@ -974,6 +996,9 @@ class CognitoIdpBackend(BaseBackend):
         user = self.admin_get_user(user_pool_id, username)
 
         user.update_attributes(attributes)
+
+    def admin_delete_user_attributes(self, user_pool_id, username, attributes):
+        self.admin_get_user(user_pool_id, username).delete_attributes(attributes)
 
     def admin_user_global_sign_out(self, user_pool_id, username):
         user_pool = self.describe_user_pool(user_pool_id)
