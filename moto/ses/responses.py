@@ -253,6 +253,15 @@ class EmailResponse(BaseResponse):
         template = self.response_template(DESCRIBE_RECEIPT_RULE)
         return template.render(rule=rule)
 
+    def update_receipt_rule(self):
+        rule_set_name = self._get_param("RuleSetName")
+        rule = self._get_dict_param("Rule.")
+
+        ses_backend.update_receipt_rule(rule_set_name, rule)
+
+        template = self.response_template(UPDATE_RECEIPT_RULE)
+        return template.render()
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -549,3 +558,10 @@ DESCRIBE_RECEIPT_RULE = """<DescribeReceiptRuleResponse xmlns="http://ses.amazon
   </ResponseMetadata>
 </DescribeReceiptRuleResponse>
 """
+
+UPDATE_RECEIPT_RULE = """<UpdateReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <UpdateReceiptRuleResult/>
+  <ResponseMetadata>
+    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
+  </ResponseMetadata>
+</UpdateReceiptRuleResponse>"""
