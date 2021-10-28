@@ -1,11 +1,11 @@
 """Unit tests for emrcontainers-supported APIs."""
 import re
-from datetime import datetime, timezone, date, timedelta
+from datetime import datetime, timezone, timedelta
 
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-from botocore.exceptions import ClientError, ValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_emrcontainers
 from unittest.mock import patch
