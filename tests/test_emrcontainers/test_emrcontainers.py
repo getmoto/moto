@@ -106,10 +106,7 @@ class TestDeleteVirtualCluster:
 
     def test_existing_virtual_cluster(self):
         resp = self.client.delete_virtual_cluster(id=self.virtual_cluster_ids[0])
-        cluster_count = len(self.client.list_virtual_clusters()["virtualClusters"])
-
         assert resp["id"] == self.virtual_cluster_ids[0]
-        assert cluster_count == 3
 
     def test_non_existing_virtual_cluster(self):
         with pytest.raises(ClientError) as exc:

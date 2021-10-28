@@ -114,9 +114,8 @@ class EMRContainersBackend(BaseBackend):
         if id not in self.virtual_clusters:
             raise ValidationException("VirtualCluster does not exist")
 
-        result = self.virtual_clusters.pop(id)
-        self.virtual_cluster_count -= 1
-        return result
+        self.virtual_clusters[id].state = "TERMINATED"
+        return self.virtual_clusters[id]
 
     def describe_virtual_cluster(self, id):
         if id not in self.virtual_clusters:
