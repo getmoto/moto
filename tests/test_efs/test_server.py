@@ -20,7 +20,10 @@ def aws_credentials():
     environ["AWS_SECURITY_TOKEN"] = "testing"
 
 
-c
+@pytest.fixture(scope="function")
+def efs_client(aws_credentials):
+    with mock_efs():
+        yield server.create_backend_app("efs").test_client()
 
 
 @pytest.fixture(scope="function")
