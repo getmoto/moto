@@ -8,6 +8,8 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds
 from .utils import random_cluster_id, get_partition  # paginated_list
 
 # String Templates
+from ..config.exceptions import ValidationException
+
 VIRTUAL_CLUSTER_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"
     + str(ACCOUNT_ID)
@@ -40,6 +42,7 @@ class FakeCluster(BaseModel):
         )
         self.state = ACTIVE_STATUS
         self.container_provider = container_provider
+        self.namespace = container_provider["info"]["eksInfo"]["namespace"]
         self.creation_date = iso_8601_datetime_without_milliseconds(
             datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         )
@@ -85,6 +88,16 @@ class EMRContainersBackend(BaseBackend):
         self.__init__(region_name)
 
     def create_virtual_cluster(self, name, container_provider, client_token, tags=None):
+        occupied_namespaces = [
+            virtual_cluster.namespace
+            for virtual_cluster in self.virtual_clusters.values()
+        ]
+
+        if container_provider["info"]["eksInfo"]["namespace"] in occupied_namespaces:
+            raise ValidationException(
+                "A virtual cluster already exists in the given namespace"
+            )
+
         virtual_cluster = FakeCluster(
             name=name,
             container_provider=container_provider,

@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
+from botocore.exceptions import ClientError, ValidationError
+
 from moto import mock_emrcontainers
 from unittest.mock import patch
 
@@ -31,7 +33,6 @@ def virtual_cluster_factory(client):
                     "id": "test-eks-cluster",
                     "info": {"eksInfo": {"namespace": "emr-container"}},
                 },
-                clientToken="string",
             )
 
             cluster_list.append(resp["id"])
@@ -49,7 +50,6 @@ def test_create_virtual_cluster():
             "id": "test-eks-cluster",
             "info": {"eksInfo": {"namespace": "emr-container"}},
         },
-        clientToken="string",
     )
 
     assert resp["name"] == "test-emr-virtual-cluster"
@@ -58,6 +58,32 @@ def test_create_virtual_cluster():
         resp["arn"]
         == f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{resp['id']}"
     )
+
+
+@mock_emrcontainers
+def test_create_virtual_cluster_on_same_namespace():
+    client = boto3.client("emr-containers", region_name=DEFAULT_REGION)
+
+    client.create_virtual_cluster(
+        name="test-emr-virtual-cluster",
+        containerProvider={
+            "type": "EKS",
+            "id": "test-eks-cluster",
+            "info": {"eksInfo": {"namespace": "emr-container"}},
+        },
+    )
+
+    with pytest.raises(
+        ClientError, match="A virtual cluster already exists in the given namespace"
+    ):
+        client.create_virtual_cluster(
+            name="test-emr-virtual-cluster",
+            containerProvider={
+                "type": "EKS",
+                "id": "test-eks-cluster",
+                "info": {"eksInfo": {"namespace": "emr-container"}},
+            },
+        )
 
 
 def test_delete_virtual_cluster(client, virtual_cluster_factory):
