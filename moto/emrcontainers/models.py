@@ -5,7 +5,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
-from .utils import random_cluster_id, get_partition  # paginated_list
+from .utils import random_cluster_id, get_partition, paginated_list
 
 # String Templates
 from ..config.exceptions import ValidationException
@@ -15,7 +15,6 @@ VIRTUAL_CLUSTER_ARN_TEMPLATE = (
     + str(ACCOUNT_ID)
     + ":/virtualclusters/{virtual_cluster_id}"
 )
-
 
 # Defaults used for creating a Virtual cluster
 ACTIVE_STATUS = "ACTIVE"
@@ -32,7 +31,6 @@ class FakeCluster(BaseModel):
         tags=None,
         virtual_cluster_id=None,
     ):
-
         self.id = virtual_cluster_id or random_cluster_id()
 
         self.name = name
@@ -42,6 +40,7 @@ class FakeCluster(BaseModel):
         )
         self.state = ACTIVE_STATUS
         self.container_provider = container_provider
+        self.container_provider_id = container_provider["id"]
         self.namespace = container_provider["info"]["eksInfo"]["namespace"]
         self.creation_date = iso_8601_datetime_without_milliseconds(
             datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -61,12 +60,12 @@ class FakeCluster(BaseModel):
         # Format for summary https://docs.aws.amazon.com/emr-on-eks/latest/APIReference/API_DescribeVirtualCluster.html
         # (response syntax section)
         return {
-            "arn": self.arn,
-            "containerProvider": self.container_provider,
-            "createdAt": self.creation_date,
             "id": self.id,
             "name": self.name,
+            "arn": self.arn,
             "state": self.state,
+            "containerProvider": self.container_provider,
+            "createdAt": self.creation_date,
             "tags": self.tags,
         }
 
@@ -125,19 +124,58 @@ class EMRContainersBackend(BaseBackend):
 
         return self.virtual_clusters[id].to_dict()
 
-    # def list_virtual_clusters(
-    #     self,
-    #     container_provider_id,
-    #     container_provider_type,
-    #     created_after,
-    #     created_before,
-    #     states,
-    #     max_results,
-    #     next_token,
-    # ):
-    #
-    #     return self.virtual_clusters.values(), ""
-    #     return paginated_list(self.virtual_clusters.values(), max_results, next_token)
+    def list_virtual_clusters(
+        self,
+        container_provider_id,
+        container_provider_type,
+        created_after,
+        created_before,
+        states,
+        max_results,
+        next_token,
+    ):
+        virtual_clusters = [
+            virtual_cluster.to_dict()
+            for virtual_cluster in self.virtual_clusters.values()
+        ]
+
+        if container_provider_id:
+            virtual_clusters = [
+                virtual_cluster
+                for virtual_cluster in virtual_clusters
+                if virtual_cluster["containerProvider"]["id"] == container_provider_id
+            ]
+
+        if container_provider_type:
+            virtual_clusters = [
+                virtual_cluster
+                for virtual_cluster in virtual_clusters
+                if virtual_cluster["containerProvider"]["type"]
+                == container_provider_type
+            ]
+
+        if created_after:
+            virtual_clusters = [
+                virtual_cluster
+                for virtual_cluster in virtual_clusters
+                if virtual_cluster["createdAt"] >= created_after
+            ]
+
+        if created_before:
+            virtual_clusters = [
+                virtual_cluster
+                for virtual_cluster in virtual_clusters
+                if virtual_cluster["createdAt"] <= created_before
+            ]
+
+        if states:
+            virtual_clusters = [
+                virtual_cluster
+                for virtual_cluster in virtual_clusters
+                if virtual_cluster["state"] in states
+            ]
+
+        return paginated_list(virtual_clusters, max_results, next_token)
 
 
 emrcontainers_backends = {}

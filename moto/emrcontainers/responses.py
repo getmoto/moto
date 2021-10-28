@@ -46,27 +46,26 @@ class EMRContainersResponse(BaseResponse):
         response = {"virtualCluster": virtual_cluster}
         return 200, {}, json.dumps(response)
 
-    # def list_virtual_clusters(self):
-    #     container_provider_id = self._get_param("containerProviderId")
-    #     container_provider_type = self._get_param(
-    #         "containerProviderType", DEFAULT_CONTAINER_PROVIDER_TYPE
-    #     )
-    #     created_after = self._get_param("createdAfter")
-    #     created_before = self._get_param("createdBefore")
-    #     states = self._get_param("states")
-    #     max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
-    #     next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
-    #
-    #     virtual_clusters, next_token = self.emrcontainers_backend.list_virtual_clusters(
-    #         container_provider_id=container_provider_id,
-    #         container_provider_type=container_provider_type,
-    #         created_after=created_after,
-    #         created_before=created_before,
-    #         states=states,
-    #         max_results=max_results,
-    #         next_token=next_token,
-    #     )
-    #
-    #     template = self.response_template(LIST_VIRTUAL_CLUSTERS_TEMPLATE)
-    #     return template.render(clusters=virtual_clusters, nextToken=next_token)
-    #
+    def list_virtual_clusters(self):
+        container_provider_id = self._get_param("containerProviderId")
+        container_provider_type = self._get_param(
+            "containerProviderType", DEFAULT_CONTAINER_PROVIDER_TYPE
+        )
+        created_after = self._get_param("createdAfter")
+        created_before = self._get_param("createdBefore")
+        states = self._get_param("states")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        virtual_clusters, next_token = self.emrcontainers_backend.list_virtual_clusters(
+            container_provider_id=container_provider_id,
+            container_provider_type=container_provider_type,
+            created_after=created_after,
+            created_before=created_before,
+            states=states,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        response = {"virtualClusters": virtual_clusters, "nextToken": next_token}
+        return 200, {}, json.dumps(response)

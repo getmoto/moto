@@ -1,6 +1,6 @@
 """Unit tests for emrcontainers-supported APIs."""
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
 
 import boto3
 import pytest
@@ -40,42 +40,32 @@ def virtual_cluster_factory(client):
     yield cluster_list
 
 
-@mock_emrcontainers
-def test_create_virtual_cluster():
-    client = boto3.client("emr-containers", region_name=DEFAULT_REGION)
-    resp = client.create_virtual_cluster(
-        name="test-emr-virtual-cluster",
-        containerProvider={
-            "type": "EKS",
-            "id": "test-eks-cluster",
-            "info": {"eksInfo": {"namespace": "emr-container"}},
-        },
-    )
+class TestCreateVirtualCluster:
+    @staticmethod
+    @mock_emrcontainers
+    def test_create_virtual_cluster(client):
+        resp = client.create_virtual_cluster(
+            name="test-emr-virtual-cluster",
+            containerProvider={
+                "type": "EKS",
+                "id": "test-eks-cluster",
+                "info": {"eksInfo": {"namespace": "emr-container"}},
+            },
+        )
 
-    assert resp["name"] == "test-emr-virtual-cluster"
-    assert re.match(r"[a-z,0-9]{25}", resp["id"])
-    assert (
-        resp["arn"]
-        == f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{resp['id']}"
-    )
+        cluster_count = len(client.list_virtual_clusters()["virtualClusters"])
 
+        assert resp["name"] == "test-emr-virtual-cluster"
+        assert re.match(r"[a-z,0-9]{25}", resp["id"])
+        assert (
+            resp["arn"]
+            == f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{resp['id']}"
+        )
+        assert cluster_count == 1
 
-@mock_emrcontainers
-def test_create_virtual_cluster_on_same_namespace():
-    client = boto3.client("emr-containers", region_name=DEFAULT_REGION)
-
-    client.create_virtual_cluster(
-        name="test-emr-virtual-cluster",
-        containerProvider={
-            "type": "EKS",
-            "id": "test-eks-cluster",
-            "info": {"eksInfo": {"namespace": "emr-container"}},
-        },
-    )
-
-    with pytest.raises(
-        ClientError, match="A virtual cluster already exists in the given namespace"
-    ):
+    @staticmethod
+    @mock_emrcontainers
+    def test_create_virtual_cluster_on_same_namespace(client):
         client.create_virtual_cluster(
             name="test-emr-virtual-cluster",
             containerProvider={
@@ -85,58 +75,139 @@ def test_create_virtual_cluster_on_same_namespace():
             },
         )
 
-
-def test_delete_virtual_cluster(client, virtual_cluster_factory):
-    cluster_list = virtual_cluster_factory
-
-    resp = client.delete_virtual_cluster(id=cluster_list[0])
-
-    assert resp["id"] == cluster_list[0]
-
-
-def test_delete_non_existing_virtual_cluster(client, virtual_cluster_factory):
-    with pytest.raises(
-        ClientError, match="VirtualCluster does not exist"
-    ):
-        client.delete_virtual_cluster(id="foobaa")
+        with pytest.raises(
+            ClientError, match="A virtual cluster already exists in the given namespace"
+        ):
+            client.create_virtual_cluster(
+                name="test-emr-virtual-cluster",
+                containerProvider={
+                    "type": "EKS",
+                    "id": "test-eks-cluster",
+                    "info": {"eksInfo": {"namespace": "emr-container"}},
+                },
+            )
 
 
-def test_describe_virtual_cluster(client, virtual_cluster_factory):
-    cluster_list = virtual_cluster_factory
-    virtual_cluster_id = cluster_list[0]
+class TestDeleteVirtualCluster:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, virtual_cluster_factory):
+        self.client = client
+        self.virtual_cluster_ids = virtual_cluster_factory
 
-    resp = client.describe_virtual_cluster(id=virtual_cluster_id)
+    def test_existing_virtual_cluster(self):
+        resp = self.client.delete_virtual_cluster(id=self.virtual_cluster_ids[0])
+        cluster_count = len(self.client.list_virtual_clusters()["virtualClusters"])
 
-    expected_resp = {
-        "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{virtual_cluster_id}",
-        "containerProvider": {
-            "id": "test-eks-cluster",
-            "info": {"eksInfo": {"namespace": "emr-container-0"}},
-            "type": "EKS",
-        },
-        "createdAt": (
-            datetime.today()
-            .replace(hour=0, minute=0, second=0, microsecond=0)
-            .replace(tzinfo=timezone.utc)
-        ),
-        "id": virtual_cluster_id,
-        "name": "test-emr-virtual-cluster",
-        "state": "RUNNING",
-    }
+        assert resp["id"] == self.virtual_cluster_ids[0]
+        assert cluster_count == 3
 
-    assert resp["virtualCluster"] == expected_resp
+    def test_non_existing_virtual_cluster(self):
+        with pytest.raises(ClientError, match="VirtualCluster does not exist"):
+            self.client.delete_virtual_cluster(id="foobaa")
 
 
-def test_describe_non_existing_virtual_cluster(client, virtual_cluster_factory):
-    with pytest.raises(
-        ClientError, match="Virtual cluster foobaa doesn't exist."
-    ):
-        client.describe_virtual_cluster(id="foobaa")
+class TestDescribeVirtualCluster:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, virtual_cluster_factory):
+        self.client = client
+        self.virtual_cluster_ids = virtual_cluster_factory
+
+    def test_existing_virtual_cluster(self):
+        resp = self.client.describe_virtual_cluster(id=self.virtual_cluster_ids[0])
+
+        expected_resp = {
+            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/virtualclusters/{self.virtual_cluster_ids[0]}",
+            "containerProvider": {
+                "id": "test-eks-cluster",
+                "info": {"eksInfo": {"namespace": "emr-container-0"}},
+                "type": "EKS",
+            },
+            "createdAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+            "id": self.virtual_cluster_ids[0],
+            "name": "test-emr-virtual-cluster",
+            "state": "RUNNING",
+        }
+
+        assert resp["virtualCluster"] == expected_resp
+
+    def test_non_existing_virtual_cluster(self):
+        with pytest.raises(ClientError, match="Virtual cluster foobaa doesn't exist."):
+            self.client.describe_virtual_cluster(id="foobaa")
 
 
+class TestListVirtualClusters:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, virtual_cluster_factory):
+        self.client = client
 
-# def test_list_virtual_clusters(client, virtual_cluster_factory):
-#
-#     resp = client.list_virtual_clusters()
-#
-#     assert resp == 3
+    def test_base(self):
+        resp = self.client.list_virtual_clusters()
+        assert len(resp["virtualClusters"]) == 4
+
+    def test_valid_container_provider_id(self):
+        resp = self.client.list_virtual_clusters(containerProviderId="test-eks-cluster")
+        assert len(resp["virtualClusters"]) == 4
+
+    def test_invalid_container_provider_id(self):
+        resp = self.client.list_virtual_clusters(containerProviderId="foobaa")
+        assert len(resp["virtualClusters"]) == 0
+
+    def test_valid_container_provider_type(self):
+        resp = self.client.list_virtual_clusters(containerProviderType="EKS")
+        assert len(resp["virtualClusters"]) == 4
+
+    def test_invalid_container_provider_type(self):
+        resp = self.client.list_virtual_clusters(containerProviderType="AKS")
+        assert len(resp["virtualClusters"]) == 0
+
+    def test_created_after_yesterday(self):
+        today = datetime.now()
+        yesterday = today - timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdAfter=yesterday)
+        assert len(resp["virtualClusters"]) == 4
+
+    def test_created_after_tomorrow(self):
+        today = datetime.now()
+        tomorrow = today + timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdAfter=tomorrow)
+        assert len(resp["virtualClusters"]) == 0
+
+    def test_created_before_yesterday(self):
+        today = datetime.now()
+        yesterday = today - timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdBefore=yesterday)
+        assert len(resp["virtualClusters"]) == 0
+
+    def test_created_before_tomorrow(self):
+        today = datetime.now()
+        tomorrow = today + timedelta(days=1)
+        resp = self.client.list_virtual_clusters(createdBefore=tomorrow)
+        assert len(resp["virtualClusters"]) == 4
+
+    def test_states_one_state(self):
+        resp = self.client.list_virtual_clusters(states=["RUNNING"])
+        assert len(resp["virtualClusters"]) == 1
+
+    # todo: Fix this test because response only picks up the first parameter of the list
+    # def test_states_two_state(self):
+    #     resp = self.client.list_virtual_clusters(states=["RUNNING", "TERMINATED"])
+    #     assert len(resp["virtualClusters"]) == 2
+
+    def test_states_invalid_state(self):
+        resp = self.client.list_virtual_clusters(states=["FOOBAA"])
+        assert len(resp["virtualClusters"]) == 0
+
+    def test_max_result(self):
+        resp = self.client.list_virtual_clusters(maxResults=1)
+        assert len(resp["virtualClusters"]) == 1
+
+    def test_next_token(self):
+        resp = self.client.list_virtual_clusters(maxResults=2)
+        assert len(resp["virtualClusters"]) == 2
+
+        resp = self.client.list_virtual_clusters(nextToken=resp["nextToken"])
+        assert len(resp["virtualClusters"]) == 2

@@ -27,21 +27,20 @@ def random_cluster_id(size=13):
     return random_id(size=25)
 
 
-# def paginated_list(full_list, max_results, next_token):
-#     """
-#     Returns a tuple containing a slice of the full list
-#     starting at next_token and ending with at most the
-#     max_results number of elements, and the new
-#     next_token which can be passed back in for the next
-#     segment of the full list.
-#     """
-#     # sorted_list = sorted(full_list)
-#     list_len = len(full_list)
-#
-#     converted_list = [item.__dict__ for item in full_list]
-#
-#     start = converted_list.index(next_token) if next_token else 0
-#     end = min(start + max_results, list_len)
-#     new_next = None if end == list_len else full_list[end]
-#
-#     return converted_list[start:end], new_next
+def paginated_list(full_list, max_results, next_token):
+    """
+    Returns a tuple containing a slice of the full list starting at next_token and ending with at most the max_results
+    number of elements, and the new next_token which can be passed back in for the next segment of the full list.
+    """
+    if next_token is None or not next_token:
+        next_token = 0
+    next_token = int(next_token)
+
+    sorted_list = sorted(full_list, key=lambda d: d["name"])
+
+    values = sorted_list[next_token : next_token + max_results]
+    if len(values) == max_results:
+        new_next_token = str(next_token + max_results)
+    else:
+        new_next_token = None
+    return values, new_next_token
