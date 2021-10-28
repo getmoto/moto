@@ -53,7 +53,7 @@ class EMRContainersResponse(BaseResponse):
         )
         created_after = self._get_param("createdAfter")
         created_before = self._get_param("createdBefore")
-        states = self._get_param("states")
+        states = self.querystring.get("states", [])
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
 

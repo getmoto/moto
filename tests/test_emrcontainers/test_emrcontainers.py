@@ -212,6 +212,14 @@ class TestListVirtualClusters:
         )
         assert len(resp["virtualClusters"]) == 0
 
+    def test_created_after_yesterday_two_state_limit(self):
+        today = datetime.now()
+        yesterday = today - timedelta(days=1)
+        resp = self.client.list_virtual_clusters(
+            createdAfter=yesterday, states=["RUNNING", "TERMINATED"], maxResults=1
+        )
+        assert len(resp["virtualClusters"]) == 1
+
     def test_created_before_yesterday(self):
         today = datetime.now()
         yesterday = today - timedelta(days=1)
@@ -240,14 +248,21 @@ class TestListVirtualClusters:
         )
         assert len(resp["virtualClusters"]) == 1
 
+    def test_created_before_tomorrow_two_state_limit(self):
+        today = datetime.now()
+        tomorrow = today + timedelta(days=1)
+        resp = self.client.list_virtual_clusters(
+            createdBefore=tomorrow, states=["RUNNING", "TERMINATED"], maxResults=1
+        )
+        assert len(resp["virtualClusters"]) == 1
+
     def test_states_one_state(self):
         resp = self.client.list_virtual_clusters(states=["RUNNING"])
         assert len(resp["virtualClusters"]) == 1
 
-    # todo: Fix this test because response only picks up the first parameter of the list
-    # def test_states_two_state(self):
-    #     resp = self.client.list_virtual_clusters(states=["RUNNING", "TERMINATED"])
-    #     assert len(resp["virtualClusters"]) == 2
+    def test_states_two_state(self):
+        resp = self.client.list_virtual_clusters(states=["RUNNING", "TERMINATED"])
+        assert len(resp["virtualClusters"]) == 2
 
     def test_states_invalid_state(self):
         resp = self.client.list_virtual_clusters(states=["FOOBAA"])
