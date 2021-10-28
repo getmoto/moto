@@ -35,6 +35,15 @@ COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
 )
 
 
+def datetime2int_milliseconds(date):
+    """
+    AWS returns timestamps in milliseconds
+    We don't use milliseconds timestamps internally,
+    this method should be used only in describe() method
+    """
+    return int(date.timestamp() * 1000)
+
+
 def datetime2int(date):
     return int(time.mktime(date.timetuple()))
 
@@ -351,6 +360,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_queue = job_queue
         self.job_state = "SUBMITTED"  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
         self.job_queue.jobs.append(self)
+        self.job_created_at = datetime.datetime.now()
         self.job_started_at = datetime.datetime(1970, 1, 1)
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
@@ -374,11 +384,12 @@ class Job(threading.Thread, BaseModel, DockerModel):
             "jobQueue": self.job_queue.arn,
             "status": self.job_state,
             "dependsOn": self.depends_on if self.depends_on else [],
+            "createdAt": datetime2int_milliseconds(self.job_created_at),
         }
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
-            result["startedAt"] = datetime2int(self.job_started_at)
+            result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
         if self.job_stopped:
-            result["stoppedAt"] = datetime2int(self.job_stopped_at)
+            result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
             result["container"] = {}
             result["container"]["command"] = self._get_container_property("command", [])
             result["container"]["privileged"] = self._get_container_property(
