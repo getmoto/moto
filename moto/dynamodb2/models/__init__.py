@@ -825,7 +825,7 @@ class Table(CloudFormationModel):
                 result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
-            results, limit, exclusive_start_key
+            results, limit, exclusive_start_key, scanned_index=index_name
         )
         return results, scanned_count, last_evaluated_key
 
@@ -917,7 +917,7 @@ class Table(CloudFormationModel):
                 result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
-            results, limit, exclusive_start_key, index_name
+            results, limit, exclusive_start_key, scanned_index=index_name
         )
         return results, scanned_count, last_evaluated_key
 
