@@ -1,4 +1,5 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
+from datetime import datetime, timezone
 import re
 
 from boto3 import Session
@@ -12,10 +13,12 @@ from moto.ds.exceptions import (
     DsValidationException,
     InvalidParameterException,
 )
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from .utils import PAGINATION_MODEL
 
 
-class Directory(BaseModel):
+class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
     """Representation of a Simple AD Directory."""
 
     # The assumption here is that the limits are the same for all regions.
@@ -24,15 +27,53 @@ class Directory(BaseModel):
     CONNECTED_DIRECTORIES_LIMIT = 10
 
     def __init__(
-        self, name, password, size, vpc_settings, short_name=None, description=None
+        self,
+        name,
+        password,
+        size,
+        vpc_settings,
+        directory_type,
+        short_name=None,
+        description=None,
     ):  # pylint: disable=too-many-arguments
         self.name = name
         self.password = password
         self.size = size
+        # NOTE: Can't add availability zones to vpc_settings until EC2
+        # describe_subnets() is implemented.
         self.vpc_settings = vpc_settings
         self.short_name = short_name
         self.description = description
+
+        # Calculated or default values for the directory attributes.
         self.directory_id = f"d-{get_random_hex(10)}"
+        self.access_url = f"{self.directory_id}.awsapps.com"
+        self.alias = self.directory_id
+        self.desired_number_of_domain_controllers = 0
+        self.sso_enabled = False
+        self.directory_type = directory_type
+        self.stage = "Active"
+        self.launch_time = datetime.now(timezone.utc).isoformat()
+        self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
+
+    def to_json(self):
+        """Convert the attributes into json with CamelCase tags."""
+        replacement_keys = {"directory_type": "Type"}
+        exclude_items = ["password"]
+
+        json_result = {}
+        for item, value in self.__dict__.items():
+            # Allow values set to False or numerical zero.
+            if value == "" or item in exclude_items:
+                continue
+
+            if item in replacement_keys:
+                json_result[replacement_keys[item]] = value
+            else:
+                parts = item.split("_")
+                new_tag = "".join(x.title() for x in parts)
+                json_result[new_tag] = value
+        return json_result
 
 
 class DirectoryServiceBackend(BaseBackend):
@@ -179,6 +220,7 @@ class DirectoryServiceBackend(BaseBackend):
             password,
             size,
             vpc_settings,
+            directory_type="SimpleAD",
             short_name=short_name,
             description=description,
         )
@@ -191,8 +233,8 @@ class DirectoryServiceBackend(BaseBackend):
 
         return directory.directory_id
 
-    def delete_directory(self, directory_id):
-        """Delete directory with the matching ID."""
+    def _validate_directory_id(self, directory_id):
+        """Raise an exception if the directory id is invalid or unknown."""
         # Validation of ID takes precedence over a check for its existence.
         id_pattern = r"^d-[0-9a-f]{10}$"
         if not re.match(id_pattern, directory_id):
@@ -211,31 +253,52 @@ class DirectoryServiceBackend(BaseBackend):
                 f"Directory {directory_id} does not exist"
             )
 
+    def delete_directory(self, directory_id):
+        """Delete directory with the matching ID."""
+        self._validate_directory_id(directory_id)
         self.tagger.delete_all_tags_for_resource(directory_id)
         self.directories.pop(directory_id)
         return directory_id
 
-    def describe_directories(self, directory_ids, next_token, limit):
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_directories(
+        self, directory_ids=None, next_token=None, limit=0
+    ):  # pylint: disable=unused-argument
         """Return info on all directories or directories with matching IDs."""
-        pass
+        for directory_id in directory_ids or self.directories:
+            self._validate_directory_id(directory_id)
+
+        directories = list(self.directories.values())
+        if directory_ids:
+            directories = [x for x in directories if x.directory_id in directory_ids]
+        return directories
 
     def get_directory_limits(self):
         """Return hard-coded limits for the directories.
 
         Not sure about the AD and Connected limits at this time.
         """
-        current_count = len(self.directories)
+        directory_types = [x.directory_type for x in self.directories.values()]
+
+        simple_ad_count = directory_types.count("SimpleAD")
+        microsoft_ad_count = directory_types.count(
+            "MicrosoftAD"
+        ) + directory_types.count("SharedMicrosoftAD")
+        connected_count = directory_types.count("ADConnector")
+
         return {
             "CloudOnlyDirectoriesLimit": Directory.CLOUDONLY_DIRECTORIES_LIMIT,
-            "CloudOnlyDirectoriesCurrentCount": current_count,
-            "CloudOnlyDirectoriesLimitReached": current_count
+            "CloudOnlyDirectoriesCurrentCount": simple_ad_count,
+            "CloudOnlyDirectoriesLimitReached": simple_ad_count
             == Directory.CLOUDONLY_DIRECTORIES_LIMIT,
             "CloudOnlyMicrosoftADLimit": Directory.CLOUDONLY_MICROSOFT_AD_LIMIT,
-            "CloudOnlyMicrosoftADCurrentCount": 0,
-            "CloudOnlyMicrosoftADLimitReached": False,
+            "CloudOnlyMicrosoftADCurrentCount": microsoft_ad_count,
+            "CloudOnlyMicrosoftADLimitReached": microsoft_ad_count
+            == Directory.CLOUDONLY_MICROSOFT_AD_LIMIT,
             "ConnectedDirectoriesLimit": Directory.CONNECTED_DIRECTORIES_LIMIT,
-            "ConnectedDirectoriesCurrentCount": 0,
-            "ConnectedDirectoriesLimitReached": False,
+            "ConnectedDirectoriesCurrentCount": connected_count,
+            "ConnectedDirectoriesLimitReached": connected_count
+            == Directory.CONNECTED_DIRECTORIES_LIMIT,
         }
 
 

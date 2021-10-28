@@ -1,8 +1,10 @@
 """Handles Directory Service requests, invokes methods, returns responses."""
 import json
 
+from moto.core.exceptions import InvalidToken
 from moto.core.responses import BaseResponse
-from .models import ds_backends
+from moto.ds.exceptions import InvalidNextTokenException
+from moto.ds.models import ds_backends
 
 
 class DirectoryServiceResponse(BaseResponse):
@@ -39,6 +41,23 @@ class DirectoryServiceResponse(BaseResponse):
         directory_id_arg = self._get_param("DirectoryId")
         directory_id = self.ds_backend.delete_directory(directory_id_arg)
         return json.dumps({"DirectoryId": directory_id})
+
+    def describe_directories(self):
+        """Return directory info for the given IDs or all IDs."""
+        directory_ids = self._get_param("DirectoryIds")
+        next_token = self._get_param("NextToken")
+        limit = self._get_int_param("Limit")
+        try:
+            (descriptions, next_token) = self.ds_backend.describe_directories(
+                directory_ids, next_token=next_token, limit=limit
+            )
+        except InvalidToken as exc:
+            raise InvalidNextTokenException() from exc
+
+        response = {"DirectoryDescriptions": [x.to_json() for x in descriptions]}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
 
     def get_directory_limits(self):
         """Return directory limit information for the current region."""

@@ -1,4 +1,6 @@
-"""Directory-related unit tests for Directory Services."""
+"""Directory-related unit tests for Simple AD Directory Services."""
+from datetime import datetime, timezone
+
 import boto3
 from botocore.exceptions import ClientError
 import pytest
@@ -278,9 +280,9 @@ def test_delete_directory():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '{bad_id}' at 'directoryId' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: ^d-[0-9a-f]{10}$"
-    )
+        f"Value '{bad_id}' at 'directoryId' failed to satisfy constraint: "
+        f"Member must satisfy regular expression pattern: ^d-[0-9a-f]{{10}}$"
+    ) in err["Message"]
 
 
 @mock_ec2
@@ -305,3 +307,70 @@ def test_ds_get_directory_limits():
         == limits["CloudOnlyDirectoriesCurrentCount"]
     )
     assert limits["CloudOnlyDirectoriesLimitReached"]
+
+
+@mock_ec2
+@mock_ds
+def test_describe_directories():
+    """Test good and bad invocations of describe_directories()."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_ids = []
+    limit = 10
+    for _ in range(limit):
+        directory_ids.append(create_test_directory(client, ec2_client))
+
+    # Test that if no directory IDs are specified, all are returned.
+    result = client.describe_directories()
+    assert len(result["DirectoryDescriptions"]) == limit
+    for idx, dir_info in enumerate(result["DirectoryDescriptions"]):
+        assert dir_info["DesiredNumberOfDomainControllers"] == 0
+        assert not dir_info["SsoEnabled"]
+        assert dir_info["DirectoryId"] == directory_ids[idx]
+        assert dir_info["Name"].startswith("test-")
+        assert dir_info["Size"] == "Large"
+        assert dir_info["Alias"] == directory_ids[idx]
+        assert dir_info["AccessUrl"] == f"{directory_ids[idx]}.awsapps.com"
+        assert dir_info["Stage"] == "Active"
+        assert dir_info["LaunchTime"] <= datetime.now(timezone.utc)
+        assert dir_info["StageLastUpdatedDateTime"] <= datetime.now(timezone.utc)
+        assert dir_info["Type"] == "SimpleAD"
+        assert dir_info["VpcSettings"]["VpcId"].startswith("vpc-")
+        assert len(dir_info["VpcSettings"]["SubnetIds"]) == 2
+    assert "NextToken" not in result
+
+    # Test with a specific directory ID.
+    result = client.describe_directories(DirectoryIds=[directory_ids[5]])
+    assert len(result["DirectoryDescriptions"]) == 1
+    assert result["DirectoryDescriptions"][0]["DirectoryId"] == directory_ids[5]
+
+    # Test with a bad directory ID.
+    bad_id = get_random_hex(3)
+    with pytest.raises(ClientError) as exc:
+        client.describe_directories(DirectoryIds=[bad_id])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        f"Value '{bad_id}' at 'directoryId' failed to satisfy constraint: "
+        f"Member must satisfy regular expression pattern: ^d-[0-9a-f]{{10}}$"
+    ) in err["Message"]
+
+    # Test with an invalid next token.
+    with pytest.raises(ClientError) as exc:
+        client.describe_directories(NextToken="bogus")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidNextTokenException"
+    assert "Invalid value passed for the NextToken parameter" in err["Message"]
+
+    # Test with a limit.
+    result = client.describe_directories(Limit=5)
+    assert len(result["DirectoryDescriptions"]) == 5
+    directories = result["DirectoryDescriptions"]
+    for idx in range(5):
+        assert directories[idx]["DirectoryId"] == directory_ids[idx]
+    assert result["NextToken"]
+
+    result = client.describe_directories(Limit=1, NextToken=result["NextToken"])
+    assert len(result["DirectoryDescriptions"]) == 1
+    assert result["DirectoryDescriptions"][0]["DirectoryId"] == directory_ids[5]
