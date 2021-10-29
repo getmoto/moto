@@ -261,9 +261,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.path = self._get_path(request)
         # Make a copy of request.headers because it's immutable
         self.headers = dict(request.headers)
-        if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
-
+        if "Host" not in self.headers:
+            self.headers["Host"] = urlparse(full_url).netloc
         try:
             response = self._bucket_response(request, full_url, headers)
         except S3ClientError as s3error:
@@ -1099,8 +1098,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.path = self._get_path(request)
         # Make a copy of request.headers because it's immutable
         self.headers = dict(request.headers)
-        if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
+        if "Host" not in self.headers:
+            self.headers["Host"] = urlparse(full_url).netloc
         response_headers = {}
 
         try:
