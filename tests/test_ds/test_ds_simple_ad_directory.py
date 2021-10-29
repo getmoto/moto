@@ -175,33 +175,37 @@ def test_ds_create_directory_bad_subnets():
 
     # Error if VPC subnets are bogus.
     good_vpc_id = create_vpc(ec2_client)
-    # NOTE:  moto currently doesn't support EC2's describe_subnets(), so
-    # the verification of subnets can't be performed.
-    # with pytest.raises(ClientError) as exc:
-    #     create_test_directory(
-    #         client,
-    #         ec2_client,
-    #         {"VpcId": good_vpc_id, "SubnetIds": ["subnet-12345678"]},
-    #     )
-    # err = exc.value.response["Error"]
-    # assert err["Code"] == "ClientException"
-    # assert "Invalid subnet ID(s)" in err["Message"]
+    with pytest.raises(ClientError) as exc:
+        create_test_directory(
+            client,
+            ec2_client,
+            {"VpcId": good_vpc_id, "SubnetIds": ["subnet-12345678", "subnet-87654321"]},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        "Invalid subnet ID(s). They must correspond to two subnets in "
+        "different Availability Zones."
+    ) in err["Message"]
 
     # Error if both VPC subnets are in the same region.
-    # subnets_same_region = create_subnets(
-    #     ec2_client, good_vpc_id, region1=TEST_REGION+"a", region2=TEST_REGION+"a"
-    # )
-    # with pytest.raises(ClientError) as exc:
-    #     create_test_directory(
-    #         client,
-    #         ec2_client,
-    #         {"VpcId": "vpc-12345678", "SubnetIds": subnets_same_region},
-    #     )
-    # err = exc.value.response["Error"]
-    # assert err["Code"] == "ClientException"
-    # assert (
-    #     "Invalid subnetID(s).  The two subnets must be in different Availability Zones"
-    # )in err["Message"]
+    subnets_same_region = create_subnets(
+        ec2_client, good_vpc_id, region1=TEST_REGION + "a", region2=TEST_REGION + "a"
+    )
+    with pytest.raises(ClientError) as exc:
+        create_test_directory(
+            client,
+            ec2_client,
+            {"VpcId": good_vpc_id, "SubnetIds": subnets_same_region},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClientException"
+    assert (
+        "Invalid subnet ID(s). The two subnets must be in different "
+        "Availability Zones."
+    ) in err["Message"]
+    ec2_client.delete_subnet(SubnetId=subnets_same_region[0])
+    ec2_client.delete_subnet(SubnetId=subnets_same_region[1])
 
     # Error if only one VPC subnet.
     good_subnet_ids = create_subnets(ec2_client, good_vpc_id)

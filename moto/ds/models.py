@@ -15,6 +15,7 @@ from moto.ds.exceptions import (
     TagLimitExceededException,
     ValidationException,
 )
+from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from .utils import PAGINATION_MODEL
@@ -43,9 +44,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.name = name
         self.password = password
         self.size = size
-        # NOTE: Can't add availability zones to vpc_settings until EC2
-        # describe_subnets() is implemented.
         self.vpc_settings = vpc_settings
+        self.directory_type = directory_type
         self.short_name = short_name
         self.description = description
 
@@ -55,7 +55,6 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.alias = self.directory_id
         self.desired_number_of_domain_controllers = 0
         self.sso_enabled = False
-        self.directory_type = directory_type
         self.stage = "Active"
         self.launch_time = datetime.now(timezone.utc).isoformat()
         self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
@@ -67,7 +66,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
 
         json_result = {}
         for item, value in self.__dict__.items():
-            # Allow values set to False or numerical zero.
+            # Discard empty strings, but allow values set to False or zero.
             if value == "" or item in exclude_items:
                 continue
 
@@ -170,7 +169,10 @@ class DirectoryServiceBackend(BaseBackend):
 
     @staticmethod
     def _validate_vpc_setting_values(region, vpc_settings):
-        """Raise exception if vpc_settings are invalid."""
+        """Raise exception if vpc_settings are invalid.
+
+        If settings are valid, add AvailabilityZones to vpc_settings.
+        """
         if len(vpc_settings["SubnetIds"]) != 2:
             raise InvalidParameterException(
                 "Invalid subnet ID(s). They must correspond to two subnets "
@@ -179,26 +181,30 @@ class DirectoryServiceBackend(BaseBackend):
 
         from moto.ec2 import ec2_backends  # pylint: disable=import-outside-toplevel
 
-        vpcs = ec2_backends[region].describe_vpcs()
-        # NOTE:  moto currently doesn't suport EC2's describe_subnets().
         # Subnet IDs are checked before the VPC ID.  The Subnet IDs must
         # be valid and in different availability zones.
-        # regions = []
-        # found_ids = 0
-        # for subnet in ec2_backends[region].describe_subnets():
-        #    if subnet.subnet_id in vpc_settings["SubnetIds"]:
-        #        found_id += 1
-        #        regions.append(subnet.availability_zone)
-        # if found_ids != len(vpc_settings["SubnetIds"]):
-        #     raise ClientException("Invalid subnet ID(s).")
-        # if len(regions) != len(vpc_settings["SubnetIds"]):
-        #     raise ClientException(
-        #         "Invalid subnet ID(s). The two subnets must be in "
-        #         "different Availabilty Zones."
-        #     )
+        try:
+            subnets = ec2_backends[region].get_all_subnets(
+                subnet_ids=vpc_settings["SubnetIds"]
+            )
+        except InvalidSubnetIdError as exc:
+            raise InvalidParameterException(
+                "Invalid subnet ID(s). They must correspond to two subnets "
+                "in different Availability Zones."
+            ) from exc
 
+        regions = [subnet.availability_zone for subnet in subnets]
+        if regions[0] == regions[1]:
+            raise ClientException(
+                "Invalid subnet ID(s). The two subnets must be in "
+                "different Availability Zones."
+            )
+
+        vpcs = ec2_backends[region].describe_vpcs()
         if vpc_settings["VpcId"] not in [x.id for x in vpcs]:
             raise ClientException("Invalid VPC ID.")
+
+        vpc_settings["AvailabilityZones"] = regions
 
     def create_directory(
         self, region, name, short_name, password, description, size, vpc_settings, tags
@@ -280,17 +286,14 @@ class DirectoryServiceBackend(BaseBackend):
         return sorted(directories, key=lambda x: x.launch_time)
 
     def get_directory_limits(self):
-        """Return hard-coded limits for the directories.
-
-        Not sure about the AD and Connected limits at this time.
-        """
+        """Return hard-coded limits for the directories."""
         counts = {"SimpleAD": 0, "MicrosoftAD": 0, "ConnectedAD": 0}
-        for dir_type in self.directories.values():
-            if dir_type.directory_type == "SimpleAD":
+        for directory in self.directories.values():
+            if directory.directory_type == "SimpleAD":
                 counts["SimpleAD"] += 1
-            elif dir_type.directory_type in ["MicrosoftAD", "SharedMicrosoftAD"]:
+            elif directory.directory_type in ["MicrosoftAD", "SharedMicrosoftAD"]:
                 counts["MicrosoftAD"] += 1
-            elif dir_type.directory_type == "ADConnector":
+            elif directory.directory_type == "ADConnector":
                 counts["ConnectedAD"] += 1
 
         return {
