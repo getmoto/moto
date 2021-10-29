@@ -1758,6 +1758,13 @@ class APIGatewayBackend(BaseBackend):
         self.base_path_mappings[domain_name][new_base_path] = new_base_path_mapping
         return new_base_path_mapping
 
+    def get_base_path_mappings(self, domain_name):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        return list(self.base_path_mappings[domain_name].values())
+
 
 apigateway_backends = {}
 for region_name in Session().get_available_regions("apigateway"):

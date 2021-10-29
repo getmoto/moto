@@ -2502,3 +2502,60 @@ def test_create_base_path_mapping_with_duplicate_base_path():
     )
     ex.value.response["Error"]["Code"].should.equal("ConflictException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+
+
+@mock_apigateway
+def test_get_base_path_mappings():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v2", stage=stage_name
+    )
+
+    response = client.get_base_path_mappings(domainName=domain_name)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    items = response["items"]
+
+    items[0]["basePath"].should.equal("(none)")
+    items[0]["restApiId"].should.equal(api_id)
+    items[0].should_not.have.key("stage")
+
+    items[1]["basePath"].should.equal("v1")
+    items[1]["restApiId"].should.equal(api_id)
+    items[1].should_not.have.key("stage")
+
+    items[2]["basePath"].should.equal("v2")
+    items[2]["restApiId"].should.equal(api_id)
+    items[2]["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_get_base_path_mappings_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mappings(domainName="unknown-domain")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
